@@ -71,10 +71,18 @@ test_that("a lost simplex SE warns at fit time and keeps the rest", {
   expect_true(any(grepl("zeta1_1", out, fixed = TRUE)))
   # said once: vcov() does not repeat it
   expect_silent(vcov(fit))
-  # a prediction does not read the lost weight's direction, so it
-  # keeps its standard error
-  ce <- conditional_effects(fit, "inc:age")
-  expect_true(all(is.finite(ce[[1L]]$se__)))
+  # a prediction at an observed category (0 or 2) does not read the
+  # lost weight's direction, so it keeps its standard error. One at the
+  # category 1, which no row is in, reads it, and has none: until the
+  # delta method carried the simplex (lp_delta_mo()) every band here
+  # was finite, the one at 1 too
+  ce <- allow_warnings(conditional_effects(fit, "inc:age"),
+                       "predictions move along a direction",
+                       require = "predictions move along a direction")
+  at1 <- ce[[1L]]$inc == 1
+  expect_true(any(at1))
+  expect_true(all(is.nan(ce[[1L]]$se__[at1])))
+  expect_true(all(is.finite(ce[[1L]]$se__[!at1])))
 })
 
 test_that("a covariate spanning 1e5 in a nonlinear body keeps its SEs", {
@@ -315,11 +323,17 @@ test_that("a prediction along a lost direction gets NaN and one warning", {
   expect_true(all(is.nan(r$value$se.fit)))
   expect_length(r$warnings, 1L)
   # the absent case: a lost simplex coordinate the prediction does not
-  # read (its gradient is exactly zero) keeps every band
+  # read (its gradient is exactly zero, at the observed categories 0
+  # and 2) keeps every standard error, and nothing warns
   fm <- suppressWarnings(frm(ls ~ mo(inc) + age, data = mo_flat_data()))
-  r <- se_capture(conditional_effects(fm, "inc:age"))
-  expect_true(all(is.finite(r$value[[1L]]$se__)))
+  r <- se_capture(fitted(fm, newdata = data.frame(inc = c(0L, 2L),
+                                                  age = c(30, 50))))
+  expect_true(all(is.finite(r$value[, "Est.Error"])))
   expect_false(any(grepl("predictions move", r$warnings, fixed = TRUE)))
+  # and the present case: the category 1 reads it
+  r <- se_capture(fitted(fm, newdata = data.frame(inc = 1L, age = 40)))
+  expect_true(is.nan(r$value[, "Est.Error"]))
+  expect_true(any(grepl("predictions move", r$warnings, fixed = TRUE)))
 })
 
 test_that("hypothesis() and emmeans() treat a lost direction the same way", {

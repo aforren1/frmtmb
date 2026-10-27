@@ -240,6 +240,16 @@ mo_terms_in_brms_order <- function(mo_terms) {
   mo_terms[order(ord)]
 }
 
+#' The names of every function an expression calls, at any depth, so a
+#' `mo()` term can refuse a latent variable inside it.
+#'
+#' @noRd
+mo_call_heads <- function(e) {
+  if (!is.call(e)) return(character(0))
+  c(if (is.name(e[[1L]])) as.character(e[[1L]]),
+    unlist(lapply(as.list(e)[-1L], mo_call_heads)))
+}
+
 #' How many `:`-separated components a term has, counting the special
 #' itself. A NULL multiplier is a main effect, order 1.
 #'
@@ -3798,6 +3808,15 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       for (ei in seq_along(mo_ents)) {
         ent <- mo_ents[[ei]]
         mexpr <- ent$expr
+        if (any(c("mi", "me") %in% mo_call_heads(mexpr))) {
+          # a latent variable has no categories; brms 2.23.0 refuses it
+          # too ("Monotonic predictors must be integers or ordered
+          # factors"), where an eval here said only that mi() is no
+          # function
+          frm_stop("mo(", deparse1(mexpr), "): mo() takes an ordered ",
+                   "factor or integers, not the latent variable of ",
+                   "mi() or me()", call. = FALSE)
+        }
         v <- eval(mexpr, mf, resp$formula_env)
         if (is.factor(v)) {
           if (!is.ordered(v)) {
@@ -3807,17 +3826,25 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           codes <- as.integer(v) - 1L
           D_mo <- nlevels(v) - 1L
           mo_levels <- levels(v)
+          mo_lo <- 0L
         } else {
-          if (any(v < 0) || any(v != round(v))) {
+          if (!is.numeric(v) || any(!is.finite(v)) || any(v != round(v))) {
             frm_stop("mo(): variable must be an ordered factor or ",
-                     "non-negative integers", call. = FALSE)
+                     "integers", call. = FALSE)
           }
-          codes <- as.integer(v)
+          # brms's get_mo_values() codes from the minimum. A code from 0
+          # on 1..k adds a category that no row is in, and then neither
+          # its simplex cell nor the coefficient is identified (frmtmb
+          # did that up to 0.75.0). New data are coded from the fitted
+          # data's minimum, as brms's validate_newdata() codes them.
+          mo_lo <- min(v)
+          codes <- as.integer(v - mo_lo)
           D_mo <- max(codes)
           mo_levels <- NULL
         }
         if (D_mo < 2L) {
-          frm_stop("mo() needs at least 3 ordered categories", call. = FALSE)
+          frm_stop("mo() needs at least 3 ordered categories; mo(",
+                   deparse1(mexpr), ") has ", D_mo + 1L, call. = FALSE)
         }
         sp <- mo_sp[[ei]]
         for (cj in seq_along(sp$labels)) {
@@ -3832,7 +3859,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                                dimnames = list(NULL, lab)))
           mo_info[[length(mo_info) + 1L]] <- list(
             expr = mexpr, codes = codes, D = D_mo, levels = mo_levels,
-            zeta = zname, col = ncol(X), label = lab,
+            min = mo_lo, zeta = zname, col = ncol(X), label = lab,
             mult = sp$mult[[cj]], mult_expr = ent$mult,
             mm_col = sp$mm_col[[cj]]
           )

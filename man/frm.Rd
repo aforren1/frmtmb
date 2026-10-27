@@ -129,7 +129,11 @@ constraint and nothing else. The \code{lower}/\code{upper} arguments of
 releases before 0.49 are gone rather than aliased, and a call still
 using them fails as an unused argument; every outer parameter they
 could reach has a \code{set_prior()} class, down to a single internal
-covariance parameter (\verb{class = "theta", coef = "thetaac_1"}). See
+covariance parameter (\verb{class = "theta", coef = "theta_1"}), except
+the internal parameters of a \code{cov = TRUE} \code{ar()} or \code{ma()} of order
+two or more, which take no box (brms has no such term), and a single
+correlation of an \code{unstr()} term, which class \code{"cortime"} reaches
+only as a whole matrix (as in brms, it takes no \code{lb}/\code{ub}). See
 \code{\link[=set_prior]{set_prior()}}'s Hard bounds section.
 
 \emph{The spelling is brms's; the SEMANTICS are not.} A prior here is a
@@ -374,8 +378,18 @@ several columns is refused.
 \section{Monotonic effects}{
 
 \code{mo(x)} fits an ordinal predictor without assuming its categories are
-equally spaced. \code{x} is an ordered factor or a non-negative integer
-vector with at least three categories, coded \verb{0..D}. The term
+equally spaced. \code{x} is an ordered factor or an integer vector with at
+least three categories. As in brms, the categories are coded \verb{0..D}
+from the lowest one: the first level of a factor, or the minimum of
+the integers. So \verb{1..5} and \verb{-2..2} are both coded \verb{0..4}. An
+integer between the minimum and the maximum that no row has is also
+a category. For example, \verb{1, 2, 5} gives \code{D = 4}. The data do not
+determine a prediction at such a category, so in a maximum-likelihood
+fit its standard error is \code{NaN}. New data are coded from the minimum
+of the fitted data. A value that is not a whole number, or that is
+outside the fitted range, is refused, as brms refuses it.
+\code{conditional_effects()} holds
+a numeric \code{mo()} variable at \code{round(median())}, as brms does. The term
 contributes \code{b * D * sum(zeta[1:k])} at category \code{k}, where \code{zeta} is
 a simplex of \code{D} non-negative steps summing to one. \code{b} is therefore
 the AVERAGE step, on the coefficient scale of any other predictor,

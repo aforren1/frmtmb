@@ -228,7 +228,7 @@ brmsfit-methods:901	frmtmb	divergence	summary(robust = TRUE) is refused (D3's re
 brmsfit-methods:904	frmtmb	pass	
 brmsfit-methods:914	frmtmb	divergence	update() returns a frmtmb_fit, not a brmsfit ; the update itself succeeded brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:923	frmtmb	divergence	update(newdata =) returns a frmtmb_fit ; save_pars() was dropped by the shim (D10) brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
-brmsfit-methods:924	frmtmb	pass	
+brmsfit-methods:924	frmtmb	divergence	update(newdata =) refits with Exp = 4 on every row; mo() codes from the minimum as brms 2.23.0 does, so mo(Exp) has one category and frm() refuses it. brms builds the model only under testmode, which never samples: Stan rejects Jmo = 0 (dev/mocode-brms-const.R)
 brmsfit-methods:927	frmtmb	divergence	update(fit, data = new_data) refits on the new data, as stats::update(), lme4 and glmmTMB read it; brms refuses the spelling and asks for newdata, which frmtmb also takes. Refusing a spelling that means one thing would only break the lme4 idiom (lane wt-defects)
 brmsfit-methods:931	frmtmb	divergence	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:933	frmtmb	divergence	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)

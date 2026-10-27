@@ -20,8 +20,9 @@ Lists the parameters of the residual correlation terms a fit takes
 from the registry of \code{\link[=frmtmb_register_autocor]{frmtmb_register_autocor()}} (frmtmb.spatial's
 \code{sar()}): their names as brms names them, the internal parameter each
 is, and the interval a bounded one lives on. frmtmb.sample reads it
-for the names of its draws and for brms's flat default prior on a
-bounded parameter, so that it keeps no list of names of its own.
+for the names of its draws, so that it keeps no list of names of its
+own. A bounded parameter has one prior slot, its class (\code{lagsar}), as
+core's \code{ar} and \code{cosy} do: \code{\link[=set_prior]{set_prior()}} refuses its internal name.
 }
 \examples{
 set.seed(1)

@@ -379,6 +379,7 @@ family. Write \verb{y*} for the response transformed by a link and
    \code{Intercept} (ordinal thresholds) \tab \code{student_t(3, 0, 2.5)} \tab thresholds \cr
    \code{sd} \tab \code{student_t(3, 0, s)} \tab natural sd, log-Jacobian applied \cr
    \code{cor}, \code{rescor}, \code{lncor}, \code{cortime} \tab \code{lkj(1)} \tab correlation matrix \cr
+   \code{ar}, \code{ma} (\code{cov = TRUE}), \code{cosy}, \code{lagsar} \tab flat, see below \tab natural \cr
    \code{simo}, \code{sbhaz} \tab \code{dirichlet(1)} \tab the simplex \cr
    \code{theta} (mixture weights) \tab \code{dirichlet(1)} \tab the simplex \cr
    \code{sigma} \tab \code{student_t(3, 0, s)} \tab natural \cr
@@ -430,6 +431,46 @@ the likelihood has no support either. \code{ndt} of frmtmb.eam's
 uniform is flat over exactly brms's interval. A scalar \code{xi} of
 \code{\link[frmtmb:gen_extreme_value]{frmtmb::gen_extreme_value()}} is sampled through brms's \code{tmp_xi} (see
 the message), and is above -1, where brms's range goes on.
+
+A residual-correlation coefficient that frmtmb holds through a
+transform gets brms's \code{(flat)} on the coefficient itself, written as
+a uniform density over the whole interval the transform maps onto and
+carried inward with its Jacobian: \code{uniform(-1, 1)} on a first-order
+\code{cov = TRUE} \code{ar} or \code{ma}, a uniform on frmtmb.spatial's \code{sar()}
+interval for \code{lagsar} and \code{errorsar}, and for \code{cosy} a uniform on its
+positive-definite window with \code{lb = 0}, which is brms's \verb{[0, 1]}. A
+\code{cov = TRUE} term of order two or more, which brms does not have,
+takes a uniform on a box that holds its stationary (or invertible)
+region, which is flat on that region. A prior of your own on one of
+these classes keeps the default's bound on each side it leaves
+unset, and a bounds-only one keeps the flat density, as brms keeps
+both. The \code{cov = FALSE} coefficients are unconstrained and are the
+sampled parameters, so brms's flat needs no density there. A bounded
+one of these parameters is sampled through one logistic onto its
+interval, as Stan's bound is in brms.
+
+Under a first-order \code{cov = TRUE} \code{ar()}, \code{ma()} or \code{arma()}, the
+\code{sigma} that frmtmb reports (in \code{summary()}, \code{sigma()}, \code{VarCorr()}
+and these draws) is the MARGINAL sd of a residual, where brms's
+\code{sigma} is the innovation sd, smaller by the factor \code{sqrt(1 - ar^2)},
+\code{1 / sqrt(1 + ma^2)} or \verb{sqrt((1 - ar^2) / (1 + ma^2 + 2 ar ma))}; on
+an AR(1) of 0.9 that is 1.16 here against 0.43 in brms, for the same
+model. A prior on class \code{"sigma"}, the default \code{student_t(3, 0, s)} or
+one of your own, is read as brms reads it, on the innovation sd, with
+the Jacobian of the factor, here and in \code{\link[frmtmb:frm]{frmtmb::frm()}} alike, so a
+\code{default_prior(route = "sample")} table passed back as \verb{prior =} is
+the default density. A \code{lb} above 0 or a \code{ub} on \code{sigma} there is
+refused: a box on the innovation sd is not a box on the marginal sd,
+which the sampler holds. Under \code{sigma ~ x} with such a term, a prior on
+the intercept of \code{sigma} (\verb{class = "Intercept", dpar = "sigma"}),
+the default included, is still read at frmtmb's log marginal sd, where
+brms reads it at the log innovation sd; the slopes are the same in
+both, as \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} says.
+
+Every default with a bound (\code{nu} above 1 on an identity link, \code{sigma}
+above 0 on one, \code{ndt} below the smallest response, \code{cosy} above 0)
+keeps that bound under a prior of your own on the same slot, on each
+side the prior leaves unset, as brms keeps the bound it declares.
 
 A mixture's weights without a formula are a simplex, and
 \code{dirichlet(1)} on it is the flat density there, with the Jacobian of

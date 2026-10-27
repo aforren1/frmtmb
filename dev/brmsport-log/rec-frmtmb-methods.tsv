@@ -233,16 +233,16 @@ assert	frmtmb	brmsfit-methods:904	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:913		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:914	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:916		TRUE	FALSE			TRUE
-setup	frmtmb	brmsfit-methods:921		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:923	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
-assert	frmtmb	brmsfit-methods:924	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:927	divergence	FALSE	FALSE	Expected `update(fit1, data = new_data)` to throw a error.		FALSE
+setup	frmtmb	brmsfit-methods:921		FALSE	FALSE	mo() needs at least 3 ordered categories; mo(Exp) has 1		FALSE
+assert	frmtmb	brmsfit-methods:923	divergence	FALSE	TRUE	STALE: reads 'up', whose last assignment failed: mo() needs at least 3 ordered categories; mo(Exp) has 1		FALSE
+assert	frmtmb	brmsfit-methods:924	pass	FALSE	TRUE	STALE: reads 'up', whose last assignment failed: mo() needs at least 3 ordered categories; mo(Exp) has 1		FALSE
+assert	frmtmb	brmsfit-methods:927	divergence	FALSE	FALSE	ERROR: mo() needs at least 3 ordered categories; mo(Exp) has 1		FALSE
 setup	frmtmb	brmsfit-methods:929		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:931	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:932		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:933	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
-setup	frmtmb	brmsfit-methods:935		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:937	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
+setup	frmtmb	brmsfit-methods:935		FALSE	FALSE	mo() needs at least 3 ordered categories; mo(Exp) has 1		FALSE
+assert	frmtmb	brmsfit-methods:937	divergence	FALSE	TRUE	STALE: reads 'up', whose last assignment failed: mo() needs at least 3 ordered categories; mo(Exp) has 1		FALSE
 assert	frmtmb	brmsfit-methods:938	own	TRUE	FALSE		The model uses `wrong_var`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name	FALSE
 setup	frmtmb	brmsfit-methods:941		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:942	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE

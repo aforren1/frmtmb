@@ -125,6 +125,132 @@ test_that("posterior_predict for aysm_laplace models runs without errors", {
   )
 })
 
+test_that("loglik for SAR models runs without errors", {
+  withr::local_seed(100L)
+  brms_setup("posterior_predict:101", {
+    ns = 3
+  })
+  brms_setup("posterior_predict:102",
+    prep <- structure(list(ndraws = ns, nobs = 10), class = "brmsprep")
+  )
+  brms_setup("posterior_predict:103",
+    prep$dpars <- list(
+      mu = matrix(rnorm(30), nrow = ns),
+      nu = rep(2, ns),
+      sigma = rep(10, ns)
+    )
+  )
+  brms_setup("posterior_predict:108",
+    prep$ac <- list(lagsar = matrix(c(0.3, 0.5, 0.7)), Msar = brms_adapt_sar_path(10))
+  )
+  brms_setup("posterior_predict:110",
+    pred <- brms_adapt_posterior_predict("gaussian_lagsar", 1, prep = prep)
+  )
+  brms_port("posterior_predict:111", "pass",
+    paste0(
+      "pass on an adapted input: brms's prep uses Msar = diag(10), ",
+      "and the port replaces it by the row-standardized path graph ",
+      "over the same 10 rows (brms_adapt_sar_path()). frmtmb ",
+      "refuses brms's literal input by design: I - rho I makes rho ",
+      "and the scale one parameter, so sar() needs a weights ",
+      "matrix with a negative and a positive eigenvalue. brms's ",
+      "assertion (the dimensions) holds on the substituted matrix, ",
+      "and for log_lik the value check against brms's own function ",
+      "on it holds too."),
+    expect_equal(dim(pred), c(3, 10))
+  )
+  brms_setup("posterior_predict:112",
+    pred <- brms_adapt_posterior_predict("student_lagsar", 1, prep = prep)
+  )
+  brms_port("posterior_predict:113", "pass",
+    paste0(
+      "pass on an adapted input: brms's prep uses Msar = diag(10), ",
+      "and the port replaces it by the row-standardized path graph ",
+      "over the same 10 rows (brms_adapt_sar_path()). frmtmb ",
+      "refuses brms's literal input by design: I - rho I makes rho ",
+      "and the scale one parameter, so sar() needs a weights ",
+      "matrix with a negative and a positive eigenvalue. brms's ",
+      "assertion (the dimensions) holds on the substituted matrix, ",
+      "and for log_lik the value check against brms's own function ",
+      "on it holds too."),
+    expect_equal(dim(pred), c(3, 10))
+  )
+  brms_setup("posterior_predict:115",
+    prep$ac$errorsar <- prep$ac$lagsar
+  )
+  brms_setup("posterior_predict:116",
+    prep$ac$lagsar <- NULL
+  )
+  brms_setup("posterior_predict:117",
+    pred <- brms_adapt_posterior_predict("gaussian_errorsar", 1, prep = prep)
+  )
+  brms_port("posterior_predict:118", "pass",
+    paste0(
+      "pass on an adapted input: brms's prep uses Msar = diag(10), ",
+      "and the port replaces it by the row-standardized path graph ",
+      "over the same 10 rows (brms_adapt_sar_path()). frmtmb ",
+      "refuses brms's literal input by design: I - rho I makes rho ",
+      "and the scale one parameter, so sar() needs a weights ",
+      "matrix with a negative and a positive eigenvalue. brms's ",
+      "assertion (the dimensions) holds on the substituted matrix, ",
+      "and for log_lik the value check against brms's own function ",
+      "on it holds too."),
+    expect_equal(dim(pred), c(3, 10))
+  )
+  brms_setup("posterior_predict:119",
+    pred <- brms_adapt_posterior_predict("student_errorsar", 1, prep = prep)
+  )
+  brms_port("posterior_predict:120", "pass",
+    paste0(
+      "pass on an adapted input: brms's prep uses Msar = diag(10), ",
+      "and the port replaces it by the row-standardized path graph ",
+      "over the same 10 rows (brms_adapt_sar_path()). frmtmb ",
+      "refuses brms's literal input by design: I - rho I makes rho ",
+      "and the scale one parameter, so sar() needs a weights ",
+      "matrix with a negative and a positive eigenvalue. brms's ",
+      "assertion (the dimensions) holds on the substituted matrix, ",
+      "and for log_lik the value check against brms's own function ",
+      "on it holds too."),
+    expect_equal(dim(pred), c(3, 10))
+  )
+})
+
+test_that("posterior_predict for FCOR models runs without errors", {
+  withr::local_seed(123L)
+  brms_setup("posterior_predict:124",
+    ns <- 3
+  )
+  brms_setup("posterior_predict:125",
+    nobs <- 10
+  )
+  brms_setup("posterior_predict:126",
+    prep <- structure(list(ndraws = ns, nobs = nobs), class = "brmsprep")
+  )
+  brms_setup("posterior_predict:127",
+    prep$dpars <- list(
+      mu = matrix(rnorm(nobs * ns), nrow = ns),
+      sigma = rep(1, ns), nu = rep(2, ns)
+    )
+  )
+  brms_setup("posterior_predict:131",
+    prep$ac <- list(Mfcor = diag(nobs))
+  )
+  brms_setup("posterior_predict:132",
+    pred <- brms_adapt_posterior_predict("gaussian_fcor", 1, prep = prep)
+  )
+  brms_port("posterior_predict:133", "pass",
+    "",
+    expect_equal(dim(pred), c(ns, nobs))
+  )
+  brms_setup("posterior_predict:134",
+    pred <- brms_adapt_posterior_predict("student_fcor", 1, prep = prep)
+  )
+  brms_port("posterior_predict:135", "pass",
+    "",
+    expect_equal(dim(pred), c(ns, nobs))
+  )
+})
+
 test_that("posterior_predict for count and survival models runs without errors", {
   withr::local_seed(138L)
   brms_setup("posterior_predict:139",

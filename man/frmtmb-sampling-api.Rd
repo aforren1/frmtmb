@@ -89,6 +89,10 @@
 \alias{ord_lp_blocks}
 \alias{ord_thres_linpred}
 \alias{rescor_row_loglik}
+\alias{autocor_flat_priors}
+\alias{autocor_bound_chart}
+\alias{autocor_innov_sd}
+\alias{autocor_row_loglik}
 \alias{arma_cond_resp}
 \alias{arma_cond_dpars}
 \alias{arma_cond_fill_dpars}
@@ -180,18 +184,26 @@ returns): the multivariate normal of a gaussian model or the
 multivariate t of a Student-t one, with its one shared \code{nu}. A
 pointwise \code{log_lik()} of a \code{rescor} model reads it rather than
 assuming the normal.
+\code{autocor_row_loglik(fit, dpv, resp)} is the pointwise log-density of
+a response with a residual covariance term (the covariance form of
+\code{ar()}, \code{ma()} and \code{arma()}, \code{cosy()}, \code{unstr()}, \code{fcor()}, a term of
+\code{\link[=frmtmb_register_autocor]{frmtmb_register_autocor()}}), at \code{dpv} (the whole list \code{eval_dpars()}
+returns) and the fit's \code{thetaac}: brms's leave-one-out conditional
+density of each row given the other rows of its group, one value per
+row (\link{frmtmb-autocor}, "The pointwise log-density"). The values do
+not sum to the log-likelihood. On a maximum-likelihood fit it is the
+value at the estimates.
 
 \code{arma_cond_resp(fit)} names the responses carrying brms's default
 \code{cov = FALSE} form of \code{ar()}, \code{ma()} or \code{arma()}, and
 \code{arma_cond_dpars(fit, dpv)} gives the whole \code{eval_dpars()} list back
 with each such response's \code{mu} moved to brms's one-step conditional
 mean, the regression on the earlier OBSERVED residuals of the row's
-group. The two answer one question between them: whether a pointwise
-log-density exists, and what \code{mu} it is evaluated at. Under
-\code{cov = FALSE} every row keeps the family's own density, so a
-\code{log_lik()} column is an observation; a \code{cov = TRUE} covariance block
-has no such column, because its smallest independent unit is a whole
-group. Call \code{arma_cond_dpars()} before \code{row_lpdf()} (and before
+group. The two answer one question between them: which pointwise
+log-density a row gets, and what \code{mu} it is evaluated at. Under
+\code{cov = FALSE} every row keeps the family's own density; a \code{cov = TRUE}
+covariance block has none, and its row gets \code{autocor_row_loglik()}
+instead. Call \code{arma_cond_dpars()} before \code{row_lpdf()} (and before
 \code{rescor_row_loglik()}), which is the order the taped objective uses
 and which makes the row density read the objective's own \code{mu} instead
 of a second one. It is safe to call unconditionally: with no such
@@ -296,6 +308,21 @@ holds.
 blocks with the linear predictor and the \code{dpar} that class
 \code{"Intercept"} addresses each by, which is where brms puts its
 default on the thresholds.
+\code{autocor_flat_priors(fit)} lists brms's flat default on each
+residual-correlation class held through a transform (\code{ar}, \code{ma},
+\code{cosy}, a registry term's \code{lagsar}): one row per class and response,
+with the ends of a uniform density on the natural parameter that
+spans the whole image of the term's map, so that it is flat
+wherever the parameter can go, and the narrower bound brms declares
+where it has one (\code{lb = 0} on \code{cosy}). A \code{cov = FALSE} term has no
+row, because its coefficients are the internal parameters.
+\code{autocor_bound_chart(fit, lower, upper)} gives, for each bounded
+first-order residual-correlation parameter, a chart that samples it
+through one logistic onto its natural interval, with the map to the
+internal parameter and its log Jacobian. \code{autocor_innov_sd(fit)}
+names the responses whose \code{sigma} brms reads as the innovation sd of
+a first-order \code{cov = TRUE} \code{ar()}, \code{ma()} or \code{arma()}, where the
+default prior on \code{sigma} is read on that sd.
 
 \code{frmtmb_register_prior_defaults()} is the other direction: it lets a
 package tell \code{\link[=get_prior]{get_prior()}} what defaults it would apply.

@@ -188,3 +188,15 @@ machine-local memory so that it survives a change of machine.
         tp(-1)       # 1: the guard is gone
         g <- function(p) { u <- p[1] + abs(p[1]); u / u - 1 + p[1]^2 }
         RTMB::MakeTape(g, 2)(-1)   # NaN
+
+23. tmbstan holds the objective in process-global pointers: its
+    `sampling()` method calls `.Call("set_pointers", ...)` for the fit
+    it runs. So `rstan::log_prob()` or `grad_log_prob()` of an EARLIER
+    tmbstan fit in the same process evaluates the LATEST fit's
+    objective, and a comparison of two fits made in one process
+    compares one model with itself. At the 0.76.0 consolidation this
+    made two runs' log densities look bitwise equal at 800 points;
+    evaluated right after each run, 9 of 500 differ by one ulp
+    (dev/reviews/2026-10-27-release.md, finding 2). Evaluate a
+    stanfit's objective right after its own run, or in its own
+    process.

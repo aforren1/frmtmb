@@ -75,8 +75,15 @@ ce_int_vars <- function(rspec, base) {
 #' models a predictor that HAS gaps, and a reference value of `NA` is a
 #' grid of nothing. The complete cases are what it summarizes.
 #'
+#' `step` marks a numeric `mo()` variable, which the model defines at
+#' whole values only: brms holds it at `round(median())` (its
+#' prepare_conditions() with `int_vars`), where a mean is no category.
+#'
 #' @noRd
-ce_ref_value <- function(col) {
+ce_ref_value <- function(col, step = FALSE) {
+  if (step && is.numeric(col) && !is.matrix(col)) {
+    return(round(stats::median(col, na.rm = TRUE)))
+  }
   if (is.matrix(col)) {
     matrix(colMeans(col, na.rm = TRUE), 1, ncol(col))
   } else if (is.factor(col)) {
@@ -101,7 +108,8 @@ ce_ref_value <- function(col) {
 #'
 #' @noRd
 ce_grid_values <- function(col, resolution, nm = "the predictor",
-                           int_cond = NULL, stepwise = FALSE) {
+                           int_cond = NULL, stepwise = FALSE,
+                           step_range = NULL) {
   if (!is.null(int_cond)) return(ce_int_cond(int_cond, col))
   if (is.factor(col)) {
     factor(levels(col), levels = levels(col))
@@ -112,7 +120,15 @@ ce_grid_values <- function(col, resolution, nm = "the predictor",
     }
     lo <- min(col, na.rm = TRUE)
     hi <- max(col, na.rm = TRUE)
-    if (stepwise) seq(lo, hi, by = 1) else seq(lo, hi, length.out = resolution)
+    if (stepwise && length(step_range) == 2L) {
+      # the categories the fitted term codes, which in a subset()
+      # response are not the range of every row of the data
+      seq(step_range[1L], step_range[2L], by = 1)
+    } else if (stepwise) {
+      seq(lo, hi, by = 1)
+    } else {
+      seq(lo, hi, length.out = resolution)
+    }
   } else if (is.logical(col)) {
     c(FALSE, TRUE)
   } else {
@@ -129,8 +145,14 @@ ce_grid_values <- function(col, resolution, nm = "the predictor",
 #' coefficient rather than on anything visible in the display.
 #'
 #' @noRd
-ce_second_values <- function(col, int_cond = NULL) {
+ce_second_values <- function(col, int_cond = NULL, step = FALSE) {
   if (!is.null(int_cond)) return(ce_int_cond(int_cond, col))
+  if (step && is.numeric(col) && !is.matrix(col)) {
+    # a numeric mo() moderator, at brms's round(median +/- mad): whole
+    # values, which are the values the labels then name
+    return(round(stats::median(col, na.rm = TRUE) +
+                   c(-1, 0, 1) * stats::mad(col, na.rm = TRUE)))
+  }
   if (is.numeric(col) && !is.matrix(col)) {
     mean(col, na.rm = TRUE) + c(-1, 0, 1) * stats::sd(col, na.rm = TRUE)
   } else {
@@ -276,6 +298,48 @@ ce_step_vars <- function(x, rspec, lp, resp, seen = character(0)) {
     }
   }
   unique(v)
+}
+
+#' Every variable a numeric `mo()` term of the model reads, over every
+#' linear predictor of every response: brms's `get_int_vars()` lists the
+#' `mo()` variables of the whole model, and holds and moderates each at
+#' whole values.
+#'
+#' @noRd
+ce_mo_vars <- function(x) {
+  v <- character(0)
+  for (lp in x$frame[["linpreds"]] %||% list()) {
+    for (m in lp[["mo"]] %||% list()) {
+      if (is.null(m[["levels"]])) v <- c(v, all.vars(m[["expr"]]))
+    }
+  }
+  unique(v)
+}
+
+#' The categories, `c(lo, hi)`, of the numeric `mo(v)` terms of one
+#' response, or `NULL` when none reads `v` alone. A `subset()` response
+#' codes only its own rows, so its range can be narrower than the data's;
+#' terms of one response that read `v` give the range all of them code.
+#'
+#' @noRd
+ce_mo_range <- function(x, resp, v) {
+  lo <- -Inf
+  hi <- Inf
+  hit <- FALSE
+  for (lp in x$frame[["linpreds"]] %||% list()) {
+    if (!identical(lp[["resp"]], resp)) next
+    for (m in lp[["mo"]] %||% list()) {
+      if (!is.null(m[["levels"]]) || !is.name(m[["expr"]]) ||
+            !identical(as.character(m[["expr"]]), v) ||
+            is.null(m[["min"]])) {
+        next
+      }
+      hit <- TRUE
+      lo <- max(lo, m[["min"]])
+      hi <- min(hi, m[["min"]] + m[["D"]])
+    }
+  }
+  if (!hit || lo > hi) NULL else c(lo, hi)
 }
 
 #' Every plottable variable of every linear predictor of one response.
@@ -754,7 +818,8 @@ ce_pred_dpar <- function(rspec, dpar, dpar_given = FALSE,
 #' @noRd
 ce_build_nd <- function(base, ev, v1, v2, cset, n, n2,
                         na_vars = character(0),
-                        extend_vars = character(0)) {
+                        extend_vars = character(0),
+                        step_vars = character(0)) {
   nd <- data.frame(.ce_row = seq_len(n))
   for (nm in names(base)) {
     val <- if (nm %in% names(cset)) {
@@ -779,7 +844,7 @@ ce_build_nd <- function(base, ev, v1, v2, cset, n, n2,
         base[[nm]][NA_integer_][1L]
       }
     } else {
-      ce_ref_value(base[[nm]])
+      ce_ref_value(base[[nm]], step = nm %in% step_vars)
     }
     nd[[nm]] <- if (is.matrix(val)) {
       matrix(val, n, ncol(val), byrow = TRUE)
@@ -1762,7 +1827,9 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
     vars <- ce_plot_vars_any(x, rspec, resp, rsv = FALSE)
   }
   vars <- vars[vars %in% names(base)]
-  step_vars <- ce_step_vars(x, rspec, lp, resp)
+  # every numeric mo() variable of the model takes whole values only,
+  # whichever predictor reads it, as brms's get_int_vars() lists them
+  step_vars <- union(ce_step_vars(x, rspec, lp, resp), ce_mo_vars(x))
   # a matrix column is a whole function per row, so there is no single
   # value to hold it at while another predictor varies. Remember which
   # ones were dropped: on a scalar-on-function fit they are the only
@@ -1884,7 +1951,8 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
     }
     v1 <- ce_grid_values(base[[ev[1L]]], resolution, ev[1L],
                          int_conditions[[ev[1L]]],
-                         stepwise = ev[1L] %in% step_vars)
+                         stepwise = ev[1L] %in% step_vars,
+                         step_range = ce_mo_range(x, resp, ev[1L]))
     # brms's surface: two numeric predictors, both over their range, so
     # the display is a grid over the plane rather than three curves
     surf <- surface && length(ev) == 2L &&
@@ -1892,15 +1960,18 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
     v2 <- if (surf) {
       ce_grid_values(base[[ev[2L]]], resolution, ev[2L],
                      int_conditions[[ev[2L]]],
-                     stepwise = ev[2L] %in% step_vars)
+                     stepwise = ev[2L] %in% step_vars,
+                     step_range = ce_mo_range(x, resp, ev[2L]))
     } else if (length(ev) == 2L) {
-      ce_second_values(base[[ev[2L]]], int_conditions[[ev[2L]]])
+      ce_second_values(base[[ev[2L]]], int_conditions[[ev[2L]]],
+                       step = ev[2L] %in% step_vars)
     }
     n1 <- length(v1)
     n2 <- max(1L, length(v2))
     for (ci in seq_along(cond_sets)) {
       nd <- ce_build_nd(base, ev, v1, v2, cond_sets[[ci]], n1 * n2, n2,
-                        na_vars, setdiff(na_vars, ce_locked_vars(x)))
+                        na_vars, setdiff(na_vars, ce_locked_vars(x)),
+                        step_vars)
       if (surf && too_far > 0) {
         # brms's too_far: grid points farther than this from every
         # observation, on the unit square, are not drawn at all

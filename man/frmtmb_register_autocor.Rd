@@ -18,6 +18,7 @@ frmtmb_register_autocor(
   bounds = NULL,
   usage = NULL,
   compat_note = NULL,
+  jacobian = NULL,
   replace = FALSE,
   package = compat_registrant_name(parent.frame())
 )
@@ -68,6 +69,9 @@ families, the addition terms, \code{rescor}, mixtures, non-linear
 formulas, quadrature and a second residual term are written with
 the registration.}
 
+\item{jacobian}{\code{NULL}, or \verb{function(sigma, theta, aux)} giving the
+Jacobian of \code{whiten} in \code{y}; see "The Jacobian".}
+
 \item{replace, package}{As in \code{\link[=frmtmb_register_covstruct]{frmtmb_register_covstruct()}}. A fit
 records the package, so that a fit read where it is not installed
 is refused by its name.}
@@ -97,7 +101,11 @@ this is \eqn{(I - \rho W)^{-1} \mu}, which \code{\link[=fitted]{fitted()}} repor
 \item the draws of \code{\link[=simulate]{simulate()}} and \code{\link[=predict]{predict()}}, \code{unwhiten()} at drawn
 innovations;
 \item the residual covariance divided by \code{sigma^2} (\code{\link[=autocor_matrix]{autocor_matrix()}})
-and the marginal variance that pearson residuals divide by.
+and the marginal variance that pearson residuals divide by;
+\item the pointwise log-density of \code{frmtmb.sample::log_lik()}, brms's
+leave-one-out conditional density of each row given the others,
+from the precision matrix \verb{K'K} of the response, with \code{K} the
+Jacobian of \code{whiten} in \code{y} (see "The Jacobian").
 }
 
 The term holds for all the rows of a response at once, so the
@@ -155,6 +163,33 @@ and \code{whiten(unwhiten(u))} returns \code{u} to a relative error of 1e-6. A
 term that fails is refused by its name.
 }
 
+\section{The Jacobian}{
+
+\code{whiten} is affine in \code{y}, so \code{u = K (y - m)} with \code{m} the mean
+\code{unwhiten(0, ...)} and \code{K} its Jacobian. \code{jacobian(sigma, theta, aux)}
+returns \code{K}, \verb{n x n}, on numbers, with \code{sigma} as \code{whiten} receives
+it. A sparse \code{Matrix} keeps the pointwise log-density at the cost of
+its nonzeros, which matters for a large \code{n}. Without the slot, frmtmb
+reads \code{K} as the inverse of \code{unwhiten()} of the identity: exact, and
+one dense \verb{n x n} solve per parameter vector. Measured with \code{sar()}'s
+lag map registered without its slot, one draw takes 0.03 s and 21 Mb
+at \code{n = 500}, 0.5 s and 48 Mb at 1000, 1.7 s and 155 Mb at 2000, and
+5 s and 345 Mb at 3000, growing as \code{n^3}; with the slot, 1600 rows
+take 2 ms. Above 1000 rows \code{log_lik()} warns once per call (class
+\code{frmtmb_autocor_dense_fallback}), naming the term and the slot. When the
+frame is built, a given \code{jacobian} is checked on numbers at two
+points: the start with \code{sigma = 1}, and a generic point, with sigma
+1.37 (or \verb{exp(0.3 sin(i))} on row \code{i} under \code{sigma_varies = TRUE}) and
+every parameter moved from the start by 0.4 times its position (then
+-0.4, 0.04 and -0.04, when the map cannot be evaluated there; if none
+can be, the start, with a warning of class
+\code{frmtmb_autocor_jacobian_unchecked}). At each point
+\code{K (y - m)} must be \code{whiten(y)} for two directions of \code{y - m}, to a
+relative error of 1e-6. A slot that forgets sigma, divides rows
+where it should divide columns, ignores a parameter or transposes an
+asymmetric matrix is refused by the term's name.
+}
+
 \section{Bounded parameters and priors}{
 
 Give \code{bounds} when each parameter is a bounded quantity mapped as
@@ -193,6 +228,10 @@ myfix_whiten <- function(y, mu, sigma, theta, aux) {
 myfix_unwhiten <- function(u, mu, sigma, theta, aux) {
   mu + sigma * (aux$L \%*\% u)
 }
+# u = Linv (y - mu) / sigma, so the Jacobian is Linv / sigma: right
+# for one sigma (sigma_varies = FALSE). A sigma per row divides the
+# COLUMNS, Linv \%*\% diag(1 / sigma), as fcor() does
+myfix_jacobian <- function(sigma, theta, aux) aux$Linv / sigma
 # a package calls frmtmb_register_autocor() from its .onLoad(); here
 # the registration lasts while demo() runs
 demo <- function() {
@@ -200,6 +239,7 @@ demo <- function() {
   frmtmb_register_autocor("myfix", args = "V", build = myfix_build,
                           whiten = myfix_whiten,
                           unwhiten = myfix_unwhiten,
+                          jacobian = myfix_jacobian,
                           sigma_varies = FALSE)
   set.seed(1)
   V <- 0.5^abs(outer(1:20, 1:20, "-"))

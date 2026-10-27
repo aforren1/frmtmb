@@ -183,6 +183,13 @@ log_lik:64	frmtmb	pass
 log_lik:71	frmtmb	pass	
 log_lik:85	frmtmb	pass	
 log_lik:88	frmtmb	pass	
+log_lik:150	frmtmb	pass	pass on an adapted input: brms's prep uses Msar = diag(10), and the port replaces it by the row-standardized path graph over the same 10 rows (brms_adapt_sar_path()). frmtmb refuses brms's literal input by design: I - rho I makes rho and the scale one parameter, so sar() needs a weights matrix with a negative and a positive eigenvalue. brms's assertion (the dimensions) holds on the substituted matrix, and for log_lik the value check against brms's own function on it holds too.
+log_lik:152	frmtmb	pass	pass on an adapted input: brms's prep uses Msar = diag(10), and the port replaces it by the row-standardized path graph over the same 10 rows (brms_adapt_sar_path()). frmtmb refuses brms's literal input by design: I - rho I makes rho and the scale one parameter, so sar() needs a weights matrix with a negative and a positive eigenvalue. brms's assertion (the dimensions) holds on the substituted matrix, and for log_lik the value check against brms's own function on it holds too.
+log_lik:157	frmtmb	pass	pass on an adapted input: brms's prep uses Msar = diag(10), and the port replaces it by the row-standardized path graph over the same 10 rows (brms_adapt_sar_path()). frmtmb refuses brms's literal input by design: I - rho I makes rho and the scale one parameter, so sar() needs a weights matrix with a negative and a positive eigenvalue. brms's assertion (the dimensions) holds on the substituted matrix, and for log_lik the value check against brms's own function on it holds too.
+log_lik:159	frmtmb	pass	pass on an adapted input: brms's prep uses Msar = diag(10), and the port replaces it by the row-standardized path graph over the same 10 rows (brms_adapt_sar_path()). frmtmb refuses brms's literal input by design: I - rho I makes rho and the scale one parameter, so sar() needs a weights matrix with a negative and a positive eigenvalue. brms's assertion (the dimensions) holds on the substituted matrix, and for log_lik the value check against brms's own function on it holds too.
+log_lik:174	frmtmb	pass	
+log_lik:176	frmtmb	pass	
+log_lik:230	frmtmb	pass	
 log_lik:260	frmtmb	pass	
 log_lik:267	frmtmb	pass	
 log_lik:271	frmtmb	pass	
@@ -235,6 +242,12 @@ posterior_predict:34	frmtmb	pass
 posterior_predict:36	frmtmb	pass	
 posterior_predict:49	frmtmb	pass	
 posterior_predict:51	frmtmb	pass	
+posterior_predict:111	frmtmb	pass	pass on an adapted input: brms's prep uses Msar = diag(10), and the port replaces it by the row-standardized path graph over the same 10 rows (brms_adapt_sar_path()). frmtmb refuses brms's literal input by design: I - rho I makes rho and the scale one parameter, so sar() needs a weights matrix with a negative and a positive eigenvalue. brms's assertion (the dimensions) holds on the substituted matrix, and for log_lik the value check against brms's own function on it holds too.
+posterior_predict:113	frmtmb	pass	pass on an adapted input: brms's prep uses Msar = diag(10), and the port replaces it by the row-standardized path graph over the same 10 rows (brms_adapt_sar_path()). frmtmb refuses brms's literal input by design: I - rho I makes rho and the scale one parameter, so sar() needs a weights matrix with a negative and a positive eigenvalue. brms's assertion (the dimensions) holds on the substituted matrix, and for log_lik the value check against brms's own function on it holds too.
+posterior_predict:118	frmtmb	pass	pass on an adapted input: brms's prep uses Msar = diag(10), and the port replaces it by the row-standardized path graph over the same 10 rows (brms_adapt_sar_path()). frmtmb refuses brms's literal input by design: I - rho I makes rho and the scale one parameter, so sar() needs a weights matrix with a negative and a positive eigenvalue. brms's assertion (the dimensions) holds on the substituted matrix, and for log_lik the value check against brms's own function on it holds too.
+posterior_predict:120	frmtmb	pass	pass on an adapted input: brms's prep uses Msar = diag(10), and the port replaces it by the row-standardized path graph over the same 10 rows (brms_adapt_sar_path()). frmtmb refuses brms's literal input by design: I - rho I makes rho and the scale one parameter, so sar() needs a weights matrix with a negative and a positive eigenvalue. brms's assertion (the dimensions) holds on the substituted matrix, and for log_lik the value check against brms's own function on it holds too.
+posterior_predict:133	frmtmb	pass	
+posterior_predict:135	frmtmb	pass	
 posterior_predict:153	frmtmb	pass	
 posterior_predict:156	frmtmb	pass	
 posterior_predict:159	frmtmb	pass	

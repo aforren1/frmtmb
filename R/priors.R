@@ -80,10 +80,14 @@
 #' - `"theta"`: raw internal covariance parameters (escape hatch).
 #'   `coef` names one by its internal name and spans all three
 #'   covariance components: `"theta_2"` for a random-effect block,
-#'   `"thetaac_1"` for a residual autocorrelation, `"thetar_1"` for a
-#'   residual correlation. This is the one spelling that reaches a
-#'   single parameter of a structure whose natural coefficients are not
-#'   free of one another.
+#'   `"thetar_1"` for a residual correlation, and `"thetaac_1"` for a
+#'   parameter of a residual term that has no class of its own. This is
+#'   the one spelling that reaches a single parameter of a structure
+#'   whose natural coefficients are not free of one another. A
+#'   residual-correlation parameter that a class reaches (`"ar"`,
+#'   `"ma"`, `"cosy"`, `"cortime"`, frmtmb.spatial's `"lagsar"`) has
+#'   that class as its one slot, as in brms: its `thetaac_` row is not
+#'   listed, and a prior on it is refused with the class to use.
 #' - a DISTRIBUTIONAL parameter's own name (`"sigma"`, `"shape"`,
 #'   `"phi"`, `"zi"`, `"nu"`, ...): a density on that parameter ITSELF,
 #'   on its NATURAL scale, with the inverse link's log-Jacobian
@@ -243,8 +247,9 @@
 #' deviation on the sd scale (frmtmb stores its log), classes `"ar"`,
 #' `"ma"` and `"cosy"` bound the natural coefficient of a residual
 #' structure, and class `"theta"` bounds an internal covariance
-#' parameter itself, one position at a time with `coef = "theta_2"`,
-#' `"thetaac_1"` or `"thetar_1"`. Everything else is bounded on the
+#' parameter itself, one position at a time with `coef = "theta_2"` or
+#' `"thetar_1"` (or `"thetaac_1"` where no class reaches that
+#' parameter, see class `"theta"` above). Everything else is bounded on the
 #' internal (link) scale, so a bound on a log-linked dispersion is a
 #' bound on its logarithm.
 #'
@@ -281,14 +286,37 @@
 #' box asked for, and `lb`/`ub` are refused rather than approximated.
 #' Little is lost, because the parameterization already guarantees
 #' stationarity and invertibility, which is what such a bound is usually
-#' for; where a hard box really is wanted, `class = "theta"` with
-#' `coef = "thetaac_1"` bounds one internal parameter.
+#' for, and brms's `cov = TRUE` form is of order one only. Under
+#' `cov = FALSE` the coefficients are unconstrained and are the internal
+#' parameters, so `lb`/`ub` apply at any order, as in brms. A bound at
+#' an end of the parameter's own interval, such as brms's `lb = -1` on a
+#' first-order `ar`, bounds nothing and is accepted, so a
+#' [default_prior()] table can be passed back as `prior =`.
 #'
 #' `cosy` is bounded below at `-1/(d - 1)` for `d` time points, where a
 #' compound-symmetric matrix stops being positive definite, and a bound
 #' outside that window is refused rather than clamped. brms bounds
 #' `cosy` on `[0, 1]` instead, so a negative estimate here has no brms
-#' counterpart.
+#' counterpart. `frmtmb.sample::frm_sample()` samples `cosy` on brms's
+#' `[0, 1]`: its default prior there is brms's flat one, and a `cosy`
+#' prior that sets no `lb` keeps `lb = 0`, as brms keeps the bound it
+#' declares. `default_prior(route = "sample")` lists that interval, and
+#' the default route lists frm()'s window.
+#'
+#' Under a first-order `cov = TRUE` `ar()`, `ma()` or `arma()`, frmtmb's
+#' `sigma` (in `summary()`, `sigma()` and `VarCorr()`) is the MARGINAL
+#' sd of a residual, and brms's `sigma` is the innovation sd, smaller by
+#' `c = sqrt(1 - ar^2)`, `1 / sqrt(1 + ma^2)` or
+#' `sqrt((1 - ar^2) / (1 + ma^2 + 2 ar ma))`: the same model, another
+#' name. A density on class `"sigma"` is read as brms reads it, at
+#' `sigma * c`, with the Jacobian of `c`, so `set_prior("student_t(3, 0,
+#' 2.5)", class = "sigma")` is brms's prior on its sigma. A `lb` above 0
+#' or a `ub` on `sigma` is refused there, because a box on the
+#' innovation sd moves with `ar` and is no box on the marginal sd frmtmb
+#' holds. Under `sigma ~ x` with such a term, a prior on the intercept of
+#' `sigma` (`class = "Intercept", dpar = "sigma"`) is still read at
+#' frmtmb's log marginal sd, where brms reads it at the log innovation
+#' sd; the slopes (`class = "b", dpar = "sigma"`) are the same in both.
 #'
 #' @section The LKJ prior:
 #' `lkj(eta)` is the density `det(C)^(eta - 1)` over a block's
@@ -518,7 +546,7 @@
 #' set_prior("normal(0, 0.5)", class = "ar")
 #' set_prior("lkj(2)", class = "rescor")
 #' # and one internal covariance parameter, by its name
-#' set_prior("", class = "theta", coef = "thetaac_1", lb = -2, ub = 2)
+#' set_prior("", class = "theta", coef = "theta_2", lb = -2, ub = 2)
 #'
 #' # class "cor" addresses a correlated block as a whole, brms's
 #' # spelling; eta > 1 pulls the correlation toward zero
@@ -703,11 +731,18 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
     # a bound belongs to ONE parameter, and these classes each name a
     # whole correlation matrix whose entries are not free of one
     # another; accepting it here would silently drop it
+    # an unstr() correlation has one prior slot, its class, as in brms
+    # (autocor_class_coefs()), so class "theta" is no route for it
     frm_stop("class = \"", class, "\" takes no lb/ub: the bound would apply ",
-             "to a whole correlation matrix. Bound one parameter at a time ",
-             "with class = \"theta\", whose coef names an internal ",
-             "parameter (\"theta_1\", \"thetaac_1\", \"thetar_1\")",
-             call. = FALSE)
+             "to a whole correlation matrix. ",
+             if (identical(class, "cortime")) {
+               paste0("brms takes none either; an unstr() correlation has ",
+                      "one prior slot, this class, and lkj() is its density")
+             } else {
+               paste0("Bound one parameter at a time with class = ",
+                      "\"theta\", whose coef names an internal parameter ",
+                      "(\"theta_1\", \"thetar_1\")")
+             }, call. = FALSE)
   }
   # brms's rules for a simplex, with its words: the Dirichlet and the
   # simplex classes go together, a simo row names one simplex, and a
@@ -1631,12 +1666,18 @@ priorlist_from_rows <- function(x, what) {
 #' `"sd"` and `"cor"` are targeted by `group` and `nlpar`, and class
 #' `"sd"` lists a row per coefficient of each group, as brms does; the
 #' residual-correlation classes (`"ar"`, `"ma"`, `"cosy"`, `"cortime"`)
-#' by `resp`; class `"rescor"` has one row and takes no `resp`; and
-#' class `"theta"` rows name the raw internal covariance parameters
-#' (escape hatch, including correlations one at a time, across all
-#' three covariance components). Where the location is several
-#' distributional parameters (a categorical or mixture model), each
-#' one's `b`, `Intercept` and `sd` rows carry its `dpar`, as in brms.
+#' by `resp`, with `lb` and `ub` where the parameter lives on an
+#' interval (brms's -1 and 1 on a first-order `cov = TRUE` `ar` or `ma`;
+#' for `cosy`, frm()'s window `-1/(d - 1)` to 1 on the default route and
+#' brms's 0 to 1 on `route = "sample"`); class `"rescor"` has one row
+#' and takes no `resp`; and class `"theta"` rows name the raw internal
+#' covariance parameters (escape hatch, including correlations one at a
+#' time, across all three covariance components), except a
+#' residual-correlation parameter that one of those classes reaches,
+#' which has that class as its one row, as in brms. Where the location
+#' is several distributional parameters (a categorical or mixture
+#' model), each one's `b`, `Intercept` and `sd` rows carry its `dpar`,
+#' as in brms.
 #'
 #' A nonlinear parameter's coefficients are listed under class `"b"`
 #' with its name in the `nlpar` column, the intercept among them, which
@@ -2257,7 +2298,9 @@ prior_table <- function(spec, frame, route) {
     ac <- frame[["autocor"]][[rs]]
     resp_lab <- if (multi) rs else ""
     for (cl in names(autocor_prior_classes)) {
-      if (length(autocor_class_idx(ac, cl))) add(cl, resp = resp_lab)
+      if (!length(autocor_class_idx(ac, cl))) next
+      bd <- autocor_class_bounds(ac, cl, route)
+      add(cl, resp = resp_lab, lb = bd[[1L]], ub = bd[[2L]])
     }
     # a registry term's bounded parameters (sar()'s lagsar), under
     # their natural names and on their interval, as brms lists them
@@ -2287,22 +2330,23 @@ prior_table <- function(spec, frame, route) {
   }
 
   # class "theta" is the raw internal escape hatch, and it spans all
-  # three covariance components: the residual-correlation ones carry no
-  # per-parameter natural-scale class, so these rows are the only way to
-  # name one of them on its own.
+  # three covariance components, so these rows name one internal
+  # parameter on its own.
   #
   # [[ ]] rather than $ here and below: `$theta` partial-matches
   # `thetaac` in a model that has a residual structure and no random
   # effects, which offered a random-effect row for a model with none
   if (length(frame[["par_template"]][["theta"]] %||% numeric(0))) add("theta")
-  # a registry term's bounded parameter is listed once, under its class
-  # (lagsar) above, as brms lists it
-  own_class <- autocor_seam_bounded_coefs(frame)
+  # a residual-correlation parameter that a class reaches (ar, cosy,
+  # cortime, a registry term's lagsar) is listed once, under that class
+  # above, as brms lists it: a second row would be a second prior slot
+  # on the same parameter
+  own_class <- autocor_class_coefs(frame)$coef
   for (cmp in theta_components) {
     v <- frame[["par_template"]][[cmp]] %||% numeric(0)
     if (!length(v)) next
     for (nm in par_template_names(v, cmp)) {
-      if (identical(cmp, "thetaac") && nm %in% names(own_class)) next
+      if (identical(cmp, "thetaac") && nm %in% own_class) next
       add("theta", coef = nm)
     }
   }
@@ -3074,9 +3118,11 @@ theta_coef_target <- function(frame, coef) {
     n <- length(nms_of("theta"))
     if (!n) {
       frm_stop("class = \"theta\" names no parameter: this model has no ",
-               "random-effect covariance parameters. The residual-",
-               "correlation ones are addressed by name, e.g. ",
-               "coef = \"thetaac_1\"", call. = FALSE)
+               "random-effect covariance parameters. A residual-",
+               "correlation parameter is addressed by its class (\"ar\", ",
+               "\"ma\", \"cosy\", \"cortime\"), as in brms, and one with ",
+               "no class by its internal name in coef, as ",
+               "get_prior() lists it", call. = FALSE)
     }
     return(list(comp = "theta", idx = seq_len(n)))
   }
@@ -3218,7 +3264,9 @@ resolve_priorlist <- function(fit, pl) {
                                         idx = lp[["idx"]][k],
                                         name = pnm[lp[["idx"]][k]],
                                         link = lp[["link"]],
-                                        center = ctr)
+                                        center = ctr,
+                                        resp = lp[["resp"]],
+                                        dpar = lp[["dpar"]])
       }
       # a cs() term's threshold-specific coefficients are class "b" in
       # brms, under the term's own coef name: class "b" puts the density
@@ -3422,8 +3470,9 @@ resolve_priorlist <- function(fit, pl) {
                    "not a bound on any of them. The parameterization already ",
                    "keeps the process ",
                    if (identical(s$class, "ar")) "stationary" else "invertible",
-                   "; bound an internal parameter with class = \"theta\", ",
-                   "coef = \"", nms[idx[1L]], "\" if a box is really wanted",
+                   ". brms has no such bound either: its cov = TRUE form ",
+                   "is of order one only. A bound needs order one, or the ",
+                   "cov = FALSE form, whose coefficients are unconstrained",
                    call. = FALSE)
         }
         if (!is.na(s$lb)) {
@@ -3799,11 +3848,32 @@ resolve_priorlist <- function(fit, pl) {
       for (tg in target_coefs(s)) {
         key <- nm_of(tg$comp, tg$idx)
         pm <- coef_placement(s, tg)
+        # a density on sigma itself under a first-order cov = TRUE ar(),
+        # ma() or arma() is brms's density on ITS sigma, the innovation
+        # sd, whoever writes it (a default, a user, a sampling table
+        # passed back), on frm()'s route as on frm_sample()'s
+        innov <- if (isTRUE(s$natural) && identical(tg$dpar, "sigma") &&
+                       !is.null(tg$resp)) {
+          autocor_innov(frame[["autocor"]][[tg$resp]])
+        }
+        # and a box on the innovation sd moves with ar, so it is no box
+        # on frmtmb's marginal sd; lb = 0 is the same box on either
+        if (!is.null(innov) && (isTRUE(s$lb > 0) || !is.na(s$ub))) {
+          frm_stop("class = \"sigma\" takes no ",
+                   if (isTRUE(s$lb > 0)) "lb" else "ub", " here: under ",
+                   frame[["autocor"]][[tg$resp]][["label"]], " brms's ",
+                   "sigma, which a prior on class \"sigma\" is about, is ",
+                   "the innovation sd, frmtmb's marginal sd times a factor ",
+                   "of the correlation parameters, so a bound on it is not ",
+                   "a bound on the parameter frmtmb holds. Write the ",
+                   "density alone", call. = FALSE)
+        }
         if (!is.null(s$dist)) {
           assigned[[key]] <- list(comp = tg$comp, idx = tg$idx,
                                   dist = s$dist, scale = pm$scale,
                                   link = pm$link, offset = pm$offset,
                                   lb = s$lb, ub = s$ub)
+          if (!is.null(innov)) assigned[[key]]$innov <- innov
         } else if (!is.null(assigned[[key]])) {
           assigned[[key]] <- entry_bounds(assigned[[key]], s)
         }
@@ -3929,19 +3999,23 @@ resolve_priorlist <- function(fit, pl) {
       cmp <- tgt$comp
       nms <- par_template_names(frame[["par_template"]][[cmp]] %||% numeric(0),
                                 cmp)
-      # one slot per parameter: a bounded registry parameter's internal
-      # name would be a second prior on the parameter its class names
-      own_class <- autocor_seam_bounded_coefs(frame)
+      # one slot per parameter: the internal name of a parameter that a
+      # class reaches would be a second prior on it, and which of the
+      # two applied followed the order they were written in
+      own <- autocor_class_coefs(frame)
       hit <- if (identical(cmp, "thetaac")) {
-        intersect(nms[tgt$idx], names(own_class))
+        intersect(nms[tgt$idx], own$coef)
       } else character(0)
       if (length(hit)) {
+        k <- match(hit[1L], own$coef)
         frm_stop("class = \"theta\", coef = \"", hit[1L], "\" is the ",
-                 "internal parameter of ", own_class[[hit[1L]]], ", which ",
-                 "has a class of its own, as in brms. Write the prior with ",
-                 "class = \"", own_class[[hit[1L]]], "\" (lb and ub narrow ",
-                 "its interval); one parameter takes one prior",
-                 call. = FALSE)
+                 "internal parameter of ", own$class[k], ", which has a ",
+                 "class of its own, as in brms. Write the prior with ",
+                 "class = \"", own$class[k], "\"",
+                 if (length(fit$spec$responses) > 1L) {
+                   paste0(", resp = \"", own$resp[k], "\"")
+                 },
+                 "; one parameter takes one prior", call. = FALSE)
       }
       for (i in tgt$idx) {
         key <- nm_of(cmp, i)
@@ -4442,7 +4516,8 @@ internal_bound <- function(v, pm, which) {
 #' variables and the centering offset the entry asks for.
 #'
 #' @noRd
-prior_logdens <- function(x, dist, scale, link = NULL, offset = 0) {
+prior_logdens <- function(x, dist, scale, link = NULL, offset = 0,
+                          lc = 0) {
   jac <- 0
   if (identical(scale, "ordthres")) {
     # (tau_1, log increments) -> the thresholds, which is the map Stan's
@@ -4472,6 +4547,13 @@ prior_logdens <- function(x, dist, scale, link = NULL, offset = 0) {
     # coefficient
     jac <- natural_log_jacobian(x, link)
     x <- link$linkinv(x)
+  }
+  # a density about c * the parameter (brms's innovation sd, `lc` its
+  # log factor): read there, with the factor's Jacobian. `lc` is a
+  # function of other parameters, so it is not a constant on the tape
+  if (!identical(lc, 0)) {
+    x <- x * exp(lc)
+    jac <- jac + lc
   }
   # a density written about a TRANSFORMED parameter (an AR coefficient,
   # a cosy correlation): evaluate it at the natural value and add the
@@ -5012,6 +5094,269 @@ autocor_class_idx <- function(ac, cls) {
   )
 }
 
+#' Every residual-correlation parameter that a class reaches (`ar`,
+#' `ma`, `cosy`, `cortime`, and a registry term's bounded parameter such
+#' as `lagsar`): its internal name (`thetaac_<k>`), the class and the
+#' response. Such a parameter has one prior slot, its class, as in
+#' brms, so its internal name is not listed in the prior table and a
+#' prior on it is refused with the class to use instead. A registry
+#' parameter with no declared interval has no class, and keeps its
+#' internal spelling.
+#'
+#' @noRd
+autocor_class_coefs <- function(frame) {
+  out <- data.frame(coef = character(0), class = character(0),
+                    resp = character(0), stringsAsFactors = FALSE)
+  for (rs in names(frame[["autocor"]] %||% list())) {
+    ac <- frame[["autocor"]][[rs]]
+    cls <- c(names(autocor_prior_classes),
+             vapply(autocor_seam_bounded(ac), `[[`, "", "name"))
+    for (cl in cls) {
+      within <- autocor_class_idx(ac, cl)
+      if (!length(within)) next
+      out <- rbind(out, data.frame(
+        coef = paste0("thetaac_", ac[["theta_idx"]][within]), class = cl,
+        resp = rs, stringsAsFactors = FALSE))
+    }
+  }
+  out
+}
+
+#' The interval a class's natural parameter lives on, `c(lb, ub)`, as
+#' the prior table shows it; `NA` where it is not an interval. These are
+#' brms's bounds where brms has the term: -1 and 1 on a `cov = TRUE` AR
+#' or MA coefficient of order one, which is also the image of frmtmb's
+#' map, and none on brms's unconstrained `cov = FALSE` coefficients.
+#' `cosy` depends on the route. brms bounds it on `[0, 1]`, and
+#' `frm_sample()` samples it there; `frm()` fits it on its whole
+#' positive-definite window, `(-1/(d - 1), 1)`, which has no brms
+#' counterpart. A higher order is not a box, and brms does not have it;
+#' `cortime` is a matrix.
+#'
+#' @noRd
+autocor_class_bounds <- function(ac, cls, route = "fit") {
+  none <- c(NA_real_, NA_real_)
+  if (autocor_is_seam(ac)) {
+    hit <- Filter(function(pr) identical(pr$name, cls),
+                  autocor_seam_bounded(ac))
+    return(if (length(hit)) c(hit[[1L]]$lower, hit[[1L]]$upper) else none)
+  }
+  if (autocor_is_cond(ac) || identical(cls, "cortime")) return(none)
+  if (identical(cls, "cosy")) {
+    if (identical(route, "sample")) return(c(0, 1))
+    # the same expression as autocor_trans()'s window, so a table passed
+    # back as prior = names its end exactly (ac_bound_theta())
+    return(if (isTRUE(ac[["d"]] >= 2)) c(-(1 / (ac[["d"]] - 1)), 1) else none)
+  }
+  if (length(autocor_class_idx(ac, cls)) == 1L) c(-1, 1) else none
+}
+
+#' brms's default prior on each residual-correlation class that frmtmb
+#' holds through a transform: flat on the NATURAL parameter, as brms's
+#' `(flat)` is. Written for the sampling extension as a uniform density
+#' on the natural parameter, which core carries inward with the map's
+#' log Jacobian, so the density on the internal parameter is the
+#' Jacobian alone. Without it the sampler is flat on the internal
+#' parameter instead, which for a first-order AR coefficient is
+#' `(1 - rho^2)^(-3/2)` on `rho`, with its mass at the ends.
+#'
+#' One row per class and response: `lower` and `upper` are the ends of
+#' the uniform, which spans the whole image of the map so that it is
+#' constant wherever the parameter can go; `lb` and `ub` are a bound
+#' brms declares inside that image (`cosy`'s 0), `NA` where there is
+#' none; `interval` is `FALSE` for a covariance-form AR or MA of order
+#' `k > 1`, which brms does not have. Its image is the stationary (or
+#' invertible) region, which is not a box but lies inside the one
+#' `|phi_j| <= choose(k, j)` gives, so a uniform on
+#' `(-choose(k, k %/% 2), choose(k, k %/% 2))` is flat on it.
+#'
+#' A `cov = FALSE` term has no row: its coefficients are unconstrained
+#' and are the internal parameters, so flat there is brms's flat
+#' already. Neither has `cortime`, whose default is `lkj(1)`.
+#'
+#' @noRd
+autocor_flat_priors <- function(fit) {
+  out <- data.frame(resp = character(0), class = character(0),
+                    lower = numeric(0), upper = numeric(0),
+                    lb = numeric(0), ub = numeric(0),
+                    interval = logical(0), stringsAsFactors = FALSE)
+  # a registry term's bounds live in its package, which a saved fit
+  # may come back without; refused there with the package to load
+  if (length(fit$frame[["autocor"]])) require_fit_packages(fit)
+  for (rs in names(fit$frame[["autocor"]] %||% list())) {
+    ac <- fit$frame[["autocor"]][[rs]]
+    if (autocor_is_cond(ac)) next
+    cls <- c(setdiff(names(autocor_prior_classes), "cortime"),
+             vapply(autocor_seam_bounded(ac), `[[`, "", "name"))
+    for (cl in cls) {
+      within <- autocor_class_idx(ac, cl)
+      if (!length(within)) next
+      img <- autocor_class_bounds(ac, cl, "fit")
+      bd <- autocor_class_bounds(ac, cl, "sample")
+      interval <- !anyNA(img)
+      if (!interval) {
+        if (!cl %in% c("ar", "ma")) next
+        k <- length(within)
+        img <- c(-1, 1) * choose(k, k %/% 2)
+        bd <- c(NA_real_, NA_real_)
+      }
+      out <- rbind(out, data.frame(
+        resp = rs, class = cl, lower = img[1L], upper = img[2L],
+        lb = if (isTRUE(bd[1L] > img[1L])) bd[1L] else NA_real_,
+        ub = if (isTRUE(bd[2L] < img[2L])) bd[2L] else NA_real_,
+        interval = interval, stringsAsFactors = FALSE))
+    }
+  }
+  out
+}
+
+#' A chart for each bounded scalar residual-correlation parameter, so
+#' that a sampler can draw it through ONE logistic onto its natural
+#' interval `(L, U)`, as Stan's own bounded transform does in brms. The
+#' alternative, the sampler's log bound on the internal parameter
+#' stacked on the term's own map, gave 5 or 6 divergent transitions per
+#' 4 chains of 2000 on a cosy near its bound at 0, where brms has none
+#' and this chart has none (dev/acprior-cosydiv.R).
+#'
+#' `lower` and `upper` are the named internal bounds a prior resolved to
+#' (`resolve_prior_input()$lower`). One term per first-order parameter
+#' with a finite bound on at least one side, whose map is not the
+#' identity (a `cov = FALSE` coefficient is the sampled parameter, and
+#' the sampler's own bound already is brms's transform there). Each term
+#' has `comp`, `idx` (within `comp`), `name`, `class`, `resp`, the ends
+#' `L` and `U` on the natural scale, and three maps of the chart
+#' coordinate `v`: `to_internal(v)` (tape-safe), `logjac(v)`, the log of
+#' `|d internal / d v|` (tape-safe), and `from_internal(th)` (numeric,
+#' for a start). A start outside `(L, U)` is moved just inside it.
+#' `to_natural(th)` gives the natural value of an internal one and
+#' `image` the ends of the map's own interval, for a message about a
+#' start outside the bound.
+#'
+#' @noRd
+autocor_bound_chart <- function(fit, lower, upper) {
+  lower <- unlist(lower %||% list())
+  upper <- unlist(upper %||% list())
+  get_b <- function(b, nm, fill) if (nm %in% names(b)) b[[nm]] else fill
+  out <- list()
+  if (length(fit$frame[["autocor"]])) require_fit_packages(fit)
+  for (rs in names(fit$frame[["autocor"]] %||% list())) {
+    ac <- fit$frame[["autocor"]][[rs]]
+    cls <- c(setdiff(names(autocor_prior_classes), "cortime"),
+             vapply(autocor_seam_bounded(ac), `[[`, "", "name"))
+    for (cl in cls) {
+      within <- autocor_class_idx(ac, cl)
+      if (length(within) != 1L) next
+      tr <- autocor_trans(ac, cl)
+      if (is.null(tr) || identical(tr$map, "identity")) next
+      nm <- paste0("thetaac_", ac[["theta_idx"]][within])
+      lo <- get_b(lower, nm, -Inf)
+      hi <- get_b(upper, nm, Inf)
+      if (!is.finite(lo) && !is.finite(hi)) next
+      img <- unname(switch(tr$map, bounded = c(tr$lo, tr$hi),
+                           cosy = c(-tr$a, 1), c(-1, 1)))
+      L <- if (is.finite(lo)) as.numeric(ac_trans_value(lo, tr)) else img[1L]
+      U <- if (is.finite(hi)) as.numeric(ac_trans_value(hi, tr)) else img[2L]
+      # the internal bound is the image of the natural one the prior
+      # wrote, and its round trip carries a few ulps (5.6e-17 for an
+      # lb = 0), which would let a draw sit a hair past it
+      snap <- function(b) {
+        r <- round(b, 10)
+        if (abs(b - r) <= 64 * .Machine$double.eps * max(1, abs(b))) r else b
+      }
+      L <- snap(unname(L))
+      U <- snap(unname(U))
+      out[[length(out) + 1L]] <- ac_chart_term(
+        nm, cl, rs, ac[["theta_idx"]][within], L, U, tr)
+    }
+  }
+  out
+}
+
+#' brms's `sigma` under a first-order `cov = TRUE` `ar()`, `ma()` or
+#' `arma()` is the INNOVATION sd: its `cholesky_cor_ar1()`,
+#' `cholesky_cor_ma1()` and `cholesky_cor_arma1()` are covariances with
+#' diagonal `1 / (1 - ar^2)`, `1 + ma^2` and
+#' `(1 + ma^2 + 2 ar ma) / (1 - ar^2)`, where frmtmb's are correlations
+#' (dev/acprior-armacheck.R: the same correlation to 2.2e-16). So
+#' brms's sigma is frmtmb's `sigma * c`, `c` one over the square root of
+#' that diagonal. `autocor_innov(ac)` says where `c` comes from, `NULL`
+#' for every other block (cosy and unstr are correlations in brms too).
+#'
+#' @noRd
+autocor_innov <- function(ac) {
+  if (is.null(ac) || autocor_is_seam(ac) || autocor_is_cond(ac)) {
+    return(NULL)
+  }
+  st <- ac[["struct"]]
+  p <- if (st %in% c("ar", "arma")) ac[["p"]] else 0L
+  q <- if (st %in% c("ma", "arma")) ac[["q"]] else 0L
+  if (!st %in% c("ar", "ma", "arma") || p > 1L || q > 1L || p + q < 1L) {
+    return(NULL)
+  }
+  list(comp = "thetaac", idx = ac[["theta_idx"]], p = p, q = q)
+}
+
+#' `log c` of `autocor_innov()` at the block's internal parameters,
+#' tape-safe: `-0.5 log` of brms's diagonal.
+#'
+#' @noRd
+innov_logc <- function(th, innov) {
+  # 1 - ar^2 is 1 / (1 + th^2) exactly, which keeps its digits where ar
+  # rounds to 1
+  if (!innov$q) return(-0.5 * log(1 + th[1] * th[1]))
+  ma <- autocor_pacf(th[innov$p + 1L])
+  if (!innov$p) return(-0.5 * log(1 + ma * ma))
+  ar <- autocor_pacf(th[1])
+  -0.5 * log(1 + th[1] * th[1]) - 0.5 * log(1 + ma * ma + 2 * ar * ma)
+}
+
+#' The responses whose sigma brms reads as an innovation sd
+#' (`autocor_innov()`), for the sampling extension's default on sigma.
+#'
+#' @noRd
+autocor_innov_sd <- function(fit) {
+  acs <- fit$frame[["autocor"]] %||% list()
+  names(acs)[vapply(acs, function(ac) !is.null(autocor_innov(ac)), NA)]
+}
+
+#' One term of `autocor_bound_chart()`.
+#'
+#' @noRd
+ac_chart_term <- function(nm, cl, rs, idx, L, U, tr) {
+  # natural -> internal, the inverse of ac_trans_value() for a scalar map
+  inv <- function(r) {
+    if (identical(tr$map, "bounded")) {
+      q <- (r - tr$lo) / (tr$hi - tr$lo)
+      return(log(q) - log(1 - q))
+    }
+    if (identical(tr$map, "cosy")) {
+      q <- (r + tr$a) / (1 + tr$a)
+      return(log(q) - log(1 - q))
+    }
+    r / sqrt(1 - r * r)
+  }
+  list(
+    comp = "thetaac", idx = idx, name = nm, class = cl, resp = rs,
+    L = L, U = U,
+    to_internal = function(v) inv(L + (U - L) / (1 + exp(-v))),
+    # d internal / d v = (d natural / d v) / (d natural / d internal)
+    logjac = function(v) {
+      s <- 1 / (1 + exp(-v))
+      th <- inv(L + (U - L) * s)
+      # log s and log(1 - s) through logspace_add, finite at any v
+      log(U - L) - RTMB::logspace_add(0 * v, -v) -
+        RTMB::logspace_add(0 * v, v) - ac_trans_logjac(th, tr)
+    },
+    from_internal = function(th) {
+      q <- (as.numeric(ac_trans_value(th, tr)) - L) / (U - L)
+      stats::qlogis(min(max(q, 1e-8), 1 - 1e-8))
+    },
+    to_natural = function(th) as.numeric(ac_trans_value(th, tr)),
+    # the ends of the map's own image, which a bound narrows
+    image = unname(switch(tr$map, bounded = c(tr$lo, tr$hi),
+                          cosy = c(-tr$a, 1), c(-1, 1))))
+}
+
 #' The map one autocorrelation class carries its prior through. `cosy`
 #' is a single logistic onto the positive-definite window; the ARMA
 #' coefficients are a partial-autocorrelation transform composed with
@@ -5102,15 +5447,30 @@ ac_trans_logjac <- function(th, tr) {
 #' a function of several internal parameters at once, so no box in
 #' internal space is the box the user asked for.
 #'
+#' A bound AT the end of the parameter's own interval holds nothing back,
+#' since the map never reaches that end, so it is no bound at all
+#' (`-Inf` or `Inf`). That is what the prior table lists there, as brms's
+#' does, and a table passed back as `prior =` must fit.
+#'
 #' @noRd
 ac_bound_theta <- function(v, tr, ac, cls, what) {
   if (identical(tr$map, "identity")) return(v)
+  ends <- switch(tr$map, bounded = c(tr$lo, tr$hi), cosy = c(-tr$a, 1),
+                 c(-1, 1))
+  # an end is computed (1 / an eigenvalue for sar()) and carries a few
+  # ulps, so a bound typed at it, ub = 1 for a row-standardized W, is
+  # that end within the snap autocor_bound_chart() applies
+  at_end <- function(e) {
+    abs(v - e) <= 64 * .Machine$double.eps * max(1, abs(e))
+  }
+  if (identical(what, "lb") && at_end(ends[1L])) return(-Inf)
+  if (identical(what, "ub") && at_end(ends[2L])) return(Inf)
   if (identical(tr$map, "bounded")) {
     if (v <= tr$lo || v >= tr$hi) {
       frm_stop("class = \"", cls, "\" ", what, " = ", v, " is outside ",
                "the interval of ", ac[["label"]], ", (",
-               format(tr$lo, digits = 6), ", ", format(tr$hi, digits = 6),
-               ")", call. = FALSE)
+               format(tr$lo, digits = 15), ", ",
+               format(tr$hi, digits = 15), ")", call. = FALSE)
     }
     return(stats::qlogis((v - tr$lo) / (tr$hi - tr$lo)))
   }
@@ -5267,9 +5627,12 @@ neg_log_prior_fn <- function(entries) {
   function(pars) {
     nlp <- 0
     for (e in entries) {
+      lc <- if (!is.null(e$innov)) {
+        innov_logc(pars[[e$innov$comp]][e$innov$idx], e$innov)
+      } else 0
       nlp <- nlp - sum(prior_logdens(pars[[e$comp]][e$idx], e$dist,
                                      e$scale, e$link,
-                                     entry_offset(e, pars)))
+                                     entry_offset(e, pars), lc = lc))
     }
     nlp
   }

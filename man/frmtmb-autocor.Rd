@@ -155,15 +155,34 @@ forecasting route. \code{conditional_effects()} and \code{emmeans()} drop
 the term, as brms's do. \code{\link[=autocor_matrix]{autocor_matrix()}} and
 \code{residuals(type = "osa")} are refused: this form defines no
 correlation matrix, and its tape reads the response as data.
-A POINTWISE log-density exists for this form and not for the
-covariance one below, because each row keeps its own density:
-one row's density given its group's observed past, which is what
-brms's \code{log_lik()} returns. \code{arma_cond_resp()} and
-\code{arma_cond_dpars()} (\link{frmtmb-sampling-api}) are what a sampling
-extension reads to build it. Whether the installed
-\code{frmtmb.sample} does is that package's own question, and its
-\code{?log_lik} answers it.
+The pointwise log-density of this form is each row's own
+density given its group's observed past, which is what brms's
+\code{log_lik()} returns. \code{arma_cond_resp()} and \code{arma_cond_dpars()}
+(\link{frmtmb-sampling-api}) are what a sampling extension reads to
+build it.
 }
+}
+
+\section{The pointwise log-density}{
+
+A residual covariance term (the covariance form of \code{ar()}, \code{ma()} and
+\code{arma()}, \code{cosy()}, \code{unstr()}, \code{fcor()} and the terms of
+\code{\link[=frmtmb_register_autocor]{frmtmb_register_autocor()}}) has no density per row. brms's
+\code{log_lik()} gives the leave-one-out conditional density instead, the
+density of one row given the other rows of its group, after the loo
+package's vignette on non-factorized models, and
+\code{frmtmb.sample::log_lik()} gives the same, through
+\code{autocor_row_loglik()} (\link{frmtmb-sampling-api}). With \eqn{Q} the
+precision matrix of a group's response and \eqn{e} its residual, row
+\eqn{i} is normal with mean \eqn{y_i - (Qe)_i / Q_{ii}} and variance
+\eqn{1 / Q_{ii}}, or for \code{student()} a t with \eqn{\nu + k - 1}
+degrees of freedom, \eqn{k} the size of the group. The values are
+brms's, so the row sum is NOT the log-likelihood of the fit, and
+\code{loo()} on them leaves out one row with the rest of its group kept.
+A group missing a time point gives the conditional of the model this
+page describes (lags from the time levels), which differs from
+brms's for \code{ar()}, \code{ma()} and \code{arma()} (lags by position) exactly as
+the two likelihoods differ.
 }
 
 \section{A fixed residual matrix, \code{fcor(M)}}{
@@ -253,7 +272,9 @@ higher-order AR/MA process). \code{\link[=hypothesis]{hypothesis()}} sees them u
 same names, \code{ar[1]} included, which brms's renaming lets an
 expression carry. \code{\link[=autocor_matrix]{autocor_matrix()}} returns
 the fitted \code{R}. They are NOT part of \code{\link[=VarCorr]{VarCorr()}}, which reports
-random-effect blocks. \code{set_prior()} cannot target them yet.
+random-effect blocks. \code{\link[=set_prior]{set_prior()}} targets them by brms's classes,
+\code{"ar"}, \code{"ma"}, \code{"cosy"} and \code{"cortime"}, one prior slot per
+parameter as in brms; see its section Residual correlation.
 }
 
 \section{Divergence from brms}{

@@ -15,9 +15,17 @@
 # bin2port) map brms's per-category mu1, mu2, ... onto the categorical,
 # multinomial, dirichlet, dirichlet2 and logistic_normal families
 # (brms_adapt_cat_*()), and the wiener blocks onto frmtmb.eam's wiener
-# family, with brms's dec as its dec() term. Left to the survey: the
-# multivariate, ARMA, SAR and FCOR blocks (the row density is not the
-# family's) and custom families.
+# family, with brms's dec as its dec() term. The SAR and FCOR blocks
+# (lane loglik) go through brms_adapt_ac_log_lik() and
+# brms_adapt_ac_posterior_predict(): brms's prep becomes a frmtmb model
+# with one mean per row and the term over brms's matrix, and the values
+# are frmtmb's autocor_row_loglik() and sim_draw(). ADAPTATION: the SAR
+# blocks' Msar = diag(10) is replaced by the row-standardized path graph
+# over the same 10 rows (brms_adapt_sar_path()). frmtmb refuses diag(10)
+# by design: I - rho I makes rho and the scale one parameter, so sar()
+# needs a negative and a positive eigenvalue. The value checks run
+# brms's own function on the substituted matrix too. Left to the
+# survey: the multivariate and ARMA blocks and custom families.
 #
 # G2 (tests.distributions.R): the two blocks that compare brms's
 # unexported ordinal densities dcumulative(), dsratio(), dcratio() and
@@ -105,6 +113,35 @@ brms_adapt_funs <- c(
   "dirichlet2", "logistic_normal",
   # lane bin2port: frmtmb.eam's wiener
   "wiener")
+
+# brms's residual correlation helpers the SAR and FCOR blocks call
+# (lane loglik), and the one adaptation they need: Msar = diag(10)
+# becomes the path graph (see the header)
+brms_adapt_ac_spec_funs <- c("gaussian_lagsar", "student_lagsar",
+                             "gaussian_errorsar", "student_errorsar",
+                             "gaussian_fcor", "student_fcor")
+brms_adapt_sar_subst <- list(c("Msar = diag(10)",
+                               "Msar = brms_adapt_sar_path(10)"))
+
+# The rows that hold only on the substituted input. The ledger keeps
+# them as passes, of class "adapted-input", with this reason, so that
+# they are never counted as literal passes of brms's rows: on brms's own
+# Msar = diag(10) frmtmb refuses the model, by design
+# (dev/brmsport-bin2-ledger.R).
+bin2_adapted_input_reason <- paste(
+  "pass on an adapted input: brms's prep uses Msar = diag(10), and the",
+  "port replaces it by the row-standardized path graph over the same 10",
+  "rows (brms_adapt_sar_path()). frmtmb refuses brms's literal input by",
+  "design: I - rho I makes rho and the scale one parameter, so sar()",
+  "needs a weights matrix with a negative and a positive eigenvalue.",
+  "brms's assertion (the dimensions) holds on the substituted matrix,",
+  "and for log_lik the value check against brms's own function on it",
+  "holds too.")
+bin2_adapted_input <- stats::setNames(
+  rep(bin2_adapted_input_reason, 8L),
+  c("log_lik:150", "log_lik:152", "log_lik:157", "log_lik:159",
+    "posterior_predict:111", "posterior_predict:113",
+    "posterior_predict:118", "posterior_predict:120"))
 
 # brms's exported d, r and p functions that dev/brmsport-bin2-adapters.R
 # shims (brms_g1_shims), bound by name in the distributions file's header
@@ -207,7 +244,11 @@ bin2_adapted <- list(
       "log_lik for ordinal models runs without erros",
       "log_lik for categorical and related models runs without erros",
       # lane bin2port: frmtmb.eam's wiener family
-      "log_lik for the wiener diffusion model runs without errors"),
+      "log_lik for the wiener diffusion model runs without errors",
+      # lane loglik: the residual correlation terms
+      "log_lik for SAR models runs without errors",
+      "log_lik for FCOR models runs without errors",
+      "log_lik for FCOR student-t models works as expected"),
     pre = c(
       "dstudent_t <- brms::dstudent_t",
       "dshifted_lnorm <- brms::dshifted_lnorm",
@@ -220,7 +261,9 @@ bin2_adapted <- list(
       "rasym_laplace <- brms::rasym_laplace",
       brms_adapt_pre_links,
       "SW <- suppressWarnings"),
-    subst = brms_adapt_subst("log_lik", brms_adapt_funs)),
+    subst = c(brms_adapt_subst("log_lik", c(brms_adapt_funs,
+                                            brms_adapt_ac_spec_funs)),
+              brms_adapt_sar_subst)),
   "tests.posterior_predict.R" = list(
     topic = "posterior_predict", pkgs = "frmtmb",
     blocks = c(
@@ -240,9 +283,15 @@ bin2_adapted <- list(
             "without erros"),
       # lane bin2port: frmtmb.eam's wiener family
       paste("posterior_predict for the wiener diffusion model runs",
-            "without errors")),
+            "without errors"),
+      # lane loglik: the residual correlation terms (brms's block label
+      # for the SAR one says loglik)
+      "loglik for SAR models runs without errors",
+      "posterior_predict for FCOR models runs without errors"),
     pre = brms_adapt_pre_links,
-    subst = brms_adapt_subst("posterior_predict", brms_adapt_funs)),
+    subst = c(brms_adapt_subst("posterior_predict",
+                               c(brms_adapt_funs, brms_adapt_ac_spec_funs)),
+              brms_adapt_sar_subst)),
   "tests.distributions.R" = list(
     topic = "distributions", pkgs = "frmtmb",
     blocks = c(

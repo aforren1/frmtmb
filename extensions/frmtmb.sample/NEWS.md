@@ -1,3 +1,112 @@
+# frmtmb.sample 0.23.0
+
+Needs frmtmb 0.76.0, which exports `autocor_flat_priors()`,
+`autocor_bound_chart()`, `autocor_innov_sd()` and
+`autocor_row_loglik()` and codes `mo()` from its minimum.
+
+## Breaking changes
+
+* With frmtmb 0.76.0, which codes an integer `mo()` variable from its
+  minimum as brms 2.23.0 does, `frm_sample()` samples brms's model on
+  such data. On 300 rows with values 1 to 4, the draws have the 3
+  weights `simo_mok1[1]` to `simo_mok1[3]`, where they had 4. Every
+  posterior mean agrees with brms's within 2 Monte Carlo standard
+  errors, where the Intercept was 12 of them away. The code of this
+  package did not change; its tests need frmtmb 0.76.0.
+
+* **The default priors of a residual-correlation term are brms's.**
+  Before, an `ar()`, `ma()` or `cosy()` coefficient was flat on frmtmb's
+  internal parameter. For a first-order `cov = TRUE` `ar` or `ma` that
+  is `(1 - rho^2)^(-3/2)` on `rho`, with its mass at -1 and 1. For
+  `cosy` it is a density flat on the logit of its whole window. And the
+  default on `sigma` was on frmtmb's marginal sd, where brms's `sigma`
+  under a first-order `cov = TRUE` `ar()`, `ma()` or `arma()` is the
+  innovation sd. Now each coefficient is flat on itself, as brms's
+  `(flat)` is: on (-1, 1) for `ar` and `ma` under `cov = TRUE`, on
+  brms's [0, 1] for `cosy`. The default `student_t()` on `sigma` is read
+  on brms's innovation sd, `sigma sqrt(1 - ar^2)`,
+  `sigma / sqrt(1 + ma^2)` or
+  `sigma sqrt((1 - ar^2) / (1 + ma^2 + 2 ar ma))`, with the Jacobian of
+  that factor. The reference is brms 2.23.0's own draws, 4 chains of
+  4000 on each side (seed 3). Against them, the means of `ar[1]` were
+  42.3 Monte Carlo standard errors apart, on an AR(1) of 0.9 in 8 groups
+  of 6 time points. For `sigma` they were 19.6 apart. An MA(1) of 0.6
+  had every `ma[1]` draw at 1. Now every parameter of the ar, ma and
+  arma cases is within 1.6 standard errors of brms's, the sds within 4
+  percent. For `cosy` (0.03 in 30 groups of 4), 48 percent of the draws
+  were below 0, where brms has none. The mean was 0.011 against brms's
+  0.076. Now there are none, and the means are 0.075 to 0.078 against
+  brms's 0.075 to 0.078 on three seeds. A `cov = TRUE` term of order two
+  or more, which brms does not have, is flat on its stationary or
+  invertible region. Its `sigma` default stays on the marginal sd. The
+  `cov = FALSE` coefficients, brms's default form, are flat as before,
+  as in brms. `frm_sample()`'s message and
+  `default_prior(route = "sample")` list the new rows.
+
+* **`sigma` under a first-order `cov = TRUE` `ar()`, `ma()` or `arma()`
+  is the marginal sd. Every prior on class `sigma` is read at the
+  innovation sd, as brms's is.** The draws' `sigma` column, `summary()`
+  and `variables()` report frmtmb's marginal sd: on the AR(1) above, a
+  posterior mean of 1.16. brms's `sigma` is the innovation sd (0.43);
+  the model is the same. A prior of your own on class `"sigma"` is read
+  where the default is, at the innovation sd. So a
+  `default_prior(route = "sample")` table passed back as `prior =`, or
+  the default's text typed, gives the default's density exactly. Before,
+  a user prior there was read on the marginal sd. That density was up to
+  0.72 nats from brms's with the same text (three points on the AR(1)
+  data). `frm()` with the same prior is the mode of the density
+  `frm_sample()` samples. A `lb` above 0 or a `ub` on `sigma` there is
+  refused.
+
+* **A prior of your own keeps the bound brms declares for its slot.**
+  brms keeps a declared bound under a user prior: `real<lower=1> nu`,
+  `real<lower=0> sigma` under an identity link,
+  `real<lower=0,upper=min_Y> ndt`, `real<lower=0,upper=1> cosy`. Before,
+  a user prior of the same slot dropped the default's bound: with
+  `set_prior("normal(2, 2)", class = "nu")` 3.55 percent of the draws
+  were below 1. Now the bound stays on each side the prior leaves unset,
+  and a `lb` or `ub` of your own replaces that side, as in brms. With
+  `set_prior("normal(0, 0.1)", class = "cosy")` the posterior mean is
+  0.054 against brms's 0.053 (z 1.5); it was 0.009, with draws below 0.
+  A bounds-only prior on a residual-correlation class keeps the flat
+  density as well: `set_prior("", class = "ar", lb = 0.5)` is flat on
+  [0.5, 1] in brms. Here it was flat on frmtmb's internal parameter
+  (mean 0.946 against brms's 0.916, z 43.8); now the mean is 0.916 (z
+  0.5).
+
+* A prior on `class = "theta", coef = "thetaac_1"` is refused where a
+  class reaches that parameter (`ar`, `ma`, `cosy`, `cortime`); see
+  frmtmb's NEWS. The message for the retired `lower`/`upper` arguments
+  names `coef = "theta_1"` as its example.
+
+## New features
+
+* `log_lik()` of draws no longer refuses a residual covariance term
+  (`ar(cov = TRUE)`, `ma()` and `arma()` with `cov = TRUE`, `cosy()`,
+  `unstr()`, `fcor()`, frmtmb.spatial's `sar()` and other registered
+  terms). A column is brms 2.23.0's leave-one-out conditional density of
+  the row given the other rows of its group, normal or Student-t. It
+  equals brms's `log_lik()` at the same draws to 2.0e-15 relative on 18
+  cases. `loo()`, `waic()`, `psis()` and the `loo_*()` functions take
+  these models. The values do not sum to the log-likelihood, as in brms.
+  On a group with a missing time point, the conditional is the fitted
+  model's. Its `ar()`, `ma()` and `arma()` lags count time levels, where
+  brms's count positions.
+
+## Bug fixes
+
+* A bounded residual-correlation parameter is sampled through one
+  logistic onto its interval, as Stan's own bound is in brms. Stan's log
+  bound on frmtmb's internal parameter, stacked on the term's own map,
+  gave 5 to 9 divergent transitions per 4 chains of 2000. That was on a
+  `cosy` near its bound at 0 (seeds 3 to 5, mode and random starts),
+  where brms has none. Now there are none.
+
+* When the ML estimate of `cosy` is below brms's bound at 0, the warning
+  says that the bound is the default, brms's declaration. It names
+  `set_prior("", class = "cosy", lb = -1/(d - 1))` to sample the whole
+  window `frm()` fits. It said "the requested bound(s) on thetaac_1".
+
 # frmtmb.sample 0.22.0
 
 Needs frmtmb 0.75.0, which exports `frmtmb_covstruct_info()` and

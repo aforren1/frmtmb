@@ -1,3 +1,28 @@
+# frmtmb.spatial 0.3.0
+
+Needs frmtmb 0.76.0, which takes `frmtmb_register_autocor(jacobian =)`
+and accepts a bound at an end of a residual correlation parameter's
+interval.
+
+## New features
+
+* `sar()` gives its whitening map's Jacobian, `(I - rho W) / sigma`, as
+  a sparse matrix. So frmtmb.sample's `log_lik()` returns brms 2.23.0's
+  leave-one-out conditional density for both types, gaussian and
+  student. It equals brms's `log_lik()` at the same parameters to
+  6.3e-16 relative. One draw on a 40 x 40 lattice (1600 rows) takes 1.9
+  ms; brms's dense algorithm takes 4.1 s for the same draw.
+
+## Bug fixes
+
+* The `default_prior()` table of a `sar()` model passes back as
+  `prior =`. Its `lagsar` or `errorsar` row lists the ends of the
+  interval as `lb` and `ub`, as brms's does. `frm()` refused them as
+  outside the interval. The fix is in frmtmb, which now accepts a bound
+  at an end of the interval as no bound. Under `frm_sample()`, a
+  bounds-only prior on `lagsar` keeps the flat default density; see
+  frmtmb.sample's NEWS.
+
 # frmtmb.spatial 0.2.0
 
 Needs frmtmb 0.75.0, which exports `frmtmb_register_autocor()`, the

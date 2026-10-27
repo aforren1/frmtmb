@@ -59,6 +59,9 @@ keep_missing <- function(value = NULL) {
 require_fit_packages <- function(fit) {
   require_model_packages(fit)
   require_structure_packages(fit)
+  # not a package, but the same kind of refusal: a saved fit this
+  # version cannot read as the model it is
+  mo_check_fit(fit)
 }
 
 #' Stop, naming `pkg`, when it is neither core nor loadable here.

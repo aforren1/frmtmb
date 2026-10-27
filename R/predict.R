@@ -296,6 +296,7 @@ coef_b <- function(fit, b = fit$estimates[["b"]]) {
 #'
 #' @noRd
 mo_col_values <- function(fit, mi, codes = mi$codes) {
+  mo_min(mi)   # refuses a frame that frmtmb 0.75.0 or earlier coded
   zeta <- mo_simplex(fit$estimates[[mi$zeta]], mi[["chart"]])
   cz0 <- c(0, cumsum(zeta))
   mi$D * cz0[codes + 1L]
@@ -319,26 +320,93 @@ lp_Z <- function(fit, lp) {
   Z
 }
 
+#' The value an integer `mo()` term codes 0: the minimum of the fitted
+#' data (0 for an ordered factor, whose first level codes 0).
+#'
+#' A frame that frmtmb 0.75.0 or earlier built has no minimum: it coded
+#' the integers themselves, which is the same model only when the data
+#' start at 0. Any other such fit is refused, because its objective,
+#' its predictions and its draws are of the model with the extra
+#' category, not of brms's.
+#'
+#' @noRd
+mo_min <- function(mi) {
+  m <- mi[["min"]]
+  if (!is.null(m)) return(m)
+  codes <- mi[["codes"]]
+  if (!is.null(mi[["levels"]]) || !length(codes) || min(codes) == 0L) {
+    return(0L)
+  }
+  frm_stop("mo(", deparse1(mi[["expr"]]), ") of this fit was coded by ",
+           "frmtmb 0.75.0 or earlier, from 0 rather than from the ",
+           "minimum of the data (", min(codes), "). Its simplex has a ",
+           "cell for each value below the minimum, so the fit is not ",
+           "brms's model and its coefficients are not identified. Fit ",
+           "the model again with this version of frmtmb.", call. = FALSE)
+}
+
+#' Refuse a fit or frame whose `mo()` coding is not brms's (mo_min()),
+#' once for every method that reports a number of the fit: an estimate,
+#' a degree of freedom, a standard error or a comparison. A 0.75.0 fit of
+#' 1..4 stored the coefficients and the log-likelihood of a model with
+#' one unidentified cell, with df 6 where brms's model has 5, and
+#' `anova()` against its refit compared the two at one log-likelihood.
+#'
+#' @noRd
+mo_check_fit <- function(x) {
+  frame <- if (!is.null(x[["frame"]])) x[["frame"]] else x
+  for (lp in frame[["linpreds"]] %||% list()) {
+    for (mi in lp[["mo"]] %||% list()) mo_min(mi)
+  }
+  invisible(TRUE)
+}
+
 #' Category codes of a `mo()` variable in new data, validated against the
 #' fitted range.
+#'
+#' brms codes new data from the fitted data's minimum and refuses a
+#' value that is not a whole number in the fitted range (its
+#' validate_newdata()). Each refusal names its own cause. Through 0.75.0
+#' a fractional value was rounded to the nearest category, so 0.6 and
+#' 4.4 on a 1..4 fit were predicted as 1 and 4, and a finite difference
+#' never left a category: marginaleffects' slope of the term was 0.
 #'
 #' @noRd
 mo_codes <- function(fit, lp, mi, newdata) {
   env <- fit$spec$responses[[lp[["resp"]]]]$formula_env
   v <- eval(mi$expr, newdata, env)
+  lab <- paste0("mo(", deparse1(mi$expr), ")")
   if (!is.null(mi$levels)) {
     v <- factor(v, levels = mi$levels, ordered = TRUE)
     if (anyNA(v)) {
-      frm_stop("mo(): new data contain unknown categories", call. = FALSE)
+      frm_stop(lab, ": new data contain unknown categories", call. = FALSE)
     }
     return(as.integer(v) - 1L)
   }
-  codes <- as.integer(round(v))   # grids may land between categories
-  if (any(codes < 0 | codes > mi$D)) {
-    frm_stop("mo(): new data outside the fitted range 0..", mi$D,
-             call. = FALSE)
+  lo <- mo_min(mi)
+  hi <- lo + mi$D
+  if (!is.numeric(v) || is.factor(v)) {
+    frm_stop(lab, " was fitted on integers, but new data give ",
+             if (is.factor(v)) "a factor" else paste0("a ", class(v)[1L],
+                                                     " vector"),
+             ". Give the integers ", lo, " to ", hi, call. = FALSE)
   }
-  codes
+  if (anyNA(v)) {
+    frm_stop(lab, ": new data have missing values, and the model has ",
+             "no category for them", call. = FALSE)
+  }
+  frac <- v != round(v)
+  if (any(frac)) {
+    frm_stop(lab, " is defined at whole numbers only, but new data give ",
+             paste(utils::head(unique(v[frac]), 5L), collapse = ", "),
+             ". Give the integers ", lo, " to ", hi, call. = FALSE)
+  }
+  if (any(v < lo | v > hi)) {
+    frm_stop(lab, ": new data outside the fitted range ", lo, "..", hi,
+             " (", paste(utils::head(unique(v[v < lo | v > hi]), 5L),
+                          collapse = ", "), ")", call. = FALSE)
+  }
+  as.integer(v - lo)
 }
 
 #' A response as it was OBSERVED, in fitted-row space: `NA` where an
@@ -809,6 +877,9 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     m
   }
   mo_mm_nd <- NULL
+  # each term's codes and multiplier at the new rows: the delta method
+  # differentiates the term in its simplex as well (lp_delta_mo())
+  mo_rows <- list()
   for (mi in lp[["mo"]] %||% list()) {
     m <- if (is.na(mi[["mm_col"]] %||% NA_character_)) {
       nd_mult(mi$mult_expr)
@@ -818,7 +889,9 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       if (is.null(mo_mm_nd)) mo_mm_nd <- mo_sp_newdata(lp, newdata)
       unname(mo_mm_nd[, mi[["mm_col"]]])
     }
-    v <- mo_col_values(fit, mi, mo_codes(fit, lp, mi, newdata)) * m
+    cd <- mo_codes(fit, lp, mi, newdata)
+    mo_rows[[length(mo_rows) + 1L]] <- list(codes = cd, m = m)
+    v <- mo_col_values(fit, mi, cd) * m
     X <- cbind(X, matrix(v, ncol = 1, dimnames = list(NULL, mi$label)))
   }
   for (mt in lp[["mi"]] %||% list()) {
@@ -846,7 +919,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     # effect, so every smooth stays in and only the `(... | g)` blocks
     # below are left out
     return(list(X = X, off = off, re_parts = list(), sm_parts = sm_parts,
-                nonest = nonest))
+                nonest = nonest, mo_rows = mo_rows))
   }
 
   re_parts <- list()
@@ -890,13 +963,22 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       if (isTRUE(comp[["cmc_intercept"]])) {
         mm <- mm[, colnames(mm) != "(Intercept)", drop = FALSE]
       }
+      mo_raw <- NULL
+      mo_k <- integer(0)
       if (length(comp$mo_re$cf)) {
+        mo_raw <- mm * 0
         hit <- match(colnames(mm), comp$mo_re$raw)
         colnames(mm)[!is.na(hit)] <- comp$cnms[comp$mo_re$cf[hit[!is.na(hit)]]]
         # the placeholder column scaled by the term's transform at the
-        # new rows' categories (lp_Z() in sample)
+        # new rows' categories (lp_Z() in sample); the unscaled columns
+        # are kept for the term's derivative in its simplex
+        # (lp_delta_mo())
+        mo_k <- integer(0)
         for (cf in comp$mo_re$cf) {
-          mi <- lp[["mo"]][[mo_re_index(lp, comp$cnms[cf])]]
+          k <- mo_re_index(lp, comp$cnms[cf])
+          mo_k <- c(mo_k, k)
+          mi <- lp[["mo"]][[k]]
+          mo_raw[, cf] <- mm[, cf]
           mm[, cf] <- mm[, cf] *
             mo_col_values(fit, mi, mo_codes(fit, lp, mi, newdata))
         }
@@ -909,6 +991,9 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       }
       # a partial re_formula keeps some columns of this term (re_view())
       if (!is.null(comp$keep_cols)) mm[, !comp$keep_cols] <- 0
+      if (!is.null(comp$keep_cols) && !is.null(mo_raw)) {
+        mo_raw[, !comp$keep_cols] <- 0
+      }
       gvr <- group_values(comp$bar[[3]], newdata, env)
       # a field term may spell its levels itself: an spde block's are
       # mesh ROW NUMBERS, so the node has to be read as a number here
@@ -922,6 +1007,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
         # contributes nothing here and is not an unseen level of it
         rt <- by_route_rows(bk, gv, j, newdata, env)
         mm[rt$off, ] <- 0
+        if (!is.null(mo_raw)) mo_raw[rt$off, ] <- 0
         is_new <- rt$new
       }
       if (any(is_new) && !allow_new_levels) {
@@ -952,11 +1038,16 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
                                                 mm = mm, j = j,
                                                 new_key = gv,
                                                 is_new = is_new &
-                                                  is.na(j))
+                                                  is.na(j),
+                                                mo_raw = if (length(mo_k)) {
+                                                  list(cf = comp$mo_re$cf,
+                                                       k = mo_k,
+                                                       M = mo_raw)
+                                                })
     }
   }
   list(X = X, off = off, re_parts = re_parts, sm_parts = sm_parts,
-       nonest = nonest)
+       nonest = nonest, mo_rows = mo_rows)
 }
 
 #' The refusal of a grouping level the fit did not see. Classed, and the
@@ -2392,6 +2483,9 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
 
   if (is.null(newdata)) {
     X <- patch_mo_cols(object, lp, lp[["X"]])
+    mo_rows <- lapply(lp[["mo"]] %||% list(), function(mi) {
+      list(codes = mi[["codes"]], m = mi[["mult"]] %||% 1)
+    })
     off <- lp[["offset"]]
     n <- nrow(X)   # a subset() response has fewer rows than the frame
     eta <- lp_fixed_part(X, est, lp)
@@ -2416,6 +2510,7 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
     re_parts <- pd$re_parts
     sm_parts <- pd$sm_parts
     nonest <- pd$nonest
+    mo_rows <- pd$mo_rows
     n <- nrow(X)
     eta <- lp_fixed_part(X, est, lp)
     cvec <- coef_b(object)
@@ -2445,7 +2540,8 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
   sh <- object[["eta_shift"]]
   if (!is.null(sh) && identical(sh$key, key)) eta <- eta + sh$h
   list(eta = eta, X = X, off = off, re_parts = re_parts,
-       sm_parts = sm_parts, sm_blocks = sm_blocks, nonest = nonest, n = n)
+       sm_parts = sm_parts, sm_blocks = sm_blocks, nonest = nonest, n = n,
+       mo_rows = mo_rows)
 }
 
 #' A standard error that leaves out a variance component is only honest
@@ -2462,6 +2558,76 @@ warn_modes_conditional_se <- function() {
               "Refit with quadrature = FALSE for the full delta method",
               call. = FALSE, class = "frmtmb_modes_conditional_se")
   invisible(NULL)
+}
+
+#' The delta method's columns for the `mo()` simplexes of one linear
+#' predictor: `d eta / d z` for each term's coordinates `z`, with their
+#' positions in the joint covariance. A term contributes
+#' `c * D * cumsum(w(z))[code + 1]`, where `c` is the row's coefficient
+#' (the population-level one times the multiplier, plus a group-level
+#' one that varies it when `use_re`), so the column block is
+#' `c * D * cumsum(dw / dz)` at the row's code.
+#'
+#' Through 0.75.0 the design held the term's VALUE column only, so the
+#' standard error of a prediction left the simplex out: it was too small
+#' wherever the simplex is uncertain, and finite at a category no row is
+#' in, where the prediction moves along a direction the data do not
+#' determine (se_mo_gaps()). With these columns jc_nonest() finds that
+#' direction and the standard error there is NaN.
+#'
+#' @noRd
+lp_delta_mo <- function(object, lp, ed, use_re, jc) {
+  mos <- lp[["mo"]] %||% list()
+  rows <- ed[["mo_rows"]]
+  if (!length(mos) || length(rows) != length(mos)) return(NULL)
+  est <- object$estimates
+  rn <- jc$names
+  n <- ed[["n"]]
+  cvec <- NULL
+  A <- NULL
+  pos <- integer(0)
+  for (k in seq_along(mos)) {
+    mi <- mos[[k]]
+    z <- est[[mi[["zeta"]]]]
+    zpos <- which(rn == mi[["zeta"]])
+    if (!length(z) || length(zpos) != length(z)) next
+    cf <- rep_len(est[[lp[["par"]]]][lp[["idx"]][mi[["col"]]]] *
+                    rows[[k]][["m"]], n)
+    if (use_re && length(lp[["Z_mo"]]) && !length(ed[["re_parts"]]) &&
+          !is.null(lp[["Z"]]) && nrow(lp[["Z"]]) == n) {
+      # the fitted rows: lp$Z holds a group-level mo() column as its
+      # placeholder value, so Z b is that row's coefficient
+      cvec <- cvec %||% coef_b(object)
+      for (zm in lp[["Z_mo"]]) {
+        if (!identical(as.integer(zm$mo), k)) next
+        cf <- cf + as.vector(lp[["Z"]][, zm$cols, drop = FALSE] %*%
+                               cvec[zm$cols])
+      }
+    }
+    if (use_re) {
+      for (rp in ed[["re_parts"]]) {
+        mr <- rp[["mo_raw"]]
+        if (is.null(mr)) next
+        cvec <- cvec %||% coef_b(object)
+        bk <- rp$bk
+        B <- t(matrix(cvec[bk[["c_idx"]]], nrow = bk[["dim"]]))
+        for (i in which(mr$k == k)) {
+          col <- mr$cf[i]
+          v <- mr$M[, col] * B[rp$j, rp$comp$offset + col]
+          v[is.na(rp$j)] <- 0
+          cf <- cf + v
+        }
+      }
+    }
+    Jw <- RTMB::MakeTape(function(x) mo_simplex(x, mi[["chart"]]),
+                         z)$jacobian(z)
+    Jc <- rbind(0, matrix(apply(Jw, 2L, cumsum), nrow = nrow(Jw)))
+    blk <- mi$D * Jc[rows[[k]][["codes"]] + 1L, , drop = FALSE] * cf
+    A <- cbind(A, blk)
+    pos <- c(pos, zpos)
+  }
+  if (is.null(A)) return(NULL)
+  list(A = A, pos = pos)
 }
 
 #' Delta method: `var(eta) = A V A'` over the estimated coefficients (and b
@@ -2513,6 +2679,13 @@ lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
     keep <- !is.na(est_rank)
     coef_pos <- which(rn == "betad")[est_rank[keep]]
     A <- X[, keep, drop = FALSE]
+  }
+  dm <- lp_delta_mo(object, lp, ed, use_re, jc)
+  if (!is.null(dm)) {
+    A <- if (inherits(A, "Matrix")) Matrix::cbind2(A, dm$A) else {
+      cbind(A, dm$A)
+    }
+    coef_pos <- c(coef_pos, dm$pos)
   }
   if (length(object$frame[["re_blocks"]])) {
     b_pos <- which(rn == "b")

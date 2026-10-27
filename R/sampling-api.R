@@ -61,18 +61,26 @@
 #' multivariate t of a Student-t one, with its one shared `nu`. A
 #' pointwise `log_lik()` of a `rescor` model reads it rather than
 #' assuming the normal.
+#' `autocor_row_loglik(fit, dpv, resp)` is the pointwise log-density of
+#' a response with a residual covariance term (the covariance form of
+#' `ar()`, `ma()` and `arma()`, `cosy()`, `unstr()`, `fcor()`, a term of
+#' [frmtmb_register_autocor()]), at `dpv` (the whole list `eval_dpars()`
+#' returns) and the fit's `thetaac`: brms's leave-one-out conditional
+#' density of each row given the other rows of its group, one value per
+#' row ([frmtmb-autocor], "The pointwise log-density"). The values do
+#' not sum to the log-likelihood. On a maximum-likelihood fit it is the
+#' value at the estimates.
 #'
 #' `arma_cond_resp(fit)` names the responses carrying brms's default
 #' `cov = FALSE` form of `ar()`, `ma()` or `arma()`, and
 #' `arma_cond_dpars(fit, dpv)` gives the whole `eval_dpars()` list back
 #' with each such response's `mu` moved to brms's one-step conditional
 #' mean, the regression on the earlier OBSERVED residuals of the row's
-#' group. The two answer one question between them: whether a pointwise
-#' log-density exists, and what `mu` it is evaluated at. Under
-#' `cov = FALSE` every row keeps the family's own density, so a
-#' `log_lik()` column is an observation; a `cov = TRUE` covariance block
-#' has no such column, because its smallest independent unit is a whole
-#' group. Call `arma_cond_dpars()` before `row_lpdf()` (and before
+#' group. The two answer one question between them: which pointwise
+#' log-density a row gets, and what `mu` it is evaluated at. Under
+#' `cov = FALSE` every row keeps the family's own density; a `cov = TRUE`
+#' covariance block has none, and its row gets `autocor_row_loglik()`
+#' instead. Call `arma_cond_dpars()` before `row_lpdf()` (and before
 #' `rescor_row_loglik()`), which is the order the taped objective uses
 #' and which makes the row density read the objective's own `mu` instead
 #' of a second one. It is safe to call unconditionally: with no such
@@ -176,6 +184,21 @@
 #' blocks with the linear predictor and the `dpar` that class
 #' `"Intercept"` addresses each by, which is where brms puts its
 #' default on the thresholds.
+#' `autocor_flat_priors(fit)` lists brms's flat default on each
+#' residual-correlation class held through a transform (`ar`, `ma`,
+#' `cosy`, a registry term's `lagsar`): one row per class and response,
+#' with the ends of a uniform density on the natural parameter that
+#' spans the whole image of the term's map, so that it is flat
+#' wherever the parameter can go, and the narrower bound brms declares
+#' where it has one (`lb = 0` on `cosy`). A `cov = FALSE` term has no
+#' row, because its coefficients are the internal parameters.
+#' `autocor_bound_chart(fit, lower, upper)` gives, for each bounded
+#' first-order residual-correlation parameter, a chart that samples it
+#' through one logistic onto its natural interval, with the map to the
+#' internal parameter and its log Jacobian. `autocor_innov_sd(fit)`
+#' names the responses whose `sigma` brms reads as the innovation sd of
+#' a first-order `cov = TRUE` `ar()`, `ma()` or `arma()`, where the
+#' default prior on `sigma` is read on that sd.
 #'
 #' `frmtmb_register_prior_defaults()` is the other direction: it lets a
 #' package tell [get_prior()] what defaults it would apply.
@@ -510,6 +533,10 @@
 #' @aliases ord_lp_blocks
 #' @aliases ord_thres_linpred
 #' @aliases rescor_row_loglik
+#' @aliases autocor_flat_priors
+#' @aliases autocor_bound_chart
+#' @aliases autocor_innov_sd
+#' @aliases autocor_row_loglik
 #' @aliases arma_cond_resp
 #' @aliases arma_cond_dpars
 #' @aliases arma_cond_fill_dpars
@@ -570,6 +597,10 @@
 #'   brms_prob_cols, brms_fixef_rows, ord_delta_info, ord_thres_linpred,
 #'   ord_lp_blocks,
 #'   rescor_row_loglik,
+#'   autocor_flat_priors,
+#'   autocor_bound_chart,
+#'   autocor_innov_sd,
+#'   autocor_row_loglik,
 #'   arma_cond_resp, arma_cond_dpars, arma_cond_fill_dpars,
 #'   arma_cond_fill_epred, response_codes_newdata, subset_resp_check,
 #'   subset_newdata, mo_simplex, mo_coords, mo_chart_frame, mo_frame_terms,

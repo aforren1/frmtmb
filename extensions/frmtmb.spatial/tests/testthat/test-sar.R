@@ -549,11 +549,16 @@ test_that("one sar() parameter has one prior slot, under its brms class", {
   vp <- validate_prior(set_prior("normal(0.3, 0.2)", class = "lagsar"),
                        ylag ~ x + sar(W), data = dd, data2 = d2)
   expect_true("normal(0.3, 0.2)" %in% vp$prior[vp$class == "lagsar"])
-  # and core's ar() keeps its internal row (its own double slot is filed
-  # for a later round)
+  # and by the same rule as core's ar(), which lists no internal row
+  # either
   da <- data.frame(t = 1:30, y = stats::rnorm(30))
   dpa <- default_prior(y ~ ar(time = t), data = da)
-  expect_true(any(dpa$class == "theta" & dpa$coef == "thetaac_1"))
+  expect_false(any(dpa$class == "theta"))
+  # the table, lagsar's lb and ub at the ends of its interval, passes
+  # back as prior = (through 0.75.0 frm() refused its own lb)
+  fl <- frm(ylag ~ x + sar(W), data = dd, data2 = d2)
+  fp <- frm(ylag ~ x + sar(W), data = dd, data2 = d2, prior = dp)
+  expect_equal(as.numeric(logLik(fp)), as.numeric(logLik(fl)))
 })
 
 test_that("class = 'lagsar' on an error SAR names the model's errorsar", {
@@ -584,4 +589,192 @@ test_that("frmtmb_covstruct_info() says sar() is a residual term", {
                fixed = TRUE)
   # the guard absent: car(), a structure of this package, answers
   expect_true(frmtmb_covstruct_info("car")$field)
+})
+
+# The pointwise log-density, brms's leave-one-out conditional of each
+# row given the others (frmtmb::autocor_row_loglik(), which
+# frmtmb.sample's log_lik() reads per draw), at parameters set by hand:
+# a model assembled for sampling, read as frmtmb.sample reads one draw.
+sar_at <- function(fo, family, d, d2, b, sg, rho, nu = NULL) {
+  fit <- frm(fo, family = family, data = d, data2 = d2,
+             dry_run = "objective")
+  class(fit) <- setdiff(class(fit), "frmtmb_unfitted")
+  aux <- fit$frame[["autocor"]][[1L]][["aux"]]
+  fit$estimates$beta[] <- b
+  fit$estimates$betad[] <- c(log(sg), if (!is.null(nu)) log(nu - 1))
+  fit$estimates$thetaac[] <- stats::qlogis((rho - aux$lo) /
+                                             (aux$hi - aux$lo))
+  fit
+}
+
+sar_dense_cond <- function(y, m, S, nu = NULL) {
+  n <- length(y)
+  vapply(seq_len(n), function(i) {
+    o <- seq_len(n)[-i]
+    A <- solve(S[o, o])
+    r <- y[o] - m[o]
+    cm <- m[i] + as.numeric(S[i, o] %*% A %*% r)
+    cv <- S[i, i] - as.numeric(S[i, o] %*% A %*% S[o, i])
+    if (is.null(nu)) return(stats::dnorm(y[i], cm, sqrt(cv), log = TRUE))
+    df <- nu + n - 1
+    sc <- sqrt((nu + as.numeric(t(r) %*% A %*% r)) / df * cv)
+    stats::dt((y[i] - cm) / sc, df, log = TRUE) - log(sc)
+  }, 0)
+}
+
+test_that("the pointwise log-density of sar() is the dense conditional,
+           both types, gaussian and student", {
+  s <- sar_data(k = 5)
+  d <- s$d
+  W <- s$W
+  n <- s$n
+  for (type in c("lag", "error")) {
+    for (nu in list(NULL, 4)) {
+      y <- if (type == "lag") "ylag" else "yerr"
+      fo <- stats::as.formula(paste0(y, " ~ x + sar(W, type = '", type,
+                                     "')"))
+      fam <- if (is.null(nu)) gaussian() else student()
+      fit <- sar_at(fo, fam, d, list(W = W), c(0.8, 0.4), 0.9, 0.35, nu)
+      ll <- frmtmb::autocor_row_loglik(fit, frmtmb::eval_dpars(fit), y)
+      A <- diag(n) - 0.35 * W
+      eta <- 0.8 + 0.4 * d$x
+      m <- if (type == "lag") as.vector(solve(A, eta)) else eta
+      ref <- sar_dense_cond(d[[y]], m, 0.81 * solve(crossprod(A)), nu)
+      expect_lt(max(abs(ll - ref)), 1e-10 * max(abs(ref)))
+      # the row sum is not the log-likelihood: each row conditions on
+      # the others
+      expect_gt(abs(sum(ll) + fit$obj$fn(unlist(fit$estimates[c(
+        "beta", "betad", "thetaac")]))), 1e-3 * abs(sum(ll)))
+    }
+  }
+})
+
+test_that("brms row: the pointwise log-density of sar() is brms's
+           log_lik()", {
+  skip_unless_brms_fit()
+  s <- sar_data(k = 5)
+  dg <- 1 / sqrt(rowSums(s$A))
+  Ws <- s$A * outer(dg, dg)
+  d <- s$d
+  rho <- c(0.35, -0.4, 0.6)
+  sg <- c(0.9, 1.3, 0.7)
+  b <- list(c(0.8, 0.4), c(1.1, 0.2), c(0.5, 0.7))
+  for (type in c("lag", "error")) {
+    for (fam in c("gaussian", "student")) {
+      y <- if (type == "lag") "ylag" else "yerr"
+      fo <- stats::as.formula(paste0(y, " ~ x + sar(Ws, type = '", type,
+                                     "')"))
+      nus <- if (fam == "student") c(5, 12, 3.5)
+      ours <- t(vapply(1:3, function(k) {
+        fit <- sar_at(fo, get(fam)(), d, list(Ws = Ws), b[[k]], sg[k],
+                      rho[k], nus[k])
+        frmtmb::autocor_row_loglik(fit, frmtmb::eval_dpars(fit), y)
+      }, numeric(s$n)))
+      bform <- brms::bf(fo)
+      bfam <- brms::brmsfamily(fam)
+      prior <- brms_flat_prior(bform, data = d, family = bfam,
+                               data2 = list(Ws = Ws))
+      code <- brms::make_stancode(bform, data = d, family = bfam,
+                                  prior = prior, data2 = list(Ws = Ws))
+      sdat <- brms_standata(bform, data = d, family = bfam, prior = prior,
+                            data2 = list(Ws = Ws))
+      bfit <- suppressMessages(brms::brm(bform, data = d, family = bfam,
+                                         prior = prior,
+                                         data2 = list(Ws = Ws),
+                                         empty = TRUE))
+      inits <- lapply(1:3, function(k) {
+        p <- list(b = array(b[[k]][2L], 1),
+                  Intercept = b[[k]][1L] + b[[k]][2L] * mean(d$x),
+                  sigma = sg[k])
+        p[[paste0(type, "sar")]] <- rho[k]
+        if (fam == "student") p$nu <- nus[k]
+        p
+      })
+      # one Fixed_param chain per parameter vector
+      bfit$fit <- suppressMessages(rstan::sampling(
+        brms_stan_model(code), data = sdat, chains = 3, iter = 1,
+        warmup = 0, algorithm = "Fixed_param", init = inits, refresh = 0,
+        seed = 1))
+      llb <- brms::log_lik(brms::rename_pars(bfit))
+      expect_equal(dim(llb), dim(ours))
+      expect_lt(max(abs(ours - llb)), 1e-10 * max(abs(llb)))
+    }
+  }
+})
+
+test_that("sar() reads its precision off its sparse jacobian slot, not the
+           dense fallback", {
+  # the values of the slot and of the fallback agree to 7e-15, so only
+  # the route tells them apart: the slot gives a sparse matrix, and a
+  # sar() above core's dense-route threshold raises no warning where the
+  # same map without the slot warns that it inverts a dense matrix. The
+  # lattice is built from the threshold, so a change to it cannot turn
+  # this into a case below it
+  lim <- frmtmb:::autocor_loo_dense_max
+  s <- sar_data(k = ceiling(sqrt(lim + 1)))
+  expect_gt(s$n, lim)
+  aux <- sar_build(list(M = quote(W), type = "lag"), seq_len(s$n), s$n,
+                   function(expr, what) s$W)
+  expect_s4_class(sar_jacobian(0.9, 0.3, aux), "sparseMatrix")
+  fit <- sar_at(ylag ~ x + sar(W), gaussian(), s$d, list(W = s$W),
+                c(1, 0.5), 0.7, 0.4)
+  expect_no_warning(frmtmb::autocor_row_loglik(
+    fit, frmtmb::eval_dpars(fit), "ylag"))
+  frmtmb::frmtmb_local_registries()
+  frmtmb::frmtmb_register_autocor(
+    "sarnoslot", args = c("M", "type"), parse = sar_parse,
+    build = sar_build, whiten = sar_whiten, unwhiten = sar_unwhiten,
+    npar = 1L, start = sar_start, natural = sar_natural,
+    sigma_varies = FALSE, bounds = sar_bounds)
+  f0 <- sar_at(ylag ~ x + sarnoslot(W), gaussian(), s$d, list(W = s$W),
+               c(1, 0.5), 0.7, 0.4)
+  w <- tryCatch(frmtmb::autocor_row_loglik(f0, frmtmb::eval_dpars(f0),
+                                           "ylag"),
+                warning = identity)
+  expect_s3_class(w, "frmtmb_autocor_dense_fallback")
+})
+
+test_that("a bound typed at a computed end of the interval is that end", {
+  # the 0.76.0 release review, finding 3: a ring of 20 with chords,
+  # row-standardized, has its largest eigenvalue at 1, and 1 / it
+  # computes to 0.999999999999998 or to 1 by how LAPACK rounds; ub = 1
+  # was refused on the first, as "outside ... (-1.72756, 1)"
+  n <- 20
+  A <- matrix(0, n, n)
+  for (i in 1:n) {
+    j <- i %% n + 1
+    A[i, j] <- A[j, i] <- 1
+    j <- (i + 1) %% n + 1
+    A[i, j] <- A[j, i] <- 1
+  }
+  A[1, 10] <- A[10, 1] <- 1
+  W <- A / rowSums(A)
+  set.seed(3)
+  d <- data.frame(x = stats::rnorm(n))
+  d$y <- as.vector(solve(diag(n) - 0.4 * W, 1 + 0.5 * d$x +
+                           stats::rnorm(n, 0, 0.7)))
+  d2 <- list(W = W)
+  for (type in c("lag", "error")) {
+    fo <- stats::as.formula(paste0("y ~ x + sar(W, type = '", type, "')"))
+    cl <- paste0(type, "sar")
+    f0 <- frm(fo, data = d, data2 = d2)
+    dp <- default_prior(fo, data = d, data2 = d2)
+    hi <- dp$ub[dp$class == cl]
+    # the end the table lists is the computed one: 1 within its ulps
+    expect_lt(abs(hi - 1), 64 * .Machine$double.eps)
+    p1 <- set_prior("", class = cl, ub = 1)
+    vp <- validate_prior(p1, fo, data = d, data2 = d2)
+    expect_true(cl %in% vp$class)
+    f1 <- frm(fo, data = d, data2 = d2, prior = p1)
+    expect_equal(as.numeric(logLik(f1)), as.numeric(logLik(f0)))
+    # the guard absent: past the end by more than the ulps an end
+    # carries, the bound is refused, and the message prints the end
+    e <- tryCatch(frm(fo, data = d, data2 = d2,
+                      prior = set_prior("", class = cl, ub = 1 + 1e-9)),
+                  error = identity)
+    expect_s3_class(e, "frmtmb_error")
+    expect_match(conditionMessage(e), "is outside the interval of sar(W",
+                 fixed = TRUE)
+    expect_match(conditionMessage(e), format(hi, digits = 15), fixed = TRUE)
+  }
 })

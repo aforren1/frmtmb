@@ -119,8 +119,12 @@ brms's class priors \code{lagsar} and \code{errorsar} work:
 \code{set_prior("normal(0, 0.5)", class = "lagsar")} is a density on rho,
 carried to its internal parameter with the log-Jacobian of the map.
 frmtmb.sample's default is brms's, flat on rho over its interval.
-The pointwise \code{log_lik()} is refused, as for frmtmb's other residual
-covariance terms; brms's is a leave-one-out conditional density.
+\code{frmtmb.sample::log_lik()} gives brms's pointwise log-density: the
+leave-one-out conditional density of each row given the other rows,
+normal (or Student-t with \eqn{\nu + n - 1} degrees of freedom) with
+precision \eqn{A'A / \sigma^2}, which is sparse, so its cost per draw
+is the nonzeros of \code{W} and not the dense \verb{n x n} inverse
+brms takes. The row sum is not the log-likelihood.
 }
 
 \examples{

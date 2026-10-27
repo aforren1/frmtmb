@@ -1166,11 +1166,7 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   arma_cond <- resp %in% arma_cond_resp(fit)
   # so a cov = FALSE term is not a structured draw, on newdata or under
   # re_formula, as core's predict() treats it
-  structured <- local({
-    ctx0 <- sim_context(fit, rspec, list(), aterms = av)
-    if (arma_cond) ctx0[["autocor"]] <- NULL
-    sim_is_structured(ctx0)
-  })
+  structured <- draws_pp_structured(fit, resp, av)
   if (!is.null(newdata) && structured) {
     # the sequence, group and residual-correlation structures a
     # structured draw walks were built from the TRAINING rows and index
@@ -2648,6 +2644,21 @@ draws_summarize_margin <- function(out, probs = c(0.025, 0.975),
 #' get a different question's answer instead.
 #'
 #' @noRd
+#' Whether `posterior_predict()` draws response `resp` as a walk over
+#' the fitted rows (a hidden state sequence, a group-level latent
+#' class, a correlated residual), and so refuses `newdata` and
+#' `re_formula` for it. brms's `cov = FALSE` ARMA is not one: its rows
+#' are drawn one by one around their one-step means.
+#'
+#' @noRd
+draws_pp_structured <- function(fit, resp,
+                                av = fit$frame[["aterm_values"]][[resp]]) {
+  ctx0 <- sim_context(fit, fit$spec$responses[[resp]], list(),
+                      aterms = av)
+  if (resp %in% arma_cond_resp(fit)) ctx0[["autocor"]] <- NULL
+  sim_is_structured(ctx0)
+}
+
 draws_refuse_newdata <- function(newdata, re_formula, re.form, what,
                                  ...) {
   if (!is.null(newdata)) {

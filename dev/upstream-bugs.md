@@ -726,6 +726,54 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
 - Record: `dev/sarfcor-findings.md`, fix round 1 (F3).
 - Status: not reported.
 
+### brms-40. `mo()` codes new data from another minimum than the fit when the variable has `attr(x, "min")`
+
+- Seen: 2.23.0, 2026-10-27 (`dev/mocode-brms-coding.R`, log
+  `dev/mocode-out/brms-coding.txt`, last section).
+- Repro: `d <- data.frame(x = c(1, 2, 3, 4, 1, 2), y = rnorm(6))`,
+  `attr(d$x, "min") <- 0`, `fit <- brm(y ~ mo(x), d, empty = TRUE)`;
+  then `standata(fit)` and
+  `standata(fit, newdata = data.frame(x = 1:4, y = 0))`.
+- Expected: the same codes for the same values. Actual: the fit has
+  `Jmo = 4` and `Xmo_1 = 1 2 3 4 1 2`, because `get_mo_values()` reads
+  the attribute; the new data have `Jmo = 4` and `Xmo_1 = 0 1 2 3`,
+  because `validate_newdata()` sets the attribute to `min(mf$x)`, the
+  minimum of the fitted values (1), not the one the fit used. Every
+  prediction is moved down one category. The attribute is not
+  documented (it is how brms carries the minimum to new data), so few
+  users meet this.
+- Workaround: frmtmb codes from the minimum of the data and does not
+  read the attribute, so both sides use the same minimum. frmtmb has
+  no way to add a category below the lowest observed value: an
+  ordered factor with such a level does not, because both packages
+  drop unused levels.
+- Record: `dev/mocode-findings.md`.
+- Status: not reported.
+
+### brms-41. In a multivariate model with `subset()`, `mo()` codes new data from the new data's own minimum
+
+- Seen: 2.23.0, 2026-10-27 (`dev/mocode-brms-subset.R`, log
+  `dev/mocode-out/brms-subset.txt`; first found by the review of the
+  mocode lane, `dev/reviews/2026-10-27-mocode.md`, finding 3).
+- Repro: seed 5, n = 300, `k` in 1..4,
+  `bf(y | subset(s1) ~ mo(k)) + bf(y2 | subset(s2) ~ mo(k)) +
+  set_rescor(FALSE)` with `s1 = k > 1` and `s2 = TRUE`,
+  `brm(..., empty = TRUE)`, then `standata(fit, newdata =)`.
+- Expected: new data coded from each response's fitted minimum, and a
+  value outside a response's fitted range refused, as brms does
+  without `subset()`. Actual: `y2` (fitted on 1..4, `Jmo_y2 = 3`)
+  codes new data `k = 2 3 4` as `0 1 2` (the fit codes them `1 2 3`),
+  and `y` (fitted on 2..4, `Jmo_y = 2`) codes `k = 1 2 3 4` as
+  `0 1 2 3`, a code past its simplex, with no refusal. Without
+  `subset()` the same new data give `1 2 3` for both responses, and a
+  univariate `subset()` model codes `2 3 4` as `0 1 2`, which is right.
+- Workaround: frmtmb stores each term's minimum and range in its frame
+  entry and codes and checks new data against it, so `subset()` does
+  not change the coding. `conditional_effects()` builds the grid of a
+  `mo()` effect from the fitted term's categories.
+- Record: `dev/mocode-findings.md`, Fix round 1, item 3.
+- Status: not reported.
+
 ## RTMB
 
 ### RTMB-1. `pbeta()`, `pbinom()` and `pnbinom()` have non-finite third derivatives

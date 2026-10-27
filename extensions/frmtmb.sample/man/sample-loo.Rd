@@ -96,8 +96,10 @@ out column \code{t} leaves out one conditional density, not the series and
 not the row's influence on its neighbors, because every retained
 column still reads \code{y_t} through its own lagged residuals. Read it as
 "how well the one-step density fits each row", and refit without a
-group for a held-out-series answer. The \code{cov = TRUE} covariance form
-is refused instead: there no column is an observation.
+group for a held-out-series answer. Under the \code{cov = TRUE} covariance
+form a column is the row's density given the rest of its group,
+before and after it, as brms's \code{log_lik()} gives it
+(\link{sample-log_lik}, "Residual covariance terms").
 }
 
 \section{Priors, and what these numbers mean}{

@@ -128,9 +128,17 @@ test_that("the matrix-valued classes refuse lb/ub, naming the alternative", {
   for (cl in c("cor", "cortime", "rescor")) {
     expect_error(set_prior("lkj(2)", class = cl, lb = 0),
                  "takes no lb/ub", info = cl)
-    expect_error(set_prior("lkj(2)", class = cl, lb = 0),
-                 "thetaac_1", info = cl)
   }
+  # cor and rescor name the internal route; an unstr() correlation has
+  # one slot, its class, so it names none (class theta would refuse it)
+  for (cl in c("cor", "rescor")) {
+    expect_error(set_prior("lkj(2)", class = cl, lb = 0),
+                 "class = \"theta\"", info = cl)
+  }
+  e <- tryCatch(set_prior("lkj(2)", class = "cortime", lb = 0),
+                error = conditionMessage)
+  expect_match(e, "one prior slot", fixed = TRUE)
+  expect_no_match(e, "thetaac", fixed = TRUE)
   # and each of them still demands the density that fits it
   expect_error(set_prior("normal(0, 1)", class = "rescor"),
                "takes an lkj\\(\\) prior")
@@ -146,35 +154,135 @@ test_that("a higher-order ar coefficient refuses a bound, with the reason", {
   # internal space is the box the user asked for
   expect_error(frmtmb:::resolve_prior_input(fit,
     set_prior("", class = "ar", lb = 0.1)), "takes no lb/ub at order 2")
-  expect_error(frmtmb:::resolve_prior_input(fit,
-    set_prior("", class = "ar", lb = 0.1)), "class = \"theta\"")
+  # and names no route that is refused in turn: class theta on either
+  # internal parameter is a second slot on the same coefficients
+  e <- tryCatch(frmtmb:::resolve_prior_input(fit,
+    set_prior("", class = "ar", lb = 0.1)), error = conditionMessage)
+  expect_no_match(e, "class = \"theta\"", fixed = TRUE)
+  expect_match(e, "order one only", fixed = TRUE)
   # the density still works at that order, which is what the Jacobian is
-  # for, and the internal escape hatch still bounds one parameter
+  # for
   expect_length(frmtmb:::resolve_prior_input(fit,
     set_prior("normal(0, 0.5)", class = "ar"))$entries, 1L)
-  expect_identical(names(frmtmb:::resolve_prior_input(fit,
-    set_prior("", class = "theta", coef = "thetaac_2", lb = -1))$lower),
-    "thetaac_2")
+  expect_error(frmtmb:::resolve_prior_input(fit,
+    set_prior("", class = "theta", coef = "thetaac_2", lb = -1)),
+    "internal parameter of ar", class = "frmtmb_error")
 })
 
-test_that("class theta reaches every covariance component by name", {
+test_that("class theta reaches the covariance parameters no class does", {
   dd <- sim_ar()
-  f_ar <- frm(bf(y ~ x + ar(t, g, cov = TRUE)) + gaussian(), data = dd)
-  ri <- frmtmb:::resolve_prior_input(f_ar,
-    set_prior("", class = "theta", coef = "thetaac_1", lb = -2, ub = 2))
-  expect_identical(names(ri$lower), "thetaac_1")
-  expect_identical(unname(ri$lower), -2)
-
   fm <- frm(mvbf(bf(y ~ x) + gaussian(), bf(y2 ~ x) + gaussian(),
                  rescor = TRUE), data = dd)
   rr <- frmtmb:::resolve_prior_input(fm,
     set_prior("", class = "theta", coef = "thetar_1", lb = -1))
   expect_identical(names(rr$lower), "thetar_1")
+  fr <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+  re <- frmtmb:::resolve_prior_input(fr,
+    set_prior("", class = "theta", coef = "theta_1", lb = -3))
+  expect_identical(names(re$lower), "theta_1")
 
   # a name no covariance component carries lists the ones that exist
+  f_ar <- frm(bf(y ~ x + ar(t, g, cov = TRUE)) + gaussian(), data = dd)
   expect_error(frmtmb:::resolve_prior_input(f_ar,
     set_prior("", class = "theta", coef = "nope_1", lb = 0)),
     "names no covariance parameter")
+})
+
+test_that("one residual-correlation parameter has one prior slot", {
+  # through 0.75.0 default_prior() listed class ar and class theta coef
+  # thetaac_1 for the same coefficient, and frm() applied whichever of
+  # the two came last (dev/acprior-double.R)
+  dd <- sim_ar(ng = 20)
+  cases <- list(
+    ar = list(y ~ x + ar(t, g), "ar"),
+    arcov = list(y ~ x + ar(t, g, cov = TRUE), "ar"),
+    ma = list(y ~ x + ma(t, g, cov = TRUE), "ma"),
+    arma = list(y ~ x + arma(t, g, cov = TRUE), c("ar", "ma")),
+    cosy = list(y ~ x + cosy(t, g), "cosy"),
+    unstr = list(y ~ x + unstr(t, g), "cortime"))
+  for (nm in names(cases)) {
+    fo <- cases[[nm]][[1L]]
+    cls <- cases[[nm]][[2L]]
+    dp <- default_prior(fo, data = dd)
+    expect_false(any(dp$class == "theta"), info = nm)
+    expect_true(all(cls %in% dp$class), info = nm)
+    fr <- frm(fo, data = dd, dry_run = "frame")
+    pt <- fr[["par_template"]][["thetaac"]]
+    for (k in seq_along(pt)) {
+      e <- tryCatch(validate_prior(set_prior("normal(0, 1)",
+                                             class = "theta",
+                                             coef = paste0("thetaac_", k)),
+                                   fo, data = dd),
+                    error = identity)
+      expect_s3_class(e, "frmtmb_error")
+      # the refusal names the class that does reach the parameter
+      own <- if (identical(nm, "arma")) cls[k] else cls
+      expect_match(conditionMessage(e),
+                   paste0("internal parameter of ", own, ","), fixed = TRUE,
+                   info = paste(nm, k))
+      expect_match(conditionMessage(e), paste0("class = \"", own, "\""),
+                   fixed = TRUE, info = paste(nm, k))
+    }
+  }
+  # frm() refuses it too, before any fitting
+  expect_error(frm(y ~ x + cosy(t, g), data = dd,
+                   prior = set_prior("", class = "theta",
+                                     coef = "thetaac_1", lb = 0)),
+               "internal parameter of cosy", class = "frmtmb_error")
+  # the guard absent: the class itself takes the prior
+  vp <- validate_prior(set_prior("normal(0.3, 0.2)", class = "ar"),
+                       y ~ x + ar(t, g, cov = TRUE), data = dd)
+  expect_true("normal(0.3, 0.2)" %in% vp$prior[vp$class == "ar"])
+  # in a multivariate model the refusal names the response too
+  e <- tryCatch(validate_prior(
+    set_prior("normal(0, 1)", class = "theta", coef = "thetaac_2"),
+    mvbf(bf(y ~ x + ar(t, g)), bf(y2 ~ x + ar(t, g))), data = dd),
+    error = conditionMessage)
+  expect_match(e, "class = \"ar\", resp = \"y2\"", fixed = TRUE)
+})
+
+test_that("the prior table bounds the classes as brms does", {
+  # brms 2.23.0's default_prior() (dev/acprior-brms-defaults.R): lb -1
+  # and ub 1 on a cov = TRUE ar and ma, none under cov = FALSE; cosy is
+  # brms's [0, 1] on the sampling route only (frmtmb.sample's tests),
+  # and frm()'s own window here
+  dd <- sim_ar(ng = 20)
+  bnd <- function(fo, cl) {
+    dp <- default_prior(fo, data = dd)
+    unlist(dp[dp$class == cl, c("lb", "ub")])
+  }
+  expect_equal(unname(bnd(y ~ x + ar(t, g, cov = TRUE), "ar")), c(-1, 1))
+  expect_equal(unname(bnd(y ~ x + ma(t, g, cov = TRUE), "ma")), c(-1, 1))
+  expect_true(all(is.na(bnd(y ~ x + ar(t, g), "ar"))))
+  # an order-two coefficient is not on a box, and brms has no such term
+  expect_true(all(is.na(bnd(y ~ x + ar(t, g, p = 2, cov = TRUE), "ar"))))
+  # six time points: the window is (-1/5, 1)
+  expect_equal(unname(bnd(y ~ x + cosy(t, g), "cosy")), c(-1 / 5, 1))
+  # and the table passes back as prior =, its ends bounding nothing
+  for (fo in list(y ~ x + ar(t, g, cov = TRUE), y ~ x + cosy(t, g))) {
+    f0 <- frm(fo, data = dd)
+    f1 <- frm(fo, data = dd, prior = default_prior(fo, data = dd))
+    expect_equal(as.numeric(logLik(f1)), as.numeric(logLik(f0)))
+  }
+})
+
+test_that("a bound at the end of a parameter's interval bounds nothing", {
+  dd <- sim_ar()
+  fit <- frm(bf(y ~ x + ar(t, g, cov = TRUE)) + gaussian(), data = dd)
+  ri <- frmtmb:::resolve_prior_input(fit,
+    set_prior("", class = "ar", lb = -1, ub = 1))
+  expect_identical(unname(c(ri$lower, ri$upper)), c(-Inf, Inf))
+  fc <- frm(bf(y ~ x + cosy(t, g)) + gaussian(), data = dd)
+  rc <- frmtmb:::resolve_prior_input(fc,
+    set_prior("", class = "cosy", lb = -1 / 5, ub = 1))
+  expect_identical(unname(c(rc$lower, rc$upper)), c(-Inf, Inf))
+  # the absent case: inside the interval it is a bound, and past its end
+  # a refusal
+  expect_true(is.finite(frmtmb:::resolve_prior_input(fit,
+    set_prior("", class = "ar", lb = -0.5))$lower[[1L]]))
+  expect_error(frmtmb:::resolve_prior_input(fit,
+    set_prior("", class = "ar", lb = -1.5)), "outside (-1, 1)",
+    fixed = TRUE)
 })
 
 test_that("get_prior lists a row for every new class the model offers", {
@@ -182,12 +290,9 @@ test_that("get_prior lists a row for every new class the model offers", {
   gp <- get_prior(bf(y ~ x + arma(t, g, cov = TRUE)) + gaussian(),
                   data = dd)
   expect_true(all(c("ar", "ma") %in% gp$class))
-  # per-element internal rows, so every bound has a spelling to copy
-  expect_true(all(c("thetaac_1", "thetaac_2") %in%
-                    gp$coef[gp$class == "theta"]))
-  # a model with no random effects offers no bare theta row: `$theta`
-  # partial-matches `thetaac`, which once listed one
-  expect_false(any(gp$class == "theta" & !nzchar(gp$coef)))
+  # one row per parameter: the internal names of the ar and ma
+  # coefficients are not a second spelling of them
+  expect_false(any(gp$class == "theta"))
 
   gu <- get_prior(bf(y ~ x + unstr(t, g)) + gaussian(), data = dd)
   expect_true("cortime" %in% gu$class)
@@ -206,4 +311,78 @@ test_that("prior_summary reports the new classes on a fit", {
   txt <- paste(utils::capture.output(print(prior_summary(fit))),
                collapse = "\n")
   expect_match(txt, "ar ~ normal(0, 0.5)", fixed = TRUE)
+})
+
+test_that("a sigma prior under a cov = TRUE term is read on brms's sigma", {
+  # brms's sigma under a first-order cov = TRUE ar(), ma() or arma() is
+  # the innovation sd (its cholesky_cor_*() are covariances); frmtmb's is
+  # the marginal sd, sigma_i / c. A typed student_t(3, 0, 2.5) on sigma
+  # is brms's density at sigma_i = sigma c, with the Jacobian of c, on
+  # frm()'s MAP route as on frm_sample()'s. Through fix round 1 of this
+  # change a user sigma prior was read on the marginal sd while the
+  # sampling default was read on the innovation sd, up to 0.72 nats
+  # apart (dev/review-acprior-r1-trip.R)
+  dd <- sim_ar(ng = 20)
+  cases <- list(
+    list(y ~ x + ar(t, g, cov = TRUE), function(n) sqrt(1 - n[1]^2)),
+    list(y ~ x + ma(t, g, cov = TRUE), function(n) 1 / sqrt(1 + n[1]^2)),
+    list(y ~ x + arma(t, g, cov = TRUE),
+         function(n) sqrt((1 - n[1]^2) / (1 + n[2]^2 + 2 * n[1] * n[2]))))
+  pr <- set_prior("student_t(3, 0, 2.5)", class = "sigma")
+  for (cs in cases) {
+    fit <- frm(cs[[1]], data = dd)
+    ac <- fit$frame$autocor[[1L]]
+    ent <- frmtmb:::resolve_prior_input(fit, pr)$entries
+    expect_length(ent, 1L)
+    nlp <- frmtmb:::neg_log_prior_fn(ent)
+    set.seed(5)
+    v <- vapply(1:5, function(k) {
+      p <- fit$frame$par_template
+      th <- stats::rnorm(ac$npar)
+      eta <- stats::rnorm(1, 0, 0.5)
+      p[["thetaac"]][] <- th
+      p[[ent[[1L]]$comp]][ent[[1L]]$idx] <- eta
+      cc <- cs[[2]](as.numeric(frmtmb:::autocor_natural(th, ac)))
+      # brms's student_t_lpdf(sigma | 3, 0, 2.5), sigma = exp(eta) c,
+      # carried to eta
+      ref <- stats::dt(exp(eta) * cc / 2.5, 3, log = TRUE) - log(2.5) +
+        log(cc) + eta
+      c(nlp(p), ref)
+    }, c(0, 0))
+    expect_lt(diff(range(colSums(v))) / max(abs(v)), 1e-10,
+              label = deparse(cs[[1]]))
+  }
+  # the absent case: cosy's sigma is brms's marginal sd as well, and an
+  # order-two cov = TRUE ar, which brms does not have, keeps frmtmb's
+  for (fo in list(y ~ x + cosy(t, g), y ~ x + ar(t, g, p = 2, cov = TRUE),
+                  y ~ x + ar(t, g))) {
+    fit <- frm(fo, data = dd)
+    ent <- frmtmb:::resolve_prior_input(fit, pr)$entries
+    expect_null(ent[[1L]]$innov, label = deparse(fo))
+  }
+})
+
+test_that("a bound on sigma under a cov = TRUE term is refused", {
+  # brms takes lb/ub on its sigma, the innovation sd (stancode():
+  # real<lower=0.2> sigma, dev/acprior-brms-sigmabound.R). A box on
+  # sigma * c is not a box on frmtmb's marginal sigma, since c moves
+  # with ar, so the bound is refused rather than put on the marginal sd
+  dd <- sim_ar(ng = 20)
+  fit <- frm(y ~ x + ar(t, g, cov = TRUE), data = dd)
+  for (pr in list(set_prior("", class = "sigma", lb = 0.2),
+                  set_prior("normal(1, 1)", class = "sigma", ub = 3))) {
+    e <- tryCatch(frmtmb:::resolve_prior_input(fit, pr),
+                  error = identity)
+    expect_s3_class(e, "frmtmb_error")
+    expect_match(conditionMessage(e), "innovation sd", fixed = TRUE)
+  }
+  # the absent cases: the same bound where sigma is brms's sigma, and
+  # lb = 0, which is the same box on either scale
+  fc <- frm(y ~ x + cosy(t, g), data = dd)
+  expect_named(frmtmb:::resolve_prior_input(fc,
+    set_prior("", class = "sigma", lb = 0.2))$lower, "sigma_(Intercept)")
+  fi <- frm(bf(y ~ x + ar(t, g, cov = TRUE)) +
+              brmsfamily("gaussian", link_sigma = "identity"), data = dd)
+  expect_no_error(frmtmb:::resolve_prior_input(fi,
+    set_prior("normal(1, 1)", class = "sigma", lb = 0)))
 })

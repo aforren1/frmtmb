@@ -115,7 +115,11 @@
 #'   releases before 0.49 are gone rather than aliased, and a call still
 #'   using them fails as an unused argument; every outer parameter they
 #'   could reach has a `set_prior()` class, down to a single internal
-#'   covariance parameter (`class = "theta", coef = "thetaac_1"`). See
+#'   covariance parameter (`class = "theta", coef = "theta_1"`), except
+#'   the internal parameters of a `cov = TRUE` `ar()` or `ma()` of order
+#'   two or more, which take no box (brms has no such term), and a single
+#'   correlation of an `unstr()` term, which class `"cortime"` reaches
+#'   only as a whole matrix (as in brms, it takes no `lb`/`ub`). See
 #'   [set_prior()]'s Hard bounds section.
 #'
 #'   *The spelling is brms's; the SEMANTICS are not.* A prior here is a
@@ -330,8 +334,18 @@
 #'
 #' @section Monotonic effects:
 #' `mo(x)` fits an ordinal predictor without assuming its categories are
-#' equally spaced. `x` is an ordered factor or a non-negative integer
-#' vector with at least three categories, coded `0..D`. The term
+#' equally spaced. `x` is an ordered factor or an integer vector with at
+#' least three categories. As in brms, the categories are coded `0..D`
+#' from the lowest one: the first level of a factor, or the minimum of
+#' the integers. So `1..5` and `-2..2` are both coded `0..4`. An
+#' integer between the minimum and the maximum that no row has is also
+#' a category. For example, `1, 2, 5` gives `D = 4`. The data do not
+#' determine a prediction at such a category, so in a maximum-likelihood
+#' fit its standard error is `NaN`. New data are coded from the minimum
+#' of the fitted data. A value that is not a whole number, or that is
+#' outside the fitted range, is refused, as brms refuses it.
+#' `conditional_effects()` holds
+#' a numeric `mo()` variable at `round(median())`, as brms does. The term
 #' contributes `b * D * sum(zeta[1:k])` at category `k`, where `zeta` is
 #' a simplex of `D` non-negative steps summing to one. `b` is therefore
 #' the AVERAGE step, on the coefficient scale of any other predictor,

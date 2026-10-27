@@ -136,3 +136,59 @@ test_that("the fast sd_ path is checked where theta is extreme", {
   expect_identical(frmtmb.sample:::draws_cov_values(im, ds$fit, dv),
                    frmtmb.sample:::draws_cov_values(im, ds$fit, slow))
 })
+
+test_that("a user prior keeps the bound brms declares for its slot", {
+  # brms's declared bounds stay under a user prior: real<lower=1> nu,
+  # real<lower=0> sigma under an identity link, real<upper=min_Y> ndt.
+  # Through frmtmb.sample 0.22.0 a user prior of the same slot dropped
+  # them (dev/review-acprior-bounded.R)
+  set.seed(12)
+  d <- data.frame(x = stats::rnorm(120))
+  d$y <- 1 + d$x + stats::rt(120, df = 1.2)
+  ri_of <- function(fam, prior, data = d) {
+    uf <- frm(bf(y ~ x), family = fam, data = data, dry_run = "objective")
+    suppressMessages(frmtmb.sample:::sample_resolve_priors(uf, prior))$ri
+  }
+  bnd <- function(v, pat) unname(unlist(v)[grep(pat, names(unlist(v)))])
+  nu_id <- brmsfamily("student", link_nu = "identity")
+  expect_identical(bnd(ri_of(nu_id, set_prior("normal(2, 2)",
+                                              class = "nu"))$lower, "^nu"),
+                   1)
+  # the user's own lb replaces the default's side, as in brms
+  expect_identical(bnd(ri_of(nu_id, set_prior("normal(2, 2)", class = "nu",
+                                              lb = 1.5))$lower, "^nu"),
+                   1.5)
+  sg_id <- brmsfamily("gaussian", link_sigma = "identity")
+  expect_identical(bnd(ri_of(sg_id, set_prior("normal(1, 1)",
+                                              class = "sigma"))$lower,
+                       "^sigma"), 0)
+  set.seed(20261116)
+  ds <- data.frame(x = stats::rnorm(60))
+  ds$y <- 0.4 + exp(stats::rnorm(60, -0.5 + 0.2 * ds$x, 0.4))
+  r_ndt <- ri_of(shifted_lognormal(), set_prior("normal(0.2, 0.1)",
+                                                class = "ndt"), ds)
+  expect_identical(bnd(r_ndt$upper, "ndt"), log(min(ds$y)))
+  # the absent case: a slot whose default has no bound gets none (nu on
+  # its logm1 link is above 1 already), and the user density is the one
+  # applied, not the default's
+  r_lm <- ri_of(student(), set_prior("normal(2, 2)", class = "nu"))
+  expect_length(bnd(r_lm$lower, "^nu"), 0L)
+  e <- Filter(function(e) identical(e$dist$kind, "normal"),
+              ri_of(nu_id, set_prior("normal(2, 2)", class = "nu"))$entries)
+  expect_length(e, 1L)
+})
+
+test_that("a user prior on nu samples no draw below brms's bound", {
+  skip_sampler()
+  # dev/review-acprior-nu.R: 3.55 percent of the draws were below 1
+  # before (4 chains of 2000, seed 3); 2 chains of 1000 here
+  set.seed(12)
+  d <- data.frame(x = stats::rnorm(120))
+  d$y <- 1 + d$x + stats::rt(120, df = 1.2)
+  fit <- frm(y ~ x, data = d,
+             family = brmsfamily("student", link_nu = "identity"))
+  ds <- suppressWarnings(suppressMessages(frm_sample(
+    fit, prior = set_prior("normal(2, 2)", class = "nu"), chains = 2,
+    iter = 1000, seed = 3, refresh = 0)))
+  expect_true(all(as.matrix(ds)[, "nu"] >= 1))
+})

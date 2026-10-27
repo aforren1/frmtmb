@@ -22,7 +22,15 @@
 # totals count assertions, as the audit and bin 1 do.
 #
 # Outputs: dev/brmsport-bin2-verdicts.tsv (read by the generator),
-# dev/brmsport-bin2-ledger.tsv, dev/brmsport-bin2-summary.md.
+# dev/brmsport-bin2-ledger.tsv, dev/brmsport-bin2-summary.md. For a dry
+# run, FRMTMB_BIN2_REC_DIR names another directory of recorded runs and
+# FRMTMB_BIN2_LEDGER_OUT another directory for the outputs; the bin-1
+# ledger is read where it is.
+#
+# A row that holds only because its adapter substituted brms's input
+# (dev/brmsport-bin2-adapters-spec.R, `bin2_adapted_input`) is a pass of
+# class "adapted-input", with the substitution as its reason, so the
+# summary counts it apart from the literal passes.
 source("dev/brmsport-bin2-blocks.R")
 source("dev/brmsport-bin2-adapters-spec.R")
 topic_of <- function(f) sub("^tests[.](.*)[.]R$", "\\1", f)
@@ -35,7 +43,10 @@ outcomes <- c("pass", "defect", "divergence", "cannot transfer")
 # such a row keeps holding, and the ledger gives it the manual verdict.
 held_classes <- c("hollow", "adapter")
 
-recs <- list.files("dev/brmsport-bin2-log", pattern = "^rec-.*[.]tsv$",
+rec_dir <- Sys.getenv("FRMTMB_BIN2_REC_DIR", "dev/brmsport-bin2-log")
+out_dir <- Sys.getenv("FRMTMB_BIN2_LEDGER_OUT", "dev")
+out_path <- function(f) file.path(out_dir, f)
+recs <- list.files(rec_dir, pattern = "^rec-.*[.]tsv$",
                    full.names = TRUE)
 cols <- c("kind", "pkg", "id", "verdict", "held", "vacuous", "msg",
           "caught", "raw_held")
@@ -141,9 +152,12 @@ for (i in seq_len(nrow(led))) {
         problems <- c(problems, sprintf(
           "HOLDS but has manual verdict '%s': %s in %s", m$verdict, id, p))
       }
+      why <- unname(bin2_adapted_input[id])
+      cls <- if (is.na(why)) "" else "adapted-input"
+      if (is.na(why)) why <- ""
       out_v[[length(out_v) + 1L]] <- data.frame(
-        id = id, pkg = p, verdict = "pass", reason = "")
-      v <- "pass"; cls <- ""; why <- ""
+        id = id, pkg = p, verdict = "pass", reason = why)
+      v <- "pass"
     } else {
       if (!nrow(m)) {
         problems <- c(problems, sprintf("UNCLASSIFIED %s in %s: %s", id, p,
@@ -167,6 +181,13 @@ for (i in seq_len(nrow(led))) {
                               if (nzchar(cls)) paste0(" (", cls, ")") else "")
     }
   }
+}
+# an adapted input whose row no longer holds, or is not ported, is a
+# stale entry: the reason would describe a pass that is not there
+held_ids <- rec$id[rec$held]
+for (id in setdiff(names(bin2_adapted_input), held_ids)) {
+  problems <- c(problems, paste("ADAPTED INPUT FOR A ROW THAT DOES NOT",
+                                "HOLD:", id))
 }
 stale <- setdiff(paste(man$id, man$pkg), paste(rec$id, rec$pkg))
 if (length(stale)) {
@@ -239,7 +260,7 @@ if (length(problems)) {
   stop(length(problems), " problem(s); the ledger was not written")
 }
 verd <- do.call(rbind, out_v)
-utils::write.table(verd, "dev/brmsport-bin2-verdicts.tsv", sep = "\t",
+utils::write.table(verd, out_path("brmsport-bin2-verdicts.tsv"), sep = "\t",
                    quote = FALSE, row.names = FALSE)
 # every recorded check's outcome, which the generator gives the tier to
 # assert (a check on a row that is not a shape pass included)
@@ -247,7 +268,7 @@ val$msg_has <- vman$msg_has[match(paste(val$id, val$pkg),
                                   paste(vman$id, vman$pkg))]
 val$msg_has[is.na(val$msg_has)] <- ""
 utils::write.table(val[c("id", "pkg", "outcome", "msg_has", "msg")],
-                   "dev/brmsport-bin2-valuechecks.tsv", sep = "\t",
+                   out_path("brmsport-bin2-valuechecks.tsv"), sep = "\t",
                    quote = FALSE, row.names = FALSE)
 
 # A statement that holds several assertions (a loop) is run whole by the
@@ -316,7 +337,7 @@ ledger <- led[c("file", "block", "line", "bin", "tier", "n", "id", "ported",
                 "target", "outcome", "class", "ct_kind", "kind",
                 "value_check", "value_verdict", "value_class", "reason",
                 "held", "other", "assertion", "message")]
-utils::write.table(ledger, "dev/brmsport-bin2-ledger.tsv", sep = "\t",
+utils::write.table(ledger, out_path("brmsport-bin2-ledger.tsv"), sep = "\t",
                    quote = FALSE, row.names = FALSE)
 
 ## the generated summary --------------------------------------------------
@@ -373,6 +394,7 @@ fit2t <- L[L$bin == "2T" & L$target == "frmtmb.sample", ]
 fit_v <- sub(" [(].*$", "", sub("^fit: ", "", fit2t$other))
 fit_v[grepl("fit=TRUE", fit2t$held)] <- "pass"
 pv <- sum(L$n[L$outcome %in% "pass" & L$kind == "value"])
+pa <- sum(L$n[L$outcome %in% "pass" & L$class == "adapted-input"])
 md <- c(md, "",
         sprintf(paste("Bin 2T passes: %d of 59 (%.1f%%), judged on the",
                       "target object."), p2t, 100 * p2t / 59),
@@ -383,6 +405,10 @@ md <- c(md, "",
         sprintf(paste("Of the %d bin-2 passes, %d compare a value and %d",
                       "check only a shape, length, names or type."),
                 p2t + p2p, pv, p2t + p2p - pv),
+        sprintf(paste("%d of the bin-2 passes hold on an adapted input",
+                      "(class adapted-input: the port replaced brms's",
+                      "input, which frmtmb refuses by design); %d are",
+                      "literal."), pa, p2t + p2p - pa),
         sprintf(paste("The 58 methods rows of 2T on the maximum-likelihood",
                       "fit (the restatement, not counted): %s."),
                 paste(sprintf("%s %d", names(table(fit_v)), table(fit_v)),
@@ -488,5 +514,5 @@ md <- c(md, "",
         sprintf(paste("The rate's denominator excludes exactly the",
                       "\"cannot transfer\" rows of these classes: %s."),
                 paste(sprintf("%s %d", names(ex), ex), collapse = ", ")))
-writeLines(md, "dev/brmsport-bin2-summary.md")
+writeLines(md, out_path("brmsport-bin2-summary.md"))
 cat(md, sep = "\n")

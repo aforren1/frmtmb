@@ -165,9 +165,13 @@ test_that("a smooth or mo() term reaches the marginal means", {
                unname(frm_linpred(fs, newdata = nd, re_formula = NA)),
                tolerance = sqrt(.Machine$double.eps))
   fm <- frm(bf(y ~ f + mo(e)), data = d)
-  s <- emm_df(emmeans::emmeans(fm, "f"))
+  # emmeans holds e at its mean, which mo(e) does not define: brms
+  # refuses that grid, and so does frmtmb, which through 0.75.0 rounded
+  # the mean to a category without a word. The value is given instead.
+  expect_error(emmeans::emmeans(fm, "f"), "emmeans holds 'e' at")
+  s <- emm_df(emmeans::emmeans(fm, "f", at = list(e = 2L)))
   # the design basis left the mo() contribution out of the means
-  lb <- frm_lp_basis(fm, newdata = data.frame(f = s$f, e = mean(d$e)),
+  lb <- frm_lp_basis(fm, newdata = data.frame(f = s$f, e = 2L),
                      re_formula = NA)
   expect_equal(s$emmean, unname(lb$eta),
                tolerance = sqrt(.Machine$double.eps))

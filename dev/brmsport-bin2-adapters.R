@@ -308,6 +308,7 @@ brms_adapt_cat_posterior_predict <- function(fun, i, prep) {
 # log_lik_weight() weights it (and as frmtmb's log_lik() does, outside
 # the row density)
 brms_adapt_log_lik <- function(fun, i, prep) {
+  if (fun %in% brms_adapt_ac_funs) return(brms_adapt_ac_log_lik(fun, i, prep))
   brms_adapt_check_prep(prep, fun)
   if (fun %in% brms_adapt_catlike) {
     ll <- brms_adapt_cat_log_lik(fun, i, prep)
@@ -335,6 +336,9 @@ brms_adapt_log_lik <- function(fun, i, prep) {
 # One predictive draw per posterior draw at observation i. brms ignores
 # weights here, and so does frmtmb's simulator.
 brms_adapt_posterior_predict <- function(fun, i, prep) {
+  if (fun %in% brms_adapt_ac_funs) {
+    return(brms_adapt_ac_posterior_predict(fun, i, prep))
+  }
   brms_adapt_check_prep(prep, fun)
   if (fun %in% brms_adapt_catlike) {
     return(brms_adapt_cat_posterior_predict(fun, i, prep))
@@ -907,4 +911,120 @@ brms_value_check <- function(id, var, expected, code, adapted = NULL,
     testthat::succeed()
   }
   invisible(res)
+}
+
+# ---------------------------------------------------------------------
+# Residual correlation terms: brms's log_lik_<family>_<term>(i, prep)
+# and posterior_predict_<family>_<term>(i, prep) for the lag and error
+# SAR (frmtmb.spatial's sar()) and fcor(), which read every row at once
+# (i is 1 and stands for all of them, as brms's own stopifnot(i == 1)
+# says). The adapter moves brms's prep onto a frmtmb model of the same
+# shape: a response Y, a mean free per row and per draw (one coefficient
+# per row, set to brms's mu of that draw), the term over brms's matrix,
+# and brms's sigma, nu and rho per draw. The values are frmtmb's:
+# autocor_row_loglik() for log_lik, which frmtmb.sample's log_lik() runs
+# per draw, and sim_draw() for posterior_predict, which every simulation
+# entry point runs.
+#
+# brms's sar() blocks use Msar = diag(10), whose I - rho M makes rho and
+# the scale one parameter, and frmtmb refuses it by design ("'M' needs a
+# negative and a positive eigenvalue"). The port substitutes the
+# row-standardized path graph over the same 10 rows
+# (brms_adapt_sar_path()), as dev/sarfcor-brmsrows.R did; the value
+# checks then run brms's own function on that same matrix
+# (dev/brmsport-bin2-adapters-spec.R).
+
+brms_adapt_ac_funs <- c("gaussian_lagsar", "student_lagsar",
+                        "gaussian_errorsar", "student_errorsar",
+                        "gaussian_fcor", "student_fcor")
+
+# The row-standardized adjacency of the path 1 - 2 - ... - n: a zero
+# diagonal and real eigenvalues in [-1, 1], so rho lives on (-1, 1)
+brms_adapt_sar_path <- function(n) {
+  P <- matrix(0, n, n)
+  P[cbind(seq_len(n - 1L), 2:n)] <- 1
+  P <- P + t(P)
+  P / rowSums(P)
+}
+
+# brms's per-draw parameter: a draws x 1 matrix, a vector or a scalar
+brms_adapt_ac_par <- function(x, s) {
+  x <- as.numeric(x)
+  if (length(x) == 1L) x else x[s]
+}
+
+# The frmtmb model for brms's prep, as a function of the draw: a fit
+# assembled for sampling, read at that draw's parameters as
+# frmtmb.sample reads one draw
+brms_adapt_ac_model <- function(fun, prep) {
+  allowed <- c("lagsar", "errorsar", "Msar", "Mfcor", "acframe")
+  extra <- setdiff(names(prep[["ac"]]), allowed)
+  if (length(extra)) {
+    stop("brms_adapt: prep$ac carries ", paste(extra, collapse = ", "),
+         ", which this adapter does not map", call. = FALSE)
+  }
+  extra <- setdiff(names(prep), c("dpars", "data", "ac", "ndraws", "nobs"))
+  if (length(extra)) {
+    stop("brms_adapt: the prep carries ", paste(extra, collapse = ", "),
+         ", which this adapter does not map", call. = FALSE)
+  }
+  student <- startsWith(fun, "student_")
+  term <- sub("^(gaussian|student)_", "", fun)
+  n <- prep[["nobs"]]
+  ns <- prep[["ndraws"]]
+  M <- if (term == "fcor") prep[["ac"]][["Mfcor"]] else prep[["ac"]][["Msar"]]
+  rho <- prep[["ac"]][[term]]
+  if (term != "fcor") loadNamespace("frmtmb.spatial")
+  y <- prep[["data"]][["Y"]]
+  if (is.null(y)) y <- numeric(n)
+  d <- data.frame(y = as.numeric(y), r = factor(seq_len(n)))
+  fo <- switch(term,
+               lagsar = y ~ 0 + r + sar(M, type = "lag"),
+               errorsar = y ~ 0 + r + sar(M, type = "error"),
+               fcor = y ~ 0 + r + fcor(M))
+  fam <- if (student) frmtmb::student() else stats::gaussian()
+  fit <- frmtmb::frm(fo, family = fam, data = d, data2 = list(M = M),
+                     dry_run = "objective")
+  class(fit) <- setdiff(class(fit), "frmtmb_unfitted")
+  mu <- prep[["dpars"]][["mu"]]
+  at <- function(s) {
+    f <- fit
+    f$estimates$beta[] <- if (is.matrix(mu)) mu[s, ] else mu
+    sg <- brms_adapt_ac_par(prep[["dpars"]][["sigma"]], s)
+    nu <- if (student) brms_adapt_ac_par(prep[["dpars"]][["nu"]], s)
+    if (student && !(nu > 1)) {
+      stop("brms_adapt: frmtmb's student() takes nu > 1, and the prep's ",
+           "draw ", s, " has nu = ", format(nu), call. = FALSE)
+    }
+    f$estimates$betad[] <- c(log(sg), if (student) log(nu - 1))
+    if (term != "fcor") {
+      aux <- f$frame[["autocor"]][["y"]][["aux"]]
+      r <- brms_adapt_ac_par(rho, s)
+      f$estimates$thetaac[] <- stats::qlogis((r - aux$lo) /
+                                               (aux$hi - aux$lo))
+    }
+    f
+  }
+  list(at = at, ns = ns, n = n)
+}
+
+brms_adapt_ac_log_lik <- function(fun, i, prep) {
+  stopifnot(i == 1)
+  m <- brms_adapt_ac_model(fun, prep)
+  out <- t(vapply(seq_len(m$ns), function(s) {
+    f <- m$at(s)
+    frmtmb::autocor_row_loglik(f, frmtmb::eval_dpars(f), "y")
+  }, numeric(m$n)))
+  out
+}
+
+brms_adapt_ac_posterior_predict <- function(fun, i, prep) {
+  stopifnot(i == 1)
+  m <- brms_adapt_ac_model(fun, prep)
+  t(vapply(seq_len(m$ns), function(s) {
+    f <- m$at(s)
+    ctx <- frmtmb::sim_context(f, f$spec$responses[["y"]],
+                               frmtmb::eval_dpars(f)[["y"]])
+    as.numeric(frmtmb::sim_draw(ctx))
+  }, numeric(m$n)))
 }

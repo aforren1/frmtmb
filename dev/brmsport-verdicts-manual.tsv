@@ -33,3 +33,4 @@ brmsterms:44	*	cannot transfer	brms-internal	brmsterms() is a brms internal; frm
 brmsterms:46	*	cannot transfer	brms-internal	brmsterms() is a brms internal; frm() refuses quantile = 1.5 in its own words, 'not in the range of the logit link' (dev/brmsport-probe3.R)
 brmsterms:89	frmtmb	cannot transfer	absent	brmsterms() is a brms internal, and frm() has no unused = ~ x: it is refused as an unavailable dpar (dev/brmsport-probe3.R)
 brmsfit-helpers:17	frmtmb	cannot transfer	brms-internal	compares brms:::inv_link() with itself on two link names; frmtmb has no inv_link()
+brmsfit-methods:924	frmtmb	divergence	policy	update(newdata =) refits with Exp = 4 on every row; mo() codes from the minimum as brms 2.23.0 does, so mo(Exp) has one category and frm() refuses it. brms builds the model only under testmode, which never samples: Stan rejects Jmo = 0 (dev/mocode-brms-const.R)

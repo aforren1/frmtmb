@@ -88,7 +88,7 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
   # get_coef (not unlist(fixef)): aligned with vcov() rows, so mapped
   # constant-dpar coefficients stay out and cooks.distance/dfbetas
   # conform with the covariance matrix
-  full_fe <- get_coef.frmtmb_fit(model)
+  full_fe <- interop_coef_vector(model, simplex = FALSE)
   full_th <- model$estimates[["theta"]]
   ctl <- model$control %||% frmtmb_control()
   # one refit per unit: inheriting a verbose fit's control here would
@@ -146,7 +146,7 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
       }
       next
     }
-    fe_i <- get_coef.frmtmb_fit(fit_i)
+    fe_i <- interop_coef_vector(fit_i, simplex = FALSE)
     fe[i, names(fe_i)] <- fe_i
     # A refit that SUCCEEDS can still estimate fewer coefficients than the
     # full fit, because the model frame drops an unused factor level:
@@ -361,24 +361,26 @@ dfbeta.frmtmb_influence <- function(model, ...) {
 #' @export
 dfbetas.frmtmb_influence <- function(model, ...) {
   frm_check_dots(...)
-  # dfbeta()'s columns are get_coef()'s vector, which is every
-  # estimated coefficient plus an ordinal fit's thresholds, not brms's
-  # population-level block. interop_vcov() is the covariance of that
-  # exact vector; vcov_estimated() is one block of it, and dividing by
-  # a shorter vector recycles rather than erroring
-  sweep(dfbeta(model), 2, sqrt(diag(interop_vcov(model$fit))), `/`)
+  # dfbeta()'s columns are interop_coef_vector(simplex = FALSE): every
+  # estimated coefficient plus an ordinal fit's thresholds, without the
+  # mo() simplex that get_coef() carries for marginaleffects, and not
+  # brms's population-level block. interop_vcov(simplex = FALSE) is the
+  # covariance of that exact vector; vcov_estimated() is one block of
+  # it, and dividing by a shorter vector recycles rather than erroring
+  sweep(dfbeta(model), 2,
+        sqrt(diag(interop_vcov(model$fit, simplex = FALSE))), `/`)
 }
 
 #' @export
 cooks.distance.frmtmb_influence <- function(model, ...) {
   frm_check_dots(...)
-  V <- interop_vcov(model$fit)
+  V <- interop_vcov(model$fit, simplex = FALSE)
   p <- ncol(V)
   d <- sweep(model$fixed, 2, model$fixed_full)
   # through the factor where the fit holds one: solve(V) stops as
   # computationally singular on a degree-7 raw polynomial and keeps
   # three or four digits at degree 6 (dev/illse2-findings.md, item 1)
-  K <- if (all(is.finite(V))) coef_vcov_root(model$fit)
+  K <- if (all(is.finite(V))) coef_vcov_root(model$fit, simplex = FALSE)
   if (!is.null(K) && nrow(K) == p) {
     ok <- !apply(is.na(d), 1L, any)
     out <- rep(NA_real_, nrow(d))

@@ -1,3 +1,196 @@
+# frmtmb 0.76.0
+
+The main changes:
+
+- BREAKING: `mo()` codes an integer variable from its minimum, as brms
+  2.23.0 does. Every fit whose integer `mo()` variable does not start
+  at 0 changes. A fit saved by 0.75.0 or earlier with such a variable
+  is refused.
+- BREAKING: each residual correlation parameter has one prior slot, and
+  the prior tables bound the residual correlation classes as brms does.
+  Under a first-order `cov = TRUE` `ar()`, `ma()` or `arma()`, a prior
+  on class `sigma` is read at brms's innovation sd.
+- The standard error of a prediction includes the uncertainty of the
+  `mo()` simplex.
+- New in the sampling API: `autocor_flat_priors()`,
+  `autocor_bound_chart()`, `autocor_innov_sd()` and
+  `autocor_row_loglik()`. New seam slot:
+  `frmtmb_register_autocor(jacobian =)`.
+- Update the extensions together with frmtmb. frmtmb.sample 0.23.0 and
+  frmtmb.spatial 0.3.0 need frmtmb 0.76.0.
+
+## Breaking changes
+
+* `mo()` codes an integer variable from its minimum, as brms 2.23.0
+  codes it: values 1 to 4 have a simplex of 3 weights and the codes 0 to 3.
+  Since `mo()` was added in 0.15.0, frmtmb coded the integers
+  themselves. So the simplex had one weight for each value between 0 and
+  the minimum that no row has. Every fit whose integer `mo()` variable
+  does not start at 0 changes, which includes every Likert item on a
+  1..k scale. On such data (300 rows, values 1 to 4) the
+  maximum-likelihood coefficients were not identified: the fit had 6
+  degrees of freedom where brms's model has 5, and 3 of 4 predictions
+  had a NaN standard error. `frm_sample()` sampled that other model,
+  with only ESS warnings: Intercept 0.912 (sd 1.330) against brms's
+  2.098 (0.117). Now the fit on 1..4 is the fit on 0..3, with the same
+  log-likelihood, coefficients and finite standard errors.
+  `frm_sample()` agrees with brms within 2 Monte Carlo standard errors
+  on every parameter. An integer `mo()` variable with only two values,
+  such as 1 and 2, is now refused ("mo() needs at least 3 ordered
+  categories"). 0.75.0 fitted it with an empty category 0, so its
+  coefficients had no standard errors. brms fits it as a linear term in
+  the code.
+
+* `mo()` takes negative integers, as brms does; 0.75.0 refused them.
+
+* New data for an integer `mo()` variable are coded from the fitted
+  data's minimum. A value that is not a whole number is refused, as
+  brms's `validate_newdata()` refuses it. So is a value below the fitted
+  minimum or above the fitted maximum. Through 0.75.0 a value between 0
+  and the fitted minimum was predicted without a message, and a
+  fractional value was rounded to the nearest category: on a 1..4 fit,
+  0.6 was predicted as 1 and 4.4 as 4. So `marginaleffects`'
+  `avg_slopes(variables = "k")` was 0, because its finite difference
+  never left a category; it is now refused with this reason.
+  `avg_comparisons()` between two categories works. A missing value, a
+  factor or a character vector in new data is refused with its own
+  reason. `mo(mi(x))` is refused at the fit, as brms refuses it.
+
+* `conditional_effects()` holds a numeric `mo()` variable at
+  `round(median())` and moderates with `round(median +/- mad)`, as brms
+  does. It held the variable at the mean and the mean +/- sd, which the
+  rounding above then moved to another category. So a display was off by
+  a whole category, and its labels named values the model was not
+  evaluated at. The grid of a `mo()` effect is the fitted term's
+  categories, which in a `subset()` response can be fewer than the
+  data's.
+
+* `emmeans` refuses a reference grid that holds an integer `mo()`
+  variable at its mean, as brms does, and names the remedy: `at =` or
+  `cov.reduce = list(k = function(v) round(median(v)))` for the variable
+  `k`, which leaves every other covariate at its mean. It reported the
+  mean at the rounded category under the label of the mean.
+
+* The standard error of a prediction includes the uncertainty of the
+  `mo()` simplex, in `fitted()`, `predict()`, `frm_linpred()`,
+  `conditional_effects()`, emmeans and marginaleffects. Since 0.15.0 the
+  delta method left it out. On 200 rows with the values 1, 2 and 5, the
+  standard errors at 1, 2 and 5 were 0.121, 0.0987 and 0.121. They are
+  now 0.122, 0.114 and 0.121, and brms's posterior sds are 0.124, 0.116
+  and 0.123. A prediction at a category that no row has, inside the
+  range (3 and 4 here), now has a `NaN` standard error. The fit's
+  warning says so. Through 0.75.0 it was finite (0.0859 and 0.0950).
+  marginaleffects reads the simplex through `get_coef()` and
+  `get_vcov()`. On 300 rows of `y ~ mo(k) + z`, `predictions()` at k = 2
+  and 3 gave 0.0846 and 0.1035. The exact standard errors are 0.1220 and
+  0.1142, and it gives those now. On a fit with an empty category
+  marginaleffects cannot leave the undetermined direction out, so its
+  standard errors are `NaN` there, with a warning. `dfbeta()` and
+  insight keep the coefficients alone.
+
+* A fit saved by frmtmb 0.75.0 or earlier is refused when its integer
+  `mo()` variable does not start at 0. The message says to fit the model
+  again. Every method that reports an estimate, a degree of freedom, a
+  standard error or a comparison refuses it: `fixef()`, `coef()`,
+  `logLik()`, `AIC()`, `BIC()`, `vcov()`, `confint()`, `summary()`,
+  `anova()` and `drop1()`. So do `fitted()`, `predict()`, `simulate()`,
+  `residuals()`, `conditional_effects()` and `frm_sample()`. `update()`
+  fits it again. A saved fit on data that start at 0, or on an ordered
+  factor, is the same model and works as before.
+
+* **One residual-correlation parameter has one prior slot, as in brms.**
+  `default_prior()` listed each parameter of an `ar()`, `ma()`,
+  `arma()`, `cosy()` or `unstr()` term twice: under its class (`ar`,
+  `ma`, `cosy`, `cortime`) and as `class = "theta", coef = "thetaac_1"`.
+  `validate_prior()` and `frm()` took a prior on each, and the fit
+  applied the one written last. brms 2.23.0 has the class row only. Now
+  the internal row is not listed, and a prior on it is refused with the
+  class to use: "class = "theta", coef = "thetaac_1" is the internal
+  parameter of ar, which has a class of its own, as in brms. Write the
+  prior with class = "ar"". A multivariate model's refusal names the
+  `resp` too. This is the rule that `sar()`'s `lagsar` got in 0.75.0. It
+  is now one rule for core's classes and for each bounded parameter of a
+  term registered with `frmtmb_register_autocor()`. `class = "theta"`
+  still reaches a parameter that no class reaches: a random-effect
+  `theta_1`, a `thetar_1`, and a parameter of a registered term that
+  declares no interval. So two kinds of parameter take no box now. The
+  internal parameters of a `cov = TRUE` `ar()` or `ma()` of order two or
+  more take none; brms's `cov = TRUE` form is of order one only. A
+  single correlation of an `unstr()` term takes none either:
+  `class = "theta", coef = "thetaac_3"` was the one route to it, and
+  `class = "cortime"` takes `lkj()` on the whole matrix and no
+  `lb`/`ub`, as in brms.
+
+* **The prior table bounds the residual-correlation classes as brms
+  does.** `default_prior()` lists `lb = -1` and `ub = 1` on a
+  first-order `cov = TRUE` `ar` or `ma`, as brms 2.23.0 does, and no
+  bound under `cov = FALSE`. For `cosy` it lists the window `frm()` fits
+  it on, `-1/(d - 1)` to 1 for `d` time points. On `route = "sample"` it
+  lists brms's 0 to 1, where frmtmb.sample now samples it.
+
+* **A prior on `sigma` under a first-order `cov = TRUE` `ar()`, `ma()`
+  or `arma()` is read on brms's sigma, the innovation sd.** frmtmb's
+  `sigma` there is the MARGINAL sd of a residual, and `summary()`,
+  `sigma()` and `VarCorr()` report it. brms's `sigma` is the innovation
+  sd, smaller by `c = sqrt(1 - ar^2)`, `1 / sqrt(1 + ma^2)` or
+  `sqrt((1 - ar^2) / (1 + ma^2 + 2 ar ma))`. On an AR(1) of 0.9 that is
+  a posterior mean of 1.16 here against 0.43 in brms, for the same
+  model. Before, `set_prior("student_t(3, 0, 2.5)", class = "sigma")`
+  was a density on the marginal sd. Now it is brms's density at
+  `sigma * c`, with the Jacobian of `c`, in `frm()`'s MAP penalty and in
+  frmtmb.sample alike. A `lb` above 0 or a `ub` on `sigma` there is
+  refused. A box on the innovation sd moves with `ar`, so it is no box
+  on the marginal sd frmtmb holds. brms 2.23.0 takes such a bound on its
+  innovation sd (`real<lower=0.2> sigma`).
+
+## New features
+
+* Three functions join the interface for a sampling extension
+  (`?frmtmb-sampling-api`). `autocor_flat_priors()` gives brms's flat
+  default on each residual-correlation class that frmtmb holds through a
+  transform. `autocor_bound_chart()` gives a chart that samples a
+  bounded residual-correlation parameter through one logistic onto its
+  interval. `autocor_innov_sd()` names the responses whose `sigma` brms
+  reads as an innovation sd. frmtmb.sample uses all three.
+
+* New in the sampling API: `autocor_row_loglik(fit, dpv, resp)`, the
+  pointwise log-density of a response with a residual covariance term.
+  These terms are the covariance form of `ar()`, `ma()` and `arma()`,
+  `cosy()`, `unstr()`, `fcor()` and a registered term. Each row is brms
+  2.23.0's leave-one-out conditional density given the other rows of its
+  group, read off the precision matrix. On 18 cases (every term,
+  gaussian and student, ragged groups, gaps, `sigma ~ x`) it equals
+  brms's `log_lik()` at the same parameters to 2.0e-15 relative. One
+  draw costs one small inverse per pattern of time points. On 400 groups
+  of 10 rows a draw takes 0.64 ms, against 17.8 ms for brms's per-group
+  dense inverses. For `fcor()` on 600 rows it takes 2.6 ms, against 97.5
+  ms. The values do not sum to the log-likelihood.
+
+* `frmtmb_register_autocor()` takes `jacobian =`, the Jacobian of the
+  term's whitening map, from which the pointwise log-density reads the
+  precision matrix. A sparse one costs its nonzeros per draw. Without
+  it, frmtmb inverts `unwhiten()` of the identity, which is exact and
+  dense: 0.5 s and 48 Mb per draw at 1000 rows, 1.7 s and 155 Mb at 2000.
+  Above 1000 rows `log_lik()` warns once per call, with class
+  `frmtmb_autocor_dense_fallback`. A given `jacobian` is checked against
+  the map when the frame is built. The check runs at the start and at a
+  generic point: sigma not 1 and varying by row, and every parameter
+  moved off the start. A wrong one is refused by the term's name.
+
+## Bug fixes
+
+* A bound at an end of a residual-correlation parameter's interval is
+  accepted, and bounds nothing, since the parameter never reaches that
+  end. Before, `frm()` refused it:
+  `set_prior("", class = "ar", lb = -1)` stopped with "lb = -1 is
+  outside (-1, 1)". So the `default_prior()` table of a `sar()` model,
+  whose `lagsar` row lists the ends of its interval, did not pass back
+  as `prior =` in 0.75.0. Past the end, a bound is still refused.
+
+* `?frmtmb-autocor` said that `set_prior()` cannot target the
+  residual-correlation parameters; it has done so by their classes since
+  0.49.
+
 # frmtmb 0.75.0
 
 The main changes:
