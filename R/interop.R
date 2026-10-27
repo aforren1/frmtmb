@@ -129,11 +129,20 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 #' 69, on a point estimate that agreed to five decimals
 #' (`dev/shapes-rev-ordse.R`).
 #'
+#' A `mo()` simplex is a parameter of the same kind: a prediction at an
+#' interior category reads its coordinates. Through 0.75.0 they were
+#' left out, so `predictions()` on `y ~ mo(k) + z` at k = 2 and 3 gave
+#' standard errors of 0.0846 and 0.1035 where the exact ones (the
+#' `factor(k)` linear model) are 0.1220 and 0.1142. `simplex = FALSE`
+#' gives the vector without them, for the readers that report
+#' coefficients rather than differentiate predictions (`dfbeta()`,
+#' insight).
+#'
 #' @noRd
-interop_coef_names <- function(model) {
+interop_coef_names <- function(model, simplex = TRUE) {
   nm <- estimated_coef_names(model)
   tpl <- model$frame[["par_template"]]
-  for (cp in ord_extra_comps(model)) {
+  for (cp in interop_extra_comps(model, simplex)) {
     v <- names(tpl[[cp]])
     if (is.null(v)) {
       v <- paste0(cp, "_", seq_along(tpl[[cp]]), recycle0 = TRUE)
@@ -144,15 +153,38 @@ interop_coef_names <- function(model) {
 }
 
 #' @noRd
-interop_coef_vector <- function(model) {
+interop_coef_vector <- function(model, simplex = TRUE) {
   est <- model$estimates
   bd <- est[["betad"]]
   if (length(model$frame[["betad_fixed_idx"]])) {
     bd <- bd[-model$frame[["betad_fixed_idx"]]]
   }
   v <- c(est[["beta"]], bd)
-  for (cp in ord_extra_comps(model)) v <- c(v, as.numeric(est[[cp]]))
-  stats::setNames(unname(v), interop_coef_names(model))
+  for (cp in interop_extra_comps(model, simplex)) {
+    v <- c(v, as.numeric(est[[cp]]))
+  }
+  stats::setNames(unname(v), interop_coef_names(model, simplex))
+}
+
+#' The template components the interop vector carries beyond the
+#' coefficients: an ordinal fit's extras, then, with `simplex`, the
+#' coordinates of every `mo()` simplex that the fit estimates.
+#'
+#' @noRd
+interop_extra_comps <- function(model, simplex = TRUE) {
+  out <- ord_extra_comps(model)
+  if (!simplex) return(out)
+  tpl <- model$frame[["par_template"]]
+  mo <- character(0)
+  for (lp in model$frame[["linpreds"]] %||% list()) {
+    for (mi in lp[["mo"]] %||% list()) mo <- c(mo, mi[["zeta"]])
+  }
+  mo <- unique(mo)
+  # only coordinates the outer vector holds have a covariance
+  rn <- tryCatch(names(model$opt$par), error = function(e) NULL)
+  mo <- mo[vapply(mo, function(cp) length(tpl[[cp]]) > 0L &&
+                    (is.null(rn) || cp %in% rn), NA)]
+  c(out, setdiff(mo, out))
 }
 
 #' The covariance of `interop_coef_vector()`.
@@ -163,14 +195,15 @@ interop_coef_vector <- function(model) {
 #' down to these rows and put in this order.
 #'
 #' @noRd
-interop_vcov <- function(model) {
+interop_vcov <- function(model, simplex = TRUE) {
   se_flush_deferred(model)
-  cps <- ord_extra_comps(model)
+  cps <- interop_extra_comps(model, simplex)
   V0 <- vcov_estimated(model)
   if (!length(cps)) return(V0)
-  pc <- tryCatch(suppressWarnings(hyp_par_cov(model)),
-                 error = keep_missing(NULL))
-  nm <- interop_coef_names(model)
+  pc <- tryCatch(suppressWarnings(hyp_par_cov(
+    model, extra = setdiff(cps, ord_extra_comps(model)))),
+    error = keep_missing(NULL))
+  nm <- interop_coef_names(model, simplex)
   if (is.null(pc)) return(V0)
   ord <- unlist(lapply(c("beta", "betad", cps),
                        function(cp) which(pc$comp == cp)))
@@ -190,7 +223,7 @@ interop_vcov <- function(model) {
 #' singular, and at degree 6 it loses 6e-4 of a Cook's distance.
 #'
 #' @noRd
-coef_vcov_root <- function(model, extra = TRUE) {
+coef_vcov_root <- function(model, extra = TRUE, simplex = TRUE) {
   sdr <- tryCatch(sdr_of(model), error = keep_missing(NULL))
   integ <- model$REML || isTRUE(model$control$profile)
   # under REML the coefficients are rows of the joint factor
@@ -198,9 +231,9 @@ coef_vcov_root <- function(model, extra = TRUE) {
   root <- if (integ) sdr$joint_root else sdr$cov_fixed_root
   if (is.null(root)) return(NULL)
   rn <- rownames(if (integ) sdr$jointPrecision else sdr$cov.fixed)
-  cps <- c("beta", "betad", if (extra) ord_extra_comps(model))
+  cps <- c("beta", "betad", if (extra) interop_extra_comps(model, simplex))
   ord <- unlist(lapply(cps, function(cp) which(rn == cp)))
-  nm <- if (extra) interop_coef_names(model) else
+  nm <- if (extra) interop_coef_names(model, simplex) else
     estimated_coef_names(model)
   if (length(ord) != length(nm) || nrow(root) != length(rn)) return(NULL)
   K <- root[ord, , drop = FALSE]
@@ -236,9 +269,10 @@ set_coef.frmtmb_fit <- function(model, coefs, ...) {
     model$estimates[["betad"]][keep] <- coefs[nb + seq_along(keep)]
     off <- off + length(keep)
   }
-  # the ordinal extras, in interop_coef_vector() order; without these
-  # a perturbation of a threshold never reached the prediction
-  for (cp in ord_extra_comps(model)) {
+  # the ordinal extras and the mo() simplexes, in interop_coef_vector()
+  # order; without these a perturbation of a threshold or of a simplex
+  # never reached the prediction
+  for (cp in interop_extra_comps(model)) {
     k <- length(model$estimates[[cp]])
     model$estimates[[cp]][] <- coefs[off + seq_len(k)]
     off <- off + k
@@ -255,6 +289,22 @@ get_vcov.frmtmb_fit <- function(model, ...) {
   # named one; the standard errors of avg_slopes() moved measurably
   # when the two disagreed (dev/shapes-log/interop-lane.txt).
   V <- interop_vcov(model)
+  # A mo() category that no row is in leaves a direction of its simplex
+  # undetermined (se_mo_gaps()). frmtmb's own routes give NaN only to a
+  # prediction that moves along it (jc_nonest()); marginaleffects forms
+  # J V J' itself and cannot, so the simplex's rows are NaN here, and so
+  # is every standard error it forms. Without this a pseudo-inverse gave
+  # finite ones at the empty categories in silence.
+  gz <- unique(vapply(se_mo_gaps(model), function(g) g$mi[["zeta"]], ""))
+  if (length(gz)) {
+    nm <- interop_coef_names(model)
+    rows <- which(sub("_[0-9]+$", "", nm) %in% gz)
+    if (length(rows)) {
+      V[rows, ] <- NaN
+      V[, rows] <- NaN
+      mo_gap_nan_warning(model, gz)
+    }
+  }
   # marginaleffects forms J V J' from this matrix itself, with J taken
   # by finite differences, and it cannot be handed a factor instead. On
   # every fit whose covariance is held as a factor (se_reparam_cov()),
@@ -269,6 +319,30 @@ get_vcov.frmtmb_fit <- function(model, ...) {
     V[] <- NaN
   }
   V
+}
+
+#' The warning of `get_vcov()` on a fit whose `mo()` simplex has a
+#' category no row is in, once per fit.
+#'
+#' @noRd
+mo_gap_nan_warning <- function(fit, zeta) {
+  cache <- fit$cache
+  if (is.environment(cache) && isTRUE(cache[["warned_nan_mo_gap"]])) {
+    return(invisible())
+  }
+  if (is.environment(cache)) assign("warned_nan_mo_gap", TRUE, envir = cache)
+  frm_warning(
+    "get_vcov(): a mo() term of this fit has a category that no row is ",
+    "in, so its simplex (", paste(zeta, collapse = ", "), ") has a ",
+    "direction the data do not determine. marginaleffects forms its ",
+    "standard errors from the whole covariance and cannot leave that ",
+    "direction out, so the covariance of the simplex is NaN, and so is ",
+    "every standard error marginaleffects forms on this fit (a product ",
+    "with NaN is NaN even where a prediction does not read it). fitted(), ",
+    "predict(), conditional_effects() and emmeans give NaN only where a ",
+    "prediction moves along that direction", call. = FALSE,
+    class = "frmtmb_cov_products")
+  invisible()
 }
 
 #' Is the covariance of `fit` held as a factor (se_reparam_cov(), or
@@ -430,6 +504,14 @@ get_predict.frmtmb_fit <- function(model, newdata, type = "response",
 #'     different links, since the stacked predictors would be on
 #'     different scales. brms refuses this too. Name one response, or
 #'     use `epred = TRUE`.
+#'   \item A grid that holds an integer `mo()` variable at a value that
+#'     is not a whole number, such as emmeans's default, the mean. The
+#'     model has no value between two categories. brms refuses this
+#'     too. Give the value with `at = list(x = 3)`, or with
+#'     `cov.reduce = list(x = function(v) round(median(v)))`, which
+#'     holds `x` at the value [conditional_effects()] holds it at and
+#'     leaves every other covariate at its mean. A function given as
+#'     `cov.reduce` without a name applies to every numeric covariate.
 #' }
 #'
 #' An exact `gp()` term predicted at a position the fit did not see adds
@@ -984,6 +1066,37 @@ emm_vcov_pos <- function(object, par, idx) {
   length(tpl[["beta"]]) + match(idx, est)
 }
 
+#' Refuse a reference grid that holds an integer `mo()` variable between
+#' two categories. emmeans holds a numeric covariate at its mean, which a
+#' `mo()` term does not define; brms 2.23.0 refuses it in
+#' validate_newdata(). Holding it at `round(median())` instead, as
+#' conditional_effects() does, would give a mean at a value that the
+#' grid's own label does not name, so the refusal names the remedy.
+#'
+#' @noRd
+emm_check_mo_grid <- function(object, nd) {
+  for (lp in object$frame[["linpreds"]] %||% list()) {
+    for (mi in lp[["mo"]] %||% list()) {
+      if (!is.null(mi[["levels"]]) || !is.name(mi[["expr"]])) next
+      v <- as.character(mi[["expr"]])
+      x <- nd[[v]]
+      if (!is.numeric(x)) next
+      frac <- unique(x[is.finite(x) & x != round(x)])
+      if (!length(frac)) next
+      lo <- mo_min(mi)
+      frm_stop("emmeans holds '", v, "' at ",
+               paste(signif(frac, 7), collapse = ", "), ", but mo(", v,
+               ") is defined at the whole numbers ", lo, " to ",
+               lo + mi$D, " only (brms refuses this too). Give the ",
+               "value: at = list(", v, " = ",
+               round(stats::median(mi$codes + lo)), "), or cov.reduce = ",
+               "list(", v, " = function(v) round(median(v)))",
+               call. = FALSE)
+    }
+  }
+  invisible(TRUE)
+}
+
 #' The grid basis: `X` the identity over the grid (once per response),
 #' `bhat` the predictions, `V = G Sigma G'` over the joint covariance.
 #' Responses share coefficients only through a `|ID|` random-effect
@@ -992,6 +1105,7 @@ emm_vcov_pos <- function(object, par, idx) {
 #' @noRd
 emm_basis_grid <- function(object, tg, grid) {
   nd <- as.data.frame(grid)
+  emm_check_mo_grid(object, nd)
   parts <- lapply(tg$targets, function(t) {
     p <- if (tg$epred) {
       emm_epred_part(object, t, nd, tg$re_formula)

@@ -104,6 +104,14 @@ latent predictor, or \code{\link[=frm_linpred]{frm_linpred()}} with \code{type =
 different links, since the stacked predictors would be on
 different scales. brms refuses this too. Name one response, or
 use \code{epred = TRUE}.
+\item A grid that holds an integer \code{mo()} variable at a value that
+is not a whole number, such as emmeans's default, the mean. The
+model has no value between two categories. brms refuses this
+too. Give the value with \code{at = list(x = 3)}, or with
+\code{cov.reduce = list(x = function(v) round(median(v)))}, which
+holds \code{x} at the value \code{\link[=conditional_effects]{conditional_effects()}} holds it at and
+leaves every other covariate at its mean. A function given as
+\code{cov.reduce} without a name applies to every numeric covariate.
 }
 
 An exact \code{gp()} term predicted at a position the fit did not see adds

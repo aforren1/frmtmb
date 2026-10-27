@@ -246,6 +246,7 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
   frm_check_dots(..., .unsupported = c(brms_summary_args,
                                        brms_draws_summary_args["pars"]))
   summary_refuse_waic(waic)
+  mo_check_fit(object)
   check_flag(priors, "priors")
   check_flag(robust, "robust")
   check_flag(mc_se, "mc_se")
@@ -1019,6 +1020,7 @@ frame_n_outer <- function(frame, object) {
 logLik.frmtmb_fit <- function(object, ...) {
   frm_check_dots(...)
   require_fitted(object, "logLik() (and AIC(), BIC(), anova())")
+  mo_check_fit(object)
   df <- loglik_df(object)
   structure(-object$opt$objective,
             df = as.vector(df),
@@ -1229,6 +1231,7 @@ estimated_coef_names <- function(fit) {
 vcov.frmtmb_fit <- function(object, correlation = FALSE, pars = NULL, ...,
                             full = FALSE, cluster = NULL, type = "CR0") {
   frm_check_dots(...)
+  mo_check_fit(object)
   check_flag(correlation, "correlation")
   V <- if (is.null(cluster)) {
     vcov_estimated(object, full = full)
@@ -1418,6 +1421,7 @@ vcov_brms_block <- function(object, V, model_based = TRUE) {
 coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
                             probs = c(0.025, 0.975), ...) {
   frm_check_dots(..., .unsupported = brms_draws_summary_args["pars"])
+  mo_check_fit(object)
   # brms's positions, so coef(fit, FALSE) asks brms's question and gets
   # a refusal rather than an argument landing nowhere
   fit_refuse_draws_args("coef()", summary = summary, robust = robust,

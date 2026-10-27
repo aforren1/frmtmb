@@ -1,3 +1,74 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* BREAKING: `mo()` codes an integer variable from its minimum, as brms
+  2.23.0 codes it: values 1 to 4 have a simplex of 3 weights and the
+  codes 0 to 3. Since `mo()` was added in 0.15.0, frmtmb coded the
+  integers themselves, so the simplex had one weight for each value
+  between 0 and the minimum that no row has. Every fit whose integer
+  `mo()` variable does not start at 0 changes, which includes every
+  Likert item on a 1..k scale. On such data (300 rows, values 1 to 4)
+  the maximum-likelihood coefficients were not identified: the fit had
+  6 degrees of freedom where brms's model has 5, and 3 of 4 predictions
+  had a NaN standard error. `frm_sample()` sampled that other model,
+  with only ESS warnings: Intercept 0.912 (sd 1.330) against brms's
+  2.098 (0.117). Now the fit on 1..4 is the fit on 0..3, with the same
+  log-likelihood, coefficients and finite standard errors, and
+  `frm_sample()` agrees with brms within 2 Monte Carlo standard errors
+  on every parameter.
+* `mo()` takes negative integers, as brms does; 0.75.0 refused them.
+* New data for an integer `mo()` variable are coded from the fitted
+  data's minimum. A value that is not a whole number, or that is below
+  the fitted minimum or above the fitted maximum, is refused, as brms's
+  `validate_newdata()` refuses it. Through 0.75.0 a value between 0
+  and the fitted minimum was predicted without a message, and a
+  fractional value was rounded to the nearest category: on a 1..4 fit,
+  0.6 was predicted as 1 and 4.4 as 4. So `marginaleffects`'
+  `avg_slopes(variables = "k")` was 0, because its finite difference
+  never left a category; it is now refused with this reason.
+  `avg_comparisons()` between two categories works. A missing value, a
+  factor or a character vector in new data is refused with its own
+  reason, and `mo(mi(x))` is refused at the fit, as brms refuses it.
+* `conditional_effects()` holds a numeric `mo()` variable at
+  `round(median())` and moderates with `round(median +/- mad)`, as brms
+  does. It held the variable at the mean and the mean +/- sd, which the
+  rounding above then moved to another category, so a display was off
+  by a whole category and its labels named values the model was not
+  evaluated at. The grid of a `mo()` effect is the fitted term's
+  categories, which in a `subset()` response can be fewer than the
+  data's.
+* `emmeans` refuses a reference grid that holds an integer `mo()`
+  variable at its mean, as brms does, and names the remedy: `at =` or
+  `cov.reduce = list(k = function(v) round(median(v)))` for the variable
+  `k`, which leaves every other covariate at its mean. It reported the
+  mean at the rounded category under the label of the mean.
+* The standard error of a prediction includes the uncertainty of the
+  `mo()` simplex, in `fitted()`, `predict()`, `frm_linpred()`,
+  `conditional_effects()`, emmeans and marginaleffects. Since 0.15.0
+  the delta method left it out. On 200 rows with the values 1, 2 and
+  5, the standard errors at 1, 2 and 5 were 0.121, 0.0987 and 0.121,
+  and are now 0.122, 0.114 and 0.121; brms's posterior sds are 0.124,
+  0.116 and 0.123. A prediction at a category that no row has, inside
+  the range (3 and 4 here), now has a `NaN` standard error, as the
+  fit's warning says; through 0.75.0 it was finite (0.0859 and
+  0.0950). marginaleffects reads the simplex through `get_coef()` and
+  `get_vcov()`: on 300 rows of `y ~ mo(k) + z`, `predictions()` at
+  k = 2 and 3 gave 0.0846 and 0.1035 where the exact standard errors
+  are 0.1220 and 0.1142, and it gives those now. On a fit with an empty
+  category marginaleffects cannot leave the undetermined direction
+  out, so its standard errors are `NaN` there, with a warning.
+  `dfbeta()` and insight keep the coefficients alone.
+* A fit saved by frmtmb 0.75.0 or earlier with an integer `mo()`
+  variable that does not start at 0 is refused, with a message to fit
+  the model again, by every method that reports an estimate, a degree
+  of freedom, a standard error or a comparison (`fixef()`, `coef()`,
+  `logLik()`, `AIC()`, `BIC()`, `vcov()`, `confint()`, `summary()`,
+  `anova()`, `drop1()`) and by `fitted()`, `predict()`, `simulate()`,
+  `residuals()`, `conditional_effects()` and `frm_sample()`. `update()`
+  fits it again. A saved fit on data that start at 0, or on an ordered
+  factor, is the same model and works as before.
+
 # frmtmb 0.75.0
 
 The main changes:

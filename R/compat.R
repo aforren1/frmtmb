@@ -1765,7 +1765,7 @@ compat_hand_rules_tbl <- function() {
 
   ## specials ------------------------------------------------------------------
   r("mo()", "kind:family", "conditional",
-    "The monotonic variable must be an ordered factor or an integer with at least 3 categories. An interaction (mo(x):z, mo(x) * f, mo(x) * z * w) codes the columns brms's special-term model matrix codes, each with its own simplex and coefficient; a factor multiplier gives one column per contrast, or per level without the main term. brms 2.23.0's Stan code for a factor multiplier is wrong (brms#1828). A group-level term, (mo(x) | g), varies a population-level mo() column, which it requires; quadrature = TRUE and importance are refused with one.")
+    "The monotonic variable must be an ordered factor or an integer with at least 3 categories, coded from its minimum as brms codes it; new data must be whole numbers in the fitted range. An interaction (mo(x):z, mo(x) * f, mo(x) * z * w) codes the columns brms's special-term model matrix codes, each with its own simplex and coefficient; a factor multiplier gives one column per contrast, or per level without the main term. brms 2.23.0's Stan code for a factor multiplier is wrong (brms#1828). A group-level term, (mo(x) | g), varies a population-level mo() column, which it requires; quadrature = TRUE and importance are refused with one.")
   # A rule may not name the same feature twice: the resolved table
   # holds unordered pairs of DISTINCT features, so a self-pair row
   # could never match. mo() x mo() lives in the note below instead.

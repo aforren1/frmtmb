@@ -1,3 +1,13 @@
+# frmtmb.sample (development version)
+
+* BREAKING: with the frmtmb that codes an integer `mo()` variable from
+  its minimum, as brms 2.23.0 does, `frm_sample()` samples brms's
+  model on such data. On 300 rows with values 1 to 4, the draws have
+  the 3 weights `simo_mok1[1]` to `simo_mok1[3]`, where they had 4,
+  and every posterior mean agrees with brms's within 2 Monte Carlo
+  standard errors, where the Intercept was 12 of them away. The code of this
+  package did not change; its tests need that frmtmb.
+
 # frmtmb.sample 0.22.0
 
 Needs frmtmb 0.75.0, which exports `frmtmb_covstruct_info()` and

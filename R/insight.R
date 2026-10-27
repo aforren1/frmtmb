@@ -88,8 +88,8 @@ get_varcov.frmtmb_fit <- function(x, ...) {
 #'
 #' @noRd
 insight_param_scale <- function(x) {
-  est <- interop_coef_vector(x)
-  V <- interop_vcov(x)
+  est <- interop_coef_vector(x, simplex = FALSE)
+  V <- interop_vcov(x, simplex = FALSE)
   ex <- brms_extra_fixef(x)
   # a model whose extra blocks brms_extra_fixef() does not list in
   # ord_extra_comps() order keeps the internal scale rather than a

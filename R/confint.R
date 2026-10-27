@@ -539,6 +539,7 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
                                ...) {
   method <- frm_match_arg(method)
   if (method == "Wald") method <- "wald"
+  mo_check_fit(object)
   # The dots are forwarded on three of the four methods and swallowed on
   # the fourth, so they are checked against whatever THIS method really
   # passes them to. Before this, confint(method = "wald", re_formula =)
@@ -3043,9 +3044,12 @@ ord_threshold_values <- function(fam, raw) {
 #' `jc` is NULL.
 #'
 #' @noRd
-hyp_par_cov <- function(fit) {
+hyp_par_cov <- function(fit, extra = character(0)) {
+  # `extra`: further template components a caller needs the joint
+  # covariance of (interop_vcov(): the mo() simplexes)
   comps <- c("beta", "betad", "theta", "thetaac", "thetar",
-             ord_extra_comps(fit), me_comps(fit), simplex_extra_comps(fit))
+             ord_extra_comps(fit), me_comps(fit), simplex_extra_comps(fit),
+             extra)
   if (!fit$REML && !isTRUE(fit$control$profile)) {
     sdr <- sdr_of(fit)
     V <- sdr$cov.fixed

@@ -544,6 +544,7 @@ mo_frame_terms <- function(fit) {
 #'
 #' @noRd
 mo_transform <- function(mi, z) {
+  mo_min(mi)   # refuses a frame that frmtmb 0.75.0 or earlier coded
   "c" <- RTMB::ADoverload("c")
   w <- mo_simplex(z, mi[["chart"]])
   cz0 <- c(0, cumsum(w))
@@ -616,6 +617,7 @@ lp_eta_fixed <- function(lp, pars, n, mivals, yfall, zterm = NULL,
   # monotonic terms: scale coefficient (in beta, zero X column)
   # times D * cumulative simplex at the observed category
   for (mi in lp[["mo"]] %||% list()) {
+    mo_min(mi)   # refuses a frame that frmtmb 0.75.0 or earlier coded
     zeta <- mo_simplex(pars[[mi$zeta]], mi[["chart"]])
     cz0 <- c(0, cumsum(zeta))
     term <- mi$D * cz0[mi$codes + 1L]

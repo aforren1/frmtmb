@@ -374,8 +374,18 @@ several columns is refused.
 \section{Monotonic effects}{
 
 \code{mo(x)} fits an ordinal predictor without assuming its categories are
-equally spaced. \code{x} is an ordered factor or a non-negative integer
-vector with at least three categories, coded \verb{0..D}. The term
+equally spaced. \code{x} is an ordered factor or an integer vector with at
+least three categories. As in brms, the categories are coded \verb{0..D}
+from the lowest one: the first level of a factor, or the minimum of
+the integers. So \verb{1..5} and \verb{-2..2} are both coded \verb{0..4}. An
+integer between the minimum and the maximum that no row has is also
+a category. For example, \verb{1, 2, 5} gives \code{D = 4}. The data do not
+determine a prediction at such a category, so in a maximum-likelihood
+fit its standard error is \code{NaN}. New data are coded from the minimum
+of the fitted data. A value that is not a whole number, or that is
+outside the fitted range, is refused, as brms refuses it.
+\code{conditional_effects()} holds
+a numeric \code{mo()} variable at \code{round(median())}, as brms does. The term
 contributes \code{b * D * sum(zeta[1:k])} at category \code{k}, where \code{zeta} is
 a simplex of \code{D} non-negative steps summing to one. \code{b} is therefore
 the AVERAGE step, on the coefficient scale of any other predictor,
