@@ -53,7 +53,11 @@ autocor_reserved_names <- function() {
 #' * the draws of [simulate()] and [predict()], `unwhiten()` at drawn
 #'   innovations;
 #' * the residual covariance divided by `sigma^2` ([autocor_matrix()])
-#'   and the marginal variance that pearson residuals divide by.
+#'   and the marginal variance that pearson residuals divide by;
+#' * the pointwise log-density of `frmtmb.sample::log_lik()`, brms's
+#'   leave-one-out conditional density of each row given the others,
+#'   from the precision matrix `K'K` of the response, with `K` the
+#'   Jacobian of `whiten` in `y` (see "The Jacobian").
 #'
 #' The term holds for all the rows of a response at once, so the
 #' likelihood does not factor into rows. frmtmb therefore refuses the
@@ -107,6 +111,31 @@ autocor_reserved_names <- function() {
 #' and `whiten(unwhiten(u))` returns `u` to a relative error of 1e-6. A
 #' term that fails is refused by its name.
 #'
+#' @section The Jacobian:
+#' `whiten` is affine in `y`, so `u = K (y - m)` with `m` the mean
+#' `unwhiten(0, ...)` and `K` its Jacobian. `jacobian(sigma, theta, aux)`
+#' returns `K`, `n x n`, on numbers, with `sigma` as `whiten` receives
+#' it. A sparse `Matrix` keeps the pointwise log-density at the cost of
+#' its nonzeros, which matters for a large `n`. Without the slot, frmtmb
+#' reads `K` as the inverse of `unwhiten()` of the identity: exact, and
+#' one dense `n x n` solve per parameter vector. Measured with `sar()`'s
+#' lag map registered without its slot, one draw takes 0.03 s and 21 Mb
+#' at `n = 500`, 0.5 s and 48 Mb at 1000, 1.7 s and 155 Mb at 2000, and
+#' 5 s and 345 Mb at 3000, growing as `n^3`; with the slot, 1600 rows
+#' take 2 ms. Above 1000 rows `log_lik()` warns once per call (class
+#' `frmtmb_autocor_dense_fallback`), naming the term and the slot. When the
+#' frame is built, a given `jacobian` is checked on numbers at two
+#' points: the start with `sigma = 1`, and a generic point, with sigma
+#' 1.37 (or `exp(0.3 sin(i))` on row `i` under `sigma_varies = TRUE`) and
+#' every parameter moved from the start by 0.4 times its position (then
+#' -0.4, 0.04 and -0.04, when the map cannot be evaluated there; if none
+#' can be, the start, with a warning of class
+#' `frmtmb_autocor_jacobian_unchecked`). At each point
+#' `K (y - m)` must be `whiten(y)` for two directions of `y - m`, to a
+#' relative error of 1e-6. A slot that forgets sigma, divides rows
+#' where it should divide columns, ignores a parameter or transposes an
+#' asymmetric matrix is refused by the term's name.
+#'
 #' @section Bounded parameters and priors:
 #' Give `bounds` when each parameter is a bounded quantity mapped as
 #' `lo + (hi - lo) / (1 + exp(-theta))`, as `sar()`'s rho is:
@@ -148,6 +177,8 @@ autocor_reserved_names <- function() {
 #'   `sigma`.
 #' @param bounds `NULL`, or `function(aux)`; see "Bounded parameters and
 #'   priors".
+#' @param jacobian `NULL`, or `function(sigma, theta, aux)` giving the
+#'   Jacobian of `whiten` in `y`; see "The Jacobian".
 #' @param usage How the term is written, for messages:
 #'   `"sar(M, type = \"lag\")"`.
 #' @param compat_note The note of the term's row for `gaussian()` and
@@ -180,6 +211,10 @@ autocor_reserved_names <- function() {
 #' myfix_unwhiten <- function(u, mu, sigma, theta, aux) {
 #'   mu + sigma * (aux$L %*% u)
 #' }
+#' # u = Linv (y - mu) / sigma, so the Jacobian is Linv / sigma: right
+#' # for one sigma (sigma_varies = FALSE). A sigma per row divides the
+#' # COLUMNS, Linv %*% diag(1 / sigma), as fcor() does
+#' myfix_jacobian <- function(sigma, theta, aux) aux$Linv / sigma
 #' # a package calls frmtmb_register_autocor() from its .onLoad(); here
 #' # the registration lasts while demo() runs
 #' demo <- function() {
@@ -187,6 +222,7 @@ autocor_reserved_names <- function() {
 #'   frmtmb_register_autocor("myfix", args = "V", build = myfix_build,
 #'                           whiten = myfix_whiten,
 #'                           unwhiten = myfix_unwhiten,
+#'                           jacobian = myfix_jacobian,
 #'                           sigma_varies = FALSE)
 #'   set.seed(1)
 #'   V <- 0.5^abs(outer(1:20, 1:20, "-"))
@@ -204,6 +240,7 @@ frmtmb_register_autocor <- function(name, args, build, whiten, unwhiten,
                                     natural = NULL, sigma_varies = TRUE,
                                     bounds = NULL, usage = NULL,
                                     compat_note = NULL,
+                                    jacobian = NULL,
                                     replace = FALSE,
                                     package = compat_registrant_name(
                                       parent.frame())) {
@@ -251,6 +288,7 @@ frmtmb_register_autocor <- function(name, args, build, whiten, unwhiten,
     function(args, env) args
   natural <- fn_or(natural, "natural", 2L, null_ok = TRUE)
   bounds <- fn_or(bounds, "bounds", 1L, null_ok = TRUE)
+  jacobian <- fn_or(jacobian, "jacobian", 3L, null_ok = TRUE)
   npar_f <- if (is.function(npar)) npar else {
     if (!is.numeric(npar) || length(npar) != 1L || is.na(npar) ||
         npar < 0 || npar != trunc(npar)) {
@@ -290,7 +328,8 @@ frmtmb_register_autocor <- function(name, args, build, whiten, unwhiten,
   entry <- list(args = args, parse = parse, build = build, whiten = whiten,
                 unwhiten = unwhiten, npar = npar_f, start = start_f,
                 natural = natural, sigma_varies = sigma_varies,
-                bounds = bounds, usage = usage, package = package)
+                bounds = bounds, usage = usage, package = package,
+                jacobian = jacobian)
   entry <- entry[!vapply(entry, is.null, TRUE)]
   # the term joins the compatibility vocabulary as it joins the parser,
   # so frm_compat() can describe every term frm() accepts; the last step
@@ -519,6 +558,9 @@ autocor_seam_check_map <- function(e, ac, aux, st, n) {
                "difference ", format(max(abs(uu - u)), digits = 3),
                "), so unwhiten() is not the inverse of whiten()"))
   }
+  if (!is.null(e[["jacobian"]])) {
+    autocor_seam_check_jacobian(e, ac, aux, st, n, bad)
+  }
   b <- e[["bounds"]]
   if (!is.null(b)) {
     B <- b(aux)
@@ -533,6 +575,89 @@ autocor_seam_check_map <- function(e, ac, aux, st, n) {
               1e-8 * pmax(1, abs(B[, 2L] - B[, 1L])))) {
       bad(paste0("is wrong: natural() is not the bounded map of bounds() ",
                  "at the start"))
+    }
+  }
+  invisible(TRUE)
+}
+
+#' Check a registered term's `jacobian` slot against its map, on numbers.
+#'
+#' The pointwise log-density reads the precision `K'K` off this slot
+#' alone, so a slip in it gives a wrong `log_lik()` and nothing else
+#' shows it. The start is a degenerate point: `sigma = 1` hides a
+#' missing division by sigma, and `sar()`'s start rho = 0 makes
+#' `K = I`, which hides a slot that ignores rho or transposes `W`. So
+#' the slot is also checked at a generic point: sigma not 1 and, under
+#' `sigma_varies = TRUE`, different on every row (which tells rows from
+#' columns), and every parameter moved off the start (a logit-mapped
+#' one stays inside its interval). At each point `K (y - m)` must be
+#' `whiten(y)` for two directions of `y - m`. A slip passes only if its
+#' error matrix annihilates both directions there, which a slip that
+#' depends on sigma, on the parameters or on the orientation of `K`
+#' does not do at a generic point. The parameters are moved by 0.4 and
+#' then -0.4 times their position, and by 0.04 and -0.04 where the map
+#' cannot be evaluated there, so a parameter defined on one side of its
+#' start is moved too. Where no moved point can be evaluated, the start
+#' is checked with the generic sigma and a warning says the parameters
+#' were not moved: the slot may be right, so it is not refused. `bad` is
+#' the map check's refusal, so every slip of a term's map is refused in
+#' one sentence.
+#'
+#' @noRd
+autocor_seam_check_jacobian <- function(e, ac, aux, st, n, bad) {
+  i <- seq_len(n)
+  dirs <- cbind(sin(i), cos(1.7 * i))
+  sg_gen <- if (isTRUE(e[["sigma_varies"]])) exp(0.3 * sin(i)) else 1.37
+  # the map's own innovations at a point, or NULL where it cannot be
+  # evaluated
+  at <- function(sg, th) {
+    tryCatch({
+      m <- as.numeric(e[["unwhiten"]](numeric(n), numeric(n), sg, th, aux))
+      Y <- as.matrix(e[["unwhiten"]](dirs, numeric(n), sg, th, aux))
+      U <- vapply(1:2, function(k) {
+        as.numeric(e[["whiten"]](Y[, k], numeric(n), sg, th, aux)[["u"]])
+      }, numeric(n))
+      if (!all(is.finite(c(m, Y, U)))) NULL else
+        list(D = Y - m, U = U, sg = sg, th = th)
+    }, error = function(err) NULL)
+  }
+  pts <- list(at(autocor_seam_sigma(e, 1, n), st))
+  gen <- NULL
+  # both directions: a parameter may be defined on one side of its
+  # start only, and a slot that ignores it is right at the start
+  steps <- if (length(st)) c(0.4, -0.4, 0.04, -0.04) else 0
+  for (step in steps) {
+    gen <- at(sg_gen, st + step * seq_along(st))
+    if (!is.null(gen)) break
+  }
+  if (is.null(gen)) {
+    gen <- at(sg_gen, st)
+    frm_warning("The '", ac[["struct"]], "' term's jacobian() was checked ",
+                "only at the start of its parameters, for ", ac[["label"]],
+                ": its map cannot be evaluated at any parameter moved from ",
+                "the start by 0.4 or 0.04 either way, so a slot that ",
+                "ignores a parameter would pass, and log_lik() reads its ",
+                "precision off that slot alone", call. = FALSE,
+                class = "frmtmb_autocor_jacobian_unchecked")
+  }
+  pts <- c(pts, list(gen))
+  for (pt in Filter(Negate(is.null), pts)) {
+    K <- tryCatch(e[["jacobian"]](pt$sg, pt$th, aux),
+                  error = function(err) bad(paste0(
+                    "could not be evaluated: jacobian() failed: ",
+                    conditionMessage(err))))
+    KD <- tryCatch(as.matrix(K %*% pt$D), error = function(err) NULL)
+    if (is.null(KD) || !identical(as.integer(dim(K)), c(n, n)) ||
+        !identical(dim(KD), dim(pt$U)) ||
+        max(abs(KD - pt$U)) > 1e-6 * max(abs(pt$U))) {
+      bad(paste0("is wrong: jacobian() must give the n x n matrix K with ",
+                 "K (y - m) = whiten(y)$u, m the mean unwhiten(0), at ",
+                 "every sigma and parameter value; it fails at sigma ",
+                 if (length(pt$sg) > 1L) "varying by row" else
+                   format(pt$sg[1L]),
+                 if (length(pt$th)) paste0(" and parameters ",
+                                           paste(format(pt$th, digits = 3),
+                                                 collapse = ", "))))
     }
   }
   invisible(TRUE)
@@ -945,6 +1070,14 @@ fcor_unwhiten <- function(u, mu, sigma, theta, aux) {
   mu + sigma * (aux[["L"]] %*% u)
 }
 
+#' `u = L^-1 D^-1 (y - mu)`: column `j` of `L^-1` over `sigma_j`.
+#'
+#' @noRd
+fcor_jacobian <- function(sigma, theta, aux) {
+  Li <- aux[["Linv"]]
+  Li * rep(1 / rep_len(sigma, nrow(Li)), each = nrow(Li))
+}
+
 # The built-in terms: the registry's first state, entries of the shape
 # frmtmb_register_autocor() builds.
 autocor_core <- list(
@@ -957,6 +1090,7 @@ autocor_core <- list(
       args
     },
     build = fcor_build, whiten = fcor_whiten, unwhiten = fcor_unwhiten,
+    jacobian = fcor_jacobian,
     npar = function(aux) 0L, start = function(aux) numeric(0),
     sigma_varies = TRUE, usage = "fcor(M)")
 )

@@ -1,3 +1,21 @@
+# frmtmb.sample (development version)
+
+Needs frmtmb with `autocor_row_loglik()` in its sampling API.
+
+## New features
+
+* `log_lik()` of draws no longer refuses a residual covariance
+  term (`ar(cov = TRUE)`, `ma()` and `arma()` with `cov = TRUE`,
+  `cosy()`, `unstr()`, `fcor()`, frmtmb.spatial's `sar()` and other
+  registered terms). A column is brms 2.23.0's leave-one-out conditional
+  density of the row given the other rows of its group, normal or
+  Student-t, and equals brms's `log_lik()` at the same draws to 2.0e-15
+  relative on 18 cases. `loo()`, `waic()`, `psis()` and the `loo_*()`
+  functions take these models. The values do not sum to the
+  log-likelihood, as in brms. On a group with a missing time point the
+  conditional is the fitted model's, whose `ar()`, `ma()` and `arma()`
+  lags count time levels where brms's count positions.
+
 # frmtmb.sample 0.22.0
 
 Needs frmtmb 0.75.0, which exports `frmtmb_covstruct_info()` and

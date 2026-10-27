@@ -75,18 +75,16 @@ draws_require_b <- function(x, what) {
 #' so rather than to hand back a matrix whose leave-one-out meaning is
 #' undefined.
 #'
-#' brms's DEFAULT `cov = FALSE` form of `ar()`, `ma()` and `arma()` is
-#' not in that position and is not refused: it shifts `mu` by a
-#' regression on the group's earlier observed residuals and leaves every
-#' row with the family's own density, so a column is an observation
-#' again. `arma_cond_resp()` is what tells the two forms apart.
+#' A residual covariance term (`ar(cov = TRUE)`, `cosy()`, `unstr()`,
+#' `fcor()`, frmtmb.spatial's `sar()`) is not refused either: brms gives
+#' each of its rows the leave-one-out conditional density given the rest
+#' of its group, and so does `draws_row_loglik()`.
 #'
 #' @noRd
 draws_loglik_factors <- function(fit, what) {
   # [[ ]] throughout: `$` partial-matches, and a frame field that gains
   # a longer sibling name would silently change which structure is read
   frame <- fit$frame
-  cond <- arma_cond_resp(fit)
   for (r in names(fit$spec$responses)) {
     # a structure that supplies its own `loglik` is exactly the one
     # whose density replaces the rowwise product, and it names its own
@@ -112,31 +110,6 @@ draws_loglik_factors <- function(fit, what) {
                  "time", call. = FALSE)
       }
       next
-    }
-    ac <- (frame[["autocor"]] %||% list())[[r]]
-    if (!is.null(ac) && !r %in% cond) {
-      # A residual COVARIANCE block has its own refusal because it has
-      # its own remedy: brms's default form of the same term does
-      # factor, and naming it is more use than the generic advice below.
-      # cosy() and unstr() have no such form, so the sentence is only
-      # added for the terms that do.
-      alt <- if (ac[["fn"]] %in% c("ar", "ma", "arma")) {
-        paste0(" brms's default cov = FALSE form of ", ac[["fn"]],
-               "() does factor, one term per row given that group's ",
-               "observed earlier residuals, and ", what,
-               " supports it: refit without cov = TRUE for the ",
-               "pointwise density.")
-      } else {
-        ""
-      }
-      frm_stop(what, " needs a likelihood that factors into one term per ",
-               "observation, and the response '", r, "' does not: it ",
-               "carries ", ac[["label"]], ", an R-side residual ",
-               "correlation MATRIX, whose smallest independent unit is a ",
-               "whole group, so a column of the matrix would be a GROUP ",
-               "and leaving one out would drop part of a joint density.",
-               alt, " Compare these models with AIC() on the ML fits, or ",
-               "with frm_bootstrap()", call. = FALSE)
     }
     unit <- if (!is.null(st[["loglik"]])) {
       st[["unit"]] %||% "a group the likelihood does not factor within"
@@ -188,6 +161,7 @@ draws_row_loglik <- function(fit, resp) {
     return(rescor_row_loglik(fit, dpv))
   }
   use <- resp %||% names(rspecs)
+  cond <- arma_cond_resp(fit)
   # a response fitted on its own rows under subset() has one column per
   # row of ITS OWN; log_lik() lets such a model through only with resp
   if (length(use) == 1L) n <- NROW(frame[["y"]][[use]])
@@ -196,6 +170,14 @@ draws_row_loglik <- function(fit, resp) {
     av <- frame[["aterm_values"]][[r]]
     fam <- rspecs[[r]]$family
     yv <- frame[["y"]][[r]]
+    ac <- (frame[["autocor"]] %||% list())[[r]]
+    if (!is.null(ac) && !r %in% cond) {
+      # a residual covariance term: brms's leave-one-out conditional of
+      # each row given the rest of its group; the frame refused weights
+      # and every addition term that would reshape a row
+      out <- out + frmtmb::autocor_row_loglik(fit, dpv, r)
+      next
+    }
     st <- rspecs[[r]]$family[["structure"]]
     if (!is.null(st[["loglik"]])) {
       # The family's own factorization, at the COARSEST granularity it
@@ -271,8 +253,31 @@ draws_row_loglik <- function(fit, resp) {
 #' rather than "how well would the model predict a held-out series".
 #' For the latter, refit without the held-out group.
 #'
-#' The `cov = TRUE` covariance form is still refused, and for the
-#' original reason: its smallest independent unit is a whole group.
+#' @section Residual covariance terms:
+#' A residual covariance term (`cov = TRUE`, `cosy()`, `unstr()`,
+#' `fcor()`, and frmtmb.spatial's `sar()`) makes the residuals of a
+#' group one joint draw, so a row has no density of its own. A column
+#' is then brms's leave-one-out conditional density: the density of the
+#' row given the other rows of its group at the draw's parameters,
+#' normal with precision \eqn{Q_{ii}} around
+#' \eqn{y_i - (Qe)_i / Q_{ii}}, or for `student()` the conditional t,
+#' after the loo package's vignette on non-factorized models
+#' ([frmtmb::frmtmb-autocor], "The pointwise log-density"). The values
+#' are brms's `log_lik()`, and they do NOT sum to the log-likelihood:
+#' each conditions on the rest of its group. The cost per draw is one
+#' small inverse per pattern of time points for the `ar()` family, and
+#' the nonzeros of the weights matrix for `sar()`; brms inverts a dense
+#' covariance over each group per draw.
+#'
+#' A group that skips a time point inside its range differs from brms
+#' under `ar()`, `ma()` and `arma()`: frmtmb reads the lag from the time
+#' levels and brms from the position within the group, so the two fit
+#' different models there and their columns differ. In a measured case
+#' with one such group (22 rows, 3 draws), the largest difference over
+#' the matrix was 17 percent of brms's largest value, and on the rows of
+#' the groups without a gap the two agreed to 8e-16.
+#' `cosy()` has one correlation for every pair and brms's `unstr()`
+#' reads the time levels too, so those agree with gaps.
 #'
 #' @section Multivariate models:
 #' With `set_rescor(TRUE)` a column is the joint density of the row's
@@ -284,9 +289,8 @@ draws_row_loglik <- function(fit, resp) {
 #' @section Likelihoods with no per-observation column:
 #' A model whose smallest independent unit is a group has no
 #' per-observation column to leave out, and this refuses rather than
-#' inventing one: a residual correlation MATRIX
-#' (`cov = TRUE`, `cosy()`, `unstr()`; [frmtmb::frmtmb-autocor]), a
-#' `frmtmb.latent::hmm()` sequence, and a group-level mixture (`mixture(groups = )`).
+#' inventing one: a `frmtmb.latent::hmm()` sequence, and a group-level
+#' mixture (`mixture(groups = )`).
 #' An `frmtmb.latent::lca()` subject is one row, so its column is well defined and is
 #' not refused. In-model imputation (`mi()`, `me()`) is refused for the
 #' same kind of reason: a latent value is a parameter, not an
@@ -422,8 +426,17 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
   rows <- draws_subsample(object, ndraws, draw_ids)
   out <- NULL
   unit <- NULL
+  # core warns per draw when a residual term's density takes its dense
+  # route; one warning per call says it, 4000 would bury it
+  warned <- FALSE
+  once <- function(w) {
+    if (warned) invokeRestart("muffleWarning")
+    warned <<- TRUE
+  }
   for (k in seq_along(rows)) {
-    v <- draws_row_loglik(draws_fit_at(object, rows[k], idx), resp)
+    v <- withCallingHandlers(
+      draws_row_loglik(draws_fit_at(object, rows[k], idx), resp),
+      frmtmb_autocor_dense_fallback = once)
     if (is.null(out)) {
       out <- matrix(NA_real_, length(rows), length(v))
       unit <- attr(v, "unit")
@@ -483,8 +496,10 @@ logLik.frmtmb_draws <- function(object, newdata = NULL, re_formula = NULL,
 #' not the row's influence on its neighbors, because every retained
 #' column still reads `y_t` through its own lagged residuals. Read it as
 #' "how well the one-step density fits each row", and refit without a
-#' group for a held-out-series answer. The `cov = TRUE` covariance form
-#' is refused instead: there no column is an observation.
+#' group for a held-out-series answer. Under the `cov = TRUE` covariance
+#' form a column is the row's density given the rest of its group,
+#' before and after it, as brms's `log_lik()` gives it
+#' ([sample-log_lik], "Residual covariance terms").
 #'
 #' @section Priors, and what these numbers mean:
 #' These are posterior quantities, and they inherit the standing of the

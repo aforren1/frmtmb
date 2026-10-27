@@ -103,8 +103,12 @@
 #' `set_prior("normal(0, 0.5)", class = "lagsar")` is a density on rho,
 #' carried to its internal parameter with the log-Jacobian of the map.
 #' frmtmb.sample's default is brms's, flat on rho over its interval.
-#' The pointwise `log_lik()` is refused, as for frmtmb's other residual
-#' covariance terms; brms's is a leave-one-out conditional density.
+#' `frmtmb.sample::log_lik()` gives brms's pointwise log-density: the
+#' leave-one-out conditional density of each row given the other rows,
+#' normal (or Student-t with \eqn{\nu + n - 1} degrees of freedom) with
+#' precision \eqn{A'A / \sigma^2}, which is sparse, so its cost per draw
+#' is the nonzeros of `W` and not the dense `n x n` inverse
+#' brms takes. The row sum is not the log-likelihood.
 #'
 #' @return `sar()` returns the term as an object of class
 #'   `frmtmb_ac_term`. Its use is inside a formula, where [frmtmb::frm()]
@@ -335,6 +339,17 @@ sar_unwhiten <- function(u, mu, sigma, theta, aux) {
   if (is.matrix(u)) out else as.vector(out)
 }
 
+#' The Jacobian of the map in `y`, `A / sigma` for both types: the lag
+#' type's `A y - mu` and the error type's `A (y - mu)` differ in the
+#' mean only. Sparse, so the pointwise log-density costs the nonzeros of
+#' `W` per draw, where brms inverts a dense `n x n` matrix.
+#'
+#' @noRd
+sar_jacobian <- function(sigma, theta, aux) {
+  rho <- sar_rho(theta, aux)
+  (Matrix::Diagonal(nrow(aux[["W"]])) - rho * aux[["W"]]) / sigma
+}
+
 #' The interval of rho, for brms's class prior on it and frmtmb.sample's
 #' flat default (`frmtmb::frmtmb_autocor_pars()`).
 #'
@@ -366,7 +381,8 @@ sar_compat_note <- "sar(M, type = \"lag\") is brms's SAR of the response, A y - 
 register_sar <- function() {
   frmtmb_register_autocor(
     "sar", args = c("M", "type"), parse = sar_parse, build = sar_build,
-    whiten = sar_whiten, unwhiten = sar_unwhiten, npar = 1L,
+    whiten = sar_whiten, unwhiten = sar_unwhiten,
+    jacobian = sar_jacobian, npar = 1L,
     start = sar_start, natural = sar_natural, sigma_varies = FALSE,
     bounds = sar_bounds, usage = "sar(M, type = \"lag\")",
     compat_note = sar_compat_note)

@@ -1,3 +1,28 @@
+# frmtmb (development version)
+
+- New in the sampling API: `autocor_row_loglik(fit, dpv, resp)`, the
+  pointwise log-density of a response with a residual covariance term
+  (the covariance form of `ar()`, `ma()` and `arma()`, `cosy()`,
+  `unstr()`, `fcor()` and a registered term). Each row is brms 2.23.0's
+  leave-one-out conditional density given the other rows of its group,
+  read off the precision matrix. On 18 cases (every term, gaussian and
+  student, ragged groups, gaps, `sigma ~ x`) it equals brms's
+  `log_lik()` at the same parameters to 2.0e-15 relative. One draw costs
+  one small inverse per pattern of time points: 0.64 ms against 17.8 ms
+  for brms's per-group dense inverses on 400 groups of 10 rows, and
+  2.6 ms against 97.5 ms for `fcor()` on 600 rows. The values do not sum
+  to the log-likelihood.
+- `frmtmb_register_autocor()` takes `jacobian =`, the Jacobian of the
+  term's whitening map, from which the pointwise log-density reads the
+  precision matrix. A sparse one costs its nonzeros per draw. Without
+  it, frmtmb inverts `unwhiten()` of the identity, which is exact and
+  dense: 0.5 s and 48 Mb per draw at 1000 rows, 1.7 s and 155 Mb at
+  2000. Above 1000 rows `log_lik()` warns once per call, with class
+  `frmtmb_autocor_dense_fallback`. A given `jacobian` is checked against
+  the map when the frame is built, at the start and at a generic point
+  (sigma not 1 and varying by row, every parameter moved off the
+  start), and a wrong one is refused by the term's name.
+
 # frmtmb 0.75.0
 
 The main changes:

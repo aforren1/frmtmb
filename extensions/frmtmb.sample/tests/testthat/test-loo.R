@@ -245,6 +245,42 @@ test_that("the pointwise density of student rescor and mv ordinal fits", {
   expect_lt(abs(sum(lo) - L), 1e3 * .Machine$double.eps * abs(L))
 })
 
+test_that("log_lik() of an ar(cov = TRUE) block is the conditional of each
+           row given the rest of its subject", {
+  # the density is a joint one per subject, and a column is brms's
+  # leave-one-out conditional of the row given the rest of its subject;
+  # the dense partition formula is the reference. Through 0.75.0 this
+  # arm asserted the refusal, in the refusals block below
+  set.seed(2)
+  da <- data.frame(subj = factor(rep(1:8, each = 5)),
+                   week = rep(1:5, 8))
+  da$x <- stats::rnorm(40)
+  da$y <- stats::rnorm(40, da$x)
+  ua <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)), family = gaussian(),
+            data = da, dry_run = "objective")
+  dsa <- fake_draws(ua)
+  sg <- c(0.8, 1, 1.2, 1.5)
+  rho <- c(0.3, -0.2, 0.7, 0)
+  dsa$draws[, "b_x"] <- 1
+  dsa$draws[, "sigma"] <- sg
+  dsa$draws[, "thetaac_1"] <- rho / sqrt(1 - rho^2)
+  lla <- log_lik(dsa)
+  for (s in seq_along(sg)) {
+    S <- sg[s]^2 * rho[s]^abs(outer(1:5, 1:5, "-"))
+    ref <- unlist(lapply(split(seq_len(40), da$subj), function(r) {
+      vapply(1:5, function(i) {
+        cm <- da$x[r][i] + S[i, -i] %*% solve(S[-i, -i],
+                                              da$y[r][-i] - da$x[r][-i])
+        cv <- S[i, i] - S[i, -i] %*% solve(S[-i, -i], S[-i, i])
+        stats::dnorm(da$y[r][i], cm, sqrt(cv), log = TRUE)
+      }, 0)
+    }), use.names = FALSE)
+    expect_lt(max(abs(lla[s, ] - ref)), 1e-10 * max(abs(ref)))
+  }
+  expect_true(all(is.finite(
+    suppressWarnings(loo(dsa))$pointwise[, "elpd_loo"])))
+})
+
 ## ---- loo() and waic() -----------------------------------------------
 
 test_that("loo() and waic() delegate to the loo package with r_eff", {
@@ -372,17 +408,6 @@ test_that("bayes_R2() refuses an outcome with no residual variance", {
 ## ---- refusals -------------------------------------------------------
 
 test_that("log_lik() refuses likelihoods with no per-observation column", {
-  # R-side residual correlation: the density is a joint one per group
-  set.seed(2)
-  da <- data.frame(subj = factor(rep(1:8, each = 5)),
-                   week = rep(1:5, 8))
-  da$x <- stats::rnorm(40)
-  da$y <- stats::rnorm(40, da$x)
-  ua <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)), family = gaussian(),
-            data = da, dry_run = "objective")
-  expect_error(log_lik(fake_draws(ua)), "residual correlation")
-  expect_error(loo(fake_draws(ua)), "residual correlation")
-
   # a group-level mixture: the smallest unit is the group
   set.seed(5)
   dm <- data.frame(id = factor(rep(1:20, each = 4)))
@@ -633,7 +658,7 @@ test_that("log_lik() carries student, sigma ~ x and (1 | g) under arma()", {
   expect_equal(lls[1L, ], refs, tolerance = 1e3 * .Machine$double.eps)
 })
 
-test_that("loo() runs on a cov = FALSE fit and cov = TRUE still refuses", {
+test_that("loo() runs on a cov = FALSE fit and on a cov = TRUE one", {
   skip_if_not_installed("loo")
   d <- arma_data()
   fit <- frm(bf(y ~ x + ar(t, g)), family = gaussian(), data = d,
@@ -656,23 +681,36 @@ test_that("loo() runs on a cov = FALSE fit and cov = TRUE still refuses", {
   wa <- suppressWarnings(waic(ds))
   expect_true(is.finite(wa$estimates["elpd_waic", "Estimate"]))
 
-  # the covariance form keeps its refusal, and the message names the
-  # form that does factor
+  # the covariance form was refused through 0.75.0. Its column is now
+  # brms's leave-one-out conditional given the rest of the group, before
+  # and after the row, core's autocor_row_loglik() at each draw; the cov
+  # = FALSE column conditions on the earlier rows only, so the two
+  # differ wherever ar is not 0
   uc <- frm(bf(y ~ x + ar(t, g, cov = TRUE)), family = gaussian(),
             data = d, dry_run = "objective")
-  expect_error(log_lik(fake_draws(uc)), "residual correlation MATRIX")
-  expect_error(log_lik(fake_draws(uc)), "cov = FALSE form of ar()",
-               fixed = TRUE)
-  expect_error(loo(fake_draws(uc)), "residual correlation MATRIX")
-  # cosy() and unstr() have no cov = FALSE form, so the message must not
-  # offer one
+  ars <- c(0.5, -0.3, 0)
+  dsc <- arma_draws(uc, list(b_Intercept = 1.2, b_x = 0.4, sigma = 0.9,
+                             thetaac_1 = ars / sqrt(1 - ars^2)))
+  dsf <- arma_draws(fit, list(b_Intercept = 1.2, b_x = 0.4, sigma = 0.9,
+                              thetaac_1 = ars))
+  llc <- log_lik(dsc)
+  llf <- log_lik(dsf)
+  idx <- frmtmb.sample:::draws_par_index(dsc$fit)
+  for (k in seq_along(ars)) {
+    sh <- frmtmb.sample:::draws_fit_at(dsc, k, idx)
+    expect_identical(llc[k, ], frmtmb::autocor_row_loglik(
+      sh, frmtmb::eval_dpars(sh), "y"))
+  }
+  expect_gt(max(abs(llc[1L, ] - llf[1L, ])), 0.01 * max(abs(llf[1L, ])))
+  expect_lt(max(abs(llc[3L, ] - llf[3L, ])), 1e-10 * max(abs(llf[3L, ])))
+  expect_true(all(is.finite(
+    suppressWarnings(loo(dsc))$pointwise[, "elpd_loo"])))
+  # unstr() has a column too
   uu <- frm(bf(y ~ x + unstr(t, g)), family = gaussian(), data = d,
             dry_run = "objective")
-  expect_error(log_lik(fake_draws(uu)), "residual correlation MATRIX")
-  expect_error(log_lik(fake_draws(uu)), "unstr(t, g)", fixed = TRUE)
-  msg <- conditionMessage(tryCatch(log_lik(fake_draws(uu)),
-                                   error = identity))
-  expect_false(grepl("cov = FALSE", msg, fixed = TRUE))
+  dsu <- fake_draws(uu)
+  dsu$draws[, "sigma"] <- 1
+  expect_true(all(is.finite(log_lik(dsu))))
 
   # mi() on the response stays refused for its own reason, which is not
   # about autocorrelation

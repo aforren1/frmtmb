@@ -203,6 +203,205 @@ test_that("log_lik of aysm_laplace models runs without errors", {
   })
 })
 
+test_that("log_lik for SAR models runs without errors", {
+  withr::local_seed(136L)
+  brms_setup("log_lik:137",
+    prep <- structure(list(ndraws = 3, nobs = 10), class = "brmsprep")
+  )
+  brms_setup("log_lik:138",
+    prep$dpars <- list(
+      mu = matrix(rnorm(30), nrow = 3),
+      nu = rep(10, 3),
+      sigma = rep(10, 3)
+    )
+  )
+  brms_setup("log_lik:143",
+    prep$ac <-  list(
+      lagsar = matrix(c(0.3, 0.5, 0.7)),
+      Msar = brms_adapt_sar_path(10)
+    )
+  )
+  brms_setup("log_lik:147",
+    prep$data <- list(Y = rnorm(10))
+  )
+  brms_value_mark()
+  brms_setup("log_lik:149",
+    ll <- brms_adapt_log_lik("gaussian_lagsar", 1, prep = prep)
+  )
+  brms_port("log_lik:150", "unclassified",
+    "",
+    expect_equal(dim(ll), c(3, 10))
+  )
+  brms_value_check("log_lik:150", "ll", "", {
+    ll <- brms:::log_lik_gaussian_lagsar(1, prep = prep)
+  })
+  brms_value_mark()
+  brms_setup("log_lik:151",
+    ll <- brms_adapt_log_lik("student_lagsar", 1, prep = prep)
+  )
+  brms_port("log_lik:152", "unclassified",
+    "",
+    expect_equal(dim(ll), c(3, 10))
+  )
+  brms_value_check("log_lik:152", "ll", "", {
+    ll <- brms:::log_lik_student_lagsar(1, prep = prep)
+  })
+  brms_setup("log_lik:154",
+    prep$ac$errorsar <- prep$ac$lagsar
+  )
+  brms_setup("log_lik:155",
+    prep$ac$lagsar <- NULL
+  )
+  brms_value_mark()
+  brms_setup("log_lik:156",
+    ll <- brms_adapt_log_lik("gaussian_errorsar", 1, prep = prep)
+  )
+  brms_port("log_lik:157", "unclassified",
+    "",
+    expect_equal(dim(ll), c(3, 10))
+  )
+  brms_value_check("log_lik:157", "ll", "", {
+    ll <- brms:::log_lik_gaussian_errorsar(1, prep = prep)
+  })
+  brms_value_mark()
+  brms_setup("log_lik:158",
+    ll <- brms_adapt_log_lik("student_errorsar", 1, prep = prep)
+  )
+  brms_port("log_lik:159", "unclassified",
+    "",
+    expect_equal(dim(ll), c(3, 10))
+  )
+  brms_value_check("log_lik:159", "ll", "", {
+    ll <- brms:::log_lik_student_errorsar(1, prep = prep)
+  })
+})
+
+test_that("log_lik for FCOR models runs without errors", {
+  withr::local_seed(162L)
+  brms_setup("log_lik:163",
+    ns <- 3
+  )
+  brms_setup("log_lik:164",
+    nobs <- 10
+  )
+  brms_setup("log_lik:165",
+    prep <- structure(list(ndraws = ns, nobs = nobs), class = "brmsprep")
+  )
+  brms_setup("log_lik:166",
+    prep$dpars <- list(
+      mu = matrix(rnorm(nobs * ns), nrow = ns),
+      sigma = rep(1, ns),
+      nu = rep(10, ns)
+    )
+  )
+  brms_setup("log_lik:171",
+    prep$ac <- list(Mfcor = diag(nobs))
+  )
+  brms_setup("log_lik:172",
+    prep$data$Y <- rnorm(nobs)
+  )
+  brms_value_mark()
+  brms_setup("log_lik:173",
+    ll <- brms_adapt_log_lik("gaussian_fcor", 1, prep = prep)
+  )
+  brms_port("log_lik:174", "unclassified",
+    "",
+    expect_equal(dim(ll), c(ns, nobs))
+  )
+  brms_value_check("log_lik:174", "ll", "", {
+    ll <- brms:::log_lik_gaussian_fcor(1, prep = prep)
+  })
+  brms_value_mark()
+  brms_setup("log_lik:175",
+    ll <- brms_adapt_log_lik("student_fcor", 1, prep = prep)
+  )
+  brms_port("log_lik:176", "unclassified",
+    "",
+    expect_equal(dim(ll), c(ns, nobs))
+  )
+  brms_value_check("log_lik:176", "ll", "", {
+    ll <- brms:::log_lik_student_fcor(1, prep = prep)
+  })
+})
+
+test_that("log_lik for FCOR student-t models works as expected", {
+  withr::local_seed(179L)
+  brms_setup("log_lik:180",
+    ns <- 3
+  )
+  brms_setup("log_lik:181",
+    nobs <- 4
+  )
+  brms_setup("log_lik:182",
+    prep <- structure(list(ndraws = ns, nobs = nobs), class = "brmsprep")
+  )
+  brms_setup("log_lik:183",
+    prep$data$Y <- rnorm(nobs)
+  )
+  brms_setup("log_lik:184",
+    prep$dpars <- list(
+      mu = matrix(rnorm(nobs * ns), nrow = ns),
+      sigma = rgamma(ns, 2),
+      nu = rgamma(ns, 5)
+    )
+  )
+  brms_setup("log_lik:191",
+    A <- matrix(rnorm(nobs^2), nobs, nobs)
+  )
+  brms_setup("log_lik:192",
+    M <- t(A) %*% A + diag(nobs) * 0.1
+  )
+  brms_setup("log_lik:193",
+    s_diag <- sqrt(diag(M))
+  )
+  brms_setup("log_lik:194",
+    Mfcor <- M / (s_diag %*% t(s_diag))
+  )
+  brms_setup("log_lik:195",
+    acframe <- data.frame(class = "fcor", cov = TRUE, stringsAsFactors = FALSE)
+  )
+  brms_setup("log_lik:196",
+    class(acframe) <- c("acframe", "data.frame")
+  )
+  brms_setup("log_lik:197",
+    prep$ac <- list(Mfcor = Mfcor, acframe = acframe)
+  )
+  brms_setup("log_lik:199",
+    ll <- brms_adapt_log_lik("student_fcor", 1, prep = prep)
+  )
+  brms_setup("log_lik:203",
+    ll_student <- matrix(0, ns, nobs)
+  )
+  brms_setup("log_lik:204",
+    for (s in 1:ns) {
+        df <- prep$dpars$nu[s]
+        mu <- prep$dpars$mu[s, ]
+        sigma <- prep$dpars$sigma[s]
+        Sigma <- sigma^2 * prep$ac$Mfcor
+        dfloo <- df + nobs - 1
+        for (i in 1:nobs) {
+            e_ic <- (prep$data$Y[-i] - mu[-i])
+            Sigma_ic <- Sigma[-i, -i]
+            Sigma_i_ic <- Sigma[i, -i]
+            inv_Sigma_ic_e <- solve(Sigma_ic, e_ic)
+            d_ic <- t(e_ic) %*% inv_Sigma_ic_e
+            sigma_scale <- (df + d_ic)/dfloo
+            schur <- Sigma[i, i] - Sigma_i_ic %*% solve(Sigma_ic, 
+                Sigma_i_ic)
+            mu_cond_i <- mu[i] + Sigma_i_ic %*% inv_Sigma_ic_e
+            sigma_cond_i <- sqrt(sigma_scale * schur)
+            y_i <- prep$data$Y[i]
+            ll_student[s, i] <- dstudent_t(y_i, dfloo, mu_cond_i, 
+                sigma_cond_i, log = TRUE)
+        }
+    }
+  )
+  brms_port("log_lik:230", "unclassified",
+    "",
+    expect_equal(ll, ll_student)
+  )
+})
+
 test_that("log_lik for count and survival models works correctly", {
   withr::local_seed(233L)
   brms_adapt_brms_needs("extraDistr")

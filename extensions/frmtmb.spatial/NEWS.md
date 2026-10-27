@@ -1,3 +1,17 @@
+# frmtmb.spatial (development version)
+
+Needs frmtmb with `frmtmb_register_autocor(jacobian =)` and
+`autocor_row_loglik()`.
+
+## New features
+
+* `sar()` gives its whitening map's Jacobian, `(I - rho W) / sigma`, as a
+  sparse matrix, so frmtmb.sample's `log_lik()` returns brms 2.23.0's
+  leave-one-out conditional density for both types, gaussian and
+  student, equal to brms's `log_lik()` at the same parameters to
+  6.3e-16 relative. One draw on a 40 x 40 lattice (1600 rows) takes
+  1.9 ms; brms's dense algorithm takes 4.1 s for the same draw.
+
 # frmtmb.spatial 0.2.0
 
 Needs frmtmb 0.75.0, which exports `frmtmb_register_autocor()`, the

@@ -125,9 +125,34 @@ either. It is brms's number, computed the way brms computes it, and
 it answers "how well does the one-step-ahead density fit this row"
 rather than "how well would the model predict a held-out series".
 For the latter, refit without the held-out group.
+}
 
-The \code{cov = TRUE} covariance form is still refused, and for the
-original reason: its smallest independent unit is a whole group.
+\section{Residual covariance terms}{
+
+A residual covariance term (\code{cov = TRUE}, \code{cosy()}, \code{unstr()},
+\code{fcor()}, and frmtmb.spatial's \code{sar()}) makes the residuals of a
+group one joint draw, so a row has no density of its own. A column
+is then brms's leave-one-out conditional density: the density of the
+row given the other rows of its group at the draw's parameters,
+normal with precision \eqn{Q_{ii}} around
+\eqn{y_i - (Qe)_i / Q_{ii}}, or for \code{student()} the conditional t,
+after the loo package's vignette on non-factorized models
+(\link[frmtmb:frmtmb-autocor]{frmtmb::frmtmb-autocor}, "The pointwise log-density"). The values
+are brms's \code{log_lik()}, and they do NOT sum to the log-likelihood:
+each conditions on the rest of its group. The cost per draw is one
+small inverse per pattern of time points for the \code{ar()} family, and
+the nonzeros of the weights matrix for \code{sar()}; brms inverts a dense
+covariance over each group per draw.
+
+A group that skips a time point inside its range differs from brms
+under \code{ar()}, \code{ma()} and \code{arma()}: frmtmb reads the lag from the time
+levels and brms from the position within the group, so the two fit
+different models there and their columns differ. In a measured case
+with one such group (22 rows, 3 draws), the largest difference over
+the matrix was 17 percent of brms's largest value, and on the rows of
+the groups without a gap the two agreed to 8e-16.
+\code{cosy()} has one correlation for every pair and brms's \code{unstr()}
+reads the time levels too, so those agree with gaps.
 }
 
 \section{Multivariate models}{
@@ -143,9 +168,8 @@ one response's contribution alone.
 
 A model whose smallest independent unit is a group has no
 per-observation column to leave out, and this refuses rather than
-inventing one: a residual correlation MATRIX
-(\code{cov = TRUE}, \code{cosy()}, \code{unstr()}; \link[frmtmb:frmtmb-autocor]{frmtmb::frmtmb-autocor}), a
-\code{frmtmb.latent::hmm()} sequence, and a group-level mixture (\code{mixture(groups = )}).
+inventing one: a \code{frmtmb.latent::hmm()} sequence, and a group-level
+mixture (\code{mixture(groups = )}).
 An \code{frmtmb.latent::lca()} subject is one row, so its column is well defined and is
 not refused. In-model imputation (\code{mi()}, \code{me()}) is refused for the
 same kind of reason: a latent value is a parameter, not an
