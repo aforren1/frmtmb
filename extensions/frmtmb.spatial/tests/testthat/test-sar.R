@@ -549,11 +549,16 @@ test_that("one sar() parameter has one prior slot, under its brms class", {
   vp <- validate_prior(set_prior("normal(0.3, 0.2)", class = "lagsar"),
                        ylag ~ x + sar(W), data = dd, data2 = d2)
   expect_true("normal(0.3, 0.2)" %in% vp$prior[vp$class == "lagsar"])
-  # and core's ar() keeps its internal row (its own double slot is filed
-  # for a later round)
+  # and by the same rule as core's ar(), which lists no internal row
+  # either
   da <- data.frame(t = 1:30, y = stats::rnorm(30))
   dpa <- default_prior(y ~ ar(time = t), data = da)
-  expect_true(any(dpa$class == "theta" & dpa$coef == "thetaac_1"))
+  expect_false(any(dpa$class == "theta"))
+  # the table, lagsar's lb and ub at the ends of its interval, passes
+  # back as prior = (through 0.75.0 frm() refused its own lb)
+  fl <- frm(ylag ~ x + sar(W), data = dd, data2 = d2)
+  fp <- frm(ylag ~ x + sar(W), data = dd, data2 = d2, prior = dp)
+  expect_equal(as.numeric(logLik(fp)), as.numeric(logLik(fl)))
 })
 
 test_that("class = 'lagsar' on an error SAR names the model's errorsar", {

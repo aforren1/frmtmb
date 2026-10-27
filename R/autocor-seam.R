@@ -626,22 +626,6 @@ autocor_seam_bounded <- function(ac) {
   })
 }
 
-#' The internal names (`thetaac_<k>`) of a frame's bounded registry
-#' parameters, named by their class (`lagsar`): such a parameter has
-#' one prior slot, its class, so the internal spelling is not listed
-#' in the prior table and a prior on it is refused.
-#'
-#' @noRd
-autocor_seam_bounded_coefs <- function(frame) {
-  out <- character(0)
-  for (ac in frame[["autocor"]] %||% list()) {
-    for (pr in autocor_seam_bounded(ac)) {
-      out[paste0("thetaac_", ac[["theta_idx"]][pr$idx])] <- pr$name
-    }
-  }
-  out
-}
-
 #' The class names `set_prior()` reaches on a frame's registry terms:
 #' `bounded = TRUE` the bounded parameters, `FALSE` the others.
 #'
@@ -662,8 +646,9 @@ autocor_seam_classes <- function(frame, bounded = TRUE) {
 #' from the registry of [frmtmb_register_autocor()] (frmtmb.spatial's
 #' `sar()`): their names as brms names them, the internal parameter each
 #' is, and the interval a bounded one lives on. frmtmb.sample reads it
-#' for the names of its draws and for brms's flat default prior on a
-#' bounded parameter, so that it keeps no list of names of its own.
+#' for the names of its draws, so that it keeps no list of names of its
+#' own. A bounded parameter has one prior slot, its class (`lagsar`), as
+#' core's `ar` and `cosy` do: [set_prior()] refuses its internal name.
 #'
 #' @param fit A `frmtmb_fit`.
 #' @return A data frame with one row per parameter: `resp`, `term` (the

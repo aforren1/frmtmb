@@ -200,11 +200,29 @@ test_that("a bounded parameter takes a prior by its name", {
         prior = set_prior("", class = "scale1", lb = 1.5, ub = 1.9)),
     "a bound holds it", require = "a bound holds it")
   expect_gte(nat1(pb), 1.5)
-  # an end of the interval is not inside it, as for ar
+  # a bound at an end of the interval holds nothing back, which is what
+  # the prior table lists there (as brms does), so the table passes back
+  # as prior =; past the end it is refused
+  pe <- frm(y ~ x + bscale(V), data = d, data2 = list(V = V),
+            prior = set_prior("", class = "scale1", ub = 2))
+  expect_equal(as.numeric(logLik(pe)), as.numeric(logLik(fit)))
+  expect_equal(c(dp$lb[dp$class == "scale1"], dp$ub[dp$class == "scale1"]),
+               c(0.5, 2))
+  pt <- frm(y ~ x + bscale(V), data = d, data2 = list(V = V), prior = dp)
+  expect_equal(as.numeric(logLik(pt)), as.numeric(logLik(fit)))
   expect_error(frm(y ~ x + bscale(V), data = d, data2 = list(V = V),
-                   prior = set_prior("", class = "scale1", ub = 2)),
+                   prior = set_prior("", class = "scale1", ub = 2.5)),
                "is outside the interval of bscale(V)", fixed = TRUE,
                class = "frmtmb_error")
+  # one slot per parameter, by the rule core's ar() and cosy() follow:
+  # the internal spelling is not listed, and a prior on it names the
+  # class to use
+  expect_false(any(dp$class == "theta"))
+  expect_error(frm(y ~ x + bscale(V), data = d, data2 = list(V = V),
+                   prior = set_prior("", class = "theta",
+                                     coef = "thetaac_1", ub = 0)),
+               "internal parameter of scale1, which has a class of its own",
+               fixed = TRUE, class = "frmtmb_error")
   # a parameter whose term states no interval is refused by name, with
   # the internal spelling to use instead
   frmtmb_register_autocor(
@@ -219,6 +237,20 @@ test_that("a bounded parameter takes a prior by its name", {
   expect_error(frm(y ~ x + uscale(V), data = d, data2 = list(V = V),
                    prior = set_prior("normal(1, 1)", class = "scale2")),
                "whose term declares no interval", class = "frmtmb_error")
+  # and that spelling works: where no class reaches a parameter, class
+  # theta does, its row is listed, and a bound on it holds
+  du <- default_prior(y ~ x + uscale(V), data = d, data2 = list(V = V))
+  expect_true(any(du$class == "theta" & du$coef == "thetaac_1"))
+  fu <- frm(y ~ x + uscale(V), data = d, data2 = list(V = V))
+  th0 <- fu$estimates[["thetaac"]][[1L]]
+  cap <- th0 - 0.5 * (abs(th0) + 0.1)
+  fb <- allow_warnings(
+    frm(y ~ x + uscale(V), data = d, data2 = list(V = V),
+        prior = set_prior("", class = "theta", coef = "thetaac_1",
+                          ub = cap)),
+    "a bound holds it")
+  expect_lte(fb$estimates[["thetaac"]][[1L]], cap)
+  expect_lt(as.numeric(logLik(fb)), as.numeric(logLik(fu)))
   # bounds() that do not match natural() are refused at the frame
   frmtmb_register_autocor(
     "badbound", args = "V", build = tt$build, npar = 1L,

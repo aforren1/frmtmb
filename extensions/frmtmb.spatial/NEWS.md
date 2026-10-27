@@ -1,3 +1,15 @@
+# frmtmb.spatial (development version)
+
+## Bug fixes
+
+* The `default_prior()` table of a `sar()` model passes back as
+  `prior =`. Its `lagsar` or `errorsar` row lists the ends of the
+  interval as `lb` and `ub`, as brms's does, and `frm()` refused them as
+  outside the interval. The fix is in frmtmb, which now accepts a bound
+  at an end of the interval as no bound. Under `frm_sample()`, a
+  bounds-only prior on `lagsar` keeps the flat default density; see
+  frmtmb.sample's NEWS.
+
 # frmtmb.spatial 0.2.0
 
 Needs frmtmb 0.75.0, which exports `frmtmb_register_autocor()`, the

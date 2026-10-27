@@ -1,3 +1,75 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **One residual-correlation parameter has one prior slot, as in
+  brms.** `default_prior()` listed each parameter of an `ar()`, `ma()`,
+  `arma()`, `cosy()` or `unstr()` term twice: under its class (`ar`,
+  `ma`, `cosy`, `cortime`) and as `class = "theta", coef = "thetaac_1"`.
+  `validate_prior()` and `frm()` took a prior on each, and the fit
+  applied the one written last. brms 2.23.0 has the class row only. Now
+  the internal row is not listed, and a prior on it is refused with the
+  class to use: "class = "theta", coef = "thetaac_1" is the internal
+  parameter of ar, which has a class of its own, as in brms. Write the
+  prior with class = "ar"". A multivariate model's refusal names the
+  `resp` too. This is the rule that `sar()`'s `lagsar` got in 0.75.0,
+  and it is now one rule for core's classes and for each bounded
+  parameter of a term registered with `frmtmb_register_autocor()`.
+  `class = "theta"` still reaches a parameter that no class reaches: a
+  random-effect `theta_1`, a `thetar_1`, and a parameter of a
+  registered term that declares no interval. So two kinds of parameter
+  take no box now. The internal parameters of a `cov = TRUE` `ar()` or
+  `ma()` of order two or more take none; brms's `cov = TRUE` form is of
+  order one only. A single correlation of an `unstr()` term takes none
+  either: `class = "theta", coef = "thetaac_3"` was the one route to
+  it, and `class = "cortime"` takes `lkj()` on the whole matrix and no
+  `lb`/`ub`, as in brms.
+
+* **The prior table bounds the residual-correlation classes as brms
+  does.** `default_prior()` lists `lb = -1` and `ub = 1` on a
+  first-order `cov = TRUE` `ar` or `ma`, as brms 2.23.0 does, and no
+  bound under `cov = FALSE`. For `cosy` it lists the window `frm()` fits
+  it on, `-1/(d - 1)` to 1 for `d` time points, and on
+  `route = "sample"` brms's 0 to 1, where frmtmb.sample now samples it.
+
+* **A prior on `sigma` under a first-order `cov = TRUE` `ar()`, `ma()`
+  or `arma()` is read on brms's sigma, the innovation sd.** frmtmb's
+  `sigma` there is the MARGINAL sd of a residual, and `summary()`,
+  `sigma()` and `VarCorr()` report it; brms's `sigma` is the innovation
+  sd, smaller by `c = sqrt(1 - ar^2)`, `1 / sqrt(1 + ma^2)` or
+  `sqrt((1 - ar^2) / (1 + ma^2 + 2 ar ma))`. On an AR(1) of 0.9 that is
+  a posterior mean of 1.16 here against 0.43 in brms, for the same
+  model. Before, `set_prior("student_t(3, 0, 2.5)", class = "sigma")`
+  was a density on the marginal sd; now it is brms's density at
+  `sigma * c`, with the Jacobian of `c`, in `frm()`'s MAP penalty and in
+  frmtmb.sample alike. A `lb` above 0 or a `ub` on `sigma` there is
+  refused, because a box on the innovation sd moves with `ar` and is no
+  box on the marginal sd frmtmb holds; brms 2.23.0 takes such a bound
+  on its innovation sd (`real<lower=0.2> sigma`).
+
+## New features
+
+* Three functions join the interface for a sampling extension
+  (`?frmtmb-sampling-api`). `autocor_flat_priors()` gives brms's flat
+  default on each residual-correlation class that frmtmb holds through
+  a transform. `autocor_bound_chart()` gives a chart that samples a
+  bounded residual-correlation parameter through one logistic onto its
+  interval. `autocor_innov_sd()` names the responses whose `sigma` brms
+  reads as an innovation sd. frmtmb.sample uses all three.
+
+## Bug fixes
+
+* A bound at an end of a residual-correlation parameter's interval is
+  accepted, and bounds nothing, since the parameter never reaches that
+  end. Before, `frm()` refused it: `set_prior("", class = "ar",
+  lb = -1)` stopped with "lb = -1 is outside (-1, 1)". So the
+  `default_prior()` table of a `sar()` model, whose `lagsar` row lists
+  the ends of its interval, did not pass back as `prior =` in 0.75.0.
+  Past the end, a bound is still refused.
+* `?frmtmb-autocor` said that `set_prior()` cannot target the
+  residual-correlation parameters; it has done so by their classes since
+  0.49.
+
 # frmtmb 0.75.0
 
 The main changes:

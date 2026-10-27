@@ -115,7 +115,11 @@
 #'   releases before 0.49 are gone rather than aliased, and a call still
 #'   using them fails as an unused argument; every outer parameter they
 #'   could reach has a `set_prior()` class, down to a single internal
-#'   covariance parameter (`class = "theta", coef = "thetaac_1"`). See
+#'   covariance parameter (`class = "theta", coef = "theta_1"`), except
+#'   the internal parameters of a `cov = TRUE` `ar()` or `ma()` of order
+#'   two or more, which take no box (brms has no such term), and a single
+#'   correlation of an `unstr()` term, which class `"cortime"` reaches
+#'   only as a whole matrix (as in brms, it takes no `lb`/`ub`). See
 #'   [set_prior()]'s Hard bounds section.
 #'
 #'   *The spelling is brms's; the SEMANTICS are not.* A prior here is a

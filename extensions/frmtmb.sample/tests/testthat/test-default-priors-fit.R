@@ -168,3 +168,111 @@ test_that("dirichlet phi: brms's posterior under gamma(0.01, 0.01)", {
   colnames(d$Y) <- c("a", "b", "c")
   dpf_expect_agree("Y ~ x", "dirichlet", d, "phi")
 })
+
+# An autocorrelation parameter near its bound, where the default prior
+# decides much of the posterior: brms's (flat) on the coefficient itself.
+# Through frmtmb.sample 0.22.0 the default was flat on frmtmb's internal
+# parameter, and sigma's on frmtmb's marginal sd where brms's sigma is
+# the innovation sd; on these data (dev/acprior-innov.R and
+# dev/acprior-agree.R, 4 chains of 4000) the ar mean was then 42.3
+# pooled Monte Carlo standard errors from brms's own, sigma's 19.6, and
+# the cosy mean 51.4, with 48 percent of the cosy draws below brms's
+# bound at 0. Now the default is brms's on both, so the comparison is
+# with brms's own draws, unweighted; frmtmb's sigma is the marginal sd,
+# so its draws are carried to brms's, sigma sqrt(1 - ar^2).
+dpf_ac_data <- function() {
+  set.seed(20261027)
+  ng <- 8
+  k <- 6
+  da <- data.frame(t = rep(seq_len(k), ng), g = rep(seq_len(ng), each = k),
+                   x = stats::rnorm(ng * k))
+  e <- numeric(nrow(da))
+  for (i in seq_len(nrow(da))) {
+    e[i] <- if (da$t[i] == 1) stats::rnorm(1) else 0.9 * e[i - 1] +
+      stats::rnorm(1, 0, sqrt(1 - 0.81))
+  }
+  da$y <- 1 + 0.5 * da$x + e
+  dc <- data.frame(t = rep(1:4, 30), g = rep(1:30, each = 4),
+                   x = stats::rnorm(120))
+  dc$y <- 1 + 0.5 * dc$x + stats::rnorm(30, 0, sqrt(0.03))[dc$g] +
+    stats::rnorm(120, 0, sqrt(0.97))
+  list(ar = da, cosy = dc)
+}
+
+dpf_brms_matrix <- function(form, data, pars) {
+  code <- brms::stancode(form, data = data)
+  sdat <- brms::standata(form, data = data)
+  f <- tempfile(fileext = ".stan")
+  on.exit(unlink(f), add = TRUE)
+  writeLines(c(code, paste0("// rstan ", utils::packageVersion("rstan"))), f)
+  key <- unname(tools::md5sum(f))
+  dir <- Sys.getenv("FRMTMB_STAN_CACHE", "")
+  if (!nzchar(dir)) dir <- file.path(tempdir(), "frmtmb-stan-cache")
+  dir.create(dir, showWarnings = FALSE, recursive = TRUE)
+  path <- file.path(dir, paste0(key, ".rds"))
+  mod <- dpf_models[[key]]
+  if (is.null(mod) && file.exists(path)) mod <- readRDS(path)
+  if (is.null(mod)) {
+    mod <- rstan::stan_model(model_code = code, save_dso = TRUE)
+    saveRDS(mod, path)
+  }
+  dpf_models[[key]] <- mod
+  sf <- suppressWarnings(rstan::sampling(mod, data = sdat, chains = 2,
+                                         iter = 2000, seed = 3,
+                                         refresh = 0))
+  as.matrix(sf, pars = pars)
+}
+
+# the same yardsticks as dpf_expect_agree(), on the parameter itself and
+# with brms's draws weighted; a weighted mean's Monte Carlo error is its
+# sd over the smaller of the chains' ESS and the weights' own
+dpf_expect_agree_w <- function(lf, lb, w, lab) {
+  wn <- w / sum(w)
+  mb <- sum(wn * lb)
+  sb <- sqrt(sum(wn * (lb - mb)^2))
+  eb <- min(posterior::ess_mean(matrix(lb, ncol = 2)), 1 / sum(wn^2))
+  mcf <- posterior::mcse_mean(matrix(lf, ncol = 2))
+  expect_lt(posterior::rhat(matrix(lb, ncol = 2)), 1.05)
+  z <- (mean(lf) - mb) / sqrt(mcf^2 + sb^2 / eb)
+  expect_lt(abs(z), 4, label = paste(lab, "mean z"))
+  wq <- function(p) {
+    o <- order(lb)
+    lb[o][which(cumsum(wn[o]) >= p)[1]]
+  }
+  r <- unname(diff(stats::quantile(lf, c(0.05, 0.95))) /
+                (wq(0.95) - wq(0.05)))
+  expect_gt(r, 0.8, label = paste(lab, "width ratio"))
+  expect_lt(r, 1.25, label = paste(lab, "width ratio"))
+}
+
+test_that("a cov = TRUE ar near 1: brms's posterior under its (flat)", {
+  skip_unless_brms_fit()
+  skip_sampler()
+  skip_if_not_installed("posterior")
+  d <- dpf_ac_data()$ar
+  fo <- y ~ x + ar(time = t, gr = g, cov = TRUE)
+  b <- dpf_brms_matrix(fo, d, c("ar[1]", "sigma"))
+  ds <- suppressWarnings(suppressMessages(frm_sample(
+    bf(fo), family = gaussian(), data = d, chains = 2, iter = 2000,
+    seed = 3, refresh = 0)))
+  m <- as.matrix(ds)
+  one <- rep(1, nrow(b))
+  dpf_expect_agree_w(m[, "ar[1]"], b[, 1], one, "ar")
+  dpf_expect_agree_w(m[, "sigma"] * sqrt(1 - m[, "ar[1]"]^2), b[, 2], one,
+                     "sigma")
+})
+
+test_that("cosy near 0: brms's posterior, on brms's [0, 1]", {
+  skip_unless_brms_fit()
+  skip_sampler()
+  skip_if_not_installed("posterior")
+  d <- dpf_ac_data()$cosy
+  fo <- y ~ x + cosy(time = t, gr = g)
+  b <- dpf_brms_matrix(fo, d, "cosy")[, 1]
+  ds <- suppressWarnings(suppressMessages(frm_sample(
+    bf(fo), family = gaussian(), data = d, chains = 2, iter = 2000,
+    seed = 3, refresh = 0)))
+  lf <- as.matrix(ds)[, "cosy"]
+  expect_false(any(lf < 0))
+  dpf_expect_agree_w(lf, b, rep(1, length(b)), "cosy")
+})

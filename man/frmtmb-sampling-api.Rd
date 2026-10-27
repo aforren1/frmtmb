@@ -89,6 +89,9 @@
 \alias{ord_lp_blocks}
 \alias{ord_thres_linpred}
 \alias{rescor_row_loglik}
+\alias{autocor_flat_priors}
+\alias{autocor_bound_chart}
+\alias{autocor_innov_sd}
 \alias{arma_cond_resp}
 \alias{arma_cond_dpars}
 \alias{arma_cond_fill_dpars}
@@ -296,6 +299,21 @@ holds.
 blocks with the linear predictor and the \code{dpar} that class
 \code{"Intercept"} addresses each by, which is where brms puts its
 default on the thresholds.
+\code{autocor_flat_priors(fit)} lists brms's flat default on each
+residual-correlation class held through a transform (\code{ar}, \code{ma},
+\code{cosy}, a registry term's \code{lagsar}): one row per class and response,
+with the ends of a uniform density on the natural parameter that
+spans the whole image of the term's map, so that it is flat
+wherever the parameter can go, and the narrower bound brms declares
+where it has one (\code{lb = 0} on \code{cosy}). A \code{cov = FALSE} term has no
+row, because its coefficients are the internal parameters.
+\code{autocor_bound_chart(fit, lower, upper)} gives, for each bounded
+first-order residual-correlation parameter, a chart that samples it
+through one logistic onto its natural interval, with the map to the
+internal parameter and its log Jacobian. \code{autocor_innov_sd(fit)}
+names the responses whose \code{sigma} brms reads as the innovation sd of
+a first-order \code{cov = TRUE} \code{ar()}, \code{ma()} or \code{arma()}, where the
+default prior on \code{sigma} is read on that sd.
 
 \code{frmtmb_register_prior_defaults()} is the other direction: it lets a
 package tell \code{\link[=get_prior]{get_prior()}} what defaults it would apply.

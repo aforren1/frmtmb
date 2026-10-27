@@ -129,10 +129,14 @@ class of the same name; no \code{coef}.
 \item \code{"theta"}: raw internal covariance parameters (escape hatch).
 \code{coef} names one by its internal name and spans all three
 covariance components: \code{"theta_2"} for a random-effect block,
-\code{"thetaac_1"} for a residual autocorrelation, \code{"thetar_1"} for a
-residual correlation. This is the one spelling that reaches a
-single parameter of a structure whose natural coefficients are not
-free of one another.
+\code{"thetar_1"} for a residual correlation, and \code{"thetaac_1"} for a
+parameter of a residual term that has no class of its own. This is
+the one spelling that reaches a single parameter of a structure
+whose natural coefficients are not free of one another. A
+residual-correlation parameter that a class reaches (\code{"ar"},
+\code{"ma"}, \code{"cosy"}, \code{"cortime"}, frmtmb.spatial's \code{"lagsar"}) has
+that class as its one slot, as in brms: its \code{thetaac_} row is not
+listed, and a prior on it is refused with the class to use.
 \item a DISTRIBUTIONAL parameter's own name (\code{"sigma"}, \code{"shape"},
 \code{"phi"}, \code{"zi"}, \code{"nu"}, ...): a density on that parameter ITSELF,
 on its NATURAL scale, with the inverse link's log-Jacobian
@@ -300,8 +304,9 @@ The scale is the parameter's own: class \code{"sd"} bounds a standard
 deviation on the sd scale (frmtmb stores its log), classes \code{"ar"},
 \code{"ma"} and \code{"cosy"} bound the natural coefficient of a residual
 structure, and class \code{"theta"} bounds an internal covariance
-parameter itself, one position at a time with \code{coef = "theta_2"},
-\code{"thetaac_1"} or \code{"thetar_1"}. Everything else is bounded on the
+parameter itself, one position at a time with \code{coef = "theta_2"} or
+\code{"thetar_1"} (or \code{"thetaac_1"} where no class reaches that
+parameter, see class \code{"theta"} above). Everything else is bounded on the
 internal (link) scale, so a bound on a log-linked dispersion is a
 bound on its logarithm.
 
@@ -340,14 +345,33 @@ parameter of the block at once, so no box in internal space is the
 box asked for, and \code{lb}/\code{ub} are refused rather than approximated.
 Little is lost, because the parameterization already guarantees
 stationarity and invertibility, which is what such a bound is usually
-for; where a hard box really is wanted, \code{class = "theta"} with
-\code{coef = "thetaac_1"} bounds one internal parameter.
+for, and brms's \code{cov = TRUE} form is of order one only. Under
+\code{cov = FALSE} the coefficients are unconstrained and are the internal
+parameters, so \code{lb}/\code{ub} apply at any order, as in brms. A bound at
+an end of the parameter's own interval, such as brms's \code{lb = -1} on a
+first-order \code{ar}, bounds nothing and is accepted, so a
+\code{\link[=default_prior]{default_prior()}} table can be passed back as \verb{prior =}.
 
 \code{cosy} is bounded below at \code{-1/(d - 1)} for \code{d} time points, where a
 compound-symmetric matrix stops being positive definite, and a bound
 outside that window is refused rather than clamped. brms bounds
 \code{cosy} on \verb{[0, 1]} instead, so a negative estimate here has no brms
-counterpart.
+counterpart. \code{frmtmb.sample::frm_sample()} samples \code{cosy} on brms's
+\verb{[0, 1]}: its default prior there is brms's flat one, and a \code{cosy}
+prior that sets no \code{lb} keeps \code{lb = 0}, as brms keeps the bound it
+declares. \code{default_prior(route = "sample")} lists that interval, and
+the default route lists frm()'s window.
+
+Under a first-order \code{cov = TRUE} \code{ar()}, \code{ma()} or \code{arma()}, frmtmb's
+\code{sigma} (in \code{summary()}, \code{sigma()} and \code{VarCorr()}) is the MARGINAL
+sd of a residual, and brms's \code{sigma} is the innovation sd, smaller by
+\code{c = sqrt(1 - ar^2)}, \code{1 / sqrt(1 + ma^2)} or
+\verb{sqrt((1 - ar^2) / (1 + ma^2 + 2 ar ma))}: the same model, another
+name. A density on class \code{"sigma"} is read as brms reads it, at
+\code{sigma * c}, with the Jacobian of \code{c}, so \code{set_prior("student_t(3, 0, 2.5)", class = "sigma")} is brms's prior on its sigma. A \code{lb} above 0
+or a \code{ub} on \code{sigma} is refused there, because a box on the
+innovation sd moves with \code{ar} and is no box on the marginal sd frmtmb
+holds.
 }
 
 \section{The LKJ prior}{
@@ -543,7 +567,7 @@ set_prior("", nlpar = "guess", lb = 0, ub = 1)
 set_prior("normal(0, 0.5)", class = "ar")
 set_prior("lkj(2)", class = "rescor")
 # and one internal covariance parameter, by its name
-set_prior("", class = "theta", coef = "thetaac_1", lb = -2, ub = 2)
+set_prior("", class = "theta", coef = "theta_2", lb = -2, ub = 2)
 
 # class "cor" addresses a correlated block as a whole, brms's
 # spelling; eta > 1 pulls the correlation toward zero

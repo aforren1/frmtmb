@@ -26,7 +26,7 @@ refuse_retired_priors <- function(dots, what) {
              "set_prior(\"\", nlpar = \"la\", lb = 0), which reaches the ",
              "same constrained transform. Every outer parameter has a ",
              "class, down to one internal covariance parameter ",
-             "(class = \"theta\", coef = \"thetaac_1\"). Left in `...` ",
+             "(class = \"theta\", coef = \"theta_1\"). Left in `...` ",
              "these would have gone to the sampler as unknown options and ",
              "the model would have sampled unbounded", call. = FALSE)
   }
@@ -669,7 +669,7 @@ mode_aligned_bounds <- function(obj, bounds, laplace, n) {
 #' other model is retaped as it always was.
 #'
 #' @noRd
-prior_augmented_obj <- function(fit, entries) {
+prior_augmented_obj <- function(fit, entries, chart = NULL) {
   nll <- build_objective(mo_sample_frame(fit))
   entries <- mo_sample_entries(entries, fit)
   nlp <- neg_log_prior_fn(entries)
@@ -684,8 +684,99 @@ prior_augmented_obj <- function(fit, entries) {
   } else {
     function(pars) nll(pars) + nlp(pars) + snlp(pars)
   }
-  RTMB::MakeADFun(fn, mo_sample_pars(fit, fit$estimates), random = random,
-                  map = fit$frame[["map"]], silent = TRUE)
+  RTMB::MakeADFun(chart_fn(fn, chart),
+                  chart_pars(mo_sample_pars(fit, fit$estimates), chart),
+                  random = random, map = fit$frame[["map"]], silent = TRUE)
+}
+
+#' The sampling objective read in the charts of core's
+#' `autocor_bound_chart()`: each bounded residual-correlation parameter
+#' is sampled as `v`, one logistic onto its natural interval, and handed
+#' to the model as the internal parameter, with `log |d internal / d v|`
+#' added to the density. Stan's log bound on the internal parameter,
+#' stacked on the term's own map, gave 5 or 6 divergent transitions per
+#' 4 chains of 2000 on a cosy near 0, where brms and this chart have
+#' none (dev/acprior-cosydiv.R).
+#'
+#' @noRd
+chart_fn <- function(fn, chart) {
+  if (!length(chart)) return(fn)
+  function(pars) {
+    "[<-" <- RTMB::ADoverload("[<-")
+    jac <- 0
+    for (tm in chart) {
+      v <- pars[[tm$comp]][tm$idx]
+      x <- pars[[tm$comp]]
+      x[tm$idx] <- tm$to_internal(v)
+      pars[[tm$comp]] <- x
+      jac <- jac + tm$logjac(v)
+    }
+    fn(pars) - jac
+  }
+}
+
+#' A parameter list moved into those charts, for the start.
+#'
+#' @noRd
+chart_pars <- function(pars, chart) {
+  for (tm in chart) {
+    pars[[tm$comp]][tm$idx] <- tm$from_internal(pars[[tm$comp]][tm$idx])
+  }
+  pars
+}
+
+#' A warning for each charted parameter whose ML estimate lies outside
+#' its sampled interval, so the chains cannot start at the mode. When
+#' the bound is the default's (cosy's 0, brms's declaration) the user
+#' asked for nothing, so the message says where the bound comes from and
+#' how to sample frm()'s whole window instead.
+#'
+#' @noRd
+chart_mode_warning <- function(fit, chart) {
+  if (!length(chart)) return(invisible(NULL))
+  ap <- autocor_flat_priors(fit)
+  multi <- length(fit$spec$responses) > 1L
+  th <- fit$estimates[["thetaac"]]
+  for (tm in chart) {
+    est <- tm$to_natural(th[tm$idx])
+    if (est > tm$L && est < tm$U) next
+    dflt <- ap$class == tm$class & ap$resp == tm$resp & !is.na(ap$lb) &
+      ap$lb == tm$L
+    rs <- if (multi) paste0(", resp = \"", tm$resp, "\"") else ""
+    if (any(dflt) && est <= tm$L) {
+      frm_warning("The ML estimate of ", tm$class, ", ",
+                  format(est, digits = 4), ", is below ", tm$L, ", the ",
+                  "lower bound brms declares for ", tm$class, ", which is ",
+                  "frm_sample()'s default there; every chain starts just ",
+                  "inside it. To sample the whole window frm() fits, write ",
+                  "set_prior(\"\", class = \"", tm$class, "\"", rs,
+                  ", lb = -1/", round(-1 / tm$image[1L]), ")",
+                  call. = FALSE)
+    } else {
+      frm_warning("The ML estimate of ", tm$class, ", ",
+                  format(est, digits = 4), ", is outside the requested ",
+                  "interval (", format(tm$L, digits = 6), ", ",
+                  format(tm$U, digits = 6), "); every chain starts just ",
+                  "inside it. The bounded posterior is not centered on the ",
+                  "unconstrained ML estimate", call. = FALSE)
+    }
+  }
+  invisible(NULL)
+}
+
+#' Draws moved back from the charts to the internal parameters, which
+#' everything after the sampler reads.
+#'
+#' @noRd
+chart_draws_back <- function(m, fit, chart, laplace) {
+  if (!length(chart)) return(m)
+  pidx <- draws_par_index(fit, laplace = laplace)
+  for (tm in chart) {
+    j <- pidx[[tm$comp]][tm$idx]
+    if (is.null(j) || is.na(j) || j > ncol(m)) next
+    m[, j] <- tm$to_internal(m[, j])
+  }
+  m
 }
 
 #' The densities the sampler adds outside the resolved entries: brms's
@@ -1069,7 +1160,7 @@ announce_ncp <- function(plan) {
 #' function, so no fitted object can acquire a non-centered tape.
 #'
 #' @noRd
-ncp_objective <- function(fit, idx, entries) {
+ncp_objective <- function(fit, idx, entries, chart = NULL) {
   frame <- mo_sample_frame(fit)
   frame[["ncp_blocks"]] <- idx
   nll <- build_objective(frame)
@@ -1090,7 +1181,9 @@ ncp_objective <- function(fit, idx, entries) {
   random <- c(if (!is.null(tpl[["b"]])) "b",
               if (!is.null(tpl[["miss"]])) "miss")
   if (!length(random)) random <- NULL
-  RTMB::MakeADFun(fn, mo_sample_pars(fit, ncp_start_pars(fit, idx)),
+  RTMB::MakeADFun(chart_fn(fn, chart),
+                  chart_pars(mo_sample_pars(fit, ncp_start_pars(fit, idx)),
+                             chart),
                   random = random, map = fit$frame[["map"]], silent = TRUE)
 }
 
@@ -1778,8 +1871,16 @@ default_priors_for <- function(fit) {
       set_prior(d, class = "Intercept", dpar = dp, resp = rs)
     } else {
       bd <- brms_natural_bounds(fit, rspec, cls, lp[["link"]])
-      natural_dpar_prior(d, dp, resp = rs, lb = bd[["lb"]],
-                         ub = bd[["ub"]])
+      p <- natural_dpar_prior(d, dp, resp = rs, lb = bd[["lb"]],
+                              ub = bd[["ub"]])
+      # brms's sigma under a first-order cov = TRUE ar(), ma() or arma()
+      # is the innovation sd, and core reads every density on class sigma
+      # there (autocor_innov()); the flag only marks the message line
+      if (identical(cls, "sigma") &&
+            lp[["resp"]] %in% autocor_innov_sd(fit)) {
+        p[[1L]]$innov_sd <- TRUE
+      }
+      p
     })
   }
   # an ordinal model's thresholds are brms's class "Intercept", with the
@@ -1836,17 +1937,24 @@ default_priors_for <- function(fit) {
     if (!length(fit$frame[["par_template"]][[comp]] %||% numeric(0))) next
     add(set_prior("lkj(1)", class = "lncor", resp = if (multi) r else ""))
   }
-  # brms's (flat) on a residual term's bounded parameter (sar()'s
-  # lagsar), between the bounds brms gives it: a uniform density on the
-  # natural parameter, which core carries to the internal one with the
-  # log-Jacobian of the term's map, so rho is flat on its interval and
-  # not on the logit scale the term parameterizes it on
-  ap <- frmtmb_autocor_pars(fit)
-  for (i in which(is.finite(ap$lower) & is.finite(ap$upper))) {
+  # brms's (flat) on a residual-correlation parameter frmtmb holds
+  # through a transform (a cov = TRUE ar or ma coefficient, cosy, sar()'s
+  # lagsar): a uniform density on the natural parameter over the whole
+  # image of the map, which core carries inward with the map's
+  # log-Jacobian, so rho is flat where it lives and not on the scale the
+  # term parameterizes it on, which for ar, ma and cosy was the default
+  # once: (1 - rho^2)^(-3/2) on a first-order rho, with its mass at the
+  # ends. cosy's lb = 0 is the bound brms declares inside its window
+  ap <- autocor_flat_priors(fit)
+  for (i in seq_len(nrow(ap))) {
     p <- set_prior(sprintf("uniform(%.17g, %.17g)", ap$lower[i],
-                           ap$upper[i]), class = ap$name[i],
-                   resp = if (multi) ap$resp[i] else "")
+                           ap$upper[i]), class = ap$class[i],
+                   resp = if (multi) ap$resp[i] else "", lb = ap$lb[i],
+                   ub = ap$ub[i])
     p[[1L]]$flat_interval <- TRUE
+    # a higher-order cov = TRUE ar or ma, which brms does not have: the
+    # uniform is on a box around the stationary region, not an interval
+    p[[1L]]$flat_region <- !ap$interval[i]
     add(p)
   }
   # and on an unstr() residual correlation, class cortime, per response
@@ -2066,6 +2174,44 @@ drop_superseded <- function(base, over) {
                                          class = "frmtmb_priorlist")
 }
 
+#' What a user's specification of a slot keeps from brms's default
+#' there, since brms keeps both. Every default with a bound keeps that
+#' bound on each side the specification leaves unset: brms declares
+#' `real<lower=1> nu`, `real<lower=0> sigma` under an identity link,
+#' `real<lower=0,upper=min_Y> ndt` and `real<lower=0,upper=1> cosy`,
+#' and a user prior changes the density, not the declaration. Through
+#' frmtmb.sample 0.22.0 a user prior dropped the bound: `normal(2, 2)`
+#' on nu put 3.6 percent of the draws below 1
+#' (dev/review-acprior-nu.R). A flat residual-correlation default
+#' (`flat_interval`) also lends a bounds-only specification its flat
+#' density: brms's `set_prior("", class = "ar", lb = 0)` is flat on
+#' `[0, 1]`, where without it the slot would be flat on frmtmb's
+#' internal parameter.
+#'
+#' @noRd
+keep_default_bounds <- function(user, defs) {
+  flat <- Filter(function(d) {
+    isTRUE(d$flat_interval) || !is.na(d$lb %||% NA) || !is.na(d$ub %||% NA)
+  }, unclass(defs))
+  if (!length(flat)) return(user)
+  tg <- vapply(flat, spec_target, "")
+  out <- lapply(unclass(user), function(s) {
+    d <- flat[match(spec_target(s), tg)]
+    if (!length(d) || is.null(d[[1L]])) return(s)
+    d <- d[[1L]]
+    if (is.na(s$lb %||% NA)) s$lb <- d$lb %||% NA
+    if (is.na(s$ub %||% NA)) s$ub <- d$ub %||% NA
+    if (is.null(s$dist) && isTRUE(d$flat_interval)) {
+      s$dist <- d$dist
+      s$prior <- d$prior
+      s$flat_interval <- TRUE
+      s$flat_region <- d$flat_region
+    }
+    s
+  })
+  structure(out, class = class(user))
+}
+
 
 #' One compact line per prior class, so the call discloses what it
 #' chose - and one line per slot it deliberately left flat, so a model
@@ -2087,6 +2233,15 @@ announce_default_priors <- function(pl, notes) {
       a <- vapply(a, function(v) format(v, digits = 6), "")
     }
     d <- paste0(kind, "(", paste(a, collapse = ", "), ")")
+    # a bound brms declares inside the density's interval (cosy's 0)
+    # narrows where the flat density is, so it is part of the default
+    if (isTRUE(s$flat_interval)) {
+      bd <- c(lb = s$lb %||% NA, ub = s$ub %||% NA)
+      bd <- bd[!is.na(bd)]
+      if (length(bd)) {
+        d <- paste0(d, ", ", paste0(names(bd), " = ", bd, collapse = ", "))
+      }
+    }
     # the spelling the default is WRITTEN with, which for a density on
     # a distributional parameter itself is that parameter's own class.
     # get_prior(route = "sample") lists that word and set_prior() takes
@@ -2109,8 +2264,12 @@ announce_default_priors <- function(pl, notes) {
     msg <- c(msg, sprintf("  %-18s %s%s", lab, d,
                           # a scalar xi's scale has a note of its own
                           if (identical(sp$class, "xi")) ""
+                          else if (isTRUE(s$flat_region))
+                            "  [flat on the stationary or invertible region]"
                           else if (isTRUE(s$flat_interval))
                             "  [flat on its interval, brms's (flat)]"
+                          else if (isTRUE(s$innov_sd))
+                            "  [on brms's innovation sd]"
                           else if (isTRUE(s$natural)) "  [natural scale]"
                           else if (s$class %in% c("sd", "sdgp"))
                             "  [natural sd scale]"
@@ -2256,6 +2415,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
   user_pl <- st$pl
   defs <- if (defaults) default_priors_for(fit)
   if (!is.null(defs) && !is.null(user_pl)) {
+    user_pl <- keep_default_bounds(user_pl, defs)
     defs <- drop_superseded(defs, user_pl)
   }
   eff <- if (is.null(defs)) user_pl else if (is.null(user_pl)) {
@@ -2516,6 +2676,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' | `Intercept` (ordinal thresholds) | `student_t(3, 0, 2.5)` | thresholds |
 #' | `sd` | `student_t(3, 0, s)` | natural sd, log-Jacobian applied |
 #' | `cor`, `rescor`, `lncor`, `cortime` | `lkj(1)` | correlation matrix |
+#' | `ar`, `ma` (`cov = TRUE`), `cosy`, `lagsar` | flat, see below | natural |
 #' | `simo`, `sbhaz` | `dirichlet(1)` | the simplex |
 #' | `theta` (mixture weights) | `dirichlet(1)` | the simplex |
 #' | `sigma` | `student_t(3, 0, s)` | natural |
@@ -2565,6 +2726,42 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' uniform is flat over exactly brms's interval. A scalar `xi` of
 #' [frmtmb::gen_extreme_value()] is sampled through brms's `tmp_xi` (see
 #' the message), and is above -1, where brms's range goes on.
+#'
+#' A residual-correlation coefficient that frmtmb holds through a
+#' transform gets brms's `(flat)` on the coefficient itself, written as
+#' a uniform density over the whole interval the transform maps onto and
+#' carried inward with its Jacobian: `uniform(-1, 1)` on a first-order
+#' `cov = TRUE` `ar` or `ma`, a uniform on frmtmb.spatial's `sar()`
+#' interval for `lagsar` and `errorsar`, and for `cosy` a uniform on its
+#' positive-definite window with `lb = 0`, which is brms's `[0, 1]`. A
+#' `cov = TRUE` term of order two or more, which brms does not have,
+#' takes a uniform on a box that holds its stationary (or invertible)
+#' region, which is flat on that region. A prior of your own on one of
+#' these classes keeps the default's bound on each side it leaves
+#' unset, and a bounds-only one keeps the flat density, as brms keeps
+#' both. The `cov = FALSE` coefficients are unconstrained and are the
+#' sampled parameters, so brms's flat needs no density there. A bounded
+#' one of these parameters is sampled through one logistic onto its
+#' interval, as Stan's bound is in brms.
+#'
+#' Under a first-order `cov = TRUE` `ar()`, `ma()` or `arma()`, the
+#' `sigma` that frmtmb reports (in `summary()`, `sigma()`, `VarCorr()`
+#' and these draws) is the MARGINAL sd of a residual, where brms's
+#' `sigma` is the innovation sd, smaller by the factor `sqrt(1 - ar^2)`,
+#' `1 / sqrt(1 + ma^2)` or `sqrt((1 - ar^2) / (1 + ma^2 + 2 ar ma))`; on
+#' an AR(1) of 0.9 that is 1.16 here against 0.43 in brms, for the same
+#' model. A prior on class `"sigma"`, the default `student_t(3, 0, s)` or
+#' one of your own, is read as brms reads it, on the innovation sd, with
+#' the Jacobian of the factor, here and in [frmtmb::frm()] alike, so a
+#' `default_prior(route = "sample")` table passed back as `prior =` is
+#' the default density. A `lb` above 0 or a `ub` on `sigma` there is
+#' refused: a box on the innovation sd is not a box on the marginal sd,
+#' which the sampler holds.
+#'
+#' Every default with a bound (`nu` above 1 on an identity link, `sigma`
+#' above 0 on one, `ndt` below the smallest response, `cosy` above 0)
+#' keeps that bound under a prior of your own on the same slot, on each
+#' side the prior leaves unset, as brms keeps the bound it declares.
 #'
 #' A mixture's weights without a formula are a simplex, and
 #' `dirichlet(1)` on it is the flat density there, with the Jacobian of
@@ -2998,6 +3195,18 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
     pr_lower <- ri$lower
     pr_upper <- ri$upper
   }
+  # a bounded residual-correlation parameter is sampled through one
+  # logistic onto its interval (chart_fn()), not through Stan's bound on
+  # the internal parameter, which the chart then replaces. Not under
+  # .diagnostic, which may sample fit$obj as it stands
+  chart <- if (!isTRUE(.diagnostic) && !is.null(ri)) {
+    autocor_bound_chart(fit, ri$lower, ri$upper)
+  }
+  if (length(chart)) {
+    cn <- vapply(chart, `[[`, "", "name")
+    pr_lower <- pr_lower[setdiff(names(pr_lower), cn)]
+    pr_upper <- pr_upper[setdiff(names(pr_upper), cn)]
+  }
   # set_prior()'s lb/ub is the only source of bounds: frm_sample() has
   # no lower/upper of its own, and every outer parameter Stan can
   # constrain has a class that addresses it
@@ -3047,9 +3256,10 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   # BARE likelihood, and adds the resolved entries once; fit$obj is
   # sampled untouched only when nothing has to be added to it
   if (length(ncp$idx)) {
-    obj <- ncp_objective(fit, ncp$idx, ri$entries %||% list())
-  } else if ((!is.null(ri) && length(ri$entries)) || isTRUE(rp$mix_theta)) {
-    obj <- prior_augmented_obj(fit, ri$entries %||% list())
+    obj <- ncp_objective(fit, ncp$idx, ri$entries %||% list(), chart)
+  } else if ((!is.null(ri) && length(ri$entries)) || isTRUE(rp$mix_theta) ||
+               length(chart)) {
+    obj <- prior_augmented_obj(fit, ri$entries %||% list(), chart)
   } else if (isTRUE(rp$flat) && !isTRUE(.diagnostic) && !is.null(own)) {
     # the opt-out has something to SUBTRACT here: a MAP fit's own prior
     # is part of fit$obj, and "flat" on the user-facing argument means
@@ -3105,6 +3315,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                   "pinned, use init = \"random\" or a tighter prior =",
                   call. = FALSE)
     }
+    chart_mode_warning(fit, chart)
     lpb <- obj$env$last.par.best
     rnd <- obj$env$random
     # under laplace tmbstan samples only the outer parameters, so the
@@ -3186,6 +3397,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   colnames(m) <- stan_names
   # first, while every column is still in the sampled coordinates the
   # objective reads
+  m <- chart_draws_back(m, fit, chart, laplace)
   if (gev_chart && !identical(obj, fit$obj)) {
     m <- gev_draws_to_xi(m, obj, fit, gev_terms, laplace)
   }

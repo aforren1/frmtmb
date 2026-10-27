@@ -253,7 +253,9 @@ higher-order AR/MA process). \code{\link[=hypothesis]{hypothesis()}} sees them u
 same names, \code{ar[1]} included, which brms's renaming lets an
 expression carry. \code{\link[=autocor_matrix]{autocor_matrix()}} returns
 the fitted \code{R}. They are NOT part of \code{\link[=VarCorr]{VarCorr()}}, which reports
-random-effect blocks. \code{set_prior()} cannot target them yet.
+random-effect blocks. \code{\link[=set_prior]{set_prior()}} targets them by brms's classes,
+\code{"ar"}, \code{"ma"}, \code{"cosy"} and \code{"cortime"}, one prior slot per
+parameter as in brms; see its section Residual correlation.
 }
 
 \section{Divergence from brms}{

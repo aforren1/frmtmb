@@ -283,7 +283,9 @@
 #' same names, `ar[1]` included, which brms's renaming lets an
 #' expression carry. [autocor_matrix()] returns
 #' the fitted `R`. They are NOT part of [VarCorr()], which reports
-#' random-effect blocks. `set_prior()` cannot target them yet.
+#' random-effect blocks. [set_prior()] targets them by brms's classes,
+#' `"ar"`, `"ma"`, `"cosy"` and `"cortime"`, one prior slot per
+#' parameter as in brms; see its section Residual correlation.
 #'
 #' @section Divergence from brms:
 #' brms parameterizes `ar()`, `ma()` and `arma()` by the INNOVATION

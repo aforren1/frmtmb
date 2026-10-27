@@ -54,12 +54,18 @@ the class/coef/dpar/group values to pass to \code{\link[=set_prior]{set_prior()}
 \code{"sd"} and \code{"cor"} are targeted by \code{group} and \code{nlpar}, and class
 \code{"sd"} lists a row per coefficient of each group, as brms does; the
 residual-correlation classes (\code{"ar"}, \code{"ma"}, \code{"cosy"}, \code{"cortime"})
-by \code{resp}; class \code{"rescor"} has one row and takes no \code{resp}; and
-class \code{"theta"} rows name the raw internal covariance parameters
-(escape hatch, including correlations one at a time, across all
-three covariance components). Where the location is several
-distributional parameters (a categorical or mixture model), each
-one's \code{b}, \code{Intercept} and \code{sd} rows carry its \code{dpar}, as in brms.
+by \code{resp}, with \code{lb} and \code{ub} where the parameter lives on an
+interval (brms's -1 and 1 on a first-order \code{cov = TRUE} \code{ar} or \code{ma};
+for \code{cosy}, frm()'s window \code{-1/(d - 1)} to 1 on the default route and
+brms's 0 to 1 on \code{route = "sample"}); class \code{"rescor"} has one row
+and takes no \code{resp}; and class \code{"theta"} rows name the raw internal
+covariance parameters (escape hatch, including correlations one at a
+time, across all three covariance components), except a
+residual-correlation parameter that one of those classes reaches,
+which has that class as its one row, as in brms. Where the location
+is several distributional parameters (a categorical or mixture
+model), each one's \code{b}, \code{Intercept} and \code{sd} rows carry its \code{dpar},
+as in brms.
 }
 \details{
 A nonlinear parameter's coefficients are listed under class \code{"b"}

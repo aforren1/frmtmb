@@ -129,7 +129,11 @@ constraint and nothing else. The \code{lower}/\code{upper} arguments of
 releases before 0.49 are gone rather than aliased, and a call still
 using them fails as an unused argument; every outer parameter they
 could reach has a \code{set_prior()} class, down to a single internal
-covariance parameter (\verb{class = "theta", coef = "thetaac_1"}). See
+covariance parameter (\verb{class = "theta", coef = "theta_1"}), except
+the internal parameters of a \code{cov = TRUE} \code{ar()} or \code{ma()} of order
+two or more, which take no box (brms has no such term), and a single
+correlation of an \code{unstr()} term, which class \code{"cortime"} reaches
+only as a whole matrix (as in brms, it takes no \code{lb}/\code{ub}). See
 \code{\link[=set_prior]{set_prior()}}'s Hard bounds section.
 
 \emph{The spelling is brms's; the SEMANTICS are not.} A prior here is a

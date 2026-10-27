@@ -318,8 +318,9 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
   give MAP estimation with the brms spelling, `nlpar =` and `resp =`
   included, and the same call carries hard bounds through `lb`/`ub`:
   the prior vocabulary is the only way to bound a parameter, and it
-  reaches every one of them, including the residual-correlation
-  classes `ar`, `ma`, `cosy`, `cortime` and `rescor`.
+  reaches every one that brms reaches, including the
+  residual-correlation classes `ar`, `ma`, `cosy`, `cortime` and
+  `rescor`.
   `frmtmb_control()` offers pluggable optimizers,
   `profile = TRUE` for many-coefficient models, `sparse_x = TRUE`
   for many-level fixed factors, `autoscale = TRUE` for badly scaled
