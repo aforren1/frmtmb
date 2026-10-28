@@ -26,7 +26,10 @@ test_that("a 1..4 mo() is drawn as brms's 3 simo_ weights", {
   # fitted range is refused, as brms's validate_newdata() refuses it
   e1 <- posterior_epred(ds, newdata = data.frame(k = 1:4))
   e2 <- posterior_epred(ds, newdata = data.frame(k = 2:4))
-  expect_identical(unname(e1[, 2:4]), unname(e2))
+  # not identical: the BLAS on the Linux runners sums a 4-row and a 3-row
+  # product in a different order, which moves the last bits (CI on
+  # 30d5f354, a 2-ulp difference at 4.6)
+  expect_equal(unname(e1[, 2:4]), unname(e2), tolerance = 1e-12)
   expect_error(posterior_epred(ds, newdata = data.frame(k = 0L)),
                "outside the fitted range 1..4")
   expect_error(posterior_predict(ds, newdata = data.frame(k = 5L)),
