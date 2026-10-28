@@ -54,14 +54,11 @@ brmsfit-methods:984	frmtmb	divergence	policy	variables(fit2) has brms's b_, sd_ 
 brmsfit-methods:91	frmtmb.sample	cannot transfer	stan	reads fit1$fit@sim$chains, the stanfit slot (D10); frmtmb.sample keeps it in x$stanfit
 brmsfit-methods:102	frmtmb.sample	cannot transfer	stan	reads fit1$fit@sim$chains, the stanfit slot (D10)
 brmsfit-methods:103	frmtmb.sample	cannot transfer	stan	reads fit1$fit@sim$chains, the stanfit slot (D10)
-brmsfit-methods:107	frmtmb.sample	cannot transfer	absent	as.mcmc(inc_warmup = TRUE): frm_sample() stores no warmup, a recorded gap (dev/brms-api-diff.md (c), 'Blocked, not small'), not a decision
+brmsfit-methods:107	frmtmb.sample	cannot transfer	stan	reads fit1$fit@sim$iter: in brms fit1$fit is the stanfit, here it is the frmtmb fit, which has no @sim. The warmup itself is stored now: dim(as.mcmc(fit1, inc_warmup = TRUE)[[1]]) is 75 x the variable count, brms's shape for the fixture's 1 chain of 75 with 50 warmup (dev/priordraws-findings.md, section 7)
 brmsfit-methods:627	frmtmb.sample	cannot transfer	brms-internal	posterior_average() exists now (lane postfit2); the setup line reaches brms:::SW and is not run
 brmsfit-methods:628	frmtmb.sample	cannot transfer	brms-internal	posterior_average() exists now (lane postfit2); reads the object of brmsfit-methods:627, whose setup is not run
 brmsfit-methods:641	frmtmb.sample	cannot transfer	stan	posterior_samples() on fit1$fit, the stanfit (D10)
-brmsfit-methods:794	frmtmb.sample	cannot transfer	stan	frmtmb.sample stores no prior draws, brms's sample_prior (D10)
-brmsfit-methods:797	frmtmb.sample	cannot transfer	stan	frmtmb.sample stores no prior draws (D10)
-brmsfit-methods:798	frmtmb.sample	cannot transfer	stan	frmtmb.sample stores no prior draws (D10)
-brmsfit-methods:802	frmtmb.sample	cannot transfer	stan	prior_draws() on fit1$fit, the stanfit, and no prior draws (D10)
+brmsfit-methods:802	frmtmb.sample	cannot transfer	stan	prior_draws() on fit1$fit: in brms the stanfit, here the frmtmb fit, which carries no draws. prior_draws(fit1) itself answers with brms's names and values (brmsfit-methods:794, 797 and 798 pass; dev/priordraws-findings.md, section 7)
 data-helpers:12	frmtmb	divergence	policy	brms refuses the integer codes of `fac`, a factor column of the data that no term of the model reads; frmtmb never checks such a column, since no value in it can change the prediction, and refuses this call for the new `visit` level set the line before
 data-helpers:22	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data() and brms's internal brmsterms()
 data-helpers:26	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data() and brms's internal brmsterms()

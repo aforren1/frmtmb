@@ -220,16 +220,10 @@ test_that("a prior table's rows take their slots, empty rows too", {
   expect_equal(nrow(as.data.frame(u0$prior)), 2L)
 })
 
-test_that("a named list merges by name and cannot mix with set_prior()", {
+test_that("update() refuses the named list frm() refuses", {
   dd <- merge_data()
   f0 <- frm(y ~ x + z, family = gaussian(), data = dd,
-            prior = list(beta = prior_normal(0, 0.05)))
-  u <- update(f0, prior = list(betad = prior_normal(0, 1)))
-  direct <- frm(y ~ x + z, family = gaussian(), data = dd,
-                prior = list(betad = prior_normal(0, 1),
-                             beta = prior_normal(0, 0.05)))
-  expect_identical(fixef(u), fixef(direct))
-  expect_error(update(f0, prior = set_prior("exponential(2)",
-                                            class = "sigma")),
-               "one spelling")
+            prior = set_prior("normal(0, 0.05)", class = "b"))
+  expect_error(update(f0, prior = list(betad = prior_normal(0, 1))),
+               "no longer takes it", class = "frmtmb_error")
 })

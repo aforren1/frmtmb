@@ -1564,9 +1564,11 @@ sim_autocor_rows <- function(ctx, ac) {
         rep(dp[["sigma"]], length.out = n),
       nu = if (isTRUE(ac[["student"]])) dp[["nu"]][1]))
   }
-  R <- autocor_cor(th[ac[["theta_idx"]]], ac)
+  tac <- th[ac[["theta_idx"]]]
+  R <- autocor_cor(tac, ac)
+  sg <- autocor_marg_sigma(rep(dp[["sigma"]], length.out = n), tac, ac)
   rep(dp[["mu"]], length.out = n) +
-    autocor_draw_resid(ac, R, rep(dp[["sigma"]], length.out = n), n,
+    autocor_draw_resid(ac, R, sg, n,
                        nu = if (isTRUE(ac[["student"]])) dp[["nu"]][1])
 }
 

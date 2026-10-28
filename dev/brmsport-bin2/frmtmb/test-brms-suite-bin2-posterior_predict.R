@@ -125,6 +125,136 @@ test_that("posterior_predict for aysm_laplace models runs without errors", {
   )
 })
 
+test_that("posterior_predict for multivariate linear models runs without errors", {
+  withr::local_seed(54L)
+  brms_setup("posterior_predict:55",
+    ns <- 10
+  )
+  brms_setup("posterior_predict:56",
+    nvars <- 3
+  )
+  brms_setup("posterior_predict:57",
+    ncols <- 4
+  )
+  brms_setup("posterior_predict:58",
+    nobs <- nvars * ncols
+  )
+  brms_setup("posterior_predict:59", {
+    Sigma = array(cov(matrix(rnorm(300), ncol = 3)), dim = c(3, 3, 10))
+  })
+  brms_setup("posterior_predict:60",
+    prep <- structure(list(ndraws = ns), class = "mvbrmsprep")
+  )
+  brms_setup("posterior_predict:61",
+    prep$mvpars <- list(
+      Mu = array(rnorm(ns*nobs*nvars), dim = c(ns, nobs, nvars)),
+      Sigma = aperm(Sigma, c(3, 1, 2))
+    )
+  )
+  brms_setup("posterior_predict:65",
+    prep$dpars <- list(nu = rgamma(ns, 5))
+  )
+  brms_setup("posterior_predict:66",
+    prep$data <- list(N = nobs, N_trait = ncols)
+  )
+  brms_setup("posterior_predict:68",
+    pred <- brms_adapt_posterior_predict("gaussian_mv", 1, prep = prep)
+  )
+  brms_port("posterior_predict:69", "pass",
+    paste0(
+      "pass through core's predict() joint draw ",
+      "(brms_adapt_mv_posterior_predict()), the route of every ",
+      "bin-2P row; it says nothing about frmtmb.sample's ",
+      "posterior_predict() of set_rescor(TRUE) draws, which draws ",
+      "the responses independently (dev/test-backlog.md, filed at ",
+      "the 0.77.0 release)"),
+    expect_equal(dim(pred), c(ns, nvars))
+  )
+  brms_setup("posterior_predict:71",
+    pred <- brms_adapt_posterior_predict("student_mv", 2, prep = prep)
+  )
+  brms_port("posterior_predict:72", "pass",
+    paste0(
+      "pass through core's predict() joint draw ",
+      "(brms_adapt_mv_posterior_predict()), the route of every ",
+      "bin-2P row; it says nothing about frmtmb.sample's ",
+      "posterior_predict() of set_rescor(TRUE) draws, which draws ",
+      "the responses independently (dev/test-backlog.md, filed at ",
+      "the 0.77.0 release)"),
+    expect_equal(dim(pred), c(ns, nvars))
+  )
+})
+
+test_that("posterior_predict for ARMA covariance models runs without errors", {
+  withr::local_seed(75L)
+  brms_setup("posterior_predict:76",
+    ns <- 20
+  )
+  brms_setup("posterior_predict:77",
+    nobs <- 15
+  )
+  brms_setup("posterior_predict:78",
+    prep <- structure(list(ndraws = ns), class = "brmsprep")
+  )
+  brms_setup("posterior_predict:79",
+    prep$dpars <- list(
+      mu = matrix(rnorm(ns*nobs), ncol = nobs),
+      sigma = rchisq(ns, 3),
+      nu = rgamma(ns, 5)
+    )
+  )
+  brms_setup("posterior_predict:84",
+    prep$ac <- list(ar = matrix(rbeta(ns, 0.5, 0.5), ncol = 1), ma = matrix(rnorm(ns, 
+        0.2, 1), ncol = 1), begin_tg = c(1, 5, 12), end_tg = c(4, 
+        11, 15), acframe = brms_adapt_acframe("arma"))
+  )
+  brms_setup("posterior_predict:89",
+    prep$data <- list()
+  )
+  brms_setup("posterior_predict:91",
+    prep$family$fun <- "gaussian_time"
+  )
+  brms_setup("posterior_predict:92",
+    pred <- brms_adapt_posterior_predict("gaussian_time", 1, prep = prep)
+  )
+  brms_port("posterior_predict:93", "pass",
+    paste0(
+      "pass on an adapted input: brms's rows, as written, exercise ",
+      "its known-standard-error covariance: the prep carries se ",
+      "and no acframe, so brms's get_cov_matrix_ac() builds ",
+      "sigma^2 I + diag(se^2) and ar and ma never enter. The port ",
+      "swaps that for the ARMA covariance: it drops se and adds an ",
+      "acframe naming arma. It has to, because brms 2.23.0 fits ",
+      "se() beside a cov = TRUE term (normal_time_hom_se_lpdf()) ",
+      "and frmtmb refuses that combination, a parity gap. brms's ",
+      "assertion (the dimensions) holds on the adapted prep, and ",
+      "for log_lik the value check against brms's own function on ",
+      "it holds too, with brms's sigma read as frmtmb's."),
+    expect_equal(length(pred), ns * 4)
+  )
+  brms_setup("posterior_predict:95",
+    prep$family$fun <- "student_time"
+  )
+  brms_setup("posterior_predict:96",
+    pred <- brms_adapt_posterior_predict("student_time", 2, prep = prep)
+  )
+  brms_port("posterior_predict:97", "pass",
+    paste0(
+      "pass on an adapted input: brms's rows, as written, exercise ",
+      "its known-standard-error covariance: the prep carries se ",
+      "and no acframe, so brms's get_cov_matrix_ac() builds ",
+      "sigma^2 I + diag(se^2) and ar and ma never enter. The port ",
+      "swaps that for the ARMA covariance: it drops se and adds an ",
+      "acframe naming arma. It has to, because brms 2.23.0 fits ",
+      "se() beside a cov = TRUE term (normal_time_hom_se_lpdf()) ",
+      "and frmtmb refuses that combination, a parity gap. brms's ",
+      "assertion (the dimensions) holds on the adapted prep, and ",
+      "for log_lik the value check against brms's own function on ",
+      "it holds too, with brms's sigma read as frmtmb's."),
+    expect_equal(length(pred), ns * 7)
+  )
+})
+
 test_that("loglik for SAR models runs without errors", {
   withr::local_seed(100L)
   brms_setup("posterior_predict:101", {

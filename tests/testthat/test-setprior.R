@@ -16,7 +16,10 @@ test_that("set_prior parses and combines", {
   expect_s3_class(pl, "frmtmb_priorlist")
   expect_length(unclass(pl), 3)
   expect_error(set_prior("bogus(1)"), "Unsupported prior")
-  expect_error(set_prior(""), "distribution, bounds, or both")
+  # "" alone is brms's (flat) on the slot: no density, no bound
+  fl <- unclass(set_prior(""))[[1L]]
+  expect_null(fl$dist)
+  expect_true(is.na(fl$lb) && is.na(fl$ub))
   expect_output(print(pl), "normal")
 })
 

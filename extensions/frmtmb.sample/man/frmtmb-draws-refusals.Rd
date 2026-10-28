@@ -5,7 +5,6 @@
 \alias{stancode.frmtmb_draws}
 \alias{standata.frmtmb_draws}
 \alias{expose_functions.frmtmb_draws}
-\alias{update.frmtmb_draws}
 \alias{restructure}
 \alias{restructure.frmtmb_draws}
 \title{Methods a ported brms script may call that frmtmb does not have}
@@ -15,8 +14,6 @@
 \method{standata}{frmtmb_draws}(object, ...)
 
 \method{expose_functions}{frmtmb_draws}(x, ...)
-
-\method{update}{frmtmb_draws}(object, ...)
 
 restructure(x, ...)
 

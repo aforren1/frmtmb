@@ -149,15 +149,22 @@ test_that("the row table is still an ordinary data frame to work with", {
   expect_match(utils::capture.output(print(sub))[1], "route = \"fit\"",
                fixed = TRUE)
 
-  # a COLUMN subset keeps the class but loses the attribute, because
-  # `[.data.frame` drops it. That is wanted rather than a `[` method
-  # that carries it through: a selection that has dropped the `prior`
-  # column has no route left to describe. This is also the only
-  # ordinary way to reach the print method's unlabeled branch.
+  # a COLUMN selection that keeps the `prior` column is still the
+  # route's table, so it keeps the label (`[.frmtmb_prior_rows`; through
+  # 0.77.0's merge `[.data.frame` dropped it there, and frmtmb.sample
+  # sampled (flat) in place of brms's defaults); one without it is a
+  # plain data frame
+  pc <- gp[, c("prior", "class", "coef")]
+  expect_s3_class(pc, "frmtmb_prior_rows")
+  expect_identical(attr(pc, "route"), "fit")
+  expect_identical(attr(subset(gp, class != "sd"), "route"), "fit")
   cols <- gp[, c("class", "coef")]
-  expect_s3_class(cols, "frmtmb_prior_rows")
+  expect_identical(class(cols), "data.frame")
   expect_null(attr(cols, "route"))
-  expect_false(grepl("route =", utils::capture.output(print(cols))[1],
+  # the print method's unlabeled branch: a table with no route
+  nl <- gp
+  attr(nl, "route") <- NULL
+  expect_false(grepl("route =", utils::capture.output(print(nl))[1],
                      fixed = TRUE))
 })
 

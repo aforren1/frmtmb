@@ -265,8 +265,9 @@ prior_entry_verdict <- function(s, zero, link, excess, route) {
         "bounds"
       } else "unknown")
     }
+    # brms's (flat), frmtmb.sample's prior = "flat", is order 0 at 0
     order <- switch(kind,
-      normal = , t = , logistic = , exponential = 0,
+      normal = , t = , logistic = , exponential = , flat = 0,
       uniform = if (isTRUE(d$lower > 0)) Inf else 0,
       gamma = d$shape - 1,
       beta = d$shape1 - 1,
@@ -285,7 +286,7 @@ prior_entry_verdict <- function(s, zero, link, excess, route) {
     if (!zero && isTRUE(is.finite(ub))) return("bounds")
     switch(kind,
       normal = "bounds",
-      t = "free",
+      t = , flat = "free",
       uniform = "bounds",
       # a density on (0, Inf) never reaches eta = -Inf
       exponential = , gamma = , inv_gamma = , lognormal = , beta =

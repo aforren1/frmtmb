@@ -2428,6 +2428,13 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
                                            categorical = NULL, ...) {
   method <- ce_method(method)
   band <- frm_match_arg(band)
+  # the predictive band is drawn at sigma's value, and a dpar display
+  # can be sigma itself
+  if (identical(method, "predict")) {
+    autocor_check_fit(x)
+  } else {
+    autocor_check_dpar(x, dpar)
+  }
   # prob becomes a normal quantile that RECYCLES along the grid, so a
   # length-2 prob drew a band whose coverage alternated point by point.
   # A length-2 resolution silently used only its first element.
@@ -2454,8 +2461,13 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   resp <- resp %||% names(x$spec$responses)[1L]
   rspec <- x$spec$responses[[resp]]
   ce_structure_check(rspec)
-  # a grid has no response for a cov = FALSE term to regress on; brms
-  # drops the term here too (incl_autocor = FALSE)
+  # brms drops every autocorrelation term here (incl_autocor = FALSE):
+  # a grid has no response for a cov = FALSE term to regress on, and a
+  # covariance term's rows are not the grid's. The cov = FALSE and
+  # registered terms leave the frame; a cov = TRUE ar(), ma(), arma(),
+  # cosy() or unstr() term stays in it, but the grid never reads it, so
+  # method = "predict" draws each grid point at the dpar sigma, which
+  # under ar(), ma() and arma() is the innovation sd, as brms draws it
   x <- autocor_cond_strip(x)
   # a per-category effect display is on the CATEGORIES, not the latent
   # scale; naming a dpar explicitly is the way back to the predictor

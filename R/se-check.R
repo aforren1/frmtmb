@@ -2201,7 +2201,10 @@ se_sd_scale <- function(fit, k) {
     if (!k %in% bk[["theta_idx"]]) next
     key <- bk[["components"]][[1L]]$lp_key
     lp <- fit$frame[["linpreds"]][[key]]
-    dp <- tryCatch(eval_dpars(fit, b = NULL)[[lp[["resp"]]]],
+    # the residual's own scale: under ar(cov = TRUE) sigma is the
+    # innovation sd, smaller than a residual's
+    rs <- lp[["resp"]]
+    dp <- tryCatch(autocor_marg_dpars(fit, rs, eval_dpars(fit, b = NULL)[[rs]]),
                    error = keep_missing(NULL))
     sg <- dp[["sigma"]]
     if (is.numeric(sg) && length(sg) && all(is.finite(sg))) {

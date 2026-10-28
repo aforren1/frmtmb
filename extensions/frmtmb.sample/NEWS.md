@@ -1,3 +1,229 @@
+# frmtmb.sample 0.24.0
+
+Needs frmtmb 0.77.0. That release reads brms's `(flat)` as a prior
+density and gives `build_objective()` its `prior_only` field. Its
+`sigma` is the innovation sd under the covariance form of `ar()`,
+`ma()` and `arma()`.
+
+## Breaking changes
+
+* Under the covariance form of `ar()`, `ma()` and `arma()`, the draws of
+  `sigma` are of the innovation sd, as brms's are. Before, they were of
+  the marginal sd. On an AR(1) with `ar` near 0.92, the posterior mean
+  of `sigma` was 1.154 against brms's 0.432. It is now 0.433.
+  `summary()`, `posterior_summary()`, `variables()` and the draws read
+  the same parameter as brms's.
+
+* The default `student_t(3, 0, s)` on `sigma` and a prior of your own
+  are densities on the innovation sd itself. A `lb` or `ub` on `sigma`
+  is taken, as in brms. Under `sigma ~ x`, the default and a prior of
+  your own on the intercept of `sigma` are read at the log innovation
+  sd, as brms's `Intercept_sigma`. With `normal(-1, 0.5)` there, the
+  posterior mean of `ar` was 7.95 Monte Carlo standard errors from
+  brms's and is now 0.55.
+
+* We compared the draws with brms's own (4 chains of 4000 on each side):
+  `ar()`, `ma()` and `arma()` under the defaults, `ar()` under user
+  priors, and `ar()` under `sigma ~ x`. Every posterior mean is within
+  1.8 Monte Carlo standard errors of brms's. Every sd ratio is within
+  0.969 to 1.037. The bulk effective sample size of `sigma` is 2.0, 0.94
+  and 1.2 times what it was under `ar()`, `ma()` and `arma()`.
+
+* `conditional_effects(method = "posterior_predict")` on draws draws its
+  band at the draws' `sigma`. Under these terms that is now the
+  innovation sd. brms does the same, because its `conditional_effects()`
+  drops every autocorrelation term. The band is narrower than before by
+  `sqrt(1 - ar^2)` for an AR(1).
+
+* Draws saved with frmtmb.sample 0.23.0 for a model with one of these
+  terms still report the old marginal sd as `sigma`. `summary()`,
+  `posterior_summary()`, `as.matrix()` and `variables()` show it. Their
+  `log_lik()`, `loo()` and `posterior_predict()` are refused. Sample
+  such a model again.
+
+* The message of the default priors no longer marks `sigma` with "on
+  brms's innovation sd": it is brms's sigma.
+
+* `prior = "flat"` is brms's `(flat)` in every slot: no density on the
+  parameter brms declares, inside the bounds brms declares. That is the
+  model brms fits with `""` in every row of its prior table; brms has no
+  opt-out of its priors. Until now the opt-out added no density at all,
+  which is flat on frmtmb's internal parameters: on a log standard
+  deviation, improper at `sd = 0`, and on a first-order correlation,
+  `(1 - rho^2)^(-3/2)`. A standard deviation, `sigma` and the other
+  positive distributional parameters are now flat on their own scale. A
+  correlation matrix (`cor`, `rescor`, `cortime`, `lncor`) is flat on
+  its Cholesky factor, and the ordered thresholds and `delta` are flat
+  on themselves. The defaults that are already flat on brms's parameter
+  stay: `ar`, `ma`, `cosy`, `lagsar`, and `dirichlet(1)` on a simplex, a
+  mixture's weights included. Against brms 2.23.0 with `""` in every
+  slot, 4 chains of 3000 draws each. On `y ~ 1 + (1 | g)` with 6 groups
+  the posterior mean of `sd_g__Intercept` is 1.458 in brms, 1.455 now
+  and was 1.197. On `y ~ x + (1 + x | g)` with 8 groups the
+  correlation's mean is -0.283 in brms, -0.265 now, and was -1.000 (sd
+  below 0.0001, 529 divergent transitions). On `ar(cov = TRUE)` with 6
+  series of 5 the mean of `ar[1]` is 0.481 in brms, 0.480 now and was
+  0.541. A random-effect block now non-centers under `prior = "flat"`,
+  since flat on the standard deviation closes the tail at `sd = 0`, and
+  `prior_summary()` lists the `(flat)` rows.
+
+* A bounds-only specification that replaces a default,
+  `set_prior("", class = "sd", lb = 0.1)`, is brms's `(flat)` on that
+  slot: flat on the standard deviation above 0.1, where it was flat on
+  its log. So is `set_prior("", class = ...)` with no bound, and a table
+  row with an empty prior: on `cor` it is flat on the Cholesky factor,
+  on the intercept no density. The `prior_summary()` of a
+  `prior = "flat"` run lists the intercepts as `(flat)` too. Passed back
+  as `prior =`, as the object or as its table through `as.brmsprior()`,
+  it gives the same density: log density and gradient to 1e-12 relative
+  at 40 points.
+
+* The named list of prior objects
+  (`prior = list(theta_1 = prior_normal(0, 1))`) is refused, as in
+  frmtmb. It took over the internal parameters it named after the class
+  priors. A name inside a correlation block removed the default `lkj(1)`
+  from the whole block: `list(theta_4 = prior_normal(0, 1))` on
+  `(1 + x + z | g)` left two correlations with no density. The draws'
+  `prior_summary()` no longer carries an `overrides` attribute.
+
+* frmtmb.spatial's `car()` dependence parameter is the one parameter
+  brms has a class for that is not yet brms's `(flat)`: brms declares it
+  on (0, 1) and leaves it flat. Here it carries no density, which is
+  flat on its logit and not integrable at 0. Under `prior = "flat"` such
+  a posterior is improper; give it a prior with class `"theta"` on the
+  coef `default_prior()` lists.
+
+* `prior =` refuses a `default_prior()` or `validate_prior()` table of
+  `route = "fit"`, the default route, edited, cut down to some rows or
+  columns, or not. It refuses a priorlist made from one with
+  `as.brmsprior()`, `+` or `c()` too. Its `(flat)` rows are `frm()`'s
+  defaults. Read as brms's `(flat)`, they replaced brms's defaults on
+  the intercept, sigma, the standard deviations and the correlations
+  without a word. The message points to `route = "sample"`, whose table
+  is brms's defaults, and to `prior = "flat"`. `as.data.frame()` drops a
+  table's route. So `as.brmsprior()` marks a data frame that holds
+  frmtmb's printed `(flat)`. The priorlist is refused where its `(flat)`
+  rows would replace one of brms's proper defaults. A `route = "sample"`
+  table never does that. A table built by hand in brms's spelling, with
+  `""` for `(flat)`, is read as written, and so is brms's own.
+
+* `delta`, the distance between equidistant ordinal thresholds, is flat
+  on `delta` by default, brms's `(flat)` with `lb = 0`. frmtmb holds
+  `log(delta)` for an ordered family, and the default was flat on that.
+
+* `prior_summary()` and the default-prior message print brms's `(flat)`
+  with `lb` and `ub` for `cosy`, for `lagsar` and for a first-order
+  `cov = TRUE` `ar` or `ma`. They printed `uniform(-1, 1)`. The density
+  is unchanged.
+
+* `set_prior(class = "theta")` on a standard deviation, a correlation or
+  `rescor` is refused, as in frmtmb (`?set_prior`). One such prior used
+  to retire the default `lkj(1)` on every correlation of its block.
+
+* **The evidence ratio of a point hypothesis is brms's.** `hypothesis()`
+  divides the kernel density of the posterior draws at the point by the
+  kernel density of the prior draws there, as brms's `evidence_ratio()`
+  does. It returns the prior draws of each hypothesis as
+  `prior_samples`. Without prior draws for every parameter a hypothesis
+  names, its `Evid.Ratio` is `NA` with no message, as in brms. Before,
+  the denominator was the prior density read off the prior
+  specification. So draws made without prior draws gave a number where
+  brms gives `NA`. And `sigma`, a standard deviation, a correlation, a
+  nonlinear function and the intercept were refused with a warning. brms
+  gives a ratio for all but the intercept. We compared with brms 2.23.0
+  on `y ~ x + (1 | g)` (4 chains of 6000 a side, seed 11). The ratios of
+  `x = 0`, `x = 0.2`, `sigma = 1` and `sd_g__Intercept = 0.5` are within
+  1.7 Monte Carlo standard errors of brms's.
+
+* `as_draws*(inc_warmup = TRUE)` and `as.mcmc(inc_warmup = TRUE)` return
+  the warmup instead of refusing, and `update()` of draws samples again
+  instead of refusing.
+
+## New features
+
+* `frm_sample()` samples a `mo()` term on two values, as brms 2.23.0
+  does (`Jmo = 1`). The draws report the weight `simo_<term>1[1]` as a
+  constant 1, as brms's do. On 200 rows, `y ~ mo(x) + z` with `x` in 1
+  and 2 agrees with brms's own Stan program (2 chains of 2000 each):
+  every posterior mean within 1.6 Monte Carlo standard errors, every
+  posterior sd within 3.3 percent.
+
+* `frm_sample()` refuses a `mo()` term on one value. That term is 0 on
+  every row, so its coefficient has an improper posterior under the
+  default flat prior. brms 2.23.0 cannot sample it either: its Stan
+  program rejects `Jmo = 0`.
+
+* `frm_sample(sample_prior = )` takes brms's `"no"` (the default),
+  `"yes"` and `"only"`, and `TRUE` and `FALSE`.
+  * `"yes"` adds draws from the priors to the draws, under brms's names,
+    as `brm(sample_prior = "yes")` does. That is one column per prior
+    statement of brms's Stan program for the model: `prior_b` for a
+    class-wide prior, `prior_b_x` for each coefficient of a vector with
+    a coefficient-specific prior, `prior_Intercept`, `prior_sigma`,
+    `prior_sd_g`, `prior_cor_g`, `prior_simo_mox1[k]`, and so on. A flat
+    prior has no column. A bounded parameter is drawn truncated to its
+    bounds. We checked 19 models. They cover population-level and
+    monotonic coefficients, intercepts of the location and of a
+    distributional parameter, nonlinear parameters, `sigma`, `nu`, `phi`
+    and `hu`. They also cover smooth standard deviations in two
+    predictors, group-level standard deviations, correlations, `rescor`
+    and `mo()` simplexes. And they cover mixture weights, ordinal
+    thresholds, `ar` of two responses, and multivariate and bounded
+    priors. On each, the names are brms 2.23.0's, in brms's order. Each
+    column is drawn directly from its prior, independent of the
+    likelihood, as brms draws it in generated quantities. On 39 columns
+    of 9 models the one-sample Kolmogorov-Smirnov p-value against the
+    exact (truncated) prior is between 0.125 and 0.986. Against brms's
+    own draws of two models (14 columns, 4000 draws a side), it is
+    between 0.033 and 0.962. An ordinal model with a threshold prior of
+    its own gets brms's `prior_Intercept__1`, `prior_Intercept__2`, ...,
+    one per threshold. A `gp()` term's `sdgp` and `lscale` get no prior
+    draws, and neither do brms's `meanme` and `sdme`, which frmtmb has
+    no prior slot for.
+  * `"only"` samples the prior of the whole model with the likelihood
+    left out, as brms does. So `posterior_predict()`, `pp_check()` and
+    `conditional_effects()` give the prior predictive distribution.
+    Every parameter needs a proper prior: a flat one is refused with
+    brms's message ("Sampling from priors is not possible as some
+    parameters have no proper priors. Error occurred for parameter
+    'b'."). Unlike brms, a vector with some coefficients flat is refused
+    too. So is a model with missing values of an `mi()` term, which have
+    no density without the likelihood. A `mi(sdy)` response keeps its
+    measurement density, as in brms. A model with `me()` terms is
+    refused, naming brms's classes `meanme` and `sdme`: brms needs
+    proper priors there, and frmtmb has no prior slot for them yet. We
+    checked `y ~ x + (1 | g)` with a `normal(0, 1)` prior on `b` (4
+    chains of 4000). We compared each mean and each 5, 50 and 95 percent
+    quantile of `b_Intercept`, `b_x`, `sigma`, `sd_g__Intercept`,
+    `r_g[1,Intercept]` and of a prior predictive draw. Each is within
+    3.0 Monte Carlo standard errors of brms's. At two more seeds every
+    quantile of `b_x`, `sigma` and `sd_g__Intercept` is within 1.3 of
+    the exact prior's (brms's: 2.4).
+
+* New `prior_draws()`, brms's, with brms's `variable` and its deprecated
+  `pars`; brms's deprecated `prior_samples()` reaches it while brms is
+  loaded. A name gets the prior column whose name is the longest match
+  at its start, in random order (`b_x` reads `prior_b`). The overall
+  intercept `b_Intercept` is left out with brms's warning.
+
+* The warmup iterations rstan saves (`save_warmup = TRUE`, the default
+  of rstan and of brms) stay in the draws' stanfit, as in a brmsfit.
+  `inc_warmup = TRUE` on `as_draws()`, `as_draws_array()`,
+  `as_draws_df()`, `as_draws_list()`, `as_draws_matrix()`,
+  `as_draws_rvars()`, `as.mcmc()`, `as.matrix()`, `as.array()`,
+  `as.data.frame()`, `rhat()` and `neff_ratio()` converts them to the
+  draws' variables. It puts them before each chain's draws, as brms
+  does. `as.mcmc()` refuses it with `combine_chains = TRUE` and on
+  thinned draws, with brms's messages, and every accessor refuses a
+  warmup that no longer fits the draws. Every other method reads the
+  post-warmup draws alone, as before.
+
+* `update()` of draws samples the same model again with changed
+  arguments of `frm_sample()`, as brms's `update()` does for
+  `sample_prior`, `prior` and the sampler's options:
+  `update(ds, sample_prior = "yes")` adds prior draws. A new formula or
+  new data is refused, as before.
+
 # frmtmb.sample 0.23.0
 
 Needs frmtmb 0.76.0, which exports `autocor_flat_priors()`,

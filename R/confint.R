@@ -540,6 +540,7 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   method <- frm_match_arg(method)
   if (method == "Wald") method <- "wald"
   mo_check_fit(object)
+  autocor_check_fit(object)
   # The dots are forwarded on three of the four methods and swallowed on
   # the fourth, so they are checked against whatever THIS method really
   # passes them to. Before this, confint(method = "wald", re_formula =)
@@ -2523,9 +2524,7 @@ update_pool_pars <- function(out, old, new) {
 #' [default_prior()] with one row edited resets every other slot it
 #' lists. To keep the stored rows, give only the rows you change.
 #' `prior = NULL`, or a prior with no rows, keeps the stored prior, as
-#' in brms. A named list of prior objects merges by name with a stored
-#' named list; it cannot merge with specifications, so that combination
-#' is an error.
+#' in brms.
 #' The specifications given to `update()` are checked as [frm()] checks
 #' a prior, so one that matches no parameter is an error; brms drops it
 #' with no message.
@@ -2855,20 +2854,7 @@ update_merge_prior <- function(old, new) {
                      update_strict = c(rep(TRUE, length(new)),
                                        rep(FALSE, sum(keep)))))
   }
-  if (is_named_prior_list(old) && is_named_prior_list(new)) {
-    return(c(new, old[!names(old) %in% names(new)]))
-  }
-  # anything else is not a prior frm() takes, and frm() says so in its
-  # own words
-  if (!is.null(new) && !is_named_prior_list(new) &&
-        !inherits(new, "frmtmb_priorlist")) {
-    return(new)
-  }
-  frm_stop("update(prior = ) merges the new prior into the stored one, ",
-           "but one of them is a named list of prior objects and the ",
-           "other is prior specifications (set_prior() or a prior ",
-           "table), and one prior cannot mix the two. Give the whole ",
-           "prior in one spelling with frm()", call. = FALSE)
+  new
 }
 
 #' The slot of every row of a prior table, `prior_spec_slot()`'s key,
@@ -2890,15 +2876,6 @@ prior_table_slots <- function(x) {
                          group = cell("group", i), resp = cell("resp", i),
                          dpar = cell("dpar", i), nlpar = cell("nlpar", i)))
   }, "")
-}
-
-#' A prior in the legacy spelling, `list(x = prior_normal(0, 1))`.
-#'
-#' @noRd
-is_named_prior_list <- function(x) {
-  is.list(x) && !inherits(x, "frmtmb_priorlist") && length(x) > 0L &&
-    !is.null(names(x)) && all(nzchar(names(x))) &&
-    all(vapply(x, inherits, NA, "frmtmb_prior"))
 }
 
 #' Likelihood profiles
@@ -4118,6 +4095,11 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
                                   method = c("wald", "profile", "boot"),
                                   nsim = 500, vcov = NULL, ...) {
   require_fit_packages(x)
+  # a hypothesis on sigma or its coefficients reads the parameter whose
+  # meaning changed; one on the mean does not
+  if (any(grepl("sigma", c(hypothesis, class), fixed = TRUE))) {
+    autocor_check_fit(x)
+  }
   method <- frm_match_arg(method)
   hyp_refuse_draws_args(scope, robust, "hypothesis()")
   check_probability(alpha, "alpha")
@@ -4369,26 +4351,28 @@ print.frmtmb_hypothesis <- function(x, digits = 2, ...) {
 #'
 #' @section Prior draws:
 #' brms overlays the density of the prior draws of each hypothesis
-#' unless `ignore_prior = TRUE`. A maximum-likelihood fit has no prior,
-#' and `frmtmb.sample` does not draw from the prior, so
-#' `prior_samples` is all `NA` and there is nothing to overlay. brms
-#' draws the posterior alone in that case too, so `ignore_prior` is
-#' accepted and changes nothing.
+#' unless `ignore_prior = TRUE`, and so does this method, as a line in
+#' the second of `colors`. A hypothesis of draws made by
+#' `frmtmb.sample::frm_sample(sample_prior = "yes")` carries prior draws
+#' wherever every parameter it names has them. A maximum-likelihood fit
+#' has no prior, and draws made without prior draws have none, so their
+#' `prior_samples` is all `NA` and only the posterior is drawn, as brms
+#' does in that case.
 #'
 #' @param x A `frmtmb_hypothesis` object, or one `frmtmb_hyp_plot` for
 #'   the print and plot methods of a plot object.
 #' @param nvariables The number of hypotheses per page.
 #' @param N brms's older name for `nvariables`. When set, it replaces
 #'   `nvariables` with brms's deprecation warning.
-#' @param ignore_prior Accepted for brms compatibility; see the section
-#'   on prior draws.
+#' @param ignore_prior If `TRUE`, leave out the density of the prior
+#'   draws; see the section on prior draws.
 #' @param chars The number of characters of a hypothesis kept in its
 #'   panel title. A longer one is cut and ends in `"..."` before its
 #'   last four characters, as in brms. `NULL` keeps all of it.
 #' @param colors Two colors, as in brms. The first fills the histogram
-#'   of the draws. The second is brms's color for the prior density,
-#'   which has nothing to draw here (see the section on prior draws).
-#'   The default fills with light gray.
+#'   of the draws. The second draws the density of the prior draws,
+#'   where there are any (see the section on prior draws). The default
+#'   fills with light gray and draws the prior in a darker gray.
 #' @param theme brms's ggplot2 theme. `NULL` (the default) changes
 #'   nothing. A ggplot2 theme object is not applied, and a warning says
 #'   so. Anything else is an error, as in brms.
@@ -4447,7 +4431,8 @@ plot.frmtmb_hypothesis <- function(x, nvariables = 5, N = NULL,
   n <- nrow(x$hypothesis)
   pages <- split(seq_len(n), ceiling(seq_len(n) / nvariables))
   plots <- lapply(unname(pages), function(i) {
-    structure(list(hyp = x, rows = i, chars = chars, colors = colors),
+    structure(list(hyp = x, rows = i, chars = chars, colors = colors,
+                   ignore_prior = ignore_prior),
               class = "frmtmb_hyp_plot")
   })
   if (plot) {
@@ -4526,6 +4511,14 @@ hyp_draw_page <- function(p) {
                      col = p[["colors"]][1L], border = "gray60")
       if (length(unique(d)) > 1L) {
         graphics::lines(stats::density(d), lwd = 2)
+      }
+      # brms overlays the prior draws' density where there are any
+      pd <- if (!isTRUE(p[["ignore_prior"]])) x$prior_samples[[i]]
+      pd <- suppressWarnings(as.numeric(pd))
+      pd <- pd[is.finite(pd)]
+      if (length(unique(pd)) > 1L) {
+        graphics::lines(stats::density(pd), lwd = 2,
+                        col = p[["colors"]][2L])
       }
       mark(i)
     } else if (method == "profile") {

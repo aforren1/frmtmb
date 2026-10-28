@@ -31,10 +31,11 @@ translates one, and a table from \code{\link[=default_prior]{default_prior()}} o
 \code{\link[=validate_prior]{validate_prior()}} is read as written.
 
 A row whose \code{prior} is empty or \code{"(flat)"} and that carries no bound
-applies nothing, and is left out: it is the flat default a
-\code{\link[=default_prior]{default_prior()}} table lists for a slot nobody has set. So is a row
-whose \code{source} is \code{"(vectorized)"}, which repeats the density of the
-class row above it.
+is brms's \code{(flat)} on its slot, \code{set_prior("", ...)}: \code{\link[=frm]{frm()}} applies
+nothing there, and \code{frmtmb.sample::frm_sample()} reads it as \code{(flat)}
+in place of its default, as brms does. A row whose \code{source} is
+\code{"(vectorized)"}, which repeats the density of the class row above
+it, is left out.
 }
 \examples{
 as.brmsprior(data.frame(prior = "normal(0,1)", coef = c("a", "b")))

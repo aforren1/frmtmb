@@ -29,10 +29,19 @@
 #' @section The objective seam:
 #' `build_objective(frame)` returns the bare negative log-likelihood
 #' closure of an assembled frame, ready for `RTMB::MakeADFun()`. It
-#' honors two fields a caller may set on a COPY of the frame:
-#' `frame$map`, and `frame$ncp_blocks`, the indices of the
+#' honors three fields a caller may set on a COPY of the frame:
+#' `frame$map`; `frame$ncp_blocks`, the indices of the
 #' random-effect blocks to build in their non-centered form
-#' (`b = L(theta) z`). A prior-augmented objective is this closure plus
+#' (`b = L(theta) z`); and `frame$prior_only`. With `prior_only = TRUE`
+#' the closure leaves out every response density and keeps the rest:
+#' the densities of the random-effect blocks, of the `me()` latent
+#' values and their measurements, and the measurement density of a
+#' `mi(sdy)` response, observed values around their latent ones. A
+#' missing value of an `mi()` term has no density left, as in brms.
+#' These are the terms brms keeps outside
+#' `if (!prior_only)` under `brm(sample_prior = "only")`, so this closure
+#' plus `neg_log_prior_fn()`'s is the prior of the whole model. A
+#' prior-augmented objective is this closure plus
 #' `neg_log_prior_fn()`'s.
 #'
 #' `row_lpdf(fam, y, yobs, dpars, aterms, extra)` is the per-row
@@ -125,10 +134,12 @@
 #' the softmax (`chart = "softmax"`, log ratios to the first weight).
 #' `mo_chart_frame(frame, chart)` is a copy of the frame whose objective
 #' reads every simplex in `chart`, and `mo_frame_terms(fit)` lists each
-#' term's simplex component, its size and brms's names for its weights,
-#' `simo_<label>1[k]`; `simplex_frame_terms(fit)` adds each simplex a
-#' family declares (`frmtmb_family(simplex_pars =)`) under its brms name,
-#' `sbhaz[k]` for frmtmb.survival's `cox()` baseline, with `kind` the
+#' term's simplex component, its size `D` (0 for one category, 1 for two,
+#' a weight fixed at 1), brms's names for its weights,
+#' `simo_<label>1[k]`, and the label; `simplex_frame_terms(fit)` adds
+#' each simplex a family declares (`frmtmb_family(simplex_pars =)`)
+#' under its brms name, `sbhaz[k]` for frmtmb.survival's `cox()` baseline,
+#' with `kind` the
 #' family's name; the chart frame reads those the same way.
 #' `summary_mo_frame(fit, prob)` is the weights'
 #' table `summary()` prints: each weight with its delta-method standard
@@ -195,10 +206,7 @@
 #' `autocor_bound_chart(fit, lower, upper)` gives, for each bounded
 #' first-order residual-correlation parameter, a chart that samples it
 #' through one logistic onto its natural interval, with the map to the
-#' internal parameter and its log Jacobian. `autocor_innov_sd(fit)`
-#' names the responses whose `sigma` brms reads as the innovation sd of
-#' a first-order `cov = TRUE` `ar()`, `ma()` or `arma()`, where the
-#' default prior on `sigma` is read on that sd.
+#' internal parameter and its log Jacobian.
 #'
 #' `frmtmb_register_prior_defaults()` is the other direction: it lets a
 #' package tell [get_prior()] what defaults it would apply.
@@ -535,7 +543,6 @@
 #' @aliases rescor_row_loglik
 #' @aliases autocor_flat_priors
 #' @aliases autocor_bound_chart
-#' @aliases autocor_innov_sd
 #' @aliases autocor_row_loglik
 #' @aliases arma_cond_resp
 #' @aliases arma_cond_dpars
@@ -599,7 +606,6 @@
 #'   rescor_row_loglik,
 #'   autocor_flat_priors,
 #'   autocor_bound_chart,
-#'   autocor_innov_sd,
 #'   autocor_row_loglik,
 #'   arma_cond_resp, arma_cond_dpars, arma_cond_fill_dpars,
 #'   arma_cond_fill_epred, response_codes_newdata, subset_resp_check,
@@ -711,7 +717,17 @@ registered_prior_defaults <- function(spec, frame) {
                           s$resp %||% "")
       # a default written for one coefficient is that coefficient's row
       if (nzchar(s$coef %||% "")) k <- paste0(k, "|", s$coef)
-      out[[k]] <- format_prior_dist(s$dist)
+      # a default that is flat on the parameter's interval is brms's
+      # (flat) with that interval in lb and ub, as brms prints it; the
+      # table's lb/ub columns carry the interval (autocor_class_bounds()),
+      # and the row passed back as prior = lends the slot the same
+      # density. A flat density on a box around a stationary region,
+      # which brms has no term for, keeps its uniform
+      out[[k]] <- if (isTRUE(s$flat_interval) && !isTRUE(s$flat_region)) {
+        "(flat)"
+      } else {
+        format_prior_dist(s$dist)
+      }
     }
   }
   out
@@ -722,6 +738,7 @@ registered_prior_defaults <- function(spec, frame) {
 #' @noRd
 format_prior_dist <- function(d) {
   if (is.null(d)) return(NA_character_)
+  if (identical(d$kind, "flat")) return("(flat)")
   kind <- if (identical(d$kind, "t")) "student_t" else d$kind
   paste0(kind, "(", paste(unlist(d[-1L]), collapse = ", "), ")")
 }

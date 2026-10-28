@@ -56,7 +56,7 @@ brmsfit-methods:96	frmtmb.sample	pass
 brmsfit-methods:102	frmtmb.sample	cannot transfer	reads fit1$fit@sim$chains, the stanfit slot (D10)
 brmsfit-methods:103	frmtmb.sample	cannot transfer	reads fit1$fit@sim$chains, the stanfit slot (D10)
 brmsfit-methods:105	frmtmb.sample	pass	
-brmsfit-methods:107	frmtmb.sample	cannot transfer	as.mcmc(inc_warmup = TRUE): frm_sample() stores no warmup, a recorded gap (dev/brms-api-diff.md (c), 'Blocked, not small'), not a decision
+brmsfit-methods:107	frmtmb.sample	cannot transfer	reads fit1$fit@sim$iter: in brms fit1$fit is the stanfit, here it is the frmtmb fit, which has no @sim. The warmup itself is stored now: dim(as.mcmc(fit1, inc_warmup = TRUE)[[1]]) is 75 x the variable count, brms's shape for the fixture's 1 chain of 75 with 50 warmup (dev/priordraws-findings.md, section 7)
 brmsfit-methods:112	frmtmb	pass	
 brmsfit-methods:113	frmtmb	pass	
 brmsfit-methods:151	frmtmb	pass	
@@ -201,10 +201,10 @@ brmsfit-methods:772	frmtmb	pass
 brmsfit-methods:775	frmtmb	pass	
 brmsfit-methods:779	frmtmb.sample	pass	
 brmsfit-methods:784	frmtmb	pass	
-brmsfit-methods:794	frmtmb.sample	cannot transfer	frmtmb.sample stores no prior draws, brms's sample_prior (D10)
-brmsfit-methods:797	frmtmb.sample	cannot transfer	frmtmb.sample stores no prior draws (D10)
-brmsfit-methods:798	frmtmb.sample	cannot transfer	frmtmb.sample stores no prior draws (D10)
-brmsfit-methods:802	frmtmb.sample	cannot transfer	prior_draws() on fit1$fit, the stanfit, and no prior draws (D10)
+brmsfit-methods:794	frmtmb.sample	pass	
+brmsfit-methods:797	frmtmb.sample	pass	
+brmsfit-methods:798	frmtmb.sample	pass	
+brmsfit-methods:802	frmtmb.sample	cannot transfer	prior_draws() on fit1$fit: in brms the stanfit, here the frmtmb fit, which carries no draws. prior_draws(fit1) itself answers with brms's names and values (brmsfit-methods:794, 797 and 798 pass; dev/priordraws-findings.md, section 7)
 brmsfit-methods:806	frmtmb	divergence	prior_summary(fit) is frmtmb's prior table, not a brmsprior brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:811	frmtmb	divergence	ranef() returns the conditional modes, levels x coefficients, without brms's Est.Error and quantile layer; ranef(condVar =) is the recorded fit-side analog (dev/brms-api-diff.md (b))
 brmsfit-methods:814	frmtmb	divergence	ranef(pars = 'Trt1') answers now and keeps the Trt1 column of visit; the value is levels x coefficients, the policy of brmsfit-methods:811 (dev/brms-api-diff.md (b)), so dimnames() has no third element to read
@@ -228,7 +228,7 @@ brmsfit-methods:901	frmtmb	divergence	summary(robust = TRUE) is refused (D3's re
 brmsfit-methods:904	frmtmb	pass	
 brmsfit-methods:914	frmtmb	divergence	update() returns a frmtmb_fit, not a brmsfit ; the update itself succeeded brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:923	frmtmb	divergence	update(newdata =) returns a frmtmb_fit ; save_pars() was dropped by the shim (D10) brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
-brmsfit-methods:924	frmtmb	divergence	update(newdata =) refits with Exp = 4 on every row; mo() codes from the minimum as brms 2.23.0 does, so mo(Exp) has one category and frm() refuses it. brms builds the model only under testmode, which never samples: Stan rejects Jmo = 0 (dev/mocode-brms-const.R)
+brmsfit-methods:924	frmtmb	pass	
 brmsfit-methods:927	frmtmb	divergence	update(fit, data = new_data) refits on the new data, as stats::update(), lme4 and glmmTMB read it; brms refuses the spelling and asks for newdata, which frmtmb also takes. Refusing a spelling that means one thing would only break the lme4 idiom (lane wt-defects)
 brmsfit-methods:931	frmtmb	divergence	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:933	frmtmb	divergence	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
@@ -474,7 +474,7 @@ families:118	frmtmb	cannot transfer	xbeta() exists now (lane fams2); the row pri
 families:118	frmtmb.sample	cannot transfer	xbeta() exists now (lane fams2); the row prints $prior, brms's Stan prior string (families:117)
 families:122	frmtmb	cannot transfer	xbeta() exists now (lane fams2); the row reads $include, the Stan file brms's family includes
 families:122	frmtmb.sample	cannot transfer	xbeta() exists now (lane fams2); the row reads $include, the Stan file brms's family includes
-priors:5	frmtmb	divergence	frmtmb lists 5 class theta rows (its covariance parameters) and no per-coefficient sd rows, since its class sd addresses a block and refuses coef (priorform ledger P1)
+priors:5	frmtmb	pass	
 priors:14	frmtmb	pass	
 priors:27	frmtmb	divergence	expect_is(bprior, 'brmsprior'): the object is a frmtmb_priorlist; brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 priors:28	frmtmb	pass	
@@ -499,7 +499,7 @@ priors:107	frmtmb	pass
 priors:109	frmtmb	pass	
 priors:111	frmtmb	pass	
 priors:122	frmtmb	pass	
-priors:123	frmtmb	divergence	10 rows against brms's 9: two class theta rows added, one per-coefficient sd row absent (priorform ledger P26)
+priors:123	frmtmb	pass	
 priors:136	frmtmb	pass	
 priors:137	frmtmb	pass	
 priors:138	frmtmb	pass	

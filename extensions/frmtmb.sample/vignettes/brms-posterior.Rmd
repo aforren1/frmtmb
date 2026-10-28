@@ -49,7 +49,7 @@ frm_sample(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
 | `brm(formula, data, family)` | `frm_sample(formula, data =, family =)`, or `frm_sample(fit)` on a fitted model |
 | `chains`, `iter`, `warmup`, `thin`, `cores`, `seed`, `refresh` | the same names, passed straight through to `tmbstan::tmbstan()` |
 | `prior = prior(...)` | `prior = set_prior(...)`; a `brmsprior` that brms itself built is translated row by row |
-| the default prior set | applied on both routes, read off `brms::default_prior()`; `prior = "flat"` opts out |
+| the default prior set | applied on both routes, read off `brms::default_prior()`; `prior = "flat"` is brms's `(flat)` in every slot |
 | `init =`, `init_r =` | `init =`, `init_jitter =`; from a fit the maximum-likelihood mode anchors the chains |
 | `control = list(adapt_delta = )` | the same name and the same meaning, passed to rstan through `tmbstan::tmbstan()` |
 | `backend =`, `threads =`, `stan_model_args =` | nothing to configure: there is no Stan program to compile |

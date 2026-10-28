@@ -112,6 +112,129 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 # conditional on the estimated random-effect modes (the glmmTMB/lmer
 # convention for delta-method slopes).
 
+#' marginaleffects on frmtmb fits
+#'
+#' frmtmb registers the methods that marginaleffects needs:
+#' `get_coef()`, `set_coef()`, `get_vcov()` and `get_predict()`. So
+#' `predictions()`, `comparisons()`, `slopes()`, `hypotheses()` and
+#' their `avg_` forms work on a `frmtmb_fit`. The standard errors come
+#' from the delta method, which marginaleffects applies with a
+#' numerical Jacobian.
+#'
+#' @section The parameters marginaleffects perturbs:
+#' `get_coef()` gives every estimated coefficient, then the parameters
+#' that a prediction reads outside them: the thresholds and `cs()`
+#' coefficients of an ordinal model, and the free coordinates of each
+#' `mo()` simplex. If a `mo()` term has a category that no row is in,
+#' the data do not determine its simplex. Then `get_coef()` gives the
+#' cumulative weights at the categories that rows are in
+#' (`zeta<j>_cum<c>`), which the data determine. A prediction at an
+#' empty category gets a standard error of `NaN`, with one warning per
+#' fit, as `fitted()` gives it. The other standard errors stay finite.
+#' A `mo()` term on one value is 0 on every row, so no prediction reads
+#' its coefficient, and that coefficient gets a variance of 0 in
+#' `get_vcov()`.
+#'
+#' A prediction that keeps the group-level effects is conditional on
+#' their estimated modes, as for lme4 and glmmTMB fits.
+#'
+#' @section The vcov argument:
+#' marginaleffects passes its `vcov` argument to `get_vcov()`:
+#' \describe{
+#'   \item{`TRUE` or `NULL`}{The model-based covariance (the default).}
+#'   \item{`FALSE`}{No standard errors.}
+#'   \item{A matrix}{A covariance over `get_coef()`, matched by its
+#'     names. An unnamed matrix is read in the order of `get_coef()`,
+#'     with marginaleffects' warning. A matrix over the whole outer
+#'     parameter vector, as `vcov(fit, full = TRUE)` and
+#'     `vcov_cluster(full = TRUE)` give it, is cut down to the rows of
+#'     `get_coef()`. A REML fit has no fixed effects in that vector, so
+#'     such a matrix is refused there. If the matrix has no finite
+#'     value in a row of `get_coef()`, as `vcov(fit, full = TRUE)` has
+#'     for a parameter the fit does not determine, a warning names the
+#'     row: every standard error is then `NaN`.}
+#'   \item{A function}{A function of the fit that returns one of these
+#'     matrices.}
+#'   \item{`"HC0"`}{The sandwich with each row as its own cluster
+#'     (`vcov_cluster(type = "CR0")`).}
+#'   \item{`"HC1"` or `"stata"`}{HC0 times `n / (n - k)`, as for
+#'     `lm()`, with `k` the number of population-level coefficients
+#'     (those of every linear predictor but the distributional
+#'     parameters') plus the steps of each `mo()` simplex that the data
+#'     determine; a `mo()` term on one value counts nothing, as `lm()`
+#'     does not count a column it aliases. So `k` is the column count of
+#'     `lm()` on `factor()` of the `mo()` variable. marginaleffects maps
+#'     `"stata"` to HC1 for `lm()`.}
+#'   \item{A one-sided formula, `~ g`}{The cluster sandwich over `g`,
+#'     `vcov_cluster(type = "CR1")`, with the factor `G / (G - 1)`.}
+#' }
+#' The bread of these sandwiches is the inverse of the observed
+#' information. `sandwich::vcovHC()` and `vcovCL()` use the expected
+#' information of a glm. The two are equal for a gaussian model and for
+#' a glm with its canonical link, so there `"HC0"` equals
+#' `vcovHC(type = "HC0")`, and `~ g` equals `vcovCL()` for a glm (for
+#' `lm()`, `vcovCL()` also multiplies by `(n - 1) / (n - k)`). For
+#' another link they differ: on 300 rows of a `Gamma(link = "log")`
+#' model, the standard error of the slope is 1.128 times
+#' `vcovHC()`'s. The sandwiches are formed on the directions the data
+#' determine, so they stay finite where the default covariance does: on
+#' a fit with an empty `mo()` category, a `mo()` term on one value or a
+#' variance at its boundary.
+#'
+#' The other strings that marginaleffects knows are refused, each with
+#' its reason. `"HC2"` to `"HC5"` and `"robust"` (which
+#' marginaleffects maps to HC3) weight each row by its leverage, the
+#' diagonal of a hat matrix, which frmtmb does not compute. `"HAC"`,
+#' `"NeweyWest"` and `"kernHAC"` need a time order of the rows.
+#' `"satterthwaite"` and `"kenward-roger"` are denominator degrees of
+#' freedom for a linear mixed model fitted by REML. `vcov_cluster()`
+#' refuses a fit whose random effects cross the clusters, and so
+#' `"HC0"` and `"HC1"` refuse such a fit too. It also refuses a
+#' residual correlation term (`ar()`, `ma()` or `arma()`, either form,
+#' and the other residual covariance terms), whose density is joint over
+#' each group: under one, `"HC0"`, `"HC1"`, `"stata"` and a cluster
+#' formula are refused, `vcov = TRUE` gives the model-based standard
+#' errors, and [frm_bootstrap()] is the route to a robust one.
+#'
+#' @section brms's prediction arguments:
+#' `re_formula`, `allow_new_levels`, `dpar` (also under brms's name
+#' `nlpar`) and `resp` go to [frm_linpred()], as they go to brms's
+#' prediction for a `brmsfit`. `re_formula = NA` or `~ 0` gives the
+#' population-level prediction, and `NULL` (the default) keeps every
+#' group-level effect. The arguments that marginaleffects passes for
+#' other model classes and frmtmb does not take are refused by name:
+#' lme4's `re.form` and `allow.new.levels`, brms's `sample_new_levels`,
+#' `ndraws`, `draw_ids` and `incl_autocor`, and glmmTMB's `zitype`.
+#' marginaleffects 1.0.0 keeps a fixed
+#' list of the arguments that it knows for each model class, and a
+#' package cannot add to that list. So marginaleffects warns that
+#' `re_formula` is "not known to be supported" for a `frmtmb_fit`, and
+#' then passes it on. The argument has its effect.
+#'
+#' @name frmtmb-marginaleffects
+#' @return This page documents the marginaleffects methods and returns
+#'   nothing.
+#' @seealso [frmtmb-emmeans], [vcov_cluster()], [fitted()] and
+#'   [frm_lp_basis()], which give the same delta-method standard errors
+#'   with an analytic Jacobian.
+#' @examples
+#' \donttest{
+#' if (requireNamespace("marginaleffects", quietly = TRUE)) {
+#'   set.seed(1)
+#'   d <- data.frame(x = rnorm(120), g = factor(rep(1:12, each = 10)))
+#'   d$y <- 1 + 0.5 * d$x + rnorm(12)[d$g] + rnorm(120)
+#'   fit <- frm(y ~ x + (1 | g), data = d)
+#'   nd <- data.frame(x = c(-1, 1), g = factor(1, levels = 1:12))
+#'   # population-level predictions (marginaleffects warns, see above)
+#'   suppressWarnings(marginaleffects::predictions(fit, newdata = nd,
+#'                                                 re_formula = NA))
+#'   # a cluster-robust covariance
+#'   fit0 <- frm(y ~ x, data = d)
+#'   marginaleffects::avg_slopes(fit0, variables = "x", vcov = ~ g)
+#' }
+#' }
+NULL
+
 #' The parameter vector every delta-method seam perturbs, and its
 #' names.
 #'
@@ -138,12 +261,25 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 #' coefficients rather than differentiate predictions (`dfbeta()`,
 #' insight).
 #'
+#' A simplex with a category no row is in (`se_mo_gaps()`) is carried
+#' as the cumulative weights at the interior categories that rows are
+#' in, `<zeta>_cum<c>`, and not as its chart coordinates
+#' (`interop_mo_gaps()`): those are what the data determine, so their
+#' covariance is finite, and a prediction at an empty category gets
+#' `NaN` from `set_coef()` alone.
+#'
 #' @noRd
 interop_coef_names <- function(model, simplex = TRUE) {
   nm <- estimated_coef_names(model)
   tpl <- model$frame[["par_template"]]
+  gaps <- if (simplex) interop_mo_gaps(model) else list()
   for (cp in interop_extra_comps(model, simplex)) {
-    v <- names(tpl[[cp]])
+    g <- gaps[[cp]]
+    v <- if (!is.null(g)) {
+      paste0(cp, "_cum", g$obs, recycle0 = TRUE)
+    } else {
+      names(tpl[[cp]])
+    }
     if (is.null(v)) {
       v <- paste0(cp, "_", seq_along(tpl[[cp]]), recycle0 = TRUE)
     }
@@ -160,10 +296,93 @@ interop_coef_vector <- function(model, simplex = TRUE) {
     bd <- bd[-model$frame[["betad_fixed_idx"]]]
   }
   v <- c(est[["beta"]], bd)
+  gaps <- if (simplex) interop_mo_gaps(model) else list()
   for (cp in interop_extra_comps(model, simplex)) {
-    v <- c(v, as.numeric(est[[cp]]))
+    g <- gaps[[cp]]
+    v <- c(v, if (!is.null(g)) {
+      cumsum(mo_simplex(est[[cp]], g$mi[["chart"]]))[g$obs]
+    } else {
+      as.numeric(est[[cp]])
+    })
   }
   stats::setNames(unname(v), interop_coef_names(model, simplex))
+}
+
+#' The `mo()` simplexes of the interop vector that have a category no
+#' row is in (`se_mo_gaps()`), keyed by their template component: the
+#' term, its empty interior categories `gap`, and the interior
+#' categories rows are in, `obs`.
+#'
+#' At an empty category `c` the weights `w_c` and `w_(c + 1)` enter
+#' every row only through their sum, so the chart coordinates are not
+#' determined and their covariance is `NaN`. The cumulative weight
+#' `S_c = w_1 + ... + w_c` at an observed category moves no prediction
+#' along that direction, so `S_obs` is determined, and its covariance
+#' from the fit's covariance conditional on the lost directions
+#' (`cov_fixed_prop`) is the one `fitted()` reads. marginaleffects
+#' perturbs `S_obs`; `set_coef()` sets `S` at an empty category to
+#' `NaN`, so a prediction there is `NaN` under every perturbation and
+#' so is its standard error, while every other one is finite.
+#'
+#' @noRd
+interop_mo_gaps <- function(model) {
+  out <- list()
+  cps <- interop_extra_comps(model)
+  for (g in se_mo_gaps(model)) {
+    cp <- g$mi[["zeta"]]
+    if (!cp %in% cps || !is.null(out[[cp]])) next
+    out[[cp]] <- list(mi = g$mi, gap = g$gap,
+                      obs = setdiff(seq_len(g$mi[["D"]] - 1L), g$gap))
+  }
+  out
+}
+
+#' Positions in the interop vector of the coefficients of `mo()` terms
+#' with one category (`D = 0`). Such a term is 0 on every row of the
+#' data and of every new data set the term accepts, so no prediction
+#' reads the coefficient, and the data do not determine it.
+#'
+#' @noRd
+interop_mo_const <- function(model) {
+  tpl <- model$frame[["par_template"]]
+  nb <- length(tpl[["beta"]])
+  keep <- setdiff(seq_along(tpl[["betad"]]), model$frame[["betad_fixed_idx"]])
+  pos <- integer(0)
+  for (lp in model$frame[["linpreds"]] %||% list()) {
+    for (mi in lp[["mo"]] %||% list()) {
+      if (!identical(as.integer(mi[["D"]]), 0L)) next
+      i <- lp[["idx"]][mi[["col"]]]
+      pos <- c(pos, switch(lp[["par"]] %||% "",
+                           beta = i,
+                           betad = nb + match(i, keep),
+                           NA_integer_))
+    }
+  }
+  pos[!is.na(pos)]
+}
+
+#' The positions in the outer parameter vector (`map`, as
+#' `outer_par_map()` gives it) of the coefficients of `mo()` terms on one
+#' value (`interop_mo_const()`). Empty under REML, where the
+#' population-level coefficients are not outer parameters.
+#'
+#' @noRd
+mo_const_outer_pos <- function(fit, map = outer_par_map(fit)) {
+  tpl <- fit$frame[["par_template"]]
+  keep <- setdiff(seq_along(tpl[["betad"]]), fit$frame[["betad_fixed_idx"]])
+  pos <- integer(0)
+  for (lp in fit$frame[["linpreds"]] %||% list()) {
+    for (mi in lp[["mo"]] %||% list()) {
+      if (!identical(as.integer(mi[["D"]]), 0L)) next
+      i <- lp[["idx"]][mi[["col"]]]
+      at <- switch(lp[["par"]] %||% "",
+                   beta = which(map$comp == "beta")[i],
+                   betad = which(map$comp == "betad")[match(i, keep)],
+                   NA_integer_)
+      pos <- c(pos, at)
+    }
+  }
+  pos[!is.na(pos)]
 }
 
 #' The template components the interop vector carries beyond the
@@ -194,23 +413,148 @@ interop_extra_comps <- function(model, simplex = TRUE) {
 #' Otherwise the joint matrix `hypothesis()` already assembles, cut
 #' down to these rows and put in this order.
 #'
+#' `Vfull`, a covariance over the whole outer parameter vector in
+#' `vcov(full = TRUE)`'s order (a sandwich), is cut down and carried to
+#' the same coordinates instead of the fit's own. `Vfull_p` is the same
+#' matrix before the rows of the lost parameters were set to `NaN`
+#' (`cluster_sandwich_full()`), which the carrying of a simplex with an
+#' empty category reads, as the default reads `cov_fixed_prop`.
+#'
+#' Two kinds of `mo()` term change the fit's own matrix. A simplex with
+#' an empty category is carried to its cumulative weights at the
+#' observed categories (`interop_mo_gaps()`). A one-category term's
+#' coefficient gets a covariance of 0, not `NaN`: no prediction reads
+#' it, and marginaleffects forms `J V J'` itself, where a `NaN` makes
+#' every standard error `NaN` although that column of `J` is 0.
+#'
 #' @noRd
-interop_vcov <- function(model, simplex = TRUE) {
+interop_vcov <- function(model, simplex = TRUE, Vfull = NULL,
+                         Vfull_p = NULL) {
   se_flush_deferred(model)
   cps <- interop_extra_comps(model, simplex)
-  V0 <- vcov_estimated(model)
-  if (!length(cps)) return(V0)
-  pc <- tryCatch(suppressWarnings(hyp_par_cov(
-    model, extra = setdiff(cps, ord_extra_comps(model)))),
-    error = keep_missing(NULL))
+  const <- if (simplex) interop_mo_const(model) else integer(0)
+  gaps <- if (simplex) interop_mo_gaps(model) else list()
   nm <- interop_coef_names(model, simplex)
-  if (is.null(pc)) return(V0)
+  zero_const <- function(V) {
+    V[const, ] <- 0
+    V[, const] <- 0
+    V
+  }
+  if (!is.null(Vfull)) {
+    om <- outer_par_map(model)
+    if (nrow(Vfull) != length(om$comp)) {
+      frm_stop("the covariance does not cover the outer parameter vector ",
+               "(", nrow(Vfull), " rows for ", length(om$comp), ")",
+               call. = FALSE)
+    }
+    pc <- list(comp = om$comp, V = Vfull, Vp = Vfull_p %||% Vfull)
+  } else {
+    V0 <- vcov_estimated(model)
+    if (!length(cps)) return(zero_const(V0))
+    pc <- tryCatch(suppressWarnings(hyp_par_cov(
+      model, extra = setdiff(cps, ord_extra_comps(model)))),
+      error = keep_missing(NULL))
+    if (is.null(pc)) return(zero_const(V0))
+  }
   ord <- unlist(lapply(c("beta", "betad", cps),
                        function(cp) which(pc$comp == cp)))
-  if (length(ord) != length(nm)) return(V0)
-  V <- as.matrix(pc$V[ord, ord, drop = FALSE])
+  rc <- pc$comp[ord]
+  # the rows each component gives: a gap simplex its observed
+  # categories, every other component its own
+  n_rows <- sum(!rc %in% names(gaps)) +
+    sum(vapply(gaps, function(g) length(g$obs), 0L))
+  if (n_rows != length(nm)) {
+    if (is.null(Vfull)) return(zero_const(V0))
+    frm_stop("the covariance does not line up with get_coef()",
+             call. = FALSE)
+  }
+  if (!length(gaps)) {
+    V <- as.matrix(pc$V[ord, ord, drop = FALSE])
+    dimnames(V) <- list(nm, nm)
+    return(zero_const(V))
+  }
+  # rows of the fit's chart coordinates become rows of the cumulative
+  # weights S_obs: V_S = G Vp G', with Vp the covariance conditional on
+  # the lost directions, which S_obs does not move along
+  shown <- diag(as.matrix(pc$V[ord, ord, drop = FALSE]))
+  G <- matrix(0, length(nm), length(ord))
+  keep_nan <- logical(length(nm))
+  # which rows are cumulative weights, and the source row of every other
+  srow <- logical(length(nm))
+  src <- integer(length(nm))
+  i <- 0L
+  j <- 1L
+  while (j <= length(ord)) {
+    cp <- rc[j]
+    g <- gaps[[cp]]
+    if (is.null(g)) {
+      i <- i + 1L
+      G[i, j] <- 1
+      src[i] <- j
+      keep_nan[i] <- !is.finite(shown[j])
+      j <- j + 1L
+      next
+    }
+    cols <- j + seq_len(sum(rc == cp)) - 1L
+    z <- model$estimates[[cp]]
+    Jw <- RTMB::MakeTape(function(x) mo_simplex(x, g$mi[["chart"]]),
+                         z)$jacobian(z)
+    Js <- apply(Jw, 2L, cumsum)
+    Js <- matrix(Js, nrow = nrow(Jw))[g$obs, , drop = FALSE]
+    rows <- i + seq_along(g$obs)
+    G[rows, cols] <- Js
+    srow[rows] <- TRUE
+    i <- i + length(g$obs)
+    j <- max(cols) + 1L
+  }
+  Vp <- as.matrix(pc$Vp[ord, ord, drop = FALSE])
+  V <- G %*% Vp %*% t(G)
+  V <- (V + t(V)) / 2
+  # a parameter the fit lost for another reason keeps its NaN
+  V[keep_nan, ] <- NaN
+  V[, keep_nan] <- NaN
   dimnames(V) <- list(nm, nm)
+  V <- zero_const(V)
+  # The conditional covariance can itself be NaN, on a fit that lost
+  # another direction as well (a (mo(x) | g) gap fit at cor = 1, seed 23
+  # of the review): then every entry was NaN, silently. Fall back to the
+  # covariance shown, with the simplex rows NaN, and say why, as 0.76.0
+  # did on every gap fit.
+  if (!all(is.finite(V[!keep_nan, !keep_nan]))) {
+    # by index, not through G: a product with a NaN entry is NaN even
+    # where G is 0
+    Vs <- matrix(NaN, length(nm), length(nm), dimnames = list(nm, nm))
+    k <- src[!srow]
+    Vs[!srow, !srow] <- as.matrix(pc$V[ord, ord, drop = FALSE])[k, k]
+    # a user's matrix is warned about by interop_vcov_checked()
+    if (is.null(Vfull)) mo_gap_lost_warning(model, names(gaps))
+    V <- zero_const(Vs)
+  }
   V
+}
+
+#' The warning of `get_vcov()` on a fit with an empty `mo()` category
+#' whose covariance on the determined directions could not be formed,
+#' because the fit lost another direction as well: the simplex rows are
+#' `NaN`, so every standard error marginaleffects forms is.
+#'
+#' @noRd
+mo_gap_lost_warning <- function(fit, zeta) {
+  cache <- fit$cache
+  if (is.environment(cache) && isTRUE(cache[["warned_nan_mo_lost"]])) {
+    return(invisible())
+  }
+  if (is.environment(cache)) assign("warned_nan_mo_lost", TRUE, envir = cache)
+  frm_warning(
+    "get_vcov(): a mo() term of this fit has a category that no row is ",
+    "in, and the fit lost another direction as well, so the covariance ",
+    "of its simplex (", paste(zeta, collapse = ", "), ") on the ",
+    "directions the data determine could not be formed. Its rows are ",
+    "NaN, and so is every standard error marginaleffects forms on this ",
+    "fit. fitted(), predict() and emmeans give NaN only where a ",
+    "prediction moves along a lost direction", call. = FALSE,
+    class = "frmtmb_cov_products")
+  invisible()
 }
 
 #' A factor `K` of the coefficient covariance, `V = K K'`, where the fit
@@ -231,6 +575,9 @@ coef_vcov_root <- function(model, extra = TRUE, simplex = TRUE) {
   root <- if (integ) sdr$joint_root else sdr$cov_fixed_root
   if (is.null(root)) return(NULL)
   rn <- rownames(if (integ) sdr$jointPrecision else sdr$cov.fixed)
+  # rows of chart coordinates are not rows of cumulative weights
+  # (interop_mo_gaps())
+  if (extra && simplex && length(interop_mo_gaps(model))) return(NULL)
   cps <- c("beta", "betad", if (extra) interop_extra_comps(model, simplex))
   ord <- unlist(lapply(cps, function(cp) which(rn == cp)))
   nm <- if (extra) interop_coef_names(model, simplex) else
@@ -272,7 +619,22 @@ set_coef.frmtmb_fit <- function(model, coefs, ...) {
   # the ordinal extras and the mo() simplexes, in interop_coef_vector()
   # order; without these a perturbation of a threshold or of a simplex
   # never reached the prediction
+  gaps <- interop_mo_gaps(model)
   for (cp in interop_extra_comps(model)) {
+    g <- gaps[[cp]]
+    if (!is.null(g)) {
+      # the cumulative weights the predictions read (mo_col_values()),
+      # NaN at an empty category, which the vector does not carry
+      k <- length(g$obs)
+      S <- cumsum(mo_simplex(model$estimates[[cp]], g$mi[["chart"]]))
+      S[g$gap] <- NaN
+      S[g$obs] <- coefs[off + seq_len(k)]
+      ov <- model[["mo_cum_override"]] %||% list()
+      ov[[cp]] <- S
+      model[["mo_cum_override"]] <- ov
+      off <- off + k
+      next
+    }
     k <- length(model$estimates[[cp]])
     model$estimates[[cp]][] <- coefs[off + seq_len(k)]
     off <- off + k
@@ -281,30 +643,23 @@ set_coef.frmtmb_fit <- function(model, coefs, ...) {
 }
 
 #' @exportS3Method marginaleffects::get_vcov
-get_vcov.frmtmb_fit <- function(model, ...) {
+get_vcov.frmtmb_fit <- function(model, vcov = NULL, ...) {
+  # marginaleffects passes its `vcov =` argument here. Through 0.76.0
+  # this method ignored it, so a user's matrix, "HC3" or a cluster
+  # formula gave the model-based standard errors without a message
+  # (doubling the matrix left them unchanged where lm() gives sqrt(2)).
+  if (isFALSE(vcov)) return(NULL)
+  if (!is.null(vcov) && !isTRUE(vcov)) return(interop_user_vcov(model, vcov))
   # NOT vcov(model): that is brms's population-level block since item
   # 2.6f, and it has neither the rows nor the names of get_coef(), which
   # is the vector marginaleffects perturbs. A covariance one row short
   # of the coefficient vector is the wrong matrix, not a differently
   # named one; the standard errors of avg_slopes() moved measurably
   # when the two disagreed (dev/shapes-log/interop-lane.txt).
+  # A mo() simplex with an empty category is in the coordinates the data
+  # determine (interop_mo_gaps()), so this matrix is finite there and a
+  # prediction at the empty category gets NaN from set_coef().
   V <- interop_vcov(model)
-  # A mo() category that no row is in leaves a direction of its simplex
-  # undetermined (se_mo_gaps()). frmtmb's own routes give NaN only to a
-  # prediction that moves along it (jc_nonest()); marginaleffects forms
-  # J V J' itself and cannot, so the simplex's rows are NaN here, and so
-  # is every standard error it forms. Without this a pseudo-inverse gave
-  # finite ones at the empty categories in silence.
-  gz <- unique(vapply(se_mo_gaps(model), function(g) g$mi[["zeta"]], ""))
-  if (length(gz)) {
-    nm <- interop_coef_names(model)
-    rows <- which(sub("_[0-9]+$", "", nm) %in% gz)
-    if (length(rows)) {
-      V[rows, ] <- NaN
-      V[, rows] <- NaN
-      mo_gap_nan_warning(model, gz)
-    }
-  }
   # marginaleffects forms J V J' from this matrix itself, with J taken
   # by finite differences, and it cannot be handed a factor instead. On
   # every fit whose covariance is held as a factor (se_reparam_cov()),
@@ -321,28 +676,207 @@ get_vcov.frmtmb_fit <- function(model, ...) {
   V
 }
 
-#' The warning of `get_vcov()` on a fit whose `mo()` simplex has a
-#' category no row is in, once per fit.
+#' The warning of `get_predict()` when a prediction marginaleffects
+#' differentiates reads a `mo()` category that no row is in, once per
+#' fit: its standard error is `NaN`, as `fitted()` gives it.
 #'
 #' @noRd
-mo_gap_nan_warning <- function(fit, zeta) {
+mo_gap_nan_warning <- function(fit, n_nan, n) {
   cache <- fit$cache
   if (is.environment(cache) && isTRUE(cache[["warned_nan_mo_gap"]])) {
     return(invisible())
   }
   if (is.environment(cache)) assign("warned_nan_mo_gap", TRUE, envir = cache)
   frm_warning(
-    "get_vcov(): a mo() term of this fit has a category that no row is ",
-    "in, so its simplex (", paste(zeta, collapse = ", "), ") has a ",
-    "direction the data do not determine. marginaleffects forms its ",
-    "standard errors from the whole covariance and cannot leave that ",
-    "direction out, so the covariance of the simplex is NaN, and so is ",
-    "every standard error marginaleffects forms on this fit (a product ",
-    "with NaN is NaN even where a prediction does not read it). fitted(), ",
-    "predict(), conditional_effects() and emmeans give NaN only where a ",
-    "prediction moves along that direction", call. = FALSE,
+    n_nan, " of ", n, " predictions read a mo() category that no row is ",
+    "in. The data do not determine a prediction there, so ",
+    "marginaleffects gives it a standard error of NaN, as fitted() does; ",
+    "the other standard errors are kept", call. = FALSE,
     class = "frmtmb_cov_products")
   invisible()
+}
+
+#' The covariance a user hands marginaleffects as `vcov =`, in the
+#' coordinates of `get_coef()`, with marginaleffects' meaning for each
+#' spelling where frmtmb has one.
+#'
+#' - A matrix over `get_coef()`, aligned by its names as marginaleffects
+#'   aligns one for any model (an unnamed one is taken in order, with
+#'   marginaleffects' warning).
+#' - A matrix over the whole outer parameter vector, as
+#'   `vcov(fit, full = TRUE)` or `vcov_cluster(full = TRUE)` returns it,
+#'   cut down to `get_coef()`'s rows (`interop_vcov(Vfull =)`). Under
+#'   REML that vector has no fixed effects, so it is refused there.
+#' - A function of the fit that returns one of these.
+#' - `"HC0"`: the sandwich with each row its own cluster
+#'   (`vcov_cluster(type = "CR0")`), White's HC0. `"HC1"` and `"stata"`,
+#'   which marginaleffects maps to HC1 for `lm()`: HC0 times
+#'   `n / (n - k)`, with `k` the population-level coefficients and the
+#'   determined steps of each `mo()` simplex (`interop_hc1_k()`).
+#' - A one-sided formula `~ g`: the cluster sandwich over `g`, with
+#'   `sandwich::vcovCL()`'s default adjustment `G / (G - 1)` for a glm
+#'   (`vcov_cluster(type = "CR1")`).
+#'
+#' The sandwiches are formed on the directions the data determine
+#' (`cluster_sandwich_full()`), so a fit with an empty `mo()` category,
+#' a one-value `mo()` term or a variance at its boundary keeps finite
+#' standard errors wherever the default covariance does. A result with
+#' `NaN` in a row of `get_coef()` warns, naming the rows.
+#'
+#' Every other string is refused with its reason (`interop_vcov_refusal()`).
+#'
+#' @noRd
+interop_user_vcov <- function(model, vcov) {
+  nm <- interop_coef_names(model)
+  if (is.function(vcov)) {
+    out <- tryCatch(vcov(model), error = function(e) {
+      frm_stop("The function given as vcov = stopped: ",
+               conditionMessage(e), call. = FALSE)
+    })
+    if (!is.matrix(out)) {
+      frm_stop("The function given as vcov = must return a matrix",
+               call. = FALSE)
+    }
+    vcov <- out
+  }
+  sandwich_of <- function(cl, type, mult = 1) {
+    cs <- cluster_sandwich_full(model, resolve_cluster(model, cl), type)
+    interop_vcov_checked(model, Vfull = mult * cs$V, Vfull_p = mult * cs$Vp)
+  }
+  if (inherits(vcov, "formula")) return(sandwich_of(vcov, "CR1"))
+  if (is.character(vcov) && length(vcov) == 1L) {
+    v <- toupper(vcov)
+    n <- model$frame[["n_obs"]]
+    if (identical(v, "HC0")) return(sandwich_of(seq_len(n), "CR0"))
+    if (v %in% c("HC1", "STATA")) {
+      k <- interop_hc1_k(model)
+      return(sandwich_of(seq_len(n), "CR0", n / (n - k)))
+    }
+    interop_vcov_refusal(vcov)
+  }
+  if (!is.matrix(vcov) || !is.numeric(vcov) || nrow(vcov) != ncol(vcov)) {
+    frm_stop("vcov = must be TRUE, FALSE, a square numeric matrix, a ",
+             "function returning one, \"HC0\", \"HC1\" or a one-sided ",
+             "formula", call. = FALSE)
+  }
+  cn <- colnames(vcov)
+  on <- outer_par_labels(model)
+  # the whole outer vector by its names, or unnamed when its size is not
+  # also get_coef()'s (an unnamed matrix of that size is read in
+  # get_coef()'s order below, as marginaleffects reads one)
+  full <- nrow(vcov) == length(on) &&
+    (identical(cn, on) || (is.null(cn) && length(on) != length(nm)))
+  if (full) {
+    if (model$REML || isTRUE(model$control$profile)) {
+      frm_stop("vcov = a matrix over the outer parameter vector: this fit ",
+               "is ", if (model$REML) "REML" else "profiled", ", which ",
+               "integrates the fixed effects out, so that vector has no ",
+               "rows for them. Give a matrix over get_coef() (",
+               paste(nm, collapse = ", "), "), such as a multiple of ",
+               "get_vcov(fit)", call. = FALSE)
+    }
+    return(interop_vcov_checked(model, Vfull = vcov))
+  }
+  if (nrow(vcov) != length(nm)) {
+    frm_stop("vcov = has ", nrow(vcov), " rows, but get_coef() has ",
+             length(nm), " coefficients (", paste(nm, collapse = ", "),
+             ") and the outer parameter vector ", length(on), ". Give a ",
+             "matrix over one of these, such as a multiple of ",
+             "get_vcov(fit) or vcov(fit, full = TRUE)", call. = FALSE)
+  }
+  if (is.null(cn)) {
+    frm_warning("The supplied `vcov` matrix has no column names, so it is ",
+                "assumed to be in the same order as the model ",
+                "coefficients", call. = FALSE)
+    dimnames(vcov) <- list(nm, nm)
+    return(vcov)
+  }
+  rn <- rownames(vcov)
+  if (!setequal(cn, nm) || anyDuplicated(cn) ||
+        (!is.null(rn) && !identical(rn, cn))) {
+    frm_stop("The names of vcov = (", paste(cn, collapse = ", "), ") are ",
+             "not those of get_coef() (", paste(nm, collapse = ", "), ")",
+             call. = FALSE)
+  }
+  i <- match(nm, cn)
+  V <- vcov[i, i, drop = FALSE]
+  dimnames(V) <- list(nm, nm)
+  V
+}
+
+#' `interop_vcov(Vfull =)`, warning when the result has `NaN` in a row of
+#' `get_coef()`: marginaleffects forms `J V J'` from the whole matrix, so
+#' one such row makes every standard error `NaN`. A user's
+#' `vcov(fit, full = TRUE)` holds `NaN` in the rows of the parameters the
+#' fit lost, which `get_vcov(fit)` and the sandwich spellings do not.
+#'
+#' @noRd
+interop_vcov_checked <- function(model, Vfull, Vfull_p = NULL) {
+  V <- interop_vcov(model, Vfull = Vfull, Vfull_p = Vfull_p)
+  bad <- rownames(V)[!is.finite(diag(V))]
+  if (length(bad)) {
+    frm_warning("vcov =: the covariance has no finite value for ",
+                paste(bad, collapse = ", "), ", which the fit does not ",
+                "determine, so every standard error marginaleffects forms ",
+                "from it is NaN. vcov = \"HC0\", \"HC1\", ~ g and the ",
+                "default (TRUE) are formed on the directions the data ",
+                "determine", call. = FALSE)
+  }
+  V
+}
+
+#' The `k` of HC1's `n / (n - k)`: the population-level coefficients
+#' (`beta`), as `sandwich` counts the columns of a linear model's
+#' design. A `mo()` term of those predictors adds the steps of its
+#' simplex that the data determine, so `y ~ mo(x)` on four categories
+#' counts as `lm(y ~ factor(x))` does; a one-value term counts nothing,
+#' as `lm()` does not count a column it aliases.
+#'
+#' @noRd
+interop_hc1_k <- function(model) {
+  nb <- length(model$frame[["par_template"]][["beta"]])
+  k <- nb - sum(interop_mo_const(model) <= nb)
+  gaps <- se_mo_gaps(model)
+  gz <- vapply(gaps, function(g) g$mi[["zeta"]], "")
+  for (lp in model$frame[["linpreds"]] %||% list()) {
+    if (!identical(lp[["par"]], "beta")) next
+    for (mi in lp[["mo"]] %||% list()) {
+      if (mi[["D"]] < 2L) next
+      ng <- sum(lengths(lapply(gaps[gz == mi[["zeta"]]], `[[`, "gap")))
+      k <- k + (mi[["D"]] - 1L) - ng
+    }
+  }
+  k
+}
+
+#' The refusal of a `vcov =` string that frmtmb has no meaning for, with
+#' the reason for each.
+#'
+#' @noRd
+interop_vcov_refusal <- function(vcov) {
+  v <- toupper(vcov)
+  why <- if (v %in% c("HC2", "HC3", "HC4", "HC4M", "HC5", "ROBUST")) {
+    paste0("It weights each row by its leverage, the diagonal of a hat ",
+           "matrix, which frmtmb does not compute",
+           if (identical(v, "ROBUST")) {
+             " (marginaleffects maps \"robust\" to \"HC3\" for lm())"
+           })
+  } else if (v %in% c("HAC", "NEWEYWEST", "KERNHAC")) {
+    "It needs a time order of the rows, which a frmtmb fit does not carry"
+  } else if (v %in% c("SATTERTHWAITE", "KENWARD-ROGER")) {
+    paste0("It is a denominator degrees of freedom for a linear mixed ",
+           "model fitted by REML, which frmtmb does not compute")
+  } else if (identical(v, "OPG")) {
+    paste0("It inverts the outer product of the scores alone, which ",
+           "frmtmb does not offer; vcov = \"HC0\" is the sandwich with the ",
+           "observed information")
+  } else {
+    "marginaleffects has no such spelling for a frmtmb fit"
+  }
+  frm_stop("vcov = \"", vcov, "\" is not defined for a frmtmb fit. ", why,
+           ". marginaleffects takes TRUE, FALSE, a matrix or a function ",
+           "returning one, \"HC0\", \"HC1\" (or \"stata\"), and a cluster ",
+           "formula such as ~ g", call. = FALSE)
 }
 
 #' Is the covariance of `fit` held as a factor (se_reparam_cov(), or
@@ -391,7 +925,30 @@ cov_routes_right <- function() {
 get_predict.frmtmb_fit <- function(model, newdata, type = "response",
                                    ...) {
   type <- if (identical(type, "link")) "link" else "response"
-  p <- frm_linpred(model, newdata = newdata, type = type)
+  # brms's arguments, which marginaleffects passes on in the dots:
+  # `re_formula` (NULL keeps every group-level effect, NA or ~ 0 none),
+  # `allow_new_levels`, `dpar` (also for brms's `nlpar`) and `resp`.
+  # Through 0.76.0 every one was dropped here, so
+  # predictions(re_formula = NA) returned the conditional predictions.
+  dots <- list(...)
+  me_refuse_dots(names(dots))
+  dpar <- dots[["dpar"]] %||% dots[["nlpar"]]
+  p <- frm_linpred(model, newdata = newdata, type = type,
+                   dpar = dpar, resp = dots[["resp"]],
+                   re_formula = dots[["re_formula"]],
+                   allow_new_levels = isTRUE(dots[["allow_new_levels"]]))
+  # marginaleffects pads new data with a row for each level of a factor
+  # and marks those rows with a negative rowid, which it drops again by
+  # that rowid. Numbering the rows afresh kept them: predictions() with
+  # a factor column of 8 levels on 3 rows returned 11 rows.
+  rid <- newdata[["rowid"]]
+  if (is.null(rid) || length(rid) != NROW(p)) rid <- seq_len(NROW(p))
+  if (!is.null(model[["mo_cum_override"]]) && anyNA(p)) {
+    # the rows asked for, not the padding
+    asked <- rid > 0
+    mo_gap_nan_warning(model, sum(is.na(as.matrix(p)[asked, 1L])),
+                       sum(asked))
+  }
   if (is.matrix(p)) {
     # A categorical outcome predicts a DISTRIBUTION per row (an ordinal
     # family's K category probabilities, a multinomial's D cell means),
@@ -401,12 +958,42 @@ get_predict.frmtmb_fit <- function(model, newdata, type = "response",
     # 1..nK, which silently misaligns every downstream contrast.
     g <- colnames(p) %||% as.character(seq_len(ncol(p)))
     return(data.frame(
-      rowid = rep(seq_len(nrow(p)), times = ncol(p)),
+      rowid = rep(rid, times = ncol(p)),
       group = rep(g, each = nrow(p)),
       estimate = as.numeric(p)
     ))
   }
-  data.frame(rowid = seq_along(p), estimate = as.numeric(p))
+  data.frame(rowid = rid, estimate = as.numeric(p))
+}
+
+#' Refuse, by name, the prediction arguments marginaleffects passes on
+#' for other model classes and frmtmb does not honor. marginaleffects
+#' warns "not known to be supported" for every argument of a
+#' `frmtmb_fit`, `re_formula` included, so an argument that was dropped
+#' looked the same as one that works: lme4's `re.form = NA` returned the
+#' conditional predictions (the review of this change, finding 5).
+#'
+#' @noRd
+me_refuse_dots <- function(nms) {
+  why <- c(
+    re.form = "lme4's spelling; frmtmb takes brms's re_formula =",
+    allow.new.levels = paste0("lme4's spelling; frmtmb takes brms's ",
+                              "allow_new_levels ="),
+    random.only = "lme4's; frmtmb has no such prediction",
+    include_random = "frmtmb has no such argument; use re_formula =",
+    sample_new_levels = paste0("it chooses how a posterior draw meets an ",
+                               "unseen level, and a maximum-likelihood ",
+                               "prediction has no draws"),
+    ndraws = "a maximum-likelihood fit has no posterior draws",
+    draw_ids = "a maximum-likelihood fit has no posterior draws",
+    incl_autocor = paste0("frm_linpred() has no switch for the residual ",
+                          "correlation terms"),
+    zitype = "glmmTMB's; use dpar = (for example dpar = \"zi\")")
+  bad <- intersect(nms, names(why))
+  if (!length(bad)) return(invisible(NULL))
+  frm_stop("marginaleffects passed ", bad[1L], " =, which frmtmb's ",
+           "prediction does not take: ", why[[bad[1L]]],
+           call. = FALSE)
 }
 
 # --- emmeans ----------------------------------------------------------
@@ -946,6 +1533,7 @@ emm_basis.frmtmb_fit <- function(object, trms, xlev, grid, ..., resp = NULL,
                                  dpar = NULL, nlpar = NULL, re_formula = NA,
                                  epred = FALSE) {
   require_fit_packages(object)
+  autocor_check_dpar(object, dpar)
   tg <- emm_target(object, resp = resp, dpar = dpar, nlpar = nlpar,
                    re_formula = re_formula, epred = epred, warn = TRUE)
   # a nonlinear body's parameters keep their offsets out, as brms's

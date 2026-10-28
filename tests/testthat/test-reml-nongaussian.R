@@ -55,11 +55,12 @@ test_that("the REML objective is the Cox-Reid adjusted profile nll", {
   # the ML objective at fixed theta = the REML estimate, as a function
   # of beta only (b still Laplace-integrated): refit ML with theta
   # mapped to the REML estimate via bounds pinning
-  th <- fit$estimates$theta
+  # the sd is pinned on its own scale; the bound lands on log(sd)
+  th <- log(exp(fit$estimates$theta))
   ml <- suppressWarnings(
     frm(bf(yp ~ x + (1 | g)), family = poisson(), data = dd,
-        prior = set_prior("", class = "theta", coef = "theta_1",
-                          lb = th[[1]], ub = th[[1]]),
+        prior = set_prior("", class = "sd", group = "g",
+                          lb = exp(th[[1]]), ub = exp(th[[1]])),
         start = list(theta = unname(th))))
   nll_hat <- -as.numeric(logLik(ml))
   # the beta block of the marginal objective's Hessian at the

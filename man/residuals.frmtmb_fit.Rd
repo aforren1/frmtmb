@@ -165,8 +165,11 @@ population-level mean.
 
 Under an \code{ar()}, \code{ma()}, \code{arma()}, \code{cosy()} or \code{unstr()} term (see
 \link{frmtmb-autocor}) the residual covariance of a group is \verb{D R D} with
-\code{R} unit-diagonal, so the marginal residual SD of a row is still
-\code{sigma} and \code{"pearson"} is unchanged - it divides by exactly that.
+\code{R} unit-diagonal and \code{D} the marginal residual SDs, and \code{"pearson"}
+divides by the marginal SD of the row. That is \code{sigma} under \code{cosy()}
+and \code{unstr()}. Under \code{ar()}, \code{ma()} and \code{arma()} with \code{cov = TRUE},
+\code{sigma} is the innovation SD, as in brms, and the marginal SD is
+larger: \code{sigma / sqrt(1 - ar^2)} for an AR(1).
 What \code{"response"} and \code{"pearson"} do NOT do is decorrelate: plotted
 against time within a group they still show the fitted
 autocorrelation, which is the intended reading. \code{"osa"} is refused,

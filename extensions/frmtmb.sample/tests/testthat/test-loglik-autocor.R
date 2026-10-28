@@ -77,9 +77,14 @@ nus <- c(5, 12, 3.5)
 test_that("log_lik() of an ar() family covariance block is the dense
            conditional of each group, at each draw", {
   d <- lla_data()
+  # the autocovariance at unit innovation variance: the correlation of
+  # stats::ARMAacf() times the process variance from the psi weights,
+  # since sigma is the innovation sd, as in brms
   acf_of <- function(a, m) function(L) {
     v <- stats::ARMAacf(ar = a[a != 0], ma = m[m != 0], lag.max = max(L))
-    matrix(v[L + 1], nrow(L))
+    psi <- c(1, stats::ARMAtoMA(ar = a[a != 0], ma = m[m != 0],
+                                lag.max = 5000))
+    matrix(v[L + 1] * sum(psi^2), nrow(L))
   }
   cases <- list(
     ar = list(f = y ~ x + ar(t, g, cov = TRUE), a = c(0.5, -0.3, 0.8),
@@ -341,9 +346,8 @@ test_that("log_lik() is brms's under ar(), ma() and arma() covariance
            terms", {
   skip_unless_brms_fit()
   d <- lla_data()
-  # brms's sigma is the innovation sd and frmtmb's the marginal one;
-  # g0 is the ARMA(1, 1) variance at unit innovations
-  g0 <- function(a, m) (1 + 2 * a * m + m^2) / (1 - a^2)
+  # brms's sigma is the innovation sd, and so is frmtmb's: the draws'
+  # sigma goes to brms unchanged
   cases <- list(
     ar = list(f = "y ~ x + ar(t, g, cov = TRUE)", a = c(0.5, -0.3, 0.8),
               m = c(0, 0, 0)),
@@ -364,7 +368,7 @@ test_that("log_lik() is brms's under ar(), ma() and arma() covariance
       if (fam == "student") vals$nu <- nus
       inits <- lapply(1:3, function(s) {
         p <- list(b = array(b1[s], 1), Intercept = b0[s] + b1[s] * mean(d$x),
-                  sigma = sg[s] / sqrt(g0(cs$a[s], cs$m[s])))
+                  sigma = sg[s])
         if (nm != "ma") p$ar <- array(cs$a[s], 1)
         if (nm != "ar") p$ma <- array(cs$m[s], 1)
         if (fam == "student") p$nu <- nus[s]
@@ -375,7 +379,7 @@ test_that("log_lik() is brms's under ar(), ma() and arma() covariance
                                   brms::brmsfamily(fam), d, inits))
     }
   }
-  # sigma ~ x: brms's log sigma is frmtmb's plus log sqrt(1 - ar^2)
+  # sigma ~ x: brms's log sigma, the log innovation sd, is frmtmb's
   for (fam in c("gaussian", "student")) {
     fit <- frm(bf(y ~ x + ar(t, g, cov = TRUE), sigma ~ x),
                family = get(fam)(), data = d, dry_run = "objective")
@@ -388,8 +392,7 @@ test_that("log_lik() is brms's under ar(), ma() and arma() covariance
     inits <- lapply(1:3, function(s) {
       p <- list(b = array(b1[s], 1), Intercept = b0[s] + b1[s] * mean(d$x),
                 ar = array(a[s], 1), b_sigma = array(bs1[s], 1),
-                Intercept_sigma = bs0[s] + bs1[s] * mean(d$x) +
-                  0.5 * log(1 - a[s]^2))
+                Intercept_sigma = bs0[s] + bs1[s] * mean(d$x))
       if (fam == "student") p$nu <- nus[s]
       p
     })
@@ -556,11 +559,12 @@ test_that("cosy() and mo() together: log_lik() of the draws is the dense
 })
 
 test_that("ar(cov = TRUE) under the default priors: log_lik() of the
-           draws reads sigma as the marginal sd", {
+           draws reads sigma as the innovation sd", {
   skip_sampler()
-  # the sigma prior is read at the innovation sd, sigma sqrt(1 - ar^2),
-  # but the draws' sigma column is frmtmb's marginal sd, and the
-  # conditional is of the marginal covariance sigma^2 ar^|lag|
+  # the draws' sigma column is the innovation sd, as brms's is, and the
+  # conditional is of the covariance sigma^2 ar^|lag| / (1 - ar^2).
+  # frmtmb 0.76.0's sigma was the marginal sd, with covariance
+  # sigma^2 ar^|lag|; this block pinned that reading
   set.seed(20261027)
   d <- expand.grid(t = 1:6, g = 1:8)
   d$x <- stats::rnorm(nrow(d))
@@ -576,12 +580,40 @@ test_that("ar(cov = TRUE) under the default priors: log_lik() of the
   for (s in seq(1, nrow(m), by = 20)) {
     a1 <- m[s, "ar[1]"]
     ref <- lla_grouped(d, m[s, "b_Intercept"] + m[s, "b_x"] * d$x,
-                       rep(m[s, "sigma"], nrow(d)), function(L) a1^L)
+                       rep(m[s, "sigma"], nrow(d)),
+                       function(L) a1^L / (1 - a1^2))
     expect_lt(max(abs(ll[s, ] - ref)), 1e-10 * max(abs(ref)))
   }
   skip_if_not_installed("loo")
   lo <- suppressWarnings(loo(ds))
   expect_true(is.finite(lo$estimates["elpd_loo", "Estimate"]))
+})
+
+test_that("conditional_effects(method = 'posterior_predict') on draws draws
+           at brms's sigma", {
+  skip_sampler()
+  # brms drops autocorrelation terms in conditional_effects()
+  # (incl_autocor = FALSE), so its predictive band is iid draws at its
+  # sigma, the innovation sd; frmtmb.sample's band reads the draws'
+  # sigma the same way. Through frmtmb 0.76.0 the draws' sigma was the
+  # marginal sd, 1 / sqrt(1 - 0.8^2) = 1.67 times the innovation sd of
+  # these data (0.5)
+  set.seed(20261028)
+  ng <- 20
+  k <- 8
+  d <- data.frame(t = rep(seq_len(k), ng), g = rep(seq_len(ng), each = k))
+  d$x <- stats::rnorm(nrow(d))
+  d$y <- 1 + 0.5 * d$x + unlist(lapply(seq_len(ng), function(i) {
+    as.numeric(stats::arima.sim(list(ar = 0.8), k, sd = 0.5))
+  }))
+  ds <- allow_warnings(suppressMessages(frm_sample(
+    y ~ x + ar(t, g, cov = TRUE), data = d, chains = 1, iter = 600,
+    seed = 3, refresh = 0)), c("Effective Samples Size", "R-hat"))
+  ce <- conditional_effects(ds, effects = "x", method = "posterior_predict",
+                            seed = 1)[[1L]]
+  half <- mean((ce$upper__ - ce$lower__) / (2 * stats::qnorm(0.975)))
+  # the innovation sd within a quarter of the factor's distance from 1
+  expect_lt(abs(half / 0.5 - 1), 0.25 * (1 / sqrt(1 - 0.8^2) - 1))
 })
 
 test_that("log_lik(newdata =) names only an alternative that answers", {

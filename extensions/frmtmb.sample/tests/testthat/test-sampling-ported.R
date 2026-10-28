@@ -20,7 +20,7 @@ test_that("frm_sample(prior=) works on a fixed-effects-only GLM", {
   # short-chain R-hat/ESS warnings are not what this test checks
   ds <- suppressWarnings(
     frm_sample(fit, chains = 1, iter = 800, refresh = 0,
-               prior = list(beta = prior_normal(0, 5))))
+               prior = set_prior("normal(0, 5)", class = "b")))
   m <- as.matrix(ds)
   expect_true("b_x" %in% colnames(m))
   # judged against the chain's own spread: a seeded chain is not
@@ -131,13 +131,15 @@ test_that("the formula route defaults to lkj(1) and takes an override", {
   r4 <- ds2$draws[, "theta_3"] / sqrt(1 + ds2$draws[, "theta_3"]^2)
   expect_lt(stats::sd(r4), stats::sd(r1))
 
-  # prior = "flat" opts out of the correlation default too, and the
-  # gate closes with it
+  # prior = "flat" replaces the correlation default with brms's (flat),
+  # flat on the Cholesky factor, which is proper, so the gate stays open
   ds3 <- suppressWarnings(suppressMessages(
     frm_sample(form, data = dd, chains = 1, iter = 500, refresh = 0,
                seed = 5, prior = "flat")))
-  expect_null(ds3$reparam)
-  expect_null(prior_summary(ds3))
+  expect_equal(ds3$reparam$blocks, 1L)
+  ps3 <- as.data.frame(prior_summary(ds3))
+  expect_true(all(ps3$prior == ""))
+  expect_true("cor" %in% ps3$class)
 })
 
 # ---- from tests/testthat/test-ordinal-fitted.R ----
@@ -359,7 +361,8 @@ test_that("a tight prior pulls the posterior toward it", {
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
   ds <- suppressWarnings(
     frm_sample(fit, chains = 1, iter = 600, refresh = 0, seed = 1,
-               prior = list(x = prior_normal(0, 0.01)))
+               prior = set_prior("normal(0, 0.01)", class = "b",
+                                 coef = "x"))
   )
   m <- as.matrix(ds)
   # shrunk to ~0: the posterior sd itself proves the prior bit, and the
@@ -767,7 +770,9 @@ test_that("a nonlinear parameter gets no default prior, as in brms", {
 test_that("prior-augmented objective equals nll + neg log prior", {
   dd <- sim_lmm()
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
-  pr <- list(x = prior_normal(0, 1), theta = prior_normal(0, 2))
+  # lognormal(0, 2) on the sd is normal(0, 2) on theta_1, its log
+  pr <- set_prior("normal(0, 1)", class = "b", coef = "x") +
+    set_prior("lognormal(0, 2)", class = "sd")
   ri <- frmtmb::resolve_prior_input(fit, pr)
   obj2 <- frmtmb.sample:::prior_augmented_obj(fit, ri$entries)
   est <- fit$opt$par

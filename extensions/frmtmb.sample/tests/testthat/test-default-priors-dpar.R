@@ -244,10 +244,11 @@ test_that("a mixture's sigmas take brms's default, its weights dirichlet(1)", {
   w <- exp(c(0.4, -1.1, 0)) / sum(exp(c(0.4, -1.1, 0)))
   expect_equal(-as.numeric(f(pars)), lgamma(3) + sum(log(w)),
                tolerance = 1e-12)
-  # prior = "flat" drops it with the other defaults
+  # prior = "flat" keeps it: dirichlet(1) is brms's (flat) on the
+  # weights (standata's con_theta is 1 under "" too)
   rf <- suppressWarnings(suppressMessages(
     frmtmb.sample:::sample_resolve_priors(fit, "flat")))
-  expect_false(isTRUE(rf$mix_theta))
+  expect_true(isTRUE(rf$mix_theta))
 })
 
 test_that("a natural-scale default is brms's density with the link Jacobian", {

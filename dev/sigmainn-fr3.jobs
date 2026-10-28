@@ -1,0 +1,2 @@
+frmtmb tests/testthat/test-autocor-sigma.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-loglik-autocor.R

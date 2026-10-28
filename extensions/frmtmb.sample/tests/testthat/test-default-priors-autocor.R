@@ -131,60 +131,61 @@ test_that("a bounds-only prior keeps the flat density on the coefficient", {
   expect_length(ru$lower, 0L)
 })
 
-test_that("the default on sigma is brms's, on the innovation sd", {
+test_that("the default on sigma is brms's, on sigma itself", {
   # brms's cholesky_cor_ar1(), _ma1() and _arma1() are covariances, so
-  # its sigma under a first-order cov = TRUE term is the innovation sd,
-  # sigma * c with c = 1 / sqrt(1 / (1 - ar^2)), 1 / sqrt(1 + ma^2) and
-  # sqrt((1 - ar^2) / (1 + ma^2 + 2 ar ma)); frmtmb's is the marginal sd.
-  # The default student_t is read at sigma * c with the Jacobian of the
-  # factor. Through frmtmb.sample 0.22.0 it was on the marginal sd, and
-  # frm_sample()'s ar posterior mean was 9.4 Monte Carlo standard errors
-  # from brms's (dev/acprior-innov.R)
+  # its sigma under a cov = TRUE term is the innovation sd, and so is
+  # frmtmb's since sigma became the innovation sd. The default
+  # student_t(3, 0, s) is brms's density at sigma = exp(eta), with the
+  # log link's Jacobian and no factor of the correlation parameters.
+  # frmtmb.sample 0.23.0 read it at sigma * c with the Jacobian of c,
+  # because frmtmb's sigma was the marginal sd.
   d <- dpa_data()
-  cases <- list(
-    list(y ~ x + ar(t, g, cov = TRUE),
-         function(n) sqrt(1 - n[1]^2)),
-    list(y ~ x + ma(t, g, cov = TRUE),
-         function(n) 1 / sqrt(1 + n[1]^2)),
-    list(y ~ x + arma(t, g, cov = TRUE),
-         function(n) sqrt((1 - n[1]^2) / (1 + n[2]^2 + 2 * n[1] * n[2]))))
-  for (cs in cases) {
-    fit <- frm(cs[[1]], data = d, dry_run = "objective")
+  for (fo in list(y ~ x + ar(t, g, cov = TRUE), y ~ x + ma(t, g, cov = TRUE),
+                  y ~ x + arma(t, g, cov = TRUE),
+                  y ~ x + ar(t, g, p = 2, cov = TRUE), y ~ x + cosy(t, g))) {
+    fit <- frm(fo, data = d, dry_run = "objective")
     ri <- dpa_ri(fit)
     ac <- fit$frame$autocor[[1L]]
     sg <- Filter(function(e) !identical(e$comp, "thetaac") &&
                    identical(e$dist$kind, "t") && identical(e$scale, "sd"),
                  ri$entries)
     expect_length(sg, 1L)
+    expect_null(sg[[1L]]$innov)
     sc <- sg[[1L]]$dist$scale
     nlp <- neg_log_prior_fn(sg)
     set.seed(2)
     v <- vapply(1:5, function(k) {
       p <- fit$frame$par_template
-      th <- stats::rnorm(ac$npar)
+      p[["thetaac"]][] <- stats::rnorm(ac$npar)
       eta <- stats::rnorm(1, -0.5, 0.5)
-      p[["thetaac"]][] <- th
       p[[sg[[1L]]$comp]][sg[[1L]]$idx] <- eta
-      cc <- cs[[2]](as.numeric(frmtmb:::autocor_natural(th, ac)))
-      # brms's density on sigma_i = exp(eta) c, carried to eta
-      ref <- stats::dt(exp(eta) * cc / sc, 3, log = TRUE) - log(sc) +
-        log(cc) + eta
+      # brms's density on sigma = exp(eta), carried to eta
+      ref <- stats::dt(exp(eta) / sc, 3, log = TRUE) - log(sc) + eta
       c(nlp(p), ref)
     }, c(0, 0))
     expect_lt(diff(range(colSums(v))) / max(abs(v)), 1e-10,
-              label = deparse(cs[[1]]))
+              label = deparse(fo))
   }
-  # the absent case: cosy's sigma is brms's marginal sd as well, so the
-  # default is read on sigma itself
-  fc <- frm(y ~ x + cosy(t, g), data = d, dry_run = "objective")
-  ec <- Filter(function(e) identical(e$dist$kind, "t") &&
-                 identical(e$scale, "sd"), dpa_ri(fc)$entries)
-  expect_length(ec, 1L)
-  expect_null(ec[[1L]]$innov)
+  # under sigma ~ x the default is on brms's Intercept_sigma, the log
+  # innovation sd at the predictor means, which no correlation
+  # parameter moves
+  fx <- frm(bf(y ~ x + ar(t, g, cov = TRUE), sigma ~ x), data = d,
+            dry_run = "objective")
+  ex <- Filter(function(e) identical(e$comp, "betad"), dpa_ri(fx)$entries)
+  expect_length(ex, 1L)
+  nlx <- neg_log_prior_fn(ex)
+  set.seed(4)
+  p <- fx$frame$par_template
+  p[["betad"]][] <- c(-0.4, 0.3)
+  vx <- vapply(1:5, function(k) {
+    p[["thetaac"]][] <- stats::rnorm(1, 0, 2)
+    nlx(p)
+  }, 0)
+  expect_identical(diff(range(vx)), 0)
   msg <- dpa_messages(frmtmb.sample:::sample_resolve_priors(
     frm(y ~ x + ar(t, g, cov = TRUE), data = d, dry_run = "objective"),
     NULL))
-  expect_true(any(grepl("innovation sd", msg, fixed = TRUE)))
+  expect_false(any(grepl("innovation sd", msg, fixed = TRUE)))
 })
 
 test_that("a bounded parameter is sampled through one logistic", {
@@ -267,14 +268,15 @@ test_that("the sampling route's table and message name brms's interval", {
                       route = "sample")
   expect_equal(unlist(ta[ta$class == "ar", c("lb", "ub")],
                       use.names = FALSE), c(-1, 1))
-  expect_identical(ta$prior[ta$class == "ar"], "uniform(-1, 1)")
+  # brms's (flat) with the interval in lb and ub, as brms prints it
+  expect_identical(ta$prior[ta$class == "ar"], "(flat)")
   # cov = FALSE: brms's unbounded (flat), which needs no density
   tc <- default_prior(y ~ x + ar(t, g), data = d, route = "sample")
   expect_identical(tc$prior[tc$class == "ar"], "(flat)")
   expect_true(all(is.na(unlist(tc[tc$class == "ar", c("lb", "ub")]))))
   fit <- frm(y ~ x + cosy(t, g), data = d, dry_run = "objective")
   msg <- dpa_messages(frmtmb.sample:::sample_resolve_priors(fit, NULL))
-  expect_true(any(grepl("cosy +uniform[(]-0.25, 1[)], lb = 0", msg)))
+  expect_true(any(grepl("cosy +[(]flat[)], lb = 0, ub = 1", msg)))
 })
 
 test_that("a registered term's bounded parameter follows the same rule", {
@@ -365,16 +367,19 @@ test_that("the sampling table passed back is the defaults' density", {
   }
 })
 
-test_that("frm()'s MAP under the sampling table is the sampler's mode", {
-  # the same prior on both routes: frm(prior = the sampling table) is
-  # the mode of the density frm_sample() samples by default
+test_that("frm()'s MAP under the sampling run's prior is its mode", {
+  # the same prior on both routes: frm(prior = the defaults the run
+  # applied, prior_summary()'s object) is the mode of the density
+  # frm_sample() samples by default. The printed table is not that
+  # prior on frm()'s route: its ar row is brms's (flat) with lb and ub,
+  # which frm() reads as a box with no density, as it reads every
+  # bounds-only specification
   set.seed(7)
   d <- dpa_data(seed = 7, ng = 20)
   fo <- y ~ x + ar(t, g, cov = TRUE)
-  tab <- default_prior(fo, data = d, route = "sample")
-  fmap <- frm(fo, data = d, prior = tab)
   fit <- frm(fo, data = d)
   rp <- suppressMessages(frmtmb.sample:::sample_resolve_priors(fit, NULL))
+  fmap <- frm(fo, data = d, prior = rp$effective)
   fit$prior <- rp$effective
   obj <- frmtmb.sample:::prior_augmented_obj(fit, rp$ri$entries)
   at_map <- fmap$opt$par
@@ -384,4 +389,26 @@ test_that("frm()'s MAP under the sampling table is the sampler's mode", {
   expect_lt(g0 / g1, 1e-3)
   # and the two objectives are the same function there
   expect_equal(obj$fn(at_map), fmap$obj$fn(at_map))
+})
+
+test_that("frm() reads the sampling table's (flat) ar row as a box", {
+  # brms's (flat) with lb and ub is no density; on frm()'s route a
+  # bounds-only row is a box, and a box at the ends of ar's interval
+  # bounds nothing, so the table's ar row adds nothing to the objective,
+  # where uniform(-1, 1) on ar adds the map's Jacobian
+  d <- dpa_data(seed = 7, ng = 20)
+  fo <- y ~ x + ar(t, g, cov = TRUE)
+  tab <- default_prior(fo, data = d, route = "sample")
+  expect_identical(tab$prior[tab$class == "ar"], "(flat)")
+  f_tab <- frm(fo, data = d, prior = tab)
+  f_noar <- frm(fo, data = d, prior = tab[tab$class != "ar", ])
+  f_unif <- frm(fo, data = d,
+                prior = as.brmsprior(tab[tab$class != "ar", ]) +
+                  set_prior("uniform(-1, 1)", class = "ar", lb = -1,
+                            ub = 1))
+  expect_identical(f_tab$opt$par, f_noar$opt$par)
+  # the uniform moves the fit, judged against the size of the estimate
+  k <- which(names(f_tab$opt$par) == "thetaac")
+  expect_gt(abs(f_unif$opt$par[k] - f_tab$opt$par[k]),
+            0.01 * abs(f_tab$opt$par[k]))
 })

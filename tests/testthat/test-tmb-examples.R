@@ -243,10 +243,9 @@ test_that("transform: a latent AR(1) field pushed through a gamma quantile", {
   # called function up in RTMB first - so this is now the compatibility
   # case: the old spelling still reaches the same fit. The bare spelling
   # is checked against it in test-nl-rtmb-scope.R.
-  # pinning a theta position: lb = ub is the map= equivalent, written
-  # in the prior vocabulary
-  pin <- set_prior("", class = "theta", coef = "theta_1", lb = 0,
-                   ub = 0)
+  # pinning the ar1() block's sd at 1 (its log at 0): lb = ub is the
+  # map= equivalent, written in the prior vocabulary
+  pin <- set_prior("", class = "sd", nlpar = "z", lb = 1, ub = 1)
   fit <- suppressWarnings(
     frm(bf(y ~ RTMB::qgamma(RTMB::pnorm(z), shape, scale),
            z ~ 0 + ar1(tim + 0 | g), shape ~ 1, scale ~ 1, nl = TRUE),
@@ -283,8 +282,7 @@ test_that("transform2: the same field through a beta quantile", {
                          random = "u", silent = TRUE)
   opt <- suppressWarnings(nlminb(obj$par, obj$fn, obj$gr, lower = 1e-6))
 
-  pin <- set_prior("", class = "theta", coef = "theta_1", lb = 0,
-                   ub = 0)
+  pin <- set_prior("", class = "sd", nlpar = "z", lb = 1, ub = 1)
   fit <- suppressWarnings(
     frm(bf(y ~ RTMB::qbeta(RTMB::pnorm(z), shape1, shape2),
            z ~ 0 + ar1(tim + 0 | g), shape1 ~ 1, shape2 ~ 1, nl = TRUE),

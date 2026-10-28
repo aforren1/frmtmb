@@ -449,6 +449,16 @@ mo_re_link <- function(lp, components, re_blocks, comp_block, comp_offset) {
                  "formula does not have. Add the population-level term, ",
                  "e.g. y ~ mo(x) + (mo(x) | g)", call. = FALSE)
       }
+      if (identical(as.integer(lp[["mo"]][[k]][["D"]]), 0L)) {
+        # the column is 0 on every row, so a variance of its coefficient
+        # over the levels has nothing to act on; fitted, it printed its
+        # start value as an estimate
+        frm_stop(cp$cnms[cf], " in ", cp$label, ": ",
+                 deparse1(lp[["mo"]][[k]][["expr"]]), " has one value, so ",
+                 "the mo() term is 0 on every row and its coefficient ",
+                 "cannot vary over the levels of a group. Remove it from ",
+                 "the group-level term", call. = FALSE)
+      }
       cols <- bk[["c_idx"]][(seq_len(bk[["n_levels"]]) - 1L) * bk[["dim"]] +
                               comp_offset[ci] + cf]
       out[[length(out) + 1L]] <- list(cols = cols, mo = k)
@@ -3842,10 +3852,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           D_mo <- max(codes)
           mo_levels <- NULL
         }
-        if (D_mo < 2L) {
-          frm_stop("mo() needs at least 3 ordered categories; mo(",
-                   deparse1(mexpr), ") has ", D_mo + 1L, call. = FALSE)
-        }
+        # Two categories (D = 1) are brms's Jmo = 1: a simplex of one
+        # weight, fixed at 1, so the term is its coefficient times the
+        # code and has no free coordinate. One category (D = 0) is Jmo =
+        # 0: the term is 0 on every row, and the data do not determine
+        # its coefficient.
         sp <- mo_sp[[ei]]
         for (cj in seq_along(sp$labels)) {
           # one simplex per COLUMN, never shared between a main effect
@@ -3853,7 +3864,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           # levels of a factor it is crossed with: brms fits each column
           # of its sp model matrix with its own simplex and coefficient
           zname <- paste0("zeta", length(extras) + 1L)
-          extras[[zname]] <- numeric(D_mo - 1L)
+          extras[[zname]] <- numeric(max(D_mo - 1L, 0L))
           lab <- sp$labels[[cj]]
           X <- cbind(X, matrix(0, nrow(X), 1,
                                dimnames = list(NULL, lab)))

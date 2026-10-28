@@ -203,6 +203,145 @@ test_that("log_lik of aysm_laplace models runs without errors", {
   })
 })
 
+test_that("log_lik for multivariate linear models runs without errors", {
+  withr::local_seed(91L)
+  brms_setup("log_lik:92",
+    ns <- 10
+  )
+  brms_setup("log_lik:93",
+    nvars <- 3
+  )
+  brms_setup("log_lik:94",
+    ncols <- 4
+  )
+  brms_setup("log_lik:95",
+    nobs <- nvars * ncols
+  )
+  brms_setup("log_lik:96",
+    prep <- structure(list(), class = "mvbrmsprep")
+  )
+  brms_setup("log_lik:97", {
+    Sigma = array(cov(matrix(rnorm(300), ncol = 3)), dim = c(3, 3, 10))
+  })
+  brms_setup("log_lik:98",
+    prep$mvpars <- list(
+      Mu = array(rnorm(ns*nobs*nvars), dim = c(ns, nobs, nvars)),
+      Sigma = aperm(Sigma, c(3, 1, 2))
+    )
+  )
+  brms_setup("log_lik:102",
+    prep$dpars <- list(nu = rgamma(ns, 5))
+  )
+  brms_setup("log_lik:103",
+    prep$ndraws <- ns
+  )
+  brms_setup("log_lik:104",
+    prep$data <- list(Y = matrix(rnorm(nobs), ncol = nvars))
+  )
+  brms_value_mark()
+  brms_setup("log_lik:106",
+    ll <- brms_adapt_log_lik("gaussian_mv", 1, prep = prep)
+  )
+  brms_port("log_lik:107", "pass",
+    "",
+    expect_equal(length(ll), ns)
+  )
+  brms_value_check("log_lik:107", "ll", "holds", {
+    ll <- brms:::log_lik_gaussian_mv(1, prep = prep)
+  })
+  brms_value_mark()
+  brms_setup("log_lik:108",
+    ll <- brms_adapt_log_lik("student_mv", 2, prep = prep)
+  )
+  brms_port("log_lik:109", "pass",
+    "",
+    expect_equal(length(ll), ns)
+  )
+  brms_value_check("log_lik:109", "ll", "holds", {
+    ll <- brms:::log_lik_student_mv(2, prep = prep)
+  })
+})
+
+test_that("log_lik for ARMA models runs without errors", {
+  withr::local_seed(112L)
+  brms_setup("log_lik:113",
+    ns <- 20
+  )
+  brms_setup("log_lik:114",
+    nobs <- 15
+  )
+  brms_setup("log_lik:115",
+    prep <- structure(list(ndraws = ns), class = "brmsprep")
+  )
+  brms_setup("log_lik:116",
+    prep$dpars <- list(
+      mu = matrix(rnorm(ns*nobs), ncol = nobs),
+      sigma = rchisq(ns, 3),
+      nu = rgamma(ns, 5) + 15
+    )
+  )
+  brms_setup("log_lik:121",
+    prep$ac <- list(
+      ar = matrix(rbeta(ns, 0.5, 0.5), ncol = 1),
+      ma = matrix(rbeta(ns, 0.2, 1), ncol = 1),
+      begin_tg = 2, end_tg = 5, acframe = brms_adapt_acframe("arma")
+    )
+  )
+  brms_setup("log_lik:126",
+    prep$data <- list(Y = rnorm(nobs))
+  )
+  brms_setup("log_lik:128",
+    prep$family$fun <- "gaussian_time"
+  )
+  brms_value_mark()
+  brms_setup("log_lik:129",
+    ll <- brms_adapt_log_lik("gaussian_time", 1, prep = prep)
+  )
+  brms_port("log_lik:130", "pass",
+    paste0(
+      "pass on an adapted input: brms's rows, as written, exercise ",
+      "its known-standard-error covariance: the prep carries se ",
+      "and no acframe, so brms's get_cov_matrix_ac() builds ",
+      "sigma^2 I + diag(se^2) and ar and ma never enter. The port ",
+      "swaps that for the ARMA covariance: it drops se and adds an ",
+      "acframe naming arma. It has to, because brms 2.23.0 fits ",
+      "se() beside a cov = TRUE term (normal_time_hom_se_lpdf()) ",
+      "and frmtmb refuses that combination, a parity gap. brms's ",
+      "assertion (the dimensions) holds on the adapted prep, and ",
+      "for log_lik the value check against brms's own function on ",
+      "it holds too, with brms's sigma read as frmtmb's."),
+    expect_equal(dim(ll), c(ns, 4))
+  )
+  brms_value_check("log_lik:130", "ll", "holds", {
+    ll <- brms:::log_lik_gaussian_time(1, prep = prep)
+  })
+  brms_setup("log_lik:131",
+    prep$family$fun <- "student_time"
+  )
+  brms_value_mark()
+  brms_setup("log_lik:132",
+    ll <- brms_adapt_log_lik("student_time", 1, prep = prep)
+  )
+  brms_port("log_lik:133", "pass",
+    paste0(
+      "pass on an adapted input: brms's rows, as written, exercise ",
+      "its known-standard-error covariance: the prep carries se ",
+      "and no acframe, so brms's get_cov_matrix_ac() builds ",
+      "sigma^2 I + diag(se^2) and ar and ma never enter. The port ",
+      "swaps that for the ARMA covariance: it drops se and adds an ",
+      "acframe naming arma. It has to, because brms 2.23.0 fits ",
+      "se() beside a cov = TRUE term (normal_time_hom_se_lpdf()) ",
+      "and frmtmb refuses that combination, a parity gap. brms's ",
+      "assertion (the dimensions) holds on the adapted prep, and ",
+      "for log_lik the value check against brms's own function on ",
+      "it holds too, with brms's sigma read as frmtmb's."),
+    expect_equal(dim(ll), c(ns, 4))
+  )
+  brms_value_check("log_lik:133", "ll", "holds", {
+    ll <- brms:::log_lik_student_time(1, prep = prep)
+  })
+})
+
 test_that("log_lik for SAR models runs without errors", {
   withr::local_seed(136L)
   brms_setup("log_lik:137",

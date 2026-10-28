@@ -81,8 +81,8 @@ test_that("get_prior enumerates slots set_prior accepts", {
                    g = factor(rep(1:6, 10)))
   gp <- get_prior(bf(y ~ x + (x | g), sigma ~ x) + gaussian(),
                   data = dd)
-  expect_setequal(unique(gp$class),
-                  c("Intercept", "b", "sd", "cor", "theta"))
+  # no class theta: every covariance parameter here has a class
+  expect_setequal(unique(gp$class), c("Intercept", "b", "sd", "cor"))
   expect_true("x" %in% gp$coef[gp$class == "b" & gp$dpar == ""])
   expect_true("x" %in% gp$coef[gp$class == "b" & gp$dpar == "sigma"])
   expect_true("g" %in% gp$group[gp$class == "sd"])
@@ -92,8 +92,9 @@ test_that("get_prior enumerates slots set_prior accepts", {
   expect_false("cor" %in%
                  get_prior(bf(y ~ x + (1 | g)) + gaussian(),
                            data = dd)$class)
-  # (x | g) us block: two log-sds plus one correlation parameter
-  expect_equal(sum(gp$class == "theta" & nzchar(gp$coef)), 3L)
+  # (x | g) us block: two sds, each with its own class sd row
+  expect_equal(sum(gp$class == "sd" & gp$group == "g" & nzchar(gp$coef)),
+               2L)
 
   # every concrete slot round-trips through set_prior into a MAP fit
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)

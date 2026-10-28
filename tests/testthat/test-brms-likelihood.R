@@ -1297,17 +1297,17 @@ test_that("row 18: ar(p = 1), cosy and unstr residual correlation", {
                          ac)[["ar[1]"]]
   expect_lt(abs(pars[["ar"]][[1]] - arv), 1e-14)
 
-  # brms's sigma here is NOT frmtmb's sigma. Its cholesky_cor_ar1()
-  # returns the Cholesky factor of T / (1 - ar^2) rather than of the
-  # correlation matrix T, so what multiplies it is the INNOVATION SD
-  # while frmtmb's sigma is the marginal residual SD. Same model, two
-  # scales; without the correction check A misses by 5.28 nats on this
-  # design and the gradient is 58.
+  # brms's cholesky_cor_ar1() returns the Cholesky factor of
+  # T / (1 - ar^2) rather than of the correlation matrix T, so what
+  # multiplies it is the INNOVATION SD, and that is frmtmb's sigma too:
+  # the translator hands brms frmtmb's sigma unchanged. Through frmtmb
+  # 0.76.0 frmtmb's sigma was the marginal SD and the translator scaled
+  # it by sqrt(1 - ar^2); with that scaling left in, check A misses by
+  # 6.64 nats on this design and the gradient is 82.
   expect_match(code, "return cholesky_decompose(mat ./ (1 - ar^2));",
                fixed = TRUE)
-  expect_lt(abs(pars[["sigma"]] -
-                  exp(fixef_by_dpar(fit_ar)$sigma[["(Intercept)"]]) *
-                    sqrt(1 - arv^2)), 1e-12)
+  expect_identical(unname(pars[["sigma"]]),
+                   unname(exp(fixef_by_dpar(fit_ar)$sigma[["(Intercept)"]])))
   brms_lp_check(bform, gaussian(), d18, fit_ar)
 
   # cosy(): brms bounds the compound-symmetry correlation on [0, 1] and
@@ -1338,6 +1338,30 @@ test_that("row 18: ar(p = 1), cosy and unstr residual correlation", {
                      as.integer(sdat_un$n_unique_t)))
   expect_lt(max(abs(rowSums(pars_un[["Lcortime"]]^2) - 1)), 1e-12)
   brms_lp_check(bform_un, gaussian(), d18, fit_un)
+})
+
+test_that("row 18e: ma(), arma() and sigma ~ x read brms's sigma", {
+  skip_unless_brms_fit()
+  # brms's cholesky_cor_ma1() and cholesky_cor_arma1() are covariances at
+  # unit innovation variance as well, and under sigma ~ x brms's
+  # normal_time_het_lpdf() scales them row by row by exp(Intercept_sigma
+  # + ...), the innovation sd. frmtmb's sigma, and its sigma
+  # coefficients, are those quantities, so brms's log density at frmtmb's
+  # estimates, handed over unchanged, is frmtmb's logLik, and its
+  # gradient is zero there. Through frmtmb 0.76.0 frmtmb's sigma was the
+  # marginal sd, and this check failed on all three models.
+  d18 <- brms_ac_data()
+  set.seed(31)
+  d18$x2 <- rnorm(nrow(d18))
+  for (bf_txt in c("y ~ x + ma(time, gr = g, cov = TRUE)",
+                   "y ~ x + arma(time, gr = g, cov = TRUE)")) {
+    fo <- stats::as.formula(bf_txt)
+    fit <- frm(bf(fo) + gaussian(), data = d18)
+    brms_lp_check(brms::bf(fo), gaussian(), d18, fit)
+  }
+  fo <- y ~ x + ar(time, gr = g, cov = TRUE)
+  fit <- frm(bf(fo, sigma ~ x2) + gaussian(), data = d18)
+  brms_lp_check(brms::bf(fo, sigma ~ x2), gaussian(), d18, fit)
 })
 
 test_that("row 18d: brms's default cov = FALSE ARMA is an identity", {

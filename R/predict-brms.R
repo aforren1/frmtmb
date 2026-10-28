@@ -267,6 +267,8 @@ predict.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
                                sample_new_levels = NULL,
                                propagate_error = TRUE) {
   require_structure_packages(object)
+  # its draws are taken at sigma's value
+  autocor_check_fit(object)
   frm_check_dots(..., .unsupported = predict_type_retired)
   require_fitted(object, "predict()")
   check_flag(summary, "summary")
@@ -1182,7 +1184,10 @@ predict_par_drawer <- function(object, propagate_error, ndraws) {
   # their boundary (held at zero, as the boundary message said) draws
   # from the covariance that holds them; any other loss keeps the
   # plug-in fallback and its warning
-  if (!is.null(ds$jc) && !isTRUE(ds$boundary_only)) V <- NULL
+  if (!is.null(ds$jc) && !isTRUE(ds$boundary_only) &&
+        !isTRUE(ds$mo_const_only)) {
+    V <- NULL
+  }
   # a covariance held as a factor (se_reparam_cov()) is drawn through
   # it: chol() of the whole matrix refuses one that ill-conditioned, or
   # returns a factor with none of its digits

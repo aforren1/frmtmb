@@ -37,7 +37,7 @@
 local({
 # The same libraries as run-tests.R: FRMTMB_RELLIB ahead of the release
 # library, for a lane's build. Change LIB in both files at a release.
-LIB <- "C:/Users/adf44/source/r/rellib-r14"
+LIB <- "C:/Users/adf44/source/r/rellib-r15"
 .libPaths(c(if (nzchar(Sys.getenv("FRMTMB_RELLIB"))) {
   Sys.getenv("FRMTMB_RELLIB")
 }, LIB, "C:/Users/adf44/AppData/Local/R/win-library/4.6"))

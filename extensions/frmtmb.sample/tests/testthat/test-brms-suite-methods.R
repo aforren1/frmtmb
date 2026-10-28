@@ -227,9 +227,12 @@ test_that("as.mcmc has reasonable ouputs", {
   )
   brms_port("brmsfit-methods:107", "cannot transfer",
     paste0(
-      "as.mcmc(inc_warmup = TRUE): frm_sample() stores no warmup, ",
-      "a recorded gap (dev/brms-api-diff.md (c), 'Blocked, not ",
-      "small'), not a decision"),
+      "reads fit1$fit@sim$iter: in brms fit1$fit is the stanfit, ",
+      "here it is the frmtmb fit, which has no @sim. The warmup ",
+      "itself is stored now: dim(as.mcmc(fit1, inc_warmup = ",
+      "TRUE)[[1]]) is 75 x the variable count, brms's shape for ",
+      "the fixture's 1 chain of 75 with 50 warmup ",
+      "(dev/priordraws-findings.md, section 7)"),
     expect_equal(dim(SW(as.mcmc(fit1, inc_warmup = TRUE)[[1]])),
                  c(fit1$fit@sim$iter, length(variables(fit1))))
   )
@@ -436,21 +439,19 @@ test_that("prior_draws has reasonable outputs", {
       "sd_visit", "cor_visit"
     )
   )
-  brms_port("brmsfit-methods:794", "cannot transfer",
-    paste0(
-      "frmtmb.sample stores no prior draws, brms's sample_prior ",
-      "(D10)"),
+  brms_port("brmsfit-methods:794", "pass",
+    "",
     expect_equal(colnames(prs1), prior_names)
   )
   brms_setup("brmsfit-methods:796",
     prs2 <- prior_draws(fit1, variable = "b_Trt1")
   )
-  brms_port("brmsfit-methods:797", "cannot transfer",
-    "frmtmb.sample stores no prior draws (D10)",
+  brms_port("brmsfit-methods:797", "pass",
+    "",
     expect_equal(dimnames(prs2), list(as.character(1:ndraws(fit1)), "b_Trt1"))
   )
-  brms_port("brmsfit-methods:798", "cannot transfer",
-    "frmtmb.sample stores no prior draws (D10)",
+  brms_port("brmsfit-methods:798", "pass",
+    "",
     expect_equal(sort(prs1$b), sort(prs2$b_Trt))
   )
   brms_setup("brmsfit-methods:801",
@@ -458,8 +459,11 @@ test_that("prior_draws has reasonable outputs", {
   )
   brms_port("brmsfit-methods:802", "cannot transfer",
     paste0(
-      "prior_draws() on fit1$fit, the stanfit, and no prior draws ",
-      "(D10)"),
+      "prior_draws() on fit1$fit: in brms the stanfit, here the ",
+      "frmtmb fit, which carries no draws. prior_draws(fit1) ",
+      "itself answers with brms's names and values ",
+      "(brmsfit-methods:794, 797 and 798 pass; ",
+      "dev/priordraws-findings.md, section 7)"),
     expect_equal(names(prs), "prior_sd_visit")
   )
 })

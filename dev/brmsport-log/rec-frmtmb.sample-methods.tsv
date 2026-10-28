@@ -45,7 +45,7 @@ assert	frmtmb.sample	brmsfit-methods:102	cannot transfer	FALSE	TRUE	STALE: reads
 assert	frmtmb.sample	brmsfit-methods:103	cannot transfer	FALSE	TRUE	STALE: reads 'chains', whose last assignment failed: no applicable method for `@` applied to an object of class "frmtmb_fit"		FALSE
 setup	frmtmb.sample	brmsfit-methods:104		TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:105	pass	TRUE	FALSE			TRUE
-assert	frmtmb.sample	brmsfit-methods:107	cannot transfer	FALSE	FALSE	ERROR: as.mcmc(inc_warmup = TRUE) has nothing to include: the draws matrix holds the post-warmup draws only, which is what frm_sample() keeps. The warmup, if the sampler saved it, is in `x$stanfit`		FALSE
+assert	frmtmb.sample	brmsfit-methods:107	cannot transfer	FALSE	FALSE	ERROR: no applicable method for `@` applied to an object of class "frmtmb_fit"		FALSE
 assert	frmtmb.sample	brmsfit-methods:578	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:579	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:580	pass	TRUE	FALSE			TRUE
@@ -79,11 +79,11 @@ assert	frmtmb.sample	brmsfit-methods:714	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:718	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:719	pass	TRUE	FALSE		Method 'pp_mixture' can only be applied to mixture models.	TRUE
 assert	frmtmb.sample	brmsfit-methods:779	pass	TRUE	FALSE			TRUE
-setup	frmtmb.sample	brmsfit-methods:788		FALSE	FALSE	could not find function "prior_draws"		FALSE
+setup	frmtmb.sample	brmsfit-methods:788		TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:789		TRUE	FALSE			TRUE
-assert	frmtmb.sample	brmsfit-methods:794	cannot transfer	FALSE	TRUE	STALE: reads 'prs1', whose last assignment failed: could not find function "prior_draws"		FALSE
-setup	frmtmb.sample	brmsfit-methods:796		FALSE	FALSE	could not find function "prior_draws"		FALSE
-assert	frmtmb.sample	brmsfit-methods:797	cannot transfer	FALSE	TRUE	STALE: reads 'prs2', whose last assignment failed: could not find function "prior_draws"		FALSE
-assert	frmtmb.sample	brmsfit-methods:798	cannot transfer	FALSE	TRUE	STALE: reads 'prs1', whose last assignment failed: could not find function "prior_draws"		FALSE
-setup	frmtmb.sample	brmsfit-methods:801		FALSE	FALSE	could not find function "prior_draws"		FALSE
-assert	frmtmb.sample	brmsfit-methods:802	cannot transfer	FALSE	TRUE	STALE: reads 'prs', whose last assignment failed: could not find function "prior_draws"		FALSE
+assert	frmtmb.sample	brmsfit-methods:794	pass	TRUE	FALSE			TRUE
+setup	frmtmb.sample	brmsfit-methods:796		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:797	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:798	pass	TRUE	FALSE			TRUE
+setup	frmtmb.sample	brmsfit-methods:801		FALSE	FALSE	cannot coerce class '"frmtmb_fit"' to a data.frame		FALSE
+assert	frmtmb.sample	brmsfit-methods:802	cannot transfer	FALSE	TRUE	STALE: reads 'prs', whose last assignment failed: cannot coerce class '"frmtmb_fit"' to a data.frame		FALSE

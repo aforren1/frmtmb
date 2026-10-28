@@ -6,6 +6,7 @@ S3method("$",ranef_frmtmb)
 S3method("$<-",frmtmb_priorlist)
 S3method("+",frmtmb_bform)
 S3method("+",frmtmb_priorlist)
+S3method("[",frmtmb_prior_rows)
 S3method("[[",ranef_frmtmb)
 S3method(LOO,frmtmb_fit)
 S3method(VarCorr,frmtmb_fit)
@@ -48,6 +49,7 @@ S3method(brms::pp_mixture,frmtmb_fit)
 S3method(brms::reloo,frmtmb_fit)
 S3method(brms::stancode,frmtmb_fit)
 S3method(brms::standata,frmtmb_fit)
+S3method(c,frmtmb_prior_rows)
 S3method(c,frmtmb_priorlist)
 S3method(coef,frmtmb_fit)
 S3method(coef,frmtmb_multiple)
@@ -80,6 +82,7 @@ S3method(formula,frmtmb_multiple)
 S3method(hypothesis,frmtmb_fit)
 S3method(hypothesis,frmtmb_multiple)
 S3method(influence,frmtmb_fit)
+S3method(insight::.get_sigma,frmtmb_fit)
 S3method(insight::find_formula,frmtmb_fit)
 S3method(insight::find_random,frmtmb_fit)
 S3method(insight::find_statistic,frmtmb_fit)
@@ -285,7 +288,6 @@ export(build_objective, row_lpdf, with_cs_offsets,
   rescor_row_loglik,
   autocor_flat_priors,
   autocor_bound_chart,
-  autocor_innov_sd,
   autocor_row_loglik,
   arma_cond_resp, arma_cond_dpars, arma_cond_fill_dpars,
   arma_cond_fill_epred, response_codes_newdata, subset_resp_check,

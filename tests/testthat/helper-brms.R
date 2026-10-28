@@ -816,8 +816,7 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       # response carries its own family.
       fe <- brms_fe_of(fit, nm)
       link <- brms_link_of(fit, brms_lp_parts(fit, nm))
-      out[[nm]] <- as.numeric(link$linkinv(fe[["(Intercept)"]])) *
-        brms_sigma_scale(fit, code, nm)
+      out[[nm]] <- as.numeric(link$linkinv(fe[["(Intercept)"]]))
     } else {
       stop("no translation rule for Stan parameter ", nm)
     }
@@ -1194,27 +1193,3 @@ brms_basis_map <- function(zb, zf, orthogonal = TRUE, tol = 1e-8) {
   amat
 }
 
-# brms's sigma is not always frmtmb's sigma.
-#
-# For ar(cov = TRUE) the generated cholesky_cor_ar1() returns the
-# Cholesky factor of T / (1 - ar^2), not of the correlation matrix T,
-# and normal_time_hom_lpdf multiplies it by sigma. So brms's sigma is
-# the INNOVATION standard deviation of the AR process and frmtmb's is
-# the marginal residual SD: the same model, two scales, related by
-# sqrt(1 - ar^2). cosy() and unstr() carry proper correlation matrices
-# and need no correction.
-#
-# The rule keys on the function brms actually emitted rather than on the
-# family or the formula, so a program that stops dividing stops being
-# corrected.
-brms_sigma_scale <- function(fit, code, nm) {
-  if (!identical(brms_lp_parts(fit, nm)$dpar, "sigma")) {
-    return(1)
-  }
-  if (!grepl("cholesky_cor_ar1", code, fixed = TRUE)) {
-    return(1)
-  }
-  ac <- brms_autocor_of(fit)
-  nat <- autocor_natural(fit$estimates[["thetaac"]][ac[["theta_idx"]]], ac)
-  sqrt(1 - nat[["ar[1]"]]^2)
-}

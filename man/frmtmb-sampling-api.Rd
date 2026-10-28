@@ -91,7 +91,6 @@
 \alias{rescor_row_loglik}
 \alias{autocor_flat_priors}
 \alias{autocor_bound_chart}
-\alias{autocor_innov_sd}
 \alias{autocor_row_loglik}
 \alias{arma_cond_resp}
 \alias{arma_cond_dpars}
@@ -152,10 +151,19 @@ arguments the way the user-facing surface does.
 
 \code{build_objective(frame)} returns the bare negative log-likelihood
 closure of an assembled frame, ready for \code{RTMB::MakeADFun()}. It
-honors two fields a caller may set on a COPY of the frame:
-\code{frame$map}, and \code{frame$ncp_blocks}, the indices of the
+honors three fields a caller may set on a COPY of the frame:
+\code{frame$map}; \code{frame$ncp_blocks}, the indices of the
 random-effect blocks to build in their non-centered form
-(\verb{b = L(theta) z}). A prior-augmented objective is this closure plus
+(\verb{b = L(theta) z}); and \code{frame$prior_only}. With \code{prior_only = TRUE}
+the closure leaves out every response density and keeps the rest:
+the densities of the random-effect blocks, of the \code{me()} latent
+values and their measurements, and the measurement density of a
+\code{mi(sdy)} response, observed values around their latent ones. A
+missing value of an \code{mi()} term has no density left, as in brms.
+These are the terms brms keeps outside
+\verb{if (!prior_only)} under \code{brm(sample_prior = "only")}, so this closure
+plus \code{neg_log_prior_fn()}'s is the prior of the whole model. A
+prior-augmented objective is this closure plus
 \code{neg_log_prior_fn()}'s.
 
 \code{row_lpdf(fam, y, yobs, dpars, aterms, extra)} is the per-row
@@ -248,10 +256,12 @@ likelihood and not a sampler (\code{?frm}, "Monotonic effects").
 the softmax (\code{chart = "softmax"}, log ratios to the first weight).
 \code{mo_chart_frame(frame, chart)} is a copy of the frame whose objective
 reads every simplex in \code{chart}, and \code{mo_frame_terms(fit)} lists each
-term's simplex component, its size and brms's names for its weights,
-\verb{simo_<label>1[k]}; \code{simplex_frame_terms(fit)} adds each simplex a
-family declares (\code{frmtmb_family(simplex_pars =)}) under its brms name,
-\code{sbhaz[k]} for frmtmb.survival's \code{cox()} baseline, with \code{kind} the
+term's simplex component, its size \code{D} (0 for one category, 1 for two,
+a weight fixed at 1), brms's names for its weights,
+\verb{simo_<label>1[k]}, and the label; \code{simplex_frame_terms(fit)} adds
+each simplex a family declares (\code{frmtmb_family(simplex_pars =)})
+under its brms name, \code{sbhaz[k]} for frmtmb.survival's \code{cox()} baseline,
+with \code{kind} the
 family's name; the chart frame reads those the same way.
 \code{summary_mo_frame(fit, prob)} is the weights'
 table \code{summary()} prints: each weight with its delta-method standard
@@ -319,10 +329,7 @@ row, because its coefficients are the internal parameters.
 \code{autocor_bound_chart(fit, lower, upper)} gives, for each bounded
 first-order residual-correlation parameter, a chart that samples it
 through one logistic onto its natural interval, with the map to the
-internal parameter and its log Jacobian. \code{autocor_innov_sd(fit)}
-names the responses whose \code{sigma} brms reads as the innovation sd of
-a first-order \code{cov = TRUE} \code{ar()}, \code{ma()} or \code{arma()}, where the
-default prior on \code{sigma} is read on that sd.
+internal parameter and its log Jacobian.
 
 \code{frmtmb_register_prior_defaults()} is the other direction: it lets a
 package tell \code{\link[=get_prior]{get_prior()}} what defaults it would apply.

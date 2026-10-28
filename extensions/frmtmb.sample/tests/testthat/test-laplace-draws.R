@@ -324,12 +324,13 @@ test_that("laplace = TRUE refuses where a REML objective holds beta too", {
   dd <- lap_data()
   fr <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd,
             REML = TRUE)
-  # sampled as it stands, the REML objective integrates the coefficients,
-  # and the draws used to carry b_Intercept over theta's values
+  # sampled as it stands, as check_laplace() samples it, the REML
+  # objective integrates the coefficients, and the draws used to carry
+  # b_Intercept over theta's values
   expect_error(
     allow_warnings(suppressMessages(
       frm_sample(fr, chains = 1, iter = 200, refresh = 0, seed = 3,
-                 laplace = TRUE, prior = "flat")), "flat"),
+                 laplace = TRUE, .diagnostic = TRUE)), "flat"),
     "would integrate the population-level coefficients", fixed = TRUE)
   # the default priors rebuild the objective with beta sampled
   ds <- allow_warnings(suppressMessages(

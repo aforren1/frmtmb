@@ -42,7 +42,10 @@ autocor_row_loglik <- function(fit, dpv, resp) {
   pt <- if (autocor_is_seam(ac)) {
     autocor_seam_loo_parts(ac, y, mu, sigma, th)
   } else {
-    autocor_group_loo_parts(ac, y, mu, rep_len(sigma, n), th)
+    # the group's covariance is D R D in the marginal sds
+    autocor_group_loo_parts(ac, y, mu,
+                            autocor_marg_sigma(rep_len(sigma, n), th, ac),
+                            th)
   }
   nu <- if (isTRUE(ac[["student"]])) as.numeric(dp[["nu"]])[1L] else NULL
   autocor_loo_density(pt, nu)
@@ -50,10 +53,10 @@ autocor_row_loglik <- function(fit, dpv, resp) {
 
 #' The leave-one-out pieces of the ar() family, one correlation pattern
 #' at a time: `g = Q e`, `cbar = diag(Q)`, each row's group quadratic
-#' form `e'Qe` and group size `k`. With `D = diag(sigma)` and `R` the
-#' pattern's correlation, `Q = D^-1 R^-1 D^-1`, so on the standardized
-#' residuals `z` the pattern needs one `k x k` inverse for all its
-#' groups.
+#' form `e'Qe` and group size `k`. With `D = diag(sigma)`, `sigma` the
+#' marginal sd of each row, and `R` the pattern's correlation,
+#' `Q = D^-1 R^-1 D^-1`, so on the standardized residuals `z` the
+#' pattern needs one `k x k` inverse for all its groups.
 #'
 #' @noRd
 autocor_group_loo_parts <- function(ac, y, mu, sigma, th) {

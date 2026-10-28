@@ -58,11 +58,12 @@ by \code{resp}, with \code{lb} and \code{ub} where the parameter lives on an
 interval (brms's -1 and 1 on a first-order \code{cov = TRUE} \code{ar} or \code{ma};
 for \code{cosy}, frm()'s window \code{-1/(d - 1)} to 1 on the default route and
 brms's 0 to 1 on \code{route = "sample"}); class \code{"rescor"} has one row
-and takes no \code{resp}; and class \code{"theta"} rows name the raw internal
-covariance parameters (escape hatch, including correlations one at a
-time, across all three covariance components), except a
-residual-correlation parameter that one of those classes reaches,
-which has that class as its one row, as in brms. Where the location
+and takes no \code{resp}; and class \code{"theta"} rows name the internal
+covariance parameters that no brms class reaches (a \code{toep()}
+correlation, a registered structure's own parameter), on the
+internal scale. A parameter that a class reaches (a standard
+deviation, an LKJ correlation, \code{rescor}, a residual-correlation
+parameter) has that class as its one row, as in brms. Where the location
 is several distributional parameters (a categorical or mixture
 model), each one's \code{b}, \code{Intercept} and \code{sd} rows carry its \code{dpar},
 as in brms.
@@ -87,11 +88,10 @@ brms. See the Ordinal thresholds section of \code{\link[=set_prior]{set_prior()}
 \section{Where the table differs from brms's}{
 
 The class \code{"theta"} rows are frmtmb's own. They name the internal
-covariance parameters, which are real parameters of the fit, and for
-a \code{gp()} length-scale, a \code{car()} dependence parameter or one entry of
-a structured covariance they are the only spelling that reaches one
-parameter. brms has no such class, so a brms table for the same model
-has fewer rows.
+covariance parameters that no brms class names, such as a \code{car()}
+dependence parameter or a \code{toep()} correlation, and appear only for
+a model that has one. brms has no such class, and has none of those
+parameters either.
 
 A covariance structure brms does not have, and whose columns share
 one standard deviation (\code{homdiag()}, \code{ar1()}, ...), has no class
@@ -125,6 +125,19 @@ one.
 brms's \code{default_prior()} describes what \code{brm()} would use, so the
 brms reading of this function is \code{route = "sample"}. \code{route = "fit"}
 has no brms counterpart: it describes \code{frm()}.
+
+The \code{route = "sample"} table describes the density \code{frm_sample()}
+samples. Passed to \code{\link[=frm]{frm()}} as \verb{prior =}, it is read on frm()'s route,
+where a \code{(flat)} row with \code{lb} and \code{ub} is a box with no density, as
+every bounds-only specification is there. So the first-order
+\code{cov = TRUE} \code{ar} or \code{ma}, \code{cosy} and \code{lagsar} rows, which print
+brms's \code{(flat)} with the interval as \code{lb} and \code{ub}, give \code{\link[=frm]{frm()}} the
+constrained maximum on those parameters, not the mode of the sampled
+density: \code{set_prior("uniform(-1, 1)", class = "ar")} and
+\code{set_prior("", class = "ar", lb = -1, ub = 1)} give different
+\code{\link[=frm]{frm()}} fits. The prior object \code{prior_summary()} returns for a
+\code{frm_sample()} run carries the densities, and passed to \code{\link[=frm]{frm()}} gives
+that mode.
 
 With frmtmb.sample attached, the example below with
 \code{route = "sample"} added returns the same rows as the example below with brms's densities in

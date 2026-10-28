@@ -35,6 +35,8 @@ find_random.frmtmb_fit <- function(x, split_nested = FALSE,
 
 #' @exportS3Method insight::get_parameters
 get_parameters.frmtmb_fit <- function(x, ...) {
+  # the estimates include sigma's, whose meaning changed in a saved fit
+  autocor_check_fit(x)
   bd <- x$estimates[["betad"]]
   if (length(fx <- x$frame[["betad_fixed_idx"]])) bd <- bd[-fx]
   # every estimated coefficient plus an ordinal fit's thresholds and
@@ -55,6 +57,7 @@ get_parameters.frmtmb_fit <- function(x, ...) {
 
 #' @exportS3Method insight::get_varcov
 get_varcov.frmtmb_fit <- function(x, ...) {
+  autocor_check_fit(x)
   # the covariance of the parameters get_parameters() reports, which is
   # every estimated coefficient plus an ordinal fit's thresholds on the
   # model's scale; vcov() is brms's population-level block and leaves
@@ -116,6 +119,18 @@ insight_param_scale <- function(x) {
   V <- A %*% V %*% t(A)
   dimnames(V) <- list(nm, nm)
   list(est = est, V = V)
+}
+
+# insight::get_sigma() is not generic; it dispatches on its internal
+# .get_sigma(), whose default reads sigma() and falls back on
+# sqrt(deviance / df) when sigma() gives nothing. For a fit saved with an
+# old sigma under ar(cov = TRUE) that fallback was 1.23, neither sd, so
+# such a fit is refused here; any other fit gets insight's default, NA
+# from sigma() under sigma ~ x included.
+#' @exportS3Method insight::.get_sigma
+.get_sigma.frmtmb_fit <- function(x, verbose = TRUE, ...) {
+  autocor_check_fit(x)
+  NextMethod()
 }
 
 # insight::get_residuals() has no method for this class either, so it

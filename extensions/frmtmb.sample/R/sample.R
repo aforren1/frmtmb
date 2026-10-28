@@ -25,8 +25,8 @@ refuse_retired_priors <- function(dots, what) {
              "`: a hard bound is written as a prior, ",
              "set_prior(\"\", nlpar = \"la\", lb = 0), which reaches the ",
              "same constrained transform. Every outer parameter has a ",
-             "class, down to one internal covariance parameter ",
-             "(class = \"theta\", coef = \"theta_1\"). Left in `...` ",
+             "class (a standard deviation class = \"sd\", on the sd ",
+             "scale), and default_prior() lists them. Left in `...` ",
              "these would have gone to the sampler as unknown options and ",
              "the model would have sampled unbounded", call. = FALSE)
   }
@@ -807,6 +807,29 @@ sample_extra_nlp <- function(fit, entries) {
 # and the draws are carried back to the fit's chart before anything
 # reads them (dev/optima-findings.md, punch round 1).
 
+#' Refuse to sample a model with a `mo()` term on one category.
+#'
+#' Such a term is 0 on every row, so its coefficient does not enter the
+#' likelihood, and under brms's default flat prior the posterior is
+#' improper. brms 2.23.0 builds the model (`Jmo = 0`) but its Stan
+#' program declares `Jmo` with a lower bound of 1, so sampling stops on
+#' the data. A maximum-likelihood fit reports the coefficient without a
+#' standard error.
+#'
+#' @noRd
+mo_sample_check_const <- function(fit) {
+  for (tm in mo_frame_terms(fit)) {
+    if (!identical(as.integer(tm$D), 0L)) next
+    frm_stop("frm_sample(): the mo() term ", tm$label, " has one ",
+             "category, so it is 0 on every row and the data say nothing ",
+             "about its coefficient, whose posterior under a flat prior is ",
+             "improper. brms 2.23.0 cannot sample it either: its Stan ",
+             "program rejects Jmo = 0. Remove the term, or fit the model ",
+             "with frm()", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
 #' The frame the sampler tapes: the fit's own, or a copy whose `mo()`
 #' simplexes read softmax coordinates.
 #'
@@ -894,7 +917,8 @@ mo_simplex_nlp <- function(fit, entries = list()) {
   priored <- unlist(lapply(entries, function(e) {
     if (identical(e$dist$kind, "dirichlet")) e$comp
   }))
-  terms <- Filter(function(tm) !tm$zeta %in% priored,
+  # a simplex of one weight is fixed at 1 and has no density to add
+  terms <- Filter(function(tm) tm$D >= 2L && !tm$zeta %in% priored,
                   simplex_frame_terms(fit))
   if (!length(terms)) return(NULL)
   function(pars) {
@@ -966,7 +990,7 @@ mo_draws_to_chart <- function(m, fit, laplace) {
   pidx <- draws_par_index(fit, laplace = laplace)
   for (tm in terms) {
     j <- pidx[[tm$zeta]]
-    if (is.null(j) || max(j) > ncol(m)) next
+    if (!length(j) || max(j) > ncol(m)) next
     m[, j] <- draws_rowmap(m[, j, drop = FALSE], function(z) {
       mo_coords(mo_simplex(z, "softmax"))
     })
@@ -982,8 +1006,12 @@ mo_draws_to_chart <- function(m, fit, laplace) {
 #'
 #' @noRd
 draws_mo_cols <- function(fit) {
-  lapply(simplex_frame_terms(fit), function(tm) {
-    list(internal = paste0(tm$zeta, "_", seq_len(tm$D - 1L)),
+  # two categories: no chart column, and the one weight, fixed at 1, is
+  # added as brms reports it (simo_<label>1[1]); one category has none
+  tms <- Filter(function(tm) tm$D >= 1L, simplex_frame_terms(fit))
+  lapply(tms, function(tm) {
+    list(internal = paste0(tm$zeta, "_", seq_len(tm$D - 1L),
+                           recycle0 = TRUE),
          names = tm$names,
          map = function(r) mo_simplex(r),
          inv = function(v) mo_coords(v[seq_len(tm$D)]),
@@ -1111,26 +1139,23 @@ ncp_plan <- function(fit, reparameterize, laplace, entries = NULL) {
            # frmtmb's correlation parameter is (1 - rho^2)^-3/2, which
            # is improper, and the centered geometry was what kept a
            # chain out of that tail
-           paste("its variance or correlation parameters have a flat",
-                 "prior here, and flat on a correlation is",
-                 "(1 - rho^2)^-3/2, improper. Give the block priors,",
+           paste("its variance or correlation parameters carry no",
+                 "density here, which on frmtmb's correlation parameter",
+                 "is (1 - rho^2)^-3/2, improper. Give the block priors,",
                  "set_prior(class = \"sd\") and",
                  "set_prior(class = \"cor\"), which frm_sample()",
-                 "supplies by default unless prior = \"flat\" turned",
-                 "them off")
+                 "supplies by default")
          } else if (identical(bk[["covstruct"]], "hsgp")) {
            # the sd advice below would leave the lengthscales flat
-           paste("its sd or its length scales have a flat prior here.",
+           paste("its sd or its length scales carry no density here.",
                  "Give them priors, set_prior(class = \"sdgp\") and",
                  "set_prior(class = \"lscale\"), which frm_sample()",
-                 "supplies by default unless prior = \"flat\" turned",
-                 "them off")
+                 "supplies by default")
          } else {
-           paste("its variance parameter has a flat prior here, and a",
+           paste("its variance parameter carries no density here, and a",
                  "non-centered chain walks the flat tail that opens at",
                  "sd = 0. Give it a prior, set_prior(class = \"sd\"),",
-                 "which frm_sample() supplies by default unless",
-                 "prior = \"flat\" turned it off")
+                 "which frm_sample() supplies by default")
          }
          paste0(lab[i], ": ", why)
        }, "")))
@@ -1477,6 +1502,37 @@ natural_dpar_prior <- function(dist, dpar, resp = "", lb = NA, ub = NA) {
   structure(spec, class = "frmtmb_priorlist")
 }
 
+#' brms's (flat) as a density object: core reads kind `"flat"` as no
+#' density on the parameter the specification names, with the change of
+#' variables to the internal parameter (`prior_logdens()`).
+#'
+#' @noRd
+flat_prior_dist <- function() {
+  structure(list(kind = "flat"), class = "frmtmb_prior")
+}
+
+#' One default specification made brms's (flat) on the same parameter,
+#' keeping its class, fields and bounds: an LKJ becomes flat on the
+#' Cholesky factor brms declares (core's `lkj_dist(flat = TRUE)`), and a
+#' density that is already flat on brms's parameter (on an interval, or
+#' on a simplex) stays as it is. Written `""`, as brms writes (flat).
+#'
+#' @noRd
+flat_spec <- function(p) {
+  s <- p[[1L]]
+  if (isTRUE(s$flat_interval) || identical(s$dist$kind, "dirichlet")) {
+    return(p)
+  }
+  if (identical(s$dist$kind, "lkj")) {
+    s$dist$flat <- TRUE
+  } else {
+    s$dist <- flat_prior_dist()
+  }
+  s$prior <- ""
+  p[[1L]] <- s
+  p
+}
+
 #' The prefixes brms keys its class `"sd"` rows by, one per standard
 #' deviation a block carries: response (multivariate only),
 #' distributional parameter (`""` for the location ones) and nonlinear
@@ -1805,11 +1861,24 @@ ndt_uniform_prior <- function(fit, rspec, link = NULL) {
 #' response, with `resp` set, as brms's rows do; `cor` and `rescor` are
 #' class-wide.
 #'
+#' `flat = TRUE` gives `prior = "flat"`: brms's (flat) in every slot
+#' that brms declares a parameter for, which is no density on brms's
+#' parameter, inside brms's bounds. frmtmb holds a standard deviation,
+#' a positive distributional parameter, a correlation matrix and the
+#' ordered thresholds through maps, so flat there is the map's
+#' Jacobian on the internal parameter (core's `"flat"` density); a
+#' slot whose internal parameter is brms's own (a coefficient, an
+#' intercept on its link scale) needs no entry. The flat densities on
+#' an interval and on a simplex are the defaults themselves.
+#'
 #' @noRd
-default_priors_for <- function(fit) {
+default_priors_for <- function(fit, flat = FALSE) {
   multi <- length(fit$spec$responses) > 1L
   pl <- NULL
-  add <- function(p) pl <<- if (is.null(pl)) p else pl + p
+  add <- function(p) {
+    if (flat) p <- flat_spec(p)
+    pl <<- if (is.null(pl)) p else pl + p
+  }
   st <- function(loc, scl) {
     sprintf("student_t(3, %s, %s)", as.character(loc), as.character(scl))
   }
@@ -1836,6 +1905,18 @@ default_priors_for <- function(fit) {
     # nothing about a rate or a shape sitting inside a nonlinear body,
     # so a default there would be an invented prior rather than brms's
     if (dp %in% (rspec$nlpars %||% character(0))) next
+    # an intercept on its link scale is the parameter brms declares, so
+    # flat there is no density at all; the slot is listed all the same,
+    # so the run's prior_summary() names every slot it replaced, and
+    # passed back as prior = it replaces the defaults again
+    if (flat && (dp %in% rspec$primary_dpars ||
+                   dpar_has_predictor(fit$spec, lp))) {
+      add(set_prior("", class = "Intercept", resp = rs,
+                    dpar = if (dp %in% rspec$primary_dpars) {
+                      default_lp_dpar(rspec, dp)
+                    } else dp))
+      next
+    }
     if (dp %in% rspec$primary_dpars) {
       # a mixture component's location is read on its own link
       ps <- if (is.null(rspec$family[["mix"]])) scales[[lp[["resp"]]]] else {
@@ -1871,16 +1952,8 @@ default_priors_for <- function(fit) {
       set_prior(d, class = "Intercept", dpar = dp, resp = rs)
     } else {
       bd <- brms_natural_bounds(fit, rspec, cls, lp[["link"]])
-      p <- natural_dpar_prior(d, dp, resp = rs, lb = bd[["lb"]],
-                              ub = bd[["ub"]])
-      # brms's sigma under a first-order cov = TRUE ar(), ma() or arma()
-      # is the innovation sd, and core reads every density on class sigma
-      # there (autocor_innov()); the flag only marks the message line
-      if (identical(cls, "sigma") &&
-            lp[["resp"]] %in% autocor_innov_sd(fit)) {
-        p[[1L]]$innov_sd <- TRUE
-      }
-      p
+      natural_dpar_prior(d, dp, resp = rs, lb = bd[["lb"]],
+                         ub = bd[["ub"]])
     })
   }
   # an ordinal model's thresholds are brms's class "Intercept", with the
@@ -1896,6 +1969,17 @@ default_priors_for <- function(fit) {
     r <- ob$lp[["resp"]] %||% names(fit$spec$responses)[1L]
     add(set_prior(st(0, scales[[r]]$scale), class = "Intercept",
                   dpar = ob$prior_dpar, resp = if (multi) r else ""))
+    # brms's (flat) on delta, the distance between equidistant
+    # thresholds, declared real<lower=0> where the thresholds are
+    # ordered. frmtmb holds log(delta) there, so flat on delta is the
+    # log map's Jacobian; with no entry it was flat on log(delta)
+    if (identical(ob$fam[["thres"]][["type"]], "equidistant") &&
+          isTRUE(ob$ordered)) {
+      p <- set_prior("", class = "delta", dpar = ob$prior_dpar,
+                     resp = if (multi) r else "", lb = 0)
+      p[[1L]]$dist <- flat_prior_dist()
+      add(p)
+    }
   }
 
   for (k in default_sd_prefixes(fit)) {
@@ -1955,6 +2039,15 @@ default_priors_for <- function(fit) {
     # a higher-order cov = TRUE ar or ma, which brms does not have: the
     # uniform is on a box around the stationary region, not an interval
     p[[1L]]$flat_region <- !ap$interval[i]
+    if (ap$interval[i]) {
+      # written as brms writes it, (flat) with the interval in lb and
+      # ub, so prior_summary() prints brms's row; the density stays the
+      # uniform, and a bound at an end of the interval bounds nothing
+      # (ac_bound_theta())
+      p[[1L]]$prior <- ""
+      p[[1L]]$lb <- max(ap$lower[i], ap$lb[i], na.rm = TRUE)
+      p[[1L]]$ub <- min(ap$upper[i], ap$ub[i], na.rm = TRUE)
+    }
     add(p)
   }
   # and on an unstr() residual correlation, class cortime, per response
@@ -2059,7 +2152,7 @@ default_prior_notes <- function(fit, user_pl = NULL) {
     notes <- c(notes, paste0(
       "theta: dirichlet(1), brms's default, on the mixing weights (",
       paste(tm$names, collapse = ", "), "); it is the flat density on ",
-      "the simplex, and prior = \"flat\" drops it with the rest"))
+      "the simplex, and prior = \"flat\" keeps it"))
   }
   # correlations get lkj(1), brms's own default, wherever a density
   # exists for the block's parameterization; what is left is named
@@ -2174,6 +2267,36 @@ drop_superseded <- function(base, over) {
                                          class = "frmtmb_priorlist")
 }
 
+#' The classes of brms's proper defaults whose every position the
+#' effective prior `ri` leaves (flat): what the (flat) rows of a coerced
+#' frmtmb table replaced. A default that is already flat (on an interval,
+#' a flat LKJ) or dirichlet(1), which brms's (flat) on a simplex is, is
+#' no loss.
+#'
+#' @noRd
+table_flat_lost <- function(fit, ri, defs) {
+  is_flat <- function(e) {
+    identical(e[["dist"]][["kind"]], "flat") ||
+      isTRUE(e[["dist"]][["flat"]])
+  }
+  key <- function(es) {
+    unlist(lapply(es, function(e) paste(e[["comp"]], e[["idx"]])))
+  }
+  flat <- key(Filter(is_flat, ri[["entries"]] %||% list()))
+  out <- character(0)
+  for (d in unclass(defs %||% list())) {
+    dd <- d[["dist"]]
+    if (is.null(dd) || isTRUE(d[["flat_interval"]]) ||
+          dd[["kind"]] %in% c("flat", "dirichlet") ||
+          isTRUE(dd[["flat"]])) next
+    di <- resolve_prior_input(fit, structure(list(d),
+                                             class = "frmtmb_priorlist"))
+    k <- key(di[["entries"]])
+    if (length(k) && all(k %in% flat)) out <- c(out, spec_spelling(d)$class)
+  }
+  unique(out)
+}
+
 #' What a user's specification of a slot keeps from brms's default
 #' there, since brms keeps both. Every default with a bound keeps that
 #' bound on each side the specification leaves unset: brms declares
@@ -2188,15 +2311,18 @@ drop_superseded <- function(base, over) {
 #' `[0, 1]`, where without it the slot would be flat on frmtmb's
 #' internal parameter.
 #'
+#' Any other bounds-only specification that replaces a default is
+#' brms's `""` on that slot too, which is (flat) on brms's parameter:
+#' `set_prior("", class = "sd", lb = 0.1)` is flat on the standard
+#' deviation above 0.1, not on its log (`flat_spec()`).
+#'
 #' @noRd
 keep_default_bounds <- function(user, defs) {
-  flat <- Filter(function(d) {
-    isTRUE(d$flat_interval) || !is.na(d$lb %||% NA) || !is.na(d$ub %||% NA)
-  }, unclass(defs))
-  if (!length(flat)) return(user)
-  tg <- vapply(flat, spec_target, "")
+  defs <- Filter(function(d) !is.null(d$dist), unclass(defs))
+  if (!length(defs)) return(user)
+  tg <- vapply(defs, spec_target, "")
   out <- lapply(unclass(user), function(s) {
-    d <- flat[match(spec_target(s), tg)]
+    d <- defs[match(spec_target(s), tg)]
     if (!length(d) || is.null(d[[1L]])) return(s)
     d <- d[[1L]]
     if (is.na(s$lb %||% NA)) s$lb <- d$lb %||% NA
@@ -2206,6 +2332,20 @@ keep_default_bounds <- function(user, defs) {
       s$prior <- d$prior
       s$flat_interval <- TRUE
       s$flat_region <- d$flat_region
+    } else if (is.null(s$dist)) {
+      # brms's (flat) on the default's own parameter: flat on the
+      # Cholesky factor where the default is an LKJ, dirichlet(1) on a
+      # simplex, flat through the class's map otherwise
+      if (identical(d$dist$kind, "lkj")) {
+        s$dist <- d$dist
+        s$dist$eta <- 1
+        s$dist$flat <- TRUE
+      } else if (identical(d$dist$kind, "dirichlet")) {
+        s$dist <- d$dist
+      } else {
+        s$dist <- flat_prior_dist()
+      }
+      s$prior <- ""
     }
     s
   })
@@ -2222,7 +2362,7 @@ keep_default_bounds <- function(user, defs) {
 #' @noRd
 announce_default_priors <- function(pl, notes) {
   msg <- paste0("frm_sample(): default priors (brms 2.23 defaults; ",
-                "prior = \"flat\" opts out)")
+                "prior = \"flat\" puts brms's (flat) in every slot)")
   for (s in unclass(pl %||% list())) {
     kind <- if (identical(s$dist$kind, "t")) "student_t" else s$dist$kind
     a <- unlist(s$dist[-1L])
@@ -2234,8 +2374,12 @@ announce_default_priors <- function(pl, notes) {
     }
     d <- paste0(kind, "(", paste(a, collapse = ", "), ")")
     # a bound brms declares inside the density's interval (cosy's 0)
-    # narrows where the flat density is, so it is part of the default
-    if (isTRUE(s$flat_interval)) {
+    # narrows where the flat density is, so it is part of the default;
+    # on an interval it is brms's (flat) with that interval as lb and ub
+    if (isTRUE(s$flat_interval) && !isTRUE(s$flat_region)) {
+      d <- paste0("(flat), lb = ", format(s$lb, digits = 6), ", ub = ",
+                  format(s$ub, digits = 6))
+    } else if (isTRUE(s$flat_interval)) {
       bd <- c(lb = s$lb %||% NA, ub = s$ub %||% NA)
       bd <- bd[!is.na(bd)]
       if (length(bd)) {
@@ -2268,8 +2412,6 @@ announce_default_priors <- function(pl, notes) {
                             "  [flat on the stationary or invertible region]"
                           else if (isTRUE(s$flat_interval))
                             "  [flat on its interval, brms's (flat)]"
-                          else if (isTRUE(s$innov_sd))
-                            "  [on brms's innovation sd]"
                           else if (isTRUE(s$natural)) "  [natural scale]"
                           else if (s$class %in% c("sd", "sdgp"))
                             "  [natural sd scale]"
@@ -2286,76 +2428,32 @@ announce_default_priors <- function(pl, notes) {
   invisible(NULL)
 }
 
-#' Merge resolved prior inputs; a later one wins per parameter. Used to
-#' let a user's `prior =` take over individual parameters from the
-#' defaults without discarding the rest.
-#'
-#' @noRd
-merge_prior_inputs <- function(base, over) {
-  if (is.null(base)) return(over)
-  if (is.null(over)) return(base)
-  # collapsed, because a class "cor" entry covers a whole correlation
-  # segment and its key names every position it holds
-  key <- function(e) paste0(e$comp, ".", paste(e$idx, collapse = ","))
-  ent <- base$entries
-  names(ent) <- vapply(ent, key, "")
-  for (e in over$entries) {
-    # a base entry that shares ANY position with the incoming one is
-    # retired, not just the one with the same key: the default LKJ term
-    # spans a whole correlation segment, and leaving it in place beside
-    # a per-parameter override would apply both densities there
-    hit <- vapply(ent, function(b) {
-      identical(b$comp, e$comp) && length(intersect(b$idx, e$idx)) > 0L
-    }, TRUE)
-    if (any(hit)) ent <- ent[!hit]
-    ent[[key(e)]] <- e
-  }
-  list(entries = unname(ent),
-       lower = utils::modifyList(as.list(base$lower),
-                                 as.list(over$lower)),
-       upper = utils::modifyList(as.list(base$upper),
-                                 as.list(over$upper)))
-}
-
 #' The slots a prior specification names, for the message that has to
-#' say which of the fit's own priors an opt-out discards. Both
-#' spellings: a priorlist names classes, the legacy list names internal
-#' parameters.
+#' say which of the fit's own priors an opt-out discards.
 #'
 #' @noRd
 prior_target_list <- function(pl) {
-  tg <- if (inherits(pl, "frmtmb_priorlist")) {
-    vapply(unclass(pl), spec_target, "")
-  } else {
-    names(pl) %||% character(0)
-  }
+  tg <- vapply(unclass(as_priorlist(pl) %||% list()), spec_target, "")
   paste(unique(tg), collapse = "; ")
 }
 
 #' Stack prior specifications least explicit first. `resolve_priorlist()`
 #' already resolves a later specification over an earlier one, position
 #' by position, so the stacking IS the precedence rule and nothing has
-#' to be dropped by hand.
-#'
-#' The legacy named-list spelling addresses raw internal parameters, not
-#' classes, so it cannot be concatenated into a priorlist; it rides
-#' alongside in its own slot and is merged at the resolved-entry level.
+#' to be dropped by hand. Anything but a specification, a brms prior or
+#' a prior table is refused by `as_priorlist()`, the named list of prior
+#' objects among them.
 #'
 #' @noRd
 prior_stack <- function(...) {
   pl <- NULL
-  legacy <- list()
   for (p in list(...)) {
     p <- as_priorlist(p)
     if (is.null(p) || !length(p)) next
-    if (inherits(p, "frmtmb_priorlist")) {
-      if (!is.null(pl)) pl <- drop_superseded(pl, p)
-      pl <- if (is.null(pl)) p else pl + p
-    } else {
-      legacy[[length(legacy) + 1L]] <- p
-    }
+    if (!is.null(pl)) pl <- drop_superseded(pl, p)
+    pl <- if (is.null(pl)) p else pl + p
   }
-  list(pl = pl, legacy = legacy)
+  list(pl = pl)
 }
 
 #' Resolve the priors of a sampling call: the brms defaults, the fit's
@@ -2385,35 +2483,69 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
                                   defaults = TRUE) {
   if (is.character(prior)) {
     if (!identical(prior, "flat")) {
-      frm_stop("prior = must be a set_prior() specification, a named list ",
-               "of prior objects, or the string \"flat\" to sample the ",
-               "likelihood with improper flat priors; got \"",
+      frm_stop("prior = must be a set_prior() specification, a brms ",
+               "prior, a prior table, or the string \"flat\" for brms's ",
+               "(flat) in every slot; got \"",
                paste(prior, collapse = "\", \""), "\"", call. = FALSE)
     }
     if (defaults && length(fit$frame[["re_blocks"]])) {
-      frm_warning("prior = \"flat\": every variance component has a flat ",
-                  "prior on its log standard deviation, under which the ",
-                  "posterior need not be proper (it usually is not with ",
-                  "few groups). The chains still run and Rhat cannot see ",
-                  "it. Drop prior = to get the brms default priors ",
-                  "instead", call. = FALSE)
+      frm_warning("prior = \"flat\": every standard deviation has brms's ",
+                  "(flat) prior, uniform on the standard deviation, so ",
+                  "nothing but the likelihood bounds it above, and with ",
+                  "few groups the posterior need not be proper. The ",
+                  "chains still run and Rhat cannot see it. Drop prior = ",
+                  "to get the brms default priors instead", call. = FALSE)
     }
     # a MAP fit's penalty is taped INTO fit$obj, so "flat" is a claim
-    # about that tape too: the sampled density is the bare likelihood,
-    # and the fit's own prior goes with the defaults. Said out loud,
-    # because the alternative reading (drop the defaults, keep the
-    # fit's penalty) is equally plausible from the argument name
+    # about that tape too: the fit's own prior goes with the defaults.
+    # Said out loud, because the alternative reading (drop the defaults,
+    # keep the fit's penalty) is equally plausible from the argument name
     if (defaults && !is.null(base)) {
       frm_message("prior = \"flat\" drops the prior this fit was made ",
                   "with (", prior_target_list(base), ") as well as the ",
-                  "defaults: the sampled density is the bare likelihood, ",
-                  "not the penalized objective frm() maximized")
+                  "defaults: the sampled density is the likelihood with ",
+                  "brms's (flat) on every parameter, not the penalized ",
+                  "objective frm() maximized")
     }
-    return(list(effective = NULL, ri = NULL, flat = TRUE))
+    if (!defaults) return(list(effective = NULL, ri = NULL, flat = TRUE))
+    # brms has no opt-out of its priors; its nearest model is "" in every
+    # slot, which is (flat) on the parameter brms declares, inside its
+    # bounds. Flat on frmtmb's internal parameter instead was a density
+    # brms never samples: (1 - rho^2)^(-3/2) on a first-order ar, mass
+    # at sd = 0 on a log standard deviation
+    eff <- default_priors_for(fit, flat = TRUE)
+    ri <- if (!is.null(eff)) resolve_prior_input(fit, eff)
+    # and brms's dirichlet(1) on a mixture's weights is the flat density
+    # on the simplex, so it stays
+    mix <- length(mix_theta_terms(fit)) > 0L
+    if (mix) {
+      eff <- eff %||% structure(list(), class = "frmtmb_priorlist")
+      attr(eff, "mix_theta") <- TRUE
+    }
+    return(list(effective = eff, ri = ri, flat = TRUE, mix_theta = mix))
   }
+  # frm()'s table: its (flat) rows are frm()'s defaults, not choices,
+  # and read here as brms's (flat) each would replace brms's default in
+  # its slot, silently. The mark survives row and column edits, `+`,
+  # c() and as.brmsprior() (with_prior_route() in frmtmb)
+  if (identical(attr(prior, "route"), "fit")) {
+    frm_stop("prior = is a default_prior() or validate_prior() table of ",
+             "route = \"fit\", whose (flat) rows are frm()'s defaults. ",
+             "frm_sample() would read each of them as brms's (flat), in ",
+             "place of brms's default there. For brms's defaults with your ",
+             "rows edited in, start from default_prior(..., route = ",
+             "\"sample\"); for brms's (flat) in every slot, write prior = ",
+             "\"flat\"; or pass only the specifications you set",
+             call. = FALSE)
+  }
+  # a plain data frame of a frmtmb table lost its route: checked below,
+  # against what its (flat) rows replace
+  table_mark <- identical(attr(prior, "route"), "table")
+  if (!is.null(attr(prior, "route"))) attr(prior, "route") <- NULL
   st <- prior_stack(base, prior)
   user_pl <- st$pl
   defs <- if (defaults) default_priors_for(fit)
+  defs_all <- defs
   if (!is.null(defs) && !is.null(user_pl)) {
     user_pl <- keep_default_bounds(user_pl, defs)
     defs <- drop_superseded(defs, user_pl)
@@ -2424,6 +2556,21 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
     defs + user_pl
   }
   ri <- if (!is.null(eff)) resolve_prior_input(fit, eff)
+  if (table_mark && defaults) {
+    lost <- table_flat_lost(fit, ri, defs_all)
+    if (length(lost)) {
+      frm_stop("prior = was read from a default_prior() or validate_prior() ",
+               "table that as.data.frame() turned into a plain data frame, ",
+               "which drops its route, and its (flat) rows would replace ",
+               "brms's default on ", paste(lost, collapse = ", "),
+               " with (flat). A table of route = \"fit\", the default, ",
+               "lists frm()'s defaults as (flat). For brms's defaults with ",
+               "your rows edited in, pass the table itself or start from ",
+               "default_prior(..., route = \"sample\"); for brms's (flat) ",
+               "in every slot, write prior = \"flat\"; or pass only the ",
+               "specifications you set", call. = FALSE)
+    }
+  }
   # announced even when there are no defaults at all: a family whose
   # slots frmtmb cannot prior must say so rather than look flat by
   # accident
@@ -2431,15 +2578,6 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
     announce_default_priors(defs, c(default_prior_notes(fit, user_pl),
                                     unreached_prior_notes(fit, user_pl,
                                                           ri)))
-  }
-  if (length(st$legacy)) {
-    # the legacy spelling takes over exactly the internal parameters it
-    # names and leaves the rest of the stack in place
-    for (lg in st$legacy) {
-      ri <- merge_prior_inputs(ri, resolve_prior_input(fit, lg))
-    }
-    eff <- eff %||% structure(list(), class = "frmtmb_priorlist")
-    attr(eff, "overrides") <- Reduce(utils::modifyList, st$legacy)
   }
   # brms's dirichlet(1) on a mixture's weights is a density on the whole
   # simplex, which no set_prior() class names here (class "theta" is
@@ -2473,7 +2611,8 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' sampling: the priors that apply are then this call's `prior =` first,
 #' the fit's own next, and the defaults under both, most explicit
 #' winning per slot it addresses. `prior = "flat"` opts out of all of
-#' it and samples the bare likelihood, on either route.
+#' it and puts brms's `(flat)` in every slot, on either route (see
+#' Default priors).
 #'
 #' [check_laplace()] is the one caller that stays unpenalized by
 #' default. It measures the Laplace and Wald approximations against the
@@ -2552,15 +2691,17 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' tape at a cost of `n^3 / 3` per gradient for `n` positions.
 #' `rr()` is already non-centered by
 #' construction, since its own coefficients are the standard normal
-#' factors. What stays centered is a run whose variance parameters are
-#' flat: `prior = "flat"`, and [check_laplace()], which asks for that
-#' density on purpose.
+#' factors. What stays centered is a run whose variance parameters carry
+#' no density at all: [check_laplace()], which asks for that on purpose.
+#' Under `prior = "flat"` a standard deviation is flat on its own scale,
+#' as brms's `(flat)` is, which is a density on `theta` that vanishes
+#' at `sd = 0`, so such a run non-centers too.
 #'
 #' The call `message()`s every block it left centered, with the reason.
 #' A model made only of those samples centered throughout and says so
 #' rather than failing. The reasons:
 #'
-#' - A FLAT PRIOR on the block's standard deviation. Send `sd` down with
+#' - NO DENSITY on the block's log standard deviation. Send `sd` down with
 #'   `z` where it is: `b = sd z` goes to zero, the likelihood settles on
 #'   the model without that random effect, and the density stops
 #'   changing: a flat tail with nothing to stop a chain in it. Measured
@@ -2569,7 +2710,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   -1e15 at a bulk-ESS of 1; under the default `student_t(3, 0, s)`,
 #'   which makes that tail integrable, 174 to 284 against 3 to 48
 #'   centered.
-#' - A FLAT PRIOR on the block's CORRELATION, which is the same
+#' - NO DENSITY on the block's CORRELATION, which is the same
 #'   argument: flat on frmtmb's unbounded correlation parameter is
 #'   `(1 - rho^2)^-3/2`, improper, with all its mass at `|rho| = 1`.
 #'   Before 0.39 that kept every correlated block centered, because no
@@ -2659,7 +2800,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' `laplace = TRUE` is the model itself, so the call says so and samples
 #' it on the full route, with draws identical to a call without the
 #' argument. On a REML fit whose objective is sampled as it stands
-#' (`prior = "flat"`), the objective integrates the coefficients out
+#' ([check_laplace()]), the objective integrates the coefficients out
 #' too, and that combination is refused: the draws would hold no
 #' coefficient.
 #'
@@ -2674,6 +2815,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' | `b` (slopes) | flat | - |
 #' | `Intercept` | `student_t(3, round(median(y*), 1) - m, s)` | link |
 #' | `Intercept` (ordinal thresholds) | `student_t(3, 0, 2.5)` | thresholds |
+#' | `delta` (equidistant thresholds) | `(flat)`, `lb = 0` where ordered | natural, log-Jacobian applied |
 #' | `sd` | `student_t(3, 0, s)` | natural sd, log-Jacobian applied |
 #' | `cor`, `rescor`, `lncor`, `cortime` | `lkj(1)` | correlation matrix |
 #' | `ar`, `ma` (`cov = TRUE`), `cosy`, `lagsar` | flat, see below | natural |
@@ -2744,23 +2886,13 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' one of these parameters is sampled through one logistic onto its
 #' interval, as Stan's bound is in brms.
 #'
-#' Under a first-order `cov = TRUE` `ar()`, `ma()` or `arma()`, the
-#' `sigma` that frmtmb reports (in `summary()`, `sigma()`, `VarCorr()`
-#' and these draws) is the MARGINAL sd of a residual, where brms's
-#' `sigma` is the innovation sd, smaller by the factor `sqrt(1 - ar^2)`,
-#' `1 / sqrt(1 + ma^2)` or `sqrt((1 - ar^2) / (1 + ma^2 + 2 ar ma))`; on
-#' an AR(1) of 0.9 that is 1.16 here against 0.43 in brms, for the same
-#' model. A prior on class `"sigma"`, the default `student_t(3, 0, s)` or
-#' one of your own, is read as brms reads it, on the innovation sd, with
-#' the Jacobian of the factor, here and in [frmtmb::frm()] alike, so a
-#' `default_prior(route = "sample")` table passed back as `prior =` is
-#' the default density. A `lb` above 0 or a `ub` on `sigma` there is
-#' refused: a box on the innovation sd is not a box on the marginal sd,
-#' which the sampler holds. Under `sigma ~ x` with such a term, a prior on
-#' the intercept of `sigma` (`class = "Intercept", dpar = "sigma"`),
-#' the default included, is still read at frmtmb's log marginal sd, where
-#' brms reads it at the log innovation sd; the slopes are the same in
-#' both, as [frmtmb::set_prior()] says.
+#' Under a `cov = TRUE` `ar()`, `ma()` or `arma()`, `sigma` is the
+#' innovation sd, as in brms ([frmtmb::frmtmb-autocor]), in these draws
+#' as in [frmtmb::frm()]. So the default `student_t(3, 0, s)` on class
+#' `"sigma"`, a prior of your own with its `lb` and `ub`, and under
+#' `sigma ~ x` the default and your prior on the intercept of `sigma`
+#' (the log innovation sd), are brms's priors on the same parameter,
+#' and the draws of `sigma` are brms's.
 #'
 #' Every default with a bound (`nu` above 1 on an identity link, `sigma`
 #' above 0 on one, `ndt` below the smallest response, `cosy` above 0)
@@ -2771,8 +2903,8 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' `dirichlet(1)` on it is the flat density there, with the Jacobian of
 #' the log ratios the sampler works on. No [frmtmb::set_prior()] class
 #' names them (`theta` is frmtmb's covariance vector), so the default
-#' is disclosed in the message and `prior = "flat"` drops it with the
-#' other defaults.
+#' is disclosed in the message, and `prior = "flat"` keeps it: it is
+#' brms's `(flat)` on the weights.
 #'
 #' A `mo()` simplex is sampled in softmax coordinates under
 #' `dirichlet(1)`, brms's default and the flat density on the simplex,
@@ -2856,16 +2988,51 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' specification and stays, as in brms, and so does a more specific
 #' specification of your own. The default-prior message names a
 #' specification that applies to no parameter for either reason.
-#' Write the coef to replace such a default. A named list of prior
-#' objects takes
-#' over exactly the internal parameters it names. `prior = "flat"`
-#' turns the defaults off entirely and samples the likelihood, which
-#' warns when the model has variance components: their flat-prior
-#' posteriors need not be proper, and neither the chains nor Rhat can
-#' see that. On a MAP fit `"flat"` reaches further than the defaults:
-#' that fit's own prior is taped into its objective, and the bare
-#' likelihood is what `"flat"` names, so the penalty is rebuilt out and
-#' the call says which prior it dropped.
+#' Write the coef to replace such a default. The named list of prior
+#' objects keyed by internal parameter names, which earlier releases
+#' took, is refused: it gave a parameter a second prior slot beside its
+#' class, and a name inside a correlation block dropped the LKJ density
+#' on the rest of the block.
+#'
+#' *`prior = "flat"`.* brms has no opt-out of its priors; the nearest
+#' brms model is `""` in every slot, which is `(flat)`: no density on the
+#' parameter brms declares, inside the bounds it declares. That is what
+#' `prior = "flat"` samples. frmtmb holds several of those parameters
+#' through a map, so flat on brms's parameter is not flat on frmtmb's:
+#' a standard deviation (`sd`, `sdgp`, `lscale`) and a positive
+#' distributional parameter (`sigma`, `shape`, `nu`, ...) are flat on
+#' their own scale, not on their log; a correlation matrix (`cor`,
+#' `rescor`, `cortime`, `lncor`) is flat on the Cholesky factor brms
+#' declares, which beyond two dimensions is not `lkj(1)`; the ordered
+#' thresholds and `delta` are flat on themselves; and `ar`, `ma`,
+#' `cosy`, `lagsar` and the simplexes keep their defaults, which are
+#' already flat on brms's parameter. A coefficient, and an intercept of
+#' a distributional parameter with a formula, is the parameter brms
+#' declares and gets no density. Through frmtmb.sample 0.23.0 the
+#' opt-out added nothing, which is flat on the internal parameters: on
+#' a log standard deviation it is improper at `sd = 0`, and on a
+#' first-order correlation it is `(1 - rho^2)^(-3/2)`. Measured against
+#' brms with `""` in every slot (4 chains of 3000 draws): on
+#' `y ~ 1 + (1 | g)` with 6 groups the posterior mean of `sd_g__Intercept`
+#' is 1.458 in brms, 1.455 here, and was 1.197; on `(1 + x | g)` with 8
+#' groups the correlation's mean is -0.28 in brms, -0.26 here, and was
+#' -1.00 with a posterior sd below 0.0001. A parameter brms has no class
+#' for keeps no density. One parameter brms has a class for is not yet
+#' brms's (flat): frmtmb.spatial's `car()` dependence parameter, which
+#' brms declares on (0, 1) and leaves flat, carries no density here, so
+#' it is flat on its logit, `1 / (rho (1 - rho))` on rho, which is not
+#' integrable at rho = 0 where a CAR likelihood stays finite: under
+#' `prior = "flat"` such a posterior is improper. Give it a prior with
+#' class `"theta"` on its coef, as [frmtmb::default_prior()] lists it.
+#' The call warns when the model has standard
+#' deviations: nothing but the likelihood bounds them above, and with
+#' few groups the posterior need not be proper, which neither the
+#' chains nor Rhat can see. On a MAP fit `"flat"` reaches further than
+#' the defaults: that fit's own prior is taped into its objective, so
+#' the penalty is rebuilt out and the call says which prior it dropped.
+#' A bounds-only specification of your own that replaces a default,
+#' `set_prior("", class = "sd", lb = 0.1)`, is brms's `(flat)` on that
+#' slot in the same way: flat on the standard deviation above 0.1.
 #'
 #' *Three sources, most explicit first.* On a fitted model the stack is
 #' this call's `prior =`, then the fit's own prior (`frm(prior = )`
@@ -2917,17 +3084,31 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   fixed several seconds, so short chains gain nothing; long chains
 #'   approach a per-chain speedup. A core count inherited from
 #'   `options(mc.cores)`, which rstan reads when `cores` is not given,
-#'   behaves the same way. `seed` fixes Stan's stream and the init
-#'   jitter both (see `init_jitter`); `NA`, brms's default, leaves both
-#'   to the session.
-#' @param prior Priors: a [frmtmb::set_prior()] specification, or a named list
-#'   of prior objects (see [frmtmb::prior_normal()]) whose names are parameter
-#'   names as in the draws (or whole components: `"beta"`, `"theta"`,
-#'   ...), or the string `"flat"`. The objective is re-taped with the
+#'   behaves the same way. `seed` fixes Stan's stream, the init
+#'   jitter (see `init_jitter`) and the prior draws of
+#'   `sample_prior = "yes"`; `NA`, brms's default, leaves all three to
+#'   the session. `save_warmup` is rstan's and brms's: `TRUE`, the
+#'   default, keeps each chain's warmup iterations beside the draws,
+#'   where `inc_warmup = TRUE` reads them (see Warmup).
+#' @param sample_prior brms's `sample_prior`: `"no"` (the default),
+#'   `"yes"` or `"only"`, or `TRUE` for `"yes"` and `FALSE` for `"no"`.
+#'   `"yes"` adds draws from the priors to the draws, under brms's names
+#'   (`prior_b`, `prior_Intercept`, `prior_sigma`, ...), which
+#'   [prior_draws()] returns and [frmtmb::hypothesis()] reads for the
+#'   evidence ratio of a point hypothesis. `"only"` samples the prior of
+#'   the whole model with the likelihood left out, so that
+#'   [posterior_predict()], [pp_check()] and conditional effects give the
+#'   prior predictive distribution. See Prior draws.
+#' @param prior Priors: a [frmtmb::set_prior()] specification, a
+#'   `brmsprior` or a prior table, or the string `"flat"`. A
+#'   specification `set_prior("", class = ...)` (or a table row whose
+#'   prior is `(flat)` and that carries no bound) is brms's `(flat)` on
+#'   that slot, in place of its default. The objective is re-taped with the
 #'   prior terms added; a fitted model itself is unchanged. On both
 #'   paths the brms default priors apply to whatever this argument, and
 #'   a MAP fit's own prior, leave alone (see Default priors), and
-#'   `prior = "flat"` opts out of them entirely. A `brmsprior` object
+#'   `prior = "flat"` replaces them with brms's `(flat)` in every slot,
+#'   flat on brms's own parameters. A `brmsprior` object
 #'   built by brms's own `prior()` is translated row by row. The
 #'   argument takes brms's spelling, `prior`. On a fit that carries its
 #'   own prior, a specification here for a slot the fit's prior also
@@ -2990,7 +3171,68 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   are derived from each draw's internal covariance parameters
 #'   (`theta_1`, ...), which stay in the matrix because the model reads
 #'   them, so `as_draws_df(draws)$sd_g__Intercept` works as it does on a
-#'   brms fit.
+#'   brms fit. With `sample_prior = "yes"` the matrix ends with the
+#'   prior draws. The object also holds what converts the saved warmup
+#'   in the `stanfit` to the draws' columns (and the prior draws of its
+#'   rows), the `sample_prior` setting and the arguments of the call,
+#'   which [update()][update.frmtmb_draws] reads.
+#' @section Prior draws:
+#'   `sample_prior = "yes"` draws from the priors as brms does. Each
+#'   prior statement of brms's Stan program for the model is one column
+#'   of draws, independent of the likelihood: a prior on a whole class is
+#'   one column (`prior_b`, `prior_sd_g`, `prior_sigma`); where a
+#'   coefficient has a prior of its own, each coefficient of that vector
+#'   is a column (`prior_b_x`). A flat prior, the default on class `"b"`,
+#'   has no column. A bounded parameter is drawn from its prior truncated
+#'   to the bounds: `sigma`, `sd` and `sds` at 0, `nu` at 1, a `"b"` prior
+#'   at its `lb` and `ub`. A correlation is one off-diagonal element of an
+#'   LKJ draw (`prior_cor_g`, `prior_rescor`), and a `mo()` simplex or a
+#'   mixture's weights a Dirichlet draw. `prior_Intercept` is drawn from
+#'   the prior of the intercept at the centered predictors, which is the
+#'   intercept brms puts that prior on, so the population-level
+#'   intercept `b_Intercept` has no prior draws, as in brms. An ordinal
+#'   model with a threshold prior of its own (`coef = "1"`) has one
+#'   column per threshold, `prior_Intercept__1`, ..., as brms does. A
+#'   `gp()` term's `sdgp` and `lscale` are not drawn, nor brms's
+#'   `meanme` and `sdme` of a `me()` term, which frmtmb has no prior slot
+#'   for, nor a GEV's `xi` (brms draws no prior of it either).
+#'
+#'   The draws are made directly from each density with R's random
+#'   number generators, as brms makes them in Stan's generated
+#'   quantities: they are independent, and a run of the sampler on the
+#'   prior would give correlated draws of the same distribution at the
+#'   cost of a second run. The saved warmup iterations get prior draws
+#'   too, as in brms.
+#'
+#'   `sample_prior = "only"` samples every parameter from its prior with
+#'   the likelihood left out (core's `prior_only` objective, documented
+#'   in [frmtmb::frmtmb-sampling-api]): the group-level coefficients
+#'   from their group's distribution, and the latent values of a
+#'   `mi(sdy)` response from their measurement density, as brms does.
+#'   The draws are draws from the prior, with the parameter names of the
+#'   model, and the predictive methods give the prior predictive
+#'   distribution. Every parameter must have a proper prior: a flat one
+#'   is refused with brms's message, which names the parameter as brms's
+#'   Stan program does (`'b'` with brms's default priors). brms refuses
+#'   only a parameter with no prior at all and samples a coefficient
+#'   left flat beside others that have a prior; this function refuses
+#'   that too. A model with missing values of an `mi()` term is refused,
+#'   because without the likelihood those values have no density (brms
+#'   samples them flat). A model with `me()` terms is refused: brms
+#'   samples it once its classes `"meanme"` and `"sdme"` have proper
+#'   priors, and frmtmb has no prior slot for those classes yet. Draws
+#'   made with `"only"` have no prior draws of their own, as in brms.
+#' @section Warmup:
+#'   rstan saves each chain's warmup iterations unless `save_warmup =
+#'   FALSE` is passed, and so does brms, whose fit keeps them in its
+#'   stanfit. This function keeps them there too, and the
+#'   `inc_warmup = TRUE` of [as_draws()] and its relatives, [as.mcmc()],
+#'   [rhat()] and [neff_ratio()] moves them to the draws' names and
+#'   scales and puts them before each chain's draws, as brms does.
+#'   Everything else reads the post-warmup draws only: [ndraws()],
+#'   `summary()`, [variables()], the predictions and the diagnostics.
+#'   [nuts_params()] and [log_posterior()] read the stanfit, and take
+#'   bayesplot's `inc_warmup`.
 #' @section The pre-flight against the compatibility registry:
 #'   Some models cannot be sampled at all, and the reason usually
 #'   belongs to the package that supplies the feature rather than to
@@ -3097,7 +3339,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' }
 #' @export
 frm_sample <- function(fit, data = NULL, family = NULL, ...,
-                       prior = NULL, init = NULL,
+                       prior = NULL, sample_prior = "no", init = NULL,
                        init_jitter = 0.25, reparameterize = TRUE,
                        data2 = list(), start = NULL,
                        control = NULL,
@@ -3110,6 +3352,19 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   # `...` goes to tmbstan, which would take the retired spelling as an
   # unknown sampler option and run the model with no priors at all
   refuse_retired_priors(list(...), "frm_sample()")
+  sample_prior <- check_sample_prior(sample_prior)
+  if (isTRUE(.diagnostic) && !identical(sample_prior, "no")) {
+    frm_stop("check_laplace() compares the sampler with the density the ",
+             "fit maximized, which has no prior draws and keeps the ",
+             "likelihood; it cannot take sample_prior = \"", sample_prior,
+             "\"", call. = FALSE)
+  }
+  # what update() needs to run this call again with one argument changed
+  sample_args <- list(prior = prior, sample_prior = sample_prior,
+                      init = init, init_jitter = init_jitter,
+                      reparameterize = reparameterize, control = control)
+  sample_args <- c(sample_args[!vapply(sample_args, is.null, NA)],
+                   list(...))
   # `control` binds only on its exact spelling here, but an
   # abbreviation is not therefore harmless: it lands in `...` and
   # partial-matches rstan's own `control` further down
@@ -3152,10 +3407,13 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   # nor tmbstan, and a model that cannot be sampled at all is a more
   # useful thing to be told than which package is missing.
   sample_preflight(fit, family)
-  prior <- as_priorlist(prior)
   # the user's own specification, before it is stacked on the fit's
-  # prior and the defaults, which may legitimately share a slot
-  check_prior_slots(prior)
+  # prior and the defaults, which may legitimately share a slot; the
+  # string "flat" is read by sample_resolve_priors()
+  if (!is.character(prior)) {
+    prior <- as_priorlist(prior)
+    check_prior_slots(prior)
+  }
   if (!requireNamespace("tmbstan", quietly = TRUE) ||
       !requireNamespace("rstan", quietly = TRUE)) {
     frm_stop("frm_sample() needs the 'tmbstan' and 'rstan' packages",
@@ -3172,6 +3430,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                            start = start, fit_control = fit_control,
                            na.action = na.action, REML = REML)
   }
+  mo_sample_check_const(fit)
   # no mode to anchor on when the model was never optimized
   init <- init %||% if (from_formula) "random" else "last.par.best"
   pr_lower <- c()
@@ -3198,6 +3457,44 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   if (!is.null(ri)) {
     pr_lower <- ri$lower
     pr_upper <- ri$upper
+  }
+  # brms's prior statements of this model, which "yes" draws from and
+  # "only" requires to be proper
+  plan <- if (!identical(sample_prior, "no")) {
+    sample_prior_plan(fit, rp, sample_prior)
+  }
+  prior_only <- identical(sample_prior, "only")
+  if (prior_only) {
+    prior_only_check(plan)
+    # a missing value of an mi() term has no density without the
+    # likelihood; a mi(sdy) response's latent values keep their
+    # measurement density, as brms keeps it
+    mim <- fit$frame[["mi_map"]] %||% list()
+    nmiss <- vapply(mim, function(mm) {
+      length(setdiff(mm[["rows"]], mm[["obs"]] %||% integer(0)))
+    }, 1L)
+    if (any(nmiss > 0L)) {
+      frm_stop("frm_sample(sample_prior = \"only\") cannot sample this ",
+               "model: ", paste0(nmiss[nmiss > 0L], " missing value",
+                                ifelse(nmiss[nmiss > 0L] == 1L, "", "s"),
+                                " of ", names(mim)[nmiss > 0L],
+                                collapse = " and "),
+               " have no density without the likelihood, so their prior ",
+               "is flat and improper. brms samples them flat; ",
+               "frm_sample() refuses", call. = FALSE)
+    }
+    # brms needs proper priors on meanme and sdme here, and refuses with
+    # its first me() term's meanme otherwise; frmtmb has no slot for
+    # either class
+    if (!is.null(fit$frame[["me"]])) {
+      prior_only_stop("meanme_1", paste0(
+        "frmtmb has no prior slot yet for brms's classes \"meanme\" and ",
+        "\"sdme\", the mean and SD of a me() term's latent values, so a ",
+        "model with me() terms cannot be given the proper priors brms ",
+        "samples it from"))
+    }
+    unc <- prior_only_uncovered(fit, ri$entries, isTRUE(rp$mix_theta))
+    if (length(unc)) prior_only_stop(unc[1L])
   }
   # a bounded residual-correlation parameter is sampled through one
   # logistic onto its interval (chart_fn()), not through Stan's bound on
@@ -3237,7 +3534,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   # integrate and the chains do not mix (Rhat 2.5 on 2 chains). The fit
   # route was refused by frm() already, or fitted under a prior that
   # bounds it
-  if (from_formula) {
+  if (from_formula && !prior_only) {
     check_weights_unbounded(fit$spec, fit$frame, rp$effective,
                             exact = !laplace, route = "sample")
   }
@@ -3258,12 +3555,16 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   announce_ncp(ncp)
   # every prior-carrying route rebuilds from build_objective(), the
   # BARE likelihood, and adds the resolved entries once; fit$obj is
-  # sampled untouched only when nothing has to be added to it
+  # sampled untouched only when nothing has to be added to it. Under
+  # sample_prior = "only" the tape is core's prior_only one, built from
+  # a copy of the frame, so the stored fit keeps its likelihood
+  tfit <- fit
+  if (prior_only) tfit$frame[["prior_only"]] <- TRUE
   if (length(ncp$idx)) {
-    obj <- ncp_objective(fit, ncp$idx, ri$entries %||% list(), chart)
+    obj <- ncp_objective(tfit, ncp$idx, ri$entries %||% list(), chart)
   } else if ((!is.null(ri) && length(ri$entries)) || isTRUE(rp$mix_theta) ||
-               length(chart)) {
-    obj <- prior_augmented_obj(fit, ri$entries %||% list(), chart)
+               length(chart) || prior_only) {
+    obj <- prior_augmented_obj(tfit, ri$entries %||% list(), chart)
   } else if (isTRUE(rp$flat) && !isTRUE(.diagnostic) && !is.null(own)) {
     # the opt-out has something to SUBTRACT here: a MAP fit's own prior
     # is part of fit$obj, and "flat" on the user-facing argument means
@@ -3388,13 +3689,83 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   check_tmbstan_build("frm_sample()")
   sf <- do.call(tmbstan::tmbstan, args)
   check_stan_draws(sf, "frm_sample()")
-  a <- rstan::extract(sf, permuted = FALSE)   # iter x chain x par
-  stan_names <- dimnames(a)[[3]]
+  # laplace draws skip the inner components entirely; labeling them
+  # with the full template order would misattribute theta as a random
+  # effect. brms's names where brms has the parameter (b_, r_), the
+  # internal ones where it does not (theta_1): see brms_par_labels()
+  # how the sampled coordinates become the draws: the same steps for the
+  # draws and, when inc_warmup asks, for the warmup (draws_warmup())
+  recipe <- list(laplace = laplace, mo_soft = mo_soft, ncp_idx = ncp$idx,
+                 chart_lower = if (length(chart)) ri$lower,
+                 chart_upper = if (length(chart)) ri$upper)
+  gev <- if (gev_chart && !identical(obj, fit$obj)) {
+    list(obj = obj, terms = gev_terms)
+  }
+  m <- sample_finish(rstan::extract(sf, permuted = FALSE), fit, recipe,
+                     chart, gev)
+  # the warmup rstan saved (save_warmup = TRUE, its default and brms's)
+  # stays in the stanfit alone, as brms keeps it, and inc_warmup = TRUE
+  # converts it when asked (draws_warmup()). A GEV xi chart reads every
+  # draw through the objective's tape, which the draws do not keep, so
+  # there the warmup is converted now
+  nw <- sf@sim[["warmup2"]][1L] %||% 0
+  n_warm <- if (isTRUE(nw > 0)) nw * (sf@sim[["chains"]] %||% 1L) else 0
+  warm <- if (!is.null(gev) && isTRUE(nw > 0)) {
+    aw <- rstan::extract(sf, permuted = FALSE, inc_warmup = TRUE)
+    sample_finish(aw[seq_len(nw), , , drop = FALSE], fit, recipe, chart,
+                  gev)
+  }
+  warm_prior <- NULL
+  pinfo <- NULL
+  if (identical(sample_prior, "yes")) {
+    pd <- with_sample_seed(list(...)$seed, prior_draws_make(
+      plan, nrow(m) + n_warm, fit$prior))
+    if (!is.null(pd)) {
+      # the post-warmup rows first, so that they do not depend on
+      # whether the warmup was saved
+      m <- cbind(m, pd[seq_len(nrow(m)), , drop = FALSE])
+      if (n_warm > 0) {
+        warm_prior <- pd[nrow(m) + seq_len(n_warm), , drop = FALSE]
+        if (!is.null(warm)) {
+          warm <- cbind(warm, warm_prior)
+          warm_prior <- NULL
+        }
+      }
+    }
+  }
+  if (!identical(sample_prior, "no")) {
+    pinfo <- list(intercepts = attr(plan, "intercepts"))
+  }
+  sample_args$own <- list(own)
+  sample_args$from_formula <- from_formula
+  structure(list(stanfit = sf, draws = m, fit = fit,
+                 reparam = if (length(ncp$idx)) {
+                   list(blocks = ncp$idx, labels = ncp$labels,
+                        centered = ncp$centered)
+                 },
+                 warmup = warm, warmup_recipe = recipe,
+                 warmup_prior = warm_prior, sample_prior = sample_prior,
+                 prior_info = pinfo, sample_args = sample_args),
+            class = "frmtmb_draws")
+}
+
+#' An iterations x chains x parameters array of sampled coordinates as
+#' the chain-major draws matrix every method reads: brms's names, the
+#' residual-correlation charts, a GEV `xi` (`gev`, the objective and its
+#' terms), the `mo()` simplexes and the non-centered blocks moved back,
+#' and the unmodeled distributional parameters on their own scale.
+#' `recipe` is what `frm_sample()` stores for the warmup; `chart` is
+#' rebuilt from it when `NULL` is not given.
+#'
+#' @noRd
+sample_finish <- function(a, fit, recipe, chart = NULL, gev = NULL) {
+  laplace <- isTRUE(recipe$laplace)
   # laplace draws skip the inner components entirely; labeling them
   # with the full template order would misattribute theta as a random
   # effect. brms's names where brms has the parameter (b_, r_), the
   # internal ones where it does not (theta_1): see brms_par_labels()
   labels <- brms_par_labels(fit, include_random = !laplace)
+  stan_names <- dimnames(a)[[3]]
   n_lab <- min(length(labels), length(stan_names))
   stan_names[seq_len(n_lab)] <- labels[seq_len(n_lab)]
   m <- do.call(rbind, lapply(seq_len(dim(a)[2]), function(ch) a[, ch, ]))
@@ -3402,20 +3773,55 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   # first, while every column is still in the sampled coordinates the
   # objective reads
   m <- chart_draws_back(m, fit, chart, laplace)
-  if (gev_chart && !identical(obj, fit$obj)) {
-    m <- gev_draws_to_xi(m, obj, fit, gev_terms, laplace)
-  }
-  if (mo_soft) m <- mo_draws_to_chart(m, fit, laplace)
-  if (length(ncp$idx)) m <- ncp_backtransform(m, fit, ncp$idx)
+  if (!is.null(gev)) m <- gev_draws_to_xi(m, gev$obj, fit, gev$terms, laplace)
+  if (isTRUE(recipe$mo_soft)) m <- mo_draws_to_chart(m, fit, laplace)
+  if (length(recipe$ncp_idx)) m <- ncp_backtransform(m, fit, recipe$ncp_idx)
   # brms reports an unmodeled distributional parameter as the parameter
   # itself: the `sigma` column holds sigma, not log sigma
-  m <- draws_to_natural(m, fit)
-  structure(list(stanfit = sf, draws = m, fit = fit,
-                 reparam = if (length(ncp$idx)) {
-                   list(blocks = ncp$idx, labels = ncp$labels,
-                        centered = ncp$centered)
-                 }),
-            class = "frmtmb_draws")
+  draws_to_natural(m, fit)
+}
+
+#' The saved warmup of draws in the draws' coordinates, or `NULL` when
+#' rstan saved none. `frm_sample()` keeps it in the stanfit alone and
+#' converts it here, with the recipe of its draws and the prior draws it
+#' made for the warmup rows; draws that carry a converted `warmup` (a
+#' GEV xi chart, several imputations) return it.
+#'
+#' @noRd
+draws_warmup <- function(x) {
+  if (!is.null(x$warmup)) return(x$warmup)
+  rc <- x$warmup_recipe
+  sf <- x$stanfit
+  if (is.null(rc) || !inherits(sf, "stanfit")) return(NULL)
+  nw <- sf@sim[["warmup2"]][1L] %||% 0
+  if (!isTRUE(nw > 0)) return(NULL)
+  chart <- if (!is.null(rc$chart_lower) || !is.null(rc$chart_upper)) {
+    autocor_bound_chart(x$fit, rc$chart_lower, rc$chart_upper)
+  }
+  aw <- rstan::extract(sf, permuted = FALSE, inc_warmup = TRUE)
+  w <- sample_finish(aw[seq_len(nw), , , drop = FALSE], x$fit, rc, chart)
+  if (!is.null(x$warmup_prior)) w <- cbind(w, x$warmup_prior)
+  w
+}
+
+#' The prior statements of the model `fit` holds under its effective
+#' prior: `validate_prior()`'s table of that prior, read as brms's Stan
+#' program writes it (`prior_plan()`).
+#'
+#' @noRd
+sample_prior_plan <- function(fit, rp, sample_prior) {
+  eff <- rp$effective
+  pl <- if (length(unclass(eff %||% list()))) {
+    structure(unclass(eff), class = "frmtmb_priorlist")
+  }
+  tab <- validate_prior(pl, fit, route = "fit")
+  # the posterior draws' names, which give brms's spelling of the
+  # simplexes, smooths and correlations
+  nc <- draws_natural_cols(fit)
+  cn <- unique(c(brms_par_labels(fit, include_random = FALSE), nc$extra,
+                 nc$derived$names,
+                 unlist(lapply(nc$ordinal, `[[`, "names"))))
+  prior_plan(fit, tab, cn, mix_theta = isTRUE(rp$mix_theta))
 }
 
 #' `frm_sample()` of a `frm_multiple()` result: each imputation's fit
@@ -3458,6 +3864,17 @@ sample_multiple <- function(x, cl, env) {
   out <- ds[[1L]]
   out$stanfit <- rstan::sflist2stanfit(lapply(ds, `[[`, "stanfit"))
   out$draws <- do.call(rbind, lapply(ds, `[[`, "draws"))
+  # the warmup in the stanfit's chain order, each imputation's converted
+  # with its own fit, since the combined draws keep the first fit alone;
+  # NULL when none was saved
+  ws <- lapply(ds, draws_warmup)
+  out$warmup_recipe <- NULL
+  out$warmup_prior <- NULL
+  if (all(vapply(ws, function(w) !is.null(w), NA))) {
+    out$warmup <- do.call(rbind, ws)
+  } else {
+    out$warmup <- NULL
+  }
   out$nimp <- length(ds)
   out
 }
@@ -3505,9 +3922,9 @@ print.frmtmb_draws <- function(x, ...) {
 #' the penalty is taped INTO that objective, so the run carries it,
 #' which is right: the mode and the Wald standard errors this function
 #' compares against come from the same penalized Hessian. "Flat" here
-#' means no prior ADDED, not the fit's own penalty stripped - for the
-#' bare likelihood of a MAP fit, write `frm_sample(fit, prior =
-#' "flat")` instead, and read it as a different question.
+#' means no prior ADDED, not the fit's own penalty stripped. For the
+#' likelihood of a MAP fit under brms's `(flat)`, write `frm_sample(fit,
+#' prior = "flat")` instead, and read it as a different question.
 #'
 #' What this function never adds is [frm_sample()]'s DEFAULT priors.
 #' Those defaults

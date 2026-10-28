@@ -106,7 +106,13 @@
 #'   out of a brms script work whichever package's `prior()` was in
 #'   scope. The argument takes brms's spelling, `prior`; the `priors`
 #'   of releases before 0.43 is gone rather than aliased, and a call
-#'   still using it fails as an unused argument.
+#'   still using it fails as an unused argument. A named list of prior
+#'   objects keyed by internal parameter names (`list(theta_1 =
+#'   prior_normal())`) is refused, as brms has no such spelling: it gave
+#'   a parameter a second prior slot beside its class. A plain data
+#'   frame is refused too, as brms refuses one; [as.brmsprior()] reads
+#'   it. `set_prior("", class = ...)`, brms's `(flat)` on a slot, applies
+#'   nothing here.
 #'
 #'   This is also where HARD BOUNDS are written, as `lb`/`ub` on a
 #'   specification that may carry no distribution at all:
@@ -114,13 +120,14 @@
 #'   constraint and nothing else. The `lower`/`upper` arguments of
 #'   releases before 0.49 are gone rather than aliased, and a call still
 #'   using them fails as an unused argument; every outer parameter they
-#'   could reach has a `set_prior()` class, down to a single internal
-#'   covariance parameter (`class = "theta", coef = "theta_1"`), except
-#'   the internal parameters of a `cov = TRUE` `ar()` or `ma()` of order
-#'   two or more, which take no box (brms has no such term), and a single
-#'   correlation of an `unstr()` term, which class `"cortime"` reaches
-#'   only as a whole matrix (as in brms, it takes no `lb`/`ub`). See
-#'   [set_prior()]'s Hard bounds section.
+#'   could reach has a `set_prior()` class: a standard deviation class
+#'   `"sd"`, on the sd scale, and an internal covariance parameter that
+#'   no brms class names class `"theta"` (`coef = "theta_12"`). Two
+#'   kinds take no box: a correlation, random-effect, `rescor` or
+#'   `unstr()`, which its class reaches only as a whole matrix (as in
+#'   brms, it takes no `lb`/`ub`), and the internal parameters of a
+#'   `cov = TRUE` `ar()` or `ma()` of order two or more (brms has no such
+#'   term). See [set_prior()]'s Hard bounds section.
 #'
 #'   *The spelling is brms's; the SEMANTICS are not.* A prior here is a
 #'   penalty on the likelihood and the answer is one mode. It is not a
@@ -334,10 +341,19 @@
 #'
 #' @section Monotonic effects:
 #' `mo(x)` fits an ordinal predictor without assuming its categories are
-#' equally spaced. `x` is an ordered factor or an integer vector with at
-#' least three categories. As in brms, the categories are coded `0..D`
-#' from the lowest one: the first level of a factor, or the minimum of
-#' the integers. So `1..5` and `-2..2` are both coded `0..4`. An
+#' equally spaced. `x` is an ordered factor or an integer vector. As in
+#' brms, the categories are coded `0..D` from the lowest one: the first
+#' level of a factor, or the minimum of the integers. So `1..5` and
+#' `-2..2` are both coded `0..4`. Two categories (`D = 1`) give a
+#' simplex of one weight, which is fixed at 1, so the term is its
+#' coefficient times the code, as brms's `Jmo = 1` is. One category
+#' (`D = 0`) gives a term that is 0 on every row, as brms's `Jmo = 0`
+#' is. The data do not determine its coefficient, so in a
+#' maximum-likelihood fit its standard error is `NaN`, and it is not
+#' counted in the degrees of freedom of `logLik()`, as `lm()` does not
+#' count a column it aliases. A group-level term on it, `(mo(x) | g)`,
+#' is refused. brms cannot sample such a model, and neither can
+#' frmtmb.sample. An
 #' integer between the minimum and the maximum that no row has is also
 #' a category. For example, `1, 2, 5` gives `D = 4`. The data do not
 #' determine a prediction at such a category, so in a maximum-likelihood
@@ -887,6 +903,10 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # downstream sees anything but a frmtmb_priorlist
   prior <- as_priorlist(prior)
   check_prior_slots(prior)
+  # brms's (flat) on a slot, set_prior("") or a (flat) table row with no
+  # bound, applies nothing on frm()'s route, so a prior made only of
+  # those leaves an ML fit an ML fit
+  prior <- drop_flat_slots(prior)
   # Every one of these used to be read through isTRUE() or an empty
   # names() loop, so a flag set by mistake either fitted a DIFFERENT
   # model in silence or died with an obscure downstream error (REML
@@ -917,10 +937,6 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
     frm_stop("`control` must come from frmtmb_control(); this list is missing ",
              paste(setdiff(ctl_need, names(control)), collapse = ", "),
              call. = FALSE)
-  }
-  if (!is.null(prior) && !is.list(prior)) {
-    frm_stop("`prior` must be a set_prior() specification or a named list ",
-             "of prior objects, not ", arg_desc(prior), call. = FALSE)
   }
   if (!is.function(na.action) && !is.character(na.action)) {
     frm_stop("`na.action` must be a function such as stats::na.omit, or its ",
@@ -3685,7 +3701,8 @@ mo_search_terms <- function(obj, frame) {
     idx <- outer_index_of(lp, pn, frame)
     for (mi in mos) {
       z <- which(pn == mi[["zeta"]])
-      if (length(z) != mi[["D"]] - 1L) next
+      # a simplex of fewer than 2 weights has nothing to search
+      if (mi[["D"]] < 2L || length(z) != mi[["D"]] - 1L) next
       b <- if (is.null(idx)) NA_integer_ else idx[mi[["col"]]]
       out[[length(out) + 1L]] <- list(z = z, b = b, D = mi[["D"]])
     }

@@ -1,0 +1,10 @@
+# Which default does a (flat) simo spec meet in frm_sample()?
+.libPaths(c("C:/Users/adf44/source/r/rellib-r15", "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressPackageStartupMessages({library(frmtmb); library(frmtmb.sample)})
+set.seed(3)
+dm <- data.frame(k = sample(1:4, 60, TRUE)); dm$y <- dm$k + rnorm(60)
+fit <- frm(bf(y ~ mo(k)), data = dm, dry_run = "objective")
+defs <- frmtmb.sample:::default_priors_for(fit)
+for (s in unclass(defs)) cat(s$class, "|", s$coef, "|", frmtmb:::spec_target(s), "|", s$dist$kind, "\n")
+u <- set_prior("", class = "simo", coef = "mok1")
+cat("user target:", frmtmb:::spec_target(u[[1]]), "\n")

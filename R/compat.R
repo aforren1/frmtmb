@@ -1516,7 +1516,7 @@ compat_hand_rules_tbl <- function() {
   r("equidistant", "prior", "works",
     "class = \"Intercept\" is the first threshold alone, at the mean of the predictors, and class = \"delta\" the distance between thresholds, as brms has them. A per-threshold coef is refused, as brms refuses it.")
   r("sum_to_zero", "prior", "conditional",
-    "class = \"Intercept\" is refused: brms's prior there is on thresholds it declares before centering them, a parameter frmtmb does not have. prior = list(tau_raw = ) reaches the free directions on the internal scale.")
+    "class = \"Intercept\" is refused: brms's prior there is on thresholds it declares before centering them, a parameter frmtmb does not have, so the sum-to-zero thresholds take no prior.")
 
   ## rate() --------------------------------------------------------------
   r("rate()", "kind:family", "refused",
@@ -1765,7 +1765,7 @@ compat_hand_rules_tbl <- function() {
 
   ## specials ------------------------------------------------------------------
   r("mo()", "kind:family", "conditional",
-    "The monotonic variable must be an ordered factor or an integer with at least 3 categories, coded from its minimum as brms codes it; new data must be whole numbers in the fitted range. An interaction (mo(x):z, mo(x) * f, mo(x) * z * w) codes the columns brms's special-term model matrix codes, each with its own simplex and coefficient; a factor multiplier gives one column per contrast, or per level without the main term. brms 2.23.0's Stan code for a factor multiplier is wrong (brms#1828). A group-level term, (mo(x) | g), varies a population-level mo() column, which it requires; quadrature = TRUE and importance are refused with one.")
+    "The monotonic variable must be an ordered factor or an integer, coded from its minimum as brms codes it: two categories are a linear term in the code (brms's Jmo = 1), and one category is 0 on every row with a coefficient the data do not determine (Jmo = 0, which brms and frm_sample() cannot sample); new data must be whole numbers in the fitted range. An interaction (mo(x):z, mo(x) * f, mo(x) * z * w) codes the columns brms's special-term model matrix codes, each with its own simplex and coefficient; a factor multiplier gives one column per contrast, or per level without the main term. brms 2.23.0's Stan code for a factor multiplier is wrong (brms#1828). A group-level term, (mo(x) | g), varies a population-level mo() column, which it requires; quadrature = TRUE and importance are refused with one.")
   # A rule may not name the same feature twice: the resolved table
   # holds unordered pairs of DISTINCT features, so a self-pair row
   # could never match. mo() x mo() lives in the note below instead.
@@ -2032,14 +2032,14 @@ compat_hand_rules_tbl <- function() {
   r("group:autocor", "simulate", "works",
     "simulate() draws one correlated residual per group (a Cholesky factor of that group's correlation submatrix applied to standard normal, or scaled-t, innovations), so the draws carry the fitted autocorrelation. dharma_residuals() therefore works too. Since v0.36 the residual draw is part of the simulator contract rather than a branch inside simulate(), so posterior_predict() and frm_simulate() draw it as well; frm_simulate() needs thetaac in the internal newparams spelling.")
   r("group:autocor", "residuals_osa", "refused",
-    "Refused: one-step-ahead residuals need the taped density of one observation given the previous ones, and the tape holds a joint density per group. Use type = \"pearson\", which divides by the marginal residual SD (the diagonal of the residual covariance is sigma^2, because R is unit-diagonal), or dharma_residuals().")
+    "Refused: one-step-ahead residuals need the taped density of one observation given the previous ones, and the tape holds a joint density per group. Use type = \"pearson\", which divides by the marginal residual SD, or dharma_residuals().")
   r("group:autocor", "kind:method", "untested", "")
   r("group:autocor", "fitted", "works",
     "The mean structure is untouched: the term changes the residual density, not the linear predictor.")
   r("group:autocor", "predict", "works",
     "Unchanged, newdata and se.fit included: se.fit is the uncertainty of the MEAN, which the residual correlation does not enter.")
   r("group:autocor", "residuals", "conditional",
-    "\"response\" and \"pearson\" are unchanged, and pearson is still the right standardization: R is unit-diagonal, so the marginal residual SD is sigma. They do NOT decorrelate the residuals, so a plot of them against time still shows the fitted autocorrelation; that is the intended reading.")
+    "\"response\" is y - mu, and \"pearson\" divides it by the marginal residual SD of the row: sigma under cosy() and unstr(), and sigma times the ratio of the process sd to the innovation sd under ar(), ma() and arma(), whose sigma is the innovation sd, as in brms. They do NOT decorrelate the residuals, so a plot of them against time still shows the fitted autocorrelation; that is the intended reading.")
   r("group:autocor", "confint_profile", "works",
     "tmbprofile() addresses the residual-correlation parameters under their thetaac_* names.")
   r("group:autocor", "kind:special", "untested", "")
@@ -2056,7 +2056,7 @@ compat_hand_rules_tbl <- function() {
     r(nm, "kind:aterm", "conditional",
       "Under cov = FALSE weights(), cens(), trunc() and mi() work: the term shifts mu and the density stays per row, so each addition term acts on its row as it does without the term, and under mi() the residual is taken against the observed-or-imputed response (brms's Yl). brms 2.23.0 generates the same Stan code for each; verified against its model block to 1e-15 (dev/arcov-validate.R). Under cov = TRUE all of them are refused, because the group's density is joint.")
     r(nm, "se()", "refused",
-      "Refused under both forms. brms refuses se() with cov = FALSE ('Please set cov = TRUE in ARMA structures when including known standard errors'), and the cov = TRUE form here has no per-row density for a known standard error to add to.")
+      "Refused under both forms. brms refuses se() with cov = FALSE ('Please set cov = TRUE in ARMA structures when including known standard errors'). Under cov = TRUE brms 2.23.0 fits it, adding se^2 to the diagonal of each group's covariance (normal_time_hom_se_lpdf() and its relatives); frmtmb refuses it there, a parity gap.")
     r(nm, "student", "conditional",
       "Under cov = TRUE the multivariate-t has one shape per group, so nu must be constant. Under cov = FALSE the density is brms's rowwise student_t at the shifted mu, and a predicted nu ~ ... works.")
     r(nm, "rescor", "conditional",

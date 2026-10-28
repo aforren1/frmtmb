@@ -10,6 +10,7 @@ frm_sample(
   family = NULL,
   ...,
   prior = NULL,
+  sample_prior = "no",
   init = NULL,
   init_jitter = 0.25,
   reparameterize = TRUE,
@@ -44,18 +45,23 @@ per-worker startup (a new R process, package load, retape) is a
 fixed several seconds, so short chains gain nothing; long chains
 approach a per-chain speedup. A core count inherited from
 \code{options(mc.cores)}, which rstan reads when \code{cores} is not given,
-behaves the same way. \code{seed} fixes Stan's stream and the init
-jitter both (see \code{init_jitter}); \code{NA}, brms's default, leaves both
-to the session.}
+behaves the same way. \code{seed} fixes Stan's stream, the init
+jitter (see \code{init_jitter}) and the prior draws of
+\code{sample_prior = "yes"}; \code{NA}, brms's default, leaves all three to
+the session. \code{save_warmup} is rstan's and brms's: \code{TRUE}, the
+default, keeps each chain's warmup iterations beside the draws,
+where \code{inc_warmup = TRUE} reads them (see Warmup).}
 
-\item{prior}{Priors: a \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} specification, or a named list
-of prior objects (see \code{\link[frmtmb:prior_normal]{frmtmb::prior_normal()}}) whose names are parameter
-names as in the draws (or whole components: \code{"beta"}, \code{"theta"},
-...), or the string \code{"flat"}. The objective is re-taped with the
+\item{prior}{Priors: a \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} specification, a
+\code{brmsprior} or a prior table, or the string \code{"flat"}. A
+specification \code{set_prior("", class = ...)} (or a table row whose
+prior is \code{(flat)} and that carries no bound) is brms's \code{(flat)} on
+that slot, in place of its default. The objective is re-taped with the
 prior terms added; a fitted model itself is unchanged. On both
 paths the brms default priors apply to whatever this argument, and
 a MAP fit's own prior, leave alone (see Default priors), and
-\code{prior = "flat"} opts out of them entirely. A \code{brmsprior} object
+\code{prior = "flat"} replaces them with brms's \code{(flat)} in every slot,
+flat on brms's own parameters. A \code{brmsprior} object
 built by brms's own \code{prior()} is translated row by row. The
 argument takes brms's spelling, \code{prior}. On a fit that carries its
 own prior, a specification here for a slot the fit's prior also
@@ -68,6 +74,16 @@ specifications for one slot within this argument are refused. The
 before 0.43 is gone rather than aliased, and because this
 function's \code{...} would otherwise swallow it, the old name is
 refused by name.}
+
+\item{sample_prior}{brms's \code{sample_prior}: \code{"no"} (the default),
+\code{"yes"} or \code{"only"}, or \code{TRUE} for \code{"yes"} and \code{FALSE} for \code{"no"}.
+\code{"yes"} adds draws from the priors to the draws, under brms's names
+(\code{prior_b}, \code{prior_Intercept}, \code{prior_sigma}, ...), which
+\code{\link[=prior_draws]{prior_draws()}} returns and \code{\link[frmtmb:hypothesis]{frmtmb::hypothesis()}} reads for the
+evidence ratio of a point hypothesis. \code{"only"} samples the prior of
+the whole model with the likelihood left out, so that
+\code{\link[=posterior_predict]{posterior_predict()}}, \code{\link[=pp_check]{pp_check()}} and conditional effects give the
+prior predictive distribution. See Prior draws.}
 
 \item{init}{Initialization. On a fit the default
 (\code{"last.par.best"}) starts chain 1 exactly at the ML mode and every
@@ -148,7 +164,11 @@ also carries brms's covariance summaries under brms's names,
 are derived from each draw's internal covariance parameters
 (\code{theta_1}, ...), which stay in the matrix because the model reads
 them, so \code{as_draws_df(draws)$sd_g__Intercept} works as it does on a
-brms fit.
+brms fit. With \code{sample_prior = "yes"} the matrix ends with the
+prior draws. The object also holds what converts the saved warmup
+in the \code{stanfit} to the draws' columns (and the prior draws of its
+rows), the \code{sample_prior} setting and the arguments of the call,
+which \link[=update.frmtmb_draws]{update()} reads.
 }
 \description{
 Runs \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} on the model's objective and returns the
@@ -170,7 +190,8 @@ The two differ only in what else is in the stack. A fit made with
 sampling: the priors that apply are then this call's \verb{prior =} first,
 the fit's own next, and the defaults under both, most explicit
 winning per slot it addresses. \code{prior = "flat"} opts out of all of
-it and samples the bare likelihood, on either route.
+it and puts brms's \code{(flat)} in every slot, on either route (see
+Default priors).
 
 \code{\link[=check_laplace]{check_laplace()}} is the one caller that stays unpenalized by
 default. It measures the Laplace and Wald approximations against the
@@ -252,15 +273,17 @@ factor of the kernel over the field's distinct positions, taken on the
 tape at a cost of \code{n^3 / 3} per gradient for \code{n} positions.
 \code{rr()} is already non-centered by
 construction, since its own coefficients are the standard normal
-factors. What stays centered is a run whose variance parameters are
-flat: \code{prior = "flat"}, and \code{\link[=check_laplace]{check_laplace()}}, which asks for that
-density on purpose.
+factors. What stays centered is a run whose variance parameters carry
+no density at all: \code{\link[=check_laplace]{check_laplace()}}, which asks for that on purpose.
+Under \code{prior = "flat"} a standard deviation is flat on its own scale,
+as brms's \code{(flat)} is, which is a density on \code{theta} that vanishes
+at \code{sd = 0}, so such a run non-centers too.
 
 The call \code{message()}s every block it left centered, with the reason.
 A model made only of those samples centered throughout and says so
 rather than failing. The reasons:
 \itemize{
-\item A FLAT PRIOR on the block's standard deviation. Send \code{sd} down with
+\item NO DENSITY on the block's log standard deviation. Send \code{sd} down with
 \code{z} where it is: \verb{b = sd z} goes to zero, the likelihood settles on
 the model without that random effect, and the density stops
 changing: a flat tail with nothing to stop a chain in it. Measured
@@ -269,7 +292,7 @@ seeds: under flat priors the non-centered chain walks \code{theta} to
 -1e15 at a bulk-ESS of 1; under the default \code{student_t(3, 0, s)},
 which makes that tail integrable, 174 to 284 against 3 to 48
 centered.
-\item A FLAT PRIOR on the block's CORRELATION, which is the same
+\item NO DENSITY on the block's CORRELATION, which is the same
 argument: flat on frmtmb's unbounded correlation parameter is
 \code{(1 - rho^2)^-3/2}, improper, with all its mass at \verb{|rho| = 1}.
 Before 0.39 that kept every correlated block centered, because no
@@ -362,7 +385,7 @@ conditional matched the full draws there, but it would make
 \code{laplace = TRUE} is the model itself, so the call says so and samples
 it on the full route, with draws identical to a call without the
 argument. On a REML fit whose objective is sampled as it stands
-(\code{prior = "flat"}), the objective integrates the coefficients out
+(\code{\link[=check_laplace]{check_laplace()}}), the objective integrates the coefficients out
 too, and that combination is refused: the draws would hold no
 coefficient.
 }
@@ -377,6 +400,7 @@ family. Write \verb{y*} for the response transformed by a link and
    \code{b} (slopes) \tab flat \tab - \cr
    \code{Intercept} \tab \verb{student_t(3, round(median(y*), 1) - m, s)} \tab link \cr
    \code{Intercept} (ordinal thresholds) \tab \code{student_t(3, 0, 2.5)} \tab thresholds \cr
+   \code{delta} (equidistant thresholds) \tab \code{(flat)}, \code{lb = 0} where ordered \tab natural, log-Jacobian applied \cr
    \code{sd} \tab \code{student_t(3, 0, s)} \tab natural sd, log-Jacobian applied \cr
    \code{cor}, \code{rescor}, \code{lncor}, \code{cortime} \tab \code{lkj(1)} \tab correlation matrix \cr
    \code{ar}, \code{ma} (\code{cov = TRUE}), \code{cosy}, \code{lagsar} \tab flat, see below \tab natural \cr
@@ -449,23 +473,13 @@ sampled parameters, so brms's flat needs no density there. A bounded
 one of these parameters is sampled through one logistic onto its
 interval, as Stan's bound is in brms.
 
-Under a first-order \code{cov = TRUE} \code{ar()}, \code{ma()} or \code{arma()}, the
-\code{sigma} that frmtmb reports (in \code{summary()}, \code{sigma()}, \code{VarCorr()}
-and these draws) is the MARGINAL sd of a residual, where brms's
-\code{sigma} is the innovation sd, smaller by the factor \code{sqrt(1 - ar^2)},
-\code{1 / sqrt(1 + ma^2)} or \verb{sqrt((1 - ar^2) / (1 + ma^2 + 2 ar ma))}; on
-an AR(1) of 0.9 that is 1.16 here against 0.43 in brms, for the same
-model. A prior on class \code{"sigma"}, the default \code{student_t(3, 0, s)} or
-one of your own, is read as brms reads it, on the innovation sd, with
-the Jacobian of the factor, here and in \code{\link[frmtmb:frm]{frmtmb::frm()}} alike, so a
-\code{default_prior(route = "sample")} table passed back as \verb{prior =} is
-the default density. A \code{lb} above 0 or a \code{ub} on \code{sigma} there is
-refused: a box on the innovation sd is not a box on the marginal sd,
-which the sampler holds. Under \code{sigma ~ x} with such a term, a prior on
-the intercept of \code{sigma} (\verb{class = "Intercept", dpar = "sigma"}),
-the default included, is still read at frmtmb's log marginal sd, where
-brms reads it at the log innovation sd; the slopes are the same in
-both, as \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} says.
+Under a \code{cov = TRUE} \code{ar()}, \code{ma()} or \code{arma()}, \code{sigma} is the
+innovation sd, as in brms (\link[frmtmb:frmtmb-autocor]{frmtmb::frmtmb-autocor}), in these draws
+as in \code{\link[frmtmb:frm]{frmtmb::frm()}}. So the default \code{student_t(3, 0, s)} on class
+\code{"sigma"}, a prior of your own with its \code{lb} and \code{ub}, and under
+\code{sigma ~ x} the default and your prior on the intercept of \code{sigma}
+(the log innovation sd), are brms's priors on the same parameter,
+and the draws of \code{sigma} are brms's.
 
 Every default with a bound (\code{nu} above 1 on an identity link, \code{sigma}
 above 0 on one, \code{ndt} below the smallest response, \code{cosy} above 0)
@@ -476,8 +490,8 @@ A mixture's weights without a formula are a simplex, and
 \code{dirichlet(1)} on it is the flat density there, with the Jacobian of
 the log ratios the sampler works on. No \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} class
 names them (\code{theta} is frmtmb's covariance vector), so the default
-is disclosed in the message and \code{prior = "flat"} drops it with the
-other defaults.
+is disclosed in the message, and \code{prior = "flat"} keeps it: it is
+brms's \code{(flat)} on the weights.
 
 A \code{mo()} simplex is sampled in softmax coordinates under
 \code{dirichlet(1)}, brms's default and the flat density on the simplex,
@@ -562,16 +576,51 @@ standard deviation. A default written per coefficient, such as the
 specification and stays, as in brms, and so does a more specific
 specification of your own. The default-prior message names a
 specification that applies to no parameter for either reason.
-Write the coef to replace such a default. A named list of prior
-objects takes
-over exactly the internal parameters it names. \code{prior = "flat"}
-turns the defaults off entirely and samples the likelihood, which
-warns when the model has variance components: their flat-prior
-posteriors need not be proper, and neither the chains nor Rhat can
-see that. On a MAP fit \code{"flat"} reaches further than the defaults:
-that fit's own prior is taped into its objective, and the bare
-likelihood is what \code{"flat"} names, so the penalty is rebuilt out and
-the call says which prior it dropped.
+Write the coef to replace such a default. The named list of prior
+objects keyed by internal parameter names, which earlier releases
+took, is refused: it gave a parameter a second prior slot beside its
+class, and a name inside a correlation block dropped the LKJ density
+on the rest of the block.
+
+\emph{\code{prior = "flat"}.} brms has no opt-out of its priors; the nearest
+brms model is \code{""} in every slot, which is \code{(flat)}: no density on the
+parameter brms declares, inside the bounds it declares. That is what
+\code{prior = "flat"} samples. frmtmb holds several of those parameters
+through a map, so flat on brms's parameter is not flat on frmtmb's:
+a standard deviation (\code{sd}, \code{sdgp}, \code{lscale}) and a positive
+distributional parameter (\code{sigma}, \code{shape}, \code{nu}, ...) are flat on
+their own scale, not on their log; a correlation matrix (\code{cor},
+\code{rescor}, \code{cortime}, \code{lncor}) is flat on the Cholesky factor brms
+declares, which beyond two dimensions is not \code{lkj(1)}; the ordered
+thresholds and \code{delta} are flat on themselves; and \code{ar}, \code{ma},
+\code{cosy}, \code{lagsar} and the simplexes keep their defaults, which are
+already flat on brms's parameter. A coefficient, and an intercept of
+a distributional parameter with a formula, is the parameter brms
+declares and gets no density. Through frmtmb.sample 0.23.0 the
+opt-out added nothing, which is flat on the internal parameters: on
+a log standard deviation it is improper at \code{sd = 0}, and on a
+first-order correlation it is \code{(1 - rho^2)^(-3/2)}. Measured against
+brms with \code{""} in every slot (4 chains of 3000 draws): on
+\code{y ~ 1 + (1 | g)} with 6 groups the posterior mean of \code{sd_g__Intercept}
+is 1.458 in brms, 1.455 here, and was 1.197; on \code{(1 + x | g)} with 8
+groups the correlation's mean is -0.28 in brms, -0.26 here, and was
+-1.00 with a posterior sd below 0.0001. A parameter brms has no class
+for keeps no density. One parameter brms has a class for is not yet
+brms's (flat): frmtmb.spatial's \code{car()} dependence parameter, which
+brms declares on (0, 1) and leaves flat, carries no density here, so
+it is flat on its logit, \code{1 / (rho (1 - rho))} on rho, which is not
+integrable at rho = 0 where a CAR likelihood stays finite: under
+\code{prior = "flat"} such a posterior is improper. Give it a prior with
+class \code{"theta"} on its coef, as \code{\link[frmtmb:default_prior]{frmtmb::default_prior()}} lists it.
+The call warns when the model has standard
+deviations: nothing but the likelihood bounds them above, and with
+few groups the posterior need not be proper, which neither the
+chains nor Rhat can see. On a MAP fit \code{"flat"} reaches further than
+the defaults: that fit's own prior is taped into its objective, so
+the penalty is rebuilt out and the call says which prior it dropped.
+A bounds-only specification of your own that replaces a default,
+\code{set_prior("", class = "sd", lb = 0.1)}, is brms's \code{(flat)} on that
+slot in the same way: flat on the standard deviation above 0.1.
 
 \emph{Three sources, most explicit first.} On a fitted model the stack is
 this call's \verb{prior =}, then the fit's own prior (\code{frm(prior = )}
@@ -581,6 +630,68 @@ explicit source that names it, one slot at a time: a call-level
 \code{set_prior(class = "sd")} replaces the fit's \code{sd} prior and the \code{sd}
 default while the \code{Intercept} default stays. \code{prior_summary()} on
 the returned draws prints what the stack came to.
+}
+
+\section{Prior draws}{
+
+\code{sample_prior = "yes"} draws from the priors as brms does. Each
+prior statement of brms's Stan program for the model is one column
+of draws, independent of the likelihood: a prior on a whole class is
+one column (\code{prior_b}, \code{prior_sd_g}, \code{prior_sigma}); where a
+coefficient has a prior of its own, each coefficient of that vector
+is a column (\code{prior_b_x}). A flat prior, the default on class \code{"b"},
+has no column. A bounded parameter is drawn from its prior truncated
+to the bounds: \code{sigma}, \code{sd} and \code{sds} at 0, \code{nu} at 1, a \code{"b"} prior
+at its \code{lb} and \code{ub}. A correlation is one off-diagonal element of an
+LKJ draw (\code{prior_cor_g}, \code{prior_rescor}), and a \code{mo()} simplex or a
+mixture's weights a Dirichlet draw. \code{prior_Intercept} is drawn from
+the prior of the intercept at the centered predictors, which is the
+intercept brms puts that prior on, so the population-level
+intercept \code{b_Intercept} has no prior draws, as in brms. An ordinal
+model with a threshold prior of its own (\code{coef = "1"}) has one
+column per threshold, \code{prior_Intercept__1}, ..., as brms does. A
+\code{gp()} term's \code{sdgp} and \code{lscale} are not drawn, nor brms's
+\code{meanme} and \code{sdme} of a \code{me()} term, which frmtmb has no prior slot
+for, nor a GEV's \code{xi} (brms draws no prior of it either).
+
+The draws are made directly from each density with R's random
+number generators, as brms makes them in Stan's generated
+quantities: they are independent, and a run of the sampler on the
+prior would give correlated draws of the same distribution at the
+cost of a second run. The saved warmup iterations get prior draws
+too, as in brms.
+
+\code{sample_prior = "only"} samples every parameter from its prior with
+the likelihood left out (core's \code{prior_only} objective, documented
+in \link[frmtmb:frmtmb-sampling-api]{frmtmb::frmtmb-sampling-api}): the group-level coefficients
+from their group's distribution, and the latent values of a
+\code{mi(sdy)} response from their measurement density, as brms does.
+The draws are draws from the prior, with the parameter names of the
+model, and the predictive methods give the prior predictive
+distribution. Every parameter must have a proper prior: a flat one
+is refused with brms's message, which names the parameter as brms's
+Stan program does (\code{'b'} with brms's default priors). brms refuses
+only a parameter with no prior at all and samples a coefficient
+left flat beside others that have a prior; this function refuses
+that too. A model with missing values of an \code{mi()} term is refused,
+because without the likelihood those values have no density (brms
+samples them flat). A model with \code{me()} terms is refused: brms
+samples it once its classes \code{"meanme"} and \code{"sdme"} have proper
+priors, and frmtmb has no prior slot for those classes yet. Draws
+made with \code{"only"} have no prior draws of their own, as in brms.
+}
+
+\section{Warmup}{
+
+rstan saves each chain's warmup iterations unless \code{save_warmup = FALSE} is passed, and so does brms, whose fit keeps them in its
+stanfit. This function keeps them there too, and the
+\code{inc_warmup = TRUE} of \code{\link[=as_draws]{as_draws()}} and its relatives, \code{\link[=as.mcmc]{as.mcmc()}},
+\code{\link[=rhat]{rhat()}} and \code{\link[=neff_ratio]{neff_ratio()}} moves them to the draws' names and
+scales and puts them before each chain's draws, as brms does.
+Everything else reads the post-warmup draws only: \code{\link[=ndraws]{ndraws()}},
+\code{summary()}, \code{\link[=variables]{variables()}}, the predictions and the diagnostics.
+\code{\link[=nuts_params]{nuts_params()}} and \code{\link[=log_posterior]{log_posterior()}} read the stanfit, and take
+bayesplot's \code{inc_warmup}.
 }
 
 \section{The pre-flight against the compatibility registry}{

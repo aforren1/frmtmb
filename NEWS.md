@@ -1,3 +1,297 @@
+# frmtmb 0.77.0
+
+The main changes:
+
+- BREAKING: under the covariance form of `ar()`, `ma()` and `arma()`,
+  `sigma` is the innovation sd, as in brms 2.23.0. A fit saved by
+  0.76.0 or earlier with such a term is refused where an answer reads
+  `sigma`.
+- BREAKING: each random-effect parameter and the residual correlation
+  of a multivariate model have one prior slot, as in brms. The
+  named-list prior spelling is refused. `set_prior("")` is brms's
+  `(flat)` on its slot.
+- `mo()` takes a variable with one or two values, as brms does.
+- marginaleffects reads `vcov =` and brms's prediction arguments, and
+  gives finite standard errors on a fit with an empty `mo()` category.
+- `build_objective()` reads a `prior_only` field, for
+  `sample_prior = "only"` in frmtmb.sample. The sampling-API function
+  `autocor_innov_sd()` is removed.
+- Update the extensions together with frmtmb. frmtmb.sample 0.24.0
+  needs frmtmb 0.77.0.
+
+## Breaking changes
+
+* Under the covariance form of `ar()`, `ma()` and `arma()`, `sigma` is
+  the innovation sd, as in brms 2.23.0. Before, it was the marginal sd
+  of a residual. The model was the same, but the parameter was not
+  brms's. On an AR(1) with `ar` 0.93, `sigma(fit)` was 1.078 and is now
+  0.406, against a brms posterior mean of 0.432. For an AR(1), the
+  marginal sd is `sigma / sqrt(1 - ar^2)`. At any order, it is `sigma`
+  times the square root of the process variance at unit innovation
+  variance. The logLik and the other estimates do not change.
+
+* So `sigma()`, `VarCorr()`, `summary()`, `confint()`, `vcov()`, the
+  standard errors and `fitted(dpar = "sigma")` report the innovation sd.
+  Under `sigma ~ x` the coefficients of `sigma` are those of the log
+  innovation sd, as brms's `Intercept_sigma` and `b_sigma` are. Pearson
+  residuals, `simulate()` and the pointwise log-density read the
+  marginal sd, as before.
+
+* A prior on class `sigma` is a density on the innovation sd itself, and
+  its `lb` and `ub` bound it, as in brms. Before, the density was read
+  at the marginal sd times a factor of `ar` and `ma`. A `lb` above 0 or
+  a `ub` was refused. Under `sigma ~ x`, a prior on the intercept of
+  `sigma` is now read at the log innovation sd, as brms reads it.
+  Before, it was read at the log marginal sd.
+
+* The standard error of `log(sigma)` is the one of the innovation sd:
+  0.109 against 0.213 for the marginal sd on the AR(1) above. Its
+  correlation with the `ar` parameter falls from 0.88 to -0.34.
+
+* `ar(p = 2, cov = TRUE)` and the other higher orders, which brms does
+  not fit, read `sigma` as the innovation sd too.
+
+* `conditional_effects(method = "posterior_predict")` draws its band at
+  `sigma`, so under these terms at the innovation sd. brms does the
+  same: its `conditional_effects()` drops every autocorrelation term.
+  The band is narrower than before by `sqrt(1 - ar^2)` for an AR(1). On
+  an AR(1) with `ar` 0.84, its half-width over 1.96 was 0.855 and is now
+  0.470.
+
+* `cooks.distance()`, `dfbeta()`, `dfbetas()` and `influence()` read a
+  coefficient vector that holds the log sd of `sigma`, which is now the
+  innovation sd. So their values change. On the same AR(1), the sum of
+  Cook's distances was 0.642 and is now 0.935.
+
+* A fit saved by frmtmb 0.76.0 or earlier with one of these terms is
+  refused where an answer reads `sigma` or its coefficients. These
+  refuse: `summary()`, `print()`, `sigma()`, `VarCorr()`, `confint()`,
+  `vcov(full = TRUE)`, `predict()`, `simulate()`, pearson and deviance
+  `residuals()`, the influence measures, and `hypothesis()` on `sigma`.
+  `fitted()`, `frm_linpred()`, `emmeans()` and `conditional_effects()`
+  with `dpar = "sigma"` are refused, and so is
+  `conditional_effects(method = "posterior_predict")`. Under
+  `sigma ~ x`, `fixef()`, `coef()` and `vcov()` are refused too.
+  `insight::get_sigma()`, `get_parameters()` and `get_varcov()` are
+  refused as well.
+
+* Such a fit still answers where only the mean is read, because its
+  model is the same: `logLik()`, `AIC()`, `fitted()`, `frm_linpred()`,
+  `emmeans()` on the mean, `residuals(type = "response")`, and, with a
+  constant `sigma`, `fixef()`, `coef()` and `vcov()`. `update()` fits it
+  again. Draws saved by frmtmb.sample 0.23.0 for such a model still
+  report the old marginal sd as `sigma` in `summary()`.
+
+* For a current fit, `insight::get_sigma()` gives insight's default, as
+  before: `sigma()` where it answers, and `sqrt(deviance / df)` under
+  `sigma ~ x`, where `sigma()` returns `NA`. Only a saved fit with one
+  of these terms is refused.
+
+* The sampling-API function `autocor_innov_sd()` is removed: no prior
+  needs it now.
+
+* `mo()` takes a variable with two values, or with one, as brms 2.23.0
+  does. Through 0.76.0 both were refused ("mo() needs at least 3 ordered
+  categories"). Two values (brms's `Jmo = 1`) give a simplex of one
+  weight, which is fixed at 1, so the term is its coefficient times the
+  code. On 200 rows, `y ~ mo(x) + z` with `x` in 1 and 2 has the
+  log-likelihood of `lm(y ~ I(x - 1) + z)` to 12 digits. `summary()`
+  reports the weight `mox1[1]` as 1 with an error of 0, as brms does. A
+  two-level ordered factor is the same model. One value (brms's
+  `Jmo = 0`) gives a term that is 0 on every row. Its coefficient is not
+  determined by the data, so its standard error is `NaN`, with the usual
+  warning. It is not counted in the degrees of freedom of `logLik()`,
+  `AIC()` and `anova()`, as `lm()` does not count a column it aliases.
+  `predict()` holds it at its estimate. A group-level term on such a
+  variable, `(mo(x) | g)`, is refused: its column is 0 on every row.
+  brms builds the model but cannot sample it: its Stan program rejects
+  `Jmo = 0`, and `frm_sample()` refuses it too. So
+  `update(fit, newdata =)` on new data where a `mo()` variable has one
+  value now refits by maximum likelihood, where brms's `update()` builds
+  the model.
+
+* marginaleffects' `vcov =` argument reaches the fit. Through 0.76.0
+  `get_vcov()` ignored it, so a user's matrix, `"HC3"` or a cluster
+  formula gave the model-based standard errors without a message:
+  `predictions(fit, vcov = 2 * get_vcov(fit))` gave a ratio of 1 where
+  `lm()` gives 1.414214. Now a matrix over `get_coef()`, matched by its
+  names, works. So do a matrix over the whole outer parameter vector, a
+  function, `FALSE`, `"HC0"`, `"HC1"` and a one-sided cluster formula.
+  marginaleffects maps `"stata"` to HC1. The whole-vector matrix is
+  refused for a REML fit, whose vector has no fixed effects. `"HC0"` and
+  `"HC1"` equal `sandwich::vcovHC()` on a gaussian linear model, and
+  `~ g` equals `sandwich::vcovCL()` on a Poisson glm. The bread is the
+  observed information, so for a glm with a non-canonical link the
+  sandwich differs from `sandwich`'s, which reads the expected
+  information: 1.128 times its standard error of the slope on 300 rows
+  of a `Gamma(link = "log")` model. The other strings are refused, each
+  with its reason: `"HC2"` to `"HC5"` and `"robust"` need leverages,
+  which frmtmb does not compute, `"HAC"` and `"NeweyWest"` a time order,
+  `"satterthwaite"` and `"kenward-roger"` denominator degrees of
+  freedom. Under a residual correlation term, such as `ar(cov = TRUE)`,
+  `"HC0"`, `"HC1"`, `"stata"` and a cluster formula are refused too. Its
+  density is joint over each group. `vcov = TRUE` works there. See
+  `?frmtmb-marginaleffects`.
+
+* Take a fit whose `mo()` term has a category that no row is in. There
+  `get_coef()` carries that simplex as its cumulative weights at the
+  observed categories (`zeta1_cum1`, ...), not as its chart coordinates.
+  So marginaleffects gives `NaN` only to a prediction at an empty
+  category, with one warning, as `fitted()` does. In 0.76.0 every
+  standard error of such a fit was `NaN`. On 200 rows with values 1, 2
+  and 5, `predictions()` at 1, 2 and 5 now gives 0.1222210, 0.1135415
+  and 0.1212624. These are the standard errors of `lm()` on `factor(x)`
+  with the maximum-likelihood sigma. With `vcov = "HC0"` it gives
+  0.1224166, 0.1103619 and 0.1248376, `lm()`'s HC0.
+
+* marginaleffects' prediction arguments that frmtmb does not take are
+  refused by name: lme4's `re.form` and `allow.new.levels`, brms's
+  `sample_new_levels`, `ndraws`, `draw_ids` and `incl_autocor`, and
+  glmmTMB's `zitype`. marginaleffects warns that every argument of a
+  `frmtmb_fit` is "not known to be supported", so a dropped argument
+  looked the same as one that works: `re.form = NA` returned the
+  conditional predictions.
+
+* Each random-effect parameter, and the residual correlation of a
+  multivariate model, has one prior slot, as in brms 2.23.0, which has
+  no class `theta`. A standard deviation is class `sd` (a `gp()` term's
+  `sdgp`, and `lscale` for its length scales). A correlation that an LKJ
+  density fits is class `cor`, and a residual correlation is class
+  `rescor`. `set_prior(class = "theta", coef = "theta_4")` on such a
+  parameter is refused with the class to write, and `default_prior()`
+  lists no `theta` row for it. Until now class `theta` was a second slot
+  on the same parameter, and the one written later replaced the other
+  with no message. On `(1 + x + z | g)`, `lkj(2)` on class `cor` and
+  then `normal(0, 1)` on `theta_4` kept the normal on one correlation
+  parameter and no density on the other two. A MAP fit took those two to
+  559 and 1741. A class `sd` prior with `coef = "x"` beside a `theta_2`
+  prior was dropped. Class `theta` keeps the parameters that no brms
+  class names. Examples are a `toep()` correlation and a parameter of a
+  structure that an extension registers (a `car()` dependence). With no
+  `coef` it covers only those. One correlation takes no bound any more.
+  brms has none either: its program for `lb` on class `cor` does not
+  parse.
+
+* A centered intercept has one prior slot, class `Intercept`.
+  `set_prior(class = "b", coef = "Intercept")` there is refused, as brms
+  refuses it. It put a second density on the intercept, without the
+  centering. Class `Intercept` with `nlpar` is stored as brms's slot of
+  the same parameter, class `b` with `coef = "Intercept"`. So the two
+  spellings together are refused as a duplicate. Before, the one written
+  later applied.
+
+* `default_prior(route = "sample")` prints brms's `(flat)` with `lb` and
+  `ub` for a first-order `cov = TRUE` `ar` or `ma`, for `cosy` and for
+  `lagsar`, where it printed `uniform(-1, 1)`. The table passed back as
+  `prior =` gives the same sampled density as the defaults: at 300
+  points on each of six models the log density agrees to 2.3e-16
+  relative and the gradient exactly. On `frm()`'s route the same table
+  is read as written: a `(flat)` row with `lb` and `ub` is a box with no
+  density, as every bounds-only specification is there. A box at the
+  ends of the interval bounds nothing. So
+  `frm(prior = default_prior(..., route = "sample"))` on such a model
+  moves, and `uniform(-1, 1)` on `ar` and `(flat)` with
+  `lb = -1, ub = 1` give different `frm()` fits. On
+  `y ~ 1 + ar(t, g, cov = TRUE)` (6 series of 8) the internal ar
+  estimate under the table is 0.8053, where it was 0.7249; maximum
+  likelihood gives 0.8089. The prior object that `prior_summary()`
+  returns for a `frm_sample()` run carries the densities. Passed to
+  `frm()`, it still gives 0.7249, the mode of the sampled density.
+
+* The named list of prior objects,
+  `prior = list(theta_1 = prior_normal(0, 1))`, put densities on
+  internal parameters by name. `frm()`, `update()`, `validate_prior()`
+  and `frm_simulate()` refuse it, and say how to write the same density
+  with `set_prior()`. brms has no such spelling. It gave a parameter a
+  second prior slot beside its class: on `(1 + x + z | g)` in
+  `frm_sample()`, `list(theta_4 = prior_normal(0, 1))` removed the
+  default `lkj(1)` from all three correlations and left two of them with
+  no density. A plain data frame passed as `prior =` is refused too, as
+  brms refuses one, with a pointer to `as.brmsprior()`, which reads it.
+  The `prior_normal()` family of constructors stays: they are densities
+  `set_prior()` takes. With the list goes the only prior on a single
+  threshold's internal parameter and on the free directions of
+  sum-to-zero thresholds; brms has neither.
+
+* `set_prior("", class = ...)` with no bound is brms's `(flat)` on that
+  slot, where it was refused. `frm()` applies nothing there, so a prior
+  made only of such slots leaves a maximum-likelihood fit. A
+  `default_prior()` or brms table row with an empty prior and no bound
+  is read the same way, where it was dropped. A
+  `default_prior(route = "fit")` table keeps that route through a row or
+  column selection and `subset()`. A priorlist read from it keeps it
+  through `+`, `c()` and `as.brmsprior()`. So frmtmb.sample can refuse
+  it. `as.data.frame()` drops the route. So `as.brmsprior()` marks a
+  data frame that holds frmtmb's printed `(flat)`. `frm()` drops either
+  mark from the prior it keeps.
+
+* `c()` of a prior specification with something that is not one, such as
+  a density object or a named list of them, is refused. The message
+  gives the `set_prior()` spelling to write. Before, it built a prior
+  that `frm()` then stopped on with an internal error. `c()` now reads a
+  `default_prior()` table or a brms prior as `as.brmsprior()` reads it,
+  with its route. That holds when a specification or a frmtmb table
+  comes first. brms's `c()` combines the rows the same way. With a brms
+  table first, brms's own `c()` refuses the frmtmb specification.
+
+## New features
+
+* A prior density can be brms's `(flat)`. The prior resolver reads it as
+  no density on the parameter a class names, with the Jacobian of the
+  map to the internal parameter. An LKJ density can be flat on the
+  Cholesky factor. frmtmb.sample's `prior = "flat"` uses both, so
+  frmtmb.sample 0.24.0 needs frmtmb 0.77.0.
+
+* `build_objective()` reads a third field on a copy of the frame,
+  `prior_only`. With `prior_only = TRUE` the objective leaves out every
+  response density. It keeps the densities of the group-level
+  coefficients, of the `me()` latent values and their measurements, and
+  of a `mi(sdy)` response's measurements. These are the terms brms
+  2.23.0 keeps outside `if (!prior_only)` under
+  `brm(sample_prior = "only")`. A fit's own frame never carries it.
+  frmtmb.sample's `frm_sample(sample_prior = "only")` reads it, to
+  sample the prior of the whole model. `?frmtmb-sampling-api` documents
+  it.
+
+* `plot()` of a hypothesis draws the density of its prior draws in the
+  second of `colors`, as brms does, unless `ignore_prior = TRUE`. Draws
+  made by `frmtmb.sample::frm_sample(sample_prior = "yes")` carry them;
+  a maximum-likelihood fit has none, and its plot does not change.
+
+## Bug fixes
+
+* `predictions()`, `comparisons()` and `slopes()` of marginaleffects
+  pass brms's `re_formula`, `allow_new_levels`, `dpar` (also brms's
+  `nlpar`) and `resp` to the prediction. Through 0.76.0 they were
+  dropped, so `predictions(fit, re_formula = NA)` returned the
+  predictions conditional on the group-level effects. marginaleffects
+  1.0.0 still warns that these arguments are "not known to be supported"
+  for this class. It keeps a fixed list of known arguments per class.
+  The arguments have their effect.
+
+* `predictions()` on new data with a factor that has levels no row uses
+  returned one row more for each level: 11 rows for 3 rows of a factor
+  with 8 levels. marginaleffects adds a row for each level and removes
+  those rows by their row id, which frmtmb's `get_predict()` numbered
+  again.
+
+* `vcov_cluster()` gave `NaN` in every entry on a fit that lost a
+  parameter (a `mo()` category no row is in, a variance at its
+  boundary). The bread held `NaN` in the lost rows. The bread is now the
+  covariance conditional on the lost directions, and only the lost rows
+  are `NaN`.
+
+* `prior =` given a list of `set_prior()` specifications, such as
+  `list(sp, sp2)`, is refused with a pointer to `sp + sp2` and
+  `c(sp, sp2)`, as brms combines them. It gave a generic message about a
+  list of length 2.
+
+## Documentation
+
+* New help topic `?frmtmb-marginaleffects`: the parameters
+  marginaleffects perturbs, the `vcov` spellings and brms's prediction
+  arguments.
+
 # frmtmb 0.76.0
 
 The main changes:

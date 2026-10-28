@@ -158,6 +158,7 @@ reference:
   - frm_curve_deriv
   - frm_curve_feature
   - frmtmb-emmeans
+  - frmtmb-marginaleffects
   - frm_joint_cov
   - sigma.frmtmb_fit
   - frmtmb-scales

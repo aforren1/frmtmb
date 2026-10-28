@@ -24,8 +24,22 @@
 # over the same 10 rows (brms_adapt_sar_path()). frmtmb refuses diag(10)
 # by design: I - rho I makes rho and the scale one parameter, so sar()
 # needs a negative and a positive eigenvalue. The value checks run
-# brms's own function on the substituted matrix too. Left to the
-# survey: the multivariate and ARMA blocks and custom families.
+# brms's own function on the substituted matrix too. The ARMA blocks
+# (gaussian_time, student_time) go through the same two functions, one
+# group of rows begin_tg[i]:end_tg[i] under frmtmb's ar(), ma() or
+# arma() with cov = TRUE, whose sigma is brms's innovation sd.
+# ADAPTATION: their preps carry known standard errors (prep$data$se)
+# and no acframe, so brms's own helpers build sigma^2 I + diag(se^2)
+# and ar and ma never enter: brms's rows exercise the se covariance.
+# brms 2.23.0 fits se() beside cov = TRUE; frmtmb refuses it, a parity
+# gap. So the port swaps the se covariance for the ARMA one: it leaves
+# se out and adds an acframe naming arma (brms_adapt_time_subst), and
+# the value checks read brms's ARMA covariance. The multivariate
+# gaussian and student-t blocks (lane mointerop) go through
+# brms_adapt_mv_log_lik() and brms_adapt_mv_posterior_predict(): the
+# prep's Mu and Sigma become a frmtmb set_rescor(TRUE) model with one
+# mean per row, and the values are frmtmb's rescor_row_loglik() and the
+# joint draw of predict(). Left to the survey: custom families.
 #
 # G2 (tests.distributions.R): the two blocks that compare brms's
 # unexported ordinal densities dcumulative(), dsratio(), dcratio() and
@@ -119,9 +133,28 @@ brms_adapt_funs <- c(
 # becomes the path graph (see the header)
 brms_adapt_ac_spec_funs <- c("gaussian_lagsar", "student_lagsar",
                              "gaussian_errorsar", "student_errorsar",
-                             "gaussian_fcor", "student_fcor")
+                             "gaussian_fcor", "student_fcor",
+                             "gaussian_time", "student_time")
+# brms's multivariate helpers with residual correlation (lane
+# mointerop): the prep's Mu and Sigma become a frmtmb set_rescor(TRUE)
+# model, read through rescor_row_loglik() and predict()
+brms_adapt_mv_spec_funs <- c("gaussian_mv", "student_mv")
 brms_adapt_sar_subst <- list(c("Msar = diag(10)",
                                "Msar = brms_adapt_sar_path(10)"))
+# The ARMA blocks' two adaptations (see the header): brms's known
+# standard errors are left out, and the prep names its ARMA term in an
+# acframe, without which brms's own get_cov_matrix_ac() reads the
+# correlation as the identity and the value checks compare nothing
+brms_adapt_time_subst <- list(
+  c("prep$data <- list(Y = rnorm(nobs), se = rgamma(ns, 10))",
+    "prep$data <- list(Y = rnorm(nobs))"),
+  c("prep$data <- list(se = rgamma(ns, 10))",
+    "prep$data <- list()"),
+  c("begin_tg = 2, end_tg = 5",
+    "begin_tg = 2, end_tg = 5, acframe = brms_adapt_acframe(\"arma\")"),
+  c("begin_tg = c(1, 5, 12), end_tg = c(4, 11, 15)",
+    paste("begin_tg = c(1, 5, 12), end_tg = c(4, 11, 15),",
+          "acframe = brms_adapt_acframe(\"arma\")")))
 
 # The rows that hold only on the substituted input. The ledger keeps
 # them as passes, of class "adapted-input", with this reason, so that
@@ -142,6 +175,53 @@ bin2_adapted_input <- stats::setNames(
   c("log_lik:150", "log_lik:152", "log_lik:157", "log_lik:159",
     "posterior_predict:111", "posterior_predict:113",
     "posterior_predict:118", "posterior_predict:120"))
+# The ARMA blocks' rows: brms's preps exercise its known-standard-error
+# covariance, and the port swaps it for the ARMA one
+bin2_adapted_input_time_reason <- paste(
+  "pass on an adapted input: brms's rows, as written, exercise its",
+  "known-standard-error covariance: the prep carries se and no acframe,",
+  "so brms's get_cov_matrix_ac() builds sigma^2 I + diag(se^2) and ar",
+  "and ma never enter. The port swaps that for the ARMA covariance: it",
+  "drops se and adds an acframe naming arma. It has to, because brms",
+  "2.23.0 fits se() beside a cov = TRUE term (normal_time_hom_se_lpdf())",
+  "and frmtmb refuses that combination, a parity gap. brms's assertion",
+  "(the dimensions) holds on the adapted prep, and for log_lik the value",
+  "check against brms's own function on it holds too, with brms's sigma",
+  "read as frmtmb's.")
+bin2_adapted_input <- c(bin2_adapted_input, stats::setNames(
+  rep(bin2_adapted_input_time_reason, 4L),
+  c("log_lik:130", "log_lik:133",
+    "posterior_predict:93", "posterior_predict:97")))
+
+# The rows that test brms's own numeric helper API: a divergence by
+# policy since the 0.77.0 consolidation, where they were "cannot
+# transfer / decision" (classes no-density and no-quantile). Six run
+# through the adapter (dev/brmsport-bin2-verdicts-2p.R sets their
+# verdict); the twelve of the multivariate normal and t block are not
+# ported, and dev/brmsport-bin2-ledger.R gives them this verdict in
+# place of the survey's class.
+bin2_numeric_helper_reason <- paste(
+  "divergence by policy: the row tests brms's own numeric helper API",
+  "(dmulti_normal() and dmulti_student_t() with check =, rmulti_normal(),",
+  "rmulti_student_t(), qstudent_t(), qskew_normal(), qfrechet(),",
+  "qgen_extreme_value()).",
+  "brms itself, mvtnorm and extraDistr provide them; frmtmb does not",
+  "re-export them (SPEC.md: numeric d/p/q/r functions come from other",
+  "packages)")
+bin2_policy_unported <- paste0("distributions:",
+  c(15, 17, 19, 20, 23, 25, 28, 31, 33, 36, 39, 42))
+# A literal pass that a reader could take for more than it shows. The
+# two rescor posterior_predict rows are frmtmb's (core) rows, as every
+# bin-2P row is; frmtmb.sample's posterior_predict() of set_rescor(TRUE)
+# draws is another path, with a defect filed at the 0.77.0 release.
+bin2_pass_note <- stats::setNames(rep(paste(
+  "pass through core's predict() joint draw",
+  "(brms_adapt_mv_posterior_predict()), the route of every bin-2P row;",
+  "it says nothing about",
+  "frmtmb.sample's posterior_predict() of set_rescor(TRUE) draws, which",
+  "draws the responses independently (dev/test-backlog.md, filed at the",
+  "0.77.0 release)"), 2L),
+  c("posterior_predict:69", "posterior_predict:72"))
 
 # brms's exported d, r and p functions that dev/brmsport-bin2-adapters.R
 # shims (brms_g1_shims), bound by name in the distributions file's header
@@ -248,7 +328,11 @@ bin2_adapted <- list(
       # lane loglik: the residual correlation terms
       "log_lik for SAR models runs without errors",
       "log_lik for FCOR models runs without errors",
-      "log_lik for FCOR student-t models works as expected"),
+      "log_lik for FCOR student-t models works as expected",
+      # the covariance form of a first-order ARMA
+      "log_lik for ARMA models runs without errors",
+      # lane mointerop: multivariate gaussian and student-t with rescor
+      "log_lik for multivariate linear models runs without errors"),
     pre = c(
       "dstudent_t <- brms::dstudent_t",
       "dshifted_lnorm <- brms::dshifted_lnorm",
@@ -262,8 +346,9 @@ bin2_adapted <- list(
       brms_adapt_pre_links,
       "SW <- suppressWarnings"),
     subst = c(brms_adapt_subst("log_lik", c(brms_adapt_funs,
-                                            brms_adapt_ac_spec_funs)),
-              brms_adapt_sar_subst)),
+                                            brms_adapt_ac_spec_funs,
+                                            brms_adapt_mv_spec_funs)),
+              brms_adapt_sar_subst, brms_adapt_time_subst)),
   "tests.posterior_predict.R" = list(
     topic = "posterior_predict", pkgs = "frmtmb",
     blocks = c(
@@ -287,11 +372,17 @@ bin2_adapted <- list(
       # lane loglik: the residual correlation terms (brms's block label
       # for the SAR one says loglik)
       "loglik for SAR models runs without errors",
-      "posterior_predict for FCOR models runs without errors"),
+      "posterior_predict for FCOR models runs without errors",
+      # the covariance form of a first-order ARMA
+      "posterior_predict for ARMA covariance models runs without errors",
+      # lane mointerop: multivariate gaussian and student-t with rescor
+      paste("posterior_predict for multivariate linear models runs",
+            "without errors")),
     pre = brms_adapt_pre_links,
     subst = c(brms_adapt_subst("posterior_predict",
-                               c(brms_adapt_funs, brms_adapt_ac_spec_funs)),
-              brms_adapt_sar_subst)),
+                               c(brms_adapt_funs, brms_adapt_ac_spec_funs,
+                                 brms_adapt_mv_spec_funs)),
+              brms_adapt_sar_subst, brms_adapt_time_subst)),
   "tests.distributions.R" = list(
     topic = "distributions", pkgs = "frmtmb",
     blocks = c(

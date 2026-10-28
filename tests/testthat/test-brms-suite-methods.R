@@ -1185,13 +1185,8 @@ test_that("update has reasonable outputs", {
       "2026-09-17, rule 2)"),
     expect_true(is(up, "brmsfit"))
   )
-  brms_port("brmsfit-methods:924", "divergence",
-    paste0(
-      "update(newdata =) refits with Exp = 4 on every row; mo() ",
-      "codes from the minimum as brms 2.23.0 does, so mo(Exp) has ",
-      "one category and frm() refuses it. brms builds the model ",
-      "only under testmode, which never samples: Stan rejects Jmo ",
-      "= 0 (dev/mocode-brms-const.R)"),
+  brms_port("brmsfit-methods:924", "pass",
+    "",
     expect_equal(attr(up$data, "data_name"), "new_data")
   )
   brms_port("brmsfit-methods:927", "divergence",

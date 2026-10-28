@@ -228,9 +228,10 @@ tests start every free mixture from two separated rates.
 Every model in these two chapters fits. Their **Bayes factors are not
 here**: each one is a Savage-Dickey density ratio read off the
 posterior of one parameter at one point, and a maximum likelihood fit
-has no posterior to read. `frmtmb.sample` is gaining the ratio; the
-tests fit the models and pin the quantity the ratio is taken over, so
-the evidence test can be written the moment it lands.
+has no posterior to read. `frmtmb.sample` computes the ratio from
+draws made with `frm_sample(sample_prior = "yes")`, as brms does; the
+tests here fit the models and pin the quantity the ratio is taken
+over.
 
 | model | frmtmb spelling | validated by | caveat |
 |---|---|---|---|

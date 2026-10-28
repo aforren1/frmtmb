@@ -297,8 +297,11 @@ coef_b <- function(fit, b = fit$estimates[["b"]]) {
 #' @noRd
 mo_col_values <- function(fit, mi, codes = mi$codes) {
   mo_min(mi)   # refuses a frame that frmtmb 0.75.0 or earlier coded
-  zeta <- mo_simplex(fit$estimates[[mi$zeta]], mi[["chart"]])
-  cz0 <- c(0, cumsum(zeta))
+  # the cumulative weights marginaleffects' set_coef() perturbs on a fit
+  # with an empty category (interop_mo_gaps())
+  cz <- fit[["mo_cum_override"]][[mi$zeta]] %||%
+    cumsum(mo_simplex(fit$estimates[[mi$zeta]], mi[["chart"]]))
+  cz0 <- c(0, cz)
   mi$D * cz0[codes + 1L]
 }
 
@@ -2130,6 +2133,7 @@ frm_linpred <- function(object, newdata = NULL,
                         dpar = NULL, resp = NULL, re_formula = NULL,
                         se.fit = FALSE, allow_new_levels = FALSE, ...) {
   require_structure_packages(object)
+  autocor_check_dpar(object, dpar)
   # A warning here was not enough: `predict(fit, re_form = NA)` warned
   # and then returned the CONDITIONAL prediction, and a warning in a
   # loop or under suppressWarnings() is a wrong number with no record.
@@ -3401,6 +3405,7 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
                               allow_new_levels = FALSE,
                               sample_new_levels = NULL) {
   require_structure_packages(object)
+  autocor_check_dpar(object, dpar)
   frm_check_dots(..., .unsupported = fitted_no_draws)
   scale <- frm_match_arg(scale)
   fitted_refuse_draws_args("fitted()", ndraws, draw_ids, sort, summary,
@@ -4672,8 +4677,11 @@ residuals_unsupported <- c(
 #' @section Residual correlation terms:
 #' Under an `ar()`, `ma()`, `arma()`, `cosy()` or `unstr()` term (see
 #' [frmtmb-autocor]) the residual covariance of a group is `D R D` with
-#' `R` unit-diagonal, so the marginal residual SD of a row is still
-#' `sigma` and `"pearson"` is unchanged - it divides by exactly that.
+#' `R` unit-diagonal and `D` the marginal residual SDs, and `"pearson"`
+#' divides by the marginal SD of the row. That is `sigma` under `cosy()`
+#' and `unstr()`. Under `ar()`, `ma()` and `arma()` with `cov = TRUE`,
+#' `sigma` is the innovation SD, as in brms, and the marginal SD is
+#' larger: `sigma / sqrt(1 - ar^2)` for an AR(1).
 #' What `"response"` and `"pearson"` do NOT do is decorrelate: plotted
 #' against time within a group they still show the fitted
 #' autocorrelation, which is the intended reading. `"osa"` is refused,
@@ -5207,9 +5215,15 @@ residual_values <- function(object, type = c("response", "pearson",
     return(napred(object, r))
   }
   # under cov = FALSE the residual is against brms's one-step mean, and
-  # under a lag SAR term against (I - rho W)^-1 mu
+  # under a lag SAR term against (I - rho W)^-1 mu. Under ar(), ma() or
+  # arma() with cov = TRUE, sigma is the innovation sd, and a residual is
+  # scaled by the marginal sd of its row; "response" reads the mean
+  # alone, so a fit saved with the old sigma still answers it
   dp <- autocor_mean_dpars(object, rspec$resp_name,
                            eval_dpars(object)[[rspec$resp_name]])
+  if (type != "response") {
+    dp <- autocor_marg_dpars(object, rspec$resp_name, dp)
+  }
   av <- object$frame[["aterm_values"]][[rspec$resp_name]]
   # NA at a missing mi() row, where the frame holds a placeholder
   yv <- frame_observed_y(object, rspec$resp_name)

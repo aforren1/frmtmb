@@ -1,0 +1,8 @@
+frmtmb dev/sigmainn-head-tests/core-tt/test-autocor.R
+frmtmb dev/sigmainn-head-tests/core-tt/test-autocor-loglik.R
+frmtmb dev/sigmainn-head-tests/core-tt/test-priors-autocor-classes.R
+frmtmb dev/sigmainn-head-tests/core-tt/test-brms-likelihood.R
+frmtmb.sample dev/sigmainn-head-tests/sample-tt/test-default-priors-autocor.R
+frmtmb.sample dev/sigmainn-head-tests/sample-tt/test-loglik-autocor.R
+frmtmb.sample dev/sigmainn-head-tests/sample-tt/test-loo.R
+frmtmb.sample dev/sigmainn-head-tests/sample-tt/test-default-priors-fit.R

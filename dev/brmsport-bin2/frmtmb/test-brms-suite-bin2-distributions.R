@@ -76,12 +76,15 @@ test_that("student distribution works correctly", {
   brms_setup("distributions:7",
     ps <- c(-1,0,0.7,1,1.5)
   )
-  brms_port("distributions:8", "cannot transfer",
+  brms_port("distributions:8", "divergence",
     paste0(
-      "decision: brms's q function; no frmtmb family object ",
-      "carries a quantile function, and SPEC.md:153-154 puts ",
-      "numeric d/p/q/r functions for post-processing outside ",
-      "frmtmb, in gamlss.dist or extraDistr"),
+      "divergence by policy: the row tests brms's own numeric ",
+      "helper API (dmulti_normal() and dmulti_student_t() with ",
+      "check =, rmulti_normal(), rmulti_student_t(), qstudent_t(), ",
+      "qskew_normal(), qfrechet(), qgen_extreme_value()). brms ",
+      "itself, mvtnorm and extraDistr provide them; frmtmb does ",
+      "not re-export them (SPEC.md: numeric d/p/q/r functions come ",
+      "from other packages)"),
     SW(expect_equal(qstudent_t(ps, df = 5, mu = 2, sigma = 3), 2 + 
         3 * qt(ps, df = 5)))
   )
@@ -167,12 +170,15 @@ test_that("skew_normal distribution functions run without errors", {
     res <- qskew_normal(p, mu = rnorm(n), sigma = 1:n,
                         alpha = 3, log.p = TRUE)
   )
-  brms_port("distributions:68", "cannot transfer",
+  brms_port("distributions:68", "divergence",
     paste0(
-      "decision: brms's q function; no frmtmb family object ",
-      "carries a quantile function, and SPEC.md:153-154 puts ",
-      "numeric d/p/q/r functions for post-processing outside ",
-      "frmtmb, in gamlss.dist or extraDistr"),
+      "divergence by policy: the row tests brms's own numeric ",
+      "helper API (dmulti_normal() and dmulti_student_t() with ",
+      "check =, rmulti_normal(), rmulti_student_t(), qstudent_t(), ",
+      "qskew_normal(), qfrechet(), qgen_extreme_value()). brms ",
+      "itself, mvtnorm and extraDistr provide them; frmtmb does ",
+      "not re-export them (SPEC.md: numeric d/p/q/r functions come ",
+      "from other packages)"),
     expect_true(length(res) == n)
   )
   brms_setup("distributions:69",
@@ -181,12 +187,15 @@ test_that("skew_normal distribution functions run without errors", {
   brms_setup("distributions:70",
     res <- SW(qskew_normal(ps))
   )
-  brms_port("distributions:71", "cannot transfer",
+  brms_port("distributions:71", "divergence",
     paste0(
-      "decision: brms's q function; no frmtmb family object ",
-      "carries a quantile function, and SPEC.md:153-154 puts ",
-      "numeric d/p/q/r functions for post-processing outside ",
-      "frmtmb, in gamlss.dist or extraDistr"),
+      "divergence by policy: the row tests brms's own numeric ",
+      "helper API (dmulti_normal() and dmulti_student_t() with ",
+      "check =, rmulti_normal(), rmulti_student_t(), qstudent_t(), ",
+      "qskew_normal(), qfrechet(), qgen_extreme_value()). brms ",
+      "itself, mvtnorm and extraDistr provide them; frmtmb does ",
+      "not re-export them (SPEC.md: numeric d/p/q/r functions come ",
+      "from other packages)"),
     expect_equal(res, c(NA, -Inf, 0, Inf, NA))
   )
   brms_setup("distributions:72",
@@ -285,13 +294,15 @@ test_that("frechet distribution functions run without errors", {
   brms_setup("distributions:96",
     q <- qfrechet(res, loc = loc, scale = 1:n, shape = 3)
   )
-  brms_port("distributions:97", "cannot transfer",
+  brms_port("distributions:97", "divergence",
     paste0(
-      "decision: brms's qfrechet(); no frmtmb family object ",
-      "carries a quantile function, and SPEC.md:153-154 puts ",
-      "numeric d/p/q/r functions for post-processing outside ",
-      "frmtmb, in gamlss.dist or extraDistr (as distributions:8, ",
-      ":68 and :71)"),
+      "divergence by policy: the row tests brms's own numeric ",
+      "helper API (dmulti_normal() and dmulti_student_t() with ",
+      "check =, rmulti_normal(), rmulti_student_t(), qstudent_t(), ",
+      "qskew_normal(), qfrechet(), qgen_extreme_value()). brms ",
+      "itself, mvtnorm and extraDistr provide them; frmtmb does ",
+      "not re-export them (SPEC.md: numeric d/p/q/r functions come ",
+      "from other packages)"),
     expect_equal(x, q)
   )
   brms_setup("distributions:98",
@@ -300,13 +311,15 @@ test_that("frechet distribution functions run without errors", {
   brms_setup("distributions:99",
     res <- SW(qfrechet(ps))
   )
-  brms_port("distributions:100", "cannot transfer",
+  brms_port("distributions:100", "divergence",
     paste0(
-      "decision: brms's qfrechet(); no frmtmb family object ",
-      "carries a quantile function, and SPEC.md:153-154 puts ",
-      "numeric d/p/q/r functions for post-processing outside ",
-      "frmtmb, in gamlss.dist or extraDistr (as distributions:8, ",
-      ":68 and :71)"),
+      "divergence by policy: the row tests brms's own numeric ",
+      "helper API (dmulti_normal() and dmulti_student_t() with ",
+      "check =, rmulti_normal(), rmulti_student_t(), qstudent_t(), ",
+      "qskew_normal(), qfrechet(), qgen_extreme_value()). brms ",
+      "itself, mvtnorm and extraDistr provide them; frmtmb does ",
+      "not re-export them (SPEC.md: numeric d/p/q/r functions come ",
+      "from other packages)"),
     expect_equal(res, c(NA, 0, Inf, NA))
   )
   brms_setup("distributions:101",
@@ -443,13 +456,15 @@ test_that("gen_extreme_value distribution functions run without errors", {
   brms_setup("distributions:138",
     q <- qgen_extreme_value(res, mu = mu, sigma = 1:n, xi = 3)
   )
-  brms_port("distributions:139", "cannot transfer",
+  brms_port("distributions:139", "divergence",
     paste0(
-      "decision: brms's qgen_extreme_value(); no frmtmb family ",
-      "object carries a quantile function, and SPEC.md:153-154 ",
-      "puts numeric d/p/q/r functions for post-processing outside ",
-      "frmtmb, in gamlss.dist or extraDistr (as distributions:8, ",
-      ":68 and :71)"),
+      "divergence by policy: the row tests brms's own numeric ",
+      "helper API (dmulti_normal() and dmulti_student_t() with ",
+      "check =, rmulti_normal(), rmulti_student_t(), qstudent_t(), ",
+      "qskew_normal(), qfrechet(), qgen_extreme_value()). brms ",
+      "itself, mvtnorm and extraDistr provide them; frmtmb does ",
+      "not re-export them (SPEC.md: numeric d/p/q/r functions come ",
+      "from other packages)"),
     expect_equal(x, q)
   )
   brms_setup("distributions:140",

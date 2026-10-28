@@ -37,10 +37,10 @@ test_that("bounds align with the outer parameters under profile = TRUE", {
         prior = set_prior("", class = "b", coef = "x", lb = 2),
         control = frmtmb_control(profile = TRUE)),
     "Unknown parameter")
-  # a theta bound reaches the right slot
+  # an sd bound reaches the right slot, on the log the fit holds
   fitb <- suppressWarnings(
     frm(bf(y ~ x + (1 | g)) + gaussian(), data = d,
-        prior = set_prior("", class = "theta", coef = "theta_1", lb = 1),
+        prior = set_prior("", class = "sd", group = "g", lb = exp(1)),
         control = frmtmb_control(profile = TRUE)))
   expect_gte(fitb$estimates$theta[1], 1 - 1e-8)
   # and the slope stays at its unbounded estimate

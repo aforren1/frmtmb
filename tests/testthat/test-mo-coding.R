@@ -42,15 +42,143 @@ test_that("an integer mo() is coded from its minimum", {
   expect_identical(as.integer(mi$codes), dg$x - 1L)
 })
 
-test_that("mo() refuses what brms refuses and fewer than 3 categories", {
+test_that("mo() refuses what brms refuses and takes one or two values", {
   d <- data.frame(x = rep(c(1, 1.5, 2, 3), 5), y = rnorm(20))
   expect_error(frm(y ~ mo(x), data = d, dry_run = "frame"),
                "ordered factor or integers")
+  # brms 2.23.0 builds two values as Jmo = 1 (a simplex of one weight)
+  # and one value as Jmo = 0; through 0.76.0 frmtmb refused both ("mo()
+  # needs at least 3 ordered categories")
   d$x <- rep(c(4L, 5L), 10)
-  expect_error(frm(y ~ mo(x), data = d, dry_run = "frame"),
-               "at least 3 ordered categories; mo[(]x[)] has 2")
+  mi <- mo_code_frame(y ~ mo(x), d)$mo[[1L]]
+  expect_identical(mi$D, 1L)
+  expect_identical(as.integer(mi$codes), d$x - 4L)
+  d$x <- 4L
+  mi <- mo_code_frame(y ~ mo(x), d)$mo[[1L]]
+  expect_identical(mi$D, 0L)
+  expect_identical(as.integer(mi$codes), rep(0L, 20))
   d$x <- rep(c(4L, 5L, 6L, 6L), 5)
   expect_identical(mo_code_frame(y ~ mo(x), d)$mo[[1L]]$D, 2L)
+})
+
+mo_two_data <- function() {
+  set.seed(5)
+  n <- 200
+  d <- data.frame(x = sample(1:2, n, TRUE), z = rnorm(n))
+  d$y <- 1 + 0.8 * d$x + 0.5 * d$z + rnorm(n)
+  d$x01 <- d$x - 1L
+  d$xo <- factor(d$x, levels = 1:2, ordered = TRUE)
+  d$x1 <- 4L
+  d
+}
+
+test_that("mo() on two values is its coefficient times the code", {
+  # brms's simplex[1] is fixed at 1, so mo(x) on two values is the linear
+  # term b * (x - min(x)): the fit is lm()'s on the code, with the ML sigma
+  d <- mo_two_data()
+  fit <- frm(y ~ mo(x) + z, data = d)
+  m <- stats::lm(y ~ x01 + z, data = d)
+  expect_equal(as.numeric(logLik(fit)), as.numeric(logLik(m)))
+  # nlminb stops a few 1e-6 short of lm()'s exact solution here, as it
+  # does on three categories, so the yardsticks are measured: the
+  # estimates' own standard errors, and the gap between the ML and the
+  # unbiased residual scale
+  fe <- fixef(fit)
+  se_lm <- sqrt(diag(stats::vcov(m)))[c(1, 3, 2)]
+  s <- sqrt(m$df.residual / nrow(d))
+  expect_lt(max(abs(fe[, "Estimate"] - coef(m)[c(1, 3, 2)]) / se_lm), 1e-3)
+  expect_lt(max(abs(fe[, "Est.Error"] - se_lm * s)),
+            1e-3 * max(abs(se_lm - se_lm * s)))
+  # brms's summary row of the weight: 1, with no error
+  sm <- summary(fit)$mo
+  expect_identical(rownames(sm), "mox1[1]")
+  expect_identical(unname(unlist(sm[1L, ])), c(1, 0, 1, 1))
+  # an ordered factor with two levels is the same model
+  fo <- frm(y ~ mo(xo) + z, data = d)
+  expect_identical(as.numeric(logLik(fo)), as.numeric(logLik(fit)))
+  # new data in the fitted range only, as brms's validate_newdata()
+  nd <- data.frame(x = 1:2, z = 0)
+  ex <- stats::predict(m, newdata = data.frame(x01 = 0:1, z = 0),
+                       se.fit = TRUE)
+  ft <- fitted(fit, newdata = nd)
+  expect_lt(max(abs(ft[, "Estimate"] - ex$fit) / ex$se.fit), 1e-3)
+  expect_lt(max(abs(ft[, "Est.Error"] - ex$se.fit * s)),
+            1e-3 * max(abs(ex$se.fit - ex$se.fit * s)))
+  expect_error(fitted(fit, newdata = data.frame(x = 3, z = 0)),
+               "outside the fitted range 1..2")
+  # brms's simo row has one weight, and its concentration has length 1
+  expect_error(frm(y ~ mo(x) + z, data = d, prior = set_prior(
+    "dirichlet(c(1, 1))", class = "simo", coef = "mox1")),
+    "Expected input of length 1")
+  fp <- frm(y ~ mo(x) + z, data = d, prior = set_prior(
+    "dirichlet(2)", class = "simo", coef = "mox1"))
+  expect_identical(as.numeric(logLik(fp)), as.numeric(logLik(fit)))
+  # mo(x) * z takes it too
+  fi <- frm(y ~ mo(x) * z, data = d)
+  expect_equal(as.numeric(logLik(fi)),
+               as.numeric(logLik(stats::lm(y ~ x01 * z, data = d))))
+})
+
+test_that("mo() on one value is 0 and leaves its coefficient open", {
+  # brms 2.23.0 builds Jmo = 0; the term is 0 on every row, so the fit is
+  # y ~ z, and the data do not determine the coefficient
+  d <- mo_two_data()
+  fit <- allow_warnings(frm(y ~ mo(x1) + z, data = d),
+                        "Standard errors are not available",
+                        require = "Standard errors are not available")
+  m <- stats::lm(y ~ z, data = d)
+  expect_equal(as.numeric(logLik(fit)), as.numeric(logLik(m)))
+  expect_true(is.nan(fixef(fit)["mox1", "Est.Error"]))
+  expect_null(summary(fit)$mo)
+  nd <- data.frame(x1 = 4L, z = c(0, 1))
+  ft <- fitted(fit, newdata = nd)
+  expect_true(all(is.finite(ft[, "Est.Error"])))
+  expect_error(fitted(fit, newdata = data.frame(x1 = 3L, z = 0)),
+               "outside the fitted range 4..4")
+  skip_if_not_installed("marginaleffects")
+  # no prediction reads the coefficient, so marginaleffects' standard
+  # errors are those of y ~ z; a NaN covariance made every one of them
+  # NaN
+  se <- marginaleffects::predictions(fit, newdata = nd)$std.error
+  f0 <- frm(y ~ z, data = d)
+  expect_true(all(is.finite(se)))
+  expect_equal(se, marginaleffects::predictions(f0, newdata = nd)$std.error)
+})
+
+test_that("a one-value mo() term is no degree of freedom and no variance", {
+  d <- mo_two_data()
+  d$g <- factor(rep(1:8, length.out = nrow(d)))
+  fit <- allow_warnings(frm(y ~ mo(x1) + z, data = d),
+                        "Standard errors are not available")
+  m <- stats::lm(y ~ z, data = d)
+  # the term cannot change the likelihood, so it counts as lm() counts
+  # an aliased column; the first build of this change gave df 4
+  expect_equal(attr(logLik(fit), "df"), attr(logLik(m), "df"))
+  expect_equal(AIC(fit), AIC(m))
+  f0 <- frm(y ~ z, data = d)
+  a <- anova(f0, fit)
+  expect_identical(as.numeric(a[2L, "Chi Df"]), 0)
+  # predict() draws the parameters: the lost coefficient is held at its
+  # estimate, which no row reads, where its loss sent the draws to the
+  # estimates alone, with a warning
+  expect_no_warning(predict(fit, newdata = data.frame(x1 = 4L, z = 0),
+                            ndraws = 50))
+  # a group-level variation of a column that is 0 on every row is not a
+  # parameter; fitted, it printed its start value 1 as an estimate
+  expect_error(frm(y ~ mo(x1) + z + (mo(x1) | g), data = d),
+               "x1 has one value")
+})
+
+test_that("brms codes one and two values as frmtmb does", {
+  skip_unless_brms()
+  d <- mo_two_data()
+  for (v in c("x", "xo", "x1")) {
+    f <- stats::as.formula(paste0("y ~ mo(", v, ") + z"))
+    sd <- brms_standata(f, data = d, family = stats::gaussian())
+    mi <- mo_code_frame(f, d)$mo[[1L]]
+    expect_identical(as.integer(mi$codes), as.integer(sd$Xmo_1), label = v)
+    expect_identical(mi$D, as.integer(sd$Jmo[1L]), label = v)
+  }
 })
 
 test_that("mo() codes and simplex sizes are brms's Xmo and Jmo", {
@@ -180,11 +308,16 @@ test_that("a frame coded from 0 by frmtmb 0.75.0 is refused when it differs", {
   expect_identical(logLik(old0), logLik(f0))
 })
 
-mo_gap_fit <- function() {
+mo_gap_data <- function() {
   set.seed(7)
   d <- data.frame(x = sample(c(1L, 2L, 5L), 200, replace = TRUE))
   d$y <- d$x + rnorm(200)
-  allow_warnings(frm(y ~ mo(x), data = d), "Standard errors are not")
+  d
+}
+
+mo_gap_fit <- function() {
+  allow_warnings(frm(y ~ mo(x), data = mo_gap_data()),
+                 "Standard errors are not")
 }
 
 test_that("a prediction at a category no row is in has no standard error", {
@@ -326,14 +459,67 @@ test_that("marginaleffects' standard errors carry the mo() simplex", {
   # marginaleffects' Jacobian is a finite difference, about 1e-7
   # relative here; the simplex moves the standard error by 0.31
   expect_lt(max(abs(se / ex - 1)), 1e-4 * max(abs(se0 / ex - 1)))
-  # a category no row is in: marginaleffects cannot leave the
-  # undetermined direction out, so its standard errors are NaN, with a
-  # warning (0.75.0 gave finite ones at the empty categories)
+  # a category no row is in: get_coef() carries the cumulative weights
+  # at the observed categories, which the data determine, so the
+  # standard error is NaN at the empty categories 3 and 4 alone, as
+  # fitted() gives it. 0.75.0 gave finite ones there, and 0.76.0 NaN at
+  # every category. At 1, 2 and 5 the exact one is lm()'s on factor(x)
   fg <- mo_gap_fit()
-  w <- "marginaleffects forms its standard errors from the whole"
+  dg <- mo_gap_data()
+  mg <- stats::lm(y ~ factor(x), data = dg)
+  exg <- stats::predict(mg, newdata = data.frame(x = c(1L, 2L, 5L)),
+                        se.fit = TRUE)$se.fit *
+    sqrt(mg$df.residual / nrow(dg))
+  w <- "predictions read a mo() category that no row is in"
   pg <- allow_warnings(marginaleffects::predictions(
     fg, newdata = data.frame(x = 1:5)), w, require = w)
-  expect_true(all(is.nan(pg$std.error)))
+  expect_true(all(is.nan(pg$std.error[3:4])))
+  # the yardstick as above, on the gap fit itself: how far the standard
+  # error that leaves its simplex out is from the exact one
+  ndo <- data.frame(x = c(1L, 2L, 5L))
+  lbg <- allow_warnings(frm_lp_basis(fg, newdata = ndo, re_formula = NA),
+                        "direction")
+  jcg <- get_joint_cov(fg)
+  Ag <- as.matrix(lbg$A)
+  Vg <- as.matrix(jcg$V)[lbg$coef_pos, lbg$coef_pos, drop = FALSE]
+  zg <- which(jcg$names[lbg$coef_pos] == "zeta1")
+  Ag0 <- Ag[, -zg, drop = FALSE]
+  se0g <- sqrt(rowSums((Ag0 %*% Vg[-zg, -zg, drop = FALSE]) * Ag0))
+  yard <- max(abs(se0g / exg - 1))
+  expect_gt(yard, 0)
+  expect_lt(max(abs(pg$std.error[c(1, 2, 5)] / exg - 1)), 1e-4 * yard)
+  expect_true(all(grepl("^zeta1_cum", setdiff(
+    names(marginaleffects::get_coef(fg)),
+    c("(Intercept)", "mox", "sigma_(Intercept)")))))
+  # a contrast that reads no empty category is exact; one that does is
+  # NaN
+  ac <- marginaleffects::avg_comparisons(fg, variables = list(x = c(1, 5)))
+  V <- stats::vcov(mg) * mg$df.residual / nrow(dg)
+  expect_lt(abs(ac$std.error / sqrt(V[3, 3]) - 1), 1e-4 * yard)
+  ag <- allow_warnings(marginaleffects::avg_comparisons(
+    fg, variables = list(x = c(1, 3))), w)
+  expect_true(is.nan(ag$std.error))
+})
+
+test_that("a gap fit that lost another direction warns in get_vcov()", {
+  skip_if_not_installed("marginaleffects")
+  # (mo(x) | g) with x in 1, 2, 5 stops at cor = 1 (seed 23 of the
+  # review): the covariance on the determined directions is NaN itself.
+  # The first build of this change returned NaN in every entry with no
+  # warning; 0.76.0 kept the coefficient block and warned, and so does
+  # this one
+  set.seed(23)
+  n <- 300
+  d <- data.frame(x = sample(c(1, 2, 5), n, TRUE), z = rnorm(n),
+                  g = factor(sample(1:10, n, TRUE)))
+  d$y <- 1 + (0.4 + rnorm(10, 0, 0.2)[d$g]) * d$x + 0.5 * d$z + rnorm(n)
+  fit <- allow_warnings(frm(y ~ mo(x) + z + (mo(x) | g), data = d),
+                        "Optimizer did not report convergence")
+  w <- "the fit lost another direction as well"
+  V <- allow_warnings(marginaleffects::get_vcov(fit), w, require = w)
+  cf <- c("(Intercept)", "z", "mox", "sigma_(Intercept)")
+  expect_true(all(is.finite(V[cf, cf])))
+  expect_true(all(is.nan(V["zeta1_cum1", ])))
 })
 
 test_that("dfbeta() keeps the coefficients' columns on a mo() fit", {

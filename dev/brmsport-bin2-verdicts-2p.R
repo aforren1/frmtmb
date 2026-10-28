@@ -11,6 +11,7 @@
 # Every row that holds is a pass by observation and has no entry here.
 # Constructions: dev/remeasure-bin2-probe2.R, log
 # dev/remeasure-out/probe/bin2-probe2.txt (seeds are the blocks' own).
+source("dev/brmsport-bin2-adapters-spec.R")
 v <- list()
 add <- function(id, verdict, class, reason) {
   v[[length(v) + 1L]] <<- data.frame(id = id, pkg = "frmtmb",
@@ -271,6 +272,14 @@ for (k in c(97, 100, 139)) {
 # 'Post-fit quantities against brms'). brms 2.23.0 skips its own block
 # ('skip as long as RWiener fails on R-devel'), so the port runs it in
 # place of the skip.
+# the 0.77.0 consolidation: brms's own numeric helpers are a divergence
+# by policy, not a decision of "cannot transfer" (bin2_numeric_helper_reason
+# in dev/brmsport-bin2-adapters-spec.R, which also lists the unported
+# rows of the multivariate block)
+for (k in c(8, 68, 71, 97, 100, 139)) {
+  V <- bp_set(V, paste0("distributions:", k), "divergence", "policy",
+              bin2_numeric_helper_reason)
+}
 stopifnot(!anyDuplicated(V$id), all(nzchar(V$reason)),
           !any(grepl("\t", V$reason)))
 

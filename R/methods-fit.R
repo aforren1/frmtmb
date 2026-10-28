@@ -247,6 +247,7 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
                                        brms_draws_summary_args["pars"]))
   summary_refuse_waic(waic)
   mo_check_fit(object)
+  autocor_check_fit(object)
   check_flag(priors, "priors")
   check_flag(robust, "robust")
   check_flag(mc_se, "mc_se")
@@ -676,9 +677,19 @@ summary_mo_frame <- function(object, prob, terms = mo_frame_terms(object)) {
   V <- tryCatch(suppressWarnings(sdr_of(object)$cov.fixed),
                 error = keep_missing(NULL))
   q <- stats::qnorm(1 - (1 - prob) / 2)
+  # one category has no weight; two have one, fixed at 1, which brms
+  # reports with an error of 0 and the interval [1, 1]
+  terms <- Filter(function(tm) tm$D >= 1L, terms)
+  if (!length(terms)) return(NULL)
   out <- lapply(terms, function(tm) {
     z <- as.numeric(object$estimates[[tm$zeta]])
     w <- mo_simplex(z)
+    if (tm$D == 1L) {
+      return(data.frame(Estimate = 1, `Est.Error` = 0, lo = 1, hi = 1,
+                        face = FALSE,
+                        row.names = sub("^simo_", "", tm$names),
+                        check.names = FALSE))
+    }
     pos <- which(om$comp == tm$zeta)
     se <- rep(NA_real_, tm$D)
     if (!is.null(V) && length(pos) == length(z) && nrow(V) >= max(pos)) {
@@ -927,11 +938,13 @@ n_outer_est <- function(object) {
 #' the same model, because a category has a formula of its own and so
 #' the shift is only partly free, or the fit is multivariate, the df is
 #' `NA` with the reason as attribute `df_why`, and `anova()` and
-#' `drop1()` refuse with it. Every other fit keeps `n_outer_est()`.
+#' `drop1()` refuse with it. Every other fit keeps `n_outer_est()`,
+#' less the coefficient of each `mo()` term on one value
+#' (`mo_const_df()`).
 #'
 #' @noRd
 loglik_df <- function(object) {
-  n <- n_outer_est(object)
+  n <- n_outer_est(object) - mo_const_df(object)
   fams <- lapply(object$spec$responses, `[[`, "family")
   na_ref <- vapply(fams, function(f) is.function(f[["refcat_first"]]), NA)
   if (!any(na_ref)) return(n)
@@ -946,6 +959,21 @@ loglik_df <- function(object) {
     "reference-category model to read its degrees of freedom from. ",
     "Refit with frm(), or with a reference category, which has the same ",
     "log-likelihood"))
+}
+
+#' The estimated coefficients of `mo()` terms on one value. Such a term
+#' is 0 on every row, so its coefficient cannot change the likelihood:
+#' it is not a degree of freedom, as `lm()` does not count a column it
+#' aliases (`lm(y ~ z)` has df 3 where the fit counted 4). Under REML
+#' the population-level coefficients are not in the count at all.
+#'
+#' @noRd
+mo_const_df <- function(object) {
+  pos <- interop_mo_const(object)
+  nb <- length(object$frame[["par_template"]][["beta"]])
+  in_beta <- pos <= nb
+  sum(!in_beta) +
+    if (!object$REML || isTRUE(object$control$profile)) sum(in_beta) else 0L
 }
 
 #' The parameter count of a `refcat = NA` model's reference twin, for
@@ -1232,6 +1260,8 @@ vcov.frmtmb_fit <- function(object, correlation = FALSE, pars = NULL, ...,
                             full = FALSE, cluster = NULL, type = "CR0") {
   frm_check_dots(...)
   mo_check_fit(object)
+  # the full matrix holds sigma's row; brms's block only under sigma ~ x
+  autocor_check_fit(object, predicted = !isTRUE(full))
   check_flag(correlation, "correlation")
   V <- if (is.null(cluster)) {
     vcov_estimated(object, full = full)
@@ -1422,6 +1452,7 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
                             probs = c(0.025, 0.975), ...) {
   frm_check_dots(..., .unsupported = brms_draws_summary_args["pars"])
   mo_check_fit(object)
+  autocor_check_fit(object, predicted = TRUE)
   # brms's positions, so coef(fit, FALSE) asks brms's question and gets
   # a refusal rather than an argument landing nowhere
   fit_refuse_draws_args("coef()", summary = summary, robust = robust,
@@ -1651,6 +1682,7 @@ fixef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
                              probs = c(0.025, 0.975), pars = NULL, ...,
                              flatten = FALSE) {
   require_fit_packages(object)
+  autocor_check_fit(object, predicted = TRUE)
   frm_check_dots(...)
   # brms's positions ahead of `...`: fixef(fit, FALSE) used to set
   # `flatten` and return the default shape, identical() to fixef(fit)
@@ -2315,6 +2347,7 @@ VarCorr.frmtmb_fit <- function(x, sigma = 1, summary = TRUE,
                                robust = FALSE,
                                probs = c(0.025, 0.975), ...) {
   require_structure_packages(x)
+  autocor_check_fit(x)
   frm_check_dots(...)
   require_fitted(x, "VarCorr()")
   fit_refuse_draws_args("VarCorr()", summary = summary, robust = robust)

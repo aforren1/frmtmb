@@ -53,8 +53,8 @@ each a named numeric vector. It answers "what do I call these?"
 before there is a fit to ask, which is what \code{frm(start =)},
 \code{\link[=frm_simulate]{frm_simulate()}}'s \verb{newparams =}, and every box constraint all need:
 these are the names a bound resolves to, and the names
-\code{\link[=set_prior]{set_prior()}}'s \code{coef} takes for a raw covariance parameter
-(\code{class = "theta"}, \code{coef = "theta_1"}).
+\code{\link[=set_prior]{set_prior()}}'s \code{coef} takes for a covariance parameter that no brms
+class names (\code{class = "theta"}, \code{coef = "theta_12"}).
 }
 \details{
 On a fitted model the values are the estimates. On a formula and

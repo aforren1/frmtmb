@@ -69,12 +69,26 @@ ll_ac_data <- function(seed = 3) {
   d
 }
 
+# The process variance at unit innovation variance of an ar(), ma() or
+# arma() block, from the psi weights of stats::ARMAtoMA(), and 1 for any
+# other block: the marginal variance over sigma^2, since sigma is the
+# innovation sd under those three, as in brms
+ll_gamma0 <- function(fit) {
+  ac <- fit$frame$autocor[[1L]]
+  if (!ac$struct %in% c("ar", "ma", "arma")) return(1)
+  nat <- autocor_natural(fit$estimates$thetaac[ac$theta_idx], ac)
+  psi <- c(1, stats::ARMAtoMA(ar = unname(nat[startsWith(names(nat), "ar")]),
+                              ma = unname(nat[startsWith(names(nat), "ma")]),
+                              lag.max = 5000))
+  sum(psi^2)
+}
+
 # the fit's covariance over its rows, group by group, from its own
-# correlation matrix over the time levels and its sigma
+# correlation matrix over the time levels and its marginal sds
 ll_ar_model <- function(fit, d) {
   dp <- eval_dpars(fit)[[1]]
   n <- nrow(d)
-  s <- rep_len(as.numeric(dp$sigma), n)
+  s <- rep_len(as.numeric(dp$sigma), n) * sqrt(ll_gamma0(fit))
   R <- autocor_matrix(fit)
   ti <- match(as.character(d$t), rownames(R))
   S <- matrix(0, n, n)
@@ -168,9 +182,10 @@ test_that("the row sum is not the joint density, except without
   d <- d[order(d$g, d$t), ]
   fit <- ll_unfit(y ~ x + ar(t, g, cov = TRUE), data = d)
   fit$estimates$beta[] <- c(1, 0.5)
-  fit$estimates$betad[] <- log(1.2)
   for (rho in c(0.8, 0)) {
     fit$estimates$thetaac[] <- rho / sqrt(1 - rho^2)
+    # sigma is the innovation sd, so this is a marginal sd of 1.2
+    fit$estimates$betad[] <- log(1.2 * sqrt(1 - rho^2))
     ll <- autocor_row_loglik(fit, eval_dpars(fit), "y")
     md <- ll_ar_model(fit, d)
     joint <- ll_dense_joint(d$y, md$m, md$S, d$g)

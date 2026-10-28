@@ -113,6 +113,14 @@ for (i in seq_len(nrow(led))) {
       next
     }
     g <- groups[groups$group == s$group, ]
+    if (id %in% bin2_policy_unported) {
+      # a divergence by policy on a row the port does not run (brms's
+      # own numeric helpers, the 0.77.0 consolidation)
+      led$outcome[i] <- "divergence"
+      led$class[i] <- "policy"
+      led$reason[i] <- paste0(s$group, ": ", bin2_numeric_helper_reason)
+      next
+    }
     led$outcome[i] <- "cannot transfer"
     # a survey row may carry its own class (a block that differs from
     # its group); otherwise the group's
@@ -154,6 +162,8 @@ for (i in seq_len(nrow(led))) {
       }
       why <- unname(bin2_adapted_input[id])
       cls <- if (is.na(why)) "" else "adapted-input"
+      # a literal pass may carry a note on what it does not show
+      if (is.na(why)) why <- unname(bin2_pass_note[id])
       if (is.na(why)) why <- ""
       out_v[[length(out_v) + 1L]] <- data.frame(
         id = id, pkg = p, verdict = "pass", reason = why)
@@ -182,9 +192,19 @@ for (i in seq_len(nrow(led))) {
     }
   }
 }
+# a policy verdict names an unported row, and a pass note a row that
+# holds
+for (id in setdiff(bin2_policy_unported, led$id[!led$ported])) {
+  problems <- c(problems, paste("POLICY VERDICT FOR A ROW THAT IS PORTED",
+                                "OR ABSENT:", id))
+}
 # an adapted input whose row no longer holds, or is not ported, is a
 # stale entry: the reason would describe a pass that is not there
 held_ids <- rec$id[rec$held]
+for (id in setdiff(names(bin2_pass_note), held_ids)) {
+  problems <- c(problems, paste("PASS NOTE FOR A ROW THAT DOES NOT HOLD:",
+                                id))
+}
 for (id in setdiff(names(bin2_adapted_input), held_ids)) {
   problems <- c(problems, paste("ADAPTED INPUT FOR A ROW THAT DOES NOT",
                                 "HOLD:", id))

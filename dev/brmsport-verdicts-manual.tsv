@@ -17,11 +17,9 @@ standata:710	frmtmb	cannot transfer	stan	Jby_1 is Stan data, which frmtmb does n
 standata:718	frmtmb	cannot transfer	stan	Stan data column names: brms renames poly(x, 3)1 to polyx31 to make a Stan identifier; frmtmb's brms-facing names already agree, variables() reads b_polyx31 (dev/brmsport-probe3.R)
 standata:928	frmtmb	divergence	policy	y ~ . expands against the data as brms's does (lane formula2); brms's data has x1 == x2, and frmtmb drops the aliased x2 as lm() does ('rank deficient; dropping column(s): x2'), where brms keeps a column that only its prior places
 standata:1133	frmtmb	divergence	policy	frm(drop_unused_levels = FALSE) is accepted now (lane formrobust); the unused level's all-zero column xc is dropped with frmtmb's rank-deficiency message, as lm() drops it, where brms keeps a column that only its prior places (as standata:928)
-priors:5	frmtmb	divergence	policy	frmtmb lists 5 class theta rows (its covariance parameters) and no per-coefficient sd rows, since its class sd addresses a block and refuses coef (priorform ledger P1)
 priors:27	frmtmb	divergence	class	expect_is(bprior, 'brmsprior'): the object is a frmtmb_priorlist; brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 priors:39	frmtmb	cannot transfer	stan	set_prior(check = FALSE) passes Stan code through, and frmtmb builds no Stan program (priorform ledger P9)
 priors:85	frmtmb	divergence	policy	default_prior() describes frm(), which is flat in every slot; the sampling route's flat rescor is a filed frmtmb.sample defect (priorform ledger P15, dev/priorform-findings.md section 6)
-priors:123	frmtmb	divergence	policy	10 rows against brms's 9: two class theta rows added, one per-coefficient sd row absent (priorform ledger P26)
 priors:156	frmtmb	cannot transfer	stan	set_prior() takes no tag: a tag names a prior inside a Stan program (priorform ledger P33)
 priors:157	frmtmb	cannot transfer	stan	set_prior() takes no tag (priorform ledger P34)
 priors:158	frmtmb	cannot transfer	stan	set_prior() takes no tag (priorform ledger P35)
@@ -33,4 +31,3 @@ brmsterms:44	*	cannot transfer	brms-internal	brmsterms() is a brms internal; frm
 brmsterms:46	*	cannot transfer	brms-internal	brmsterms() is a brms internal; frm() refuses quantile = 1.5 in its own words, 'not in the range of the logit link' (dev/brmsport-probe3.R)
 brmsterms:89	frmtmb	cannot transfer	absent	brmsterms() is a brms internal, and frm() has no unused = ~ x: it is refused as an unavailable dpar (dev/brmsport-probe3.R)
 brmsfit-helpers:17	frmtmb	cannot transfer	brms-internal	compares brms:::inv_link() with itself on two link names; frmtmb has no inv_link()
-brmsfit-methods:924	frmtmb	divergence	policy	update(newdata =) refits with Exp = 4 on every row; mo() codes from the minimum as brms 2.23.0 does, so mo(Exp) has one category and frm() refuses it. brms builds the model only under testmode, which never samples: Stan rejects Jmo = 0 (dev/mocode-brms-const.R)

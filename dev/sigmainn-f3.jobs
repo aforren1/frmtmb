@@ -1,0 +1,3 @@
+frmtmb tests/testthat/test-autocor-sigma.R
+frmtmb tests/testthat/test-autocor-loglik.R
+frmtmb tests/testthat/test-priors-autocor-classes.R

@@ -380,8 +380,11 @@ test_that("the slots this package cannot answer refuse by name", {
   # methods already do and is NOT refused
   expect_silent(ll <- log_lik(ds, NULL, NULL, NULL, 5L))
   expect_equal(nrow(ll), 5L)
-  expect_error(as.mcmc(ds, NA, FALSE, FALSE, TRUE),
-               "nothing to include")
+  # inc_warmup in brms's fifth position is answered now that the warmup
+  # is kept (test-warmup-draws.R); with combine_chains it is brms's
+  # refusal
+  expect_error(as.mcmc(ds, NA, FALSE, TRUE, TRUE),
+               "Cannot include warmup samples when 'combine_chains'")
   expect_error(posterior_predict(ds, negative_rt = TRUE), "wiener")
   # brms ignores incl_thres on a family that is not ordinal
   expect_identical(posterior_linpred(ds, incl_thres = TRUE),
