@@ -64,6 +64,8 @@
 influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                                  force = FALSE, ...) {
   require_fit_packages(model)
+  # the displacement is of a coefficient vector that holds sigma's
+  autocor_check_fit(model)
   frm_check_dots(...)
   data <- data %||% fit_refit_data(model) %||% model$frame[["data_frame"]]
   if (!is.null(groups)) {

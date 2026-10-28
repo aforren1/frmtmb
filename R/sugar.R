@@ -51,6 +51,7 @@ find_linpred <- function(object, resp = NULL, dpar = "mu") {
 #' @export
 sigma.frmtmb_fit <- function(object, ...) {
   frm_check_dots(...)
+  autocor_check_fit(object)
   out <- vapply(object$spec$responses, function(rsp) {
     if (!"sigma" %in% rsp$family[["dpars"]]) return(1)
     av <- object$frame[["aterm_values"]][[rsp$resp_name]]

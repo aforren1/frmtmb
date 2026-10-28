@@ -362,19 +362,11 @@ prior that sets no \code{lb} keeps \code{lb = 0}, as brms keeps the bound it
 declares. \code{default_prior(route = "sample")} lists that interval, and
 the default route lists frm()'s window.
 
-Under a first-order \code{cov = TRUE} \code{ar()}, \code{ma()} or \code{arma()}, frmtmb's
-\code{sigma} (in \code{summary()}, \code{sigma()} and \code{VarCorr()}) is the MARGINAL
-sd of a residual, and brms's \code{sigma} is the innovation sd, smaller by
-\code{c = sqrt(1 - ar^2)}, \code{1 / sqrt(1 + ma^2)} or
-\verb{sqrt((1 - ar^2) / (1 + ma^2 + 2 ar ma))}: the same model, another
-name. A density on class \code{"sigma"} is read as brms reads it, at
-\code{sigma * c}, with the Jacobian of \code{c}, so \code{set_prior("student_t(3, 0, 2.5)", class = "sigma")} is brms's prior on its sigma. A \code{lb} above 0
-or a \code{ub} on \code{sigma} is refused there, because a box on the
-innovation sd moves with \code{ar} and is no box on the marginal sd frmtmb
-holds. Under \code{sigma ~ x} with such a term, a prior on the intercept of
-\code{sigma} (\verb{class = "Intercept", dpar = "sigma"}) is still read at
-frmtmb's log marginal sd, where brms reads it at the log innovation
-sd; the slopes (\verb{class = "b", dpar = "sigma"}) are the same in both.
+Under a \code{cov = TRUE} \code{ar()}, \code{ma()} or \code{arma()}, \code{sigma} is the
+innovation sd, as in brms (\link{frmtmb-autocor}). So a prior on class
+\code{"sigma"}, its \code{lb} and \code{ub}, and under \code{sigma ~ x} a prior on the
+intercept of \code{sigma} (\verb{class = "Intercept", dpar = "sigma"}, the log
+innovation sd), are brms's priors on the same parameter.
 }
 
 \section{The LKJ prior}{

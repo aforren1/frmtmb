@@ -178,8 +178,9 @@ test_that("dirichlet phi: brms's posterior under gamma(0.01, 0.01)", {
 # pooled Monte Carlo standard errors from brms's own, sigma's 19.6, and
 # the cosy mean 51.4, with 48 percent of the cosy draws below brms's
 # bound at 0. Now the default is brms's on both, so the comparison is
-# with brms's own draws, unweighted; frmtmb's sigma is the marginal sd,
-# so its draws are carried to brms's, sigma sqrt(1 - ar^2).
+# with brms's own draws, unweighted. frmtmb's sigma is the innovation
+# sd, as brms's is; through frmtmb 0.76.0 it was the marginal sd, and
+# the draws were carried to brms's as sigma sqrt(1 - ar^2).
 dpf_ac_data <- function() {
   set.seed(20261027)
   ng <- 8
@@ -258,8 +259,8 @@ test_that("a cov = TRUE ar near 1: brms's posterior under its (flat)", {
   m <- as.matrix(ds)
   one <- rep(1, nrow(b))
   dpf_expect_agree_w(m[, "ar[1]"], b[, 1], one, "ar")
-  dpf_expect_agree_w(m[, "sigma"] * sqrt(1 - m[, "ar[1]"]^2), b[, 2], one,
-                     "sigma")
+  # the draws of sigma, the innovation sd, compare as they are
+  dpf_expect_agree_w(m[, "sigma"], b[, 2], one, "sigma")
 })
 
 test_that("cosy near 0: brms's posterior, on brms's [0, 1]", {

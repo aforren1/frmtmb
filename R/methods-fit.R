@@ -247,6 +247,7 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
                                        brms_draws_summary_args["pars"]))
   summary_refuse_waic(waic)
   mo_check_fit(object)
+  autocor_check_fit(object)
   check_flag(priors, "priors")
   check_flag(robust, "robust")
   check_flag(mc_se, "mc_se")
@@ -1232,6 +1233,8 @@ vcov.frmtmb_fit <- function(object, correlation = FALSE, pars = NULL, ...,
                             full = FALSE, cluster = NULL, type = "CR0") {
   frm_check_dots(...)
   mo_check_fit(object)
+  # the full matrix holds sigma's row; brms's block only under sigma ~ x
+  autocor_check_fit(object, predicted = !isTRUE(full))
   check_flag(correlation, "correlation")
   V <- if (is.null(cluster)) {
     vcov_estimated(object, full = full)
@@ -1422,6 +1425,7 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
                             probs = c(0.025, 0.975), ...) {
   frm_check_dots(..., .unsupported = brms_draws_summary_args["pars"])
   mo_check_fit(object)
+  autocor_check_fit(object, predicted = TRUE)
   # brms's positions, so coef(fit, FALSE) asks brms's question and gets
   # a refusal rather than an argument landing nowhere
   fit_refuse_draws_args("coef()", summary = summary, robust = robust,
@@ -1651,6 +1655,7 @@ fixef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
                              probs = c(0.025, 0.975), pars = NULL, ...,
                              flatten = FALSE) {
   require_fit_packages(object)
+  autocor_check_fit(object, predicted = TRUE)
   frm_check_dots(...)
   # brms's positions ahead of `...`: fixef(fit, FALSE) used to set
   # `flatten` and return the default shape, identical() to fixef(fit)
@@ -2315,6 +2320,7 @@ VarCorr.frmtmb_fit <- function(x, sigma = 1, summary = TRUE,
                                robust = FALSE,
                                probs = c(0.025, 0.975), ...) {
   require_structure_packages(x)
+  autocor_check_fit(x)
   frm_check_dots(...)
   require_fitted(x, "VarCorr()")
   fit_refuse_draws_args("VarCorr()", summary = summary, robust = robust)

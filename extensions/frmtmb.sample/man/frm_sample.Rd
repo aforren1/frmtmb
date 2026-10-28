@@ -449,23 +449,13 @@ sampled parameters, so brms's flat needs no density there. A bounded
 one of these parameters is sampled through one logistic onto its
 interval, as Stan's bound is in brms.
 
-Under a first-order \code{cov = TRUE} \code{ar()}, \code{ma()} or \code{arma()}, the
-\code{sigma} that frmtmb reports (in \code{summary()}, \code{sigma()}, \code{VarCorr()}
-and these draws) is the MARGINAL sd of a residual, where brms's
-\code{sigma} is the innovation sd, smaller by the factor \code{sqrt(1 - ar^2)},
-\code{1 / sqrt(1 + ma^2)} or \verb{sqrt((1 - ar^2) / (1 + ma^2 + 2 ar ma))}; on
-an AR(1) of 0.9 that is 1.16 here against 0.43 in brms, for the same
-model. A prior on class \code{"sigma"}, the default \code{student_t(3, 0, s)} or
-one of your own, is read as brms reads it, on the innovation sd, with
-the Jacobian of the factor, here and in \code{\link[frmtmb:frm]{frmtmb::frm()}} alike, so a
-\code{default_prior(route = "sample")} table passed back as \verb{prior =} is
-the default density. A \code{lb} above 0 or a \code{ub} on \code{sigma} there is
-refused: a box on the innovation sd is not a box on the marginal sd,
-which the sampler holds. Under \code{sigma ~ x} with such a term, a prior on
-the intercept of \code{sigma} (\verb{class = "Intercept", dpar = "sigma"}),
-the default included, is still read at frmtmb's log marginal sd, where
-brms reads it at the log innovation sd; the slopes are the same in
-both, as \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} says.
+Under a \code{cov = TRUE} \code{ar()}, \code{ma()} or \code{arma()}, \code{sigma} is the
+innovation sd, as in brms (\link[frmtmb:frmtmb-autocor]{frmtmb::frmtmb-autocor}), in these draws
+as in \code{\link[frmtmb:frm]{frmtmb::frm()}}. So the default \code{student_t(3, 0, s)} on class
+\code{"sigma"}, a prior of your own with its \code{lb} and \code{ub}, and under
+\code{sigma ~ x} the default and your prior on the intercept of \code{sigma}
+(the log innovation sd), are brms's priors on the same parameter,
+and the draws of \code{sigma} are brms's.
 
 Every default with a bound (\code{nu} above 1 on an identity link, \code{sigma}
 above 0 on one, \code{ndt} below the smallest response, \code{cosy} above 0)

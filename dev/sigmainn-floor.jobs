@@ -1,0 +1,4 @@
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-default-priors-autocor.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-loglik-autocor.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-loo.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-default-priors-fit.R

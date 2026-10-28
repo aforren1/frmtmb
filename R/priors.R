@@ -303,20 +303,11 @@
 #' declares. `default_prior(route = "sample")` lists that interval, and
 #' the default route lists frm()'s window.
 #'
-#' Under a first-order `cov = TRUE` `ar()`, `ma()` or `arma()`, frmtmb's
-#' `sigma` (in `summary()`, `sigma()` and `VarCorr()`) is the MARGINAL
-#' sd of a residual, and brms's `sigma` is the innovation sd, smaller by
-#' `c = sqrt(1 - ar^2)`, `1 / sqrt(1 + ma^2)` or
-#' `sqrt((1 - ar^2) / (1 + ma^2 + 2 ar ma))`: the same model, another
-#' name. A density on class `"sigma"` is read as brms reads it, at
-#' `sigma * c`, with the Jacobian of `c`, so `set_prior("student_t(3, 0,
-#' 2.5)", class = "sigma")` is brms's prior on its sigma. A `lb` above 0
-#' or a `ub` on `sigma` is refused there, because a box on the
-#' innovation sd moves with `ar` and is no box on the marginal sd frmtmb
-#' holds. Under `sigma ~ x` with such a term, a prior on the intercept of
-#' `sigma` (`class = "Intercept", dpar = "sigma"`) is still read at
-#' frmtmb's log marginal sd, where brms reads it at the log innovation
-#' sd; the slopes (`class = "b", dpar = "sigma"`) are the same in both.
+#' Under a `cov = TRUE` `ar()`, `ma()` or `arma()`, `sigma` is the
+#' innovation sd, as in brms ([frmtmb-autocor]). So a prior on class
+#' `"sigma"`, its `lb` and `ub`, and under `sigma ~ x` a prior on the
+#' intercept of `sigma` (`class = "Intercept", dpar = "sigma"`, the log
+#' innovation sd), are brms's priors on the same parameter.
 #'
 #' @section The LKJ prior:
 #' `lkj(eta)` is the density `det(C)^(eta - 1)` over a block's
@@ -3264,9 +3255,7 @@ resolve_priorlist <- function(fit, pl) {
                                         idx = lp[["idx"]][k],
                                         name = pnm[lp[["idx"]][k]],
                                         link = lp[["link"]],
-                                        center = ctr,
-                                        resp = lp[["resp"]],
-                                        dpar = lp[["dpar"]])
+                                        center = ctr)
       }
       # a cs() term's threshold-specific coefficients are class "b" in
       # brms, under the term's own coef name: class "b" puts the density
@@ -3848,32 +3837,11 @@ resolve_priorlist <- function(fit, pl) {
       for (tg in target_coefs(s)) {
         key <- nm_of(tg$comp, tg$idx)
         pm <- coef_placement(s, tg)
-        # a density on sigma itself under a first-order cov = TRUE ar(),
-        # ma() or arma() is brms's density on ITS sigma, the innovation
-        # sd, whoever writes it (a default, a user, a sampling table
-        # passed back), on frm()'s route as on frm_sample()'s
-        innov <- if (isTRUE(s$natural) && identical(tg$dpar, "sigma") &&
-                       !is.null(tg$resp)) {
-          autocor_innov(frame[["autocor"]][[tg$resp]])
-        }
-        # and a box on the innovation sd moves with ar, so it is no box
-        # on frmtmb's marginal sd; lb = 0 is the same box on either
-        if (!is.null(innov) && (isTRUE(s$lb > 0) || !is.na(s$ub))) {
-          frm_stop("class = \"sigma\" takes no ",
-                   if (isTRUE(s$lb > 0)) "lb" else "ub", " here: under ",
-                   frame[["autocor"]][[tg$resp]][["label"]], " brms's ",
-                   "sigma, which a prior on class \"sigma\" is about, is ",
-                   "the innovation sd, frmtmb's marginal sd times a factor ",
-                   "of the correlation parameters, so a bound on it is not ",
-                   "a bound on the parameter frmtmb holds. Write the ",
-                   "density alone", call. = FALSE)
-        }
         if (!is.null(s$dist)) {
           assigned[[key]] <- list(comp = tg$comp, idx = tg$idx,
                                   dist = s$dist, scale = pm$scale,
                                   link = pm$link, offset = pm$offset,
                                   lb = s$lb, ub = s$ub)
-          if (!is.null(innov)) assigned[[key]]$innov <- innov
         } else if (!is.null(assigned[[key]])) {
           assigned[[key]] <- entry_bounds(assigned[[key]], s)
         }
@@ -4516,8 +4484,7 @@ internal_bound <- function(v, pm, which) {
 #' variables and the centering offset the entry asks for.
 #'
 #' @noRd
-prior_logdens <- function(x, dist, scale, link = NULL, offset = 0,
-                          lc = 0) {
+prior_logdens <- function(x, dist, scale, link = NULL, offset = 0) {
   jac <- 0
   if (identical(scale, "ordthres")) {
     # (tau_1, log increments) -> the thresholds, which is the map Stan's
@@ -4547,13 +4514,6 @@ prior_logdens <- function(x, dist, scale, link = NULL, offset = 0,
     # coefficient
     jac <- natural_log_jacobian(x, link)
     x <- link$linkinv(x)
-  }
-  # a density about c * the parameter (brms's innovation sd, `lc` its
-  # log factor): read there, with the factor's Jacobian. `lc` is a
-  # function of other parameters, so it is not a constant on the tape
-  if (!identical(lc, 0)) {
-    x <- x * exp(lc)
-    jac <- jac + lc
   }
   # a density written about a TRANSFORMED parameter (an AR coefficient,
   # a cosy correlation): evaluate it at the natural value and add the
@@ -5272,53 +5232,6 @@ autocor_bound_chart <- function(fit, lower, upper) {
   out
 }
 
-#' brms's `sigma` under a first-order `cov = TRUE` `ar()`, `ma()` or
-#' `arma()` is the INNOVATION sd: its `cholesky_cor_ar1()`,
-#' `cholesky_cor_ma1()` and `cholesky_cor_arma1()` are covariances with
-#' diagonal `1 / (1 - ar^2)`, `1 + ma^2` and
-#' `(1 + ma^2 + 2 ar ma) / (1 - ar^2)`, where frmtmb's are correlations
-#' (dev/acprior-armacheck.R: the same correlation to 2.2e-16). So
-#' brms's sigma is frmtmb's `sigma * c`, `c` one over the square root of
-#' that diagonal. `autocor_innov(ac)` says where `c` comes from, `NULL`
-#' for every other block (cosy and unstr are correlations in brms too).
-#'
-#' @noRd
-autocor_innov <- function(ac) {
-  if (is.null(ac) || autocor_is_seam(ac) || autocor_is_cond(ac)) {
-    return(NULL)
-  }
-  st <- ac[["struct"]]
-  p <- if (st %in% c("ar", "arma")) ac[["p"]] else 0L
-  q <- if (st %in% c("ma", "arma")) ac[["q"]] else 0L
-  if (!st %in% c("ar", "ma", "arma") || p > 1L || q > 1L || p + q < 1L) {
-    return(NULL)
-  }
-  list(comp = "thetaac", idx = ac[["theta_idx"]], p = p, q = q)
-}
-
-#' `log c` of `autocor_innov()` at the block's internal parameters,
-#' tape-safe: `-0.5 log` of brms's diagonal.
-#'
-#' @noRd
-innov_logc <- function(th, innov) {
-  # 1 - ar^2 is 1 / (1 + th^2) exactly, which keeps its digits where ar
-  # rounds to 1
-  if (!innov$q) return(-0.5 * log(1 + th[1] * th[1]))
-  ma <- autocor_pacf(th[innov$p + 1L])
-  if (!innov$p) return(-0.5 * log(1 + ma * ma))
-  ar <- autocor_pacf(th[1])
-  -0.5 * log(1 + th[1] * th[1]) - 0.5 * log(1 + ma * ma + 2 * ar * ma)
-}
-
-#' The responses whose sigma brms reads as an innovation sd
-#' (`autocor_innov()`), for the sampling extension's default on sigma.
-#'
-#' @noRd
-autocor_innov_sd <- function(fit) {
-  acs <- fit$frame[["autocor"]] %||% list()
-  names(acs)[vapply(acs, function(ac) !is.null(autocor_innov(ac)), NA)]
-}
-
 #' One term of `autocor_bound_chart()`.
 #'
 #' @noRd
@@ -5627,12 +5540,9 @@ neg_log_prior_fn <- function(entries) {
   function(pars) {
     nlp <- 0
     for (e in entries) {
-      lc <- if (!is.null(e$innov)) {
-        innov_logc(pars[[e$innov$comp]][e$innov$idx], e$innov)
-      } else 0
       nlp <- nlp - sum(prior_logdens(pars[[e$comp]][e$idx], e$dist,
                                      e$scale, e$link,
-                                     entry_offset(e, pars), lc = lc))
+                                     entry_offset(e, pars)))
     }
     nlp
   }

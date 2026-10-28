@@ -936,7 +936,84 @@ brms_value_check <- function(id, var, expected, code, adapted = NULL,
 
 brms_adapt_ac_funs <- c("gaussian_lagsar", "student_lagsar",
                         "gaussian_errorsar", "student_errorsar",
-                        "gaussian_fcor", "student_fcor")
+                        "gaussian_fcor", "student_fcor",
+                        "gaussian_time", "student_time")
+
+# brms's gaussian_time and student_time: the covariance form of a
+# first-order ar(), ma() or arma() over the rows begin_tg[i]:end_tg[i]
+# of group i, with brms's sigma, the innovation sd, which is frmtmb's
+# too. The frmtmb model is one group over those rows, time 1..k, a mean
+# free per row, and arma(), ar() or ma() by which of prep$ac$ar and
+# prep$ac$ma the prep carries. Two maps, both exact: an |ma| above 1 is
+# the invertible ma 1 / ma with sigma |ma|, the same covariance, which
+# is the only one frmtmb's parameterization holds; and brms's ar and ma
+# go to frmtmb's partial autocorrelation chart. brms's preps in these
+# blocks also carry known standard errors, prep$data$se, which brms
+# 2.23.0 adds to a cov = TRUE covariance and frmtmb refuses there (a
+# parity gap); the port leaves them out of the prep
+# (brms_adapt_time_subst in dev/brmsport-bin2-adapters-spec.R), and the
+# adapter refuses a prep that still has them rather than drop them.
+brms_adapt_time_model <- function(fun, i, prep) {
+  allowed <- c("ar", "ma", "begin_tg", "end_tg", "acframe")
+  extra <- setdiff(names(prep[["ac"]]), allowed)
+  if (length(extra)) {
+    stop("brms_adapt: prep$ac carries ", paste(extra, collapse = ", "),
+         ", which this adapter does not map", call. = FALSE)
+  }
+  extra <- c(setdiff(names(prep), c("dpars", "data", "ac", "ndraws",
+                                    "nobs", "family")),
+             setdiff(names(prep[["data"]]), "Y"))
+  if (length(extra)) {
+    stop("brms_adapt: the prep carries ", paste(extra, collapse = ", "),
+         ", which this adapter does not map (frmtmb refuses se() beside ",
+         "a cov = TRUE term)", call. = FALSE)
+  }
+  student <- startsWith(fun, "student_")
+  obs <- prep[["ac"]][["begin_tg"]][i]:prep[["ac"]][["end_tg"]][i]
+  k <- length(obs)
+  ns <- prep[["ndraws"]]
+  ar <- prep[["ac"]][["ar"]]
+  ma <- prep[["ac"]][["ma"]]
+  y <- prep[["data"]][["Y"]]
+  y <- if (is.null(y)) numeric(k) else as.numeric(y)[obs]
+  d <- data.frame(y = y, r = factor(seq_len(k)), t = seq_len(k))
+  fo <- if (!is.null(ar) && !is.null(ma)) {
+    y ~ 0 + r + arma(t, cov = TRUE)
+  } else if (!is.null(ar)) {
+    y ~ 0 + r + ar(t, cov = TRUE)
+  } else {
+    y ~ 0 + r + ma(t, cov = TRUE)
+  }
+  fam <- if (student) frmtmb::student() else stats::gaussian()
+  fit <- frmtmb::frm(fo, family = fam, data = d, dry_run = "objective")
+  class(fit) <- setdiff(class(fit), "frmtmb_unfitted")
+  mu <- prep[["dpars"]][["mu"]]
+  pinv <- function(r) r / sqrt(1 - r^2)
+  at <- function(s) {
+    f <- fit
+    f$estimates$beta[] <- if (is.matrix(mu)) mu[s, obs] else mu
+    sg <- brms_adapt_ac_par(prep[["dpars"]][["sigma"]], s)
+    th <- numeric(0)
+    if (!is.null(ar)) th <- c(th, pinv(brms_adapt_ac_par(ar, s)))
+    if (!is.null(ma)) {
+      m <- brms_adapt_ac_par(ma, s)
+      if (abs(m) > 1) {
+        sg <- sg * abs(m)
+        m <- 1 / m
+      }
+      th <- c(th, pinv(m))
+    }
+    nu <- if (student) brms_adapt_ac_par(prep[["dpars"]][["nu"]], s)
+    if (student && !(nu > 1)) {
+      stop("brms_adapt: frmtmb's student() takes nu > 1, and the prep's ",
+           "draw ", s, " has nu = ", format(nu), call. = FALSE)
+    }
+    f$estimates$betad[] <- c(log(sg), if (student) log(nu - 1))
+    f$estimates$thetaac[] <- th
+    f
+  }
+  list(at = at, ns = ns, n = k)
+}
 
 # The row-standardized adjacency of the path 1 - 2 - ... - n: a zero
 # diagonal and real eigenvalues in [-1, 1], so rho lives on (-1, 1)
@@ -1008,9 +1085,24 @@ brms_adapt_ac_model <- function(fun, prep) {
   list(at = at, ns = ns, n = n)
 }
 
-brms_adapt_ac_log_lik <- function(fun, i, prep) {
+# brms's acframe naming one autocorrelation class, the one field of it
+# that brms's has_ac_class() reads in get_cov_matrix_ac(), so that
+# brms's own helpers build the ARMA covariance for a hand-made prep
+brms_adapt_acframe <- function(class) {
+  structure(data.frame(class = class, cov = TRUE),
+            class = c("acframe", "data.frame"))
+}
+
+# A time-series term reads one group, i its index; the SAR and FCOR
+# terms read every row at once, as brms's own stopifnot(i == 1) says
+brms_adapt_ac_any <- function(fun, i, prep) {
+  if (endsWith(fun, "_time")) return(brms_adapt_time_model(fun, i, prep))
   stopifnot(i == 1)
-  m <- brms_adapt_ac_model(fun, prep)
+  brms_adapt_ac_model(fun, prep)
+}
+
+brms_adapt_ac_log_lik <- function(fun, i, prep) {
+  m <- brms_adapt_ac_any(fun, i, prep)
   out <- t(vapply(seq_len(m$ns), function(s) {
     f <- m$at(s)
     frmtmb::autocor_row_loglik(f, frmtmb::eval_dpars(f), "y")
@@ -1019,8 +1111,7 @@ brms_adapt_ac_log_lik <- function(fun, i, prep) {
 }
 
 brms_adapt_ac_posterior_predict <- function(fun, i, prep) {
-  stopifnot(i == 1)
-  m <- brms_adapt_ac_model(fun, prep)
+  m <- brms_adapt_ac_any(fun, i, prep)
   t(vapply(seq_len(m$ns), function(s) {
     f <- m$at(s)
     ctx <- frmtmb::sim_context(f, f$spec$responses[["y"]],

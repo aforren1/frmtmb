@@ -131,60 +131,61 @@ test_that("a bounds-only prior keeps the flat density on the coefficient", {
   expect_length(ru$lower, 0L)
 })
 
-test_that("the default on sigma is brms's, on the innovation sd", {
+test_that("the default on sigma is brms's, on sigma itself", {
   # brms's cholesky_cor_ar1(), _ma1() and _arma1() are covariances, so
-  # its sigma under a first-order cov = TRUE term is the innovation sd,
-  # sigma * c with c = 1 / sqrt(1 / (1 - ar^2)), 1 / sqrt(1 + ma^2) and
-  # sqrt((1 - ar^2) / (1 + ma^2 + 2 ar ma)); frmtmb's is the marginal sd.
-  # The default student_t is read at sigma * c with the Jacobian of the
-  # factor. Through frmtmb.sample 0.22.0 it was on the marginal sd, and
-  # frm_sample()'s ar posterior mean was 9.4 Monte Carlo standard errors
-  # from brms's (dev/acprior-innov.R)
+  # its sigma under a cov = TRUE term is the innovation sd, and so is
+  # frmtmb's since sigma became the innovation sd. The default
+  # student_t(3, 0, s) is brms's density at sigma = exp(eta), with the
+  # log link's Jacobian and no factor of the correlation parameters.
+  # frmtmb.sample 0.23.0 read it at sigma * c with the Jacobian of c,
+  # because frmtmb's sigma was the marginal sd.
   d <- dpa_data()
-  cases <- list(
-    list(y ~ x + ar(t, g, cov = TRUE),
-         function(n) sqrt(1 - n[1]^2)),
-    list(y ~ x + ma(t, g, cov = TRUE),
-         function(n) 1 / sqrt(1 + n[1]^2)),
-    list(y ~ x + arma(t, g, cov = TRUE),
-         function(n) sqrt((1 - n[1]^2) / (1 + n[2]^2 + 2 * n[1] * n[2]))))
-  for (cs in cases) {
-    fit <- frm(cs[[1]], data = d, dry_run = "objective")
+  for (fo in list(y ~ x + ar(t, g, cov = TRUE), y ~ x + ma(t, g, cov = TRUE),
+                  y ~ x + arma(t, g, cov = TRUE),
+                  y ~ x + ar(t, g, p = 2, cov = TRUE), y ~ x + cosy(t, g))) {
+    fit <- frm(fo, data = d, dry_run = "objective")
     ri <- dpa_ri(fit)
     ac <- fit$frame$autocor[[1L]]
     sg <- Filter(function(e) !identical(e$comp, "thetaac") &&
                    identical(e$dist$kind, "t") && identical(e$scale, "sd"),
                  ri$entries)
     expect_length(sg, 1L)
+    expect_null(sg[[1L]]$innov)
     sc <- sg[[1L]]$dist$scale
     nlp <- neg_log_prior_fn(sg)
     set.seed(2)
     v <- vapply(1:5, function(k) {
       p <- fit$frame$par_template
-      th <- stats::rnorm(ac$npar)
+      p[["thetaac"]][] <- stats::rnorm(ac$npar)
       eta <- stats::rnorm(1, -0.5, 0.5)
-      p[["thetaac"]][] <- th
       p[[sg[[1L]]$comp]][sg[[1L]]$idx] <- eta
-      cc <- cs[[2]](as.numeric(frmtmb:::autocor_natural(th, ac)))
-      # brms's density on sigma_i = exp(eta) c, carried to eta
-      ref <- stats::dt(exp(eta) * cc / sc, 3, log = TRUE) - log(sc) +
-        log(cc) + eta
+      # brms's density on sigma = exp(eta), carried to eta
+      ref <- stats::dt(exp(eta) / sc, 3, log = TRUE) - log(sc) + eta
       c(nlp(p), ref)
     }, c(0, 0))
     expect_lt(diff(range(colSums(v))) / max(abs(v)), 1e-10,
-              label = deparse(cs[[1]]))
+              label = deparse(fo))
   }
-  # the absent case: cosy's sigma is brms's marginal sd as well, so the
-  # default is read on sigma itself
-  fc <- frm(y ~ x + cosy(t, g), data = d, dry_run = "objective")
-  ec <- Filter(function(e) identical(e$dist$kind, "t") &&
-                 identical(e$scale, "sd"), dpa_ri(fc)$entries)
-  expect_length(ec, 1L)
-  expect_null(ec[[1L]]$innov)
+  # under sigma ~ x the default is on brms's Intercept_sigma, the log
+  # innovation sd at the predictor means, which no correlation
+  # parameter moves
+  fx <- frm(bf(y ~ x + ar(t, g, cov = TRUE), sigma ~ x), data = d,
+            dry_run = "objective")
+  ex <- Filter(function(e) identical(e$comp, "betad"), dpa_ri(fx)$entries)
+  expect_length(ex, 1L)
+  nlx <- neg_log_prior_fn(ex)
+  set.seed(4)
+  p <- fx$frame$par_template
+  p[["betad"]][] <- c(-0.4, 0.3)
+  vx <- vapply(1:5, function(k) {
+    p[["thetaac"]][] <- stats::rnorm(1, 0, 2)
+    nlx(p)
+  }, 0)
+  expect_identical(diff(range(vx)), 0)
   msg <- dpa_messages(frmtmb.sample:::sample_resolve_priors(
     frm(y ~ x + ar(t, g, cov = TRUE), data = d, dry_run = "objective"),
     NULL))
-  expect_true(any(grepl("innovation sd", msg, fixed = TRUE)))
+  expect_false(any(grepl("innovation sd", msg, fixed = TRUE)))
 })
 
 test_that("a bounded parameter is sampled through one logistic", {

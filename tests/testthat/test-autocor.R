@@ -32,6 +32,20 @@ ac_pars <- function(fit) {
   unname(autocor_natural(fit$estimates$thetaac[ac$theta_idx], ac))
 }
 
+# The marginal residual sd over sigma (the innovation sd under ar(),
+# ma() and arma(), as in brms): the square root of the process variance
+# at unit innovation variance, summed from the psi weights of
+# stats::ARMAtoMA(), so independent of frmtmb's own solve. gls() and
+# lme() report the marginal sd as their sigma.
+ac_marg <- function(fit) {
+  ac <- fit$frame$autocor[[1L]]
+  nat <- ac_pars(fit)
+  ar <- nat[seq_len(ac$p)]
+  ma <- nat[ac$p + seq_len(ac$q)]
+  psi <- c(1, stats::ARMAtoMA(ar = ar, ma = ma, lag.max = 5000))
+  sqrt(sum(psi^2))
+}
+
 # The standard errors of ac_pars(), by the delta method through the
 # outer Hessian: the yardstick for agreement with gls(). Both optimizers
 # stop where their own tests are met, and nlminb's relative function
@@ -75,7 +89,7 @@ test_that("ar(p = 1) reproduces gls(corAR1) under ML and REML", {
                  tolerance = 1e-9)
     co <- summary(f)$coefficients
     expect_within_se(f$estimates$beta, coef(g), co$mu[, "Std. Error"])
-    expect_within_se(log(sigma(f)), log(g$sigma),
+    expect_within_se(log(sigma(f) * ac_marg(f)), log(g$sigma),
                      co$sigma[, "Std. Error"])
     expect_within_se(ac_pars(f),
                      coef(g$modelStruct$corStruct, unconstrained = FALSE),
@@ -215,8 +229,9 @@ test_that("heterogeneous sigma matches gls(weights = varIdent)", {
     expect_equal(as.numeric(logLik(f)), as.numeric(logLik(g)),
                  tolerance = 1e-8)
     # the sigma dpar is log-linked, so exp() of its coefficients are the
-    # two residual SDs varIdent reports as sigma times its ratios
-    expect_equal(sort(exp(unname(f$estimates$betad))),
+    # two innovation SDs; times the marginal factor they are the two
+    # residual SDs varIdent reports as sigma times its ratios
+    expect_equal(sort(exp(unname(f$estimates$betad)) * ac_marg(f)),
                  sort(unname(g$sigma *
                                coef(g$modelStruct$varStruct,
                                     unconstrained = FALSE,
@@ -242,7 +257,7 @@ test_that("a random intercept alongside the residual matches lme", {
                  tolerance = 1e-8)
     expect_equal(exp(unname(f$estimates$theta[1])),
                  as.numeric(nlme::VarCorr(g)[1, 2]), tolerance = 1e-5)
-    expect_equal(sigma(f), g$sigma, tolerance = 1e-5)
+    expect_equal(sigma(f) * ac_marg(f), g$sigma, tolerance = 1e-5)
     expect_equal(ac_pars(f),
                  unname(coef(g$modelStruct$corStruct,
                              unconstrained = FALSE)),
@@ -358,7 +373,9 @@ test_that("simulate() draws correlated residuals", {
     stats::cor(as.vector(m[-5, ]), as.vector(m[-1, ]))
   }))
   expect_equal(lag1, rho, tolerance = 0.05)
-  expect_equal(stats::sd(as.vector(r)), sigma(f), tolerance = 0.05)
+  # the marginal sd, sigma (the innovation sd) times the factor
+  expect_equal(stats::sd(as.vector(r)), sigma(f) * ac_marg(f),
+               tolerance = 0.05)
 })
 
 test_that("autocor_matrix() is the fitted correlation and predict is unchanged",
@@ -377,10 +394,11 @@ test_that("autocor_matrix() is the fitted correlation and predict is unchanged",
   expect_length(frm_linpred(f, newdata = nd), 5L)
   expect_true(all(is.finite(frm_linpred(f, newdata = nd,
                                     se.fit = TRUE)$se.fit)))
-  # pearson divides by the marginal SD, which is sigma (R is unit
-  # diagonal), so it stays the plain standardization
+  # pearson divides by the marginal SD of a row, sigma (the innovation
+  # SD) times the marginal factor
   expect_equal(residuals(f, type = "pearson")[, "Estimate"],
-               residuals(f)[, "Estimate"] / sigma(f), tolerance = 1e-12)
+               residuals(f)[, "Estimate"] / (sigma(f) * ac_marg(f)),
+               tolerance = 1e-12)
   expect_null(autocor_matrix(frm(bf(y ~ x) + gaussian(), data = d)))
 })
 

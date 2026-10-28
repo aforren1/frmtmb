@@ -19,21 +19,20 @@
 # "cov = FALSE" section below and shares only the parsing and the time
 # and group bookkeeping with the covariance form.
 #
-# PARAMETERIZATION OF sigma. R is UNIT-DIAGONAL here, so `sigma` is the
-# MARGINAL residual standard deviation, as it is in nlme and as it is
-# everywhere else in this package (sigma(), pearson residuals, se(),
-# every distributional model). brms diverges: its
-# `cholesky_cor_ar1(ar, n)` returns `chol(rho^|i-j| / (1 - rho^2))` and
-# `cholesky_cor_ma1` returns `chol(...)` with `1 + ma^2` on the
-# diagonal, so under `ar()`/`ma()`/`arma()` brms's `sigma` is the
-# INNOVATION sd. The two agree after
+# PARAMETERIZATION OF sigma. R is UNIT-DIAGONAL here and D holds the
+# MARGINAL residual sds. Under `cosy()` and `unstr()` that is `sigma`,
+# as in brms. Under `ar()`, `ma()` and `arma()` `sigma` is the
+# INNOVATION sd, as in brms, whose `cholesky_cor_ar1(ar, n)` returns
+# `chol(rho^|i-j| / (1 - rho^2))` and `cholesky_cor_ma1` `chol(...)`
+# with `1 + ma^2` on the diagonal; the marginal sd is
 #
-#   sigma_marginal = sigma_innovation / sqrt(1 - phi^2)      (AR(1))
-#   sigma_marginal = sigma_innovation * sqrt(1 + theta^2)    (MA(1))
+#   sigma_marginal = sigma / sqrt(1 - phi^2)      (AR(1))
+#   sigma_marginal = sigma * sqrt(1 + theta^2)    (MA(1))
 #
-# and the correlation parameters themselves agree exactly. brms's
-# `cosy()` and `unstr()` are already unit-diagonal, so those match
-# without conversion.
+# (autocor_log_marg(), autocor_marg_sigma()). Up to frmtmb 0.76.0
+# `sigma` was the marginal sd under every structure, nlme's reading; the
+# model was the same, but the parameter, its standard error and the
+# meaning of `sigma ~ x` were not brms's.
 #
 # LAGS COME FROM THE TIME LEVELS. The correlation between two rows is
 # read off their positions in the GLOBAL set of time levels, so a group
@@ -64,13 +63,18 @@
 #' \deqn{y_g \sim N(\mu_g,\; D_g R D_g), \qquad
 #'       D_g = \mathrm{diag}(\sigma_i, i \in g).}
 #'
-#' `R` is a unit-diagonal correlation matrix over the time points, so
-#' `sigma` keeps its usual meaning - the marginal residual standard
-#' deviation - and a `sigma ~ ...` distributional model enters through
-#' the diagonal. Nothing is added to the linear predictor, so
-#' [fitted()], [predict.frmtmb_fit()] and `se.fit` are unchanged; what
-#' changes is the likelihood. This is the model `nlme::gls(correlation
-#' = corAR1())` fits, and the one brms fits under `cov = TRUE`.
+#' `R` is a unit-diagonal correlation matrix over the time points and
+#' \eqn{\sigma_i} is the marginal residual standard deviation of row
+#' \eqn{i}. Under `cosy()` and `unstr()` that is `sigma`. Under `ar()`,
+#' `ma()` and `arma()` `sigma` is the standard deviation of the
+#' INNOVATIONS, as in brms, and the marginal one is larger: for an
+#' AR(1), \eqn{\sigma_i = \sigma / \sqrt{1 - \phi^2}}{sigma_i = sigma /
+#' sqrt(1 - phi^2)}; see "The scale of `sigma`". A `sigma ~ ...`
+#' distributional model enters through the diagonal. Nothing is added
+#' to the linear predictor, so [fitted()], [predict.frmtmb_fit()] and
+#' `se.fit` are unchanged; what changes is the likelihood. This is the
+#' model `nlme::gls(correlation = corAR1())` fits, and the one brms fits
+#' under `cov = TRUE`.
 #'
 #' The residual-regression form is brms's DEFAULT for `ar()`, `ma()`
 #' and `arma()`, so it is what those terms mean without `cov = TRUE`.
@@ -282,7 +286,9 @@
 #' `trunc()`, `se()` and `mi()` on the same response are therefore
 #' refused, as are `rescor = TRUE`, mixture families,
 #' `quadrature = TRUE`, `frm_simulate()` and
-#' `residuals(type = "osa")`. brms refuses the same core set. Random
+#' `residuals(type = "osa")`. brms refuses `weights()`, `cens()`,
+#' `trunc()` and `rescor = TRUE` too; it fits `se()` here (see
+#' "Divergence from brms"). Random
 #' effects ARE allowed and are the point of the feature: the marginal
 #' likelihood is a Laplace approximation over the modes with the
 #' correlated residual density inside, which reproduces
@@ -304,18 +310,45 @@
 #' `"ar"`, `"ma"`, `"cosy"` and `"cortime"`, one prior slot per
 #' parameter as in brms; see its section Residual correlation.
 #'
+#' @section The scale of `sigma`:
+#' Under the covariance form of `ar()`, `ma()` and `arma()`, `sigma` is
+#' the standard deviation of the innovations, as in brms 2.23.0, whose
+#' `cholesky_cor_ar1()`, `cholesky_cor_ma1()` and `cholesky_cor_arma1()`
+#' are the autocovariance of the process at unit innovation variance.
+#' The marginal residual standard deviation is `sigma` times
+#' \eqn{1 / \sqrt{1 - \phi^2}}{1 / sqrt(1 - phi^2)} for an AR(1),
+#' \eqn{\sqrt{1 + \theta^2}}{sqrt(1 + theta^2)} for an MA(1), and
+#' \eqn{\sqrt{(1 + \theta^2 + 2\phi\theta) / (1 - \phi^2)}}{sqrt((1 +
+#' theta^2 + 2 phi theta) / (1 - phi^2))} for an ARMA(1, 1); at a higher
+#' order the factor is the square root of the process variance at unit
+#' innovation variance. So [sigma()], [VarCorr()], `summary()`, the
+#' standard errors, `frm_linpred(dpar = "sigma")`, a prior on class
+#' `"sigma"` and the coefficients of a `sigma ~ x` model are about the
+#' innovation sd, as brms's are, and pearson residuals, [simulate()]
+#' and the pointwise log-density read the marginal one. Under `sigma ~
+#' x` the marginal sd of row \eqn{i} is \eqn{\sigma_i} times the same
+#' factor, as in brms's `normal_time_het_lpdf()`. Under `cosy()`,
+#' `unstr()` and the `cov = FALSE` form, `sigma` is what it is in brms
+#' too: the marginal sd, and the sd of a row around its one-step mean.
+#'
+#' A fit saved by frmtmb 0.76.0 or earlier with one of these terms held
+#' the marginal sd as `sigma`. A method whose answer reads `sigma` or
+#' its coefficients refuses it; one that reads only the mean, such as
+#' [fitted()] or [logLik()], answers, since the model is the same.
+#' [update()] fits it again.
+#'
+#' [conditional_effects()] with `method = "posterior_predict"` draws its
+#' band at `sigma`, so here at the innovation sd, as brms draws it:
+#' brms's `conditional_effects()` drops every autocorrelation term.
+#'
 #' @section Divergence from brms:
-#' brms parameterizes `ar()`, `ma()` and `arma()` by the INNOVATION
-#' standard deviation (its `cholesky_cor_ar1()` divides by
-#' `1 - ar^2`), while `cosy()` and `unstr()` use the marginal one. Here
-#' every structure uses the marginal `sigma`, so that `sigma()`, pearson
-#' residuals and a `sigma ~ x` model mean one thing throughout. The
-#' correlation parameters agree with brms exactly; the scales relate by
-#' `sigma_marginal = sigma_innovation / sqrt(1 - phi^2)` for AR(1) and
-#' `sigma_marginal = sigma_innovation * sqrt(1 + theta^2)` for MA(1).
-#' brms also limits `cov = TRUE` to order one ("Covariance formulation
-#' of ARMA structures is only possible for effects of maximal order
-#' one"); higher `p` and `q` are supported here.
+#' brms limits `cov = TRUE` to order one ("Covariance formulation of
+#' ARMA structures is only possible for effects of maximal order one");
+#' higher `p` and `q` are supported here, with `sigma` the innovation sd
+#' there too. brms 2.23.0 fits `se()` beside a `cov = TRUE` term, adding
+#' \eqn{se_i^2}{se_i^2} to the diagonal of each group's covariance
+#' (`normal_time_hom_se_lpdf()` and its relatives); frmtmb refuses that
+#' combination.
 #'
 #' @return `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` are formula
 #'   terms, not free-standing functions: `bf()` reads them at parse
@@ -571,14 +604,24 @@ autocor_levinson <- function(pac) {
 }
 
 #' Autocorrelation function of a stationary ARMA(p, q) process at lags
-#' `0..lagmax`, exactly (Brockwell & Davis 3.3.1): the psi weights of
-#' the MA(inf) expansion up to lag q, then the `m x m` linear system
-#' with `m = max(p, q) + 1` for gamma(0..m-1), then the AR recursion for
-#' the rest. No truncation and no infinite sum, so the tape carries the
-#' exact ACF; verified against `stats::ARMAacf()` to 1e-16.
+#' `0..lagmax`, exactly; see `autocor_arma_acv()`. Verified against
+#' `stats::ARMAacf()` to 1e-16.
 #'
 #' @noRd
 autocor_arma_acf <- function(phi, th, lagmax) {
+  acv <- autocor_arma_acv(phi, th, lagmax)
+  acv / acv[1L]
+}
+
+#' Autocovariance function of a stationary ARMA(p, q) process with unit
+#' innovation variance at lags `0..lagmax`, exactly (Brockwell & Davis
+#' 3.3.1): the psi weights of the MA(inf) expansion up to lag q, then
+#' the `m x m` linear system with `m = max(p, q) + 1` for
+#' gamma(0..m-1), then the AR recursion for the rest. No truncation and
+#' no infinite sum, so the tape carries the exact values.
+#'
+#' @noRd
+autocor_arma_acv <- function(phi, th, lagmax) {
   "[<-" <- RTMB::ADoverload("[<-")
   p <- length(phi)
   q <- length(th)
@@ -626,7 +669,7 @@ autocor_arma_acf <- function(phi, th, lagmax) {
       acv[k + 1L] <- s
     }
   }
-  acv / acv[1L]
+  acv
 }
 
 #' Banded correlation matrix from an autocorrelation vector (lag 0
@@ -667,6 +710,131 @@ autocor_cor <- function(theta, ac) {
   mth <- if (ac[["q"]]) autocor_levinson(pac[ac[["p"]] +
                                          seq_len(ac[["q"]])]) else pac[0]
   autocor_band(autocor_arma_acf(phi, mth, d - 1L), d)
+}
+
+#' Whether `sigma` of a residual block is the INNOVATION sd: the
+#' covariance form of `ar()`, `ma()` and `arma()`, at every order.
+#'
+#' brms 2.23.0's `cholesky_cor_ar1()`, `cholesky_cor_ma1()` and
+#' `cholesky_cor_arma1()` are Cholesky factors of covariances with
+#' diagonal `1 / (1 - ar^2)`, `1 + ma^2` and
+#' `(1 + ma^2 + 2 ar ma) / (1 - ar^2)`, the process's autocovariance at
+#' unit innovation variance, and `normal_time_het_lpdf()` scales them by
+#' `sigma` row by row (dev/sigmainn-brms-code.R). So brms's
+#' `sigma` is the sd of the innovations, under `sigma ~ x` too, and the
+#' marginal sd of a residual is `sigma` times `exp(autocor_log_marg())`.
+#' brms has no covariance form above order one; the same reading holds
+#' there, so that `sigma` has one meaning under these terms. `cosy()`
+#' and `unstr()` are correlations, and `fcor()` and the registered terms
+#' covariances over `sigma^2`, in brms as here.
+#'
+#' @noRd
+autocor_is_innov <- function(ac) {
+  !is.null(ac) && !autocor_is_seam(ac) && !autocor_is_cond(ac) &&
+    isTRUE(ac[["struct"]] %in% c("ar", "ma", "arma"))
+}
+
+#' The log of the marginal sd of a residual over `sigma`, the innovation
+#' sd, for an `autocor_is_innov()` block at its internal parameters
+#' `theta`: half the log of gamma(0) at unit innovation variance.
+#' Tape-safe. Order one has closed forms, in which `1 - ar^2` is
+#' `1 / (1 + theta^2)` exactly, so they keep their digits where `ar`
+#' rounds to 1; a higher order reads gamma(0) off `autocor_arma_acv()`.
+#'
+#' @noRd
+autocor_log_marg <- function(theta, ac) {
+  p <- ac[["p"]]
+  q <- ac[["q"]]
+  if (p <= 1L && q <= 1L) {
+    if (!q) return(0.5 * log(1 + theta[1] * theta[1]))
+    ma <- autocor_pacf(theta[p + 1L])
+    if (!p) return(0.5 * log(1 + ma * ma))
+    ar <- autocor_pacf(theta[1])
+    return(0.5 * log(1 + theta[1] * theta[1]) +
+             0.5 * log(1 + ma * ma + 2 * ar * ma))
+  }
+  pac <- autocor_pacf(theta)
+  phi <- if (p) autocor_levinson(pac[seq_len(p)]) else pac[0]
+  mth <- if (q) autocor_levinson(pac[p + seq_len(q)]) else pac[0]
+  0.5 * log(autocor_arma_acv(phi, mth, 0L)[1L])
+}
+
+#' `sigma` of a response with a residual block, carried to the marginal
+#' sd of a residual, which the density, the draws and the residuals of
+#' the block read: `sigma` itself unless `autocor_is_innov()`. `theta`
+#' is the block's own segment of `thetaac`. Tape-safe, and a block that
+#' is not `autocor_is_innov()` gets `sigma` back untouched, so its tape
+#' is the one it had before sigma was the innovation sd.
+#'
+#' @noRd
+autocor_marg_sigma <- function(sigma, theta, ac) {
+  if (!autocor_is_innov(ac)) return(sigma)
+  autocor_check_block(ac)
+  sigma * exp(autocor_log_marg(theta, ac))
+}
+
+#' Every response's `sigma` in a list of dpar values (`eval_dpars()`'s
+#' shape) carried to the marginal sd of a residual
+#' (`autocor_marg_sigma()`), at the fit's own `thetaac`, for a post-fit
+#' reader that wants the scale of one row: pearson residuals, the
+#' standard-error check's grid.
+#'
+#' @noRd
+autocor_marg_dpars <- function(fit, resp, dp) {
+  ac <- fit$frame[["autocor"]][[resp]]
+  if (!autocor_is_innov(ac) || is.null(dp[["sigma"]])) return(dp)
+  dp[["sigma"]] <- autocor_marg_sigma(
+    dp[["sigma"]], fit$estimates[["thetaac"]][ac[["theta_idx"]]], ac)
+  dp
+}
+
+#' Refuse a block that frmtmb 0.76.0 or earlier built: its `sigma` was
+#' the marginal sd, so the estimates, draws and priors stored with it
+#' are of another parameter than the one this version reads. A block
+#' built since carries `sigma_is = "innovation"`.
+#'
+#' @noRd
+autocor_check_block <- function(ac) {
+  if (identical(ac[["sigma_is"]], "innovation")) return(invisible(TRUE))
+  frm_stop(ac[["label"]], " of this fit was built by frmtmb 0.76.0 or ",
+           "earlier, where sigma under this term was the marginal sd of ",
+           "a residual. sigma is now the innovation sd, as in brms, so ",
+           "the stored estimates are of another parameter. Fit the model ",
+           "again with this version of frmtmb; update() refits it",
+           call. = FALSE)
+}
+
+#' Refuse a fit with a block of `autocor_check_block()` in a method whose
+#' answer reads `sigma`'s value or its coefficients: the old fit's model
+#' is the same, so a method that reads only the mean (`fitted()`,
+#' `emmeans()` on `mu`, `residuals(type = "response")`, `logLik()`)
+#' answers correctly and is not refused. With `predicted = TRUE` only a
+#' response whose `sigma` has a formula is refused, for a method whose
+#' output holds `sigma`'s coefficients only then (`fixef()`, `coef()`,
+#' `vcov()`). The density, the draws and the residual scale refuse at
+#' the point of use (`autocor_marg_sigma()`).
+#'
+#' @noRd
+autocor_check_fit <- function(x, predicted = FALSE) {
+  frame <- if (!is.null(x[["frame"]])) x[["frame"]] else x
+  for (ac in frame[["autocor"]] %||% list()) {
+    if (!autocor_is_innov(ac)) next
+    if (predicted) {
+      rs <- x[["spec"]][["responses"]][[ac[["resp"]]]]
+      if (is.null(rs) || !dpar_spec_predicted(rs, "sigma")) next
+    }
+    autocor_check_block(ac)
+  }
+  invisible(TRUE)
+}
+
+#' `autocor_check_fit()` for a method asked for one dpar: only `sigma`
+#' reads the parameter whose meaning changed.
+#'
+#' @noRd
+autocor_check_dpar <- function(x, dpar) {
+  if (is.character(dpar) && "sigma" %in% dpar) autocor_check_fit(x)
+  invisible(TRUE)
 }
 
 #' Natural-scale parameters of a residual block, named as brms names
@@ -1085,6 +1253,9 @@ autocor_block <- function(ac, resp, mf, env, n) {
   ac[["npar"]] <- autocor_npar(ac)
   ac[["resp"]] <- resp
   ac[["n_groups"]] <- length(by_g)
+  # what this version's sigma is, so that a fit saved by a version whose
+  # sigma was the marginal sd is refused (autocor_check_block())
+  if (autocor_is_innov(ac)) ac[["sigma_is"]] <- "innovation"
   ac
 }
 
@@ -1642,7 +1813,11 @@ linpred_arma_cond <- function(object, lp, rspec, ac, newdata, type, use_re,
 #' A fit with its `cov = FALSE` terms removed, which is brms's
 #' `incl_autocor = FALSE`: conditional_effects() and emmeans() in brms
 #' 2.23.0 both pass it, so their curves are the regression part of `mu`
-#' alone, over a grid that has no response to regress on.
+#' alone, over a grid that has no response to regress on. A covariance
+#' term of `ar()`, `ma()`, `arma()`, `cosy()` or `unstr()` stays in the
+#' frame; a grid path never reads it, so its draws are iid at the dpar
+#' `sigma`, which under `ar()`, `ma()` and `arma()` is the innovation
+#' sd, as brms draws them.
 #'
 #' @noRd
 autocor_cond_strip <- function(fit) {
@@ -1665,8 +1840,12 @@ autocor_cond_strip <- function(fit) {
 #' or `unstr()` term of a fit, over the model's time levels. The
 #' residual covariance of a group is `D R D` restricted to the time
 #' points that group has, with `D` the diagonal matrix of that group's
-#' `sigma` values, so `R` plus [sigma()] (or `frm_linpred(dpar = "sigma")`)
-#' describes the whole residual structure. For `fcor()` and a term
+#' marginal residual sds: its `sigma` values (from [sigma()] or
+#' `frm_linpred(dpar = "sigma")`) under `cosy()` and `unstr()`, and
+#' those values times the square root of the process variance at unit
+#' innovation variance under `ar()`, `ma()` and `arma()`, whose `sigma`
+#' is the innovation sd ([frmtmb-autocor], "The scale of `sigma`").
+#' For `fcor()` and a term
 #' another package registers (frmtmb.spatial's `sar()`), it is the
 #' residual covariance divided by `sigma^2`, over the fitted rows: `M`
 #' for `fcor()`, \eqn{((I - \rho W)'(I - \rho W))^{-1}} for `sar()`.

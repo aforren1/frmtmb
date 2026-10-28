@@ -1871,16 +1871,8 @@ default_priors_for <- function(fit) {
       set_prior(d, class = "Intercept", dpar = dp, resp = rs)
     } else {
       bd <- brms_natural_bounds(fit, rspec, cls, lp[["link"]])
-      p <- natural_dpar_prior(d, dp, resp = rs, lb = bd[["lb"]],
-                              ub = bd[["ub"]])
-      # brms's sigma under a first-order cov = TRUE ar(), ma() or arma()
-      # is the innovation sd, and core reads every density on class sigma
-      # there (autocor_innov()); the flag only marks the message line
-      if (identical(cls, "sigma") &&
-            lp[["resp"]] %in% autocor_innov_sd(fit)) {
-        p[[1L]]$innov_sd <- TRUE
-      }
-      p
+      natural_dpar_prior(d, dp, resp = rs, lb = bd[["lb"]],
+                         ub = bd[["ub"]])
     })
   }
   # an ordinal model's thresholds are brms's class "Intercept", with the
@@ -2268,8 +2260,6 @@ announce_default_priors <- function(pl, notes) {
                             "  [flat on the stationary or invertible region]"
                           else if (isTRUE(s$flat_interval))
                             "  [flat on its interval, brms's (flat)]"
-                          else if (isTRUE(s$innov_sd))
-                            "  [on brms's innovation sd]"
                           else if (isTRUE(s$natural)) "  [natural scale]"
                           else if (s$class %in% c("sd", "sdgp"))
                             "  [natural sd scale]"
@@ -2744,23 +2734,13 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' one of these parameters is sampled through one logistic onto its
 #' interval, as Stan's bound is in brms.
 #'
-#' Under a first-order `cov = TRUE` `ar()`, `ma()` or `arma()`, the
-#' `sigma` that frmtmb reports (in `summary()`, `sigma()`, `VarCorr()`
-#' and these draws) is the MARGINAL sd of a residual, where brms's
-#' `sigma` is the innovation sd, smaller by the factor `sqrt(1 - ar^2)`,
-#' `1 / sqrt(1 + ma^2)` or `sqrt((1 - ar^2) / (1 + ma^2 + 2 ar ma))`; on
-#' an AR(1) of 0.9 that is 1.16 here against 0.43 in brms, for the same
-#' model. A prior on class `"sigma"`, the default `student_t(3, 0, s)` or
-#' one of your own, is read as brms reads it, on the innovation sd, with
-#' the Jacobian of the factor, here and in [frmtmb::frm()] alike, so a
-#' `default_prior(route = "sample")` table passed back as `prior =` is
-#' the default density. A `lb` above 0 or a `ub` on `sigma` there is
-#' refused: a box on the innovation sd is not a box on the marginal sd,
-#' which the sampler holds. Under `sigma ~ x` with such a term, a prior on
-#' the intercept of `sigma` (`class = "Intercept", dpar = "sigma"`),
-#' the default included, is still read at frmtmb's log marginal sd, where
-#' brms reads it at the log innovation sd; the slopes are the same in
-#' both, as [frmtmb::set_prior()] says.
+#' Under a `cov = TRUE` `ar()`, `ma()` or `arma()`, `sigma` is the
+#' innovation sd, as in brms ([frmtmb::frmtmb-autocor]), in these draws
+#' as in [frmtmb::frm()]. So the default `student_t(3, 0, s)` on class
+#' `"sigma"`, a prior of your own with its `lb` and `ub`, and under
+#' `sigma ~ x` the default and your prior on the intercept of `sigma`
+#' (the log innovation sd), are brms's priors on the same parameter,
+#' and the draws of `sigma` are brms's.
 #'
 #' Every default with a bound (`nu` above 1 on an identity link, `sigma`
 #' above 0 on one, `ndt` below the smallest response, `cosy` above 0)

@@ -905,8 +905,11 @@ build_objective <- function(frame) {
               pars[["thetaac"]][ac[["theta_idx"]]], ac, nu)
             next
           }
-          R <- autocor_cor(pars[["thetaac"]][ac[["theta_idx"]]], ac)
-          sg <- dparv[[r]]$sigma
+          tac <- pars[["thetaac"]][ac[["theta_idx"]]]
+          R <- autocor_cor(tac, ac)
+          # D R D with D the marginal sds; under ar(), ma() and arma()
+          # sigma is the innovation sd, as in brms
+          sg <- autocor_marg_sigma(dparv[[r]]$sigma, tac, ac)
           z <- (y[[r]] - dparv[[r]]$mu) / sg
           lsig <- if (length(sg) == 1L) n * log(sg) else sum(log(sg))
           nu <- if (isTRUE(ac[["student"]])) dparv[[r]]$nu[1] else NULL

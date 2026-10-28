@@ -1,3 +1,65 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* BREAKING: under the covariance form of `ar()`, `ma()` and `arma()`,
+  `sigma` is the innovation sd, as in brms 2.23.0. Before, it was the
+  marginal sd of a residual. The model was the same, but the parameter
+  was not brms's. On an AR(1) with `ar` 0.93, `sigma(fit)` was 1.078
+  and is now 0.406, against a brms posterior mean of 0.432. For an
+  AR(1), the marginal sd is `sigma / sqrt(1 - ar^2)`. At any order, it
+  is `sigma` times the square root of the process variance at unit
+  innovation variance. The logLik and the other estimates do not
+  change.
+* So `sigma()`, `VarCorr()`, `summary()`, `confint()`, `vcov()`, the
+  standard errors and `fitted(dpar = "sigma")` report the innovation
+  sd. Under `sigma ~ x` the coefficients of `sigma` are those of the log
+  innovation sd, as brms's `Intercept_sigma` and `b_sigma` are. Pearson
+  residuals, `simulate()` and the pointwise log-density read the
+  marginal sd, as before.
+* A prior on class `sigma` is a density on the innovation sd itself,
+  and its `lb` and `ub` bound it, as in brms. Before, the density was
+  read at the marginal sd times a factor of `ar` and `ma`. A `lb` above
+  0 or a `ub` was refused. Under `sigma ~ x`, a prior on the intercept
+  of `sigma` is now read at the log innovation sd, as brms reads it.
+  Before, it was read at the log marginal sd.
+* The standard error of `log(sigma)` is the one of the innovation sd:
+  0.109 against 0.213 for the marginal sd on the AR(1) above. Its
+  correlation with the `ar` parameter falls from 0.88 to -0.34.
+* `ar(p = 2, cov = TRUE)` and the other higher orders, which brms does
+  not fit, read `sigma` as the innovation sd too.
+* `conditional_effects(method = "posterior_predict")` draws its band at
+  `sigma`, so under these terms at the innovation sd. brms does the
+  same: its `conditional_effects()` drops every autocorrelation term.
+  The band is narrower than before by `sqrt(1 - ar^2)` for an AR(1). On
+  an AR(1) with `ar` 0.84, its half-width over 1.96 was 0.855 and is
+  now 0.470.
+* `cooks.distance()`, `dfbeta()`, `dfbetas()` and `influence()` read a
+  coefficient vector that holds the log sd of `sigma`, which is now the
+  innovation sd. So their values change. On the same AR(1), the sum of
+  Cook's distances was 0.642 and is now 0.935.
+* A fit saved by frmtmb 0.76.0 or earlier with one of these terms is
+  refused where an answer reads `sigma` or its coefficients. These
+  refuse: `summary()`, `print()`, `sigma()`, `VarCorr()`,
+  `confint()`, `vcov(full = TRUE)`, `predict()`, `simulate()`, pearson
+  and deviance `residuals()`, the influence measures, and `hypothesis()`
+  on `sigma`. `fitted()`, `frm_linpred()`, `emmeans()` and
+  `conditional_effects()` with `dpar = "sigma"` are refused, and so is
+  `conditional_effects(method = "posterior_predict")`. Under
+  `sigma ~ x`, `fixef()`, `coef()` and `vcov()` are refused too.
+  `insight::get_sigma()`, `get_parameters()` and `get_varcov()` are
+  refused as well.
+* Such a fit still answers where only the mean is read, because its
+  model is the same: `logLik()`, `AIC()`, `fitted()`, `frm_linpred()`,
+  `emmeans()` on the mean, `residuals(type = "response")`, and, with a
+  constant `sigma`, `fixef()`, `coef()` and `vcov()`. `update()` fits it
+  again. Draws saved by frmtmb.sample 0.23.0 for such a model still
+  report the old marginal sd as `sigma` in `summary()`.
+* `insight::get_sigma()` reads `sigma()` for a frmtmb fit. Before, it
+  fell back on `sqrt(deviance / df)` where `sigma()` stopped.
+* The sampling-API function `autocor_innov_sd()` is removed: no prior
+  needs it now.
+
 # frmtmb 0.76.0
 
 The main changes:

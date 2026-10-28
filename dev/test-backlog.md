@@ -4165,6 +4165,31 @@ was posted upstream.
   `draws_pp_structured()` sits between `draws_refuse_newdata()`'s comment
   and its function. Both are `@noRd`; move the block.
 
+## Filed in the round opened 2026-10-27, after 0.76.0
+
+### Lane sigmainn (`dev/sigmainn-findings.md`; review `dev/reviews/2026-10-27-sigmainn.md`)
+
+- **PARITY GAP: `se()` beside a `cov = TRUE` `ar()`, `ma()` or
+  `arma()`.** brms 2.23.0 fits `y | se(s, sigma = TRUE) ~ x + ar(t, g,
+  cov = TRUE)` with `normal_time_hom_se_lpdf()` (and the `_het_` and
+  `_flex_` versions), adding `se^2` to the diagonal of each group's
+  covariance; frmtmb refuses it ("se() cannot be combined with a
+  residual correlation term"). Measured by the reviewer
+  (`dev/review-sigmainn-se.R`, `se.txt`). The ported rows `log_lik:130`,
+  `:133`, `posterior_predict:93` and `:97` exercise brms's se covariance
+  as written, and pass only on an adapted input that drops `se`. A fix
+  adds `diag(se^2)` to `D R D` in the objective, the simulator and the
+  pointwise conditional, and lifts the refusal for `cov = TRUE`. The
+  compat row and `?frmtmb-autocor` ("Divergence from brms") state the
+  gap. Not checked: `mi()` beside `cov = TRUE`, which the 0.76.0 loglik
+  lane noted brms accepts too.
+- **Saved 0.76.0 draws** of a model with one of these terms report the
+  old marginal sd as `sigma` in `summary()`, `posterior_summary()`,
+  `as.matrix()` and `variables()`; only the computed quantities
+  (`log_lik()`, `posterior_predict()`, `loo()`) refuse. A refusal
+  needs an exported seam for frmtmb.sample, as the `mo()` item of the
+  0.76.0 section does; one seam could serve both.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

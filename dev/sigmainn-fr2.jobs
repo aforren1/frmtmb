@@ -1,0 +1,2 @@
+frmtmb tests/testthat/test-autocor-sigma.R
+frmtmb tests/testthat/test-sugar.R

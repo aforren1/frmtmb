@@ -267,6 +267,8 @@ predict.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
                                sample_new_levels = NULL,
                                propagate_error = TRUE) {
   require_structure_packages(object)
+  # its draws are taken at sigma's value
+  autocor_check_fit(object)
   frm_check_dots(..., .unsupported = predict_type_retired)
   require_fitted(object, "predict()")
   check_flag(summary, "summary")

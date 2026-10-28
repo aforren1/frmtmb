@@ -203,6 +203,64 @@ test_that("log_lik of aysm_laplace models runs without errors", {
   })
 })
 
+test_that("log_lik for ARMA models runs without errors", {
+  withr::local_seed(112L)
+  brms_setup("log_lik:113",
+    ns <- 20
+  )
+  brms_setup("log_lik:114",
+    nobs <- 15
+  )
+  brms_setup("log_lik:115",
+    prep <- structure(list(ndraws = ns), class = "brmsprep")
+  )
+  brms_setup("log_lik:116",
+    prep$dpars <- list(
+      mu = matrix(rnorm(ns*nobs), ncol = nobs),
+      sigma = rchisq(ns, 3),
+      nu = rgamma(ns, 5) + 15
+    )
+  )
+  brms_setup("log_lik:121",
+    prep$ac <- list(
+      ar = matrix(rbeta(ns, 0.5, 0.5), ncol = 1),
+      ma = matrix(rbeta(ns, 0.2, 1), ncol = 1),
+      begin_tg = 2, end_tg = 5, acframe = brms_adapt_acframe("arma")
+    )
+  )
+  brms_setup("log_lik:126",
+    prep$data <- list(Y = rnorm(nobs))
+  )
+  brms_setup("log_lik:128",
+    prep$family$fun <- "gaussian_time"
+  )
+  brms_value_mark()
+  brms_setup("log_lik:129",
+    ll <- brms_adapt_log_lik("gaussian_time", 1, prep = prep)
+  )
+  brms_port("log_lik:130", "unclassified",
+    "",
+    expect_equal(dim(ll), c(ns, 4))
+  )
+  brms_value_check("log_lik:130", "ll", "", {
+    ll <- brms:::log_lik_gaussian_time(1, prep = prep)
+  })
+  brms_setup("log_lik:131",
+    prep$family$fun <- "student_time"
+  )
+  brms_value_mark()
+  brms_setup("log_lik:132",
+    ll <- brms_adapt_log_lik("student_time", 1, prep = prep)
+  )
+  brms_port("log_lik:133", "unclassified",
+    "",
+    expect_equal(dim(ll), c(ns, 4))
+  )
+  brms_value_check("log_lik:133", "ll", "", {
+    ll <- brms:::log_lik_student_time(1, prep = prep)
+  })
+})
+
 test_that("log_lik for SAR models runs without errors", {
   withr::local_seed(136L)
   brms_setup("log_lik:137",

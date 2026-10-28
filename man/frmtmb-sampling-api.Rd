@@ -91,7 +91,6 @@
 \alias{rescor_row_loglik}
 \alias{autocor_flat_priors}
 \alias{autocor_bound_chart}
-\alias{autocor_innov_sd}
 \alias{autocor_row_loglik}
 \alias{arma_cond_resp}
 \alias{arma_cond_dpars}
@@ -319,10 +318,7 @@ row, because its coefficients are the internal parameters.
 \code{autocor_bound_chart(fit, lower, upper)} gives, for each bounded
 first-order residual-correlation parameter, a chart that samples it
 through one logistic onto its natural interval, with the map to the
-internal parameter and its log Jacobian. \code{autocor_innov_sd(fit)}
-names the responses whose \code{sigma} brms reads as the innovation sd of
-a first-order \code{cov = TRUE} \code{ar()}, \code{ma()} or \code{arma()}, where the
-default prior on \code{sigma} is read on that sd.
+internal parameter and its log Jacobian.
 
 \code{frmtmb_register_prior_defaults()} is the other direction: it lets a
 package tell \code{\link[=get_prior]{get_prior()}} what defaults it would apply.

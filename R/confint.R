@@ -540,6 +540,7 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   method <- frm_match_arg(method)
   if (method == "Wald") method <- "wald"
   mo_check_fit(object)
+  autocor_check_fit(object)
   # The dots are forwarded on three of the four methods and swallowed on
   # the fourth, so they are checked against whatever THIS method really
   # passes them to. Before this, confint(method = "wald", re_formula =)
@@ -4118,6 +4119,11 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
                                   method = c("wald", "profile", "boot"),
                                   nsim = 500, vcov = NULL, ...) {
   require_fit_packages(x)
+  # a hypothesis on sigma or its coefficients reads the parameter whose
+  # meaning changed; one on the mean does not
+  if (any(grepl("sigma", c(hypothesis, class), fixed = TRUE))) {
+    autocor_check_fit(x)
+  }
   method <- frm_match_arg(method)
   hyp_refuse_draws_args(scope, robust, "hypothesis()")
   check_probability(alpha, "alpha")

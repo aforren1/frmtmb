@@ -20,8 +20,12 @@ The correlation matrix \code{R} of the \code{ar()}, \code{ma()}, \code{arma()}, 
 or \code{unstr()} term of a fit, over the model's time levels. The
 residual covariance of a group is \verb{D R D} restricted to the time
 points that group has, with \code{D} the diagonal matrix of that group's
-\code{sigma} values, so \code{R} plus \code{\link[=sigma]{sigma()}} (or \code{frm_linpred(dpar = "sigma")})
-describes the whole residual structure. For \code{fcor()} and a term
+marginal residual sds: its \code{sigma} values (from \code{\link[=sigma]{sigma()}} or
+\code{frm_linpred(dpar = "sigma")}) under \code{cosy()} and \code{unstr()}, and
+those values times the square root of the process variance at unit
+innovation variance under \code{ar()}, \code{ma()} and \code{arma()}, whose \code{sigma}
+is the innovation sd (\link{frmtmb-autocor}, "The scale of \code{sigma}").
+For \code{fcor()} and a term
 another package registers (frmtmb.spatial's \code{sar()}), it is the
 residual covariance divided by \code{sigma^2}, over the fitted rows: \code{M}
 for \code{fcor()}, \eqn{((I - \rho W)'(I - \rho W))^{-1}} for \code{sar()}.

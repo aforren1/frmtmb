@@ -946,6 +946,7 @@ emm_basis.frmtmb_fit <- function(object, trms, xlev, grid, ..., resp = NULL,
                                  dpar = NULL, nlpar = NULL, re_formula = NA,
                                  epred = FALSE) {
   require_fit_packages(object)
+  autocor_check_dpar(object, dpar)
   tg <- emm_target(object, resp = resp, dpar = dpar, nlpar = nlpar,
                    re_formula = re_formula, epred = epred, warn = TRUE)
   # a nonlinear body's parameters keep their offsets out, as brms's

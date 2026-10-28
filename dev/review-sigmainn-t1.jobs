@@ -1,0 +1,12 @@
+frmtmb tests/testthat/test-autocor.R
+frmtmb tests/testthat/test-autocor-sigma.R
+frmtmb tests/testthat/test-autocor-loglik.R
+frmtmb tests/testthat/test-priors-autocor-classes.R
+frmtmb tests/testthat/test-brms-likelihood.R
+frmtmb tests/testthat/test-message-uniqueness.R
+frmtmb tests/testthat/test-compat.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-default-priors-autocor.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-loglik-autocor.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-loo.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-default-priors-fit.R
+frmtmb.spatial extensions/frmtmb.spatial/tests/testthat/test-sar.R

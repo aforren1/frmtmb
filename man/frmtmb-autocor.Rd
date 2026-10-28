@@ -22,12 +22,18 @@ correlated draw instead of independent ones:
 \deqn{y_g \sim N(\mu_g,\; D_g R D_g), \qquad
       D_g = \mathrm{diag}(\sigma_i, i \in g).}
 
-\code{R} is a unit-diagonal correlation matrix over the time points, so
-\code{sigma} keeps its usual meaning - the marginal residual standard
-deviation - and a \code{sigma ~ ...} distributional model enters through
-the diagonal. Nothing is added to the linear predictor, so
-\code{\link[=fitted]{fitted()}}, \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} and \code{se.fit} are unchanged; what
-changes is the likelihood. This is the model \code{nlme::gls(correlation = corAR1())} fits, and the one brms fits under \code{cov = TRUE}.
+\code{R} is a unit-diagonal correlation matrix over the time points and
+\eqn{\sigma_i} is the marginal residual standard deviation of row
+\eqn{i}. Under \code{cosy()} and \code{unstr()} that is \code{sigma}. Under \code{ar()},
+\code{ma()} and \code{arma()} \code{sigma} is the standard deviation of the
+INNOVATIONS, as in brms, and the marginal one is larger: for an
+AR(1), \eqn{\sigma_i = \sigma / \sqrt{1 - \phi^2}}{sigma_i = sigma /
+sqrt(1 - phi^2)}; see "The scale of \code{sigma}". A \code{sigma ~ ...}
+distributional model enters through the diagonal. Nothing is added
+to the linear predictor, so \code{\link[=fitted]{fitted()}}, \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} and
+\code{se.fit} are unchanged; what changes is the likelihood. This is the
+model \code{nlme::gls(correlation = corAR1())} fits, and the one brms fits
+under \code{cov = TRUE}.
 
 The residual-regression form is brms's DEFAULT for \code{ar()}, \code{ma()}
 and \code{arma()}, so it is what those terms mean without \code{cov = TRUE}.
@@ -252,7 +258,9 @@ factorizes into per-row contributions. \code{weights()}, \code{cens()},
 \code{trunc()}, \code{se()} and \code{mi()} on the same response are therefore
 refused, as are \code{rescor = TRUE}, mixture families,
 \code{quadrature = TRUE}, \code{frm_simulate()} and
-\code{residuals(type = "osa")}. brms refuses the same core set. Random
+\code{residuals(type = "osa")}. brms refuses \code{weights()}, \code{cens()},
+\code{trunc()} and \code{rescor = TRUE} too; it fits \code{se()} here (see
+"Divergence from brms"). Random
 effects ARE allowed and are the point of the feature: the marginal
 likelihood is a Laplace approximation over the modes with the
 correlated residual density inside, which reproduces
@@ -277,19 +285,47 @@ random-effect blocks. \code{\link[=set_prior]{set_prior()}} targets them by brms
 parameter as in brms; see its section Residual correlation.
 }
 
+\section{The scale of \code{sigma}}{
+
+Under the covariance form of \code{ar()}, \code{ma()} and \code{arma()}, \code{sigma} is
+the standard deviation of the innovations, as in brms 2.23.0, whose
+\code{cholesky_cor_ar1()}, \code{cholesky_cor_ma1()} and \code{cholesky_cor_arma1()}
+are the autocovariance of the process at unit innovation variance.
+The marginal residual standard deviation is \code{sigma} times
+\eqn{1 / \sqrt{1 - \phi^2}}{1 / sqrt(1 - phi^2)} for an AR(1),
+\eqn{\sqrt{1 + \theta^2}}{sqrt(1 + theta^2)} for an MA(1), and
+\eqn{\sqrt{(1 + \theta^2 + 2\phi\theta) / (1 - \phi^2)}}{sqrt((1 +
+theta^2 + 2 phi theta) / (1 - phi^2))} for an ARMA(1, 1); at a higher
+order the factor is the square root of the process variance at unit
+innovation variance. So \code{\link[=sigma]{sigma()}}, \code{\link[=VarCorr]{VarCorr()}}, \code{summary()}, the
+standard errors, \code{frm_linpred(dpar = "sigma")}, a prior on class
+\code{"sigma"} and the coefficients of a \code{sigma ~ x} model are about the
+innovation sd, as brms's are, and pearson residuals, \code{\link[=simulate]{simulate()}}
+and the pointwise log-density read the marginal one. Under \code{sigma ~ x} the marginal sd of row \eqn{i} is \eqn{\sigma_i} times the same
+factor, as in brms's \code{normal_time_het_lpdf()}. Under \code{cosy()},
+\code{unstr()} and the \code{cov = FALSE} form, \code{sigma} is what it is in brms
+too: the marginal sd, and the sd of a row around its one-step mean.
+
+A fit saved by frmtmb 0.76.0 or earlier with one of these terms held
+the marginal sd as \code{sigma}. A method whose answer reads \code{sigma} or
+its coefficients refuses it; one that reads only the mean, such as
+\code{\link[=fitted]{fitted()}} or \code{\link[=logLik]{logLik()}}, answers, since the model is the same.
+\code{\link[=update]{update()}} fits it again.
+
+\code{\link[=conditional_effects]{conditional_effects()}} with \code{method = "posterior_predict"} draws its
+band at \code{sigma}, so here at the innovation sd, as brms draws it:
+brms's \code{conditional_effects()} drops every autocorrelation term.
+}
+
 \section{Divergence from brms}{
 
-brms parameterizes \code{ar()}, \code{ma()} and \code{arma()} by the INNOVATION
-standard deviation (its \code{cholesky_cor_ar1()} divides by
-\code{1 - ar^2}), while \code{cosy()} and \code{unstr()} use the marginal one. Here
-every structure uses the marginal \code{sigma}, so that \code{sigma()}, pearson
-residuals and a \code{sigma ~ x} model mean one thing throughout. The
-correlation parameters agree with brms exactly; the scales relate by
-\code{sigma_marginal = sigma_innovation / sqrt(1 - phi^2)} for AR(1) and
-\code{sigma_marginal = sigma_innovation * sqrt(1 + theta^2)} for MA(1).
-brms also limits \code{cov = TRUE} to order one ("Covariance formulation
-of ARMA structures is only possible for effects of maximal order
-one"); higher \code{p} and \code{q} are supported here.
+brms limits \code{cov = TRUE} to order one ("Covariance formulation of
+ARMA structures is only possible for effects of maximal order one");
+higher \code{p} and \code{q} are supported here, with \code{sigma} the innovation sd
+there too. brms 2.23.0 fits \code{se()} beside a \code{cov = TRUE} term, adding
+\eqn{se_i^2}{se_i^2} to the diagonal of each group's covariance
+(\code{normal_time_hom_se_lpdf()} and its relatives); frmtmb refuses that
+combination.
 }
 
 \examples{

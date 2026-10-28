@@ -304,7 +304,10 @@ ar_dots_exempt <- c(
   "get_parameters.frmtmb_fit", "find_formula.frmtmb_fit",
   "find_random.frmtmb_fit",
   # not found by either static count; found by RUNNING marginaleffects
-  "get_coef.frmtmb_fit", "set_coef.frmtmb_fit"
+  "get_coef.frmtmb_fit", "set_coef.frmtmb_fit",
+  # insight::get_sigma() calls .get_sigma(x, verbose = verbose, ...)
+  # with its own caller's dots
+  ".get_sigma.frmtmb_fit"
 )
 
 test_that("the swallow detector fires on a swallower and not on a user", {

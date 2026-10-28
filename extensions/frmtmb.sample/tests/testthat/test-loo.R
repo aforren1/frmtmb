@@ -266,7 +266,9 @@ test_that("log_lik() of an ar(cov = TRUE) block is the conditional of each
   dsa$draws[, "thetaac_1"] <- rho / sqrt(1 - rho^2)
   lla <- log_lik(dsa)
   for (s in seq_along(sg)) {
-    S <- sg[s]^2 * rho[s]^abs(outer(1:5, 1:5, "-"))
+    # sigma is the innovation sd, as in brms, so the covariance is
+    # sigma^2 rho^|lag| / (1 - rho^2)
+    S <- sg[s]^2 * rho[s]^abs(outer(1:5, 1:5, "-")) / (1 - rho[s]^2)
     ref <- unlist(lapply(split(seq_len(40), da$subj), function(r) {
       vapply(1:5, function(i) {
         cm <- da$x[r][i] + S[i, -i] %*% solve(S[-i, -i],

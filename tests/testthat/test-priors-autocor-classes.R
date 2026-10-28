@@ -313,76 +313,62 @@ test_that("prior_summary reports the new classes on a fit", {
   expect_match(txt, "ar ~ normal(0, 0.5)", fixed = TRUE)
 })
 
-test_that("a sigma prior under a cov = TRUE term is read on brms's sigma", {
-  # brms's sigma under a first-order cov = TRUE ar(), ma() or arma() is
-  # the innovation sd (its cholesky_cor_*() are covariances); frmtmb's is
-  # the marginal sd, sigma_i / c. A typed student_t(3, 0, 2.5) on sigma
-  # is brms's density at sigma_i = sigma c, with the Jacobian of c, on
-  # frm()'s MAP route as on frm_sample()'s. Through fix round 1 of this
-  # change a user sigma prior was read on the marginal sd while the
-  # sampling default was read on the innovation sd, up to 0.72 nats
-  # apart (dev/review-acprior-r1-trip.R)
+test_that("a sigma prior under a cov = TRUE term is brms's, on sigma itself", {
+  # brms's sigma under a cov = TRUE ar(), ma() or arma() is the
+  # innovation sd (its cholesky_cor_*() are covariances), and so is
+  # frmtmb's since sigma became the innovation sd. A typed
+  # student_t(3, 0, 2.5) on sigma is brms's density at sigma = exp(eta)
+  # with the log link's Jacobian, and no factor of the correlation
+  # parameters enters it. frmtmb 0.76.0 held the marginal sd and read
+  # the density at sigma * c with the Jacobian of c, so the penalty
+  # moved with theta at a fixed eta.
   dd <- sim_ar(ng = 20)
-  cases <- list(
-    list(y ~ x + ar(t, g, cov = TRUE), function(n) sqrt(1 - n[1]^2)),
-    list(y ~ x + ma(t, g, cov = TRUE), function(n) 1 / sqrt(1 + n[1]^2)),
-    list(y ~ x + arma(t, g, cov = TRUE),
-         function(n) sqrt((1 - n[1]^2) / (1 + n[2]^2 + 2 * n[1] * n[2]))))
   pr <- set_prior("student_t(3, 0, 2.5)", class = "sigma")
-  for (cs in cases) {
-    fit <- frm(cs[[1]], data = dd)
+  for (fo in list(y ~ x + ar(t, g, cov = TRUE), y ~ x + ma(t, g, cov = TRUE),
+                  y ~ x + arma(t, g, cov = TRUE),
+                  y ~ x + ar(t, g, p = 2, cov = TRUE),
+                  y ~ x + cosy(t, g), y ~ x + ar(t, g))) {
+    fit <- frm(fo, data = dd)
     ac <- fit$frame$autocor[[1L]]
     ent <- frmtmb:::resolve_prior_input(fit, pr)$entries
     expect_length(ent, 1L)
+    expect_null(ent[[1L]]$innov, label = deparse(fo))
     nlp <- frmtmb:::neg_log_prior_fn(ent)
     set.seed(5)
     v <- vapply(1:5, function(k) {
       p <- fit$frame$par_template
-      th <- stats::rnorm(ac$npar)
+      p[["thetaac"]][] <- stats::rnorm(ac$npar)
       eta <- stats::rnorm(1, 0, 0.5)
-      p[["thetaac"]][] <- th
       p[[ent[[1L]]$comp]][ent[[1L]]$idx] <- eta
-      cc <- cs[[2]](as.numeric(frmtmb:::autocor_natural(th, ac)))
-      # brms's student_t_lpdf(sigma | 3, 0, 2.5), sigma = exp(eta) c,
-      # carried to eta
-      ref <- stats::dt(exp(eta) * cc / 2.5, 3, log = TRUE) - log(2.5) +
-        log(cc) + eta
+      # brms's student_t_lpdf(sigma | 3, 0, 2.5), carried to eta
+      ref <- stats::dt(exp(eta) / 2.5, 3, log = TRUE) - log(2.5) + eta
       c(nlp(p), ref)
     }, c(0, 0))
     expect_lt(diff(range(colSums(v))) / max(abs(v)), 1e-10,
-              label = deparse(cs[[1]]))
-  }
-  # the absent case: cosy's sigma is brms's marginal sd as well, and an
-  # order-two cov = TRUE ar, which brms does not have, keeps frmtmb's
-  for (fo in list(y ~ x + cosy(t, g), y ~ x + ar(t, g, p = 2, cov = TRUE),
-                  y ~ x + ar(t, g))) {
-    fit <- frm(fo, data = dd)
-    ent <- frmtmb:::resolve_prior_input(fit, pr)$entries
-    expect_null(ent[[1L]]$innov, label = deparse(fo))
+              label = deparse(fo))
   }
 })
 
-test_that("a bound on sigma under a cov = TRUE term is refused", {
+test_that("a bound on sigma under a cov = TRUE term is brms's bound", {
   # brms takes lb/ub on its sigma, the innovation sd (stancode():
-  # real<lower=0.2> sigma, dev/acprior-brms-sigmabound.R). A box on
-  # sigma * c is not a box on frmtmb's marginal sigma, since c moves
-  # with ar, so the bound is refused rather than put on the marginal sd
+  # real<lower=0.2> sigma, dev/acprior-brms-sigmabound.R), which is the
+  # parameter frmtmb holds, so the bound boxes it. frmtmb 0.76.0 refused
+  # a lb above 0 or a ub there, because its sigma was the marginal sd.
   dd <- sim_ar(ng = 20)
-  fit <- frm(y ~ x + ar(t, g, cov = TRUE), data = dd)
-  for (pr in list(set_prior("", class = "sigma", lb = 0.2),
-                  set_prior("normal(1, 1)", class = "sigma", ub = 3))) {
-    e <- tryCatch(frmtmb:::resolve_prior_input(fit, pr),
-                  error = identity)
-    expect_s3_class(e, "frmtmb_error")
-    expect_match(conditionMessage(e), "innovation sd", fixed = TRUE)
+  for (fo in list(y ~ x + ar(t, g, cov = TRUE), y ~ x + ma(t, g, cov = TRUE),
+                  y ~ x + arma(t, g, cov = TRUE), y ~ x + cosy(t, g))) {
+    fit <- frm(fo, data = dd)
+    r <- frmtmb:::resolve_prior_input(fit,
+      set_prior("normal(1, 1)", class = "sigma", lb = 0.2, ub = 3))
+    expect_identical(unname(r$lower[["sigma_(Intercept)"]]), log(0.2),
+                     label = deparse(fo))
+    expect_identical(unname(r$upper[["sigma_(Intercept)"]]), log(3),
+                     label = deparse(fo))
   }
-  # the absent cases: the same bound where sigma is brms's sigma, and
-  # lb = 0, which is the same box on either scale
-  fc <- frm(y ~ x + cosy(t, g), data = dd)
-  expect_named(frmtmb:::resolve_prior_input(fc,
-    set_prior("", class = "sigma", lb = 0.2))$lower, "sigma_(Intercept)")
-  fi <- frm(bf(y ~ x + ar(t, g, cov = TRUE)) +
-              brmsfamily("gaussian", link_sigma = "identity"), data = dd)
-  expect_no_error(frmtmb:::resolve_prior_input(fi,
-    set_prior("normal(1, 1)", class = "sigma", lb = 0)))
+  # a fit under the bound puts sigma, the innovation sd, inside it
+  w <- "Standard errors are not available"
+  fit <- allow_warnings(frm(y ~ x + ar(t, g, cov = TRUE), data = dd,
+                            prior = set_prior("", class = "sigma", ub = 0.5)),
+                        w, require = w)
+  expect_lte(sigma(fit), 0.5 * (1 + 1e-8))
 })

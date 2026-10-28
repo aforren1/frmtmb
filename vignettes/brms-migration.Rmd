@@ -556,14 +556,13 @@ frm(bf(y ~ x + ar(week, subj)) + gaussian(), data = d)
 frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(), data = d)
 ```
 
-**`sigma` is the marginal residual SD, not the innovation SD.** brms's
-`cholesky_cor_ar1()` divides by `1 - ar^2`, so its `sigma` under
-`ar()`/`ma()`/`arma()` is the innovation scale, while under `cosy()`
-and `unstr()` it is the marginal one. Here every structure uses the
-marginal scale, so `sigma()`, pearson residuals and a `sigma ~ x` model
-mean one thing throughout. The correlation parameters agree exactly;
-convert the scales with `sigma_marginal = sigma_innovation /
-sqrt(1 - phi^2)` for AR(1).
+**`sigma` is brms's `sigma`.** Under `ar()`, `ma()` and `arma()` with
+`cov = TRUE` it is the innovation SD, as in brms, whose
+`cholesky_cor_ar1()` divides by `1 - ar^2`; under `cosy()` and
+`unstr()` it is the marginal SD, as in brms. So `sigma()`, `summary()`,
+a prior on `sigma` and the coefficients of a `sigma ~ x` model compare
+with brms's directly. Pearson residuals divide by the marginal SD,
+`sigma / sqrt(1 - phi^2)` for an AR(1).
 
 **Only `gaussian()` and `student()`.** These are the two families brms
 gives a real residual covariance. brms accepts the same spelling for

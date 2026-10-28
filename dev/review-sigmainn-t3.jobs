@@ -1,0 +1,17 @@
+frmtmb tests/testthat/test-autocor-sigma.R
+frmtmb tests/testthat/test-autocor.R
+frmtmb tests/testthat/test-extension-home-mixed.R
+frmtmb tests/testthat/test-extension-home.R
+frmtmb tests/testthat/test-influence-plot.R
+frmtmb tests/testthat/test-arg-refusal.R
+frmtmb tests/testthat/test-message-uniqueness.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-loglik-autocor.R
+frmtmb tests/testthat/test-brms-shapes-punch.R
+frmtmb tests/testthat/test-brms-shapes-punch2.R
+frmtmb tests/testthat/test-ordinal-fitted.R
+frmtmb tests/testthat/test-se-reparam.R
+frmtmb tests/testthat/test-sugar.R
+frmtmb tests/testthat/test-v17.R
+frmtmb tests/testthat/test-methods-audit.R
+frmtmb tests/testthat/test-review-fixes.R
+frmtmb tests/testthat/test-se-reparam-inv.R

@@ -195,10 +195,7 @@
 #' `autocor_bound_chart(fit, lower, upper)` gives, for each bounded
 #' first-order residual-correlation parameter, a chart that samples it
 #' through one logistic onto its natural interval, with the map to the
-#' internal parameter and its log Jacobian. `autocor_innov_sd(fit)`
-#' names the responses whose `sigma` brms reads as the innovation sd of
-#' a first-order `cov = TRUE` `ar()`, `ma()` or `arma()`, where the
-#' default prior on `sigma` is read on that sd.
+#' internal parameter and its log Jacobian.
 #'
 #' `frmtmb_register_prior_defaults()` is the other direction: it lets a
 #' package tell [get_prior()] what defaults it would apply.
@@ -535,7 +532,6 @@
 #' @aliases rescor_row_loglik
 #' @aliases autocor_flat_priors
 #' @aliases autocor_bound_chart
-#' @aliases autocor_innov_sd
 #' @aliases autocor_row_loglik
 #' @aliases arma_cond_resp
 #' @aliases arma_cond_dpars
@@ -599,7 +595,6 @@
 #'   rescor_row_loglik,
 #'   autocor_flat_priors,
 #'   autocor_bound_chart,
-#'   autocor_innov_sd,
 #'   autocor_row_loglik,
 #'   arma_cond_resp, arma_cond_dpars, arma_cond_fill_dpars,
 #'   arma_cond_fill_epred, response_codes_newdata, subset_resp_check,

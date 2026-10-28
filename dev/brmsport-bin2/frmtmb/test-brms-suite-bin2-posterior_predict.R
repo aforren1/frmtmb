@@ -125,6 +125,54 @@ test_that("posterior_predict for aysm_laplace models runs without errors", {
   )
 })
 
+test_that("posterior_predict for ARMA covariance models runs without errors", {
+  withr::local_seed(75L)
+  brms_setup("posterior_predict:76",
+    ns <- 20
+  )
+  brms_setup("posterior_predict:77",
+    nobs <- 15
+  )
+  brms_setup("posterior_predict:78",
+    prep <- structure(list(ndraws = ns), class = "brmsprep")
+  )
+  brms_setup("posterior_predict:79",
+    prep$dpars <- list(
+      mu = matrix(rnorm(ns*nobs), ncol = nobs),
+      sigma = rchisq(ns, 3),
+      nu = rgamma(ns, 5)
+    )
+  )
+  brms_setup("posterior_predict:84",
+    prep$ac <- list(ar = matrix(rbeta(ns, 0.5, 0.5), ncol = 1), ma = matrix(rnorm(ns, 
+        0.2, 1), ncol = 1), begin_tg = c(1, 5, 12), end_tg = c(4, 
+        11, 15), acframe = brms_adapt_acframe("arma"))
+  )
+  brms_setup("posterior_predict:89",
+    prep$data <- list()
+  )
+  brms_setup("posterior_predict:91",
+    prep$family$fun <- "gaussian_time"
+  )
+  brms_setup("posterior_predict:92",
+    pred <- brms_adapt_posterior_predict("gaussian_time", 1, prep = prep)
+  )
+  brms_port("posterior_predict:93", "unclassified",
+    "",
+    expect_equal(length(pred), ns * 4)
+  )
+  brms_setup("posterior_predict:95",
+    prep$family$fun <- "student_time"
+  )
+  brms_setup("posterior_predict:96",
+    pred <- brms_adapt_posterior_predict("student_time", 2, prep = prep)
+  )
+  brms_port("posterior_predict:97", "unclassified",
+    "",
+    expect_equal(length(pred), ns * 7)
+  )
+})
+
 test_that("loglik for SAR models runs without errors", {
   withr::local_seed(100L)
   brms_setup("posterior_predict:101", {
