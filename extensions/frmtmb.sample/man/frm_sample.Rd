@@ -10,6 +10,7 @@ frm_sample(
   family = NULL,
   ...,
   prior = NULL,
+  sample_prior = "no",
   init = NULL,
   init_jitter = 0.25,
   reparameterize = TRUE,
@@ -44,9 +45,12 @@ per-worker startup (a new R process, package load, retape) is a
 fixed several seconds, so short chains gain nothing; long chains
 approach a per-chain speedup. A core count inherited from
 \code{options(mc.cores)}, which rstan reads when \code{cores} is not given,
-behaves the same way. \code{seed} fixes Stan's stream and the init
-jitter both (see \code{init_jitter}); \code{NA}, brms's default, leaves both
-to the session.}
+behaves the same way. \code{seed} fixes Stan's stream, the init
+jitter (see \code{init_jitter}) and the prior draws of
+\code{sample_prior = "yes"}; \code{NA}, brms's default, leaves all three to
+the session. \code{save_warmup} is rstan's and brms's: \code{TRUE}, the
+default, keeps each chain's warmup iterations beside the draws,
+where \code{inc_warmup = TRUE} reads them (see Warmup).}
 
 \item{prior}{Priors: a \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} specification, or a named list
 of prior objects (see \code{\link[frmtmb:prior_normal]{frmtmb::prior_normal()}}) whose names are parameter
@@ -68,6 +72,16 @@ specifications for one slot within this argument are refused. The
 before 0.43 is gone rather than aliased, and because this
 function's \code{...} would otherwise swallow it, the old name is
 refused by name.}
+
+\item{sample_prior}{brms's \code{sample_prior}: \code{"no"} (the default),
+\code{"yes"} or \code{"only"}, or \code{TRUE} for \code{"yes"} and \code{FALSE} for \code{"no"}.
+\code{"yes"} adds draws from the priors to the draws, under brms's names
+(\code{prior_b}, \code{prior_Intercept}, \code{prior_sigma}, ...), which
+\code{\link[=prior_draws]{prior_draws()}} returns and \code{\link[frmtmb:hypothesis]{frmtmb::hypothesis()}} reads for the
+evidence ratio of a point hypothesis. \code{"only"} samples the prior of
+the whole model with the likelihood left out, so that
+\code{\link[=posterior_predict]{posterior_predict()}}, \code{\link[=pp_check]{pp_check()}} and conditional effects give the
+prior predictive distribution. See Prior draws.}
 
 \item{init}{Initialization. On a fit the default
 (\code{"last.par.best"}) starts chain 1 exactly at the ML mode and every
@@ -148,7 +162,11 @@ also carries brms's covariance summaries under brms's names,
 are derived from each draw's internal covariance parameters
 (\code{theta_1}, ...), which stay in the matrix because the model reads
 them, so \code{as_draws_df(draws)$sd_g__Intercept} works as it does on a
-brms fit.
+brms fit. With \code{sample_prior = "yes"} the matrix ends with the
+prior draws. The object also holds what converts the saved warmup
+in the \code{stanfit} to the draws' columns (and the prior draws of its
+rows), the \code{sample_prior} setting and the arguments of the call,
+which \link[=update.frmtmb_draws]{update()} reads.
 }
 \description{
 Runs \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} on the model's objective and returns the
@@ -581,6 +599,68 @@ explicit source that names it, one slot at a time: a call-level
 \code{set_prior(class = "sd")} replaces the fit's \code{sd} prior and the \code{sd}
 default while the \code{Intercept} default stays. \code{prior_summary()} on
 the returned draws prints what the stack came to.
+}
+
+\section{Prior draws}{
+
+\code{sample_prior = "yes"} draws from the priors as brms does. Each
+prior statement of brms's Stan program for the model is one column
+of draws, independent of the likelihood: a prior on a whole class is
+one column (\code{prior_b}, \code{prior_sd_g}, \code{prior_sigma}); where a
+coefficient has a prior of its own, each coefficient of that vector
+is a column (\code{prior_b_x}). A flat prior, the default on class \code{"b"},
+has no column. A bounded parameter is drawn from its prior truncated
+to the bounds: \code{sigma}, \code{sd} and \code{sds} at 0, \code{nu} at 1, a \code{"b"} prior
+at its \code{lb} and \code{ub}. A correlation is one off-diagonal element of an
+LKJ draw (\code{prior_cor_g}, \code{prior_rescor}), and a \code{mo()} simplex or a
+mixture's weights a Dirichlet draw. \code{prior_Intercept} is drawn from
+the prior of the intercept at the centered predictors, which is the
+intercept brms puts that prior on, so the population-level
+intercept \code{b_Intercept} has no prior draws, as in brms. An ordinal
+model with a threshold prior of its own (\code{coef = "1"}) has one
+column per threshold, \code{prior_Intercept__1}, ..., as brms does. A
+\code{gp()} term's \code{sdgp} and \code{lscale} are not drawn, nor brms's
+\code{meanme} and \code{sdme} of a \code{me()} term, which frmtmb has no prior slot
+for, nor a GEV's \code{xi} (brms draws no prior of it either).
+
+The draws are made directly from each density with R's random
+number generators, as brms makes them in Stan's generated
+quantities: they are independent, and a run of the sampler on the
+prior would give correlated draws of the same distribution at the
+cost of a second run. The saved warmup iterations get prior draws
+too, as in brms.
+
+\code{sample_prior = "only"} samples every parameter from its prior with
+the likelihood left out (core's \code{prior_only} objective, documented
+in \link[frmtmb:frmtmb-sampling-api]{frmtmb::frmtmb-sampling-api}): the group-level coefficients
+from their group's distribution, and the latent values of a
+\code{mi(sdy)} response from their measurement density, as brms does.
+The draws are draws from the prior, with the parameter names of the
+model, and the predictive methods give the prior predictive
+distribution. Every parameter must have a proper prior: a flat one
+is refused with brms's message, which names the parameter as brms's
+Stan program does (\code{'b'} with brms's default priors). brms refuses
+only a parameter with no prior at all and samples a coefficient
+left flat beside others that have a prior; this function refuses
+that too. A model with missing values of an \code{mi()} term is refused,
+because without the likelihood those values have no density (brms
+samples them flat). A model with \code{me()} terms is refused: brms
+samples it once its classes \code{"meanme"} and \code{"sdme"} have proper
+priors, and frmtmb has no prior slot for those classes yet. Draws
+made with \code{"only"} have no prior draws of their own, as in brms.
+}
+
+\section{Warmup}{
+
+rstan saves each chain's warmup iterations unless \code{save_warmup = FALSE} is passed, and so does brms, whose fit keeps them in its
+stanfit. This function keeps them there too, and the
+\code{inc_warmup = TRUE} of \code{\link[=as_draws]{as_draws()}} and its relatives, \code{\link[=as.mcmc]{as.mcmc()}},
+\code{\link[=rhat]{rhat()}} and \code{\link[=neff_ratio]{neff_ratio()}} moves them to the draws' names and
+scales and puts them before each chain's draws, as brms does.
+Everything else reads the post-warmup draws only: \code{\link[=ndraws]{ndraws()}},
+\code{summary()}, \code{\link[=variables]{variables()}}, the predictions and the diagnostics.
+\code{\link[=nuts_params]{nuts_params()}} and \code{\link[=log_posterior]{log_posterior()}} read the stanfit, and take
+bayesplot's \code{inc_warmup}.
 }
 
 \section{The pre-flight against the compatibility registry}{

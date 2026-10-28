@@ -379,9 +379,16 @@ Effort notes are the implementation cost, not the doc cost.
   Small: `draws_columns()` is the existing selector and needs a regex
   branch. `pars` is deprecated in brms; add `variable` and `regex`
   only.
-- **`inc_warmup` on `as_draws*()` and `as.mcmc()`.** Blocked, not
-  small: `frm_sample()` discards warmup before the draws matrix is
-  built, so this is a change to what is stored, not to an accessor.
+- CLOSED in the priordraws round (2026-10-27): **`inc_warmup` on
+  `as_draws*()` and `as.mcmc()`.** `frm_sample()` now keeps the warmup
+  rstan saves (`save_warmup = TRUE`, rstan's and brms's default) as
+  `x$warmup`, and `inc_warmup = TRUE` on `as_draws*()`, `as.mcmc()`,
+  `as.matrix()`, `as.array()`, `as.data.frame()`, `rhat()` and
+  `neff_ratio()` puts it before each chain's draws, with brms's two
+  `as.mcmc()` refusals (`combine_chains = TRUE`, `thin >= 2`). The
+  table above predates it and still lists `inc_warmup` as a gap on
+  those rows; regenerating it is the consolidation's.
+  `dev/priordraws-findings.md` has the record.
 - **`compare =`, `model_names =`, `pointwise =` on `loo()` / `waic()`
   / `LOO()` / `WAIC()` / `loo_subsample()`.** Small: `loo_compare()`
   already has `model_names`, and `compare` is the "run

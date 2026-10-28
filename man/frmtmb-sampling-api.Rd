@@ -152,10 +152,19 @@ arguments the way the user-facing surface does.
 
 \code{build_objective(frame)} returns the bare negative log-likelihood
 closure of an assembled frame, ready for \code{RTMB::MakeADFun()}. It
-honors two fields a caller may set on a COPY of the frame:
-\code{frame$map}, and \code{frame$ncp_blocks}, the indices of the
+honors three fields a caller may set on a COPY of the frame:
+\code{frame$map}; \code{frame$ncp_blocks}, the indices of the
 random-effect blocks to build in their non-centered form
-(\verb{b = L(theta) z}). A prior-augmented objective is this closure plus
+(\verb{b = L(theta) z}); and \code{frame$prior_only}. With \code{prior_only = TRUE}
+the closure leaves out every response density and keeps the rest:
+the densities of the random-effect blocks, of the \code{me()} latent
+values and their measurements, and the measurement density of a
+\code{mi(sdy)} response, observed values around their latent ones. A
+missing value of an \code{mi()} term has no density left, as in brms.
+These are the terms brms keeps outside
+\verb{if (!prior_only)} under \code{brm(sample_prior = "only")}, so this closure
+plus \code{neg_log_prior_fn()}'s is the prior of the whole model. A
+prior-augmented objective is this closure plus
 \code{neg_log_prior_fn()}'s.
 
 \code{row_lpdf(fam, y, yobs, dpars, aterms, extra)} is the per-row

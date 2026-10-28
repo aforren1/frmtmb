@@ -60,8 +60,11 @@ as.mcmc(x, ...)
 
 \item{regex}{If \code{TRUE}, \code{variable} is a regular expression.}
 
-\item{inc_warmup}{Accepted for brms's signature and only \code{FALSE} is
-supported: a \code{frmtmb_draws} keeps the post-warmup draws alone.}
+\item{inc_warmup}{If \code{TRUE}, each chain starts with its warmup
+iterations, which \code{\link[=frm_sample]{frm_sample()}} keeps when rstan saved them
+(\code{save_warmup = TRUE}, rstan's default and brms's). Without saved
+warmup the draws come alone, as in brms. As in brms, it is refused
+with \code{combine_chains = TRUE} and on thinned draws.}
 
 \item{...}{For \code{as.matrix()}, \code{as.array()} and \code{as.data.frame()}, the
 \code{regex}, \code{fixed} and \code{inc_warmup} brms passes on, and the

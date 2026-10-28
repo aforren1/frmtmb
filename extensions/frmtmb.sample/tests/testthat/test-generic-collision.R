@@ -39,6 +39,7 @@ own_generics <- c(
   "posterior_epred", "posterior_interval", "posterior_linpred",
   "posterior_predict", "posterior_samples",
   "predictive_error", "predictive_interval", "psis",
+  "prior_draws",
   "restructure", "rhat")
 
 # The owner table, restated for the same reason; a block below asserts
@@ -55,6 +56,7 @@ owner_table <- list(
   nuts_params = "bayesplot", rhat = c("posterior", "bayesplot"),
   mcmc_plot = "brms", posterior_average = "brms",
   posterior_samples = c("brms", "gratia"),
+  prior_draws = "brms",
   restructure = "brms")
 
 all_owners <- c("posterior", "loo", "rstantools", "bayesplot", "coda",

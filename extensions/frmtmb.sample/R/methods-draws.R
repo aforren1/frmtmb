@@ -660,7 +660,7 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
   hyp_brms_result(
     labels, est, err, lwr, upr, er, pp, hp$dir, pp > 1 - alpha,
     hyp_samples_frame(draws, k_n),
-    hyp_samples_frame(matrix(NA, n, k_n), k_n), prefix, alpha,
+    hyp_samples_frame(ev$prior, k_n), prefix, alpha,
     list(method = "posterior", evid_ratio_mcse = ev$mcse))
 }
 
@@ -1530,8 +1530,13 @@ draws_ppc_psis_fit <- function(ll, chain_id, multiple = FALSE) {
 #' @param x A `frmtmb_draws` object.
 #' @param variable Variables to keep, by exact name unless `regex`.
 #' @param regex If `TRUE`, `variable` is a regular expression.
-#' @param inc_warmup Only `FALSE`: the draws matrix keeps the post-warmup
-#'   draws alone.
+#' @param inc_warmup If `TRUE`, each chain's warmup iterations come
+#'   before its draws, as in brms. [frm_sample()] keeps the warmup that
+#'   rstan saved (`save_warmup = TRUE`, the default of rstan and of
+#'   brms); with `save_warmup = FALSE` there is none, and the result
+#'   holds the draws alone, as brms's does. No other method reads the
+#'   warmup unless it is asked to: `ndraws()`, `summary()`, the
+#'   predictions and the diagnostics use the post-warmup draws.
 #' @param pars brms's deprecated alias of `variable`, a regular
 #'   expression; it warns, as brms's does.
 #' @param draw Draws to keep, by index.
@@ -1673,8 +1678,11 @@ as.mcmc <- function(x, ...) UseMethod("as.mcmc")
 #' @param combine_chains If `TRUE`, one `mcmc` object over the pooled
 #'   draws; otherwise an `mcmc.list` with one component per chain, which
 #'   is what coda's diagnostics (`gelman.diag()`) need.
-#' @param inc_warmup Accepted for brms's signature and only `FALSE` is
-#'   supported: a `frmtmb_draws` keeps the post-warmup draws alone.
+#' @param inc_warmup If `TRUE`, each chain starts with its warmup
+#'   iterations, which [frm_sample()] keeps when rstan saved them
+#'   (`save_warmup = TRUE`, rstan's default and brms's). Without saved
+#'   warmup the draws come alone, as in brms. As in brms, it is refused
+#'   with `combine_chains = TRUE` and on thinned draws.
 #' @exportS3Method coda::as.mcmc
 #' @export
 as.mcmc.frmtmb_draws <- function(x, pars = NA, fixed = FALSE,
@@ -1686,11 +1694,15 @@ as.mcmc.frmtmb_draws <- function(x, pars = NA, fixed = FALSE,
   }
   check_flag(combine_chains, "combine_chains")
   check_flag(inc_warmup, "inc_warmup")
-  if (inc_warmup) {
-    frm_stop("as.mcmc(inc_warmup = TRUE) has nothing to include: the draws ",
-             "matrix holds the post-warmup draws only, which is what ",
-             "frm_sample() keeps. The warmup, if the sampler saved it, is ",
-             "in `x$stanfit`", call. = FALSE)
+  # brms's two refusals, in its words
+  if (inc_warmup && combine_chains) {
+    frm_stop("Cannot include warmup samples when 'combine_chains' is TRUE.",
+             call. = FALSE)
+  }
+  thin <- if (inherits(x$stanfit, "stanfit")) x$stanfit@sim[["thin"]]
+  if (inc_warmup && isTRUE(thin >= 2)) {
+    frm_stop("Cannot include warmup samples when 'thin' >= 2.",
+             call. = FALSE)
   }
   sel <- draws_select_variables(x, pars, NULL, FALSE, fixed, "as.mcmc()")
   if (combine_chains) {
@@ -1698,7 +1710,7 @@ as.mcmc.frmtmb_draws <- function(x, pars = NA, fixed = FALSE,
     if (!is.null(sel)) m <- m[, sel, drop = FALSE]
     return(coda::as.mcmc(m))
   }
-  a <- draws_raw_array(x)
+  a <- draws_raw_array(x, inc_warmup)
   if (!is.null(sel)) a <- a[, , sel, drop = FALSE]
   dn <- list(NULL, dimnames(a)[[3L]])
   coda::as.mcmc.list(lapply(seq_len(dim(a)[2L]), function(ch) {
@@ -2301,13 +2313,15 @@ coef.frmtmb_draws <- function(object, summary = TRUE, robust = FALSE,
 #' @param ... For `mcmc_plot()` and `pairs()`, passed to the bayesplot
 #'   function; for `nuts_params()` and `log_posterior()`, passed to
 #'   bayesplot's own `stanfit` method, so `nuts_params(x, "stepsize__")`
-#'   reaches its `pars`. **`rhat()` and `neff_ratio()` read nothing
-#'   from it**: they take `pars` and `regex` and no more, so an
-#'   argument they do not have, such as `variable = "x"`, is accepted
-#'   and IGNORED rather than refused, and the whole set of variables
-#'   comes back. brms errors on that call. A refusal is coming from
-#'   `frm_check_dots()` (plan item 2.5e); until it lands, this is the
-#'   accurate statement of what happens.
+#'   reaches its `pars`, and `inc_warmup = TRUE` reaches bayesplot's.
+#'   **`rhat()` and `neff_ratio()` read `inc_warmup` from it and
+#'   nothing else**: `inc_warmup = TRUE` computes the diagnostic over
+#'   the saved warmup too, as brms's `...` to `as_draws_array()` does,
+#'   and an argument they do not have, such as `variable = "x"`, is
+#'   accepted and IGNORED rather than refused, and the whole set of
+#'   variables comes back. brms errors on that call. A refusal is
+#'   coming from `frm_check_dots()` (plan item 2.5e); until it lands,
+#'   this is the accurate statement of what happens.
 #' @return A ggplot object, or the diagnostic data frame / vector
 #'   bayesplot returns.
 #' @examples
@@ -2439,7 +2453,7 @@ rhat <- function(x, ...) UseMethod("rhat")
 #' @rawNamespace S3method(posterior::rhat,frmtmb_draws)
 #' @export
 rhat.frmtmb_draws <- function(x, pars = NULL, regex = FALSE, ...) {
-  a <- draws_diag_array(x, pars, regex, "rhat()")
+  a <- draws_diag_array(x, pars, regex, "rhat()", ...)
   tab <- posterior::summarise_draws(a, rhat = posterior::rhat)
   stats::setNames(tab$rhat, tab$variable)
 }
@@ -2453,7 +2467,7 @@ neff_ratio <- function(object, ...) UseMethod("neff_ratio")
 #' @export
 neff_ratio.frmtmb_draws <- function(object, pars = NULL, regex = FALSE,
                                     ...) {
-  a <- draws_diag_array(object, pars, regex, "neff_ratio()")
+  a <- draws_diag_array(object, pars, regex, "neff_ratio()", ...)
   tab <- posterior::summarise_draws(a, ess_bulk = posterior::ess_bulk,
                                     ess_tail = posterior::ess_tail)
   # brms's neff_ratio.brmsfit: the SMALLER of the bulk and tail
@@ -2480,15 +2494,19 @@ neff_ratio.frmtmb_draws <- function(object, pars = NULL, regex = FALSE,
 #' difference is brms's, not this package's, and it is measured in
 #' `dev/brmsmatch-findings.md`.
 #'
+#' brms passes `...` on to `as_draws_array()`, so `inc_warmup = TRUE`
+#' computes the diagnostic over the warmup too, as it does there.
+#'
 #' @noRd
-draws_diag_array <- function(x, pars, regex, what) {
+draws_diag_array <- function(x, pars, regex, what, inc_warmup = FALSE,
+                             ...) {
   if (!requireNamespace("posterior", quietly = TRUE)) {
     frm_stop(what, " needs the 'posterior' package: it computes the ",
              "diagnostic brms reports, which is posterior's. The sampler's ",
              "own classic split-R-hat and n_eff are in `x$stanfit` without ",
              "it", call. = FALSE)
   }
-  a <- draws_as_array(x)
+  a <- draws_as_array(x, inc_warmup = inc_warmup, what = what)
   if (is.null(pars)) return(a)
   check_flag(regex, "regex")
   draws_subset_variable(a, pars, regex, what)
@@ -2835,12 +2853,101 @@ plot.frmtmb_draws <- function(x, pars = NA, combo = c("hist", "trace"),
   invisible(pages)
 }
 
-#' @rdname frmtmb-draws-refusals
+#' Sample a model again with changed sampling arguments
+#'
+#' brms's `update()` of a fitted model, for the arguments that change
+#' how the model is sampled and not the model itself: `sample_prior`,
+#' `prior`, and the sampler's options (`chains`, `iter`, `seed`,
+#' `control`, ...). It calls [frm_sample()] again on the same model with
+#' the arguments of the first call, the ones given here replacing them.
+#' brms's `update(fit, sample_prior = "yes")` is the common use: it adds
+#' prior draws to a model sampled without them, for
+#' [prior_draws()] and the evidence ratios of [frmtmb::hypothesis()].
+#'
+#' A new formula or new data changes the model, which the draws do not
+#' carry in a form that can be revised: `update()` the fit with them and
+#' call [frm_sample()] on the result.
+#'
+#' @param object A `frmtmb_draws` from [frm_sample()].
+#' @param formula.,newdata brms's arguments for a new model; refused.
+#' @param recompile brms's argument for a new Stan program; frmtmb
+#'   compiles none, and anything but `NULL` is refused.
+#' @param ... Arguments of [frm_sample()] to change.
+#' @return A new `frmtmb_draws`.
+#' @examples
+#' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
+#'   set.seed(1)
+#'   dd <- data.frame(x = rnorm(40))
+#'   dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
+#'   ds <- frm_sample(bf(y ~ x), family = gaussian(), data = dd,
+#'                    prior = set_prior("normal(0, 1)", class = "b"),
+#'                    chains = 1, iter = 400, seed = 1, refresh = 0)
+#'   ds2 <- update(ds, sample_prior = "yes")
+#'   names(prior_draws(ds2))
+#' }
+#' }
 #' @export
-update.frmtmb_draws <- function(object, ...) {
-  frm_stop("update() has no method for draws: the sampled object carries ",
-           "no formula to revise. update() the underlying frmtmb fit and ",
-           "frm_sample() the result", call. = FALSE)
+update.frmtmb_draws <- function(object, formula., newdata = NULL,
+                                recompile = NULL, ...) {
+  # an unnamed argument binds to formula.; only a formula is one
+  if (!missing(formula.) &&
+        !inherits(formula., c("formula", "brmsformula", "bform"))) {
+    frm_stop("update(): the first unnamed argument is the new formula, ",
+             "and this one is of class ", class(formula.)[1L], ". Name the ",
+             "arguments of frm_sample() to change, as in update(x, ",
+             "sample_prior = \"yes\")", call. = FALSE)
+  }
+  if (!missing(formula.) || !is.null(newdata)) {
+    frm_stop("update() of draws samples the same model again; a new ",
+             "formula or new data is a new model. update() the frmtmb fit ",
+             "(draws$fit) with it and frm_sample() the result",
+             call. = FALSE)
+  }
+  if (!is.null(recompile)) {
+    frm_stop("update(recompile = ) has no meaning here: frmtmb compiles no ",
+             "Stan program", call. = FALSE)
+  }
+  sa <- object$sample_args
+  if (is.null(sa) || is.null(object$fit)) {
+    frm_stop("update() samples again with the arguments frm_sample() was ",
+             "called with, and these draws carry no record of them: they ",
+             "were not made by frm_sample(). Call frm_sample() on the fit",
+             call. = FALSE)
+  }
+  if (!is.null(object$nimp)) {
+    frm_stop("update() of the draws of a frm_multiple() result would ",
+             "sample only the first imputation; call frm_sample() on the ",
+             "frm_multiple() result again", call. = FALSE)
+  }
+  dots <- list(...)
+  nm <- names(dots) %||% rep("", length(dots))
+  if (any(!nzchar(nm))) {
+    frm_stop("update() of draws takes named arguments of frm_sample()",
+             call. = FALSE)
+  }
+  model <- intersect(nm, c("fit", "data", "family", "data2", "start",
+                           "fit_control", "na.action", "REML",
+                           ".diagnostic"))
+  if (length(model)) {
+    frm_stop("update(", paste0(model, " =", collapse = ", "), ") changes ",
+             "the model, not how it is sampled. update() the frmtmb fit ",
+             "(draws$fit) and frm_sample() the result", call. = FALSE)
+  }
+  args <- sa[setdiff(names(sa), c("own", "from_formula"))]
+  args[nm] <- dots
+  fit <- object$fit
+  # the fit's own prior, which frm_sample() stacks under `prior =`, and
+  # not the effective prior the draws record
+  fit["prior"] <- sa[["own"]]
+  # the formula route's default start, which the assembled model does
+  # not otherwise know it needs
+  if (isTRUE(sa[["from_formula"]]) && is.null(args[["init"]])) {
+    args$init <- "random"
+  }
+  do.call(frm_sample, c(list(fit), args))
 }
 
 #' @rdname frmtmb-draws-refusals

@@ -2917,9 +2917,21 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   fixed several seconds, so short chains gain nothing; long chains
 #'   approach a per-chain speedup. A core count inherited from
 #'   `options(mc.cores)`, which rstan reads when `cores` is not given,
-#'   behaves the same way. `seed` fixes Stan's stream and the init
-#'   jitter both (see `init_jitter`); `NA`, brms's default, leaves both
-#'   to the session.
+#'   behaves the same way. `seed` fixes Stan's stream, the init
+#'   jitter (see `init_jitter`) and the prior draws of
+#'   `sample_prior = "yes"`; `NA`, brms's default, leaves all three to
+#'   the session. `save_warmup` is rstan's and brms's: `TRUE`, the
+#'   default, keeps each chain's warmup iterations beside the draws,
+#'   where `inc_warmup = TRUE` reads them (see Warmup).
+#' @param sample_prior brms's `sample_prior`: `"no"` (the default),
+#'   `"yes"` or `"only"`, or `TRUE` for `"yes"` and `FALSE` for `"no"`.
+#'   `"yes"` adds draws from the priors to the draws, under brms's names
+#'   (`prior_b`, `prior_Intercept`, `prior_sigma`, ...), which
+#'   [prior_draws()] returns and [frmtmb::hypothesis()] reads for the
+#'   evidence ratio of a point hypothesis. `"only"` samples the prior of
+#'   the whole model with the likelihood left out, so that
+#'   [posterior_predict()], [pp_check()] and conditional effects give the
+#'   prior predictive distribution. See Prior draws.
 #' @param prior Priors: a [frmtmb::set_prior()] specification, or a named list
 #'   of prior objects (see [frmtmb::prior_normal()]) whose names are parameter
 #'   names as in the draws (or whole components: `"beta"`, `"theta"`,
@@ -2990,7 +3002,68 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   are derived from each draw's internal covariance parameters
 #'   (`theta_1`, ...), which stay in the matrix because the model reads
 #'   them, so `as_draws_df(draws)$sd_g__Intercept` works as it does on a
-#'   brms fit.
+#'   brms fit. With `sample_prior = "yes"` the matrix ends with the
+#'   prior draws. The object also holds what converts the saved warmup
+#'   in the `stanfit` to the draws' columns (and the prior draws of its
+#'   rows), the `sample_prior` setting and the arguments of the call,
+#'   which [update()][update.frmtmb_draws] reads.
+#' @section Prior draws:
+#'   `sample_prior = "yes"` draws from the priors as brms does. Each
+#'   prior statement of brms's Stan program for the model is one column
+#'   of draws, independent of the likelihood: a prior on a whole class is
+#'   one column (`prior_b`, `prior_sd_g`, `prior_sigma`); where a
+#'   coefficient has a prior of its own, each coefficient of that vector
+#'   is a column (`prior_b_x`). A flat prior, the default on class `"b"`,
+#'   has no column. A bounded parameter is drawn from its prior truncated
+#'   to the bounds: `sigma`, `sd` and `sds` at 0, `nu` at 1, a `"b"` prior
+#'   at its `lb` and `ub`. A correlation is one off-diagonal element of an
+#'   LKJ draw (`prior_cor_g`, `prior_rescor`), and a `mo()` simplex or a
+#'   mixture's weights a Dirichlet draw. `prior_Intercept` is drawn from
+#'   the prior of the intercept at the centered predictors, which is the
+#'   intercept brms puts that prior on, so the population-level
+#'   intercept `b_Intercept` has no prior draws, as in brms. An ordinal
+#'   model with a threshold prior of its own (`coef = "1"`) has one
+#'   column per threshold, `prior_Intercept__1`, ..., as brms does. A
+#'   `gp()` term's `sdgp` and `lscale` are not drawn, nor brms's
+#'   `meanme` and `sdme` of a `me()` term, which frmtmb has no prior slot
+#'   for, nor a GEV's `xi` (brms draws no prior of it either).
+#'
+#'   The draws are made directly from each density with R's random
+#'   number generators, as brms makes them in Stan's generated
+#'   quantities: they are independent, and a run of the sampler on the
+#'   prior would give correlated draws of the same distribution at the
+#'   cost of a second run. The saved warmup iterations get prior draws
+#'   too, as in brms.
+#'
+#'   `sample_prior = "only"` samples every parameter from its prior with
+#'   the likelihood left out (core's `prior_only` objective, documented
+#'   in [frmtmb::frmtmb-sampling-api]): the group-level coefficients
+#'   from their group's distribution, and the latent values of a
+#'   `mi(sdy)` response from their measurement density, as brms does.
+#'   The draws are draws from the prior, with the parameter names of the
+#'   model, and the predictive methods give the prior predictive
+#'   distribution. Every parameter must have a proper prior: a flat one
+#'   is refused with brms's message, which names the parameter as brms's
+#'   Stan program does (`'b'` with brms's default priors). brms refuses
+#'   only a parameter with no prior at all and samples a coefficient
+#'   left flat beside others that have a prior; this function refuses
+#'   that too. A model with missing values of an `mi()` term is refused,
+#'   because without the likelihood those values have no density (brms
+#'   samples them flat). A model with `me()` terms is refused: brms
+#'   samples it once its classes `"meanme"` and `"sdme"` have proper
+#'   priors, and frmtmb has no prior slot for those classes yet. Draws
+#'   made with `"only"` have no prior draws of their own, as in brms.
+#' @section Warmup:
+#'   rstan saves each chain's warmup iterations unless `save_warmup =
+#'   FALSE` is passed, and so does brms, whose fit keeps them in its
+#'   stanfit. This function keeps them there too, and the
+#'   `inc_warmup = TRUE` of [as_draws()] and its relatives, [as.mcmc()],
+#'   [rhat()] and [neff_ratio()] moves them to the draws' names and
+#'   scales and puts them before each chain's draws, as brms does.
+#'   Everything else reads the post-warmup draws only: [ndraws()],
+#'   `summary()`, [variables()], the predictions and the diagnostics.
+#'   [nuts_params()] and [log_posterior()] read the stanfit, and take
+#'   bayesplot's `inc_warmup`.
 #' @section The pre-flight against the compatibility registry:
 #'   Some models cannot be sampled at all, and the reason usually
 #'   belongs to the package that supplies the feature rather than to
@@ -3097,7 +3170,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' }
 #' @export
 frm_sample <- function(fit, data = NULL, family = NULL, ...,
-                       prior = NULL, init = NULL,
+                       prior = NULL, sample_prior = "no", init = NULL,
                        init_jitter = 0.25, reparameterize = TRUE,
                        data2 = list(), start = NULL,
                        control = NULL,
@@ -3110,6 +3183,19 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   # `...` goes to tmbstan, which would take the retired spelling as an
   # unknown sampler option and run the model with no priors at all
   refuse_retired_priors(list(...), "frm_sample()")
+  sample_prior <- check_sample_prior(sample_prior)
+  if (isTRUE(.diagnostic) && !identical(sample_prior, "no")) {
+    frm_stop("check_laplace() compares the sampler with the density the ",
+             "fit maximized, which has no prior draws and keeps the ",
+             "likelihood; it cannot take sample_prior = \"", sample_prior,
+             "\"", call. = FALSE)
+  }
+  # what update() needs to run this call again with one argument changed
+  sample_args <- list(prior = prior, sample_prior = sample_prior,
+                      init = init, init_jitter = init_jitter,
+                      reparameterize = reparameterize, control = control)
+  sample_args <- c(sample_args[!vapply(sample_args, is.null, NA)],
+                   list(...))
   # `control` binds only on its exact spelling here, but an
   # abbreviation is not therefore harmless: it lands in `...` and
   # partial-matches rstan's own `control` further down
@@ -3199,6 +3285,44 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
     pr_lower <- ri$lower
     pr_upper <- ri$upper
   }
+  # brms's prior statements of this model, which "yes" draws from and
+  # "only" requires to be proper
+  plan <- if (!identical(sample_prior, "no")) {
+    sample_prior_plan(fit, rp, sample_prior)
+  }
+  prior_only <- identical(sample_prior, "only")
+  if (prior_only) {
+    prior_only_check(plan)
+    # a missing value of an mi() term has no density without the
+    # likelihood; a mi(sdy) response's latent values keep their
+    # measurement density, as brms keeps it
+    mim <- fit$frame[["mi_map"]] %||% list()
+    nmiss <- vapply(mim, function(mm) {
+      length(setdiff(mm[["rows"]], mm[["obs"]] %||% integer(0)))
+    }, 1L)
+    if (any(nmiss > 0L)) {
+      frm_stop("frm_sample(sample_prior = \"only\") cannot sample this ",
+               "model: ", paste0(nmiss[nmiss > 0L], " missing value",
+                                ifelse(nmiss[nmiss > 0L] == 1L, "", "s"),
+                                " of ", names(mim)[nmiss > 0L],
+                                collapse = " and "),
+               " have no density without the likelihood, so their prior ",
+               "is flat and improper. brms samples them flat; ",
+               "frm_sample() refuses", call. = FALSE)
+    }
+    # brms needs proper priors on meanme and sdme here, and refuses with
+    # its first me() term's meanme otherwise; frmtmb has no slot for
+    # either class
+    if (!is.null(fit$frame[["me"]])) {
+      prior_only_stop("meanme_1", paste0(
+        "frmtmb has no prior slot yet for brms's classes \"meanme\" and ",
+        "\"sdme\", the mean and SD of a me() term's latent values, so a ",
+        "model with me() terms cannot be given the proper priors brms ",
+        "samples it from"))
+    }
+    unc <- prior_only_uncovered(fit, ri$entries, isTRUE(rp$mix_theta))
+    if (length(unc)) prior_only_stop(unc[1L])
+  }
   # a bounded residual-correlation parameter is sampled through one
   # logistic onto its interval (chart_fn()), not through Stan's bound on
   # the internal parameter, which the chart then replaces. Not under
@@ -3237,7 +3361,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   # integrate and the chains do not mix (Rhat 2.5 on 2 chains). The fit
   # route was refused by frm() already, or fitted under a prior that
   # bounds it
-  if (from_formula) {
+  if (from_formula && !prior_only) {
     check_weights_unbounded(fit$spec, fit$frame, rp$effective,
                             exact = !laplace, route = "sample")
   }
@@ -3258,12 +3382,16 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   announce_ncp(ncp)
   # every prior-carrying route rebuilds from build_objective(), the
   # BARE likelihood, and adds the resolved entries once; fit$obj is
-  # sampled untouched only when nothing has to be added to it
+  # sampled untouched only when nothing has to be added to it. Under
+  # sample_prior = "only" the tape is core's prior_only one, built from
+  # a copy of the frame, so the stored fit keeps its likelihood
+  tfit <- fit
+  if (prior_only) tfit$frame[["prior_only"]] <- TRUE
   if (length(ncp$idx)) {
-    obj <- ncp_objective(fit, ncp$idx, ri$entries %||% list(), chart)
+    obj <- ncp_objective(tfit, ncp$idx, ri$entries %||% list(), chart)
   } else if ((!is.null(ri) && length(ri$entries)) || isTRUE(rp$mix_theta) ||
-               length(chart)) {
-    obj <- prior_augmented_obj(fit, ri$entries %||% list(), chart)
+               length(chart) || prior_only) {
+    obj <- prior_augmented_obj(tfit, ri$entries %||% list(), chart)
   } else if (isTRUE(rp$flat) && !isTRUE(.diagnostic) && !is.null(own)) {
     # the opt-out has something to SUBTRACT here: a MAP fit's own prior
     # is part of fit$obj, and "flat" on the user-facing argument means
@@ -3388,13 +3516,83 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   check_tmbstan_build("frm_sample()")
   sf <- do.call(tmbstan::tmbstan, args)
   check_stan_draws(sf, "frm_sample()")
-  a <- rstan::extract(sf, permuted = FALSE)   # iter x chain x par
-  stan_names <- dimnames(a)[[3]]
+  # laplace draws skip the inner components entirely; labeling them
+  # with the full template order would misattribute theta as a random
+  # effect. brms's names where brms has the parameter (b_, r_), the
+  # internal ones where it does not (theta_1): see brms_par_labels()
+  # how the sampled coordinates become the draws: the same steps for the
+  # draws and, when inc_warmup asks, for the warmup (draws_warmup())
+  recipe <- list(laplace = laplace, mo_soft = mo_soft, ncp_idx = ncp$idx,
+                 chart_lower = if (length(chart)) ri$lower,
+                 chart_upper = if (length(chart)) ri$upper)
+  gev <- if (gev_chart && !identical(obj, fit$obj)) {
+    list(obj = obj, terms = gev_terms)
+  }
+  m <- sample_finish(rstan::extract(sf, permuted = FALSE), fit, recipe,
+                     chart, gev)
+  # the warmup rstan saved (save_warmup = TRUE, its default and brms's)
+  # stays in the stanfit alone, as brms keeps it, and inc_warmup = TRUE
+  # converts it when asked (draws_warmup()). A GEV xi chart reads every
+  # draw through the objective's tape, which the draws do not keep, so
+  # there the warmup is converted now
+  nw <- sf@sim[["warmup2"]][1L] %||% 0
+  n_warm <- if (isTRUE(nw > 0)) nw * (sf@sim[["chains"]] %||% 1L) else 0
+  warm <- if (!is.null(gev) && isTRUE(nw > 0)) {
+    aw <- rstan::extract(sf, permuted = FALSE, inc_warmup = TRUE)
+    sample_finish(aw[seq_len(nw), , , drop = FALSE], fit, recipe, chart,
+                  gev)
+  }
+  warm_prior <- NULL
+  pinfo <- NULL
+  if (identical(sample_prior, "yes")) {
+    pd <- with_sample_seed(list(...)$seed, prior_draws_make(
+      plan, nrow(m) + n_warm, fit$prior))
+    if (!is.null(pd)) {
+      # the post-warmup rows first, so that they do not depend on
+      # whether the warmup was saved
+      m <- cbind(m, pd[seq_len(nrow(m)), , drop = FALSE])
+      if (n_warm > 0) {
+        warm_prior <- pd[nrow(m) + seq_len(n_warm), , drop = FALSE]
+        if (!is.null(warm)) {
+          warm <- cbind(warm, warm_prior)
+          warm_prior <- NULL
+        }
+      }
+    }
+  }
+  if (!identical(sample_prior, "no")) {
+    pinfo <- list(intercepts = attr(plan, "intercepts"))
+  }
+  sample_args$own <- list(own)
+  sample_args$from_formula <- from_formula
+  structure(list(stanfit = sf, draws = m, fit = fit,
+                 reparam = if (length(ncp$idx)) {
+                   list(blocks = ncp$idx, labels = ncp$labels,
+                        centered = ncp$centered)
+                 },
+                 warmup = warm, warmup_recipe = recipe,
+                 warmup_prior = warm_prior, sample_prior = sample_prior,
+                 prior_info = pinfo, sample_args = sample_args),
+            class = "frmtmb_draws")
+}
+
+#' An iterations x chains x parameters array of sampled coordinates as
+#' the chain-major draws matrix every method reads: brms's names, the
+#' residual-correlation charts, a GEV `xi` (`gev`, the objective and its
+#' terms), the `mo()` simplexes and the non-centered blocks moved back,
+#' and the unmodeled distributional parameters on their own scale.
+#' `recipe` is what `frm_sample()` stores for the warmup; `chart` is
+#' rebuilt from it when `NULL` is not given.
+#'
+#' @noRd
+sample_finish <- function(a, fit, recipe, chart = NULL, gev = NULL) {
+  laplace <- isTRUE(recipe$laplace)
   # laplace draws skip the inner components entirely; labeling them
   # with the full template order would misattribute theta as a random
   # effect. brms's names where brms has the parameter (b_, r_), the
   # internal ones where it does not (theta_1): see brms_par_labels()
   labels <- brms_par_labels(fit, include_random = !laplace)
+  stan_names <- dimnames(a)[[3]]
   n_lab <- min(length(labels), length(stan_names))
   stan_names[seq_len(n_lab)] <- labels[seq_len(n_lab)]
   m <- do.call(rbind, lapply(seq_len(dim(a)[2]), function(ch) a[, ch, ]))
@@ -3402,20 +3600,64 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   # first, while every column is still in the sampled coordinates the
   # objective reads
   m <- chart_draws_back(m, fit, chart, laplace)
-  if (gev_chart && !identical(obj, fit$obj)) {
-    m <- gev_draws_to_xi(m, obj, fit, gev_terms, laplace)
-  }
-  if (mo_soft) m <- mo_draws_to_chart(m, fit, laplace)
-  if (length(ncp$idx)) m <- ncp_backtransform(m, fit, ncp$idx)
+  if (!is.null(gev)) m <- gev_draws_to_xi(m, gev$obj, fit, gev$terms, laplace)
+  if (isTRUE(recipe$mo_soft)) m <- mo_draws_to_chart(m, fit, laplace)
+  if (length(recipe$ncp_idx)) m <- ncp_backtransform(m, fit, recipe$ncp_idx)
   # brms reports an unmodeled distributional parameter as the parameter
   # itself: the `sigma` column holds sigma, not log sigma
-  m <- draws_to_natural(m, fit)
-  structure(list(stanfit = sf, draws = m, fit = fit,
-                 reparam = if (length(ncp$idx)) {
-                   list(blocks = ncp$idx, labels = ncp$labels,
-                        centered = ncp$centered)
-                 }),
-            class = "frmtmb_draws")
+  draws_to_natural(m, fit)
+}
+
+#' The saved warmup of draws in the draws' coordinates, or `NULL` when
+#' rstan saved none. `frm_sample()` keeps it in the stanfit alone and
+#' converts it here, with the recipe of its draws and the prior draws it
+#' made for the warmup rows; draws that carry a converted `warmup` (a
+#' GEV xi chart, several imputations) return it.
+#'
+#' @noRd
+draws_warmup <- function(x) {
+  if (!is.null(x$warmup)) return(x$warmup)
+  rc <- x$warmup_recipe
+  sf <- x$stanfit
+  if (is.null(rc) || !inherits(sf, "stanfit")) return(NULL)
+  nw <- sf@sim[["warmup2"]][1L] %||% 0
+  if (!isTRUE(nw > 0)) return(NULL)
+  chart <- if (!is.null(rc$chart_lower) || !is.null(rc$chart_upper)) {
+    autocor_bound_chart(x$fit, rc$chart_lower, rc$chart_upper)
+  }
+  aw <- rstan::extract(sf, permuted = FALSE, inc_warmup = TRUE)
+  w <- sample_finish(aw[seq_len(nw), , , drop = FALSE], x$fit, rc, chart)
+  if (!is.null(x$warmup_prior)) w <- cbind(w, x$warmup_prior)
+  w
+}
+
+#' The prior statements of the model `fit` holds under its effective
+#' prior: `validate_prior()`'s table of that prior, read as brms's Stan
+#' program writes it (`prior_plan()`). The named-list prior spelling
+#' takes over internal parameters that no `set_prior()` row describes,
+#' so brms's draws of the rows would not be the prior that was sampled
+#' under; it is refused.
+#'
+#' @noRd
+sample_prior_plan <- function(fit, rp, sample_prior) {
+  eff <- rp$effective
+  if (length(attr(eff, "overrides") %||% list())) {
+    frm_stop("frm_sample(sample_prior = \"", sample_prior, "\") reads the ",
+             "prior as set_prior() rows, as brms does, and the named-list ",
+             "prior spelling takes over internal parameters no row ",
+             "describes. Write the prior with set_prior()", call. = FALSE)
+  }
+  pl <- if (length(unclass(eff %||% list()))) {
+    structure(unclass(eff), class = "frmtmb_priorlist")
+  }
+  tab <- validate_prior(pl, fit, route = "fit")
+  # the posterior draws' names, which give brms's spelling of the
+  # simplexes, smooths and correlations
+  nc <- draws_natural_cols(fit)
+  cn <- unique(c(brms_par_labels(fit, include_random = FALSE), nc$extra,
+                 nc$derived$names,
+                 unlist(lapply(nc$ordinal, `[[`, "names"))))
+  prior_plan(fit, tab, cn, mix_theta = isTRUE(rp$mix_theta))
 }
 
 #' `frm_sample()` of a `frm_multiple()` result: each imputation's fit
@@ -3458,6 +3700,17 @@ sample_multiple <- function(x, cl, env) {
   out <- ds[[1L]]
   out$stanfit <- rstan::sflist2stanfit(lapply(ds, `[[`, "stanfit"))
   out$draws <- do.call(rbind, lapply(ds, `[[`, "draws"))
+  # the warmup in the stanfit's chain order, each imputation's converted
+  # with its own fit, since the combined draws keep the first fit alone;
+  # NULL when none was saved
+  ws <- lapply(ds, draws_warmup)
+  out$warmup_recipe <- NULL
+  out$warmup_prior <- NULL
+  if (all(vapply(ws, function(w) !is.null(w), NA))) {
+    out$warmup <- do.call(rbind, ws)
+  } else {
+    out$warmup <- NULL
+  }
   out$nimp <- length(ds)
   out
 }

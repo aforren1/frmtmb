@@ -6,14 +6,34 @@
 # iterations, and the suite asserts those counts (ndraws 25, nsamples
 # with warmup 75), so the draws stand-in is drawn to the same design.
 # The seed only fixes the draws; no assertion reads their values.
+# Examples 1 and 2 were fitted with priors and sample_prior = "yes",
+# and the suite reads their prior draws, so the stand-in samples with the
+# same priors (brms:::brmsfit_example1$prior, the rows a user set) and
+# with prior draws.
+brms_fixture_sample_args <- function(k) {
+  switch(
+    k,
+    list(prior = frmtmb::set_prior("normal(0,2)", class = "b") +
+           frmtmb::set_prior("normal(0,3)", class = "b", dpar = "sigma") +
+           frmtmb::set_prior("cauchy(0,2)", class = "sd", lb = 0),
+         sample_prior = "yes"),
+    list(prior = frmtmb::set_prior("normal(2,2)", class = "b",
+                                   nlpar = "a") +
+           frmtmb::set_prior("normal(0,3)", class = "b", nlpar = "b"),
+         sample_prior = "yes"),
+    list(), list(), list(), list())
+}
+
 brms_fixture_draws <- function(k) {
   key <- paste0("draws", k)
   hit <- brms_port_state$fixtures[[key]]
   if (!is.null(hit)) return(hit)
   fit <- brms_fixture(k)
   ds <- withCallingHandlers(
-    frmtmb.sample::frm_sample(fit, chains = 1, iter = 75, warmup = 50,
-                              seed = 20260917, refresh = 0),
+    do.call(frmtmb.sample::frm_sample,
+            c(list(fit, chains = 1, iter = 75, warmup = 50,
+                   seed = 20260917, refresh = 0),
+              brms_fixture_sample_args(k))),
     warning = function(w) invokeRestart("muffleWarning"),
     message = function(m) invokeRestart("muffleMessage")
   )

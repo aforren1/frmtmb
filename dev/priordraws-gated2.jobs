@@ -1,0 +1,15 @@
+frmtmb tests/testthat/test-brms-suite-brm.R
+frmtmb tests/testthat/test-brms-suite-brmsfit-helpers.R
+frmtmb tests/testthat/test-brms-suite-brmsformula.R
+frmtmb tests/testthat/test-brms-suite-brmsterms.R
+frmtmb tests/testthat/test-brms-suite-data-helpers.R
+frmtmb tests/testthat/test-brms-suite-emmeans.R
+frmtmb tests/testthat/test-brms-suite-families.R
+frmtmb tests/testthat/test-brms-suite-methods.R
+frmtmb tests/testthat/test-brms-suite-priors.R
+frmtmb tests/testthat/test-brms-suite-standata.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-brms-suite-brmsformula.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-brms-suite-brmsterms.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-brms-suite-families.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-brms-suite-helper-copy.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-brms-suite-methods.R

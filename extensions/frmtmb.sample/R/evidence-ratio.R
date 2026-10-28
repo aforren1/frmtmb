@@ -8,53 +8,17 @@
 # For a DIRECTIONAL hypothesis there is no density involved at all: it
 # is the posterior odds of the claim, and the prior never enters.
 #
-# WHERE THE TWO DENSITIES COME FROM, and why they are not symmetric.
-# The numerator is a kernel density of the drawn quantity, because that
-# is the only thing the draws can give. The denominator is EVALUATED
-# from the prior specification the model was sampled under, because
-# that specification is known exactly and estimating it from prior
-# draws would put Monte Carlo error in a place where none is needed.
-# brms estimates both by kernel density, from `sample_prior = "yes"`
-# draws; the two agree to the accuracy of brms's denominator, which is
-# the noisier half (a weakly-informative prior spreads its draws over a
-# range where a fixed-bandwidth estimate at one point is thin).
-#
-# WHAT REFUSES, AND WHY BY NAME. A denominator needs a proper prior on
-# the quantity being tested. frm_sample() leaves class "b" FLAT by
-# default, exactly as brms does, so the commonest point hypothesis of
-# all has no denominator unless the user wrote a prior. That is a fact
-# about the model, not a failure of the method, and saying which
-# hypothesis lacks which prior is the only useful thing to report; brms
-# reaches the same place from the other side, reporting NA when no
-# prior draws were saved.
-
-#' The density of one resolved prior entry at one value, or `NULL` for
-#' a `dist` whose density is not one number per parameter.
-#'
-#' The kinds are core's `prior_base_logdens()` list; this reads the
-#' resolved specification rather than reaching into core's tape-side
-#' evaluator, which is written for `RTMB` values and carries the change
-#' of variables an outer parameter needs and this quantity does not.
-#'
-#' @noRd
-er_prior_density <- function(dist, v) {
-  switch(dist$kind,
-    normal = stats::dnorm(v, dist$location, dist$scale),
-    t = stats::dt((v - dist$location) / dist$scale, dist$df) / dist$scale,
-    exponential = stats::dexp(v, dist$rate),
-    logistic = stats::dlogis(v, dist$location, dist$scale),
-    gamma = stats::dgamma(v, shape = dist$shape, rate = dist$rate),
-    # written out because R parameterizes the inverse gamma nowhere;
-    # Stan's second argument (and so brms's) is the SCALE
-    inv_gamma = if (v <= 0) 0 else {
-      exp(dist$shape * log(dist$scale) - lgamma(dist$shape) -
-            (dist$shape + 1) * log(v) - dist$scale / v)
-    },
-    beta = stats::dbeta(v, dist$shape1, dist$shape2),
-    uniform = stats::dunif(v, dist$lower, dist$upper),
-    lognormal = stats::dlnorm(v, dist$location, dist$scale),
-    NULL)
-}
+# WHERE THE TWO DENSITIES COME FROM. brms's `evidence_ratio()`: both
+# are kernel density estimates at the point, the numerator from the
+# posterior draws of the hypothesis quantity and the denominator from
+# the same quantity evaluated on the prior draws `frm_sample(sample_prior
+# = "yes")` stored (`prior_draws()`). Without prior draws for every
+# parameter the hypothesis names, the ratio is NA, with no message, as
+# in brms. Through frmtmb.sample 0.23.0 the denominator was evaluated
+# from the prior specification instead, and only for affine hypotheses
+# of coefficients with a proper prior; that is gone, because it gave a
+# number where brms gives NA and refused where brms gives one (a
+# standard deviation, sigma).
 
 #' The posterior density of a drawn quantity at one point.
 #'
@@ -90,242 +54,18 @@ er_kde_at <- function(v, point = 0, n = 4096L) {
   max(stats::spline(d$x, d$y, xout = point)$y, 0)
 }
 
-#' The resolved prior entries the model was sampled under, or the
-#' reason there are none to read.
+#' The hypothesis quantity evaluated on the prior draws of the
+#' parameters it names, or `NULL` where any of them has none: brms's
+#' `eval_hypothesis()` reads `prior_draws(x, variable = parsH)` and uses
+#' it only when it has a column for every name.
 #'
 #' @noRd
-er_entries <- function(fit) {
-  pl <- fit[["prior"]]
-  if (is.null(pl) || !length(unclass(pl))) {
-    return(list(entries = NULL,
-                why = paste("the model carries no proper prior (it was",
-                            "sampled flat), so there is no density to",
-                            "divide by")))
-  }
-  if (length(attr(pl, "overrides") %||% list())) {
-    return(list(entries = NULL,
-                why = paste("the retired prior = list(name = ...)",
-                            "spelling took over parameters this",
-                            "specification no longer describes, so the",
-                            "density that was sampled cannot be read",
-                            "back from it")))
-  }
-  e <- tryCatch(resolve_prior_input(fit, pl)$entries,
-                error = function(err) NULL)
-  if (!length(e)) {
-    return(list(entries = NULL,
-                why = paste("its prior specification does not resolve",
-                            "against this model")))
-  }
-  list(entries = e, why = NULL)
-}
-
-#' Position of each name in the `(beta, estimated betad)` coefficient
-#' vector `hyp_vals_only()` lays out first, `NA` for a name that is not
-#' a coefficient.
-#'
-#' A random-effect standard deviation, a correlation and a
-#' natural-scale summary are all excluded on purpose. Their priors sit
-#' on the INTERNAL parameter (a log standard deviation, a transformed
-#' correlation) with a change of variables in between, so the prior of
-#' the reported quantity is not the entry's density; and a point null
-#' at zero on a variance component is a boundary hypothesis that a
-#' density ratio does not answer anyway.
-#'
-#' @noRd
-er_coef_pos <- function(fit, nms) {
-  # the expression's names are brms's; a natural-scale name such as
-  # sigma is the parameter itself, whose prior is not the coefficient's
-  tab <- brms_coef_table(fit)
-  match(nms, ifelse(tab$natural, NA_character_, tab$brms))
-}
-
-#' The template slot one coefficient position occupies.
-#'
-#' @noRd
-er_coef_slot <- function(fit, i) {
-  tpl <- fit$frame[["par_template"]]
-  nb <- length(tpl[["beta"]])
-  if (i <= nb) return(list(comp = "beta", idx = i))
-  fx <- fit$frame[["betad_fixed_idx"]]
-  keep <- setdiff(seq_along(tpl[["betad"]]), fx)
-  list(comp = "betad", idx = keep[i - nb])
-}
-
-#' A `set_prior()` call that reaches one coefficient slot, with every
-#' field the model needs: `resp` on a multivariate model, `dpar` on a
-#' distributional parameter or on one of several locations, `nlpar` on
-#' a nonlinear parameter. The bare `set_prior(class = "b")` this advice
-#' used to give is refused on a multivariate model.
-#'
-#' @noRd
-er_slot_spelling <- function(fit, slot) {
-  multi <- length(fit$spec$responses) > 1L
-  for (lp in fit$frame[["linpreds"]]) {
-    if (!identical(lp[["par"]], slot$comp)) next
-    k <- match(slot$idx, lp[["idx"]])
-    if (is.na(k)) next
-    rspec <- fit$spec$responses[[lp[["resp"]]]]
-    dp <- lp[["dpar"]]
-    is_nl <- dp %in% (rspec$nlpars %||% character(0))
-    cn <- colnames(lp[["X"]])[k]
-    icpt <- identical(cn, "(Intercept)") && !is_nl &&
-      !isFALSE(lp[["center"]])
-    f <- c(coef = if (icpt) "" else sub("^[(]Intercept[)]$", "Intercept",
-                                        cn),
-           dpar = default_lp_dpar(rspec, dp),
-           nlpar = if (is_nl) dp else "",
-           resp = if (multi) lp[["resp"]] else "")
-    f <- f[nzchar(f)]
-    # paste0() over no fields still pastes its constants, which wrote
-    # `class = "Intercept",  = ""` for a univariate model's intercept
-    fields <- if (length(f)) {
-      paste0(", ", names(f), " = \"", f, "\"", collapse = "")
-    } else ""
-    return(paste0("set_prior(\"normal(0, 1)\", class = \"",
-                  if (icpt) "Intercept" else "b", "\"", fields, ")"))
-  }
-  "set_prior(\"normal(0, 1)\", class = \"b\")"
-}
-
-#' The entry covering one slot, or `NULL`.
-#'
-#' @noRd
-er_entry_for <- function(entries, slot) {
-  for (e in entries) {
-    if (identical(e$comp, slot$comp) && slot$idx %in% e$idx) return(e)
-  }
-  NULL
-}
-
-#' The hypothesis quantity as `a + sum(b * coefficients)`, or `NULL`
-#' when it is not affine in them.
-#'
-#' MEASURED, not parsed. The expression engine already evaluates, so
-#' `m + 1` evaluations give the intercept and the slopes and two more
-#' check the claim at points none of them used. Parsing the expression
-#' instead would have to know every function a hypothesis may contain.
-#'
-#' BOTH SIGNS are probed, and the negative one is the load-bearing
-#' half. The fitting points are `0` and the unit vectors, all
-#' non-negative, so `abs()` is indistinguishable from the identity on
-#' every one of them and on any non-negative check point. It slipped
-#' through, and the prior of `|X|` for `X ~ N(0, 1)` is a half-normal
-#' whose density at zero is twice the normal's - so `abs(x) = 0`
-#' reported a Bayes factor exactly two times too large, silently, on a
-#' hypothesis a brms user would plausibly write. (It is also a boundary
-#' null, which is a second reason to refuse it.)
-#'
-#' @noRd
-er_affine <- function(fit, ex, vo, pos) {
-  at <- function(v) {
-    vv <- vo$vals
-    vv[pos] <- v
-    hyp_eval(fit, ex, vv, vo$comp)
-  }
-  m <- length(pos)
-  a <- at(rep(0, m))
-  b <- numeric(m)
-  for (j in seq_len(m)) {
-    ej <- numeric(m)
-    ej[j] <- 1
-    b[j] <- at(ej) - a
-  }
-  chk <- seq_len(m) * 0.7 - 0.3
-  for (probe in list(chk, -chk)) {
-    if (!isTRUE(all.equal(at(probe), a + sum(b * probe),
-                          tolerance = 1e-8))) {
-      return(NULL)
-    }
-  }
-  list(a = a, b = b)
-}
-
-#' The prior density of one hypothesis quantity at zero, or the reason
-#' there is none.
-#'
-#' @noRd
-er_prior_at_zero <- function(fit, ex, vo, entries) {
-  nms <- hyp_expr_vars(ex)
-  if (!length(nms)) {
-    return(list(why = paste("it names no parameter, so there is no",
-                            "prior density to read")))
-  }
-  pos <- er_coef_pos(fit, nms)
-  if (anyNA(pos)) {
-    # every name that reaches here resolved in the hypothesis, so a name
-    # that is not a coefficient is a quantity whose prior is not written
-    # on it: a natural-scale sigma, an sd_ or cor_ summary, or a
-    # group-level r_ coefficient, whose prior is the group's distribution
-    return(list(why = paste0("it names ",
-                             paste(nms[is.na(pos)], collapse = ", "),
-                             ", which is not a population-level ",
-                             "coefficient. A standard deviation, a ",
-                             "correlation and a dispersion have their ",
-                             "prior on the internal parameter with a ",
-                             "change of variables in between, and a ",
-                             "group-level coefficient has the group's ",
-                             "distribution rather than a prior of its ",
-                             "own, so neither density is the prior ",
-                             "density of the tested quantity")))
-  }
-  slots <- lapply(pos, function(i) er_coef_slot(fit, i))
-  ent <- lapply(slots, function(s) er_entry_for(entries, s))
-  flat <- vapply(ent, is.null, TRUE)
-  if (any(flat)) {
-    calls <- vapply(slots[flat], function(sl) er_slot_spelling(fit, sl), "")
-    return(list(why = paste0(paste(nms[flat], collapse = ", "),
-                             " has no proper prior (frm_sample() leaves ",
-                             "class \"b\" flat, as brms does); write one, ",
-                             "e.g. ", paste(unique(calls), collapse = " + "),
-                             ", and resample to get a Bayes factor for it")))
-  }
-  bad <- vapply(ent, function(e) {
-    !identical(e$scale, "internal") || !is.null(e$offset)
-  }, TRUE)
-  if (any(bad)) {
-    return(list(why = paste0("the prior on ",
-                             paste(nms[bad], collapse = ", "),
-                             " is not written about that coefficient ",
-                             "itself (an Intercept prior is about the ",
-                             "intercept at the predictor means, and a ",
-                             "class \"sd\" prior is about a standard ",
-                             "deviation), so its density is not the ",
-                             "density of the tested quantity")))
-  }
-  aff <- er_affine(fit, ex, vo, pos)
-  if (is.null(aff)) {
-    return(list(why = paste("it is not an affine function of the",
-                            "coefficients it names, and the prior of a",
-                            "nonlinear function of them has no closed",
-                            "form here")))
-  }
-  dists <- lapply(ent, function(e) e$dist)
-  if (length(pos) == 1L) {
-    # a + b v = 0 at v = -a / b, and a density transforms by |b|
-    if (abs(aff$b[1L]) < .Machine$double.eps) {
-      return(list(why = "the tested quantity does not depend on it"))
-    }
-    d <- er_prior_density(dists[[1L]], -aff$a / aff$b[1L])
-    if (is.null(d)) {
-      return(list(why = paste0("its prior is a ", dists[[1L]]$kind,
-                               " density, which is not one number per ",
-                               "coefficient")))
-    }
-    return(list(density = d / abs(aff$b[1L])))
-  }
-  # several coefficients: only the normal convolves in closed form, and
-  # only because the entries are independent by construction
-  if (!all(vapply(dists, function(d) identical(d$kind, "normal"), TRUE))) {
-    return(list(why = paste("it combines several coefficients whose",
-                            "priors are not all normal, and the prior",
-                            "of their combination has no closed form",
-                            "here; test them one at a time, or give",
-                            "them normal priors")))
-  }
-  mu <- aff$a + sum(aff$b * vapply(dists, function(d) d$location, 1))
-  sdq <- sqrt(sum((aff$b * vapply(dists, function(d) d$scale, 1))^2))
-  list(density = stats::dnorm(0, mu, sdq))
+er_prior_values <- function(x, ex) {
+  vars <- hyp_expr_vars(ex)
+  if (!length(vars)) return(NULL)
+  pd <- prior_draws.frmtmb_draws(x, variable = vars)
+  if (is.null(pd) || ncol(pd) != length(vars)) return(NULL)
+  as.numeric(hyp_eval_in(ex, as.list(pd)))
 }
 
 #' The consecutive blocks of draws the Monte Carlo error is measured
@@ -355,33 +95,33 @@ er_blocks <- function(x, n) {
 }
 
 #' Evidence ratios and posterior probabilities for one set of parsed
-#' hypotheses, with the between-block Monte Carlo error of each ratio.
+#' hypotheses, with the between-block Monte Carlo error of each ratio
+#' and the prior draws of each hypothesis quantity (`NA` where there are
+#' none), which brms returns as `prior_samples`.
 #'
-#' `point` says which rows were written as a POINT null. A hypothesis
-#' written with no comparison at all is this package's own spelling for
-#' "summarize this quantity", not a test; it parses `two.sided` and
-#' gets no ratio and no complaint, because there is nothing there to
-#' weigh evidence about.
+#' `point` says which rows were written as a POINT null. The Monte
+#' Carlo error of a point ratio is the spread of its numerator between
+#' blocks of the chains, over the one denominator of all the prior
+#' draws, which are independent.
 #'
 #' @noRd
 er_evidence <- function(x, exs, dirs, draws, labels, point) {
-  fit <- x$fit
   n <- nrow(draws)
   k_n <- length(exs)
   er <- rep(NA_real_, k_n)
   mcse <- rep(NA_real_, k_n)
-  # resolved only when some row actually needs a denominator: a call
-  # with only directional rows must not pay for, or fail on, a prior
-  # specification it never reads
-  ent <- NULL
-  vo <- hyp_vals_only(fit)
+  # logical NA where no hypothesis has prior draws, as brms's frame is
+  prior <- matrix(NA, n, k_n)
   blocks <- er_blocks(x, n)
-  reasons <- character(0)
   for (k in seq_len(k_n)) {
     v <- draws[, k]
+    # brms reads the prior draws of every hypothesis, directional or not,
+    # and returns them with the result
+    pv <- er_prior_values(x, exs[[k]])
+    if (!is.null(pv) && length(pv) == n) prior[, k] <- pv
     if (identical(dirs[k], "less") || identical(dirs[k], "greater")) {
       # brms's posterior odds of the claim; the prior never enters a
-      # directional ratio, so nothing here can refuse
+      # directional ratio
       hit <- if (identical(dirs[k], "less")) sum(v < 0) else sum(v > 0)
       er[k] <- hit / (n - hit)
       if (!is.null(blocks)) {
@@ -395,38 +135,15 @@ er_evidence <- function(x, exs, dirs, draws, labels, point) {
       }
       next
     }
-    if (!isTRUE(point[k])) next
-    if (is.null(ent)) ent <- er_entries(fit)
-    pd <- if (is.null(ent$entries)) list(why = ent$why) else {
-      er_prior_at_zero(fit, exs[[k]], vo, ent$entries)
-    }
-    if (!is.null(pd$why)) {
-      reasons <- c(reasons, paste0(labels[k], ": ", pd$why))
-      next
-    }
-    if (!is.finite(pd$density) || pd$density <= 0) {
-      reasons <- c(reasons,
-                   paste0(labels[k], ": its prior density at the tested ",
-                          "point is zero, so the ratio is not defined"))
-      next
-    }
-    er[k] <- er_kde_at(v) / pd$density
+    if (!isTRUE(point[k]) || is.null(pv)) next
+    den <- er_kde_at(pv)
+    er[k] <- er_kde_at(v) / den
     if (!is.null(blocks)) {
-      # the denominator is exact, so the spread of the ratio is the
-      # spread of its numerator
-      per <- vapply(blocks, function(ix) er_kde_at(v[ix]), 1) / pd$density
+      per <- vapply(blocks, function(ix) er_kde_at(v[ix]), 1) / den
       per <- per[is.finite(per)]
       if (length(per) > 1L) mcse[k] <- stats::sd(per) / sqrt(length(per))
     }
   }
-  if (length(reasons)) {
-    np <- sum(point, na.rm = TRUE)
-    frm_warning("hypothesis(): no evidence ratio for ", length(reasons),
-                " of ", np, " point hypothes", if (np == 1L) "is" else "es",
-                ". A Savage-Dickey ratio divides the posterior density at ",
-                "the tested point by the PRIOR density there, and\n  ",
-                paste(reasons, collapse = "\n  "), call. = FALSE)
-  }
   pp <- ifelse(is.infinite(er), 1, er / (1 + er))
-  list(evid_ratio = er, post_prob = pp, mcse = mcse)
+  list(evid_ratio = er, post_prob = pp, mcse = mcse, prior = prior)
 }

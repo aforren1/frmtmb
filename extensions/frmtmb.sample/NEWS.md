@@ -1,3 +1,99 @@
+# frmtmb.sample (development version)
+
+Needs the frmtmb that reads `build_objective()`'s `prior_only` field.
+
+## New features
+
+* `frm_sample(sample_prior = )` takes brms's `"no"` (the default),
+  `"yes"` and `"only"`, and `TRUE` and `FALSE`.
+  * `"yes"` adds draws from the priors to the draws, under brms's names,
+    as `brm(sample_prior = "yes")` does: one column per prior statement
+    of brms's Stan program for the model (`prior_b` for a class-wide
+    prior, `prior_b_x` for each coefficient of a vector with a
+    coefficient-specific prior, `prior_Intercept`, `prior_sigma`,
+    `prior_sd_g`, `prior_cor_g`, `prior_simo_mox1[k]`, ...), none for a
+    flat prior, a bounded parameter drawn truncated to its bounds. On 19
+    models (population-level and monotonic coefficients, intercepts of
+    the location and of a distributional parameter, nonlinear
+    parameters, `sigma`, `nu`, `phi`, `hu`, smooth standard deviations
+    in two predictors, group-level standard deviations, correlations,
+    `rescor`, `mo()` simplexes, mixture weights, ordinal thresholds,
+    `ar` of two responses, multivariate and bounded priors), the names
+    are brms 2.23.0's, in brms's order. Each column is drawn directly
+    from its prior, independent of the likelihood, as brms draws it in
+    generated quantities: on 39 columns of 9 models the one-sample
+    Kolmogorov-Smirnov p-value against the exact (truncated) prior is
+    between 0.125 and 0.986, and against brms's own draws of two models
+    (14 columns, 4000 draws a side) between 0.033 and 0.962. An ordinal
+    model with a threshold prior of its own gets brms's
+    `prior_Intercept__1`, `prior_Intercept__2`, ..., one per threshold.
+    A `gp()` term's `sdgp` and `lscale` get no prior draws, and neither
+    do brms's `meanme` and `sdme`, which frmtmb has no prior slot for.
+  * `"only"` samples the prior of the whole model with the likelihood
+    left out, as brms does, so `posterior_predict()`, `pp_check()` and
+    `conditional_effects()` give the prior predictive distribution. Every
+    parameter needs a proper prior: a flat one is refused with brms's
+    message ("Sampling from priors is not possible as some parameters
+    have no proper priors. Error occurred for parameter 'b'."). Unlike
+    brms, a vector with some coefficients flat is refused too, and so is
+    a model with missing values of an `mi()` term, which have no density
+    without the likelihood. A `mi(sdy)` response keeps its measurement
+    density, as in brms. A model with `me()` terms is refused, naming
+    brms's classes `meanme` and `sdme`: brms needs proper priors there,
+    and frmtmb has no prior slot for them yet. On `y ~ x + (1 | g)` with
+    a `normal(0, 1)`
+    prior on `b` (4 chains of 4000), every mean and 5, 50 and 95
+    percent quantile of `b_Intercept`, `b_x`, `sigma`,
+    `sd_g__Intercept`, `r_g[1,Intercept]` and of a prior predictive
+    draw is within 3.0 Monte Carlo standard errors of brms's, and at two
+    more seeds every quantile of `b_x`, `sigma` and `sd_g__Intercept` is
+    within 1.3 of the exact prior's (brms's: 2.4).
+
+* New `prior_draws()`, brms's, with brms's `variable` and its deprecated
+  `pars`; brms's deprecated `prior_samples()` reaches it while brms is
+  loaded. A name gets the prior column whose name is the longest match
+  at its start, in random order (`b_x` reads `prior_b`); the overall
+  intercept `b_Intercept` is left out with brms's warning.
+
+* The warmup iterations rstan saves (`save_warmup = TRUE`, the default
+  of rstan and of brms) stay in the draws' stanfit, as in a brmsfit,
+  and `inc_warmup = TRUE` on `as_draws()`, `as_draws_array()`,
+  `as_draws_df()`, `as_draws_list()`, `as_draws_matrix()`,
+  `as_draws_rvars()`, `as.mcmc()`, `as.matrix()`, `as.array()`,
+  `as.data.frame()`, `rhat()` and `neff_ratio()` converts them to the
+  draws' variables and puts them before each chain's draws, as brms
+  does. `as.mcmc()` refuses it with `combine_chains = TRUE` and on
+  thinned draws, with brms's messages, and every accessor refuses a
+  warmup that no longer fits the draws. Every other method reads the
+  post-warmup draws alone, as before.
+
+* `update()` of draws samples the same model again with changed
+  arguments of `frm_sample()`, as brms's `update()` does for
+  `sample_prior`, `prior` and the sampler's options:
+  `update(ds, sample_prior = "yes")` adds prior draws. A new formula or
+  new data is refused, as before.
+
+## Breaking changes
+
+* **The evidence ratio of a point hypothesis is brms's.** `hypothesis()`
+  divides the kernel density of the posterior draws at the point by the
+  kernel density of the prior draws there (brms's `evidence_ratio()`),
+  and returns the prior draws of each hypothesis as `prior_samples`.
+  Without prior draws for every parameter a hypothesis names, its
+  `Evid.Ratio` is `NA` with no message, as in brms. Before, the
+  denominator was the prior density read off the prior specification,
+  so draws made without prior draws gave a number where brms gives
+  `NA`; and `sigma`, a standard deviation, a correlation, a nonlinear
+  function and the intercept were refused with a warning, where brms
+  gives a ratio for all but the intercept. Against brms 2.23.0 on
+  `y ~ x + (1 | g)` (4 chains of 6000 a side, seed 11), the ratios of
+  `x = 0`, `x = 0.2`, `sigma = 1` and `sd_g__Intercept = 0.5` are
+  within 1.7 Monte Carlo standard errors of brms's.
+
+* `as_draws*(inc_warmup = TRUE)` and `as.mcmc(inc_warmup = TRUE)` return
+  the warmup instead of refusing, and `update()` of draws samples again
+  instead of refusing.
+
 # frmtmb.sample 0.23.0
 
 Needs frmtmb 0.76.0, which exports `autocor_flat_priors()`,

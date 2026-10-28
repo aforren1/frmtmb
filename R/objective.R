@@ -695,6 +695,13 @@ build_objective <- function(frame) {
   # cluster weight has to enter.
   clw_idx <- frame[["cluster_w"]]
 
+  # brms's sample_prior = "only": the response densities are left out,
+  # and what brms keeps outside `if (!prior_only)` stays: the
+  # group-level densities, me()'s measurement and latent densities, and
+  # a `mi(sdy)` response's measurement density.
+  # Set only on a private copy of the frame, never on a fit's own.
+  prior_only <- isTRUE(frame[["prior_only"]])
+
   function(pars) {
     "c" <- RTMB::ADoverload("c")
     "[<-" <- RTMB::ADoverload("[<-")
@@ -774,6 +781,9 @@ build_objective <- function(frame) {
       nll <- nll - mel$ll
       mevals <- mel$values
     }
+    # nothing below is a prior: the predictors feed the response
+    # densities alone
+    if (prior_only) return(nll)
 
     dparv <- list()
     for (lp in lps) {

@@ -115,7 +115,10 @@ test_that("the posterior converters all round-trip the same draws", {
   expect_warning(one <- as.matrix(cs$ds, "^b_x$"), "'pars' is deprecated")
   expect_equal(colnames(one), "b_x")
   expect_equal(dim(as.matrix(cs$ds, draw = 1:3)), c(3L, nvariables(cs$ds)))
-  expect_error(as_draws_array(cs$ds, inc_warmup = TRUE), "post-warmup")
+  # rstan saves the warmup by default, as brms does, and inc_warmup
+  # puts it before the draws (test-warmup-draws.R)
+  expect_gt(posterior::niterations(as_draws_array(cs$ds, inc_warmup = TRUE)),
+            posterior::niterations(as_draws_array(cs$ds)))
 })
 
 test_that("as.mcmc() gives coda one component per chain", {

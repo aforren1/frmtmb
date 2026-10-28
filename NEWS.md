@@ -1,3 +1,22 @@
+# frmtmb (development version)
+
+## New features
+
+* `build_objective()` reads a third field on a copy of the frame,
+  `prior_only`. With `prior_only = TRUE` the objective leaves out every
+  response density and keeps the densities of the group-level
+  coefficients, of the `me()` latent values and their measurements, and
+  of a `mi(sdy)` response's measurements, which are the terms brms
+  2.23.0 keeps outside `if (!prior_only)` under
+  `brm(sample_prior = "only")`. A fit's own frame never carries it.
+  frmtmb.sample's `frm_sample(sample_prior = "only")` reads it, to
+  sample the prior of the whole model. `?frmtmb-sampling-api` documents
+  it.
+* `plot()` of a hypothesis draws the density of its prior draws in the
+  second of `colors`, as brms does, unless `ignore_prior = TRUE`. Draws
+  made by `frmtmb.sample::frm_sample(sample_prior = "yes")` carry them;
+  a maximum-likelihood fit has none, and its plot does not change.
+
 # frmtmb 0.76.0
 
 The main changes:

@@ -29,10 +29,19 @@
 #' @section The objective seam:
 #' `build_objective(frame)` returns the bare negative log-likelihood
 #' closure of an assembled frame, ready for `RTMB::MakeADFun()`. It
-#' honors two fields a caller may set on a COPY of the frame:
-#' `frame$map`, and `frame$ncp_blocks`, the indices of the
+#' honors three fields a caller may set on a COPY of the frame:
+#' `frame$map`; `frame$ncp_blocks`, the indices of the
 #' random-effect blocks to build in their non-centered form
-#' (`b = L(theta) z`). A prior-augmented objective is this closure plus
+#' (`b = L(theta) z`); and `frame$prior_only`. With `prior_only = TRUE`
+#' the closure leaves out every response density and keeps the rest:
+#' the densities of the random-effect blocks, of the `me()` latent
+#' values and their measurements, and the measurement density of a
+#' `mi(sdy)` response, observed values around their latent ones. A
+#' missing value of an `mi()` term has no density left, as in brms.
+#' These are the terms brms keeps outside
+#' `if (!prior_only)` under `brm(sample_prior = "only")`, so this closure
+#' plus `neg_log_prior_fn()`'s is the prior of the whole model. A
+#' prior-augmented objective is this closure plus
 #' `neg_log_prior_fn()`'s.
 #'
 #' `row_lpdf(fam, y, yobs, dpars, aterms, extra)` is the per-row

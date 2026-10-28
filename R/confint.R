@@ -4369,26 +4369,28 @@ print.frmtmb_hypothesis <- function(x, digits = 2, ...) {
 #'
 #' @section Prior draws:
 #' brms overlays the density of the prior draws of each hypothesis
-#' unless `ignore_prior = TRUE`. A maximum-likelihood fit has no prior,
-#' and `frmtmb.sample` does not draw from the prior, so
-#' `prior_samples` is all `NA` and there is nothing to overlay. brms
-#' draws the posterior alone in that case too, so `ignore_prior` is
-#' accepted and changes nothing.
+#' unless `ignore_prior = TRUE`, and so does this method, as a line in
+#' the second of `colors`. A hypothesis of draws made by
+#' `frmtmb.sample::frm_sample(sample_prior = "yes")` carries prior draws
+#' wherever every parameter it names has them. A maximum-likelihood fit
+#' has no prior, and draws made without prior draws have none, so their
+#' `prior_samples` is all `NA` and only the posterior is drawn, as brms
+#' does in that case.
 #'
 #' @param x A `frmtmb_hypothesis` object, or one `frmtmb_hyp_plot` for
 #'   the print and plot methods of a plot object.
 #' @param nvariables The number of hypotheses per page.
 #' @param N brms's older name for `nvariables`. When set, it replaces
 #'   `nvariables` with brms's deprecation warning.
-#' @param ignore_prior Accepted for brms compatibility; see the section
-#'   on prior draws.
+#' @param ignore_prior If `TRUE`, leave out the density of the prior
+#'   draws; see the section on prior draws.
 #' @param chars The number of characters of a hypothesis kept in its
 #'   panel title. A longer one is cut and ends in `"..."` before its
 #'   last four characters, as in brms. `NULL` keeps all of it.
 #' @param colors Two colors, as in brms. The first fills the histogram
-#'   of the draws. The second is brms's color for the prior density,
-#'   which has nothing to draw here (see the section on prior draws).
-#'   The default fills with light gray.
+#'   of the draws. The second draws the density of the prior draws,
+#'   where there are any (see the section on prior draws). The default
+#'   fills with light gray and draws the prior in a darker gray.
 #' @param theme brms's ggplot2 theme. `NULL` (the default) changes
 #'   nothing. A ggplot2 theme object is not applied, and a warning says
 #'   so. Anything else is an error, as in brms.
@@ -4447,7 +4449,8 @@ plot.frmtmb_hypothesis <- function(x, nvariables = 5, N = NULL,
   n <- nrow(x$hypothesis)
   pages <- split(seq_len(n), ceiling(seq_len(n) / nvariables))
   plots <- lapply(unname(pages), function(i) {
-    structure(list(hyp = x, rows = i, chars = chars, colors = colors),
+    structure(list(hyp = x, rows = i, chars = chars, colors = colors,
+                   ignore_prior = ignore_prior),
               class = "frmtmb_hyp_plot")
   })
   if (plot) {
@@ -4526,6 +4529,14 @@ hyp_draw_page <- function(p) {
                      col = p[["colors"]][1L], border = "gray60")
       if (length(unique(d)) > 1L) {
         graphics::lines(stats::density(d), lwd = 2)
+      }
+      # brms overlays the prior draws' density where there are any
+      pd <- if (!isTRUE(p[["ignore_prior"]])) x$prior_samples[[i]]
+      pd <- suppressWarnings(as.numeric(pd))
+      pd <- pd[is.finite(pd)]
+      if (length(unique(pd)) > 1L) {
+        graphics::lines(stats::density(pd), lwd = 2,
+                        col = p[["colors"]][2L])
       }
       mark(i)
     } else if (method == "profile") {

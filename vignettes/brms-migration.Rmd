@@ -247,10 +247,13 @@ brms does.
   `cens()` response both draw the LATENT uncensored value, as brms
   does; `simulate(censored = TRUE)` applies the censoring mechanism
   instead.
-- `sample_prior = "only"` plus `posterior_predict()` becomes
-  `frm_simulate(formula, data, prior = set_prior(...))`, which draws
-  a parameter vector per simulation and returns it alongside the
-  responses.
+- `sample_prior = "only"` plus `posterior_predict()` is the same call
+  on `frmtmb.sample::frm_sample()`, which samples the prior of the
+  whole model as brms does. Without a sampler,
+  `frm_simulate(formula, data, prior = set_prior(...))` draws a
+  parameter vector per simulation and returns it alongside the
+  responses. `sample_prior = "yes"` and `prior_draws()` are in
+  frmtmb.sample too.
 - `mo()` monotonic effects, `mi()` one-step imputation of continuous
   predictors, `me(x, sdx)` noise-free predictors and `mi(sdx)`
   measurement error, `cs()` (or brms's other name for it, `cse()`)
@@ -874,15 +877,12 @@ reasons to reach for brms itself are narrower than they look:
 
 - a marginal likelihood, and so a Bayes factor between models
   that are not nested. A point null INSIDE one model is now
-  answered here: `hypothesis()` on a draws object reports the
-  Savage-Dickey evidence ratio and posterior probability that
-  brms reports, for a population-level coefficient whose prior is
-  written about the coefficient itself (in practice a `class = "b"`
-  prior you wrote). It refuses, by name, on a variance component, a
-  correlation, a dispersion and the intercept, because each of those
-  is reported on a scale its prior is not written on. What still
-  needs brms is bridge sampling, which estimates the marginal
-  likelihood itself;
+  answered here: `hypothesis()` on draws made with
+  `sample_prior = "yes"` reports the Savage-Dickey evidence ratio and
+  posterior probability that brms reports, from the prior draws as
+  brms does, for every parameter with a proper prior except the
+  overall intercept, which brms leaves out too. What still needs brms
+  is bridge sampling, which estimates the marginal likelihood itself;
 - `reloo()` or `kfold()` on a model whose LOO approximation fails,
   since both need refits that this package does not do;
 - a family or term neither package here implements, which

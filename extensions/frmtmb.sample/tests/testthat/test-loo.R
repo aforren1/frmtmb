@@ -485,7 +485,9 @@ test_that("the draws-surface odd ends refuse", {
   expect_error(waic(fd, 100), "takes models without a name")
   # plot() of draws is brms's trace-and-histogram display since lane
   # surface (test-add-criterion.R), no longer a refusal
-  expect_error(update(fd), "no formula to revise")
+  # update() samples again with the call's own arguments, which draws
+  # not made by frm_sample() do not carry
+  expect_error(update(fd), "carry no record of them")
   expect_error(rescor_matrix(fd), "fitted point estimate")
 })
 

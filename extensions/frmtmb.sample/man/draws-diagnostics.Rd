@@ -51,13 +51,15 @@ neff_ratio(object, ...)
 \item{...}{For \code{mcmc_plot()} and \code{pairs()}, passed to the bayesplot
 function; for \code{nuts_params()} and \code{log_posterior()}, passed to
 bayesplot's own \code{stanfit} method, so \code{nuts_params(x, "stepsize__")}
-reaches its \code{pars}. \strong{\code{rhat()} and \code{neff_ratio()} read nothing
-from it}: they take \code{pars} and \code{regex} and no more, so an
-argument they do not have, such as \code{variable = "x"}, is accepted
-and IGNORED rather than refused, and the whole set of variables
-comes back. brms errors on that call. A refusal is coming from
-\code{frm_check_dots()} (plan item 2.5e); until it lands, this is the
-accurate statement of what happens.}
+reaches its \code{pars}, and \code{inc_warmup = TRUE} reaches bayesplot's.
+\strong{\code{rhat()} and \code{neff_ratio()} read \code{inc_warmup} from it and
+nothing else}: \code{inc_warmup = TRUE} computes the diagnostic over
+the saved warmup too, as brms's \code{...} to \code{as_draws_array()} does,
+and an argument they do not have, such as \code{variable = "x"}, is
+accepted and IGNORED rather than refused, and the whole set of
+variables comes back. brms errors on that call. A refusal is
+coming from \code{frm_check_dots()} (plan item 2.5e); until it lands,
+this is the accurate statement of what happens.}
 
 \item{pars}{Which variables to report, in brms's spelling. The rule
 differs by method; see \emph{Two different \code{pars} rules, both brms's}.}

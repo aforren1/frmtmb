@@ -15,21 +15,51 @@
 #' array bayesplot's `mcmc_*` functions read; the public `as.array()`
 #' is brms's instead.
 #'
+#' `inc_warmup = TRUE` puts each chain's saved warmup iterations before
+#' its draws, as brms's `as_draws_*()` read rstan's record. Draws with
+#' no saved warmup (`save_warmup = FALSE`) give the draws alone, as brms
+#' does. A warmup that does not fit the draws (other variables, or rows
+#' that do not split over the chains) is refused: returning the draws
+#' alone would answer `inc_warmup = TRUE` as if it were `FALSE`.
+#'
 #' @noRd
-draws_raw_array <- function(x) {
+draws_raw_array <- function(x, inc_warmup = FALSE) {
   m <- x$draws
   nc <- draws_nchains(x)
   if (nc <= 1L || nrow(m) %% nc != 0L) nc <- 1L
-  array(as.vector(m), c(nrow(m) %/% nc, nc, ncol(m)),
-        dimnames = list(NULL, paste0("chain:", seq_len(nc)), colnames(m)))
+  w <- if (isTRUE(inc_warmup)) draws_warmup(x)
+  if (is.null(w)) {
+    return(array(as.vector(m), c(nrow(m) %/% nc, nc, ncol(m)),
+                 dimnames = list(NULL, paste0("chain:", seq_len(nc)),
+                                 colnames(m))))
+  }
+  if (!identical(colnames(w), colnames(m)) || nrow(w) %% nc != 0L) {
+    frm_stop("inc_warmup = TRUE: the saved warmup does not fit these ",
+             "draws (", ncol(w), " variables and ", nrow(w), " rows ",
+             "against ", ncol(m), " variables over ", nc, " chain",
+             if (nc != 1L) "s", "), so it cannot be put before them. ",
+             "The draws were changed after frm_sample(); sample again, ",
+             "or leave inc_warmup = FALSE", call. = FALSE)
+  }
+  ni <- nrow(m) %/% nc
+  nw <- nrow(w) %/% nc
+  a <- array(NA_real_, c(nw + ni, nc, ncol(m)),
+             dimnames = list(NULL, paste0("chain:", seq_len(nc)),
+                             colnames(m)))
+  for (ch in seq_len(nc)) {
+    a[seq_len(nw), ch, ] <- w[(ch - 1L) * nw + seq_len(nw), , drop = FALSE]
+    a[nw + seq_len(ni), ch, ] <- m[(ch - 1L) * ni + seq_len(ni), ,
+                                   drop = FALSE]
+  }
+  a
 }
 
 #' The draws as a `posterior::draws_array`, restricted the way brms's
 #' `as_draws_*()` restrict: `variable` by exact name unless `regex`.
 #'
 #' Through the chain-separated array, so that a convergence diagnostic
-#' computed on the result sees the chains. `inc_warmup = TRUE` is
-#' refused, because the matrix keeps the post-warmup draws alone.
+#' computed on the result sees the chains. `inc_warmup = TRUE` adds the
+#' saved warmup iterations before each chain's draws.
 #'
 #' @noRd
 draws_as_array <- function(x, variable = NULL, regex = FALSE,
@@ -39,13 +69,7 @@ draws_as_array <- function(x, variable = NULL, regex = FALSE,
   }
   check_flag(regex, "regex")
   check_flag(inc_warmup, "inc_warmup")
-  if (inc_warmup) {
-    frm_stop(what, " cannot honor inc_warmup = TRUE: the draws matrix holds ",
-             "the post-warmup draws only, which is what frm_sample() keeps. ",
-             "The warmup, if the sampler saved it, is in `x$stanfit`",
-             call. = FALSE)
-  }
-  a <- posterior::as_draws_array(draws_raw_array(x))
+  a <- posterior::as_draws_array(draws_raw_array(x, inc_warmup))
   if (!is.null(variable)) {
     a <- draws_subset_variable(a, variable, regex, what)
   }

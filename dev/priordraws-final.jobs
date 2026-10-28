@@ -1,0 +1,8 @@
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-prior-draws.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-evidence-ratio.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-warmup-draws.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-bracket-access.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-message-uniqueness.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-generic-collision.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-draws-spellings.R
+frmtmb tests/testthat/test-bracket-access.R
