@@ -125,6 +125,54 @@ test_that("posterior_predict for aysm_laplace models runs without errors", {
   )
 })
 
+test_that("posterior_predict for multivariate linear models runs without errors", {
+  withr::local_seed(54L)
+  brms_setup("posterior_predict:55",
+    ns <- 10
+  )
+  brms_setup("posterior_predict:56",
+    nvars <- 3
+  )
+  brms_setup("posterior_predict:57",
+    ncols <- 4
+  )
+  brms_setup("posterior_predict:58",
+    nobs <- nvars * ncols
+  )
+  brms_setup("posterior_predict:59", {
+    Sigma = array(cov(matrix(rnorm(300), ncol = 3)), dim = c(3, 3, 10))
+  })
+  brms_setup("posterior_predict:60",
+    prep <- structure(list(ndraws = ns), class = "mvbrmsprep")
+  )
+  brms_setup("posterior_predict:61",
+    prep$mvpars <- list(
+      Mu = array(rnorm(ns*nobs*nvars), dim = c(ns, nobs, nvars)),
+      Sigma = aperm(Sigma, c(3, 1, 2))
+    )
+  )
+  brms_setup("posterior_predict:65",
+    prep$dpars <- list(nu = rgamma(ns, 5))
+  )
+  brms_setup("posterior_predict:66",
+    prep$data <- list(N = nobs, N_trait = ncols)
+  )
+  brms_setup("posterior_predict:68",
+    pred <- brms_adapt_posterior_predict("gaussian_mv", 1, prep = prep)
+  )
+  brms_port("posterior_predict:69", "unclassified",
+    "",
+    expect_equal(dim(pred), c(ns, nvars))
+  )
+  brms_setup("posterior_predict:71",
+    pred <- brms_adapt_posterior_predict("student_mv", 2, prep = prep)
+  )
+  brms_port("posterior_predict:72", "unclassified",
+    "",
+    expect_equal(dim(pred), c(ns, nvars))
+  )
+})
+
 test_that("loglik for SAR models runs without errors", {
   withr::local_seed(100L)
   brms_setup("posterior_predict:101", {

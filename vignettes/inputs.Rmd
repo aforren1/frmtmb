@@ -222,7 +222,7 @@ until the rename and are refused by name too.
 |---|---|
 | `numeric` | Used directly. |
 | `factor` | Contrasts are read from the column and stored, then reapplied to new data. The package never creates a factor for a predictor; that would change the model silently. |
-| `ordered` factor | Kept ordered, with its polynomial contrasts. `mo()` requires an ordered factor with at least three levels. |
+| `ordered` factor | Kept ordered, with its polynomial contrasts. `mo()` takes an ordered factor with any number of levels; two levels are a linear term in the code, as in brms. |
 | `logical` | Handled as a two-level factor by `model.matrix()`, giving one `TRUE` column. Also accepted directly as a `mo()` or `mi()` interaction multiplier. |
 | `character`, as a grouping variable | Accepted. An integer, a factor and a character grouping variable give the same fit. |
 | `character`, in a fixed-effect term | Works, but by delegation: `stats::model.frame()` coerces it to a factor with the default contrasts. Level order then follows the locale collation, not your data. Convert to a factor yourself if the level order matters. |

@@ -378,10 +378,19 @@ several columns is refused.
 \section{Monotonic effects}{
 
 \code{mo(x)} fits an ordinal predictor without assuming its categories are
-equally spaced. \code{x} is an ordered factor or an integer vector with at
-least three categories. As in brms, the categories are coded \verb{0..D}
-from the lowest one: the first level of a factor, or the minimum of
-the integers. So \verb{1..5} and \verb{-2..2} are both coded \verb{0..4}. An
+equally spaced. \code{x} is an ordered factor or an integer vector. As in
+brms, the categories are coded \verb{0..D} from the lowest one: the first
+level of a factor, or the minimum of the integers. So \verb{1..5} and
+\verb{-2..2} are both coded \verb{0..4}. Two categories (\code{D = 1}) give a
+simplex of one weight, which is fixed at 1, so the term is its
+coefficient times the code, as brms's \code{Jmo = 1} is. One category
+(\code{D = 0}) gives a term that is 0 on every row, as brms's \code{Jmo = 0}
+is. The data do not determine its coefficient, so in a
+maximum-likelihood fit its standard error is \code{NaN}, and it is not
+counted in the degrees of freedom of \code{logLik()}, as \code{lm()} does not
+count a column it aliases. A group-level term on it, \code{(mo(x) | g)},
+is refused. brms cannot sample such a model, and neither can
+frmtmb.sample. An
 integer between the minimum and the maximum that no row has is also
 a category. For example, \verb{1, 2, 5} gives \code{D = 4}. The data do not
 determine a prediction at such a category, so in a maximum-likelihood

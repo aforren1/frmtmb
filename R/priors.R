@@ -4045,6 +4045,9 @@ resolve_priorlist <- function(fit, pl) {
         family_simplex_targets(fit, s)
       }
       for (tm in tgts) {
+        # a simplex of one weight is fixed at 1 and has no coordinate,
+        # so any Dirichlet on it is a constant (brms's simplex[1])
+        if (tm$D < 2L) next
         idx <- seq_len(tm$D - 1L)
         claim(tm$zeta, idx)
         assigned[[nm_of(tm$zeta, idx)]] <-
@@ -4899,6 +4902,8 @@ dirichlet_logdens <- function(z, dist) {
   "c" <- RTMB::ADoverload("c")
   a <- dist$alpha
   D <- dist$D
+  # one weight, fixed at 1: no coordinate and a density of 1
+  if (D < 2L) return(0)
   if (identical(dist$chart, "softmax")) {
     v <- c(0, z)
     lse <- v[1L]

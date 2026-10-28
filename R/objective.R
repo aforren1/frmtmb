@@ -409,6 +409,9 @@ mo_simplex <- function(z, chart = NULL) {
     e <- exp(c(0, z))
     return(e / sum(e))
   }
+  # two categories: one weight, which a simplex fixes at 1, as Stan's
+  # simplex[1] does for brms's Jmo = 1 (contr.helmert(1) has no column)
+  if (!length(z)) return(1)
   D <- length(z) + 1L
   P <- -1 / sqrt(D)
   r2 <- sum(z * z)
@@ -440,6 +443,8 @@ mo_sphere_basis <- function(D) {
 #'
 #' @noRd
 mo_coords <- function(w, chart = NULL, floor = 1e-8) {
+  # a simplex of one weight (or none) has no free coordinate
+  if (length(w) < 2L) return(numeric(0))
   if (identical(chart, "softmax")) {
     w <- pmax(w, floor)
     return(log(w[-1L] / w[1L]))
@@ -517,10 +522,11 @@ family_simplex_terms <- function(frame, spec = frame[["spec"]]) {
   out
 }
 
-#' Every `mo()` term of a frame: its simplex component, `D`, and the
-#' names brms gives its simplex, `simo<prefix>_<label>1[k]`, after
-#' brms's `rename_sp()`, where the prefix is that of the term's
-#' predictor (`_sigma` for a simplex in sigma's formula, empty in mu's).
+#' Every `mo()` term of a frame: its simplex component, `D`, the names
+#' brms gives its simplex, `simo<prefix>_<label>1[k]`, after brms's
+#' `rename_sp()`, where the prefix is that of the term's predictor
+#' (`_sigma` for a simplex in sigma's formula, empty in mu's), and the
+#' label. A term on one category has `D = 0` and no names.
 #'
 #' @noRd
 mo_frame_terms <- function(fit) {
@@ -529,10 +535,12 @@ mo_frame_terms <- function(fit) {
     pre <- brms_lp_prefix(fit, lp)
     for (mi in lp[["mo"]] %||% list()) {
       lab <- brms_rename(mi[["label"]])
-      nm <- paste0("simo", if (nzchar(pre)) paste0("_", pre), "_", lab,
-                   "1[", seq_len(mi[["D"]]), "]")
+      # recycle0: one category has no weight and so no name, where a
+      # zero-length piece would otherwise be recycled to ""
+      nm <- paste0("simo", if (nzchar(pre)) paste0("_", pre) else "", "_",
+                   lab, "1[", seq_len(mi[["D"]]), "]", recycle0 = TRUE)
       out[[length(out) + 1L]] <- list(zeta = mi[["zeta"]], D = mi[["D"]],
-                                      names = nm)
+                                      names = nm, label = lab)
     }
   }
   out

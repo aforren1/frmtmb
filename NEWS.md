@@ -1,3 +1,95 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* `mo()` takes a variable with two values, or with one, as brms 2.23.0
+  does. Through 0.76.0 both were refused ("mo() needs at least 3
+  ordered categories"). Two values (brms's `Jmo = 1`) give a simplex of
+  one weight, which is fixed at 1, so the term is its coefficient times
+  the code: on 200 rows, `y ~ mo(x) + z` with `x` in 1 and 2 has the
+  log-likelihood of `lm(y ~ I(x - 1) + z)` to 12 digits, and
+  `summary()` reports the weight `mox1[1]` as 1 with an error of 0, as
+  brms does. A two-level ordered factor is the same model. One value
+  (brms's `Jmo = 0`) gives a term that is 0 on every row. Its
+  coefficient is not determined by the data, so its standard error is
+  `NaN`, with the usual warning; it is not counted in the degrees of
+  freedom of `logLik()`, `AIC()` and `anova()`, as `lm()` does not count
+  a column it aliases, and `predict()` holds it at its estimate. A
+  group-level term on such a variable, `(mo(x) | g)`, is refused: its
+  column is 0 on every row. brms builds the model but cannot sample it:
+  its Stan program rejects `Jmo = 0`, and `frm_sample()` refuses it too.
+  So `update(fit, newdata =)` on new data where a `mo()` variable has
+  one value now refits by maximum likelihood, where brms's `update()`
+  builds the model.
+
+* marginaleffects' `vcov =` argument reaches the fit. Through 0.76.0
+  `get_vcov()` ignored it, so a user's matrix, `"HC3"` or a cluster
+  formula gave the model-based standard errors without a message:
+  `predictions(fit, vcov = 2 * get_vcov(fit))` gave a ratio of 1 where
+  `lm()` gives 1.414214. Now a matrix over `get_coef()` (matched by its
+  names), a matrix over the whole outer parameter vector (refused for
+  a REML fit, whose vector has no fixed effects), a function, `FALSE`,
+  `"HC0"`, `"HC1"` (and `"stata"`, which marginaleffects maps to HC1)
+  and a one-sided cluster formula work. `"HC0"` and `"HC1"` equal
+  `sandwich::vcovHC()` on a gaussian linear model, and `~ g` equals
+  `sandwich::vcovCL()` on a Poisson glm. The bread is the observed
+  information, so for a glm with a non-canonical link the sandwich
+  differs from `sandwich`'s, which reads the expected information: 1.128
+  times its standard error of the slope on 300 rows of a
+  `Gamma(link = "log")` model. The other strings are refused, each with
+  its reason: `"HC2"` to `"HC5"` and `"robust"` need leverages,
+  `"HAC"` and `"NeweyWest"` a time order, `"satterthwaite"` and
+  `"kenward-roger"` denominator degrees of freedom. See
+  `?frmtmb-marginaleffects`.
+
+* On a fit whose `mo()` term has a category that no row is in,
+  `get_coef()` carries that simplex as its cumulative weights at the
+  observed categories (`zeta1_cum1`, ...), not as its chart
+  coordinates. So marginaleffects gives `NaN` only to a prediction at
+  an empty category, with one warning, as `fitted()` does. In 0.76.0
+  every standard error of such a fit was `NaN`. On 200 rows with values
+  1, 2 and 5, `predictions()` at 1, 2 and 5 now gives 0.1222210,
+  0.1135415 and 0.1212624, the standard errors of `lm()` on `factor(x)`
+  with the maximum-likelihood sigma, and with `vcov = "HC0"` 0.1224166,
+  0.1103619 and 0.1248376, `lm()`'s HC0.
+
+* marginaleffects' prediction arguments that frmtmb does not take are
+  refused by name: lme4's `re.form` and `allow.new.levels`, brms's
+  `sample_new_levels`, `ndraws`, `draw_ids` and `incl_autocor`, and
+  glmmTMB's `zitype`. marginaleffects warns that every argument of a
+  `frmtmb_fit` is "not known to be supported", so a dropped argument
+  looked the same as one that works: `re.form = NA` returned the
+  conditional predictions.
+
+## Bug fixes
+
+* `predictions()`, `comparisons()` and `slopes()` of marginaleffects
+  pass brms's `re_formula`, `allow_new_levels`, `dpar` (also brms's
+  `nlpar`) and `resp` to the prediction. Through 0.76.0 they were
+  dropped, so `predictions(fit, re_formula = NA)` returned the
+  predictions conditional on the group-level effects. marginaleffects
+  1.0.0 still warns that these arguments are "not known to be
+  supported" for this class, because it keeps a fixed list of known
+  arguments per class; they have their effect.
+
+* `predictions()` on new data with a factor that has levels no row
+  uses returned one row more for each level: 11 rows for 3 rows of a
+  factor with 8 levels. marginaleffects adds a row for each level and
+  removes those rows by their row id, which frmtmb's `get_predict()`
+  numbered again.
+
+* `vcov_cluster()` on a fit that lost a parameter (a `mo()` category no
+  row is in, a variance at its boundary) gave `NaN` in every entry,
+  because the bread held `NaN` in the lost rows. The bread is now the
+  covariance conditional on the lost directions, and only the lost
+  rows are `NaN`.
+
+## Documentation
+
+* New help topic `?frmtmb-marginaleffects`: the parameters
+  marginaleffects perturbs, the `vcov` spellings and brms's prediction
+  arguments.
+
 # frmtmb 0.76.0
 
 The main changes:

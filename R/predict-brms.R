@@ -1182,7 +1182,10 @@ predict_par_drawer <- function(object, propagate_error, ndraws) {
   # their boundary (held at zero, as the boundary message said) draws
   # from the covariance that holds them; any other loss keeps the
   # plug-in fallback and its warning
-  if (!is.null(ds$jc) && !isTRUE(ds$boundary_only)) V <- NULL
+  if (!is.null(ds$jc) && !isTRUE(ds$boundary_only) &&
+        !isTRUE(ds$mo_const_only)) {
+    V <- NULL
+  }
   # a covariance held as a factor (se_reparam_cov()) is drawn through
   # it: chol() of the whole matrix refuses one that ill-conditioned, or
   # returns a factor with none of its digits

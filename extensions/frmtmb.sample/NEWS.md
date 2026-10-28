@@ -1,3 +1,21 @@
+# frmtmb.sample (development version)
+
+Needs the frmtmb that fits `mo()` on one or two values.
+
+## New features
+
+* `frm_sample()` samples a `mo()` term on two values, as brms 2.23.0
+  does (`Jmo = 1`). The draws report the weight `simo_<term>1[1]` as a
+  constant 1, as brms's do. On 200 rows, `y ~ mo(x) + z` with `x` in 1
+  and 2 agrees with brms's own Stan program (2 chains of 2000 each):
+  every posterior mean within 1.6 Monte Carlo standard errors, every
+  posterior sd within 3.3 percent.
+
+* `frm_sample()` refuses a `mo()` term on one value, which is 0 on every
+  row, so its coefficient has an improper posterior under the default
+  flat prior. brms 2.23.0 cannot sample it either: its Stan program
+  rejects `Jmo = 0`.
+
 # frmtmb.sample 0.23.0
 
 Needs frmtmb 0.76.0, which exports `autocor_flat_priors()`,

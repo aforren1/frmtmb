@@ -1,0 +1,13 @@
+.libPaths("C:/Users/adf44/AppData/Local/R/win-library/4.6")
+library(marginaleffects)
+set.seed(5)
+n <- 200
+d <- data.frame(x = sample(1:2, n, TRUE), z = rnorm(n), g = factor(sample(1:8, n, TRUE)))
+d$cnt <- rpois(n, exp(0.3 + 0.4 * d$z))
+gp <- glm(cnt ~ z, data = d, family = poisson())
+nd <- data.frame(z = c(-1, 0, 1))
+p <- predictions(gp, newdata = nd, vcov = ~ g); print(names(p)); print(p$std.error)
+p0 <- predictions(gp, newdata = nd); print(p0$std.error)
+p1 <- predictions(gp, newdata = nd, vcov = "HC0"); print(p1$std.error)
+print(sqrt(diag(sandwich::vcovCL(gp, cluster = ~ g))))
+print(sqrt(diag(sandwich::vcovHC(gp, type = "HC0"))))

@@ -297,8 +297,11 @@ coef_b <- function(fit, b = fit$estimates[["b"]]) {
 #' @noRd
 mo_col_values <- function(fit, mi, codes = mi$codes) {
   mo_min(mi)   # refuses a frame that frmtmb 0.75.0 or earlier coded
-  zeta <- mo_simplex(fit$estimates[[mi$zeta]], mi[["chart"]])
-  cz0 <- c(0, cumsum(zeta))
+  # the cumulative weights marginaleffects' set_coef() perturbs on a fit
+  # with an empty category (interop_mo_gaps())
+  cz <- fit[["mo_cum_override"]][[mi$zeta]] %||%
+    cumsum(mo_simplex(fit$estimates[[mi$zeta]], mi[["chart"]]))
+  cz0 <- c(0, cz)
   mi$D * cz0[codes + 1L]
 }
 

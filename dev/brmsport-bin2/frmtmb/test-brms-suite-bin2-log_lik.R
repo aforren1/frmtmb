@@ -203,6 +203,65 @@ test_that("log_lik of aysm_laplace models runs without errors", {
   })
 })
 
+test_that("log_lik for multivariate linear models runs without errors", {
+  withr::local_seed(91L)
+  brms_setup("log_lik:92",
+    ns <- 10
+  )
+  brms_setup("log_lik:93",
+    nvars <- 3
+  )
+  brms_setup("log_lik:94",
+    ncols <- 4
+  )
+  brms_setup("log_lik:95",
+    nobs <- nvars * ncols
+  )
+  brms_setup("log_lik:96",
+    prep <- structure(list(), class = "mvbrmsprep")
+  )
+  brms_setup("log_lik:97", {
+    Sigma = array(cov(matrix(rnorm(300), ncol = 3)), dim = c(3, 3, 10))
+  })
+  brms_setup("log_lik:98",
+    prep$mvpars <- list(
+      Mu = array(rnorm(ns*nobs*nvars), dim = c(ns, nobs, nvars)),
+      Sigma = aperm(Sigma, c(3, 1, 2))
+    )
+  )
+  brms_setup("log_lik:102",
+    prep$dpars <- list(nu = rgamma(ns, 5))
+  )
+  brms_setup("log_lik:103",
+    prep$ndraws <- ns
+  )
+  brms_setup("log_lik:104",
+    prep$data <- list(Y = matrix(rnorm(nobs), ncol = nvars))
+  )
+  brms_value_mark()
+  brms_setup("log_lik:106",
+    ll <- brms_adapt_log_lik("gaussian_mv", 1, prep = prep)
+  )
+  brms_port("log_lik:107", "unclassified",
+    "",
+    expect_equal(length(ll), ns)
+  )
+  brms_value_check("log_lik:107", "ll", "", {
+    ll <- brms:::log_lik_gaussian_mv(1, prep = prep)
+  })
+  brms_value_mark()
+  brms_setup("log_lik:108",
+    ll <- brms_adapt_log_lik("student_mv", 2, prep = prep)
+  )
+  brms_port("log_lik:109", "unclassified",
+    "",
+    expect_equal(length(ll), ns)
+  )
+  brms_value_check("log_lik:109", "ll", "", {
+    ll <- brms:::log_lik_student_mv(2, prep = prep)
+  })
+})
+
 test_that("log_lik for SAR models runs without errors", {
   withr::local_seed(136L)
   brms_setup("log_lik:137",

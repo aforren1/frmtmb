@@ -121,7 +121,9 @@ draws_natural_cols <- function(fit) {
     s$names[length(s$names)]
   })), vapply(equated, `[[`, "", "name"),
   unlist(lapply(out$ordinal, function(o) {
-    o$names[-seq_along(o$internal)]
+    # an empty negative index selects nothing: a block with no internal
+    # column (a two-category mo() simplex) still adds its names
+    o$names[seq_along(o$names) > length(o$internal)]
   })), out$derived$names)
   if (is.environment(cache)) cache$brms_natural_cols_v2 <- out
   out

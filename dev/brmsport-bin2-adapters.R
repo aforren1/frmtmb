@@ -309,6 +309,7 @@ brms_adapt_cat_posterior_predict <- function(fun, i, prep) {
 # the row density)
 brms_adapt_log_lik <- function(fun, i, prep) {
   if (fun %in% brms_adapt_ac_funs) return(brms_adapt_ac_log_lik(fun, i, prep))
+  if (fun %in% brms_adapt_mv_funs) return(brms_adapt_mv_log_lik(fun, i, prep))
   brms_adapt_check_prep(prep, fun)
   if (fun %in% brms_adapt_catlike) {
     ll <- brms_adapt_cat_log_lik(fun, i, prep)
@@ -338,6 +339,9 @@ brms_adapt_log_lik <- function(fun, i, prep) {
 brms_adapt_posterior_predict <- function(fun, i, prep) {
   if (fun %in% brms_adapt_ac_funs) {
     return(brms_adapt_ac_posterior_predict(fun, i, prep))
+  }
+  if (fun %in% brms_adapt_mv_funs) {
+    return(brms_adapt_mv_posterior_predict(fun, i, prep))
   }
   brms_adapt_check_prep(prep, fun)
   if (fun %in% brms_adapt_catlike) {
@@ -1027,4 +1031,119 @@ brms_adapt_ac_posterior_predict <- function(fun, i, prep) {
                                frmtmb::eval_dpars(f)[["y"]])
     as.numeric(frmtmb::sim_draw(ctx))
   }, numeric(m$n)))
+}
+
+# ---------------------------------------------------------------------
+# Multivariate gaussian and student-t responses with residual
+# correlation (lane mointerop): brms's log_lik_<family>_mv(i, prep) and
+# posterior_predict_<family>_mv(i, prep), whose prep carries mvpars$Mu
+# (draws x rows x responses), mvpars$Sigma (draws x responses x
+# responses) and, for student, dpars$nu (one per draw). The adapter
+# moves the prep onto a frmtmb model of the same shape:
+# mvbf(y1 ~ 0 + r, ..., yK ~ 0 + r) + set_rescor(TRUE), one coefficient
+# per row of each response set to brms's Mu of the draw, each sigma the
+# root of Sigma's diagonal, the residual correlation Sigma's (its
+# parameters through the exported us_theta()), and nu the draw's. The
+# values are frmtmb's: rescor_row_loglik(), which frmtmb.sample's
+# log_lik() runs per draw, and one replicate of predict(summary =
+# FALSE, propagate_error = FALSE), the joint draw of the responses that
+# frmtmb's predict() makes from the model at the given parameters.
+
+brms_adapt_mv_funs <- c("gaussian_mv", "student_mv")
+
+brms_adapt_mv_model <- function(fun, prep, y = NULL) {
+  extra <- setdiff(names(prep), c("mvpars", "dpars", "data", "ndraws"))
+  if (length(extra)) {
+    stop("brms_adapt: the prep carries ", paste(extra, collapse = ", "),
+         ", which this adapter does not map", call. = FALSE)
+  }
+  extra <- setdiff(names(prep[["mvpars"]]), c("Mu", "Sigma"))
+  if (length(extra)) {
+    stop("brms_adapt: prep$mvpars carries ", paste(extra, collapse = ", "),
+         ", which this adapter does not map", call. = FALSE)
+  }
+  student <- identical(fun, "student_mv")
+  # brms's block hands one prep to both helpers, and
+  # log_lik_gaussian_mv() never reads its nu, so neither does this
+  extra <- setdiff(names(prep[["dpars"]]), "nu")
+  if (length(extra)) {
+    stop("brms_adapt: prep$dpars carries ", paste(extra, collapse = ", "),
+         ", which ", fun, " does not read", call. = FALSE)
+  }
+  Mu <- prep[["mvpars"]][["Mu"]]
+  Sg <- prep[["mvpars"]][["Sigma"]]
+  ns <- dim(Mu)[1L]
+  K <- dim(Mu)[3L]
+  # brms reads row i of Y and of Mu, so the rows are Y's where the prep
+  # has a response (brms's log_lik block gives Y 4 rows and Mu 12)
+  n <- if (is.null(y)) dim(Mu)[2L] else nrow(y)
+  rs <- paste0("y", seq_len(K))
+  # the simulator does not read the response; a constant one would only
+  # draw frm()'s warning about a sigma start of 0
+  if (is.null(y)) y <- matrix(stats::qnorm(stats::ppoints(n * K)), n, K)
+  d <- as.data.frame(stats::setNames(lapply(seq_len(K), function(k) {
+    as.numeric(y[, k])
+  }), rs))
+  d$r <- factor(seq_len(n))
+  bfs <- lapply(rs, function(r) {
+    frmtmb::bf(stats::as.formula(paste(r, "~ 0 + r")))
+  })
+  fo <- do.call(frmtmb::mvbf, bfs) + frmtmb::set_rescor(TRUE)
+  fam <- if (student) frmtmb::student() else stats::gaussian()
+  fit <- frmtmb::frm(fo, family = fam, data = d, dry_run = "objective")
+  class(fit) <- setdiff(class(fit), "frmtmb_unfitted")
+  lps <- fit$frame[["linpreds"]]
+  at <- function(s) {
+    f <- fit
+    S <- matrix(Sg[s, , ], K, K)
+    sds <- sqrt(diag(S))
+    for (k in seq_len(K)) {
+      mu <- lps[[paste0(rs[k], ".mu")]]
+      f$estimates[[mu$par]][mu$idx] <- Mu[s, seq_len(n), k]
+      sg <- lps[[paste0(rs[k], ".sigma")]]
+      f$estimates[[sg$par]][sg$idx] <- log(sds[k])
+    }
+    f$estimates$thetar[] <- frmtmb::us_theta(S)[-seq_len(K)]
+    if (student) {
+      nu <- brms_adapt_ac_par(prep[["dpars"]][["nu"]], s)
+      if (!(nu > 1)) {
+        stop("brms_adapt: frmtmb's student() takes nu > 1, and the ",
+             "prep's draw ", s, " has nu = ", format(nu), call. = FALSE)
+      }
+      lp <- lps[[paste0(f$spec$rescor_nu, ".nu")]]
+      f$estimates[[lp$par]][lp$idx] <- lp$link$linkfun(nu)
+    }
+    f
+  }
+  list(at = at, ns = ns, n = n, K = K, rs = rs)
+}
+
+brms_adapt_mv_log_lik <- function(fun, i, prep) {
+  y <- prep[["data"]][["Y"]]
+  extra <- setdiff(names(prep[["data"]]), "Y")
+  if (length(extra) || is.null(y)) {
+    stop("brms_adapt: ", fun, " reads prep$data$Y alone", call. = FALSE)
+  }
+  m <- brms_adapt_mv_model(fun, prep, y = y)
+  vapply(seq_len(m$ns), function(s) {
+    f <- m$at(s)
+    frmtmb::rescor_row_loglik(f, frmtmb::eval_dpars(f))[i]
+  }, numeric(1))
+}
+
+brms_adapt_mv_posterior_predict <- function(fun, i, prep) {
+  # brms reads N and N_trait for a multivariate model's shape alone
+  extra <- setdiff(names(prep[["data"]]), c("N", "N_trait"))
+  if (length(extra)) {
+    stop("brms_adapt: prep$data carries ", paste(extra, collapse = ", "),
+         ", which ", fun, " does not read", call. = FALSE)
+  }
+  m <- brms_adapt_mv_model(fun, prep)
+  t(vapply(seq_len(m$ns), function(s) {
+    p <- stats::predict(m$at(s), summary = FALSE, ndraws = 1L,
+                        propagate_error = FALSE)
+    # draws x rows x responses, as brms's posterior_predict() of a
+    # multivariate model
+    as.numeric(p[1L, i, m$rs])
+  }, numeric(m$K)))
 }

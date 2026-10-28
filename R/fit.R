@@ -334,10 +334,19 @@
 #'
 #' @section Monotonic effects:
 #' `mo(x)` fits an ordinal predictor without assuming its categories are
-#' equally spaced. `x` is an ordered factor or an integer vector with at
-#' least three categories. As in brms, the categories are coded `0..D`
-#' from the lowest one: the first level of a factor, or the minimum of
-#' the integers. So `1..5` and `-2..2` are both coded `0..4`. An
+#' equally spaced. `x` is an ordered factor or an integer vector. As in
+#' brms, the categories are coded `0..D` from the lowest one: the first
+#' level of a factor, or the minimum of the integers. So `1..5` and
+#' `-2..2` are both coded `0..4`. Two categories (`D = 1`) give a
+#' simplex of one weight, which is fixed at 1, so the term is its
+#' coefficient times the code, as brms's `Jmo = 1` is. One category
+#' (`D = 0`) gives a term that is 0 on every row, as brms's `Jmo = 0`
+#' is. The data do not determine its coefficient, so in a
+#' maximum-likelihood fit its standard error is `NaN`, and it is not
+#' counted in the degrees of freedom of `logLik()`, as `lm()` does not
+#' count a column it aliases. A group-level term on it, `(mo(x) | g)`,
+#' is refused. brms cannot sample such a model, and neither can
+#' frmtmb.sample. An
 #' integer between the minimum and the maximum that no row has is also
 #' a category. For example, `1, 2, 5` gives `D = 4`. The data do not
 #' determine a prediction at such a category, so in a maximum-likelihood
@@ -3685,7 +3694,8 @@ mo_search_terms <- function(obj, frame) {
     idx <- outer_index_of(lp, pn, frame)
     for (mi in mos) {
       z <- which(pn == mi[["zeta"]])
-      if (length(z) != mi[["D"]] - 1L) next
+      # a simplex of fewer than 2 weights has nothing to search
+      if (mi[["D"]] < 2L || length(z) != mi[["D"]] - 1L) next
       b <- if (is.null(idx)) NA_integer_ else idx[mi[["col"]]]
       out[[length(out) + 1L]] <- list(z = z, b = b, D = mi[["D"]])
     }

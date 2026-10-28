@@ -807,6 +807,29 @@ sample_extra_nlp <- function(fit, entries) {
 # and the draws are carried back to the fit's chart before anything
 # reads them (dev/optima-findings.md, punch round 1).
 
+#' Refuse to sample a model with a `mo()` term on one category.
+#'
+#' Such a term is 0 on every row, so its coefficient does not enter the
+#' likelihood, and under brms's default flat prior the posterior is
+#' improper. brms 2.23.0 builds the model (`Jmo = 0`) but its Stan
+#' program declares `Jmo` with a lower bound of 1, so sampling stops on
+#' the data. A maximum-likelihood fit reports the coefficient without a
+#' standard error.
+#'
+#' @noRd
+mo_sample_check_const <- function(fit) {
+  for (tm in mo_frame_terms(fit)) {
+    if (!identical(as.integer(tm$D), 0L)) next
+    frm_stop("frm_sample(): the mo() term ", tm$label, " has one ",
+             "category, so it is 0 on every row and the data say nothing ",
+             "about its coefficient, whose posterior under a flat prior is ",
+             "improper. brms 2.23.0 cannot sample it either: its Stan ",
+             "program rejects Jmo = 0. Remove the term, or fit the model ",
+             "with frm()", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
 #' The frame the sampler tapes: the fit's own, or a copy whose `mo()`
 #' simplexes read softmax coordinates.
 #'
@@ -894,7 +917,8 @@ mo_simplex_nlp <- function(fit, entries = list()) {
   priored <- unlist(lapply(entries, function(e) {
     if (identical(e$dist$kind, "dirichlet")) e$comp
   }))
-  terms <- Filter(function(tm) !tm$zeta %in% priored,
+  # a simplex of one weight is fixed at 1 and has no density to add
+  terms <- Filter(function(tm) tm$D >= 2L && !tm$zeta %in% priored,
                   simplex_frame_terms(fit))
   if (!length(terms)) return(NULL)
   function(pars) {
@@ -966,7 +990,7 @@ mo_draws_to_chart <- function(m, fit, laplace) {
   pidx <- draws_par_index(fit, laplace = laplace)
   for (tm in terms) {
     j <- pidx[[tm$zeta]]
-    if (is.null(j) || max(j) > ncol(m)) next
+    if (!length(j) || max(j) > ncol(m)) next
     m[, j] <- draws_rowmap(m[, j, drop = FALSE], function(z) {
       mo_coords(mo_simplex(z, "softmax"))
     })
@@ -982,8 +1006,12 @@ mo_draws_to_chart <- function(m, fit, laplace) {
 #'
 #' @noRd
 draws_mo_cols <- function(fit) {
-  lapply(simplex_frame_terms(fit), function(tm) {
-    list(internal = paste0(tm$zeta, "_", seq_len(tm$D - 1L)),
+  # two categories: no chart column, and the one weight, fixed at 1, is
+  # added as brms reports it (simo_<label>1[1]); one category has none
+  tms <- Filter(function(tm) tm$D >= 1L, simplex_frame_terms(fit))
+  lapply(tms, function(tm) {
+    list(internal = paste0(tm$zeta, "_", seq_len(tm$D - 1L),
+                           recycle0 = TRUE),
          names = tm$names,
          map = function(r) mo_simplex(r),
          inv = function(v) mo_coords(v[seq_len(tm$D)]),
@@ -3172,6 +3200,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                            start = start, fit_control = fit_control,
                            na.action = na.action, REML = REML)
   }
+  mo_sample_check_const(fit)
   # no mode to anchor on when the model was never optimized
   init <- init %||% if (from_formula) "random" else "last.par.best"
   pr_lower <- c()

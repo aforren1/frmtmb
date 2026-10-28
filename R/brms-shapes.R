@@ -451,11 +451,23 @@ fit_draw_space <- function(fit) {
     if (length(sdr$se_lost) && !is.null(Vp) && !is.null(V) &&
           all(dim(Vp) == dim(V))) {
       dimnames(Vp) <- dimnames(V)
+      # the coefficient of a mo() term on one value is lost, and no
+      # prediction reads it: the term is 0 on every row of any data it
+      # takes. Held at its estimate (variance 0), it leaves every draw
+      # right, where its loss sent predict() to the plug-in fallback
+      cpos <- mo_const_outer_pos(fit, map)
+      lost_pos <- match(names(sdr$se_lost), map$names)
+      if (length(cpos)) {
+        Vp[cpos, ] <- 0
+        Vp[, cpos] <- 0
+      }
       return(list(map = map, V = Vp,
                   jc = list(null = sdr$se_null, flat = sdr$se_null_flat,
                             units = fit$par_units,
                             boundary = se_null_boundary(fit, sdr)),
-                  boundary_only = all(sdr$se_lost == "boundary")))
+                  boundary_only = all(sdr$se_lost == "boundary"),
+                  mo_const_only = length(cpos) > 0L &&
+                    !anyNA(lost_pos) && all(lost_pos %in% cpos)))
     }
     # a covariance held as a factor (se_reparam_cov()) is drawn and
     # propagated through it

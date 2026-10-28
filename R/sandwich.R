@@ -486,40 +486,11 @@ vcov_cluster <- function(object, cluster, type = c("CR0", "CR1",
   }
   type <- frm_match_arg(type)
   cl <- resolve_cluster(object, cluster)
-  cluster_guard(object, cl)
-
-  S <- cluster_scores_at(object, cl)
-  # vcov_estimated(), not vcov(): vcov()'s warning is about the matrix
-  # it returns, and this one is formed below
-  B <- vcov_estimated(object, full = TRUE)
-  nm <- outer_par_labels(object)
-  if (!identical(dim(B), c(length(nm), length(nm)))) {
-    frm_stop("the model-based covariance and the score matrix do not ",
-             "line up; this is a bug in frmtmb", call. = FALSE)
-  }
-  G <- nrow(S)
-  N <- object$frame[["n_obs"]]
-  p <- length(object$opt$par)
-  if (type %in% c("CR1p", "CR1S") && G <= p) {
-    frm_warning("type = '", type, "' needs more clusters (", G,
-                ") than estimated parameters (", p,
-                "); the small-sample factor is not positive", call. = FALSE)
-  }
-  cf <- cr_adjust(type, G, N, p)
-  Fr <- cluster_root(object, S, cf, nrow(B))
-  if (is.null(Fr)) {
-    V <- B %*% crossprod(S) %*% B
-    V <- cf * V
-    V <- (V + t(V)) / 2                   # kill the asymmetric round-off
-  } else {
-    V <- tcrossprod(Fr)
-    # a parameter the check lost has no row in the bread
-    lost <- !is.finite(diag(B))
-    V[lost, ] <- NaN
-    V[, lost] <- NaN
-    Fr[lost, ] <- NaN
-  }
-  dimnames(V) <- list(nm, nm)
+  cs <- cluster_sandwich_full(object, cl, type)
+  V <- cs$V
+  Fr <- cs$Fr
+  G <- cs$G
+  nm <- rownames(V)
   keep <- seq_along(nm)
   if (!full) {
     # by COMPONENT, not by name: vcov() does the same, and two linear
@@ -540,6 +511,66 @@ vcov_cluster <- function(object, cluster, type = c("CR0", "CR1",
   attr(V, "df") <- G - 1
   if (!is.null(Fr)) warn_cov_products(object, "vcov_cluster()")
   V
+}
+
+#' The cluster sandwich over the whole outer parameter vector: `V`, with
+#' `NaN` in the rows of a parameter the fit lost (as `vcov(full = TRUE)`
+#' shows it), and `Vp`, the same sandwich before that mask.
+#'
+#' The bread is the covariance conditional on the lost directions
+#' (`cov_fixed_prop`) where the fit lost a parameter. Formed from the
+#' covariance that `vcov()` shows, one `NaN` row spread to every entry
+#' of `B S'S B`: on a fit with a `mo()` category no row is in, a
+#' one-value `mo()` term or a variance at its boundary, every entry was
+#' `NaN`. The cluster scores are 0 along an exactly flat direction, so
+#' for any quantity that does not move along one, the sandwich from
+#' this bread is the sandwich of the determined parameters.
+#'
+#' @noRd
+cluster_sandwich_full <- function(object, cl, type) {
+  cluster_guard(object, cl)
+  S <- cluster_scores_at(object, cl)
+  # vcov_estimated(), not vcov(): vcov()'s warning is about the matrix
+  # it returns, and this one is formed below
+  B <- vcov_estimated(object, full = TRUE)
+  nm <- outer_par_labels(object)
+  if (!identical(dim(B), c(length(nm), length(nm)))) {
+    frm_stop("the model-based covariance and the score matrix do not ",
+             "line up; this is a bug in frmtmb", call. = FALSE)
+  }
+  lost <- !is.finite(diag(B))
+  Bp <- B
+  if (any(lost)) {
+    sdr <- tryCatch(sdr_of(object), error = keep_missing(NULL))
+    Vprop <- sdr$cov_fixed_prop
+    if (!is.null(Vprop) && all(dim(Vprop) == dim(B))) {
+      Bp <- as.matrix(Vprop)
+    }
+  }
+  G <- nrow(S)
+  N <- object$frame[["n_obs"]]
+  p <- length(object$opt$par)
+  if (type %in% c("CR1p", "CR1S") && G <= p) {
+    frm_warning("type = '", type, "' needs more clusters (", G,
+                ") than estimated parameters (", p,
+                "); the small-sample factor is not positive", call. = FALSE)
+  }
+  cf <- cr_adjust(type, G, N, p)
+  Fr <- cluster_root(object, S, cf, nrow(B))
+  if (is.null(Fr)) {
+    Vp <- Bp %*% crossprod(S) %*% Bp
+    Vp <- cf * Vp
+    Vp <- (Vp + t(Vp)) / 2                 # kill the asymmetric round-off
+  } else {
+    Vp <- tcrossprod(Fr)
+    Fr[lost, ] <- NaN
+  }
+  dimnames(Vp) <- list(nm, nm)
+  # a parameter the check lost has no row in the bread
+  V <- Vp
+  V[lost, ] <- NaN
+  V[, lost] <- NaN
+  list(V = V, Vp = Vp, Fr = Fr, G = G, lost = lost)
 }
 
 #' A factor `F` of the cluster-robust covariance, `V = F F'`, on a fit

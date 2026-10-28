@@ -248,10 +248,12 @@ likelihood and not a sampler (\code{?frm}, "Monotonic effects").
 the softmax (\code{chart = "softmax"}, log ratios to the first weight).
 \code{mo_chart_frame(frame, chart)} is a copy of the frame whose objective
 reads every simplex in \code{chart}, and \code{mo_frame_terms(fit)} lists each
-term's simplex component, its size and brms's names for its weights,
-\verb{simo_<label>1[k]}; \code{simplex_frame_terms(fit)} adds each simplex a
-family declares (\code{frmtmb_family(simplex_pars =)}) under its brms name,
-\code{sbhaz[k]} for frmtmb.survival's \code{cox()} baseline, with \code{kind} the
+term's simplex component, its size \code{D} (0 for one category, 1 for two,
+a weight fixed at 1), brms's names for its weights,
+\verb{simo_<label>1[k]}, and the label; \code{simplex_frame_terms(fit)} adds
+each simplex a family declares (\code{frmtmb_family(simplex_pars =)})
+under its brms name, \code{sbhaz[k]} for frmtmb.survival's \code{cox()} baseline,
+with \code{kind} the
 family's name; the chart frame reads those the same way.
 \code{summary_mo_frame(fit, prob)} is the weights'
 table \code{summary()} prints: each weight with its delta-method standard

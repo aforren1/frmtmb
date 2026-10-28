@@ -24,8 +24,13 @@
 # over the same 10 rows (brms_adapt_sar_path()). frmtmb refuses diag(10)
 # by design: I - rho I makes rho and the scale one parameter, so sar()
 # needs a negative and a positive eigenvalue. The value checks run
-# brms's own function on the substituted matrix too. Left to the
-# survey: the multivariate and ARMA blocks and custom families.
+# brms's own function on the substituted matrix too. The multivariate
+# gaussian and student-t blocks (lane mointerop) go through
+# brms_adapt_mv_log_lik() and brms_adapt_mv_posterior_predict(): the
+# prep's Mu and Sigma become a frmtmb set_rescor(TRUE) model with one
+# mean per row, and the values are frmtmb's rescor_row_loglik() and the
+# joint draw of predict(). Left to the survey: the ARMA blocks and
+# custom families.
 #
 # G2 (tests.distributions.R): the two blocks that compare brms's
 # unexported ordinal densities dcumulative(), dsratio(), dcratio() and
@@ -120,6 +125,10 @@ brms_adapt_funs <- c(
 brms_adapt_ac_spec_funs <- c("gaussian_lagsar", "student_lagsar",
                              "gaussian_errorsar", "student_errorsar",
                              "gaussian_fcor", "student_fcor")
+# brms's multivariate helpers with residual correlation (lane
+# mointerop): the prep's Mu and Sigma become a frmtmb set_rescor(TRUE)
+# model, read through rescor_row_loglik() and predict()
+brms_adapt_mv_spec_funs <- c("gaussian_mv", "student_mv")
 brms_adapt_sar_subst <- list(c("Msar = diag(10)",
                                "Msar = brms_adapt_sar_path(10)"))
 
@@ -248,7 +257,9 @@ bin2_adapted <- list(
       # lane loglik: the residual correlation terms
       "log_lik for SAR models runs without errors",
       "log_lik for FCOR models runs without errors",
-      "log_lik for FCOR student-t models works as expected"),
+      "log_lik for FCOR student-t models works as expected",
+      # lane mointerop: multivariate gaussian and student-t with rescor
+      "log_lik for multivariate linear models runs without errors"),
     pre = c(
       "dstudent_t <- brms::dstudent_t",
       "dshifted_lnorm <- brms::dshifted_lnorm",
@@ -262,7 +273,8 @@ bin2_adapted <- list(
       brms_adapt_pre_links,
       "SW <- suppressWarnings"),
     subst = c(brms_adapt_subst("log_lik", c(brms_adapt_funs,
-                                            brms_adapt_ac_spec_funs)),
+                                            brms_adapt_ac_spec_funs,
+                                            brms_adapt_mv_spec_funs)),
               brms_adapt_sar_subst)),
   "tests.posterior_predict.R" = list(
     topic = "posterior_predict", pkgs = "frmtmb",
@@ -287,10 +299,14 @@ bin2_adapted <- list(
       # lane loglik: the residual correlation terms (brms's block label
       # for the SAR one says loglik)
       "loglik for SAR models runs without errors",
-      "posterior_predict for FCOR models runs without errors"),
+      "posterior_predict for FCOR models runs without errors",
+      # lane mointerop: multivariate gaussian and student-t with rescor
+      paste("posterior_predict for multivariate linear models runs",
+            "without errors")),
     pre = brms_adapt_pre_links,
     subst = c(brms_adapt_subst("posterior_predict",
-                               c(brms_adapt_funs, brms_adapt_ac_spec_funs)),
+                               c(brms_adapt_funs, brms_adapt_ac_spec_funs,
+                                 brms_adapt_mv_spec_funs)),
               brms_adapt_sar_subst)),
   "tests.distributions.R" = list(
     topic = "distributions", pkgs = "frmtmb",
