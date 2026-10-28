@@ -711,7 +711,17 @@ registered_prior_defaults <- function(spec, frame) {
                           s$resp %||% "")
       # a default written for one coefficient is that coefficient's row
       if (nzchar(s$coef %||% "")) k <- paste0(k, "|", s$coef)
-      out[[k]] <- format_prior_dist(s$dist)
+      # a default that is flat on the parameter's interval is brms's
+      # (flat) with that interval in lb and ub, as brms prints it; the
+      # table's lb/ub columns carry the interval (autocor_class_bounds()),
+      # and the row passed back as prior = lends the slot the same
+      # density. A flat density on a box around a stationary region,
+      # which brms has no term for, keeps its uniform
+      out[[k]] <- if (isTRUE(s$flat_interval) && !isTRUE(s$flat_region)) {
+        "(flat)"
+      } else {
+        format_prior_dist(s$dist)
+      }
     }
   }
   out
@@ -722,6 +732,7 @@ registered_prior_defaults <- function(spec, frame) {
 #' @noRd
 format_prior_dist <- function(d) {
   if (is.null(d)) return(NA_character_)
+  if (identical(d$kind, "flat")) return("(flat)")
   kind <- if (identical(d$kind, "t")) "student_t" else d$kind
   paste0(kind, "(", paste(unlist(d[-1L]), collapse = ", "), ")")
 }

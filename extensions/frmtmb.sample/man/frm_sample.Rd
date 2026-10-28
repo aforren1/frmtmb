@@ -48,14 +48,16 @@ behaves the same way. \code{seed} fixes Stan's stream and the init
 jitter both (see \code{init_jitter}); \code{NA}, brms's default, leaves both
 to the session.}
 
-\item{prior}{Priors: a \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} specification, or a named list
-of prior objects (see \code{\link[frmtmb:prior_normal]{frmtmb::prior_normal()}}) whose names are parameter
-names as in the draws (or whole components: \code{"beta"}, \code{"theta"},
-...), or the string \code{"flat"}. The objective is re-taped with the
+\item{prior}{Priors: a \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} specification, a
+\code{brmsprior} or a prior table, or the string \code{"flat"}. A
+specification \code{set_prior("", class = ...)} (or a table row whose
+prior is \code{(flat)} and that carries no bound) is brms's \code{(flat)} on
+that slot, in place of its default. The objective is re-taped with the
 prior terms added; a fitted model itself is unchanged. On both
 paths the brms default priors apply to whatever this argument, and
 a MAP fit's own prior, leave alone (see Default priors), and
-\code{prior = "flat"} opts out of them entirely. A \code{brmsprior} object
+\code{prior = "flat"} replaces them with brms's \code{(flat)} in every slot,
+flat on brms's own parameters. A \code{brmsprior} object
 built by brms's own \code{prior()} is translated row by row. The
 argument takes brms's spelling, \code{prior}. On a fit that carries its
 own prior, a specification here for a slot the fit's prior also
@@ -170,7 +172,8 @@ The two differ only in what else is in the stack. A fit made with
 sampling: the priors that apply are then this call's \verb{prior =} first,
 the fit's own next, and the defaults under both, most explicit
 winning per slot it addresses. \code{prior = "flat"} opts out of all of
-it and samples the bare likelihood, on either route.
+it and puts brms's \code{(flat)} in every slot, on either route (see
+Default priors).
 
 \code{\link[=check_laplace]{check_laplace()}} is the one caller that stays unpenalized by
 default. It measures the Laplace and Wald approximations against the
@@ -252,15 +255,17 @@ factor of the kernel over the field's distinct positions, taken on the
 tape at a cost of \code{n^3 / 3} per gradient for \code{n} positions.
 \code{rr()} is already non-centered by
 construction, since its own coefficients are the standard normal
-factors. What stays centered is a run whose variance parameters are
-flat: \code{prior = "flat"}, and \code{\link[=check_laplace]{check_laplace()}}, which asks for that
-density on purpose.
+factors. What stays centered is a run whose variance parameters carry
+no density at all: \code{\link[=check_laplace]{check_laplace()}}, which asks for that on purpose.
+Under \code{prior = "flat"} a standard deviation is flat on its own scale,
+as brms's \code{(flat)} is, which is a density on \code{theta} that vanishes
+at \code{sd = 0}, so such a run non-centers too.
 
 The call \code{message()}s every block it left centered, with the reason.
 A model made only of those samples centered throughout and says so
 rather than failing. The reasons:
 \itemize{
-\item A FLAT PRIOR on the block's standard deviation. Send \code{sd} down with
+\item NO DENSITY on the block's log standard deviation. Send \code{sd} down with
 \code{z} where it is: \verb{b = sd z} goes to zero, the likelihood settles on
 the model without that random effect, and the density stops
 changing: a flat tail with nothing to stop a chain in it. Measured
@@ -269,7 +274,7 @@ seeds: under flat priors the non-centered chain walks \code{theta} to
 -1e15 at a bulk-ESS of 1; under the default \code{student_t(3, 0, s)},
 which makes that tail integrable, 174 to 284 against 3 to 48
 centered.
-\item A FLAT PRIOR on the block's CORRELATION, which is the same
+\item NO DENSITY on the block's CORRELATION, which is the same
 argument: flat on frmtmb's unbounded correlation parameter is
 \code{(1 - rho^2)^-3/2}, improper, with all its mass at \verb{|rho| = 1}.
 Before 0.39 that kept every correlated block centered, because no
@@ -362,7 +367,7 @@ conditional matched the full draws there, but it would make
 \code{laplace = TRUE} is the model itself, so the call says so and samples
 it on the full route, with draws identical to a call without the
 argument. On a REML fit whose objective is sampled as it stands
-(\code{prior = "flat"}), the objective integrates the coefficients out
+(\code{\link[=check_laplace]{check_laplace()}}), the objective integrates the coefficients out
 too, and that combination is refused: the draws would hold no
 coefficient.
 }
@@ -377,6 +382,7 @@ family. Write \verb{y*} for the response transformed by a link and
    \code{b} (slopes) \tab flat \tab - \cr
    \code{Intercept} \tab \verb{student_t(3, round(median(y*), 1) - m, s)} \tab link \cr
    \code{Intercept} (ordinal thresholds) \tab \code{student_t(3, 0, 2.5)} \tab thresholds \cr
+   \code{delta} (equidistant thresholds) \tab \code{(flat)}, \code{lb = 0} where ordered \tab natural, log-Jacobian applied \cr
    \code{sd} \tab \code{student_t(3, 0, s)} \tab natural sd, log-Jacobian applied \cr
    \code{cor}, \code{rescor}, \code{lncor}, \code{cortime} \tab \code{lkj(1)} \tab correlation matrix \cr
    \code{ar}, \code{ma} (\code{cov = TRUE}), \code{cosy}, \code{lagsar} \tab flat, see below \tab natural \cr
@@ -476,8 +482,8 @@ A mixture's weights without a formula are a simplex, and
 \code{dirichlet(1)} on it is the flat density there, with the Jacobian of
 the log ratios the sampler works on. No \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} class
 names them (\code{theta} is frmtmb's covariance vector), so the default
-is disclosed in the message and \code{prior = "flat"} drops it with the
-other defaults.
+is disclosed in the message, and \code{prior = "flat"} keeps it: it is
+brms's \code{(flat)} on the weights.
 
 A \code{mo()} simplex is sampled in softmax coordinates under
 \code{dirichlet(1)}, brms's default and the flat density on the simplex,
@@ -562,16 +568,51 @@ standard deviation. A default written per coefficient, such as the
 specification and stays, as in brms, and so does a more specific
 specification of your own. The default-prior message names a
 specification that applies to no parameter for either reason.
-Write the coef to replace such a default. A named list of prior
-objects takes
-over exactly the internal parameters it names. \code{prior = "flat"}
-turns the defaults off entirely and samples the likelihood, which
-warns when the model has variance components: their flat-prior
-posteriors need not be proper, and neither the chains nor Rhat can
-see that. On a MAP fit \code{"flat"} reaches further than the defaults:
-that fit's own prior is taped into its objective, and the bare
-likelihood is what \code{"flat"} names, so the penalty is rebuilt out and
-the call says which prior it dropped.
+Write the coef to replace such a default. The named list of prior
+objects keyed by internal parameter names, which earlier releases
+took, is refused: it gave a parameter a second prior slot beside its
+class, and a name inside a correlation block dropped the LKJ density
+on the rest of the block.
+
+\emph{\code{prior = "flat"}.} brms has no opt-out of its priors; the nearest
+brms model is \code{""} in every slot, which is \code{(flat)}: no density on the
+parameter brms declares, inside the bounds it declares. That is what
+\code{prior = "flat"} samples. frmtmb holds several of those parameters
+through a map, so flat on brms's parameter is not flat on frmtmb's:
+a standard deviation (\code{sd}, \code{sdgp}, \code{lscale}) and a positive
+distributional parameter (\code{sigma}, \code{shape}, \code{nu}, ...) are flat on
+their own scale, not on their log; a correlation matrix (\code{cor},
+\code{rescor}, \code{cortime}, \code{lncor}) is flat on the Cholesky factor brms
+declares, which beyond two dimensions is not \code{lkj(1)}; the ordered
+thresholds and \code{delta} are flat on themselves; and \code{ar}, \code{ma},
+\code{cosy}, \code{lagsar} and the simplexes keep their defaults, which are
+already flat on brms's parameter. A coefficient, and an intercept of
+a distributional parameter with a formula, is the parameter brms
+declares and gets no density. Through frmtmb.sample 0.23.0 the
+opt-out added nothing, which is flat on the internal parameters: on
+a log standard deviation it is improper at \code{sd = 0}, and on a
+first-order correlation it is \code{(1 - rho^2)^(-3/2)}. Measured against
+brms with \code{""} in every slot (4 chains of 3000 draws): on
+\code{y ~ 1 + (1 | g)} with 6 groups the posterior mean of \code{sd_g__Intercept}
+is 1.458 in brms, 1.455 here, and was 1.197; on \code{(1 + x | g)} with 8
+groups the correlation's mean is -0.28 in brms, -0.26 here, and was
+-1.00 with a posterior sd below 0.0001. A parameter brms has no class
+for keeps no density. One parameter brms has a class for is not yet
+brms's (flat): frmtmb.spatial's \code{car()} dependence parameter, which
+brms declares on (0, 1) and leaves flat, carries no density here, so
+it is flat on its logit, \code{1 / (rho (1 - rho))} on rho, which is not
+integrable at rho = 0 where a CAR likelihood stays finite: under
+\code{prior = "flat"} such a posterior is improper. Give it a prior with
+class \code{"theta"} on its coef, as \code{\link[frmtmb:default_prior]{frmtmb::default_prior()}} lists it.
+The call warns when the model has standard
+deviations: nothing but the likelihood bounds them above, and with
+few groups the posterior need not be proper, which neither the
+chains nor Rhat can see. On a MAP fit \code{"flat"} reaches further than
+the defaults: that fit's own prior is taped into its objective, so
+the penalty is rebuilt out and the call says which prior it dropped.
+A bounds-only specification of your own that replaces a default,
+\code{set_prior("", class = "sd", lb = 0.1)}, is brms's \code{(flat)} on that
+slot in the same way: flat on the standard deviation above 0.1.
 
 \emph{Three sources, most explicit first.} On a fitted model the stack is
 this call's \verb{prior =}, then the fit's own prior (\code{frm(prior = )}

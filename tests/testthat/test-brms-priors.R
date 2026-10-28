@@ -638,13 +638,10 @@ test_that("row 12: brms's ordinal threshold prior lands on tau_raw", {
   expect_lt(r$hon$gT, 1e-2)
   expect_equal(r$hon$gF, 1, tolerance = 1e-2)
 
-  # the internal route still works and still means the internal scale,
-  # which is the escape hatch ?set_prior documents
-  # one entry per threshold, and no map applied to any of them
-  ri <- resolve_prior_input(r$fit0, list(tau_raw = prior_normal(0, 5)))
-  expect_length(ri$entries, length(raw))
-  expect_identical(unique(vapply(ri$entries, function(e) e$scale, "")),
-                   "internal")
+  # the internal spelling, a named list on tau_raw, is gone: it gave the
+  # thresholds a second prior slot beside class Intercept
+  expect_error(resolve_prior_input(r$fit0, list(tau_raw = prior_normal(0, 5))),
+               "no longer takes it", class = "frmtmb_error")
 })
 
 test_that("row 17: a mixture keeps everything but its reference theta", {

@@ -9,11 +9,8 @@ inhaler <- brms::inhaler
 
 test_that("default_prior finds all classes for which priors can be specified", {
   withr::local_seed(4L)
-  brms_port("priors:5", "divergence",
-    paste0(
-      "frmtmb lists 5 class theta rows (its covariance parameters) ",
-      "and no per-coefficient sd rows, since its class sd ",
-      "addresses a block and refuses coef (priorform ledger P1)"),
+  brms_port("priors:5", "pass",
+    "",
     expect_equal(
       sort(
         default_prior(
@@ -266,10 +263,8 @@ test_that("external interface of validate_prior works correctly", {
     "",
     expect_true(all(c("b", "Intercept", "sd") %in% prior1$class))
   )
-  brms_port("priors:123", "divergence",
-    paste0(
-      "10 rows against brms's 9: two class theta rows added, one ",
-      "per-coefficient sd row absent (priorform ledger P26)"),
+  brms_port("priors:123", "pass",
+    "",
     expect_equal(nrow(prior1), 9)
   )
 })

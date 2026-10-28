@@ -141,7 +141,7 @@ test_that("the default prior on a bounded parameter is flat on its
   ann <- grep("toyphi ", unlist(strsplit(msgs, "\n", fixed = TRUE)),
               value = TRUE, fixed = TRUE)
   expect_length(ann, 1L)
-  expect_match(ann, "uniform(-0.4, 0.9)  [flat on its interval",
+  expect_match(ann, "(flat), lb = -0.4, ub = 0.9  [flat on its interval",
                fixed = TRUE)
   z <- as.matrix(ds)[, "toyphi"]
   expect_true(all(z > lo & z < hi))
@@ -177,7 +177,9 @@ test_that("the announced interval of a default prior is rounded, and the
   ln <- grep("lagsar ", unlist(strsplit(msgs, "\n", fixed = TRUE)),
              value = TRUE, fixed = TRUE)
   expect_length(ln, 1L)
-  shown <- regmatches(ln, regexec("uniform[(]([^,]+), ([^)]+)[)]", ln))[[1L]]
+  # brms's (flat), with the interval as lb and ub
+  shown <- regmatches(ln, regexec("[(]flat[)], lb = ([^,]+), ub = ([^ ]+)",
+                                  ln))[[1L]]
   expect_length(shown, 3L)
   # six digits at most, and each within a relative 1e-5 of the end
   expect_true(all(nchar(gsub("[^0-9]", "", shown[2:3])) <= 6L))

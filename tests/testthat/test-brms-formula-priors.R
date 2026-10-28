@@ -395,9 +395,13 @@ test_that("as.brmsprior works correctly (brms)", {
   expect_error(as.brmsprior(data.frame(class = "b")), "`prior` column")
   expect_error(as.brmsprior(data.frame(prior = "normal(0,1)", tag = "t")),
                "tag")
-  # a flat row applies nothing and is left out
-  expect_length(unclass(as.brmsprior(data.frame(
-    prior = c("", "(flat)", "normal(0, 1)")))), 1L)
+  # a flat row is brms's (flat) on its slot: a specification with no
+  # density, which frm() reads as nothing
+  fl <- unclass(as.brmsprior(data.frame(
+    prior = c("", "(flat)", "normal(0, 1)"))))
+  expect_length(fl, 3L)
+  expect_identical(vapply(fl, function(s) is.null(s$dist), NA),
+                   c(TRUE, TRUE, FALSE))
 })
 
 # ---- default_prior() and validate_prior() ---------------------------------
@@ -409,9 +413,9 @@ test_that("default_prior() and get_prior() are one function (brms)", {
   expect_identical(gp, dp)
   expect_identical(names(dp), c("prior", "class", "coef", "group", "resp",
                                 "dpar", "nlpar", "lb", "ub", "source"))
-  # brms's classes are all here; theta is frmtmb's own
-  expect_setequal(unique(dp$class),
-                  c("b", "cor", "Intercept", "sd", "theta"))
+  # brms's classes, and no class theta row: every covariance parameter
+  # here has a class of its own, as in brms
+  expect_setequal(unique(dp$class), c("b", "cor", "Intercept", "sd"))
   expect_equal(sum(dp$class == "b"), 4L)
   expect_equal(sum(dp$class == "cor"), 2L)
 })
@@ -488,7 +492,7 @@ test_that("validate_prior() refuses what frm() refuses, with its message", {
   expect_match(msg_v, "Prior target not found", fixed = TRUE)
   expect_identical(msg_v, msg_f)
   expect_error(validate_prior(list(1), f, data = pf_epilepsy),
-               "takes a prior built by set_prior")
+               "must be a set_prior() specification", fixed = TRUE)
 })
 
 test_that("a validate_prior() table fits the model its prior fits", {
@@ -694,18 +698,19 @@ test_that("two specifications for one slot are refused (brms)", {
                "'b_x' is given 2 times", fixed = TRUE)
 })
 
-test_that("class theta rows name real parameters of the fit", {
-  # the extra rows default_prior() lists beside brms's: a theta prior
-  # moves the fit, so the rows advertise a slot that exists
+test_that("a standard deviation has one slot, class sd", {
+  # through 0.76.0 default_prior() also listed it as class theta,
+  # coef theta_1; that row named the same parameter a second time. On
+  # the sd scale lognormal(-3, 0.05) is normal(-3, 0.05) on its log
   set.seed(6)
   d <- data.frame(x = stats::rnorm(90), g = factor(rep(1:9, 10)))
   d$y <- 1 + stats::rnorm(9, 0, 0.8)[d$g] + stats::rnorm(90)
   f <- y ~ x + (1 | g)
   tab <- default_prior(f, data = d)
-  expect_true("theta_1" %in% tab$coef[tab$class == "theta"])
+  expect_false(any(tab$class == "theta"))
   free <- frm(f, d)
-  pinned <- frm(f, d, prior = set_prior("normal(-3, 0.05)",
-                                        class = "theta", coef = "theta_1"))
+  pinned <- frm(f, d, prior = set_prior("lognormal(-3, 0.05)",
+                                        class = "sd"))
   sd_of <- function(fit) sqrt(varcorr_matrices(fit)[[1L]][1L, 1L])
   expect_lt(sd_of(pinned), sd_of(free) / 2)
 })

@@ -66,9 +66,7 @@ that slot goes back to its default (flat), so a table from
 \code{\link[=default_prior]{default_prior()}} with one row edited resets every other slot it
 lists. To keep the stored rows, give only the rows you change.
 \code{prior = NULL}, or a prior with no rows, keeps the stored prior, as
-in brms. A named list of prior objects merges by name with a stored
-named list; it cannot merge with specifications, so that combination
-is an error.
+in brms.
 The specifications given to \code{update()} are checked as \code{\link[=frm]{frm()}} checks
 a prior, so one that matches no parameter is an error; brms drops it
 with no message.

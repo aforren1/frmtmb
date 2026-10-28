@@ -267,14 +267,15 @@ test_that("the sampling route's table and message name brms's interval", {
                       route = "sample")
   expect_equal(unlist(ta[ta$class == "ar", c("lb", "ub")],
                       use.names = FALSE), c(-1, 1))
-  expect_identical(ta$prior[ta$class == "ar"], "uniform(-1, 1)")
+  # brms's (flat) with the interval in lb and ub, as brms prints it
+  expect_identical(ta$prior[ta$class == "ar"], "(flat)")
   # cov = FALSE: brms's unbounded (flat), which needs no density
   tc <- default_prior(y ~ x + ar(t, g), data = d, route = "sample")
   expect_identical(tc$prior[tc$class == "ar"], "(flat)")
   expect_true(all(is.na(unlist(tc[tc$class == "ar", c("lb", "ub")]))))
   fit <- frm(y ~ x + cosy(t, g), data = d, dry_run = "objective")
   msg <- dpa_messages(frmtmb.sample:::sample_resolve_priors(fit, NULL))
-  expect_true(any(grepl("cosy +uniform[(]-0.25, 1[)], lb = 0", msg)))
+  expect_true(any(grepl("cosy +[(]flat[)], lb = 0, ub = 1", msg)))
 })
 
 test_that("a registered term's bounded parameter follows the same rule", {
@@ -365,16 +366,19 @@ test_that("the sampling table passed back is the defaults' density", {
   }
 })
 
-test_that("frm()'s MAP under the sampling table is the sampler's mode", {
-  # the same prior on both routes: frm(prior = the sampling table) is
-  # the mode of the density frm_sample() samples by default
+test_that("frm()'s MAP under the sampling run's prior is its mode", {
+  # the same prior on both routes: frm(prior = the defaults the run
+  # applied, prior_summary()'s object) is the mode of the density
+  # frm_sample() samples by default. The printed table is not that
+  # prior on frm()'s route: its ar row is brms's (flat) with lb and ub,
+  # which frm() reads as a box with no density, as it reads every
+  # bounds-only specification
   set.seed(7)
   d <- dpa_data(seed = 7, ng = 20)
   fo <- y ~ x + ar(t, g, cov = TRUE)
-  tab <- default_prior(fo, data = d, route = "sample")
-  fmap <- frm(fo, data = d, prior = tab)
   fit <- frm(fo, data = d)
   rp <- suppressMessages(frmtmb.sample:::sample_resolve_priors(fit, NULL))
+  fmap <- frm(fo, data = d, prior = rp$effective)
   fit$prior <- rp$effective
   obj <- frmtmb.sample:::prior_augmented_obj(fit, rp$ri$entries)
   at_map <- fmap$opt$par
@@ -384,4 +388,26 @@ test_that("frm()'s MAP under the sampling table is the sampler's mode", {
   expect_lt(g0 / g1, 1e-3)
   # and the two objectives are the same function there
   expect_equal(obj$fn(at_map), fmap$obj$fn(at_map))
+})
+
+test_that("frm() reads the sampling table's (flat) ar row as a box", {
+  # brms's (flat) with lb and ub is no density; on frm()'s route a
+  # bounds-only row is a box, and a box at the ends of ar's interval
+  # bounds nothing, so the table's ar row adds nothing to the objective,
+  # where uniform(-1, 1) on ar adds the map's Jacobian
+  d <- dpa_data(seed = 7, ng = 20)
+  fo <- y ~ x + ar(t, g, cov = TRUE)
+  tab <- default_prior(fo, data = d, route = "sample")
+  expect_identical(tab$prior[tab$class == "ar"], "(flat)")
+  f_tab <- frm(fo, data = d, prior = tab)
+  f_noar <- frm(fo, data = d, prior = tab[tab$class != "ar", ])
+  f_unif <- frm(fo, data = d,
+                prior = as.brmsprior(tab[tab$class != "ar", ]) +
+                  set_prior("uniform(-1, 1)", class = "ar", lb = -1,
+                            ub = 1))
+  expect_identical(f_tab$opt$par, f_noar$opt$par)
+  # the uniform moves the fit, judged against the size of the estimate
+  k <- which(names(f_tab$opt$par) == "thetaac")
+  expect_gt(abs(f_unif$opt$par[k] - f_tab$opt$par[k]),
+            0.01 * abs(f_tab$opt$par[k]))
 })

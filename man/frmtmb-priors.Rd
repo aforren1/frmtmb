@@ -10,7 +10,7 @@
 \alias{prior_beta}
 \alias{prior_lkj}
 \alias{prior_dirichlet}
-\title{Prior objects, addressed by internal parameter name}
+\title{Prior density objects}
 \usage{
 prior_normal(location = 0, scale = 1)
 
@@ -57,18 +57,15 @@ weight of the simplex, or one per weight. brms's
 A \code{frmtmb_prior} object.
 }
 \description{
-The named-list prior spelling, as opposed to \code{\link[=set_prior]{set_prior()}}'s classes.
-Priors written this way apply on the INTERNAL parameter scale:
-coefficients are on their link scale, and covariance parameters
-(\verb{theta_*}) are the unconstrained parameterization (log-SDs,
-scaled-Cholesky terms), so \code{prior_normal(0, 1)} on \code{theta_1} is a
-lognormal prior on that standard deviation.
-}
-\details{
-\code{\link[=frm]{frm()}} takes them as a MAP penalty, and so does
-\code{frmtmb.sample::frm_sample()}, where they take over exactly the
-parameters they name and leave the rest of the prior stack in place.
-\code{\link[=par_template]{par_template()}} and \code{\link[=get_prior]{get_prior()}} name the addressable slots.
+The density objects \code{\link[=set_prior]{set_prior()}} takes as its \code{prior} argument, the
+same densities its strings parse into:
+\code{set_prior(prior_normal(0, 5), class = "b")} is
+\code{set_prior("normal(0, 5)", class = "b")}. A density is put on a
+parameter only through \code{\link[=set_prior]{set_prior()}}'s classes, which are brms's, so
+each parameter has one prior slot. The named list of these objects
+that \code{frm(prior = )} took until this release, keyed by internal
+parameter names, was a second slot on the same parameters, and is
+refused.
 }
 \examples{
 # the objects themselves are cheap descriptions
@@ -79,14 +76,12 @@ set.seed(9)
 dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
 
-# names are internal parameter names, or whole components. theta_1
-# is a log-SD, so a normal there is a lognormal on the SD.
+# a density object in place of the string, on brms's classes
 fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
-           prior = list(beta = prior_normal(0, 5),
-                        theta_1 = prior_t(3, 0, 1)))
+           prior = set_prior(prior_normal(0, 5), class = "b") +
+             set_prior(prior_t(3, 0, 1), class = "sd"))
 prior_summary(fit)
 }
 \seealso{
-\code{\link[=set_prior]{set_prior()}} for the class-based spelling, which is the one
-most models want.
+\code{\link[=set_prior]{set_prior()}}, which puts these densities on parameters.
 }

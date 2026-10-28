@@ -2523,9 +2523,7 @@ update_pool_pars <- function(out, old, new) {
 #' [default_prior()] with one row edited resets every other slot it
 #' lists. To keep the stored rows, give only the rows you change.
 #' `prior = NULL`, or a prior with no rows, keeps the stored prior, as
-#' in brms. A named list of prior objects merges by name with a stored
-#' named list; it cannot merge with specifications, so that combination
-#' is an error.
+#' in brms.
 #' The specifications given to `update()` are checked as [frm()] checks
 #' a prior, so one that matches no parameter is an error; brms drops it
 #' with no message.
@@ -2855,20 +2853,7 @@ update_merge_prior <- function(old, new) {
                      update_strict = c(rep(TRUE, length(new)),
                                        rep(FALSE, sum(keep)))))
   }
-  if (is_named_prior_list(old) && is_named_prior_list(new)) {
-    return(c(new, old[!names(old) %in% names(new)]))
-  }
-  # anything else is not a prior frm() takes, and frm() says so in its
-  # own words
-  if (!is.null(new) && !is_named_prior_list(new) &&
-        !inherits(new, "frmtmb_priorlist")) {
-    return(new)
-  }
-  frm_stop("update(prior = ) merges the new prior into the stored one, ",
-           "but one of them is a named list of prior objects and the ",
-           "other is prior specifications (set_prior() or a prior ",
-           "table), and one prior cannot mix the two. Give the whole ",
-           "prior in one spelling with frm()", call. = FALSE)
+  new
 }
 
 #' The slot of every row of a prior table, `prior_spec_slot()`'s key,
@@ -2890,15 +2875,6 @@ prior_table_slots <- function(x) {
                          group = cell("group", i), resp = cell("resp", i),
                          dpar = cell("dpar", i), nlpar = cell("nlpar", i)))
   }, "")
-}
-
-#' A prior in the legacy spelling, `list(x = prior_normal(0, 1))`.
-#'
-#' @noRd
-is_named_prior_list <- function(x) {
-  is.list(x) && !inherits(x, "frmtmb_priorlist") && length(x) > 0L &&
-    !is.null(names(x)) && all(nzchar(names(x))) &&
-    all(vapply(x, inherits, NA, "frmtmb_prior"))
 }
 
 #' Likelihood profiles

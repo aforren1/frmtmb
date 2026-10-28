@@ -30,7 +30,8 @@ own class.}
 
 \item{coef}{Restrict to one coefficient (classes \code{"b"}/\code{"Intercept"}),
 to the standard deviation of one coefficient (class \code{"sd"}, with
-\code{group}), or name the simplex of class \code{"simo"}. A coefficient is
+\code{group}), name the simplex of class \code{"simo"}, or name one internal
+parameter of class \code{"theta"}. A coefficient is
 named as brms names it and as \code{\link[=default_prior]{default_prior()}} lists it: \code{logxp}
 for the column of \code{log(xp)}, \code{IxE2} for \code{I(x^2)}. The name of the
 design column, \code{log(xp)}, also works.}
@@ -126,17 +127,20 @@ in \code{\link[=frm]{frm()}}.
 (frmtmb.survival), or the simplex a family declares under that name
 (\code{frmtmb_family(simplex_pars =)}); \code{dirichlet(alpha)} only, brms's
 class of the same name; no \code{coef}.
-\item \code{"theta"}: raw internal covariance parameters (escape hatch).
-\code{coef} names one by its internal name and spans all three
-covariance components: \code{"theta_2"} for a random-effect block,
-\code{"thetar_1"} for a residual correlation, and \code{"thetaac_1"} for a
-parameter of a residual term that has no class of its own. This is
-the one spelling that reaches a single parameter of a structure
-whose natural coefficients are not free of one another. A
-residual-correlation parameter that a class reaches (\code{"ar"},
-\code{"ma"}, \code{"cosy"}, \code{"cortime"}, frmtmb.spatial's \code{"lagsar"}) has
-that class as its one slot, as in brms: its \code{thetaac_} row is not
-listed, and a prior on it is refused with the class to use.
+\item \code{"theta"}: frmtmb's own class, for the internal covariance
+parameters that no brms class names, on the internal scale: a
+\code{toep()} correlation, the parameter of a covariance structure an
+extension registers (a \code{car()} dependence), and a residual term's
+parameter without an interval. \code{coef} names one by its internal
+name (\code{"theta_12"}, \code{"thetaac_1"}), as \code{\link[=default_prior]{default_prior()}} lists
+it; with no \code{coef} the class covers every random-effect parameter
+of that kind. A parameter that a class reaches has that class as
+its one slot, as in brms, which has no class \code{"theta"}: a standard
+deviation (\code{"sd"}, \code{"sdgp"}), a \code{gp()} length scale (\code{"lscale"}),
+a correlation an LKJ density fits (\code{"cor"}), a residual
+correlation (\code{"rescor"}, \code{"ar"}, \code{"ma"}, \code{"cosy"}, \code{"cortime"},
+frmtmb.spatial's \code{"lagsar"}). Its internal row is not listed, and a
+class \code{"theta"} prior on it is refused with the class to use.
 \item a DISTRIBUTIONAL parameter's own name (\code{"sigma"}, \code{"shape"},
 \code{"phi"}, \code{"zi"}, \code{"nu"}, ...): a density on that parameter ITSELF,
 on its NATURAL scale, with the inverse link's log-Jacobian
@@ -155,8 +159,11 @@ response, \code{resp} is refused, as in brms.
 
 Two spellings are frmtmb's own, and brms refuses both: \code{"cor"} with
 \code{resp}, which narrows the prior to that response's blocks, and
-\code{"Intercept"} with \code{nlpar}, which addresses the intercept of one
-nonlinear parameter (see Nonlinear parameters). A class \code{"b"}
+\code{"Intercept"} with \code{nlpar}, which is stored as brms's slot of the same
+parameter, class \code{"b"} with \code{coef = "Intercept"} and that \code{nlpar}
+(see Nonlinear parameters). A centered intercept has one slot, class
+\code{"Intercept"}: class \code{"b"} with \code{coef = "Intercept"} there is
+refused, as brms refuses it. A class \code{"b"}
 specification that reaches no coefficient, because the predictor it
 names has no population-level slope (\code{y ~ 1}), is refused, as in
 brms. In the same way, a class
@@ -175,10 +182,10 @@ specification, so write the density and its bounds in one call.
 When specifications for DIFFERENT slots reach the same parameter,
 the more specific one applies whatever order they are written in, as
 in brms: a \code{coef} specification over its class, and a \code{group}
-specification over a class-wide \code{"sd"} or \code{"cor"} one. Between
-classes the later one applies: a class \code{"theta"} prior on a position
-a \code{"cor"} prior covers replaces that whole LKJ term if it comes later,
-and the other way round.
+specification over a class-wide \code{"sd"} or \code{"cor"} one. No
+parameter has two classes: each is reached by one class, and the
+other spelling is refused, so the order between classes decides
+nothing.
 \code{lb}/\code{ub} become hard bounds. See Hard bounds.
 }
 \section{Group-level standard deviations}{
@@ -266,11 +273,6 @@ log-Jacobian of \code{cumulative()}'s map enters once. Under
 under \code{threshold = "equidistant"}, and the row is refused there, as
 in brms.
 
-\code{prior = list(tau_raw = prior_normal(0, 5))} reaches the same
-parameters on the INTERNAL scale, one entry per threshold, which is
-the escape hatch to use when the increments rather than the
-thresholds are what a prior is about.
-
 The threshold structure changes what class \code{"Intercept"} addresses,
 as it does in brms. Under \code{threshold = "equidistant"} it is the
 first threshold alone, at the mean of the predictors, and class
@@ -304,9 +306,12 @@ The scale is the parameter's own: class \code{"sd"} bounds a standard
 deviation on the sd scale (frmtmb stores its log), classes \code{"ar"},
 \code{"ma"} and \code{"cosy"} bound the natural coefficient of a residual
 structure, and class \code{"theta"} bounds an internal covariance
-parameter itself, one position at a time with \code{coef = "theta_2"} or
-\code{"thetar_1"} (or \code{"thetaac_1"} where no class reaches that
-parameter, see class \code{"theta"} above). Everything else is bounded on the
+parameter itself, one position at a time with \code{coef = "theta_12"},
+where no class reaches that parameter (see class \code{"theta"} above).
+A correlation takes no bound, as in brms: a correlation matrix's
+entries are not free of one another, and brms writes a Stan program
+that does not parse for \code{lb} on class \code{"cor"}. Everything else is
+bounded on the
 internal (link) scale, so a bound on a log-linked dispersion is a
 bound on its logarithm.
 
@@ -412,8 +417,9 @@ its intercept in the same coefficient vector as its slopes. That is
 why the vignette spelling above lands on \code{ult_(Intercept)} rather
 than on nothing. Narrow to one column with \code{coef} (\code{"Intercept"} and
 \code{"(Intercept)"} both name the intercept), or write
-\verb{class = "Intercept", nlpar = "ult"}, which is frmtmb's spelling of
-the same slot; brms does not take that spelling. \code{nlpar} narrows
+\verb{class = "Intercept", nlpar = "ult"}, which frmtmb stores as that
+same slot, class \code{"b"} with \code{coef = "Intercept"}, so the two
+spellings are one slot; brms does not take the second. \code{nlpar} narrows
 classes \code{"sd"} and \code{"cor"} to the random-effect blocks of that
 parameter as well.
 
@@ -569,8 +575,9 @@ set_prior("", nlpar = "guess", lb = 0, ub = 1)
 # the residual-correlation classes are brms's own names
 set_prior("normal(0, 0.5)", class = "ar")
 set_prior("lkj(2)", class = "rescor")
-# and one internal covariance parameter, by its name
-set_prior("", class = "theta", coef = "theta_2", lb = -2, ub = 2)
+# and one internal covariance parameter that no class names, such
+# as a toep() correlation, by its name as get_prior() lists it
+set_prior("", class = "theta", coef = "theta_12", lb = -2, ub = 2)
 
 # class "cor" addresses a correlated block as a whole, brms's
 # spelling; eta > 1 pulls the correlation toward zero

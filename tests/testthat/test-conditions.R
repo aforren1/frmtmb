@@ -309,7 +309,7 @@ test_that("user-reachable refusals once left to base R are frmtmb_error", {
     prior_plus_string = list(quote(set_prior("normal(0, 1)") + "x"),
                              "one side is character \"x\""),
     frm_prior_list = list(quote(frm(y ~ x, data = d, prior = list(1))),
-                          "`prior` must be"),
+                          "`prior` must be a set_prior"),
     diagnose_nonfit = list(quote(diagnose(lm(y ~ x, d))),
                            "fitted by frm[(][)], not a lm"),
     frmtmb_family_bad = list(quote(frmtmb_family(

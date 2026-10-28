@@ -1,3 +1,85 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* Each random-effect parameter, and the residual correlation of a
+  multivariate model, has one prior slot, as in brms 2.23.0, which has
+  no class `theta`. A standard deviation is class `sd` (a `gp()` term's
+  `sdgp`, and `lscale` for its length scales), a correlation that an
+  LKJ density fits is class `cor`, and a residual correlation is class
+  `rescor`. `set_prior(class = "theta", coef = "theta_4")` on such a
+  parameter is refused with the class to write, and `default_prior()`
+  lists no `theta` row for it. Until now class `theta` was a second
+  slot on the same parameter, and the one written later replaced the
+  other with no message. On `(1 + x + z | g)`, `lkj(2)` on class `cor`
+  and then `normal(0, 1)` on `theta_4` kept the normal on one
+  correlation parameter and no density on the other two, and a MAP fit
+  took those two to 559 and 1741. A class `sd` prior with `coef = "x"`
+  beside a `theta_2` prior was dropped. Class `theta` keeps the
+  parameters that no brms class names, such as a `toep()` correlation
+  or a parameter of a structure that an extension registers (a `car()`
+  dependence); with no `coef` it covers only those. One correlation
+  takes no bound any more. brms has none either: its program for `lb`
+  on class `cor` does not parse.
+* A centered intercept has one prior slot, class `Intercept`.
+  `set_prior(class = "b", coef = "Intercept")` there is refused, as
+  brms refuses it. It put a second density on the intercept, without
+  the centering. Class `Intercept` with `nlpar` is stored as brms's
+  slot of the same parameter, class `b` with `coef = "Intercept"`, so
+  the two spellings together are refused as a duplicate. Before, the
+  one written later applied.
+* `default_prior(route = "sample")` prints brms's `(flat)` with `lb`
+  and `ub` for a first-order `cov = TRUE` `ar` or `ma`, for `cosy` and
+  for `lagsar`, where it printed `uniform(-1, 1)`. The table passed back
+  as `prior =` gives the same sampled density as the defaults: at 300
+  points on each of six models the log density agrees to 2.3e-16
+  relative and the gradient exactly. On `frm()`'s route the same table
+  is read as written: a `(flat)` row with `lb` and `ub` is a box with no
+  density, as every bounds-only specification is there, and a box at
+  the ends of the interval bounds nothing. So `frm(prior =
+  default_prior(..., route = "sample"))` on such a model moves, and
+  `uniform(-1, 1)` on `ar` and `(flat)` with `lb = -1, ub = 1` give
+  different `frm()` fits. On `y ~ 1 + ar(t, g, cov = TRUE)` (6 series
+  of 8) the internal ar estimate under the table is 0.8053, where it
+  was 0.7249; maximum likelihood gives 0.8089. The prior object that
+  `prior_summary()` returns for a `frm_sample()` run carries the
+  densities, and passed to `frm()` still gives 0.7249, the mode of the
+  sampled density.
+* The named list of prior objects, `prior = list(theta_1 =
+  prior_normal(0, 1))`, which put densities on internal parameters by
+  name, is refused by `frm()`, `update()`, `validate_prior()` and
+  `frm_simulate()`, with how to write the same density with
+  `set_prior()`. brms has no such spelling. It gave a parameter a
+  second prior slot beside its class: on `(1 + x + z | g)` in
+  `frm_sample()`, `list(theta_4 = prior_normal(0, 1))` removed the
+  default `lkj(1)` from all three correlations and left two of them
+  with no density. A plain data frame passed as `prior =` is refused
+  too, as brms refuses one, with a pointer to `as.brmsprior()`, which
+  reads it. The `prior_normal()` family of constructors stays: they are
+  densities `set_prior()` takes. With the list goes the only prior on
+  a single threshold's internal parameter and on the free directions
+  of sum-to-zero thresholds; brms has neither.
+* `set_prior("", class = ...)` with no bound is brms's `(flat)` on that
+  slot, where it was refused. `frm()` applies nothing there, so a prior
+  made only of such slots leaves a maximum-likelihood fit. A
+  `default_prior()` or brms table row with an empty prior and no bound
+  is read the same way, where it was dropped. A priorlist read from a
+  `default_prior(route = "fit")` table keeps that route through `+`,
+  `c()` and `as.brmsprior()`, so frmtmb.sample can refuse it; `frm()`
+  drops the mark from the prior it keeps.
+* `c()` of a prior specification with something that is not one (a
+  density object, a named list of them) is refused with the
+  `set_prior()` spelling to write, where it built a prior that `frm()`
+  then stopped on with an internal error.
+
+## For extension authors
+
+* A prior density can be brms's `(flat)`, which the prior resolver reads
+  as no density on the parameter a class names, with the Jacobian of
+  the map to the internal parameter, and an LKJ density can be flat on
+  the Cholesky factor. frmtmb.sample's `prior = "flat"` uses both; the
+  frmtmb.sample of the same release needs this frmtmb.
+
 # frmtmb 0.76.0
 
 The main changes:

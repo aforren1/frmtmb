@@ -843,9 +843,11 @@ test_that("a brms table applies what its prior strings say", {
   gp <- brms::get_prior(y ~ x, data = dd, family = stats::gaussian())
   expect_silent(pl2 <- frmtmb:::as_priorlist(gp))
   expect_s3_class(pl2, "frmtmb_priorlist")
-  # exactly the live rows, and nothing for a slot brms left flat
+  # a density for exactly the live rows; a slot brms left flat is
+  # brms's (flat) there, a specification with no density
   live <- sum(nzchar(as.data.frame(gp)$prior))
-  expect_identical(length(unclass(pl2)), as.integer(live))
+  dens <- vapply(unclass(pl2), function(s) !is.null(s$dist), NA)
+  expect_identical(sum(dens), as.integer(live))
 
   # a slot-listing row with an empty prior is not a prior to apply, so a
   # table with nothing live in it carries no density at all. What can

@@ -10,16 +10,31 @@ sim_lmm <- function(seed = 301, n = 150, ng = 15) {
 }
 
 
-test_that("prior name resolution: classes, coefficients, errors", {
+test_that("a named list and a plain data frame are refused, with the way", {
   dd <- sim_lmm()
-  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
-  e <- frmtmb:::resolve_priors(fit, list(beta = prior_normal(0, 5)))
-  expect_identical(e[[1]]$comp, "beta")
-  expect_length(e[[1]]$idx, 2)
-  expect_error(frmtmb:::resolve_priors(fit, list(zzz = prior_normal())),
-               "Unknown parameter")
-  expect_error(frmtmb:::resolve_priors(fit, list(x = 5)),
-               "prior object")
+  # brms has neither: it refuses a data frame ("Argument 'prior' must be
+  # a 'brmsprior' object") and has no internal-name spelling
+  e <- tryCatch(frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
+                    prior = list(beta = prior_normal(0, 5))),
+                error = conditionMessage)
+  expect_match(e, "prior = list(beta = ) put densities on internal",
+               fixed = TRUE)
+  expect_match(e, "set_prior(prior_normal(0, 5), class = \"b\")",
+               fixed = TRUE)
+  e <- tryCatch(frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
+                    prior = data.frame(prior = "normal(0, 1)",
+                                       class = "b")),
+                error = conditionMessage)
+  expect_match(e, "as.brmsprior()", fixed = TRUE)
+  # which reads it
+  f1 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
+            prior = as.brmsprior(data.frame(prior = "normal(0, 1)",
+                                            class = "b")))
+  f2 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
+            prior = set_prior("normal(0, 1)", class = "b"))
+  expect_identical(f1$opt$par, f2$opt$par)
+  expect_error(frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd, prior = 5),
+               "must be a set_prior() specification", fixed = TRUE)
 })
 
 
@@ -204,24 +219,38 @@ test_that("prior bounds address dpar and resp coefficients", {
   expect_true(all(!is.na(match(names(rim$lower), outer_par_names(fm)))))
 })
 
-test_that("class theta bounds one element or all of them", {
+test_that("class sd bounds one standard deviation or all of them", {
   dd <- sim_lmm(seed = 305)
   fit <- frm(bf(y ~ x + (1 + x | g)) + gaussian(), data = dd)
-  nth <- length(fit$frame$par_template$theta)
-  expect_gt(nth, 1L)
+  # every position of this block has a class (sd, cor), so class theta
+  # names none of them, as brms has no class theta
+  expect_error(frmtmb:::resolve_prior_input(fit,
+    set_prior("", class = "theta", lb = -2, ub = 2)),
+    "names no parameter here", class = "frmtmb_error")
 
-  all_th <- frmtmb:::resolve_prior_input(fit,
-    set_prior("", class = "theta", lb = -2, ub = 2))
-  expect_length(all_th$lower, nth)
+  all_sd <- frmtmb:::resolve_prior_input(fit,
+    set_prior("", class = "sd", lb = exp(-2), ub = exp(2)))
+  expect_setequal(names(all_sd$lower), c("theta_1", "theta_2"))
 
-  # a single position, addressed by its outer name. This is the
-  # per-element addressing that keeps class "theta" as expressive as the
-  # argument spelling for the covariance parameters
+  # a single standard deviation, by its group and coefficient, on the
+  # sd scale; the bound lands on its log
   one <- frmtmb:::resolve_prior_input(fit,
-    set_prior("", class = "theta", coef = "theta_2", lb = -1, ub = 1))
+    set_prior("", class = "sd", group = "g", coef = "x", lb = exp(-1),
+              ub = exp(1)))
   expect_identical(names(one$lower), "theta_2")
-  expect_identical(unname(one$lower), -1)
-  expect_identical(unname(one$upper), 1)
+  expect_equal(unname(one$lower), -1)
+  expect_equal(unname(one$upper), 1)
+
+  # class theta still bounds, class-wide, the parameters no class
+  # reaches: a toep() block's banded correlations, theta_4 and theta_5
+  # here, and none of its standard deviations
+  dd$tf <- factor(rep(1:3, length.out = nrow(dd)))
+  ft <- frm(bf(y ~ x + toep(0 + tf | g)) + gaussian(), data = dd,
+            dry_run = "objective")
+  tb <- frmtmb:::resolve_prior_input(ft,
+    set_prior("", class = "theta", lb = -2, ub = 2))
+  expect_identical(sort(names(tb$lower)), c("theta_4", "theta_5"))
+  expect_identical(unname(tb$upper), c(2, 2))
 })
 
 test_that("both bounds of a slot are written in one specification", {

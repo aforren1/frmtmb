@@ -1,3 +1,75 @@
+# frmtmb.sample (development version)
+
+Needs the frmtmb of the same release, which reads brms's `(flat)` as a
+prior density and gives each random-effect parameter one prior slot.
+
+## Breaking changes
+
+* `prior = "flat"` is brms's `(flat)` in every slot: no density on the
+  parameter brms declares, inside the bounds brms declares. That is the
+  model brms fits with `""` in every row of its prior table; brms has no
+  opt-out of its priors. Until now the opt-out added no density at all,
+  which is flat on frmtmb's internal parameters: on a log standard
+  deviation, improper at `sd = 0`, and on a first-order correlation,
+  `(1 - rho^2)^(-3/2)`. A standard deviation, `sigma` and the other
+  positive distributional parameters are now flat on their own scale,
+  a correlation matrix (`cor`, `rescor`, `cortime`, `lncor`) flat on
+  its Cholesky factor, and the ordered thresholds and `delta` flat on
+  themselves; the defaults that are already flat on brms's parameter
+  (`ar`, `ma`, `cosy`, `lagsar`, and `dirichlet(1)` on a simplex,
+  a mixture's weights included) stay. Against brms 2.23.0 with `""` in
+  every slot, 4 chains of 3000 draws each: on `y ~ 1 + (1 | g)` with 6
+  groups the posterior mean of `sd_g__Intercept` is 1.458 in brms,
+  1.455 now and was 1.197; on `y ~ x + (1 + x | g)` with 8 groups the
+  correlation's mean is -0.283 in brms, -0.265 now, and was -1.000
+  (sd below 0.0001, 529 divergent transitions); on
+  `ar(cov = TRUE)` with 6 series of 5 the mean of `ar[1]` is 0.481 in
+  brms, 0.480 now and was 0.541. A random-effect block now non-centers
+  under `prior = "flat"`, since flat on the standard deviation closes
+  the tail at `sd = 0`, and `prior_summary()` lists the `(flat)` rows.
+* A bounds-only specification that replaces a default,
+  `set_prior("", class = "sd", lb = 0.1)`, is brms's `(flat)` on that
+  slot: flat on the standard deviation above 0.1, where it was flat on
+  its log. So is `set_prior("", class = ...)` with no bound, and a
+  table row with an empty prior: on `cor` it is flat on the Cholesky
+  factor, on the intercept no density. The `prior_summary()` of a
+  `prior = "flat"` run lists the intercepts as `(flat)` too, so passed
+  back as `prior =`, as the object or as its table through
+  `as.brmsprior()`, it gives the same density (log density and gradient
+  to 1e-12 relative at 40 points).
+* The named list of prior objects (`prior = list(theta_1 =
+  prior_normal(0, 1))`) is refused, as in frmtmb. It took over the
+  internal parameters it named after the class priors, and a name
+  inside a correlation block removed the default `lkj(1)` from the
+  whole block: `list(theta_4 = prior_normal(0, 1))` on `(1 + x + z | g)`
+  left two correlations with no density. The draws' `prior_summary()`
+  no longer carries an `overrides` attribute.
+* frmtmb.spatial's `car()` dependence parameter is the one parameter
+  brms has a class for that is not yet brms's `(flat)`: brms declares
+  it on (0, 1) and leaves it flat, and here it carries no density, which
+  is flat on its logit and not integrable at 0. Under `prior = "flat"`
+  such a posterior is improper; give it a prior with class `"theta"`
+  on the coef `default_prior()` lists.
+* `prior =` refuses a `default_prior()` or `validate_prior()` table of
+  `route = "fit"`, the default route, edited or not, and a priorlist
+  made from one with `as.brmsprior()`, `+` or `c()`. Its `(flat)` rows
+  are `frm()`'s defaults; read as brms's `(flat)` they replaced brms's
+  defaults on the intercept, sigma, the standard deviations and the
+  correlations without a word. The message points to `route =
+  "sample"`, whose table is brms's defaults, and to `prior = "flat"`.
+  A table built by hand, or brms's own, is read as written.
+* `delta`, the distance between equidistant ordinal thresholds, is
+  flat on `delta` by default, brms's `(flat)` with `lb = 0`. frmtmb
+  holds `log(delta)` for an ordered family, and the default was flat on
+  that.
+* `prior_summary()` and the default-prior message print brms's `(flat)`
+  with `lb` and `ub` for a first-order `cov = TRUE` `ar` or `ma`, for
+  `cosy` and for `lagsar`, where they printed `uniform(-1, 1)`. The
+  density is unchanged.
+* `set_prior(class = "theta")` on a standard deviation, a correlation
+  or `rescor` is refused, as in frmtmb (`?set_prior`). One such prior
+  used to retire the default `lkj(1)` on every correlation of its block.
+
 # frmtmb.sample 0.23.0
 
 Needs frmtmb 0.76.0, which exports `autocor_flat_priors()`,

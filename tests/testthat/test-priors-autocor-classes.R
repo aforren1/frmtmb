@@ -129,16 +129,14 @@ test_that("the matrix-valued classes refuse lb/ub, naming the alternative", {
     expect_error(set_prior("lkj(2)", class = cl, lb = 0),
                  "takes no lb/ub", info = cl)
   }
-  # cor and rescor name the internal route; an unstr() correlation has
-  # one slot, its class, so it names none (class theta would refuse it)
-  for (cl in c("cor", "rescor")) {
-    expect_error(set_prior("lkj(2)", class = cl, lb = 0),
-                 "class = \"theta\"", info = cl)
+  # each correlation has one slot, its class, as in brms, so no
+  # internal route is named (class theta would refuse it)
+  for (cl in c("cor", "cortime", "rescor")) {
+    e <- tryCatch(set_prior("lkj(2)", class = cl, lb = 0),
+                  error = conditionMessage)
+    expect_match(e, "one prior slot", fixed = TRUE, info = cl)
+    expect_no_match(e, "class = \"theta\"", fixed = TRUE, info = cl)
   }
-  e <- tryCatch(set_prior("lkj(2)", class = "cortime", lb = 0),
-                error = conditionMessage)
-  expect_match(e, "one prior slot", fixed = TRUE)
-  expect_no_match(e, "thetaac", fixed = TRUE)
   # and each of them still demands the density that fits it
   expect_error(set_prior("normal(0, 1)", class = "rescor"),
                "takes an lkj\\(\\) prior")
@@ -169,17 +167,21 @@ test_that("a higher-order ar coefficient refuses a bound, with the reason", {
     "internal parameter of ar", class = "frmtmb_error")
 })
 
-test_that("class theta reaches the covariance parameters no class does", {
+test_that("class theta refuses the covariance parameters a class reaches", {
   dd <- sim_ar()
   fm <- frm(mvbf(bf(y ~ x) + gaussian(), bf(y2 ~ x) + gaussian(),
                  rescor = TRUE), data = dd)
-  rr <- frmtmb:::resolve_prior_input(fm,
-    set_prior("", class = "theta", coef = "thetar_1", lb = -1))
-  expect_identical(names(rr$lower), "thetar_1")
+  expect_error(frmtmb:::resolve_prior_input(fm,
+    set_prior("", class = "theta", coef = "thetar_1", lb = -1)),
+    "class = \"rescor\"", class = "frmtmb_error")
   fr <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+  expect_error(frmtmb:::resolve_prior_input(fr,
+    set_prior("", class = "theta", coef = "theta_1", lb = -3)),
+    "class = \"sd\", group = \"g\"", class = "frmtmb_error")
+  # the class spelling bounds the standard deviation on its own scale
   re <- frmtmb:::resolve_prior_input(fr,
-    set_prior("", class = "theta", coef = "theta_1", lb = -3))
-  expect_identical(names(re$lower), "theta_1")
+    set_prior("", class = "sd", lb = exp(-3)))
+  expect_equal(unname(re$lower[["theta_1"]]), -3)
 
   # a name no covariance component carries lists the ones that exist
   f_ar <- frm(bf(y ~ x + ar(t, g, cov = TRUE)) + gaussian(), data = dd)
@@ -271,11 +273,12 @@ test_that("a bound at the end of a parameter's interval bounds nothing", {
   fit <- frm(bf(y ~ x + ar(t, g, cov = TRUE)) + gaussian(), data = dd)
   ri <- frmtmb:::resolve_prior_input(fit,
     set_prior("", class = "ar", lb = -1, ub = 1))
-  expect_identical(unname(c(ri$lower, ri$upper)), c(-Inf, Inf))
+  # an end of the interval bounds nothing, so no bound is written
+  expect_null(c(ri$lower, ri$upper))
   fc <- frm(bf(y ~ x + cosy(t, g)) + gaussian(), data = dd)
   rc <- frmtmb:::resolve_prior_input(fc,
     set_prior("", class = "cosy", lb = -1 / 5, ub = 1))
-  expect_identical(unname(c(rc$lower, rc$upper)), c(-Inf, Inf))
+  expect_null(c(rc$lower, rc$upper))
   # the absent case: inside the interval it is a bound, and past its end
   # a refusal
   expect_true(is.finite(frmtmb:::resolve_prior_input(fit,
@@ -301,7 +304,8 @@ test_that("get_prior lists a row for every new class the model offers", {
   gm <- get_prior(mvbf(bf(y ~ x) + gaussian(), bf(y2 ~ x) + gaussian(),
                        rescor = TRUE), data = dd)
   expect_true("rescor" %in% gm$class)
-  expect_true("thetar_1" %in% gm$coef[gm$class == "theta"])
+  # one row for the residual correlation, its class, as in brms
+  expect_false(any(gm$class == "theta"))
 })
 
 test_that("prior_summary reports the new classes on a fit", {

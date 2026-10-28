@@ -106,7 +106,13 @@
 #'   out of a brms script work whichever package's `prior()` was in
 #'   scope. The argument takes brms's spelling, `prior`; the `priors`
 #'   of releases before 0.43 is gone rather than aliased, and a call
-#'   still using it fails as an unused argument.
+#'   still using it fails as an unused argument. A named list of prior
+#'   objects keyed by internal parameter names (`list(theta_1 =
+#'   prior_normal())`) is refused, as brms has no such spelling: it gave
+#'   a parameter a second prior slot beside its class. A plain data
+#'   frame is refused too, as brms refuses one; [as.brmsprior()] reads
+#'   it. `set_prior("", class = ...)`, brms's `(flat)` on a slot, applies
+#'   nothing here.
 #'
 #'   This is also where HARD BOUNDS are written, as `lb`/`ub` on a
 #'   specification that may carry no distribution at all:
@@ -114,13 +120,14 @@
 #'   constraint and nothing else. The `lower`/`upper` arguments of
 #'   releases before 0.49 are gone rather than aliased, and a call still
 #'   using them fails as an unused argument; every outer parameter they
-#'   could reach has a `set_prior()` class, down to a single internal
-#'   covariance parameter (`class = "theta", coef = "theta_1"`), except
-#'   the internal parameters of a `cov = TRUE` `ar()` or `ma()` of order
-#'   two or more, which take no box (brms has no such term), and a single
-#'   correlation of an `unstr()` term, which class `"cortime"` reaches
-#'   only as a whole matrix (as in brms, it takes no `lb`/`ub`). See
-#'   [set_prior()]'s Hard bounds section.
+#'   could reach has a `set_prior()` class: a standard deviation class
+#'   `"sd"`, on the sd scale, and an internal covariance parameter that
+#'   no brms class names class `"theta"` (`coef = "theta_12"`). Two
+#'   kinds take no box: a correlation, random-effect, `rescor` or
+#'   `unstr()`, which its class reaches only as a whole matrix (as in
+#'   brms, it takes no `lb`/`ub`), and the internal parameters of a
+#'   `cov = TRUE` `ar()` or `ma()` of order two or more (brms has no such
+#'   term). See [set_prior()]'s Hard bounds section.
 #'
 #'   *The spelling is brms's; the SEMANTICS are not.* A prior here is a
 #'   penalty on the likelihood and the answer is one mode. It is not a
@@ -887,6 +894,10 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # downstream sees anything but a frmtmb_priorlist
   prior <- as_priorlist(prior)
   check_prior_slots(prior)
+  # brms's (flat) on a slot, set_prior("") or a (flat) table row with no
+  # bound, applies nothing on frm()'s route, so a prior made only of
+  # those leaves an ML fit an ML fit
+  prior <- drop_flat_slots(prior)
   # Every one of these used to be read through isTRUE() or an empty
   # names() loop, so a flag set by mistake either fitted a DIFFERENT
   # model in silence or died with an obscure downstream error (REML
@@ -917,10 +928,6 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
     frm_stop("`control` must come from frmtmb_control(); this list is missing ",
              paste(setdiff(ctl_need, names(control)), collapse = ", "),
              call. = FALSE)
-  }
-  if (!is.null(prior) && !is.list(prior)) {
-    frm_stop("`prior` must be a set_prior() specification or a named list ",
-             "of prior objects, not ", arg_desc(prior), call. = FALSE)
   }
   if (!is.function(na.action) && !is.character(na.action)) {
     frm_stop("`na.action` must be a function such as stats::na.omit, or its ",

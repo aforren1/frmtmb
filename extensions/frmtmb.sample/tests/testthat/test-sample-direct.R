@@ -326,10 +326,13 @@ test_that("prior = 'flat' opts out and warns about propriety", {
     warning = function(x) w <<- c(w, conditionMessage(x)))))
   expect_length(grep("default priors", msg), 0L)
   expect_length(grep("flat", w), 1L)
-  expect_null(prior_summary(ds))
+  # brms's (flat) on the intercept, sigma and the sd, written as brms writes it
+  ps <- as.data.frame(prior_summary(ds))
+  expect_setequal(ps$class, c("Intercept", "sigma", "sd"))
+  expect_true(all(ps$prior == ""))
 
-  # it really is the old flat behavior, and the fit route reaches it
-  # through the same opt-out: a seeded short run matches draw for draw
+  # the fit route reaches the same density through the same opt-out:
+  # a seeded short run matches draw for draw
   fit <- frm(form, data = dd)
   ds_fit <- suppressWarnings(suppressMessages(
     frm_sample(fit, chains = 1, iter = 400, refresh = 0, seed = 1,
@@ -366,8 +369,9 @@ test_that("the fit route defaults to the brms priors, and flat opts out", {
   expect_equal(ds$reparam$blocks, 1L)
   expect_length(grep("stays centered", msg), 0L)
 
-  # prior = "flat" restores the bare objective: no banner, no defaults
-  # in the summary, no reparameterization, and the propriety warning
+  # prior = "flat" is brms's (flat) in every slot: no banner, (flat)
+  # rows in the summary, the propriety warning, and a non-centered
+  # block, since flat on the sd closes the tail at sd = 0
   w <- NULL
   msg2 <- capture_messages(withCallingHandlers(
     ds2 <- frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 1,
@@ -378,9 +382,9 @@ test_that("the fit route defaults to the brms priors, and flat opts out", {
     }))
   expect_length(grep("default priors", msg2), 0L)
   expect_length(grep("flat", w), 1L)
-  expect_null(prior_summary(ds2))
-  expect_null(ds2$reparam)
-  expect_length(grep("stays centered", msg2), 1L)
+  expect_true(all(as.data.frame(prior_summary(ds2))$prior == ""))
+  expect_equal(ds2$reparam$blocks, 1L)
+  expect_length(grep("stays centered", msg2), 0L)
 })
 
 test_that("the fit route unpins a chain from a boundary variance mode", {
@@ -401,21 +405,26 @@ test_that("the fit route unpins a chain from a boundary variance mode", {
                prior = "flat")))
   def <- suppressWarnings(suppressMessages(
     frm_sample(fit, chains = 1, iter = 800, refresh = 0, seed = 2)))
-  # structural either way: the defaults are what open the gate
-  expect_null(flat$reparam)
+  # structural either way: both put a density on the sd, so both open
+  # the gate. Flat on the sd itself, brms's (flat), vanishes at sd = 0
+  # in theta's coordinates; flat on theta, frmtmb.sample 0.23.0's
+  # opt-out, left the chain at the singular mode (median sd below 0.01)
+  expect_equal(flat$reparam$blocks, 1L)
   expect_equal(def$reparam$blocks, 1L)
 
   if (sampler_gates_on()) {
     med <- function(ds) stats::median(exp(ds$draws[, "theta_1"]))
-    # flat: the chain sits at the singular mode or walks the improper
-    # tail below it, and reports a variance component of nothing
-    expect_lt(med(flat), 0.01)
-    # defaults: a variance component with a posterior on it
-    expect_gt(med(def), 0.02)
+    # a variance component with a posterior on it, either way: the flat
+    # run's median sd was 0.106 on this seed, the ML mode's below
+    # exp(-4) = 0.018 (the expectation above)
+    ml_sd <- exp(fit$estimates$theta[[1L]])
+    expect_gt(med(flat), 5 * ml_sd)
+    expect_gt(med(def), 5 * ml_sd)
     if (requireNamespace("posterior", quietly = TRUE)) {
       ess <- function(ds) posterior::ess_bulk(ds$draws[, "theta_1"])
       expect_gt(ess(def), 100)
-      expect_gt(ess(def), 5 * ess(flat))
+      # the flat chain mixes as the default one does, not pinned
+      expect_gt(ess(flat), ess(def) / 5)
     }
   }
 })
@@ -462,7 +471,7 @@ test_that("a MAP fit's prior stacks under a call prior and the defaults", {
   msg <- capture_messages(suppressWarnings(
     ds3 <- frm_sample(mf, chains = 1, iter = 300, refresh = 0, seed = 1,
                       prior = "flat")))
-  expect_null(prior_summary(ds3))
+  expect_true(all(as.data.frame(prior_summary(ds3))$prior == ""))
   expect_length(grep("drops the prior this fit was made with", msg), 1L)
 })
 
@@ -523,15 +532,12 @@ test_that("user priors override the defaults per class", {
   expect_false("sd:t" %in% kinds)
   expect_true("Intercept:t" %in% kinds)
 
-  # the legacy named-list spelling takes over the internal parameters it
-  # names and leaves the remaining defaults in place
-  ds2 <- suppressWarnings(suppressMessages(
-    frm_sample(form, data = dd, prior = list(theta = prior_normal(0, 1)),
-               chains = 1, iter = 400, refresh = 0, seed = 2)))
-  pl2 <- prior_summary(ds2)
-  expect_equal(names(attr(pl2, "overrides")), "theta")
-  expect_true(any(grepl("^Intercept ~ ",
-                        utils::capture.output(print(pl2, show_df = FALSE)))))
+  # the named-list spelling, which took over internal parameters and
+  # dropped the LKJ on the rest of a block, is refused
+  expect_error(frm_sample(form, data = dd,
+                          prior = list(theta = prior_normal(0, 1)),
+                          chains = 1, iter = 400, refresh = 0, seed = 2),
+               "no longer takes it", class = "frmtmb_error")
 })
 
 test_that("defaults tame a variance component flat priors cannot", {
@@ -632,19 +638,13 @@ test_that("every draws accessor speaks brms's names", {
   expect_true("Intercept" %in% rownames(stats::vcov(fit)))
   expect_true("(Intercept)" %in% rownames(stats::confint(fit)))
 
-  # hypothesis() takes brms's names alone, as brms does; the priors keep
-  # both spellings of a coefficient
+  # hypothesis() takes brms's names alone, as brms does
   expect_equal(hypothesis(ds, "Intercept > 0")$hypothesis$Estimate,
                hypothesis(ds, "b_Intercept > 0",
                           class = NULL)$hypothesis$Estimate)
   expect_error(hypothesis(ds, "`(Intercept)` > 0"),
                "cannot be found in the model: \n'[(]Intercept[)]'",
                class = "frmtmb_error")
-  p1 <- frmtmb:::resolve_priors(fit, list(Intercept = prior_normal(0, 1)))
-  p2 <- frmtmb:::resolve_priors(fit,
-                                list(`(Intercept)` = prior_normal(0, 1)))
-  expect_equal(p1[[1L]]$comp, p2[[1L]]$comp)
-  expect_equal(p1[[1L]]$idx, p2[[1L]]$idx)
 
   # check_laplace() reports the same names
   cl <- suppressWarnings(check_laplace(fit, chains = 1, iter = 400,

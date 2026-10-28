@@ -96,8 +96,9 @@ Three moves, in the order worth trying:
    the default, but a block qualifies for the non-centered form only
    when every one of its variance parameters carries a prior, and the
    call reports each block it left centered and why. Under
-   `prior = "flat"` no block qualifies, so a flat run is a centered run
-   by construction. `prior = set_prior("exponential(1)", class = "sd")`
+   `prior = "flat"` a standard deviation is flat on its own scale, as
+   brms's `(flat)` is, which closes the tail at `sd = 0`, so a block
+   qualifies there too. `prior = set_prior("exponential(1)", class = "sd")`
    is the usual fix, and it fixes two things at once: it closes the
    flat tail at `sd = 0` and it unlocks the reparameterization that
    removes the funnel.

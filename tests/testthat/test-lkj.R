@@ -193,7 +193,8 @@ test_that("lkj() parses and belongs to class cor, both ways", {
   expect_error(set_prior("lkj(2)", class = "sd"), "belongs to class")
   expect_error(set_prior("normal(0, 1)", class = "cor"),
                "takes an lkj")
-  expect_error(set_prior("", class = "cor", lb = 0), "takes an lkj")
+  # "" is brms's (flat) on the matrix, and still takes no bound
+  expect_error(set_prior("", class = "cor", lb = 0), "takes no lb/ub")
   # a bound belongs to one parameter, so it is refused rather than
   # silently dropped on a class that names a whole matrix
   expect_error(set_prior("lkj(2)", class = "cor", ub = 0.5),
@@ -289,20 +290,23 @@ test_that("cs, ar1 and gr(cov =) take the prior their map calls for", {
   }
 })
 
-test_that("later wins between class cor and the class theta hatch", {
+test_that("a correlation has one slot, class cor", {
   dd <- lkj_data()
   fit <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd)
-  # the LKJ term is retired when a raw prior lands on a position it
-  # covers, so the two densities are never added together
-  ri <- frmtmb:::resolve_prior_input(
-    fit, set_prior("lkj(2)", class = "cor") +
-      set_prior("normal(0, 1)", class = "theta", coef = "theta_3"))
-  kinds <- vapply(ri$entries, function(e) e$dist$kind, "")
-  expect_false("lkj" %in% kinds)
-  # and the other way round
-  ri2 <- frmtmb:::resolve_prior_input(
-    fit, set_prior("normal(0, 1)", class = "theta", coef = "theta_3") +
-      set_prior("lkj(2)", class = "cor"))
+  # class theta on the correlation was a second slot, and the one
+  # written later retired the other; it is refused in either order
+  for (pl in list(set_prior("lkj(2)", class = "cor") +
+                    set_prior("normal(0, 1)", class = "theta",
+                              coef = "theta_3"),
+                  set_prior("normal(0, 1)", class = "theta",
+                            coef = "theta_3") +
+                    set_prior("lkj(2)", class = "cor"))) {
+    expect_error(frmtmb:::resolve_prior_input(fit, pl),
+                 "internal parameter of a random-effect correlation",
+                 class = "frmtmb_error")
+  }
+  ri2 <- frmtmb:::resolve_prior_input(fit, set_prior("lkj(2)",
+                                                     class = "cor"))
   expect_equal(vapply(ri2$entries, function(e) e$dist$kind, ""), "lkj")
   # a class "sd" prior sits beside it: different positions, both kept
   ri3 <- frmtmb:::resolve_prior_input(
@@ -312,11 +316,12 @@ test_that("later wins between class cor and the class theta hatch", {
                   c("lkj", "exponential"))
 })
 
-test_that("the named-list spelling refuses an LKJ prior by name", {
+test_that("the named-list spelling is refused, an LKJ by name too", {
   dd <- lkj_data()
   fit <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd)
   expect_error(frmtmb:::resolve_prior_input(
-    fit, list(theta_3 = prior_lkj(2))), "class = \"cor\"", fixed = TRUE)
+    fit, list(theta_3 = prior_lkj(2))), "Write each density with set_prior()",
+    fixed = TRUE)
 })
 
 ## ---- the formula route ------------------------------------------------

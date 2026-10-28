@@ -1516,7 +1516,7 @@ compat_hand_rules_tbl <- function() {
   r("equidistant", "prior", "works",
     "class = \"Intercept\" is the first threshold alone, at the mean of the predictors, and class = \"delta\" the distance between thresholds, as brms has them. A per-threshold coef is refused, as brms refuses it.")
   r("sum_to_zero", "prior", "conditional",
-    "class = \"Intercept\" is refused: brms's prior there is on thresholds it declares before centering them, a parameter frmtmb does not have. prior = list(tau_raw = ) reaches the free directions on the internal scale.")
+    "class = \"Intercept\" is refused: brms's prior there is on thresholds it declares before centering them, a parameter frmtmb does not have, so the sum-to-zero thresholds take no prior.")
 
   ## rate() --------------------------------------------------------------
   r("rate()", "kind:family", "refused",

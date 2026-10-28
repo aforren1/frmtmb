@@ -89,11 +89,16 @@ get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
 The printed table names its route on the first line, so a table copied
 out of a session still says which set of defaults it describes.
 
-`prior = "flat"` opts out and samples the bare likelihood. That is a
-fine diagnostic and fragile inference: under a flat prior on a log
-standard deviation the posterior need not be proper, and neither the
-chains nor Rhat can see it, so the opt-out warns when the model has
-variance components.
+`prior = "flat"` opts out of the defaults and puts brms's `(flat)` in
+every slot: no density on the parameter brms declares, inside the
+bounds brms declares. That is the model brms fits with `""` in every
+row of its prior table. A standard deviation is then flat on its own
+scale and a correlation matrix flat on its Cholesky factor, not on the
+log or the unbounded parameter that frmtmb holds. It is fragile
+inference all the same: nothing but the likelihood bounds a standard
+deviation above, so with few groups the posterior need not be proper,
+and neither the chains nor Rhat can see it. The opt-out warns when the
+model has standard deviations.
 
 A `set_prior()` specification takes over the parameters it reaches and
 leaves the defaults on the other parameters, as brms does. A prior on

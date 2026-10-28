@@ -23,7 +23,8 @@ rp_data <- function(seed = 9, n = 60L, ng = 6L) {
 # a prior on every theta, which is the second half of the eligibility
 # gate; the formula interface's defaults supply the same thing
 theta_priors <- function(fit) {
-  frmtmb::resolve_prior_input(fit, list(theta = prior_normal(0, 1)))
+  frmtmb::resolve_prior_input(fit, set_prior("lognormal(0, 1)",
+                                             class = "sd"))
 }
 
 #' The z the sampler actually explored: the stanfit holds the parameters
@@ -154,13 +155,14 @@ test_that("a block whose sd has no prior stays centered", {
   # chain the flat tail at sd = 0
   bare <- frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, NULL)
   expect_length(bare$idx, 0L)
-  expect_match(bare$centered, "flat prior")
+  expect_match(bare$centered, "carries no density")
   # with one, it qualifies
   withp <- frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, theta_priors(fit)$entries)
   expect_equal(withp$idx, 1L)
   expect_length(withp$centered, 0L)
   # a prior on beta alone is not a prior on the variance
-  bo <- frmtmb::resolve_prior_input(fit, list(beta = prior_normal(0, 5)))
+  bo <- frmtmb::resolve_prior_input(fit, set_prior("normal(0, 5)",
+                                                   class = "b"))
   expect_length(frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, bo$entries)$idx, 0L)
 })
 
@@ -387,18 +389,15 @@ test_that("a correlated block non-centers once its correlation is priored", {
                  tolerance = 1e-10)
   }
 
-  # only the opt-out leaves it centered, and the reason still names the
-  # correlation
-  expect_message(
-    ds3 <- suppressWarnings(
-      frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 19,
-                 prior = "flat")),
-    "sampling stays centered")
-  expect_null(ds3$reparam)
-  expect_equal(unname(ds3$draws), unname(raw_stan_matrix(ds3)))
+  # the opt-out is brms's (flat): flat on the sds and on the Cholesky
+  # factor, which closes both tails, so the block non-centers there too
+  ds3 <- suppressWarnings(suppressMessages(
+    frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 19,
+               prior = "flat")))
+  expect_equal(ds3$reparam$blocks, 1L)
 })
 
-test_that("a fit non-centers on its defaults, and prior = flat does not", {
+test_that("a fit non-centers on its defaults and under prior = flat", {
   skip_sampler()
   dd <- rp_data()
   fit <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd)
@@ -410,15 +409,14 @@ test_that("a fit non-centers on its defaults, and prior = flat does not", {
   expect_gt(max(abs(unname(ds0$draws) - unname(raw_stan_matrix(ds0)))),
             1e-6)
 
-  # the opt-out puts the flat prior back, and with it the centered
-  # chain and the note naming set_prior(class = "sd")
-  expect_message(
-    ds <- suppressWarnings(frm_sample(fit, chains = 1, iter = 300,
-                                      refresh = 0, seed = 23,
-                                      prior = "flat")),
-    "flat prior")
-  expect_null(ds$reparam)
-  expect_equal(unname(ds$draws), unname(raw_stan_matrix(ds)))
+  # the opt-out is brms's (flat) on the sd, which vanishes at sd = 0 in
+  # theta's coordinates, so the gate stays open
+  ds <- suppressWarnings(suppressMessages(
+    frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 23,
+               prior = "flat")))
+  expect_equal(ds$reparam$blocks, 1L)
+  expect_gt(max(abs(unname(ds$draws) - unname(raw_stan_matrix(ds)))),
+            1e-6)
 
   # reparameterize = FALSE still runs, and still hands back centered
   # draws, defaults or not
@@ -431,7 +429,7 @@ test_that("a fit non-centers on its defaults, and prior = flat does not", {
 
   ds2 <- suppressWarnings(suppressMessages(
     frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 23,
-               prior = list(theta_1 = prior_normal(0, 1)))))
+               prior = set_prior("lognormal(0, 1)", class = "sd"))))
   expect_equal(ds2$reparam$blocks, 1L)
   expect_gt(max(abs(unname(ds2$draws) - unname(raw_stan_matrix(ds2)))),
             1e-6)
@@ -447,7 +445,7 @@ test_that("check_laplace() samples flat and centered whatever the default", {
     cl <- check_laplace(fit, chains = 1, iter = 300, refresh = 0,
                         seed = 23)))
   expect_length(grep("default priors", msg), 0L)
-  expect_length(grep("flat prior", msg), 1L)
+  expect_length(grep("carries no density", msg), 1L)
   # and the argument that carries it is explicit rather than inherited
   expect_true(".diagnostic" %in% names(formals(frm_sample)))
   expect_match(paste(deparse(body(check_laplace)), collapse = " "),
@@ -474,7 +472,8 @@ test_that("check_laplace() samples flat and centered whatever the default", {
   # same seed, same everything but the penalty: the draws must differ
   expect_gt(max(abs(unname(dg$draws) - unname(fl$draws))), 1e-8)
   expect_null(dg$reparam)
-  expect_null(fl$reparam)
+  # prior = "flat" is brms's (flat) on the sd, which non-centers
+  expect_equal(fl$reparam$blocks, 1L)
 })
 
 ## ---- the draws surface cannot tell the routes apart -------------------
@@ -693,7 +692,8 @@ test_that("a prior on an sd applies identically under both routes", {
   skip_sampler()
   dd <- rp_data()
   fit <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd)
-  pr <- list(theta_1 = prior_normal(0, 0.3))
+  # lognormal(0, 0.3) on the sd is normal(0, 0.3) on theta_1, its log
+  pr <- set_prior("lognormal(0, 0.3)", class = "sd")
   ri <- frmtmb::resolve_prior_input(fit, pr)
 
   # the prior lane never sees b (or z): it addresses theta, which is the
@@ -743,15 +743,14 @@ test_that("the formula route keeps its default priors under the new default", {
   expect_true(all(c("Intercept", "sd") %in% cls))
   expect_equal(ds$reparam$blocks, 1L)
 
-  # prior = "flat" opts out of the defaults, and with them out the
-  # gate closes: nothing left to make the sd tail integrable
-  expect_message(
-    ds2 <- suppressWarnings(
-      frm_sample(bf(y ~ x + (1 | g)), family = gaussian(), data = dd,
-                 chains = 1, iter = 300, refresh = 0, seed = 6,
-                 prior = "flat")),
-    "flat prior")
-  expect_null(ds2$reparam)
+  # prior = "flat" replaces the defaults with brms's (flat), and flat
+  # on the sd itself still makes the sd tail integrable: the gate stays
+  # open
+  ds2 <- suppressWarnings(suppressMessages(
+    frm_sample(bf(y ~ x + (1 | g)), family = gaussian(), data = dd,
+               chains = 1, iter = 300, refresh = 0, seed = 6,
+               prior = "flat")))
+  expect_equal(ds2$reparam$blocks, 1L)
 })
 
 ## ---- blocks with no non-centered form --------------------------------

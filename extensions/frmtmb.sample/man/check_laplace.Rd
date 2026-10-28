@@ -33,8 +33,8 @@ the LIKELIHOOD, so the run is flat; for a MAP fit (\code{frm(prior = )})
 the penalty is taped INTO that objective, so the run carries it,
 which is right: the mode and the Wald standard errors this function
 compares against come from the same penalized Hessian. "Flat" here
-means no prior ADDED, not the fit's own penalty stripped - for the
-bare likelihood of a MAP fit, write \code{frm_sample(fit, prior = "flat")} instead, and read it as a different question.
+means no prior ADDED, not the fit's own penalty stripped. For the
+likelihood of a MAP fit under brms's \code{(flat)}, write \code{frm_sample(fit, prior = "flat")} instead, and read it as a different question.
 
 What this function never adds is \code{\link[=frm_sample]{frm_sample()}}'s DEFAULT priors.
 Those defaults

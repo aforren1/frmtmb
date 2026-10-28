@@ -120,7 +120,12 @@ brms's own \code{prior()} is translated row by row, so priors copied
 out of a brms script work whichever package's \code{prior()} was in
 scope. The argument takes brms's spelling, \code{prior}; the \code{priors}
 of releases before 0.43 is gone rather than aliased, and a call
-still using it fails as an unused argument.
+still using it fails as an unused argument. A named list of prior
+objects keyed by internal parameter names (\code{list(theta_1 = prior_normal())}) is refused, as brms has no such spelling: it gave
+a parameter a second prior slot beside its class. A plain data
+frame is refused too, as brms refuses one; \code{\link[=as.brmsprior]{as.brmsprior()}} reads
+it. \code{set_prior("", class = ...)}, brms's \code{(flat)} on a slot, applies
+nothing here.
 
 This is also where HARD BOUNDS are written, as \code{lb}/\code{ub} on a
 specification that may carry no distribution at all:
@@ -128,13 +133,14 @@ specification that may carry no distribution at all:
 constraint and nothing else. The \code{lower}/\code{upper} arguments of
 releases before 0.49 are gone rather than aliased, and a call still
 using them fails as an unused argument; every outer parameter they
-could reach has a \code{set_prior()} class, down to a single internal
-covariance parameter (\verb{class = "theta", coef = "theta_1"}), except
-the internal parameters of a \code{cov = TRUE} \code{ar()} or \code{ma()} of order
-two or more, which take no box (brms has no such term), and a single
-correlation of an \code{unstr()} term, which class \code{"cortime"} reaches
-only as a whole matrix (as in brms, it takes no \code{lb}/\code{ub}). See
-\code{\link[=set_prior]{set_prior()}}'s Hard bounds section.
+could reach has a \code{set_prior()} class: a standard deviation class
+\code{"sd"}, on the sd scale, and an internal covariance parameter that
+no brms class names class \code{"theta"} (\code{coef = "theta_12"}). Two
+kinds take no box: a correlation, random-effect, \code{rescor} or
+\code{unstr()}, which its class reaches only as a whole matrix (as in
+brms, it takes no \code{lb}/\code{ub}), and the internal parameters of a
+\code{cov = TRUE} \code{ar()} or \code{ma()} of order two or more (brms has no such
+term). See \code{\link[=set_prior]{set_prior()}}'s Hard bounds section.
 
 \emph{The spelling is brms's; the SEMANTICS are not.} A prior here is a
 penalty on the likelihood and the answer is one mode. It is not a
