@@ -1806,8 +1806,8 @@ compat_hand_rules_tbl <- function() {
     "Refused: the latent values are one integral each, not the one scalar random effect the rule marginalizes.")
   r("me()", "importance", "refused",
     "Refused: the latent values have no grouping factor to give them a per-group proposal.")
-  r("me()", "prior", "conditional",
-    "The me() coefficients are class \"b\" coefficients, e.g. coef = \"mexsx\". brms's classes meanme, sdme and corme have no prior slot here and are refused by name; the flat rows of a brms get_prior() table, and its lkj(1) corme row, are dropped because they apply nothing.")
+  r("me()", "prior", "works",
+    "Verified: the me() coefficients are class \"b\" coefficients, e.g. coef = \"mexsx\", and brms's classes meanme, sdme and corme put brms's densities on the latent mean, the latent sd and the correlation of the terms that share a gr =; get_prior() lists brms's rows, and a brms table's rows apply as written.")
   r("me()", "mvbf", "works",
     "Verified: one set of latent values per distinct me() call is shared by every response that uses it, as in brms. set_mecor() is one setting for the whole model.")
   r("me()", "rescor", "works", "Verified by a tiny fit.")

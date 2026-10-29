@@ -28,8 +28,12 @@ test_that("get_prior(route = 'sample') reports this package's defaults", {
   # set_prior() takes for a density on sigma itself
   sigma <- gp$prior[gp$class == "sigma"]
   expect_match(sigma, "^student_t\\(3, 0, ")
-  expect_true(all(grepl("^student_t\\(3, 0, ",
-                        gp$prior[gp$class == "sd" & gp$coef == ""])))
+  # on the class row; the group row inherits it and reads "(flat)",
+  # brms's "" (a printed default there overrode an edited class row)
+  expect_match(gp$prior[gp$class == "sd" & gp$coef == "" &
+                          gp$group == ""], "^student_t\\(3, 0, ")
+  expect_identical(gp$prior[gp$class == "sd" & gp$coef == "" &
+                              gp$group == "g"], "(flat)")
   # population-level slopes are flat in brms and are flat here, so the
   # column is reporting rather than filling
   expect_true(all(gp$prior[gp$class == "b"] == "(flat)"))
@@ -54,5 +58,6 @@ test_that("a correlated block gets the LKJ default on the sample route", {
   dd <- prior_route_data()
   form <- frmtmb::bf(y ~ x + (x | g)) + stats::gaussian()
   gp <- frmtmb::get_prior(form, data = dd, route = "sample")
-  expect_true(all(gp$prior[gp$class == "cor"] == "lkj(1)"))
+  expect_identical(gp$prior[gp$class == "cor" & gp$group == ""], "lkj(1)")
+  expect_identical(gp$prior[gp$class == "cor" & gp$group == "g"], "(flat)")
 })

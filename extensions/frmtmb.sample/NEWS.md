@@ -1,3 +1,82 @@
+# frmtmb.sample (development version)
+
+Needs the development version of frmtmb, whose `set_prior()` takes the
+classes `meanme`, `sdme` and `corme`, and whose `default_prior()`
+prints the group rows of a sampling-route table as `(flat)`.
+
+## Breaking changes
+
+* A `default_prior(route = "sample")` table passed as `prior =` applies
+  an edited class row to every group, as brms does: the groups of `sd`,
+  `cor` and `corme`, and each level of `thres(gr = )` for the
+  `Intercept` and `delta` rows. Before, the table's group rows carried
+  the class row's default and applied it over the edit: on two
+  `me(gr = g)` terms, a class `corme` row edited to `lkj(4)` sampled
+  `lkj(1)` (a Kolmogorov-Smirnov p-value of 1.3e-32 against the
+  `lkj(4)` correlation), and the same held for `cor` and `sd`.
+
+* A bound on one coefficient, `coef` with `lb` or `ub`, is refused with
+  brms's message, "Prior argument 'coef' may not be specified when
+  using boundaries.", for the brms classes. brms 2.23.0 refuses it for
+  `b`, `sd`, `meanme` and `sdme`. Before, the sampler took the bound and
+  the prior draws ignored it: `sdme` of one term at `ub = 0.5` had prior
+  draws up to 10.7. A bound on a class row or on a group's row is
+  taken, as in brms, and `frm()` keeps its box on one coefficient.
+  Three cases are not refused. Class `theta`, frmtmb's own, takes a
+  bound on one internal parameter. A row that restates `lb = 0` on
+  `sd`, `sdgp`, `lscale` or `sdme` bounds nothing. And
+  `set_prior(class = "Intercept", nlpar = "a")` on a nonlinear
+  parameter with `a ~ 1` is brms's class row `class = "b", nlpar = "a"`,
+  so its bound is a class bound. With a bound, that spelling is refused
+  where `a` has more than an intercept.
+
+* That spelling's bound now reaches its prior draws. Before, it was a
+  bound on one coefficient, and the prior draws ignored it: under
+  `lb = 0` on `y ~ a * exp(-b * x)`, the prior draws of `a` went down to
+  -1.67. Now they are the prior truncated at the bound, under brms's
+  names `prior_b_a` and `prior_b_b`.
+
+* A `me()` model is sampled under brms 2.23.0's default priors on its
+  hyperparameters: flat on `sdme` itself, and `lkj(1)` on `corme`.
+  Before, the sampler was flat on `log(sdme)` and on the internal chart
+  of the correlation. On two `me(gr = g)` terms with 10 levels and one
+  row-level `me()` term (4 chains of 3000 draws), the posterior means of
+  `sdme_mexg` and `sdme_mezg` were 12.6 and 13.6 Monte Carlo standard
+  errors from brms's, and the slopes up to 8.0. Now every mean, sd, 5
+  and 95 percent quantile of 14 variables is within 2.52 of brms's.
+  `prior = "flat"` stays flat on `sdme`, and is flat on the Cholesky
+  factor of `corme`, which is brms's `(flat)`.
+
+* `get_prior(route = "sample")` and `prior_summary()` of draws list
+  these defaults in brms's rows.
+
+## New features
+
+* Priors on brms's classes `meanme`, `sdme` and `corme` apply when
+  sampling. `sample_prior = "yes"` draws them under brms's names:
+  `prior_meanme_1`, `prior_sdme_1` and `prior_Lme_1`, numbered by the
+  group of terms that share a `gr =`, and, where a term has a prior of
+  its own, one column per term, `prior_meanme_1_meanme_mex`, as brms's
+  renaming spells it. With brms's defaults only `prior_Lme_1` is drawn,
+  as in brms.
+
+* `sample_prior = "only"` samples a `me()` model once `meanme` and
+  `sdme` have proper priors. Before, it refused every such model. With a
+  flat one it is refused with brms's words, naming `'meanme_1'` or
+  `'sdme_1'`.
+
+## Bug fixes
+
+* The draws of a model with correlated `me(gr = )` terms carry brms's
+  `corme_<gr>__<coef1>__<coef2>` column. Before, only the ungrouped
+  `corme__` column was derived, so the grouped correlation was absent
+  from the draws.
+
+* The default-prior message prints brms's `(flat)` on a bounded
+  parameter with its bound, `delta  (flat), lb = 0` for the distance of
+  equidistant ordinal thresholds. Before, it printed `delta  flat()`.
+  The new `sdme` line reads `(flat), lb = 0` too.
+
 # frmtmb.sample 0.24.0
 
 Needs frmtmb 0.77.0. That release reads brms's `(flat)` as a prior

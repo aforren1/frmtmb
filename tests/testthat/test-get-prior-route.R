@@ -93,8 +93,13 @@ test_that("route = 'sample' reports the registered defaults", {
                    "normal(0, 3)")
   expect_identical(gp$prior[gp$class == "sigma"], "(flat)")
   expect_false(any(gp$class == "Intercept" & gp$dpar == "sigma"))
-  expect_true(all(gp$prior[gp$class == "sd" & gp$coef == ""] ==
-                    "exponential(2)"))
+  # the class row carries the default, and its group row inherits it,
+  # which brms prints "" and this table "(flat)": printed as the
+  # default, it read back as an explicit prior over an edited class row
+  expect_identical(gp$prior[gp$class == "sd" & gp$coef == "" &
+                              gp$group == ""], "exponential(2)")
+  expect_identical(gp$prior[gp$class == "sd" & gp$coef == "" &
+                              gp$group == "g"], "(flat)")
   # a default speaks for a class, not for one coefficient of it
   expect_true(all(gp$prior[nzchar(gp$coef)] == "(flat)"))
   # the slots the provider says nothing about stay flat rather than

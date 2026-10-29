@@ -48,11 +48,8 @@ parse_me_call <- function(e) {
     frm_stop("Argument 'x' is missing in function 'me': ", deparse1(e),
              call. = FALSE)
   }
-  if (is.null(mc[["sdx"]])) {
-    # brms's own words (get_me_noise())
-    frm_stop("Argument 'sdx' is missing in function 'me': ", deparse1(e),
-             ". Give the known measurement SD, me(x, sdx)", call. = FALSE)
-  }
+  # a missing sdx is refused where the data are read (me_build_frame()),
+  # as brms refuses it in standata() and answers default_prior()
   gr <- mc[["gr"]]
   if (!is.null(gr)) {
     if (!is.name(gr)) {
@@ -216,13 +213,24 @@ me_frame_vars <- function(dp) {
 #' `M * (M - 1) / 2` entries of `thetame`.
 #'
 #' @noRd
-me_build_frame <- function(spec, mf, env, n, n_miss) {
+me_build_frame <- function(spec, mf, env, n, n_miss, check_noise = TRUE) {
   calls <- me_registry(spec)
   if (!length(calls)) return(NULL)
   mecor <- !isFALSE(spec[["mecor"]])
   terms <- list()
   for (k in seq_along(calls)) {
     cl <- calls[[k]]
+    if (is.null(cl$sdx)) {
+      if (check_noise) {
+        # brms's own words (get_me_noise())
+        frm_stop("Argument 'sdx' is missing in function 'me': ", cl$key,
+                 ". Give the known measurement SD, me(x, sdx)",
+                 call. = FALSE)
+      }
+      # a prior table reads no noise, as brms's default_prior() does
+      # not; the placeholder keeps the latent layout
+      cl$sdx <- 1
+    }
     xv <- eval(cl$x, mf, env)
     if (!is.numeric(xv) || is.factor(xv)) {
       frm_stop("Noisy variables should be numeric: '", cl$xname, "' in ",
@@ -550,6 +558,10 @@ me_put_hyper <- function(fit, vals, comp, put) {
 #' # independent latent values
 #' f0 <- bf(y ~ me(x, sx) + me(z, sz)) + set_mecor(FALSE)
 #' fit0 <- frm(f0, data = d)
+#'
+#' # correlated latent values, with an lkj() prior on the correlation
+#' fit1 <- frm(bf(y ~ me(x, sx) + me(z, sz)), data = d,
+#'             prior = set_prior("lkj(2)", class = "corme"))
 #' @export
 set_mecor <- function(mecor = TRUE) {
   check_flag(mecor, "mecor")
@@ -605,9 +617,26 @@ set_mecor <- function(mecor = TRUE) {
 #' (the log of `sdme`) and `thetame` (the correlation parameters). The
 #' Noise-free Terms section of [summary()] reports them on brms's scale
 #' as `meanme_<coef>`, `sdme_<coef>` and `corme__<coef1>__<coef2>`.
-#' Priors on brms's classes `meanme`, `sdme` and `corme` are refused;
-#' class `"b"` addresses the `me()` coefficients by their names, for
+#' Class `"b"` addresses the `me()` coefficients by their names, for
 #' example `coef = "mexsx"`.
+#'
+#' @section Priors:
+#' The hyperparameters have brms's prior classes. [default_prior()]
+#' lists brms's rows for them:
+#' * `"meanme"`: the latent mean, one row per `me()` variable under a
+#'   class row (`coef = "mex"` for `me(x, sdx)`).
+#' * `"sdme"`: the latent standard deviation itself, bounded below by 0,
+#'   with the same rows. The density carries the log-Jacobian of the
+#'   log map, as class `"sd"` does.
+#' * `"corme"`: `lkj(eta)` on the correlation matrix of the terms that
+#'   share a `gr =`, one class row and, for a grouped set, a row with
+#'   `group =` its grouping variable.
+#'
+#' On [frm()] a prior on them makes the fit a MAP estimate, and the
+#' defaults apply nothing. `frmtmb.sample::frm_sample()` applies brms's
+#' defaults: flat on `meanme` and on `sdme`, and `lkj(1)` on `corme`.
+#' The three classes take no `resp`, `dpar` or `nlpar`, because one set
+#' of latent values serves the whole model, as in brms.
 #'
 #' [anova()] compares only fits with the same `me()` calls, because each
 #' call puts its noisy variable's measurements into the likelihood.
@@ -643,4 +672,11 @@ set_mecor <- function(mecor = TRUE) {
 #'
 #' # the naive slope is attenuated by the measurement error
 #' coef(lm(y ~ x, data = d))[["x"]]
+#'
+#' # brms's prior rows for the latent mean and sd
+#' default_prior(bf(y ~ me(x, sx)) + gaussian(), data = d)
+#' fitp <- frm(bf(y ~ me(x, sx)) + gaussian(), data = d,
+#'             prior = set_prior("normal(1, 1)", class = "meanme") +
+#'               set_prior("exponential(1)", class = "sdme"))
+#' prior_summary(fitp)
 NULL

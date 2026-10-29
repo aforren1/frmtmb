@@ -68,9 +68,30 @@ The hyperparameters are the template components \code{meanme}, \code{logsdme}
 (the log of \code{sdme}) and \code{thetame} (the correlation parameters). The
 Noise-free Terms section of \code{\link[=summary]{summary()}} reports them on brms's scale
 as \verb{meanme_<coef>}, \verb{sdme_<coef>} and \verb{corme__<coef1>__<coef2>}.
-Priors on brms's classes \code{meanme}, \code{sdme} and \code{corme} are refused;
-class \code{"b"} addresses the \code{me()} coefficients by their names, for
+Class \code{"b"} addresses the \code{me()} coefficients by their names, for
 example \code{coef = "mexsx"}.
+}
+
+\section{Priors}{
+
+The hyperparameters have brms's prior classes. \code{\link[=default_prior]{default_prior()}}
+lists brms's rows for them:
+\itemize{
+\item \code{"meanme"}: the latent mean, one row per \code{me()} variable under a
+class row (\code{coef = "mex"} for \code{me(x, sdx)}).
+\item \code{"sdme"}: the latent standard deviation itself, bounded below by 0,
+with the same rows. The density carries the log-Jacobian of the
+log map, as class \code{"sd"} does.
+\item \code{"corme"}: \code{lkj(eta)} on the correlation matrix of the terms that
+share a \verb{gr =}, one class row and, for a grouped set, a row with
+\verb{group =} its grouping variable.
+}
+
+On \code{\link[=frm]{frm()}} a prior on them makes the fit a MAP estimate, and the
+defaults apply nothing. \code{frmtmb.sample::frm_sample()} applies brms's
+defaults: flat on \code{meanme} and on \code{sdme}, and \code{lkj(1)} on \code{corme}.
+The three classes take no \code{resp}, \code{dpar} or \code{nlpar}, because one set
+of latent values serves the whole model, as in brms.
 
 \code{\link[=anova]{anova()}} compares only fits with the same \code{me()} calls, because each
 call puts its noisy variable's measurements into the likelihood.
@@ -97,6 +118,13 @@ fixef(fit)
 
 # the naive slope is attenuated by the measurement error
 coef(lm(y ~ x, data = d))[["x"]]
+
+# brms's prior rows for the latent mean and sd
+default_prior(bf(y ~ me(x, sx)) + gaussian(), data = d)
+fitp <- frm(bf(y ~ me(x, sx)) + gaussian(), data = d,
+            prior = set_prior("normal(1, 1)", class = "meanme") +
+              set_prior("exponential(1)", class = "sdme"))
+prior_summary(fitp)
 }
 \seealso{
 \code{\link[=set_mecor]{set_mecor()}}; \code{mi()} for a measurement model that has

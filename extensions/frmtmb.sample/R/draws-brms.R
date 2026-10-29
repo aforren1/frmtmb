@@ -158,9 +158,9 @@ draws_natural_cols <- function(fit) {
 #' smooth's `sds_`, `rescor__`, the residual structures' `ar[1]`,
 #' `cosy`, `cortime__`, the parameters of a residual term of core's
 #' registry under the names it gives them (`lagsar`, `errorsar`;
-#' `frmtmb_autocor_pars()`), and `me()`'s `sdme_` and `corme__`. The
-#' sampler
-#' works on the internal covariance parameters (`theta_1`, ...), so these
+#' `frmtmb_autocor_pars()`), and `me()`'s `sdme_` and `corme__`
+#' (`corme_<gr>__` for terms with `gr =`). The sampler works on the
+#' internal covariance parameters (`theta_1`, ...), so these
 #' are DERIVED columns: each draw's value is what core's
 #' `hyp_env_vals()` gives for that draw, which is also where core's
 #' `variables()` of a fit takes its names, so the two cannot disagree.
@@ -178,7 +178,7 @@ draws_cov_cols <- function(fit, have = character(0)) {
   ev <- tryCatch(hyp_env_vals(fit, vo$vals, vo$comp),
                  error = function(e) NULL)
   if (is.null(ev)) return(none)
-  pat <- paste0("^(sd_|cor_|sds_|rescor__|cortime__|sdme_|corme__|",
+  pat <- paste0("^(sd_|cor_|sds_|rescor__|cortime__|sdme_|corme_|",
                 "ar[[]|ma[[]|cosy$)")
   # a registry term names its own parameters; core lists them, so this
   # package keeps no list of those names
