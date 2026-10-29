@@ -42,8 +42,9 @@
 positions and refused: see \emph{What is conditioned on}. The refusal
 names the reason and the replacement.}
 
-\item{resp}{For a multivariate model without \code{rescor}, the response
-whose contribution to report; the default sums over responses.}
+\item{resp}{For a multivariate model, the responses whose density to
+report: the default is every response, summed without \code{rescor} and
+joint with it (see \emph{Multivariate models}).}
 
 \item{ndraws}{Number of draws to use, evenly spaced through the
 matrix (default: all of them).}
@@ -54,7 +55,8 @@ evenly spaced subsample \code{ndraws} takes. Give one or the other.}
 \item{pointwise, combine, add_point_estimate, cores}{brms's slots, in
 brms's positions. \code{pointwise = TRUE} (brms's function of one
 observation) and \code{add_point_estimate = TRUE} are refused by name;
-\code{combine = FALSE} is accepted on a univariate model, where there is
+\code{combine = FALSE} is accepted on a univariate model, on one
+response, and on a \code{set_rescor(TRUE)} model, where there is
 nothing to combine; \code{cores} is accepted and unused, because the
 matrix is built in this process.}
 
@@ -159,6 +161,11 @@ reads the time levels too, so those agree with gaps.
 
 With \code{set_rescor(TRUE)} a column is the joint density of the row's
 response VECTOR, so the matrix keeps one column per observation.
+\code{resp} naming several responses gives the joint density of those
+responses, and naming one gives that response's own marginal density
+(the normal, or for \code{student()} the t with the shared \code{nu}), as
+brms's \code{log_lik(resp =)} computes them. \code{combine = FALSE} has nothing
+to combine there and returns the same matrix, as in brms.
 Without \code{rescor}, the responses are independent given the predictors
 and the default sums their log-densities per row; pass \code{resp} to get
 one response's contribution alone.

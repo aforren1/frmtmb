@@ -1,3 +1,16 @@
+# frmtmb (development version)
+
+## Sampling API
+
+* `predict_rescor_draw()` is exported. It is the joint predictive draw
+  of the responses of a `set_rescor(TRUE)` model, which `predict()`
+  makes. frmtmb.sample's `posterior_predict()` now draws through it, so
+  the two cannot drift apart.
+
+* `rescor_row_loglik()` takes `resp`, the responses whose joint density
+  to give, as brms's `log_lik(resp =)` asks. The correlation matrix
+  follows the order of `resp`.
+
 # frmtmb 0.77.0
 
 The main changes:

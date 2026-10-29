@@ -1,3 +1,70 @@
+# frmtmb.sample (development version)
+
+Needs the development version of frmtmb, which exports
+`predict_rescor_draw()` and gives `rescor_row_loglik()` its `resp`.
+
+## Breaking changes
+
+* `posterior_predict()` of a `set_rescor(TRUE)` model draws the
+  responses of a row jointly, as brms does: per draw, a multivariate
+  normal with covariance `diag(sigma) R diag(sigma)`, or for `student()`
+  the multivariate t with the shared `nu`. Before, no call returned that
+  draw: without `resp` the method returned the first response only, and
+  draws of two responses taken one call each correlated at -0.05 to
+  0.08 on a fit whose residual correlation was 0.82. On a fit of three
+  responses (200 rows, 2000 draws), the correlations of the predictive
+  residuals are now 0.750, 0.554 and 0.315, within 1.3 Monte Carlo
+  standard errors of what the draws imply and within 0.7 of brms's own
+  draw from the same parameter draws. Under `sigma ~ x` and under
+  `student()`, the same holds within 1.4 and 0.8. A `sigma` that varies
+  by row is drawn at that row's value.
+
+* Without `resp`, `posterior_predict()`, `posterior_epred()`,
+  `posterior_linpred()` and `predictive_error()` of a multivariate
+  model return every response, as brms does: a draws x observations x
+  responses array with brms's response names. `fitted()`, `predict()`
+  and `residuals()` summarize it into brms's observations x 4 x
+  responses array. Before, they returned the first response only.
+  Without `rescor`, each layer is the draw that `resp =` gives for its
+  response.
+
+* `resp` takes several responses, in the order you name them, in
+  `posterior_predict()`, `posterior_epred()`, `posterior_linpred()`,
+  `predictive_error()`, `fitted()`, `predict()`, `residuals()`,
+  `log_lik()`, `loo()`, `waic()` and `loo_predict()`, `loo_epred()`,
+  `loo_linpred()` and `loo_predictive_interval()`. Each takes brms's
+  spelling of a name (`ya` for `y_a`) as well as frmtmb's, refuses a
+  name given twice, as brms does, and reads an empty `resp` as every
+  response, as brms does. Under `set_rescor(TRUE)`, a `resp` that is
+  not in the model's order is answered, with the correlations in the
+  order named; brms 2.23.0 stops there, because it looks up the
+  correlations by the names in the order given.
+
+* Where a response predicts more than one value per row (the category
+  probabilities of an ordinal or categorical response), the stacked
+  layout has no place for it. `posterior_epred()` and `fitted()`
+  without `resp` refuse such a model; brms binds the category columns
+  beside the other responses there. `predict()`
+  without `resp` refuses to summarize it, as brms stops; with
+  `summary = FALSE` it returns the draws. Name the response with
+  `resp =`. `predictive_interval()` without `resp` is refused, as brms
+  refuses it.
+
+* `log_lik(resp =)` of a `set_rescor(TRUE)` model is brms's: one
+  response gives its own density, and several give their joint
+  density. Before, every `resp` gave the joint density of all the
+  responses, so `loo(resp = "y1")` on three responses reported -724.7
+  where the density of y1 gives -280.8. `loo()`, `waic()`,
+  `loo_predict()`, `loo_R2()` and the other `loo_*()` functions read
+  the corrected matrix through their `resp`. `log_lik(combine = FALSE)`
+  returns the joint matrix, as in brms, where it was refused.
+
+* One response of a `student()` model with `set_rescor(TRUE)` is drawn,
+  and its density taken, as a t with the shared `nu`, which is the
+  margin of the multivariate t. brms 2.23.0 reads `nu = 1` there (its
+  one-response preparation finds no `nu` of its own), which is not the
+  margin of its own model. This is a deliberate divergence from brms.
+
 # frmtmb.sample 0.24.0
 
 Needs frmtmb 0.77.0. That release reads brms's `(flat)` as a prior

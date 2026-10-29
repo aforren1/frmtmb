@@ -89,6 +89,7 @@
 \alias{ord_lp_blocks}
 \alias{ord_thres_linpred}
 \alias{rescor_row_loglik}
+\alias{predict_rescor_draw}
 \alias{autocor_flat_priors}
 \alias{autocor_bound_chart}
 \alias{autocor_row_loglik}
@@ -192,6 +193,19 @@ returns): the multivariate normal of a gaussian model or the
 multivariate t of a Student-t one, with its one shared \code{nu}. A
 pointwise \code{log_lik()} of a \code{rescor} model reads it rather than
 assuming the normal.
+Its \code{resp} argument (default every response) names the responses
+whose joint density is wanted, as brms's \code{log_lik(resp =)} asks.
+\code{predict_rescor_draw(fs, rspecs, dps, ok)} is one JOINT predictive
+draw of the responses \code{rspecs} (a named subset of
+\code{fs$spec$responses}) at the parameters of the fit \code{fs}, on the
+rows where \code{ok} is \code{TRUE}: \code{dps} holds each response's dpar values,
+with \code{mu} and \code{sigma}, paired with \code{rspecs} by name when it is
+named (the whole list \code{eval_dpars()} returns serves any subset) and
+by position otherwise. It is brms's multivariate normal draw, or its
+multivariate t with the one shared \code{nu}, and it returns a list of
+one vector per response, or \code{NULL} when no row is \code{ok}. Both
+\code{predict()} and \code{posterior_predict()} of a \code{rescor} model draw through
+it, so the two cannot drift apart.
 \code{autocor_row_loglik(fit, dpv, resp)} is the pointwise log-density of
 a response with a residual covariance term (the covariance form of
 \code{ar()}, \code{ma()} and \code{arma()}, \code{cosy()}, \code{unstr()}, \code{fcor()}, a term of

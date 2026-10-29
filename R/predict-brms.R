@@ -816,8 +816,28 @@ predict_sim_rows <- function(fs, rspec, dpv, av, ok, ntrys) {
 #' shared by the responses, which is what makes them jointly t rather
 #' than K independent t's.
 #'
+#' `dps` is paired with `rspecs` by NAME when it has names, so the whole
+#' list `eval_dpars()` returns serves any subset of the responses; an
+#' unnamed `dps` is paired by position. Pairing by position alone gave a
+#' subset `rspecs[c("y3", "y1")]` with the full list a draw labeled y3
+#' that read y1's mean and sigma.
+#'
 #' @noRd
 predict_rescor_draw <- function(fs, rspecs, dps, ok) {
+  if (!is.null(names(dps))) {
+    miss <- setdiff(names(rspecs), names(dps))
+    if (length(miss)) {
+      frm_stop("predict_rescor_draw(): `dps` has no entry for response '",
+               miss[1L], "'. Pass the dpar values of every response in ",
+               "`rspecs`, named by response", call. = FALSE)
+    }
+    dps <- dps[names(rspecs)]
+  } else if (length(dps) != length(rspecs)) {
+    frm_stop("predict_rescor_draw(): `dps` has ", length(dps), " entries ",
+             "for ", length(rspecs), " responses. Name them by response, ",
+             "or give one per response in the order of `rspecs`",
+             call. = FALSE)
+  }
   if (!any(ok)) return(NULL)
   R <- rescor_matrix(fs)[names(rspecs), names(rspecs), drop = FALSE]
   L <- chol(R)
@@ -855,10 +875,17 @@ predict_rescor_draw <- function(fs, rspecs, dps, ok) {
 #' (`dev/arcovsample-log/tnu.txt`). See `lgamma_shift_diff()` for why
 #' the blend and the branch are both unavailable here.
 #'
+#' `resp` names a subset of the responses: brms's `log_lik(resp =)` of a
+#' `rescor` model is the joint density of THOSE responses, the same law
+#' restricted to the rows and columns of the correlation matrix they
+#' name (a margin of a multivariate normal or t is one of the same
+#' kind, with the same `nu`).
+#'
 #' @noRd
-rescor_row_loglik <- function(fit, dpv) {
+rescor_row_loglik <- function(fit, dpv, resp = NULL) {
   frame <- fit$frame
-  rs <- names(fit$spec$responses)
+  all_rs <- names(fit$spec$responses)
+  rs <- resp %||% all_rs
   K <- length(rs)
   n <- frame[["n_obs"]]
   Z <- matrix(vapply(rs, function(r) {
@@ -867,7 +894,12 @@ rescor_row_loglik <- function(fit, dpv) {
   lsig <- rowSums(matrix(vapply(rs, function(r) {
     rep(log(as.numeric(dpv[[r]]$sigma)), length.out = n)
   }, numeric(n)), n, K))
-  C <- us_chol_cor(fit$estimates[["thetar"]], K)
+  C <- us_chol_cor(fit$estimates[["thetar"]], length(all_rs))
+  # in the order `resp` gives, which is the order of the columns of Z
+  if (!identical(rs, all_rs)) {
+    k <- match(rs, all_rs)
+    C <- C[k, k, drop = FALSE]
+  }
   nu <- rescor_shared_nu(fit)
   if (is.null(nu)) {
     return(as.numeric(RTMB::dmvnorm(Z, 0, C, log = TRUE)) - lsig)
