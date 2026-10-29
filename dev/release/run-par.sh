@@ -27,7 +27,7 @@ LOG="$ROOT/dev/release/$tier.log"
 [ -f "$RUN" ] || { echo "runner missing: $RUN"; exit 1; }
 [ -s "$list" ] || { echo "empty job list: $list"; exit 1; }
 RT=/c/rtools45
-export PATH="$RT/usr/bin:$RT/x86_64-w64-mingw32.static.posix/bin:$PATH"
+export PATH="$PATH:$RT/usr/bin:$RT/x86_64-w64-mingw32.static.posix/bin"
 MK=C:/Users/adf44/Documents/.R/Makevars.win
 export R_MAKEVARS_USER="${R_MAKEVARS_USER:-$MK}"
 export FRMTMB_STAN_CACHE="${FRMTMB_STAN_CACHE:-$ROOT/dev/stan-cache}"

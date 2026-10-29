@@ -153,12 +153,15 @@ draws_row_loglik <- function(fit, resp) {
   # model, and a branch here would be a second place to keep in step.
   dpv <- arma_cond_dpars(fit, with_cs_offsets(fit, NULL, eval_dpars(fit)))
   n <- frame[["n_obs"]]
-  if (isTRUE(fit$spec$rescor)) {
+  if (isTRUE(fit$spec$rescor) && length(resp) != 1L) {
     # the joint likelihood contributes ONE K-variate density per row
     # (normal, or Student-t with one shared nu), so the columns still
     # index observations; this is brms's log_lik for a set_rescor(TRUE)
-    # model
-    return(rescor_row_loglik(fit, dpv))
+    # model, over every response or over the ones `resp` names. ONE
+    # response is its own margin, the family's density below, as brms
+    # computes it; this branch used to answer that with the joint
+    # density of all of them
+    return(rescor_row_loglik(fit, dpv, resp))
   }
   use <- resp %||% names(rspecs)
   cond <- arma_cond_resp(fit)
@@ -282,6 +285,11 @@ draws_row_loglik <- function(fit, resp) {
 #' @section Multivariate models:
 #' With `set_rescor(TRUE)` a column is the joint density of the row's
 #' response VECTOR, so the matrix keeps one column per observation.
+#' `resp` naming several responses gives the joint density of those
+#' responses, and naming one gives that response's own marginal density
+#' (the normal, or for `student()` the t with the shared `nu`), as
+#' brms's `log_lik(resp =)` computes them. `combine = FALSE` has nothing
+#' to combine there and returns the same matrix, as in brms.
 #' Without `rescor`, the responses are independent given the predictors
 #' and the default sums their log-densities per row; pass `resp` to get
 #' one response's contribution alone.
@@ -319,12 +327,14 @@ draws_row_loglik <- function(fit, resp) {
 #'   matrix (default: all of them).
 #' @param draw_ids The draws to use, by row index, instead of the
 #'   evenly spaced subsample `ndraws` takes. Give one or the other.
-#' @param resp For a multivariate model without `rescor`, the response
-#'   whose contribution to report; the default sums over responses.
+#' @param resp For a multivariate model, the responses whose density to
+#'   report: the default is every response, summed without `rescor` and
+#'   joint with it (see *Multivariate models*).
 #' @param pointwise,combine,add_point_estimate,cores brms's slots, in
 #'   brms's positions. `pointwise = TRUE` (brms's function of one
 #'   observation) and `add_point_estimate = TRUE` are refused by name;
-#'   `combine = FALSE` is accepted on a univariate model, where there is
+#'   `combine = FALSE` is accepted on a univariate model, on one
+#'   response, and on a `set_rescor(TRUE)` model, where there is
 #'   nothing to combine; `cores` is accepted and unused, because the
 #'   matrix is built in this process.
 #' @param point_estimate,ndraws_point_estimate brms's arguments:
@@ -421,7 +431,19 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
   fit <- draws_base_fit(object)
   draws_require_b(object, "log_lik()")
   draws_loglik_factors(fit, "log_lik()")
-  if (!combine && length(fit$spec$responses) > 1L && is.null(resp)) {
+  # brms's validate_resp(): an empty `resp` is every response. On a
+  # multivariate model a name is read as the other methods read it:
+  # either spelling (brms's `ya` for `y_a`), each response once, which
+  # also keeps a repeated name from asking for the density of a
+  # singular correlation matrix
+  if (!length(resp)) resp <- NULL
+  if (!is.null(resp) && length(fit$spec$responses) > 1L) {
+    resp <- draws_resp_set(fit, resp)
+  }
+  # a set_rescor(TRUE) model has nothing to combine: a column is the
+  # joint density of the row, and brms returns that matrix either way
+  if (!combine && length(fit$spec$responses) > 1L && length(resp) != 1L &&
+        !isTRUE(fit$spec$rescor)) {
     frm_stop("log_lik(combine = FALSE) is not supported on a multivariate ",
              "model: brms returns one matrix per response, and this method ",
              "returns their sum. Ask for one response with resp =",
@@ -430,8 +452,9 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
   # subset(): the responses are fitted on different rows, so their
   # columns do not line up to be summed; brms asks for one response
   subset_resp_check(fit, resp, "log_lik()")
-  if (!is.null(resp) && !resp %in% names(fit$spec$responses)) {
-    frm_stop("log_lik(resp = \"", resp, "\") names no response of this ",
+  if (!is.null(resp) && !all(resp %in% names(fit$spec$responses))) {
+    frm_stop("log_lik(resp = \"", paste(resp, collapse = "\", \""),
+             "\") names no response of this ",
              "model; it has ",
              paste(names(fit$spec$responses), collapse = ", "),
              call. = FALSE)
@@ -684,8 +707,15 @@ loo_criterion <- function(x, dots, dots_expr, crit, compare, resp, ndraws,
     # computed on different responses. brms hashes them with digest;
     # the values themselves compare the same way
     fit <- draws_base_fit(m)
+    # in frmtmb's spelling, as log_lik() read it, so `ya` and `y_a` hash
+    # the same response
+    rs <- if (length(fit$spec$responses) > 1L) {
+      draws_resp_set(fit, resp)
+    } else {
+      resp %||% names(fit$spec$responses)
+    }
     attr(out, "yhash") <- unname(lapply(
-      resp %||% names(fit$spec$responses),
+      rs,
       function(r) as.numeric(draws_observed_y(fit, r))))
     out
   }
@@ -1166,12 +1196,31 @@ bayes_R2_newdata_y <- function(fit, resp, newdata) {
 brms_resp_index <- function(resp, stan) {
   if (is.null(resp)) return(seq_along(stan))
   s <- match(as.character(resp), stan)
-  if (anyNA(s)) {
-    # brms's words
-    frm_stop("Invalid argument 'resp'. Valid response variables are: ",
-             paste(stan, collapse = ", "), call. = FALSE)
-  }
+  if (anyNA(s)) draws_refuse_resp(paste(stan, collapse = ", "))
+  # as draws_resp_set() refuses it for every other method: bayes_R2()
+  # answered two identical rows, and loo_R2() two different ones, from
+  # two runs of its bootstrap
+  if (anyDuplicated(s)) draws_refuse_resp_twice(stan[s[anyDuplicated(s)]])
   s
+}
+
+#' The refusal of a `resp` that names one response twice, which brms
+#' refuses too (on a rescor model it looks for the correlation of a
+#' response with itself); `name` is the name as the caller spells it.
+#'
+#' @noRd
+draws_refuse_resp_twice <- function(name) {
+  frm_stop("`resp` names the response '", name, "' twice. Name each ",
+           "response once", call. = FALSE)
+}
+
+#' brms's refusal of a `resp` that names no response, in brms's words;
+#' `valid` is the list of names, as the caller spells them.
+#'
+#' @noRd
+draws_refuse_resp <- function(valid) {
+  frm_stop("Invalid argument 'resp'. Valid response variables are: ",
+           valid, call. = FALSE)
 }
 
 #' @rdname sample-bayes_R2

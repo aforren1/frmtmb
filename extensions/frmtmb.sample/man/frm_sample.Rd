@@ -56,7 +56,17 @@ where \code{inc_warmup = TRUE} reads them (see Warmup).}
 \code{brmsprior} or a prior table, or the string \code{"flat"}. A
 specification \code{set_prior("", class = ...)} (or a table row whose
 prior is \code{(flat)} and that carries no bound) is brms's \code{(flat)} on
-that slot, in place of its default. The objective is re-taped with the
+that slot, in place of its default. A slot with no default of its
+own, such as a \code{group} or \code{coef} row under a class row, inherits
+the class row's density then, as brms's empty row does, so a
+\code{\link[frmtmb:default_prior]{frmtmb::default_prior()}} table of \code{route = "sample"} with its
+class row edited applies the edit to every group. A bound on one
+coefficient (\code{coef} with \code{lb} or \code{ub}) is refused with brms's
+message: brms, and this function, take bounds per class.
+\code{set_prior(class = "Intercept", nlpar = "a")} is brms's class row
+\verb{class = "b", nlpar = "a"} where \code{a ~ 1}, its bound included; with
+a bound, it is refused where \code{a} has more than an intercept. The
+objective is re-taped with the
 prior terms added; a fitted model itself is unchanged. On both
 paths the brms default priors apply to whatever this argument, and
 a MAP fit's own prior, leave alone (see Default priors), and
@@ -402,7 +412,9 @@ family. Write \verb{y*} for the response transformed by a link and
    \code{Intercept} (ordinal thresholds) \tab \code{student_t(3, 0, 2.5)} \tab thresholds \cr
    \code{delta} (equidistant thresholds) \tab \code{(flat)}, \code{lb = 0} where ordered \tab natural, log-Jacobian applied \cr
    \code{sd} \tab \code{student_t(3, 0, s)} \tab natural sd, log-Jacobian applied \cr
-   \code{cor}, \code{rescor}, \code{lncor}, \code{cortime} \tab \code{lkj(1)} \tab correlation matrix \cr
+   \code{meanme} (latent mean of a \code{me()} term) \tab \code{(flat)} \tab natural \cr
+   \code{sdme} (latent sd of a \code{me()} term) \tab \code{(flat)}, \code{lb = 0} \tab natural sd, log-Jacobian applied \cr
+   \code{cor}, \code{rescor}, \code{lncor}, \code{cortime}, \code{corme} \tab \code{lkj(1)} \tab correlation matrix \cr
    \code{ar}, \code{ma} (\code{cov = TRUE}), \code{cosy}, \code{lagsar} \tab flat, see below \tab natural \cr
    \code{simo}, \code{sbhaz} \tab \code{dirichlet(1)} \tab the simplex \cr
    \code{theta} (mixture weights) \tab \code{dirichlet(1)} \tab the simplex \cr
@@ -650,9 +662,14 @@ intercept brms puts that prior on, so the population-level
 intercept \code{b_Intercept} has no prior draws, as in brms. An ordinal
 model with a threshold prior of its own (\code{coef = "1"}) has one
 column per threshold, \code{prior_Intercept__1}, ..., as brms does. A
-\code{gp()} term's \code{sdgp} and \code{lscale} are not drawn, nor brms's
-\code{meanme} and \code{sdme} of a \code{me()} term, which frmtmb has no prior slot
-for, nor a GEV's \code{xi} (brms draws no prior of it either).
+\code{gp()} term's \code{sdgp} and \code{lscale} are not drawn, nor a GEV's \code{xi}
+(brms draws no prior of it either). A \code{me()} term's hyperparameters
+are drawn under brms's names, which are numbered by the group of
+terms that share a \verb{gr =}: \code{prior_meanme_1} and \code{prior_sdme_1} for
+a class-wide prior, \code{prior_Lme_1} for the correlation, and, where a
+term has a prior of its own, one column per term spelled as brms's
+renaming spells it, \code{prior_meanme_1_meanme_mex}. With brms's
+defaults only \code{prior_Lme_1} is drawn, as in brms.
 
 The draws are made directly from each density with R's random
 number generators, as brms makes them in Stan's generated
@@ -675,9 +692,11 @@ only a parameter with no prior at all and samples a coefficient
 left flat beside others that have a prior; this function refuses
 that too. A model with missing values of an \code{mi()} term is refused,
 because without the likelihood those values have no density (brms
-samples them flat). A model with \code{me()} terms is refused: brms
-samples it once its classes \code{"meanme"} and \code{"sdme"} have proper
-priors, and frmtmb has no prior slot for those classes yet. Draws
+samples them flat). A model with \code{me()} terms needs proper priors on
+\code{"meanme"} and \code{"sdme"}, as in brms, which names \code{'meanme_1'}
+otherwise; the measurement and latent densities of the \code{me()}
+terms stay, as brms keeps them, so the latent values and their
+hyperparameters are informed by the noisy values. Draws
 made with \code{"only"} have no prior draws of their own, as in brms.
 }
 

@@ -213,14 +213,15 @@ bin2_policy_unported <- paste0("distributions:",
 # A literal pass that a reader could take for more than it shows. The
 # two rescor posterior_predict rows are frmtmb's (core) rows, as every
 # bin-2P row is; frmtmb.sample's posterior_predict() of set_rescor(TRUE)
-# draws is another path, with a defect filed at the 0.77.0 release.
+# draws reads the same joint draw since 0.25.0, which closed the defect
+# filed at the 0.77.0 release (the note says so).
 bin2_pass_note <- stats::setNames(rep(paste(
   "pass through core's predict() joint draw",
-  "(brms_adapt_mv_posterior_predict()), the route of every bin-2P row;",
-  "it says nothing about",
-  "frmtmb.sample's posterior_predict() of set_rescor(TRUE) draws, which",
-  "draws the responses independently (dev/test-backlog.md, filed at the",
-  "0.77.0 release)"), 2L),
+  "(brms_adapt_mv_posterior_predict()), the route of every bin-2P row.",
+  "frmtmb.sample's posterior_predict() of set_rescor(TRUE) draws reads",
+  "the same joint draw through core's predict_rescor_draw() since",
+  "frmtmb.sample 0.25.0, which its own tests check",
+  "(test-rescor-draws.R)"), 2L),
   c("posterior_predict:69", "posterior_predict:72"))
 
 # brms's exported d, r and p functions that dev/brmsport-bin2-adapters.R

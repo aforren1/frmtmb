@@ -279,19 +279,32 @@ test_that("a mi(sdy) response with no missing value samples under \"only\"", {
   expect_lt(abs(stats::sd(yl) - 0.3) / posterior::mcse_sd(yl), 4)
 })
 
-test_that("an me() model is refused under \"only\", naming brms's classes", {
+test_that("an me() model samples under \"only\" once meanme, sdme are proper", {
   skip_sampler()
   d <- pd_data()
   d$sdx <- 0.3
-  # brms 2.23.0: "Error occurred for parameter 'meanme_1'" until meanme
-  # and sdme have proper priors (dev/priordraws-brms-me.R); frmtmb has
-  # no slot for them
-  expect_error(
+  # brms 2.23.0 names meanme_1 while it is flat, then sdme_1
+  # (dev/meme-out/brms-order.txt). Through 0.77.0 frmtmb had no slot for
+  # either class and refused every me() model here
+  pb <- set_prior("normal(0, 1)", class = "b")
+  run <- function(pr, iter = 100) {
     frm_sample(bf(y ~ me(x, sdx)), data = d, family = gaussian(),
-               prior = set_prior("normal(0, 1)", class = "b"),
-               sample_prior = "only", chains = 1, iter = 100, refresh = 0),
-    "parameter 'meanme_1'. frmtmb has no prior slot yet for brms's classes",
-    fixed = TRUE)
+               prior = pr, sample_prior = "only", chains = 2, iter = iter,
+               seed = 5, refresh = 0)
+  }
+  expect_error(pd_quiet(run(pb)), paste0(
+    "no proper priors. Error occurred for parameter 'meanme_1'.$"))
+  pm <- pb + set_prior("normal(0, 2)", class = "meanme")
+  expect_error(pd_quiet(run(pm)), "parameter 'sdme_1'.$")
+  do <- pd_quiet(run(pm + set_prior("exponential(1)", class = "sdme"),
+                     iter = 1000))
+  # the slope enters only the likelihood, which "only" leaves out, so its
+  # draws are its prior; meanme and sdme keep the measurement density of
+  # x, as brms's do, and are not their priors
+  b <- matrix(as.matrix(do)[, "bsp_mexsdx"], ncol = 2)
+  expect_lt(abs(mean(b)) / posterior::mcse_mean(b), 4)
+  expect_lt(abs(stats::sd(b) - 1) / posterior::mcse_sd(b), 4)
+  expect_true(all(c("meanme_mex", "sdme_mex") %in% colnames(do$draws)))
 })
 
 test_that("ordinal threshold priors of their own are drawn as brms's", {

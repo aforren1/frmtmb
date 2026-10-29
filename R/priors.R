@@ -77,6 +77,17 @@
 #'   (frmtmb.survival), or the simplex a family declares under that name
 #'   (`frmtmb_family(simplex_pars =)`); `dirichlet(alpha)` only, brms's
 #'   class of the same name; no `coef`.
+#' - `"meanme"`, `"sdme"`, `"corme"`: the hyperparameters of the latent
+#'   values of [me()][frmtmb-me] terms, brms's classes of the same
+#'   names. `"meanme"` is a density on the latent mean, `"sdme"` one on
+#'   the latent standard deviation itself, with the log-Jacobian of the
+#'   log map, as class `"sd"`. `coef` names one `me()` variable as
+#'   [default_prior()] lists it (`"mex"` for `me(x, sdx)`), and neither
+#'   class takes a `group`. `"corme"` takes `lkj(eta)` on the
+#'   correlation matrix of the `me()` terms that share a `gr =`, as a
+#'   whole: `group` selects the `gr =` variable, and no `coef`. The
+#'   three take no `resp`, `dpar` or `nlpar`, because one set of latent
+#'   values serves the whole model.
 #' - `"theta"`: frmtmb's own class, for the internal covariance
 #'   parameters that no brms class names, on the internal scale: a
 #'   `toep()` correlation, the parameter of a covariance structure an
@@ -244,6 +255,12 @@
 #' class `"b"` with `nlpar` covers EVERY coefficient of that parameter;
 #' `coef` picks out one.
 #'
+#' A bound on one coefficient is frmtmb's own on [frm()], a box on the
+#' maximum-likelihood fit. brms refuses it ("Prior argument 'coef' may
+#' not be specified when using boundaries."), and so does
+#' `frmtmb.sample::frm_sample()`, which samples brms's model: there a
+#' bound goes on the class row.
+#'
 #' The scale is the parameter's own: class `"sd"` bounds a standard
 #' deviation on the sd scale (frmtmb stores its log), classes `"ar"`,
 #' `"ma"` and `"cosy"` bound the natural coefficient of a residual
@@ -394,12 +411,13 @@
 #'   performs. A bound travels with it, so `lb = 0` on a log-linked
 #'   dispersion becomes no constraint rather than a floor of 1.
 #' - `simo` and `sbhaz` keep their meaning too: a `dirichlet()` on a
-#'   `mo()` simplex and on a `cox()` baseline.
-#' - `theta`/`theta1`/`theta2`, `sds`, `sdgp`, `lscale`,
-#'   `sdcar`, `car`, `meanme`, `sdme` and `corme` are refused by name,
-#'   each saying where frmtmb keeps that quantity instead, or that it
-#'   has no prior slot. A refusal is deliberate: translating
-#'   one of them would produce a different model rather than no model.
+#'   `mo()` simplex and on a `cox()` baseline. So do `meanme`, `sdme`
+#'   and `corme`, the hyperparameters of a `me()` term, brms's `lkj(1)`
+#'   default on `corme` included.
+#' - `theta`/`theta1`/`theta2`, `sds`, `sdcar` and `car` are refused by
+#'   name, each saying where frmtmb keeps that quantity instead. A
+#'   refusal is deliberate: translating one of them would produce a
+#'   different model rather than no model.
 #' - a `coef` on a `sd` or `cor` row is refused for the same reason.
 #'   brms narrows such a row to one coefficient of a block; frmtmb
 #'   resolves those classes per BLOCK, so applying the row without its
@@ -460,20 +478,24 @@
 #' @param class `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"`, one
 #'   of the residual-structure classes `"ar"`, `"ma"`, `"cosy"`,
 #'   `"cortime"` and `"rescor"`, the simplex classes `"simo"` and
-#'   `"sbhaz"`, or a distributional parameter's own
+#'   `"sbhaz"`, the `me()` classes `"meanme"`, `"sdme"` and `"corme"`,
+#'   or a distributional parameter's own
 #'   name (`"sigma"`, `"shape"`, ...). See A distributional parameter's
 #'   own class.
 #' @param coef Restrict to one coefficient (classes `"b"`/`"Intercept"`),
 #'   to the standard deviation of one coefficient (class `"sd"`, with
-#'   `group`), name the simplex of class `"simo"`, or name one internal
+#'   `group`), name the simplex of class `"simo"`, name one `me()`
+#'   variable of class `"meanme"` or `"sdme"`, or name one internal
 #'   parameter of class `"theta"`. A coefficient is
 #'   named as brms names it and as [default_prior()] lists it: `logxp`
 #'   for the column of `log(xp)`, `IxE2` for `I(x^2)`. The name of the
 #'   design column, `log(xp)`, also works.
-#' @param group Restrict class `"sd"` or `"cor"` to one grouping factor.
+#' @param group Restrict class `"sd"` or `"cor"` to one grouping factor,
+#'   or class `"corme"` to the `me()` terms of one `gr =` variable.
 #' @param resp Response of a multivariate model. Required there for
-#'   every class except `"cor"`, `"rescor"` and `"theta"`; refused on a
-#'   model with one response and on class `"rescor"`.
+#'   every class except `"cor"`, `"rescor"`, `"theta"` and the `me()`
+#'   classes; refused on a model with one response and on classes
+#'   `"rescor"`, `"meanme"`, `"sdme"` and `"corme"`.
 #' @param dpar Distributional parameter (default: the location
 #'   parameters).
 #' @param nlpar Nonlinear parameter of an `nl = TRUE` formula. See
@@ -605,7 +627,7 @@ prior_class_bounds <- function(s) {
       c(lb = FALSE, ub = FALSE)))
   }
   switch(s$class,
-    sd = , sdgp = , lscale = , delta = c(lb = TRUE, ub = FALSE),
+    sd = , sdgp = , lscale = , delta = , sdme = c(lb = TRUE, ub = FALSE),
     cosy = c(lb = TRUE, ub = TRUE),
     c(lb = FALSE, ub = FALSE))
 }
@@ -707,7 +729,8 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
   # meaning on a single coefficient or standard deviation, and the
   # matrix-valued classes have no meaning without it: neither mistake
   # can produce a silently different model
-  lkj_classes <- c("cor", "cortime", "rescor", "lncor")
+  lkj_classes <- c("cor", "cortime", "rescor", "lncor",
+                   "corme")
   is_lkj <- identical(dist$kind, "lkj")
   if (is_lkj && !class %in% lkj_classes) {
     frm_stop("lkj() is a density over a whole correlation matrix; it ",
@@ -786,6 +809,19 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
   }
   ch <- unhonored_coef_refusal(class, coef, group)
   if (!is.null(ch)) frm_stop(ch, call. = FALSE)
+  # a me() term's latent values are one set for the whole model, shared
+  # by every predictor and response that uses the call (brms's
+  # get_uni_me()), so brms keys their rows by none of these
+  me_cls <- c("meanme", "sdme", "corme")
+  if (class %in% me_cls && (nzchar(resp) || nzchar(dpar) || nzchar(nlpar))) {
+    arg <- c(resp = resp, dpar = dpar, nlpar = nlpar)
+    arg <- arg[nzchar(arg)][1L]
+    frm_stop("class = \"", class, "\" takes no ", names(arg), ": a me() ",
+             "term's latent values are one set for the whole model, shared ",
+             "by every predictor and response that uses the call, and ",
+             "brms's ", class, " rows carry no ", names(arg), ". Drop ",
+             names(arg), " = \"", arg, "\"", call. = FALSE)
+  }
   if (natural) {
     # the class IS the parameter, so `dpar` would name it twice and
     # `nlpar` would name something else entirely
@@ -841,7 +877,8 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
 #' @noRd
 frmtmb_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale", "cor",
                           "theta", "ar", "ma", "cosy", "cortime", "rescor",
-                          "delta", "simo", "sbhaz", "lncor")
+                          "delta", "simo", "sbhaz", "lncor",
+                          "meanme", "sdme", "corme")
 
 #' Refuse a class name that is neither frmtmb's own nor usable as a
 #' distributional parameter's name.
@@ -1064,13 +1101,6 @@ as_priorlist <- function(x) {
         next
       }
     }
-    # brms fills its corme row with lkj(1), which is flat over the
-    # correlation matrices and so applies nothing; only a row somebody
-    # edited is a prior frmtmb cannot honor
-    if (identical(cls, "corme") &&
-        identical(gsub("[[:space:]]", "", dist), "lkj(1)")) {
-      next
-    }
     if (nzchar(chr("tag", i))) {
       refuse(i, dist, cls,
              paste0("tag = \"", chr("tag", i), "\" names a prior for ",
@@ -1222,6 +1252,22 @@ unhonored_coef_refusal <- function(cls, coef, group = "") {
                   "a grouping term, and brms's rows for it carry none. ",
                   "`coef` names the term, as get_prior() lists it. "))
   }
+  # brms lists meanme and sdme per me() variable (coef "mex") and has no
+  # group row for them; a corme row is one correlation matrix per gr =,
+  # which group selects and no coef narrows (brms: "Lme_mex" names no
+  # parameter, dev/meme-out/brms.txt)
+  if (cls %in% c("meanme", "sdme") && nzchar(group)) {
+    return(paste0("class = \"", cls, "\" has no group: it is one ",
+                  "parameter per me() variable, named by coef as ",
+                  "get_prior() lists it (\"mex\" for me(x, sdx)), ",
+                  "whatever its gr =. brms's rows carry no group. "))
+  }
+  if (identical(cls, "corme") && nzchar(coef)) {
+    return(paste0("class = \"corme\" addresses the whole correlation ",
+                  "matrix of the me() terms that share a gr =, so ",
+                  "coef = \"", coef, "\" names nothing it can narrow to. ",
+                  "Drop the coef; `group` selects the gr = variable. "))
+  }
   if (!nzchar(coef) || !identical(cls, "cor")) return(NULL)
   paste0("class = \"cor\" addresses a whole correlation ",
          "matrix, so coef = \"", coef, "\" names nothing it ",
@@ -1235,7 +1281,8 @@ unhonored_coef_refusal <- function(cls, coef, group = "") {
 #' @noRd
 brms_direct_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale",
                                "cor", "ar", "ma", "cosy", "cortime",
-                               "rescor", "delta", "simo", "sbhaz", "lncor")
+                               "rescor", "delta", "simo", "sbhaz", "lncor",
+                               "meanme", "sdme", "corme")
 
 #' Why a brms class cannot be carried over, or `NULL` when it can.
 #'
@@ -1264,22 +1311,6 @@ brms_prior_class_refusal <- function(cls) {
                   "row applies nothing in brms either. "))
   }
   switch(cls,
-    meanme = paste0(
-      "brms's \"meanme\" is the mean of a me() term's latent values. ",
-      "frmtmb estimates it by maximum likelihood and has no prior slot ",
-      "for it, so there is no class to carry the row into: drop the ",
-      "row. A flat meanme row from get_prior() is dropped for you. "),
-    sdme = paste0(
-      "brms's \"sdme\" is the SD of a me() term's latent values. frmtmb ",
-      "estimates it by maximum likelihood and has no prior slot for it, ",
-      "so there is no class to carry the row into: drop the row. A flat ",
-      "sdme row from get_prior() is dropped for you. "),
-    corme = paste0(
-      "brms's \"corme\" is the correlation of the latent values of ",
-      "several me() terms. frmtmb estimates it by maximum likelihood and ",
-      "has no prior slot for it: drop the row. brms's default lkj(1) is ",
-      "flat and is dropped for you, and set_mecor(FALSE) fixes the ",
-      "correlation at zero. "),
     sds = paste0(
       "brms's \"sds\" is the wiggliness standard deviation of a smooth. ",
       "frmtmb holds a smooth as a random-effect block, so its frmtmb ",
@@ -2253,7 +2284,16 @@ prior_table <- function(spec, frame, route) {
     # distances and lists it on that sub-GP's row
     slot <- prior_slot_key(class, if (identical(class, "cor")) "" else dpar,
                            nlpar, resp)
-    d <- if (nzchar(coef)) defs[[paste0(slot, "|", coef)]] else defs[[slot]]
+    # a group row inherits the class row's density, and brms prints it
+    # "" (dev/meme-out/fix-brms-grp.txt): sd, cor and corme groups, a
+    # level of thres(gr = ). Printing the inherited default there made
+    # it an explicit prior when the table was passed back, so an edited
+    # class row never reached the groups. No default is written per group
+    d <- if (nzchar(coef)) {
+      defs[[paste0(slot, "|", coef)]]
+    } else if (!nzchar(group)) {
+      defs[[slot]]
+    }
     # brms's column order, so a table read by position lines up with
     # the one brms returns
     rows[[length(rows) + 1L]] <<- data.frame(
@@ -2489,6 +2529,21 @@ prior_table <- function(spec, frame, route) {
   # per such response, which a multivariate model names, as brms does
   for (b in lncor_blocks(list(spec = spec, frame = frame))) {
     add("lncor", resp = if (multi) b$resp else "")
+  }
+  # brms's prior_Xme(): meanme and sdme under a class row and one row per
+  # me() variable, sdme bounded below by 0 on its class row as brms
+  # declares it, and for each correlated group a class-wide corme row
+  # and, under gr =, a row for that grouping variable
+  me_fr <- frame[["me"]]
+  if (!is.null(me_fr)) {
+    me_coefs <- vapply(me_fr$terms, `[[`, "", "coef")
+    add("meanme")
+    for (co in me_coefs) add("meanme", coef = co)
+    add("sdme", lb = 0)
+    for (co in me_coefs) add("sdme", coef = co)
+    me_cor <- Filter(function(g) isTRUE(g$cor), me_fr$groups)
+    if (length(me_cor)) add("corme")
+    for (g in me_cor) if (nzchar(g$gr)) add("corme", group = g$gr)
   }
   # brms's default on a simplex is dirichlet(1), the flat density on it;
   # frm() applies no density there, and frm_sample() applies brms's
@@ -4093,6 +4148,93 @@ resolve_priorlist <- function(fit, pl) {
     })
   }
 
+  # brms's me() hyperparameters (stan_Xme()). meanme is on the scale
+  # frmtmb holds it on. sdme is a density on the sd itself, carried to
+  # the logsdme frmtmb holds with the log map's Jacobian, as class "sd"
+  # is. corme is an LKJ on the correlation matrix of one group of
+  # correlated terms, held in the us_chol_cor() chart rescor uses, so
+  # its density and Jacobian are rescor's
+  resolve_me_class <- function(s) {
+    me <- frame[["me"]]
+    if (is.null(me)) {
+      frm_stop("Prior target not found (", spec_target(s), "): class \"",
+               s$class, "\" is a hyperparameter of the latent values of a ",
+               "me() term, and this model has no me() term. brms refuses ",
+               "the row too", call. = FALSE)
+    }
+    coefs <- vapply(me$terms, `[[`, "", "coef")
+    if (identical(s$class, "corme")) {
+      cg <- Filter(function(g) isTRUE(g$cor), me$groups)
+      have <- vapply(cg, `[[`, "", "gr")
+      if (nzchar(s$group)) {
+        cg <- Filter(function(g) identical(g$gr, s$group), cg)
+      }
+      if (!length(cg)) {
+        frm_stop("No me() correlation matches ", spec_target(s), ". ",
+                 if (!length(have)) {
+                   paste0("Class \"corme\" is the correlation of the ",
+                          "latent values of two or more me() terms that ",
+                          "share a gr =, and this model has none",
+                          if (!isTRUE(me$mecor)) {
+                            ": set_mecor(FALSE) fixes it at zero"
+                          })
+                 } else if (any(nzchar(have))) {
+                   paste0("The correlated me() terms of this model are ",
+                          "grouped by ",
+                          paste0("\"", have[nzchar(have)], "\"",
+                                 collapse = ", "),
+                          if (!all(nzchar(have))) {
+                            paste0(", and ungrouped ones, which only the ",
+                                   "row with no group reaches")
+                          })
+                 } else {
+                   paste0("The correlated me() terms of this model have ",
+                          "no gr =, so the corme row with no group is ",
+                          "the one that reaches them")
+                 }, call. = FALSE)
+      }
+      for (g in cg) {
+        # "" names the slot and puts no density on frm()'s route
+        if (is.null(s$dist)) next
+        idx <- g$th_idx
+        claim("thetame", idx)
+        assigned[[nm_of("thetame", idx)]] <<-
+          list(comp = "thetame", idx = idx,
+               dist = lkj_dist(s$dist$eta,
+                               list(kind = "chol", d = length(g$K)),
+                               flat = isTRUE(s$dist$flat)),
+               scale = "internal", lb = NA, ub = NA)
+      }
+      return(invisible(NULL))
+    }
+    k <- seq_along(coefs)
+    if (nzchar(s$coef)) {
+      k <- which(coefs == s$coef)
+      if (!length(k)) {
+        frm_stop("No me() variable matches ", spec_target(s), ". Class \"",
+                 s$class, "\" names one by its coef, as get_prior() ",
+                 "lists it: this model's are ",
+                 paste0("\"", coefs, "\"", collapse = ", "), call. = FALSE)
+      }
+    }
+    is_mean <- identical(s$class, "meanme")
+    comp <- if (is_mean) "meanme" else "logsdme"
+    pm <- list(scale = if (is_mean) "internal" else "sd")
+    nms <- par_template_names(frame[["par_template"]][[comp]], comp)
+    for (i in k) {
+      key <- nm_of(comp, i)
+      if (!is.null(s$dist)) {
+        assigned[[key]] <<- list(comp = comp, idx = i, dist = s$dist,
+                                 scale = pm$scale, lb = s$lb, ub = s$ub)
+      } else if (!is.null(assigned[[key]])) {
+        assigned[[key]] <<- entry_bounds(assigned[[key]], s)
+      }
+      if (!is.na(s$lb)) lower[nms[i]] <<- internal_bound(s$lb, pm, "lb")
+      if (!is.na(s$ub)) upper[nms[i]] <<- internal_bound(s$ub, pm, "ub")
+    }
+    invisible(NULL)
+  }
+
   fam_simplex <- unique(vapply(family_simplex_terms(frame, fit$spec),
                                function(tm) tm$name, ""))
   for (s in prior_specificity_order(pl)) {
@@ -4382,6 +4524,8 @@ resolve_priorlist <- function(fit, pl) {
       resolve_rescor(s)
     } else if (s$class == "lncor") {
       resolve_lncor(s)
+    } else if (s$class %in% c("meanme", "sdme", "corme")) {
+      resolve_me_class(s)
     } else if (s$class %in% c("simo", "sbhaz", fam_simplex)) {
       # one joint density over the simplex's chart coordinates, in the
       # chart the frame reads them in (dirichlet_logdens())

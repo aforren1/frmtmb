@@ -149,7 +149,10 @@ own, and the draws are replayed in one process.}
 \value{
 A draws-by-observations matrix; for a categorical outcome
 \code{posterior_epred()} returns a draws-by-observations-by-categories
-array (see the section below).
+array (see the section below). On a multivariate model asked for
+every response (\code{resp = NULL}) or for several, a
+draws-by-observations-by-responses array; see \emph{Multivariate
+models}.
 }
 \description{
 \code{posterior_epred()} evaluates the response-scale expectation per
@@ -243,6 +246,40 @@ marker rather than a value, because \code{NULL} (keep the random effects)
 and \code{NA} (drop them) are both real settings here and neither can
 double as "unset". The behavior when neither is given is unchanged:
 \code{NULL} on every draws method, \code{NA} on \code{pp_check()} for a fit.
+}
+
+\section{Multivariate models}{
+
+Without \code{resp}, the three methods answer for every response of a
+multivariate model, as brms does: a draws x observations x responses
+array whose third margin carries brms's response names (\code{ya} for a
+column \code{y_a}). \code{resp} takes one response, which gives its matrix, or
+several, which give their layers in the order named. Either spelling
+of a name is accepted; a name given twice is refused, as brms refuses
+it, and an empty \code{resp} is every response, as in brms. Under
+\code{set_rescor(TRUE)} a \code{resp} out of the model's order is answered with
+the correlations in the order named, where brms 2.23.0 stops. A
+response that predicts several values per row (the category
+probabilities of an ordinal response in \code{posterior_epred()}) has no
+layer in this layout: name it with \code{resp}.
+
+With \code{set_rescor(TRUE)}, \code{posterior_predict()} draws the responses
+of a row JOINTLY, as brms's \code{posterior_predict()} does: per draw, a
+multivariate normal with covariance
+\eqn{\mathrm{diag}(\sigma) R \, \mathrm{diag}(\sigma)}{diag(sigma) R
+diag(sigma)}, where
+\eqn{R} is the draw's residual correlation matrix and \eqn{\sigma}
+the row's residual standard deviations (which a formula for \code{sigma}
+makes vary by row), or for \code{student()} the multivariate t with the
+one shared \code{nu}. So a sum or a contrast of the responses, or a joint
+interval, carries the residual correlation. With several responses
+named, the draw is joint over those, with the correlations among
+them. With one response named, the draw is that response's margin:
+normal, or t with the shared \code{nu}. brms 2.23.0 draws that margin of a
+\code{student()} model with \code{nu = 1}, which is not the margin of its own
+model; this package uses the shared \code{nu}. Without \code{rescor}, the
+responses are independent given a draw's parameters, and each layer
+is drawn on its own.
 }
 
 \section{Laplace draws}{

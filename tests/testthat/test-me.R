@@ -355,25 +355,35 @@ test_that("a multivariate model shares one latent vector per me() call", {
   expect_null(fit2$estimates[["thetame"]])
 })
 
-test_that("brms prior tables: the default rows drop, an edited one refuses", {
+test_that("brms prior tables: every me() row applies what it says", {
   skip_unless_brms()
   d <- me_data(seed = 39)
   bp <- with_brms_me(function() {
     brms::get_prior(y ~ me(x, sx) + me(z, sz), data = d)
   })
   expect_true(all(c("meanme", "sdme", "corme") %in% bp$class))
-  # the table's Intercept and sigma rows are real priors and apply; its
-  # me() rows are flat, lkj(1) included, and apply nothing
+  # the flat meanme and sdme rows apply nothing; the corme row is
+  # brms's lkj(1), a density on the chart frmtmb holds the correlation
+  # in, so it applies as the same row written by hand does. Through
+  # 0.77.0 the three classes had no slot and the rows were dropped
+  rest <- bp[!bp$class %in% c("meanme", "sdme", "corme"), ]
   f0 <- frm(bf(y ~ me(x, sx) + me(z, sz)) + gaussian(), data = d,
-            prior = bp[!bp$class %in% c("meanme", "sdme", "corme"), ])
+            prior = rest)
   f1 <- frm(bf(y ~ me(x, sx) + me(z, sz)) + gaussian(), data = d,
             prior = bp)
-  expect_identical(as.numeric(logLik(f1)), as.numeric(logLik(f0)))
+  fh <- frm(bf(y ~ me(x, sx) + me(z, sz)) + gaussian(), data = d,
+            prior = c(rest, brms::set_prior("lkj(1)", class = "corme")))
+  expect_identical(as.numeric(logLik(f1)), as.numeric(logLik(fh)))
+  expect_false(identical(as.numeric(logLik(f1)), as.numeric(logLik(f0))))
+  # an edited row is a prior on sdme, the one set_prior() writes
   bp$prior[bp$class == "sdme" & bp$coef == ""] <- "exponential(1)"
-  expect_error(frm(bf(y ~ me(x, sx) + me(z, sz)) + gaussian(), data = d,
-                   prior = bp), "brms's \"sdme\" is the SD of a me[(][)]")
-  expect_error(set_prior("normal(0, 1)", class = "meanme"),
-               "has no prior slot for it")
+  f2 <- frm(bf(y ~ me(x, sx) + me(z, sz)) + gaussian(), data = d,
+            prior = bp)
+  f3 <- frm(bf(y ~ me(x, sx) + me(z, sz)) + gaussian(), data = d,
+            prior = c(rest, brms::set_prior("lkj(1)", class = "corme"),
+                      brms::set_prior("exponential(1)", class = "sdme")))
+  expect_identical(as.numeric(logLik(f2)), as.numeric(logLik(f3)))
+  expect_false(identical(as.numeric(logLik(f2)), as.numeric(logLik(f1))))
   # the me() coefficient is an ordinary class = "b" coefficient
   fp <- frm(bf(y ~ me(x, sx)) + gaussian(), data = d,
             prior = set_prior("normal(0, 0.01)", class = "b",

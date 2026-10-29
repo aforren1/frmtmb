@@ -50,7 +50,7 @@ sample_compat_rules <- function() {
   b <- compat_rule_builder()
   r <- b$r
   r("rescor", "frm_sample", "works",
-    "Verified: tmbstan samples the multivariate outer parameters, the residual correlation included.")
+    "Verified: tmbstan samples the multivariate outer parameters, the residual correlation included. posterior_predict() draws the responses of a row jointly and log_lik() is the joint density of the row, as in brms.")
   r("mvbf", "frm_sample", "works",
     "Verified: tmbstan samples the multivariate outer parameters. A boundary variance component still warns about mode initialization, as it does for a univariate fit.")
   r("mixture", "frm_sample", "conditional",

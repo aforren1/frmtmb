@@ -164,10 +164,10 @@ test_that("posterior_predict for multivariate linear models runs without errors"
     paste0(
       "pass through core's predict() joint draw ",
       "(brms_adapt_mv_posterior_predict()), the route of every ",
-      "bin-2P row; it says nothing about frmtmb.sample's ",
-      "posterior_predict() of set_rescor(TRUE) draws, which draws ",
-      "the responses independently (dev/test-backlog.md, filed at ",
-      "the 0.77.0 release)"),
+      "bin-2P row. frmtmb.sample's posterior_predict() of ",
+      "set_rescor(TRUE) draws reads the same joint draw through ",
+      "core's predict_rescor_draw() since frmtmb.sample 0.25.0, ",
+      "which its own tests check (test-rescor-draws.R)"),
     expect_equal(dim(pred), c(ns, nvars))
   )
   brms_setup("posterior_predict:71",
@@ -177,10 +177,10 @@ test_that("posterior_predict for multivariate linear models runs without errors"
     paste0(
       "pass through core's predict() joint draw ",
       "(brms_adapt_mv_posterior_predict()), the route of every ",
-      "bin-2P row; it says nothing about frmtmb.sample's ",
-      "posterior_predict() of set_rescor(TRUE) draws, which draws ",
-      "the responses independently (dev/test-backlog.md, filed at ",
-      "the 0.77.0 release)"),
+      "bin-2P row. frmtmb.sample's posterior_predict() of ",
+      "set_rescor(TRUE) draws reads the same joint draw through ",
+      "core's predict_rescor_draw() since frmtmb.sample 0.25.0, ",
+      "which its own tests check (test-rescor-draws.R)"),
     expect_equal(dim(pred), c(ns, nvars))
   )
 })

@@ -24,23 +24,27 @@ bounds only.}
 \item{class}{\code{"b"}, \code{"Intercept"}, \code{"sd"}, \code{"cor"}, \code{"theta"}, one
 of the residual-structure classes \code{"ar"}, \code{"ma"}, \code{"cosy"},
 \code{"cortime"} and \code{"rescor"}, the simplex classes \code{"simo"} and
-\code{"sbhaz"}, or a distributional parameter's own
+\code{"sbhaz"}, the \code{me()} classes \code{"meanme"}, \code{"sdme"} and \code{"corme"},
+or a distributional parameter's own
 name (\code{"sigma"}, \code{"shape"}, ...). See A distributional parameter's
 own class.}
 
 \item{coef}{Restrict to one coefficient (classes \code{"b"}/\code{"Intercept"}),
 to the standard deviation of one coefficient (class \code{"sd"}, with
-\code{group}), name the simplex of class \code{"simo"}, or name one internal
+\code{group}), name the simplex of class \code{"simo"}, name one \code{me()}
+variable of class \code{"meanme"} or \code{"sdme"}, or name one internal
 parameter of class \code{"theta"}. A coefficient is
 named as brms names it and as \code{\link[=default_prior]{default_prior()}} lists it: \code{logxp}
 for the column of \code{log(xp)}, \code{IxE2} for \code{I(x^2)}. The name of the
 design column, \code{log(xp)}, also works.}
 
-\item{group}{Restrict class \code{"sd"} or \code{"cor"} to one grouping factor.}
+\item{group}{Restrict class \code{"sd"} or \code{"cor"} to one grouping factor,
+or class \code{"corme"} to the \code{me()} terms of one \verb{gr =} variable.}
 
 \item{resp}{Response of a multivariate model. Required there for
-every class except \code{"cor"}, \code{"rescor"} and \code{"theta"}; refused on a
-model with one response and on class \code{"rescor"}.}
+every class except \code{"cor"}, \code{"rescor"}, \code{"theta"} and the \code{me()}
+classes; refused on a model with one response and on classes
+\code{"rescor"}, \code{"meanme"}, \code{"sdme"} and \code{"corme"}.}
 
 \item{dpar}{Distributional parameter (default: the location
 parameters).}
@@ -127,6 +131,17 @@ in \code{\link[=frm]{frm()}}.
 (frmtmb.survival), or the simplex a family declares under that name
 (\code{frmtmb_family(simplex_pars =)}); \code{dirichlet(alpha)} only, brms's
 class of the same name; no \code{coef}.
+\item \code{"meanme"}, \code{"sdme"}, \code{"corme"}: the hyperparameters of the latent
+values of \link[=frmtmb-me]{me()} terms, brms's classes of the same
+names. \code{"meanme"} is a density on the latent mean, \code{"sdme"} one on
+the latent standard deviation itself, with the log-Jacobian of the
+log map, as class \code{"sd"}. \code{coef} names one \code{me()} variable as
+\code{\link[=default_prior]{default_prior()}} lists it (\code{"mex"} for \code{me(x, sdx)}), and neither
+class takes a \code{group}. \code{"corme"} takes \code{lkj(eta)} on the
+correlation matrix of the \code{me()} terms that share a \verb{gr =}, as a
+whole: \code{group} selects the \verb{gr =} variable, and no \code{coef}. The
+three take no \code{resp}, \code{dpar} or \code{nlpar}, because one set of latent
+values serves the whole model.
 \item \code{"theta"}: frmtmb's own class, for the internal covariance
 parameters that no brms class names, on the internal scale: a
 \code{toep()} correlation, the parameter of a covariance structure an
@@ -302,6 +317,12 @@ bound the same way they narrow a density. As with a distribution,
 class \code{"b"} with \code{nlpar} covers EVERY coefficient of that parameter;
 \code{coef} picks out one.
 
+A bound on one coefficient is frmtmb's own on \code{\link[=frm]{frm()}}, a box on the
+maximum-likelihood fit. brms refuses it ("Prior argument 'coef' may
+not be specified when using boundaries."), and so does
+\code{frmtmb.sample::frm_sample()}, which samples brms's model: there a
+bound goes on the class row.
+
 The scale is the parameter's own: class \code{"sd"} bounds a standard
 deviation on the sd scale (frmtmb stores its log), classes \code{"ar"},
 \code{"ma"} and \code{"cosy"} bound the natural coefficient of a residual
@@ -461,12 +482,13 @@ log-Jacobian, which is the change of variables class \code{"sd"}
 performs. A bound travels with it, so \code{lb = 0} on a log-linked
 dispersion becomes no constraint rather than a floor of 1.
 \item \code{simo} and \code{sbhaz} keep their meaning too: a \code{dirichlet()} on a
-\code{mo()} simplex and on a \code{cox()} baseline.
-\item \code{theta}/\code{theta1}/\code{theta2}, \code{sds}, \code{sdgp}, \code{lscale},
-\code{sdcar}, \code{car}, \code{meanme}, \code{sdme} and \code{corme} are refused by name,
-each saying where frmtmb keeps that quantity instead, or that it
-has no prior slot. A refusal is deliberate: translating
-one of them would produce a different model rather than no model.
+\code{mo()} simplex and on a \code{cox()} baseline. So do \code{meanme}, \code{sdme}
+and \code{corme}, the hyperparameters of a \code{me()} term, brms's \code{lkj(1)}
+default on \code{corme} included.
+\item \code{theta}/\code{theta1}/\code{theta2}, \code{sds}, \code{sdcar} and \code{car} are refused by
+name, each saying where frmtmb keeps that quantity instead. A
+refusal is deliberate: translating one of them would produce a
+different model rather than no model.
 \item a \code{coef} on a \code{sd} or \code{cor} row is refused for the same reason.
 brms narrows such a row to one coefficient of a block; frmtmb
 resolves those classes per BLOCK, so applying the row without its

@@ -1,0 +1,16 @@
+r <- readRDS("dev/review-equiv-scratch/results.rds")
+k <- nzchar(r$l2_error) & !is.na(r$l2_error)
+print(r[k, c("id", "feature_a", "feature_b", "verdict", "level", "l2_error")])
+k <- grepl("both refuse|brms refuses|frmtmb refuses", r$l2_what)
+print(r[k, c("id", "feature_a", "feature_b", "verdict", "level", "l2_what")])
+cat("\nL1-extra constants under a prior (free constant):\n")
+k <- !is.na(r$l1_const) & abs(r$l1_const) > 1e-6
+print(r[k, c("id", "feature_a", "feature_b", "verdict", "l1_const",
+             "l1_extra", "l1_grad")])
+cat("\nwarnings in agree pairs:\n")
+k <- r$agree & nzchar(r$frm_warn) & !is.na(r$frm_warn)
+print(r[k, c("id", "feature_a", "feature_b", "frm_warn")])
+cat("\nl1_points < 3 among L1 pairs:\n")
+print(r[!is.na(r$l1_points) & r$l1_points < 3, c("id", "l1_points")])
+rec <- readRDS("dev/equiv-out/p029.rds")
+str(rec[c("l2_error", "l4", "level", "l1_error")])

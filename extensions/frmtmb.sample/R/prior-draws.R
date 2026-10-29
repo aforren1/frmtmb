@@ -371,7 +371,68 @@ prior_plan <- function(fit, tab, cn, mix_theta = FALSE) {
       }
     }
   }
+  for (s in me_prior_stmts(fit, tab)) add(s)
   attr(out, "intercepts") <- unique(intercepts)
+  out
+}
+
+#' The prior statements of a model's `me()` terms, which brms's Stan
+#' program writes after every other one (`stan_Xme()`,
+#' dev/meme-out/brms-order.txt). Per group of terms that share a `gr =`,
+#' numbered `i` in order of first appearance: `meanme_<i>` and
+#' `sdme_<i>`, each a vector over the group's terms, then `Lme_<i>` where
+#' the group is correlated. A vector with a coefficient's own prior is
+#' one statement per term, which brms draws as `prior_meanme_<i>__<k>`
+#' and renames to `prior_meanme_<i>_meanme_<coef>`: its `rename_prior()`
+#' replaces the trailing `_<k>` with the term's whole name
+#' (dev/meme-out/brms-names.txt). A class-wide one keeps `meanme_<i>`,
+#' and the correlation keeps brms's Stan name `Lme_<i>`, which brms's
+#' renaming does not reach either.
+#'
+#' @noRd
+me_prior_stmts <- function(fit, tab) {
+  me <- fit$frame[["me"]]
+  if (is.null(me)) return(list())
+  out <- list()
+  coefs <- vapply(me$terms, `[[`, "", "coef")
+  flat <- function(x) is.null(x) || x$prior %in% c("", "(flat)")
+  for (i in seq_along(me$groups)) {
+    g <- me$groups[[i]]
+    cs <- coefs[g$K]
+    for (cls in c("meanme", "sdme")) {
+      stan <- paste0(cls, "_", i)
+      crow <- prior_tab_row(tab, tab$class == cls & !nzchar(tab$coef))
+      krow <- lapply(cs, function(cc) {
+        prior_tab_row(tab, tab$class == cls & tab$coef == cc)
+      })
+      per <- any(vapply(krow, function(x) {
+        !flat(x) && identical(x$source, "user")
+      }, NA))
+      lb <- if (!is.null(crow)) crow$lb else NA
+      ub <- if (!is.null(crow)) crow$ub else NA
+      # sdme is declared vector<lower=0>, whatever its row says
+      if (identical(cls, "sdme") && is.na(lb)) lb <- 0
+      cpr <- if (is.null(crow)) "" else crow$prior
+      if (per) {
+        for (j in seq_along(cs)) {
+          pr <- if (flat(krow[[j]])) cpr else krow[[j]]$prior
+          out[[length(out) + 1L]] <- prior_stmt(
+            paste0(stan, "_", cls, "_", cs[j]), stan, pr, lb, ub)
+        }
+      } else {
+        out[[length(out) + 1L]] <- prior_stmt(stan, stan, cpr, lb, ub)
+      }
+    }
+    if (isTRUE(g$cor)) {
+      crw <- prior_tab_row(tab, tab$class == "corme" & tab$group == g$gr) %||%
+        prior_tab_row(tab, tab$class == "corme" & !nzchar(tab$group))
+      if (!is.null(crw)) {
+        out[[length(out) + 1L]] <- prior_stmt(
+          paste0("Lme_", i), paste0("Lme_", i), crw$prior, type = "lkj",
+          dim = length(g$K))
+      }
+    }
+  }
   out
 }
 

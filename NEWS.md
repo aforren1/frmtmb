@@ -1,3 +1,80 @@
+# frmtmb 0.78.0
+
+The main changes:
+
+- BREAKING: brms's prior classes `meanme`, `sdme` and `corme` of a
+  `me()` term are honored, as in brms 2.23.0. A brms prior table passed
+  to `frm()` now applies its `corme` row.
+- BREAKING: in a `default_prior(route = "sample")` table, a group row
+  prints brms's `(flat)`, so an edited class row reaches the groups.
+- New sampling-API export `predict_rescor_draw()`, the joint predictive
+  draw of a `set_rescor(TRUE)` model, and a `resp` argument to
+  `rescor_row_loglik()`.
+- Update the extensions together with frmtmb. frmtmb.sample 0.25.0
+  needs frmtmb 0.78.0.
+
+## Breaking changes
+
+* brms's prior classes `meanme`, `sdme` and `corme` of a `me()` term are
+  honored, with brms 2.23.0's meaning. Before, `set_prior()` refused the
+  three classes by name, and a brms prior table lost its `corme` row,
+  which is brms's `lkj(1)`. Now that row applies. So a brms
+  `get_prior()` table passed to `frm()` as `prior =` gives another MAP
+  fit on a model with correlated `me()` terms. The `frm_compat()` row
+  `me()` x `prior` is now "works", where it was "conditional".
+
+* In a `default_prior(route = "sample")` table, a group row reads
+  `(flat)`, as brms prints its `""` there: the `sd` and `cor` rows with
+  a `group`, the new `corme` rows with a `group`, and a level of
+  `thres(gr = )`. Before, these rows printed the class row's default.
+  Passed back as `prior =`, that printed default applied as an explicit
+  prior, so an edited class row did not reach the groups: a class
+  `corme` row edited to `lkj(4)` sampled `lkj(1)`, with a
+  Kolmogorov-Smirnov p-value of 1.3e-32 against the `lkj(4)`
+  correlation. Now the edit reaches every group, as in brms. The class
+  rows and the coefficient rows do not change.
+
+## New features
+
+* `set_prior(class = "meanme")` is a density on the latent mean of a
+  `me()` term. `class = "sdme"` is a density on the latent standard
+  deviation itself, with the log-Jacobian of the log map, as for class
+  `"sd"`. `coef` names one `me()` variable (`"mex"` for `me(x, sdx)`).
+  `class = "corme"` takes `lkj(eta)` on the correlation matrix of the
+  terms that share a `gr =`, and `group` selects that `gr =` variable.
+  As in brms, the three classes take no `resp`, `dpar` or `nlpar`.
+  `meanme` and `sdme` take no `group`, and `corme` takes no `coef` and
+  no bound. A model without `me()` terms refuses them.
+
+* `default_prior()`, `validate_prior()` and `prior_summary()` list
+  brms's rows for these classes. `meanme` and `sdme` have a class row
+  and one row per `me()` variable, and `sdme` is bounded below by 0.
+  `corme` has one row, plus one per `gr =` variable of a correlated set.
+  On five model shapes the rows and bounds are those of brms 2.23.0's
+  `default_prior()`.
+
+* `default_prior()` and `validate_prior()` answer a `me(x)` written
+  without its measurement SD, as brms's `default_prior()` does. `frm()`
+  refuses it, as brms refuses it when it reads the data. Before, both
+  tables refused it.
+
+* With a proper prior on every class, the posterior density of a `me()`
+  model equals brms 2.23.0's Stan `log_prob` up to two terms. These are
+  the Jacobian of the map between the two parameterizations and brms's
+  `log(2)` normalization of each half-Student-t. We compared three
+  models at four points each: one `me()` term, two terms with `gr =` and
+  a `corme` prior, and a term beside `(1 | h)`. The constant agrees to
+  6.4e-12 relative and the gradient to 4.3e-10 relative.
+
+* `predict_rescor_draw()` is exported. It is the joint predictive draw
+  of the responses of a `set_rescor(TRUE)` model, which `predict()`
+  makes. frmtmb.sample's `posterior_predict()` now draws through it, so
+  the two cannot drift apart.
+
+* `rescor_row_loglik()` takes `resp`, the responses whose joint density
+  to give, as brms's `log_lik(resp =)` asks. The correlation matrix
+  follows the order of `resp`.
+
 # frmtmb 0.77.0
 
 The main changes:

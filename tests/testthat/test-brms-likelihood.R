@@ -996,6 +996,28 @@ test_that("check C: row 23, me() noise-free terms", {
   }
 })
 
+test_that("check C: row 23b, me() with priors on meanme, sdme and corme", {
+  skip_unless_brms_fit()
+  # every class carries a proper prior on both sides, so frm()'s MAP
+  # objective is the posterior in frmtmb's coordinates and brms's
+  # log_prob (adjust_transform = TRUE) the same posterior in Stan's; the
+  # two differ by the log-Jacobian of the map between them and a
+  # constant (helper-me-lp.R). Four points each, the mode and three
+  # around it, value and gradient: one me(), two me(gr = g) with a
+  # group's corme prior and coefficient-specific meanme and sdme
+  # priors, and me() beside (1 | h). dev/meme-l1.R prints the numbers
+  for (cs in me_lp_cases()) {
+    r <- me_lp_points(cs, npts = 4, seed = 23)
+    expect_lt(r$spread, 1e-8, label = cs$label)
+    expect_lt(r$grad_rel, 1e-6, label = cs$label)
+    expect_lt(r$L_err, 1e-8, label = cs$label)
+    # the constant is brms's lccdf normalization of each half-Student-t,
+    # log(2) apiece, which frmtmb leaves out as it does for class "sd"
+    k <- -mean(r$table[, "const"]) / log(2)
+    expect_lt(abs(k - round(k)), 1e-8, label = cs$label)
+  }
+})
+
 test_that("check C: row 6, nonlinear with a ~ 1 + (1 | g)", {
   skip_unless_brms_fit()
 

@@ -173,6 +173,85 @@ test_that("the pointwise rescor density holds at a large nu", {
   expect_gt(abs(vals[1] - vals[4]), 0.01 * abs(vals[4]))
 })
 
+test_that("the pointwise rescor density of a subset of the responses", {
+  # brms's log_lik(resp = c("y1", "y3")) of a rescor model is the joint
+  # density of those two, with their own correlation. SEEN TO FAIL on
+  # frmtmb 0.77.0, whose rescor_row_loglik() took no `resp`. The order
+  # of the correlation matrix must follow `resp`; only a permutation
+  # of three responses can show it, since a 2 x 2 correlation matrix
+  # is the same either way round
+  testthat::skip_if_not_installed("mvtnorm")
+  set.seed(21)
+  n <- 80
+  E <- matrix(rnorm(3 * n), n) %*%
+    chol(matrix(c(1, .7, .4, .7, 1, .2, .4, .2, 1), 3))
+  dd <- data.frame(x = rnorm(n))
+  dd$y1 <- 1 + dd$x + E[, 1]
+  dd$y2 <- 2 * E[, 2]
+  dd$y3 <- 0.5 * dd$x + 0.5 * E[, 3]
+  fit <- frm(mvbf(bf(y1 ~ x), bf(y2 ~ x), bf(y3 ~ x)) + set_rescor(TRUE),
+             family = gaussian(), data = dd)
+  dp <- eval_dpars(fit)
+  R <- rescor_matrix(fit)
+  sg <- vapply(c("y1", "y3"), function(r) dp[[r]]$sigma[1], 1)
+  S <- diag(sg) %*% R[c("y1", "y3"), c("y1", "y3")] %*% diag(sg)
+  ref <- vapply(seq_len(n), function(i) {
+    mvtnorm::dmvnorm(c(dd$y1[i], dd$y3[i]),
+                     c(dp$y1$mu[i], dp$y3$mu[i]), S, log = TRUE)
+  }, 1)
+  l13 <- rescor_row_loglik(fit, dp, c("y1", "y3"))
+  expect_lt(max(abs(l13 - ref)), 1e3 * .Machine$double.eps * max(abs(ref)))
+  l31 <- rescor_row_loglik(fit, dp, c("y3", "y1"))
+  expect_lt(max(abs(l31 - ref)), 1e3 * .Machine$double.eps * max(abs(ref)))
+  perm <- c("y3", "y1", "y2")
+  sp <- vapply(perm, function(r) dp[[r]]$sigma[1], 1)
+  Sp <- diag(sp) %*% R[perm, perm] %*% diag(sp)
+  refp <- vapply(seq_len(n), function(i) {
+    mvtnorm::dmvnorm(vapply(perm, function(r) dd[[r]][i], 1),
+                     vapply(perm, function(r) dp[[r]]$mu[i], 1), Sp,
+                     log = TRUE)
+  }, 1)
+  lp <- rescor_row_loglik(fit, dp, perm)
+  expect_lt(max(abs(lp - refp)),
+            1e3 * .Machine$double.eps * max(abs(refp)))
+  # every response, named or not, is the whole joint density, which
+  # sums to logLik()
+  expect_identical(rescor_row_loglik(fit, dp, c("y1", "y2", "y3")),
+                   rescor_row_loglik(fit, dp))
+  ll <- as.numeric(logLik(fit))
+  expect_lt(abs(sum(rescor_row_loglik(fit, dp)) - ll),
+            1e3 * .Machine$double.eps * abs(ll))
+})
+
+test_that("the joint rescor draw pairs dpar values by response name", {
+  # predict_rescor_draw() is exported: given a subset of the responses
+  # and the whole list eval_dpars() returns, it must read each named
+  # response's own mu and sigma. Paired by position, rspecs[c("y3",
+  # "y1")] drew a layer called y3 from y1's mean and sigma. SEEN TO
+  # FAIL on frmtmb 0.77.0
+  set.seed(22)
+  n <- 60
+  dd <- data.frame(x = rnorm(n))
+  dd$y1 <- 1 + dd$x + rnorm(n)
+  dd$y2 <- rnorm(n)
+  dd$y3 <- 0.5 * dd$x + 0.3 * rnorm(n)
+  fit <- frm(mvbf(bf(y1 ~ x), bf(y2 ~ x), bf(y3 ~ x)) + set_rescor(TRUE),
+             family = gaussian(), data = dd)
+  dp <- eval_dpars(fit)
+  rs <- fit$spec$responses[c("y3", "y1")]
+  ok <- rep(TRUE, n)
+  set.seed(5)
+  by_name <- predict_rescor_draw(fit, rs, dp, ok)
+  set.seed(5)
+  by_pos <- predict_rescor_draw(fit, rs, unname(dp[c("y3", "y1")]), ok)
+  expect_identical(by_name, by_pos)
+  expect_named(by_name, c("y3", "y1"))
+  expect_error(predict_rescor_draw(fit, rs, dp["y1"], ok),
+               "no entry for response 'y3'")
+  expect_error(predict_rescor_draw(fit, rs, unname(dp), ok),
+               "3 entries for 2 responses")
+})
+
 test_that("student() rescor refuses what brms refuses", {
   dd <- mv_gap_data()
   expect_error(frm(bf(y1 ~ x, nu ~ z) + bf(y2 ~ x) + set_rescor(TRUE) +

@@ -525,7 +525,7 @@ prior_summary.frmtmb_draws <- function(object, ...) {
         "parameters).\n", sep = "")
     return(invisible(NULL))
   }
-  pl
+  prior_rows_as_written(pl)
 }
 
 #' @rdname draws-structure
@@ -814,7 +814,41 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #'   population level.
 #' @return A draws-by-observations matrix; for a categorical outcome
 #'   `posterior_epred()` returns a draws-by-observations-by-categories
-#'   array (see the section below).
+#'   array (see the section below). On a multivariate model asked for
+#'   every response (`resp = NULL`) or for several, a
+#'   draws-by-observations-by-responses array; see *Multivariate
+#'   models*.
+#' @section Multivariate models:
+#' Without `resp`, the three methods answer for every response of a
+#' multivariate model, as brms does: a draws x observations x responses
+#' array whose third margin carries brms's response names (`ya` for a
+#' column `y_a`). `resp` takes one response, which gives its matrix, or
+#' several, which give their layers in the order named. Either spelling
+#' of a name is accepted; a name given twice is refused, as brms refuses
+#' it, and an empty `resp` is every response, as in brms. Under
+#' `set_rescor(TRUE)` a `resp` out of the model's order is answered with
+#' the correlations in the order named, where brms 2.23.0 stops. A
+#' response that predicts several values per row (the category
+#' probabilities of an ordinal response in `posterior_epred()`) has no
+#' layer in this layout: name it with `resp`.
+#'
+#' With `set_rescor(TRUE)`, `posterior_predict()` draws the responses
+#' of a row JOINTLY, as brms's `posterior_predict()` does: per draw, a
+#' multivariate normal with covariance
+#' \eqn{\mathrm{diag}(\sigma) R \, \mathrm{diag}(\sigma)}{diag(sigma) R
+#' diag(sigma)}, where
+#' \eqn{R} is the draw's residual correlation matrix and \eqn{\sigma}
+#' the row's residual standard deviations (which a formula for `sigma`
+#' makes vary by row), or for `student()` the multivariate t with the
+#' one shared `nu`. So a sum or a contrast of the responses, or a joint
+#' interval, carries the residual correlation. With several responses
+#' named, the draw is joint over those, with the correlations among
+#' them. With one response named, the draw is that response's margin:
+#' normal, or t with the shared `nu`. brms 2.23.0 draws that margin of a
+#' `student()` model with `nu = 1`, which is not the margin of its own
+#' model; this package uses the shared `nu`. Without `rescor`, the
+#' responses are independent given a draw's parameters, and each layer
+#' is drawn on its own.
 #' @section Laplace draws:
 #'   Draws from `frm_sample(laplace = TRUE)` hold no group-level
 #'   coefficients, smooth coefficients or
@@ -874,6 +908,21 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
   draws_refuse_new_levels(object, newdata, list(...), "posterior_epred()",
                           re_form)
   draws_refuse_sort(sort, "posterior_epred()")
+  if (draws_resp_stacks(object$fit, resp)) {
+    # brms's multivariate layout: every response, one layer each
+    want <- draws_resp_set(object$fit, resp)
+    subset_resp_check(object$fit, want, "posterior_epred()")
+    return(draws_resp_stack(object$fit, want, lapply(want, function(r) {
+      posterior_epred(object, newdata = newdata, re_formula = re_form,
+                      resp = r, dpar = dpar, nlpar = nlpar, ndraws = ndraws,
+                      draw_ids = draw_ids, point_estimate = point_estimate,
+                      ndraws_point_estimate = ndraws_point_estimate, ...)
+    }), "posterior_epred()"))
+  }
+  # brms's spelling of the name too, as posterior_predict() takes it
+  if (!is.null(resp) && length(object$fit$spec$responses) > 1L) {
+    resp <- draws_resp_set(object$fit, resp)
+  }
   object <- draws_at_point_estimate(object, point_estimate,
                                     ndraws_point_estimate)
   dpar <- draws_dpar_arg(dpar, nlpar, "posterior_epred()")
@@ -957,6 +1006,23 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
   draws_refuse_new_levels(object, newdata, list(...), "posterior_linpred()",
                           re_form)
   draws_refuse_sort(sort, "posterior_linpred()")
+  if (draws_resp_stacks(object$fit, resp)) {
+    # brms's multivariate layout: every response, one layer each
+    want <- draws_resp_set(object$fit, resp)
+    subset_resp_check(object$fit, want, "posterior_linpred()")
+    return(draws_resp_stack(object$fit, want, lapply(want, function(r) {
+      posterior_linpred(object, transform = transform, newdata = newdata,
+                        re_formula = re_form, resp = r, dpar = dpar,
+                        nlpar = nlpar, incl_thres = incl_thres,
+                        ndraws = ndraws, draw_ids = draw_ids,
+                        point_estimate = point_estimate,
+                        ndraws_point_estimate = ndraws_point_estimate, ...)
+    }), "posterior_linpred()"))
+  }
+  # brms's spelling of the name too, as posterior_predict() takes it
+  if (!is.null(resp) && length(object$fit$spec$responses) > 1L) {
+    resp <- draws_resp_set(object$fit, resp)
+  }
   object <- draws_at_point_estimate(object, point_estimate,
                                     ndraws_point_estimate)
   # brms reads incl_thres only for an ordinal family's location on the
@@ -1134,19 +1200,110 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
              "documentation in frmtmb.eam", call. = FALSE)
   }
   fit <- object$fit
+  want <- draws_resp_set(fit, resp)
   # subset(): one response at a time, on newdata's rows where its subset
   # is TRUE, as brms asks
-  subset_resp_check(fit, resp %||% names(fit$spec$responses),
-                    "posterior_predict()")
-  resp <- resp %||% names(fit$spec$responses)[1L]
+  subset_resp_check(fit, want, "posterior_predict()")
+  idx <- draws_index(object)
+  rows <- draws_subsample(object, ndraws, draw_ids)
+  sets <- lapply(want, function(r) {
+    draws_pp_setup(object, fit, r, newdata, re_form, rows, idx)
+  })
+  out <- if (length(want) == 1L) {
+    draws_pp_one(object, sets[[1L]], rows, idx)
+  } else if (isTRUE(fit$spec$rescor)) {
+    draws_pp_joint(object, sets, rows, idx)
+  } else {
+    # brms's multivariate layout, one layer per response; without rescor
+    # the responses are independent given each draw's parameters
+    draws_resp_stack(fit, want, lapply(sets, function(s) {
+      draws_pp_one(object, s, rows, idx)
+    }), "posterior_predict()")
+  }
+  # brms's fifth positional slot: a function applied to the finished
+  # draws. It is carried so that a positional brms call means the same
+  # thing here, and it does the same thing brms does with it
+  if (!is.null(transform)) {
+    warn_transform_deprecated()
+    out <- match.fun(transform)(out)
+  }
+  out
+}
+
+#' The responses a call names, in frmtmb's spelling: every response
+#' when `resp` is `NULL`, as brms's `validate_resp()` takes it, and
+#' brms's own spelling of a name (`ya` for a column `y_a`) as well as
+#' frmtmb's.
+#'
+#' @noRd
+draws_resp_set <- function(fit, resp) {
+  resps <- names(fit$spec$responses)
+  # brms's validate_resp() reads an empty `resp` as every response
+  if (!length(resp)) return(resps)
+  stan <- brms_stan_name(resps)
+  hit <- if (is.character(resp) && length(resp) && !anyNA(resp)) {
+    ifelse(resp %in% resps, resp, resps[match(resp, stan)])
+  } else NA_character_
+  if (anyNA(hit)) {
+    draws_refuse_resp(paste0("'", unique(c(resps, stan)), "'",
+                             collapse = ", "))
+  }
+  if (anyDuplicated(hit)) {
+    # brms stops here too, on a rescor model because it looks for a
+    # correlation of a response with itself; a repeated layer, or a
+    # density with a singular correlation, would be the alternative
+    draws_refuse_resp_twice(hit[anyDuplicated(hit)])
+  }
+  hit
+}
+
+#' Whether a call answers with brms's multivariate layout: a model with
+#' several responses, asked for all of them (`resp = NULL`) or for more
+#' than one. Until this was read, `resp = NULL` gave the FIRST response
+#' alone, and on a `set_rescor(TRUE)` model that hid the joint draw.
+#'
+#' @noRd
+draws_resp_stacks <- function(fit, resp) {
+  length(fit$spec$responses) > 1L && length(resp) != 1L
+}
+
+#' brms's multivariate layout: one `draws x observations` layer per
+#' response, the third margin named by brms's response names.
+#'
+#' A response that predicts more than one value per row (a category
+#' distribution, multinomial counts) has no place in that layout, so it
+#' is refused rather than flattened.
+#'
+#' @noRd
+draws_resp_stack <- function(fit, want, layers, what) {
+  d1 <- dim(layers[[1L]])
+  flat <- vapply(layers, function(l) {
+    length(dim(l)) == 2L && identical(dim(l), d1)
+  }, NA)
+  if (!all(flat)) {
+    frm_stop(what, " on a multivariate model without `resp` stacks one ",
+             "matrix per response, and a response here predicts more than ",
+             "one value per row. Name the response with resp =",
+             call. = FALSE)
+  }
+  resps <- names(fit$spec$responses)
+  nm <- brms_stan_name(resps)[match(want, resps)]
+  array(unlist(layers, use.names = FALSE), c(d1, length(want)),
+        dimnames = list(NULL, NULL, nm))
+}
+
+#' What `posterior_predict()` needs for ONE response before it draws:
+#' the response's terms, its checks, and the function giving one draw's
+#' distributional parameters.
+#'
+#' @noRd
+draws_pp_setup <- function(object, fit, resp, newdata, re_form, rows, idx) {
   newdata <- subset_newdata(fit, resp, newdata)
   rspec <- fit$spec$responses[[resp]]
   if (!sim_can(rspec$family)) {
     frm_stop("posterior_predict(): family '", rspec$family[["family"]],
              "' has no simulator yet", sim_note(rspec$family), call. = FALSE)
   }
-  idx <- draws_index(object)
-  rows <- draws_subsample(object, ndraws, draw_ids)
   # every term, as posterior_epred() reads them through frmtmb: a
   # subset here (trunc(), rate() and thres(gr = ) were the only ones)
   # left the simulator without trials(), se() or dec(), and binomial
@@ -1188,14 +1345,16 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   # one draw's distributional parameters; the refusal of laplace draws
   # probes these rather than the simulated response, which would turn
   # a read of the missing random effects into rnorm()'s own NaN warning
-  dpars_at <- function(sh, rf = re_form) {
+  # `ev`: the draw's eval_dpars(), when a joint draw has computed it
+  # for every response already
+  dpars_at <- function(sh, rf = re_form, ev = NULL) {
     if (is.null(newdata) && is.null(rf)) {
       # the fast path IS the default: NULL keeps every random effect,
       # which is what a per-draw eval of the full model gives. A set
       # re_formula routes through predict() on the training rows, the
       # same as the newdata branch, so NA and one-sided formulas mean
       # here exactly what they mean there
-      dpk <- eval_dpars(sh)[[resp]]
+      dpk <- (ev %||% eval_dpars(sh))[[resp]]
       if (arma_cond) {
         # frm_linpred() pads the rows na.exclude dropped; the draw is on
         # the fitted rows, as eval_dpars() is
@@ -1233,27 +1392,39 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
       arma_cond_fill_dpars(sh, rspec, newdata, dpars_fn)
     }
   }
+  # the ordinal simulators read a cs() term's offsets from `.cs`, and
+  # neither list above carries them: without this every cs() model was
+  # drawn as if the term were absent
+  dp_at <- function(sh, rf = re_form, ev = NULL) {
+    cs_offsets_add(sh, resp, newdata, dpars_at(sh, rf, ev))
+  }
   idx_at <- function(r, fill, rf = re_form) {
     sh <- draws_fit_at(object, r, idx, fill)
-    # the ordinal simulators read a cs() term's offsets from `.cs`, and
-    # neither list above carries them: without this every cs() model
-    # was drawn as if the term were absent
-    list(sh = sh, dp = cs_offsets_add(sh, resp, newdata, dpars_at(sh, rf)))
+    list(sh = sh, dp = dp_at(sh, rf))
   }
   at_na <- function(fill) idx_at(rows[1L], fill, NA)$dp
   draws_laplace_probe(object, "posterior_predict()",
                       function(fill) idx_at(rows[1L], fill)$dp, at_na)
-  watch <- draws_laplace_watch(object, "posterior_predict()", at_na)
+  list(resp = resp, rspec = rspec, av = av, arma_cond = arma_cond,
+       fast = is.null(newdata) && is.null(re_form),
+       dp_at = dp_at, idx_at = idx_at,
+       watch = draws_laplace_watch(object, "posterior_predict()", at_na))
+}
+
+#' One response's predictive draws, through its family's simulator.
+#'
+#' @noRd
+draws_pp_one <- function(object, s, rows, idx) {
   out <- NULL
   arr <- FALSE
   for (k in seq_along(rows)) {
-    one <- idx_at(rows[k], NA_real_)
+    one <- s$idx_at(rows[k], NA_real_)
     sh <- one$sh
     dp <- one$dp
-    watch(dp)
-    ctx <- sim_context(sh, rspec, dp, aterms = av, n = length(dp[[1L]]),
+    s$watch(dp)
+    ctx <- sim_context(sh, s$rspec, dp, aterms = s$av, n = length(dp[[1L]]),
                        extra = fit_extras(sh))
-    if (arma_cond) ctx[["autocor"]] <- NULL
+    if (s$arma_cond) ctx[["autocor"]] <- NULL
     ys <- sim_draw(ctx)
     if (is.null(out)) {
       # a matrix-valued response (multinomial counts, mixture_mvn draws,
@@ -1270,13 +1441,54 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
     }
     if (arr) out[k, , ] <- ys else out[k, ] <- ys
   }
-  # brms's fifth positional slot: a function applied to the finished
-  # draws. It is carried so that a positional brms call means the same
-  # thing here, and it does the same thing brms does with it
-  if (!is.null(transform)) {
-    warn_transform_deprecated()
-    out <- match.fun(transform)(out)
+  out
+}
+
+#' The JOINT predictive draws of the responses of a `set_rescor(TRUE)`
+#' model, as brms's `posterior_predict_gaussian_mv()` and
+#' `posterior_predict_student_mv()` make them: per draw and row, a
+#' multivariate normal with `Sigma = diag(sigma) R diag(sigma)`, or the
+#' multivariate t with the one shared `nu`.
+#'
+#' Before, `posterior_predict()` without `resp` drew the first response
+#' alone, so no call returned the responses' joint law: draws of two
+#' responses taken one call each correlated at -0.05 to 0.08 on a fit
+#' whose residual correlation was 0.82. Core's `predict_rescor_draw()`
+#' makes the draw, so this and `predict()` on the fit cannot disagree.
+#' It factors the correlation matrix once per draw and scales each
+#' column by that row's `sigma`, which is `chol(Sigma)` for every row at
+#' once: a `sigma` that varies by row costs no factorization per row.
+#'
+#' @noRd
+draws_pp_joint <- function(object, sets, rows, idx) {
+  fit <- object$fit
+  want <- vapply(sets, `[[`, "", "resp")
+  rspecs <- stats::setNames(lapply(sets, `[[`, "rspec"), want)
+  out <- NULL
+  ok <- NULL
+  for (k in seq_along(rows)) {
+    # one parameter vector per draw for every response, so the means,
+    # the scales and the correlation are those of the same draw
+    sh <- draws_fit_at(object, rows[k], idx, NA_real_)
+    # eval_dpars() answers for every response at once, so it runs
+    # once per draw rather than once per response
+    ev <- if (sets[[1L]]$fast) eval_dpars(sh)
+    dps <- lapply(sets, function(s) {
+      dp <- s$dp_at(sh, ev = ev)
+      s$watch(dp)
+      dp
+    })
+    if (is.null(out)) {
+      n <- max(vapply(dps, function(d) length(d[["mu"]]), 1L))
+      ok <- rep(TRUE, n)
+      out <- array(NA_real_, c(length(rows), n, length(want)))
+    }
+    ys <- predict_rescor_draw(sh, rspecs, dps, ok)
+    for (j in seq_along(want)) out[k, , j] <- ys[[j]]
   }
+  resps <- names(fit$spec$responses)
+  dimnames(out) <- list(NULL, NULL,
+                        brms_stan_name(resps)[match(want, resps)])
   out
 }
 
@@ -1953,6 +2165,15 @@ predictive_interval.frmtmb_draws <- function(object, prob = 0.9,
   # and honors `predictive_interval(x, re.form = NA)` one frame down.
   frm_check_dots(...)
   re_form <- re_form_arg(re_formula, re.form, "predictive_interval()")
+  if (draws_resp_stacks(draws_base_fit(object), resp)) {
+    # brms stops here too ("For the default method 'object' should be a
+    # matrix."), since its posterior_predict() returns one layer per
+    # response
+    frm_stop("predictive_interval() on a multivariate model needs one ",
+             "response: posterior_predict() without `resp` returns one ",
+             "draws x observations layer per response. Name the response ",
+             "with resp =", call. = FALSE)
+  }
   yrep <- draws_as_caller("predictive_interval()", posterior_predict(
     object, newdata = newdata, resp = resp, re_formula = re_form,
     ndraws = ndraws))
@@ -1984,12 +2205,47 @@ predictive_error.frmtmb_draws <- function(object, newdata = NULL,
   method <- frm_match_arg(method,
                           c("posterior_predict", "posterior_epred"))
   fit <- draws_base_fit(object)
+  want <- if (length(fit$spec$responses) > 1L) {
+    draws_resp_set(fit, resp)
+  } else {
+    resp %||% names(fit$spec$responses)
+  }
   # subset(): one response at a time, on newdata's rows where its subset
   # is TRUE, as brms asks
-  subset_resp_check(fit, resp %||% names(fit$spec$responses),
-                    "predictive_error()")
-  resp <- resp %||% names(fit$spec$responses)[1L]
-  newdata <- subset_newdata(fit, resp, newdata)
+  subset_resp_check(fit, want, "predictive_error()")
+  if (length(want) == 1L) newdata <- subset_newdata(fit, want, newdata)
+  ys <- lapply(want, draws_error_y, fit = fit, newdata = newdata)
+  # brms's `method`: the predictive draws the error is taken against,
+  # either the predictive distribution or the expectation. Several
+  # responses are drawn in ONE call, so a set_rescor(TRUE) model's
+  # errors carry the residual correlation its joint draw has
+  yrep <- draws_as_caller("predictive_error()",
+                          if (identical(method, "posterior_epred")) {
+    posterior_epred(object, newdata = newdata, re_formula = re_form,
+                    resp = want, ndraws = ndraws, draw_ids = draw_ids)
+  } else {
+    posterior_predict(object, newdata = newdata, re_formula = re_form,
+                      resp = want, ndraws = ndraws,
+                      draw_ids = draw_ids)
+  })
+  # brms's convention: the error is y - yrep, one row per draw
+  if (length(want) == 1L) {
+    return(sweep(-yrep, 2L, as.numeric(ys[[1L]]), "+"))
+  }
+  # a layer is draws-major, so the observed value repeats per draw; this
+  # also holds where one draw or one row would drop the layer's dim
+  for (j in seq_along(want)) {
+    yrep[, , j] <- rep(as.numeric(ys[[j]]), each = dim(yrep)[1L]) -
+      yrep[, , j]
+  }
+  yrep
+}
+
+#' The observed response one predictive error is taken against, after
+#' the refusals that say why some responses have none.
+#'
+#' @noRd
+draws_error_y <- function(fit, resp, newdata) {
   # brms refuses a predictive error, and so residuals(), for every
   # polytomous family whatever the method (its is_polytomous(); brms
   # 2.23.0, dev/correct-log/brms-resid.txt). The same families as
@@ -2013,19 +2269,7 @@ predictive_error.frmtmb_draws <- function(object, newdata = NULL,
              "Subtract the column you want from posterior_predict() ",
              "yourself", call. = FALSE)
   }
-  # brms's `method`: the predictive draws the error is taken against,
-  # either the predictive distribution or the expectation
-  yrep <- draws_as_caller("predictive_error()",
-                          if (identical(method, "posterior_epred")) {
-    posterior_epred(object, newdata = newdata, re_formula = re_form,
-                    resp = resp, ndraws = ndraws, draw_ids = draw_ids)
-  } else {
-    posterior_predict(object, newdata = newdata, re_formula = re_form,
-                      resp = resp, ndraws = ndraws,
-                      draw_ids = draw_ids)
-  })
-  # brms's convention: the error is y - yrep, one row per draw
-  sweep(-yrep, 2L, as.numeric(y), "+")
+  y
 }
 
 #' A fitted response as it was OBSERVED: `NA` where an `mi()` response
@@ -2653,14 +2897,6 @@ draws_summarize_margin <- function(out, probs = c(0.025, 0.975),
   st
 }
 
-#' The refusal the methods that carry brms's `newdata` and
-#' `re_formula` slots without supporting them share.
-#'
-#' They carry the slots so that a positional brms call asks the same
-#' question it asks in brms; they refuse the values so that it does not
-#' get a different question's answer instead.
-#'
-#' @noRd
 #' Whether `posterior_predict()` draws response `resp` as a walk over
 #' the fitted rows (a hidden state sequence, a group-level latent
 #' class, a correlated residual), and so refuses `newdata` and
@@ -2676,6 +2912,14 @@ draws_pp_structured <- function(fit, resp,
   sim_is_structured(ctx0)
 }
 
+#' The refusal the methods that carry brms's `newdata` and
+#' `re_formula` slots without supporting them share.
+#'
+#' They carry the slots so that a positional brms call asks the same
+#' question it asks in brms; they refuse the values so that it does not
+#' get a different question's answer instead.
+#'
+#' @noRd
 draws_refuse_newdata <- function(newdata, re_formula, re.form, what,
                                  ...) {
   if (!is.null(newdata)) {
@@ -3282,16 +3526,41 @@ predict.frmtmb_draws <- function(object, newdata = NULL,
   draws_refuse_ntrys_cores(ntrys, cores, "predict()")
   draws_refuse_new_levels(object, newdata, list(...), "predict()",
                           re_formula)
+  check_flag(summary, "summary")
+  fit <- draws_base_fit(object)
+  if (summary && draws_resp_stacks(fit, resp)) {
+    # a category's summary is a table of category proportions (below),
+    # which has no place beside another response's mean and quantiles.
+    # Summarizing its codes as numbers instead made predict(ds)[, , "o"]
+    # differ from predict(ds, resp = "o") with nothing said; brms stops
+    # here too
+    want <- draws_resp_set(fit, resp)
+    cv <- vapply(want, function(r) {
+      fam_is_category_valued(fit$spec$responses[[r]]$family)
+    }, NA)
+    if (any(cv)) {
+      frm_stop("predict() summarizes a category response as the share of ",
+               "each category, and on a multivariate model that table ",
+               "cannot stand beside the other responses' summaries. ",
+               "Response '", want[cv][1L], "' is a category: call ",
+               "predict() with resp = for it alone, or use summary = ",
+               "FALSE for the draws", call. = FALSE)
+    }
+  }
   out <- draws_as_caller("predict()", posterior_predict(
     object, newdata = newdata, re_formula = re_formula,
     transform = transform, resp = resp, negative_rt = negative_rt,
     ndraws = ndraws, draw_ids = draw_ids, ...))
   if (!summary) return(out)
+  # brms's multivariate layout summarizes each response's layer, as
+  # fitted() does
+  if (draws_resp_stacks(fit, resp)) {
+    return(draws_summarize_or_not(out, summary, probs, robust))
+  }
   # a category-valued response has no mean to summarize, so brms reports
   # the simulated proportion of each category, the same shape the fit
   # method returns
-  fit <- draws_base_fit(object)
-  rspec <- fit$spec$responses[[resp %||% names(fit$spec$responses)[1L]]]
+  rspec <- fit$spec$responses[[draws_resp_set(fit, resp)]]
   if (fam_is_category_valued(rspec$family)) {
     return(predict_category_props(fit, rspec, out))
   }
@@ -3321,8 +3590,10 @@ residuals.frmtmb_draws <- function(object, newdata = NULL,
     pp <- draws_as_caller("residuals()", posterior_predict(
       object, newdata = newdata, re_formula = re_formula, resp = resp,
       ndraws = ndraws, draw_ids = draw_ids, ...))
-    sdv <- apply(pp, 2L, stats::sd)
-    out <- sweep(out, 2L, sdv, "/")
+    # per observation, and per response in brms's multivariate layout
+    mar <- seq_along(dim(pp))[-1L]
+    sdv <- apply(pp, mar, stats::sd)
+    out <- sweep(out, mar, sdv, "/")
   }
   draws_summarize_or_not(out, summary, probs, robust)
 }

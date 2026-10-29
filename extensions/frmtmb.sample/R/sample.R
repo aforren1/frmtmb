@@ -2057,6 +2057,21 @@ default_priors_for <- function(fit, flat = FALSE) {
       add(set_prior("lkj(1)", class = "cortime", resp = if (multi) r else ""))
     }
   }
+  # brms's prior_Xme(): (flat) on meanme and on sdme > 0, and lkj(1) on
+  # the corme of each group of correlated me() terms. meanme is held on
+  # its own scale, so flat there needs no entry. sdme is held as its
+  # log, so flat on sdme is the log map's Jacobian, as for delta above;
+  # with no entry the sampler was flat on log(sdme), and with no corme
+  # entry flat on the chart, not on the correlation
+  me_fr <- fit$frame[["me"]]
+  if (!is.null(me_fr)) {
+    p <- set_prior("", class = "sdme", lb = 0)
+    p[[1L]]$dist <- flat_prior_dist()
+    add(p)
+    if (any(vapply(me_fr$groups, function(g) isTRUE(g$cor), NA))) {
+      add(set_prior("lkj(1)", class = "corme"))
+    }
+  }
   pl
 }
 
@@ -2267,6 +2282,149 @@ drop_superseded <- function(base, over) {
                                          class = "frmtmb_priorlist")
 }
 
+#' brms 2.23.0's refusal of a bound on one coefficient, in its words:
+#' `brm()` stops with "Prior argument 'coef' may not be specified when
+#' using boundaries." for every class (b, sd, meanme and sdme measured,
+#' dev/meme-out/fix-brms-grp.txt), and takes `lb` and `ub` per class.
+#' The per-term prior statements read their class's bounds, so a
+#' coefficient's bound sampled one prior and drew another
+#' (dev/reviews/2026-10-28-meme.md, finding 2). frm() keeps the bound,
+#' as a box on its maximum-likelihood fit, which brms has no
+#' counterpart of. Not refused: class `"theta"`, frmtmb's own with no
+#' brms row, and a row that restates the declared `lb = 0` of a standard
+#' deviation or length scale, which a sampling-route table prints on its
+#' gp() rows.
+#'
+#' frmtmb's own spelling of a nonlinear parameter's intercept,
+#' `class = "Intercept", nlpar =`, is stored as class `"b"` with
+#' `coef = "Intercept"`. Where that parameter's formula is `~ 1` the
+#' intercept is its whole coefficient vector, so the spelling is
+#' brms's class row `class = "b", nlpar =` and is returned as that row:
+#' its bound then reaches the prior draws too, which as a coefficient
+#' row it did not (the prior of `a` drawn down to -1.67 under `lb = 0`,
+#' dev/reviews/2026-10-28-meme.md, S1). Where the parameter has more
+#' than an intercept, a bound on it is a bound on one coefficient, and
+#' it is refused as brms's spelling of it is.
+#'
+#' Written beside brms's class row of the same parameter, the spelling
+#' is the more specific of the two, as brms's `coef = "Intercept"` row
+#' is: the pair is one slot, resolved as frm() resolves it in either
+#' order. Its density stands, or the class row's where it has none, and
+#' on each side its bound stands, or the class row's where it has none.
+#'
+#' @noRd
+refuse_coef_bounds <- function(fit, pl) {
+  if (is.null(pl)) return(pl)
+  # the nonlinear parameters whose predictor is an intercept alone
+  icpt_only <- character(0)
+  for (lp in fit$frame[["linpreds"]]) {
+    cn <- colnames(lp[["X"]])
+    if (identical(cn, "(Intercept)") && !length(lp[["cs"]])) {
+      icpt_only <- c(icpt_only, paste(lp[["resp"]] %||% "", lp[["dpar"]]))
+    }
+  }
+  resp1 <- names(fit$spec$responses)[1L]
+  specs <- unclass(pl)
+  # the specifications as written, for prior_summary() of a merged pair
+  orig <- specs
+  rewritten <- logical(length(specs))
+  for (i in seq_along(specs)) {
+    s <- specs[[i]]
+    lb <- s$lb %||% NA
+    ub <- s$ub %||% NA
+    if (!is.null(s$written)) {
+      key <- paste(if (nzchar(s$resp %||% "")) s$resp else resp1, s$nlpar)
+      if (key %in% icpt_only) {
+        s$coef <- ""
+        s$written <- NULL
+        specs[[i]] <- s
+        rewritten[i] <- TRUE
+        next
+      }
+    }
+    if (!nzchar(s$coef %||% "") || (is.na(lb) && is.na(ub))) next
+    if (identical(s$class, "theta")) next
+    if (s$class %in% c("sd", "sdgp", "lscale", "sdme") &&
+          identical(as.numeric(lb), 0) && is.na(ub)) {
+      next
+    }
+    frm_stop("Prior argument 'coef' may not be specified when using ",
+             "boundaries. (", s$written %||% spec_target(s), ", lb = ",
+             format(lb), ", ub = ", format(ub), ") brms's sampler takes ",
+             "lb and ub per class, and so does frm_sample(): write the ",
+             "bound on the class row, or drop it. frm() takes a bound on ",
+             "one coefficient, as a box on its maximum-likelihood fit",
+             call. = FALSE)
+  }
+  # a class row written both ways names one slot. The later one stood,
+  # so the order of two specifications decided the prior, where frm()
+  # and brms let the intercept spelling win in either order
+  # (dev/reviews/2026-10-28-meme.md, S3); merged here by specificity
+  key <- vapply(specs, spec_target, "")
+  for (k in unique(key[duplicated(key)])) {
+    at <- which(key == k)
+    rw <- at[rewritten[at]]
+    cl <- at[!rewritten[at]]
+    if (length(rw) != 1L || length(cl) != 1L) next
+    a <- specs[[rw]]
+    b <- specs[[cl]]
+    if (is.null(a$dist)) {
+      a$dist <- b$dist
+      a$prior <- b$prior
+    }
+    if (is.na(a$lb %||% NA)) a$lb <- b$lb %||% NA
+    if (is.na(a$ub %||% NA)) a$ub <- b$ub %||% NA
+    # the sampler reads the merged slot; prior_summary() lists the rows
+    # the user wrote, both of them, as brms's does
+    a$shown <- prior_spec_as_written(orig[sort(c(rw, cl))])
+    specs[at] <- list(a)
+  }
+  keep <- !duplicated(key, fromLast = TRUE)
+  out <- unname(specs[keep])
+  a <- attributes(pl)
+  a$names <- NULL
+  attributes(out) <- a
+  out
+}
+
+#' The specifications a merged slot came from, as they were written
+#' (`refuse_coef_bounds()` keeps them on the merged one as `shown`): a
+#' specification that itself came from a merge gives its own.
+#'
+#' @noRd
+prior_spec_as_written <- function(specs) {
+  out <- list()
+  for (s in specs) {
+    out <- c(out, if (is.null(s$shown)) list(s) else s$shown)
+  }
+  out
+}
+
+#' A prior list with each merged slot listed as the rows it came from,
+#' for `prior_summary()` of draws: the rows the user wrote, both
+#' spellings of a nonlinear intercept included, as brms's
+#' `prior_summary()` keeps them (dev/reviews/2026-10-29-release.md,
+#' finding 2). Passed back as `prior =`, they merge again to the slot the
+#' sampler read.
+#'
+#' @noRd
+prior_rows_as_written <- function(pl) {
+  specs <- unclass(pl)
+  if (!any(vapply(specs, function(s) !is.null(s$shown), NA))) return(pl)
+  out <- list()
+  for (s in specs) {
+    if (is.null(s$shown)) {
+      out <- c(out, list(s))
+    } else {
+      out <- c(out, s$shown)
+    }
+  }
+  a <- attributes(pl)
+  a$names <- NULL
+  attributes(out) <- a
+  out
+}
+
 #' The classes of brms's proper defaults whose every position the
 #' effective prior `ri` leaves (flat): what the (flat) rows of a coerced
 #' frmtmb table replaced. A default that is already flat (on an interval,
@@ -2373,6 +2531,13 @@ announce_default_priors <- function(pl, notes) {
       a <- vapply(a, function(v) format(v, digits = 6), "")
     }
     d <- paste0(kind, "(", paste(a, collapse = ", "), ")")
+    # brms's (flat) on a bounded parameter (delta, sdme) is printed as
+    # brms prints it, with the bound
+    if (identical(kind, "flat")) {
+      d <- paste0("(flat)", if (!is.na(s$lb %||% NA)) {
+        paste0(", lb = ", format(s$lb))
+      })
+    }
     # a bound brms declares inside the density's interval (cosy's 0)
     # narrows where the flat density is, so it is part of the default;
     # on an interval it is brms's (flat) with that interval as lb and ub
@@ -2413,11 +2578,11 @@ announce_default_priors <- function(pl, notes) {
                           else if (isTRUE(s$flat_interval))
                             "  [flat on its interval, brms's (flat)]"
                           else if (isTRUE(s$natural)) "  [natural scale]"
-                          else if (s$class %in% c("sd", "sdgp"))
+                          else if (s$class %in% c("sd", "sdgp", "sdme"))
                             "  [natural sd scale]"
                           else if (identical(s$class, "lscale"))
                             "  [brms's scaled inputs]"
-                          else if (identical(s$class, "cor"))
+                          else if (s$class %in% c("cor", "corme"))
                             "  [correlation matrix]" else ""))
   }
   msg <- c(msg, "  b                  (flat), as brms leaves slopes")
@@ -2544,6 +2709,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
   if (!is.null(attr(prior, "route"))) attr(prior, "route") <- NULL
   st <- prior_stack(base, prior)
   user_pl <- st$pl
+  user_pl <- refuse_coef_bounds(fit, user_pl)
   defs <- if (defaults) default_priors_for(fit)
   defs_all <- defs
   if (!is.null(defs) && !is.null(user_pl)) {
@@ -2817,7 +2983,9 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' | `Intercept` (ordinal thresholds) | `student_t(3, 0, 2.5)` | thresholds |
 #' | `delta` (equidistant thresholds) | `(flat)`, `lb = 0` where ordered | natural, log-Jacobian applied |
 #' | `sd` | `student_t(3, 0, s)` | natural sd, log-Jacobian applied |
-#' | `cor`, `rescor`, `lncor`, `cortime` | `lkj(1)` | correlation matrix |
+#' | `meanme` (latent mean of a `me()` term) | `(flat)` | natural |
+#' | `sdme` (latent sd of a `me()` term) | `(flat)`, `lb = 0` | natural sd, log-Jacobian applied |
+#' | `cor`, `rescor`, `lncor`, `cortime`, `corme` | `lkj(1)` | correlation matrix |
 #' | `ar`, `ma` (`cov = TRUE`), `cosy`, `lagsar` | flat, see below | natural |
 #' | `simo`, `sbhaz` | `dirichlet(1)` | the simplex |
 #' | `theta` (mixture weights) | `dirichlet(1)` | the simplex |
@@ -3103,7 +3271,17 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   `brmsprior` or a prior table, or the string `"flat"`. A
 #'   specification `set_prior("", class = ...)` (or a table row whose
 #'   prior is `(flat)` and that carries no bound) is brms's `(flat)` on
-#'   that slot, in place of its default. The objective is re-taped with the
+#'   that slot, in place of its default. A slot with no default of its
+#'   own, such as a `group` or `coef` row under a class row, inherits
+#'   the class row's density then, as brms's empty row does, so a
+#'   [frmtmb::default_prior()] table of `route = "sample"` with its
+#'   class row edited applies the edit to every group. A bound on one
+#'   coefficient (`coef` with `lb` or `ub`) is refused with brms's
+#'   message: brms, and this function, take bounds per class.
+#'   `set_prior(class = "Intercept", nlpar = "a")` is brms's class row
+#'   `class = "b", nlpar = "a"` where `a ~ 1`, its bound included; with
+#'   a bound, it is refused where `a` has more than an intercept. The
+#'   objective is re-taped with the
 #'   prior terms added; a fitted model itself is unchanged. On both
 #'   paths the brms default priors apply to whatever this argument, and
 #'   a MAP fit's own prior, leave alone (see Default priors), and
@@ -3193,9 +3371,14 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   intercept `b_Intercept` has no prior draws, as in brms. An ordinal
 #'   model with a threshold prior of its own (`coef = "1"`) has one
 #'   column per threshold, `prior_Intercept__1`, ..., as brms does. A
-#'   `gp()` term's `sdgp` and `lscale` are not drawn, nor brms's
-#'   `meanme` and `sdme` of a `me()` term, which frmtmb has no prior slot
-#'   for, nor a GEV's `xi` (brms draws no prior of it either).
+#'   `gp()` term's `sdgp` and `lscale` are not drawn, nor a GEV's `xi`
+#'   (brms draws no prior of it either). A `me()` term's hyperparameters
+#'   are drawn under brms's names, which are numbered by the group of
+#'   terms that share a `gr =`: `prior_meanme_1` and `prior_sdme_1` for
+#'   a class-wide prior, `prior_Lme_1` for the correlation, and, where a
+#'   term has a prior of its own, one column per term spelled as brms's
+#'   renaming spells it, `prior_meanme_1_meanme_mex`. With brms's
+#'   defaults only `prior_Lme_1` is drawn, as in brms.
 #'
 #'   The draws are made directly from each density with R's random
 #'   number generators, as brms makes them in Stan's generated
@@ -3218,9 +3401,11 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   left flat beside others that have a prior; this function refuses
 #'   that too. A model with missing values of an `mi()` term is refused,
 #'   because without the likelihood those values have no density (brms
-#'   samples them flat). A model with `me()` terms is refused: brms
-#'   samples it once its classes `"meanme"` and `"sdme"` have proper
-#'   priors, and frmtmb has no prior slot for those classes yet. Draws
+#'   samples them flat). A model with `me()` terms needs proper priors on
+#'   `"meanme"` and `"sdme"`, as in brms, which names `'meanme_1'`
+#'   otherwise; the measurement and latent densities of the `me()`
+#'   terms stay, as brms keeps them, so the latent values and their
+#'   hyperparameters are informed by the noisy values. Draws
 #'   made with `"only"` have no prior draws of their own, as in brms.
 #' @section Warmup:
 #'   rstan saves each chain's warmup iterations unless `save_warmup =
@@ -3482,16 +3667,6 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                " have no density without the likelihood, so their prior ",
                "is flat and improper. brms samples them flat; ",
                "frm_sample() refuses", call. = FALSE)
-    }
-    # brms needs proper priors on meanme and sdme here, and refuses with
-    # its first me() term's meanme otherwise; frmtmb has no slot for
-    # either class
-    if (!is.null(fit$frame[["me"]])) {
-      prior_only_stop("meanme_1", paste0(
-        "frmtmb has no prior slot yet for brms's classes \"meanme\" and ",
-        "\"sdme\", the mean and SD of a me() term's latent values, so a ",
-        "model with me() terms cannot be given the proper priors brms ",
-        "samples it from"))
     }
     unc <- prior_only_uncovered(fit, ri$entries, isTRUE(rp$mix_theta))
     if (length(unc)) prior_only_stop(unc[1L])

@@ -12,8 +12,8 @@
 # example ob0.3.32-lapack-t4 (ubuntu-26.04's OpenBLAS for BLAS and
 # LAPACK, 4 threads as on the 4-core runner). Build the R copy first:
 #   bash dev/ciharden-openblas.sh 0.3.32 lapack
-# <lib dir|base>: a library put ahead of rellib-r15, or "base" for
-# rellib-r15 alone. Point ROUND_BASE at another base library to rerun
+# <lib dir|base>: a library put ahead of rellib-r16, or "base" for
+# rellib-r16 alone. Point ROUND_BASE at another base library to rerun
 # the scan on a merged tree (see dev/ciharden-run1.R). Point TREE at
 # another checkout to run ITS test files, for example an export of the
 # base commit (git archive HEAD | tar -x -C <dir>, plus dev/brms-suite)
@@ -31,7 +31,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TREE="${TREE:-$ROOT}"
 cd "$TREE"
 RT=/c/rtools45
-export PATH="$RT/usr/bin:$RT/x86_64-w64-mingw32.static.posix/bin:$PATH"
+export PATH="$PATH:$RT/usr/bin:$RT/x86_64-w64-mingw32.static.posix/bin"
 export R_MAKEVARS_USER=C:/Users/adf44/Documents/.R/Makevars.win
 export FRMTMB_STAN_CACHE="${FRMTMB_STAN_CACHE:-$ROOT/dev/stan-cache}"
 export NOT_CRAN=true

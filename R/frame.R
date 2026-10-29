@@ -3063,7 +3063,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
 
   # me() latent values: after every mi() response, so the mi() slots
   # of `miss` keep the positions they have always had
-  me_fr <- me_build_frame(spec, mf, env, n, n_miss)
+  me_fr <- me_build_frame(spec, mf, env, n, n_miss,
+                          check_noise = check_response)
   if (!is.null(me_fr)) {
     n_miss <- n_miss + me_fr$n_latent
     miss_init <- c(miss_init, me_fr$latent_init)

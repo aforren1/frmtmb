@@ -70,6 +70,19 @@
 #' multivariate t of a Student-t one, with its one shared `nu`. A
 #' pointwise `log_lik()` of a `rescor` model reads it rather than
 #' assuming the normal.
+#' Its `resp` argument (default every response) names the responses
+#' whose joint density is wanted, as brms's `log_lik(resp =)` asks.
+#' `predict_rescor_draw(fs, rspecs, dps, ok)` is one JOINT predictive
+#' draw of the responses `rspecs` (a named subset of
+#' `fs$spec$responses`) at the parameters of the fit `fs`, on the
+#' rows where `ok` is `TRUE`: `dps` holds each response's dpar values,
+#' with `mu` and `sigma`, paired with `rspecs` by name when it is
+#' named (the whole list `eval_dpars()` returns serves any subset) and
+#' by position otherwise. It is brms's multivariate normal draw, or its
+#' multivariate t with the one shared `nu`, and it returns a list of
+#' one vector per response, or `NULL` when no row is `ok`. Both
+#' `predict()` and `posterior_predict()` of a `rescor` model draw through
+#' it, so the two cannot drift apart.
 #' `autocor_row_loglik(fit, dpv, resp)` is the pointwise log-density of
 #' a response with a residual covariance term (the covariance form of
 #' `ar()`, `ma()` and `arma()`, `cosy()`, `unstr()`, `fcor()`, a term of
@@ -541,6 +554,7 @@
 #' @aliases ord_lp_blocks
 #' @aliases ord_thres_linpred
 #' @aliases rescor_row_loglik
+#' @aliases predict_rescor_draw
 #' @aliases autocor_flat_priors
 #' @aliases autocor_bound_chart
 #' @aliases autocor_row_loglik
@@ -604,6 +618,7 @@
 #'   brms_prob_cols, brms_fixef_rows, ord_delta_info, ord_thres_linpred,
 #'   ord_lp_blocks,
 #'   rescor_row_loglik,
+#'   predict_rescor_draw,
 #'   autocor_flat_priors,
 #'   autocor_bound_chart,
 #'   autocor_row_loglik,

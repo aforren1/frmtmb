@@ -32,6 +32,10 @@ d$y <- 1 + 0.5 * tx - 0.4 * tz + rnorm(n, 0, 0.5)
 # independent latent values
 f0 <- bf(y ~ me(x, sx) + me(z, sz)) + set_mecor(FALSE)
 fit0 <- frm(f0, data = d)
+
+# correlated latent values, with an lkj() prior on the correlation
+fit1 <- frm(bf(y ~ me(x, sx) + me(z, sz)), data = d,
+            prior = set_prior("lkj(2)", class = "corme"))
 }
 \seealso{
 \link{frmtmb-me} for the model that \code{me()} specifies.

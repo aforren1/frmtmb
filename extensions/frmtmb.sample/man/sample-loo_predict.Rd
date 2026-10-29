@@ -49,8 +49,9 @@
 \code{loo(save_psis = TRUE)$psis_object}, for the same draws and rows.
 Given, it is used as it is and no \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}} is computed.}
 
-\item{resp}{For a multivariate model, the response to summarize, in
-brms's spelling (\code{ya}) or frmtmb's (\code{y_a}).}
+\item{resp}{For a multivariate model, the responses to summarize, in
+brms's spelling (\code{ya}) or frmtmb's (\code{y_a}). \code{NULL} is every
+response.}
 
 \item{...}{brms's further arguments. \code{ndraws} and \code{draw_ids} choose
 the draws for both halves. The arguments of the prediction
@@ -70,8 +71,8 @@ interval, one number in \verb{(0, 1)}.}
 A matrix with one row per observation and one column per
 summary, named \code{mean}, \code{var} or \verb{q<100 p>}. Where the prediction
 has a third dimension (categories, or the responses of a
-multivariate model without \code{resp}), an array with that dimension
-third.
+multivariate model without \code{resp} or with several), an array
+with that dimension third.
 }
 \description{
 brms's \code{loo_epred()}, \code{loo_linpred()}, \code{loo_predict()} and
@@ -113,9 +114,13 @@ and on one chain for a subset (\code{ndraws} or \code{draw_ids}). Draws from
 Without \code{resp}, the weights come from the joint \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}}
 of the responses, and the result has a third dimension with one layer
 per response, named as brms names the responses (\code{ya} for a column
-\code{y_a}). With \code{resp}, the weights come from that response's own
-log-likelihood, as brms's \code{loo(resp =)} computes them, and the result
-is that response's matrix.
+\code{y_a}). With one response in \code{resp}, the weights come from that
+response's own log-likelihood, as brms's \code{loo(resp =)} computes
+them, and the result is that response's matrix. With several, the
+weights come from \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}} of those responses (their
+joint density under \code{set_rescor(TRUE)}, the sum of their densities
+without it), and the result has one layer per response named, in
+that order, as in brms.
 }
 
 \examples{

@@ -42,9 +42,13 @@
 #' Without `resp`, the weights come from the joint [frmtmb::log_lik()]
 #' of the responses, and the result has a third dimension with one layer
 #' per response, named as brms names the responses (`ya` for a column
-#' `y_a`). With `resp`, the weights come from that response's own
-#' log-likelihood, as brms's `loo(resp =)` computes them, and the result
-#' is that response's matrix.
+#' `y_a`). With one response in `resp`, the weights come from that
+#' response's own log-likelihood, as brms's `loo(resp =)` computes
+#' them, and the result is that response's matrix. With several, the
+#' weights come from [frmtmb::log_lik()] of those responses (their
+#' joint density under `set_rescor(TRUE)`, the sum of their densities
+#' without it), and the result has one layer per response named, in
+#' that order, as in brms.
 #'
 #' @param object A `frmtmb_draws` from [frm_sample()].
 #' @param type The summary of each column: `"mean"` (the default),
@@ -55,8 +59,9 @@
 #' @param psis_object A `psis` object from `loo::psis()`, [psis()] or
 #'   `loo(save_psis = TRUE)$psis_object`, for the same draws and rows.
 #'   Given, it is used as it is and no [frmtmb::log_lik()] is computed.
-#' @param resp For a multivariate model, the response to summarize, in
-#'   brms's spelling (`ya`) or frmtmb's (`y_a`).
+#' @param resp For a multivariate model, the responses to summarize, in
+#'   brms's spelling (`ya`) or frmtmb's (`y_a`). `NULL` is every
+#'   response.
 #' @param ... brms's further arguments. `ndraws` and `draw_ids` choose
 #'   the draws for both halves. The arguments of the prediction
 #'   function (`dpar`, `nlpar`, `transform`, `incl_thres`, `sort`)
@@ -70,8 +75,8 @@
 #' @return A matrix with one row per observation and one column per
 #'   summary, named `mean`, `var` or `q<100 p>`. Where the prediction
 #'   has a third dimension (categories, or the responses of a
-#'   multivariate model without `resp`), an array with that dimension
-#'   third.
+#'   multivariate model without `resp` or with several), an array
+#'   with that dimension third.
 #' @seealso [psis()], [frmtmb::loo()], [loo_R2()]
 #' @examples
 #' \donttest{
@@ -300,7 +305,15 @@ loo_draws_expect <- function(object, pred_fun, what, type, probs,
   }
   fit <- draws_base_fit(object)
   resps <- names(fit$spec$responses)
-  resp <- loo_resp_name(fit, resp, what)
+  # several responses, as brms takes them: their layers, weighted by the
+  # log_lik() of that set (the joint density under rescor). An empty
+  # `resp` is every response, as brms's validate_resp() reads it
+  if (!length(resp)) resp <- NULL
+  resp <- if (length(resp) > 1L) {
+    draws_resp_set(fit, resp)
+  } else {
+    loo_resp_name(fit, resp, what)
+  }
   rows <- draws_subsample(object, op$ndraws, op$draw_ids)
   # the prediction first: its own refusals (a family with no simulator,
   # an unknown dpar) cost nothing, and the weights cost a log_lik()
@@ -308,18 +321,13 @@ loo_draws_expect <- function(object, pred_fun, what, type, probs,
     draws_as_caller(what, do.call(pred_fun, c(
       list(object, resp = r, draw_ids = rows), op$pred)))
   }
-  pred <- if (is.null(resp) && length(resps) > 1L) {
-    # brms's multivariate layout: one layer per response
-    layers <- lapply(resps, one)
-    if (any(vapply(layers, function(p) length(dim(p)) != 2L, NA))) {
-      frm_stop(what, " on a multivariate model without `resp` stacks one ",
-               "matrix per response, and a response here predicts more ",
-               "than one value per row. Name the response with resp =",
-               call. = FALSE)
-    }
-    # brms's names for the layers: y_a is ya
-    array(unlist(layers), c(dim(layers[[1L]]), length(resps)),
-          dimnames = list(NULL, NULL, brms_stan_name(resps)))
+  pred <- if (length(resps) > 1L && length(resp) != 1L) {
+    # brms's multivariate layout: one layer per response, named as brms
+    # names them (y_a is ya). Each layer is drawn on its own: a
+    # leave-one-out summary is per row and per response, so a joint
+    # draw of a rescor model would give it the same expectation
+    want <- resp %||% resps
+    draws_resp_stack(fit, want, lapply(want, one), what)
   } else {
     one(resp)
   }
