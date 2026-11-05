@@ -211,14 +211,12 @@ eq_mo_const <- function(J = 3, terms = 1) terms * lgamma(J)
 # compat note that states the refusal is not enough. No sampled refusal
 # met that standard, so no spec carries a `decision`.
 eq_decision_gp <- paste(
-  "exact gp(): the L1 gap is recorded, not scored; it is unexplained",
-  "(matching the nugget removes about 11 of 94 nats on p094, review",
-  "2026-10-28; dev/equiv-gp-gap.R cannot attribute the rest in double",
-  "precision)")
+  "exact gp(): the L1 gap is recorded, not scored; it is the nugget, absolute",
+  "1e-12 in brms and 1e-12 * sdgp^2 here: with brms's one line at the relative",
+  "size L1 reads under 1e-8 (release review 2026-11-04)")
 # An exact gp() over 200 distinct positions has a kernel with many
 # eigenvalues below frmtmb's nugget, and the L1 joint differs from brms's
-# by tens to a thousand nats. The nugget explains only part of it
-# (review 2026-10-28, finding 3), so L1 is recorded and not scored. The
+# by tens to a thousand nats. That is the nugget, so L1 is recorded and not scored. The
 # verdict comes from L4 where a flat-prior posterior converges in budget;
 # where it did not (Rhat above 2, or past 2400 s) the pair records L1
 # alone and is cannot measure.

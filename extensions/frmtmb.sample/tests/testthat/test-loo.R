@@ -432,8 +432,9 @@ test_that("log_lik() refuses in-model imputation and unknown responses", {
 
   uf <- frm(bf(y ~ z), family = gaussian(), data = dd[!is.na(dd$x), ],
             dry_run = "objective")
-  expect_error(log_lik(fake_draws(uf), resp = "nope"),
-               "names no response")
+  # brms ignores `resp` on a univariate model (test-readers-resp-me.R)
+  expect_identical(log_lik(fake_draws(uf), resp = "nope"),
+                   log_lik(fake_draws(uf)))
 })
 
 test_that("log_lik() refuses laplace-marginalized draws", {

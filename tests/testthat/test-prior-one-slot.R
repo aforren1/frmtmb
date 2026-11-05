@@ -136,7 +136,7 @@ test_that("class theta on rescor, sdgp and a smooth's sd is refused", {
   m <- ros_msg(validate_prior(
     set_prior("normal(0, 1)", class = "theta", coef = "theta_1"),
     bf(y ~ s(x)), data = d))
-  expect_match(m, "set_prior(..., class = \"sd\", group = \"s(x)\")",
+  expect_match(m, "set_prior(..., class = \"sds\", coef = \"s(x)\")",
                fixed = TRUE)
 })
 

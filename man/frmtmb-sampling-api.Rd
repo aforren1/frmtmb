@@ -3,9 +3,17 @@
 \name{frmtmb-sampling-api}
 \alias{frmtmb-sampling-api}
 \alias{build_objective}
+\alias{gp_tape_scope}
+\alias{gp_tape_order}
+\alias{gp_nugget_message}
 \alias{row_lpdf}
 \alias{with_cs_offsets}
 \alias{cs_offsets_add}
+\alias{update_merge_prior}
+\alias{ce_by_response}
+\alias{resp_refuse_single}
+\alias{ce_na_vars}
+\alias{autocor_for_newdata}
 \alias{us_chol_cor}
 \alias{expand_b}
 \alias{aterms_for_newdata}
@@ -58,6 +66,7 @@
 \alias{hyp_expr_vars}
 \alias{brms_par_labels}
 \alias{gp_brms_natural}
+\alias{mi_sampling}
 \alias{varcorr_matrices}
 \alias{varcorr_layout}
 \alias{varcorr_values}
@@ -94,6 +103,10 @@
 \alias{autocor_bound_chart}
 \alias{autocor_row_loglik}
 \alias{arma_cond_resp}
+\alias{frame_ac_terms}
+\alias{latres_new_spec}
+\alias{latres_shifted}
+\alias{autocor_cond_strip_latent}
 \alias{arma_cond_dpars}
 \alias{arma_cond_fill_dpars}
 \alias{arma_cond_fill_epred}
@@ -167,6 +180,18 @@ plus \code{neg_log_prior_fn()}'s is the prior of the whole model. A
 prior-augmented objective is this closure plus
 \code{neg_log_prior_fn()}'s.
 
+\code{gp_tape_scope(frame, expr)} evaluates \code{expr}, the call that builds a
+tape of such a closure, with the tape settings a frame with an exact
+\code{gp()} block needs: the field's inner Hessian is dense, and without them
+its tape passes 13 GB at 500 positions. They change no value. Its parameter
+list goes through \code{gp_tape_order(frame, pars)}, which puts \code{b} first: the
+settings give a wrong gradient otherwise. With \code{hessian = FALSE},
+\code{gp_tape_scope()} leaves out the inner Hessian, for a tape that never reads
+it.
+
+\code{gp_nugget_message(fit)} is the warning of a fit whose noise has reached an
+exact \code{gp()}'s nugget, or \code{NULL}.
+
 \code{row_lpdf(fam, y, yobs, dpars, aterms, extra)} is the per-row
 log-density composition the objective itself runs, with \code{cens()} and
 \code{trunc()} folded in; it runs on numeric dpar values as readily as on
@@ -181,6 +206,14 @@ call unconditionally before \code{row_lpdf()}. In frmtmb 0.62.0 and
 earlier this paragraph said it took one response's list; a caller
 that passed one got no offsets, because they were written a level
 deeper than the simulator reads.
+\code{ce_by_response(resps, one, effects)} joins the conditional-effects panel
+sets
+\code{one(r, effects)} gives each response, in brms's order. \code{ce_na_vars(x, pop_level)} names the grid columns a display holds at \code{NA}.
+\code{autocor_for_newdata(fit, ac, rspec, newdata)} is a residual correlation term
+over the groups and times of \code{newdata}. \code{resp_refuse_single()} is brms's
+refusal of a method that reads one response of a multivariate model.
+\code{update_merge_prior(old, new)} is brms's merge of \code{update(prior = )}: new
+rows take their slots and the other old rows stay.
 \code{cs_offsets_add(fit, resp, newdata, dpv)} takes ONE response's
 dpar-value list, however it was built, and adds that response's
 \code{.cs} evaluated at \code{newdata} (the fitted rows when \code{NULL}); it is the
@@ -215,6 +248,17 @@ density of each row given the other rows of its group, one value per
 row (\link{frmtmb-autocor}, "The pointwise log-density"). The values do
 not sum to the log-likelihood. On a maximum-likelihood fit it is the
 value at the estimates.
+
+\code{frame_ac_terms(frame)} lists a frame's autocorrelation terms by
+response: the residual terms of \code{frame$autocor}, and each latent residual
+(\link{frmtmb-autocor}) with \code{theta_idx} into \code{theta} past its log \code{sderr}.
+\code{latres_new_spec(fit, rspec, newdata)} builds what a draw of the latent
+residuals of \code{newdata}'s rows needs, once per call, or \code{NULL} for a response
+with no such term, and refuses new rows under \code{cov = FALSE} in brms's words.
+\code{latres_shifted(fit, lat, resp)} gives the fit back with one draw of them
+in the predictor of \code{mu}. \code{autocor_cond_strip_latent(fit)} marks a fit whose
+predictions read a grid: its latent residuals are not read there, as brms's
+\code{incl_autocor = FALSE} drops them.
 
 \code{arma_cond_resp(fit)} names the responses carrying brms's default
 \code{cov = FALSE} form of \code{ar()}, \code{ma()} or \code{arma()}, and
@@ -403,7 +447,13 @@ spelling, \code{brms_levels(bk, for_r)} its level spelling, and
 sampled parameter vector in template order, in brms's spelling where
 brms has a parameter with the same content, and
 \code{gp_brms_natural(fit)} maps the \code{theta} entries it labels \code{sdgp_}
-and \code{lscale_} to brms's scales and back. \code{varcorr_matrices(fit, theta)} is the covariance matrix of every block at \code{theta},
+and \code{lscale_} to brms's scales and back. \code{mi_sampling(fit)} gives a
+fit back the \code{mi()} rows maximum likelihood left out of its objective,
+which a sampler keeps; \code{mi_sampling(fit, "laplace")} gives an unfitted
+object that design, for a sampler that integrates the values out;
+\code{mi_sampling(fit, "natural")} maps a missing
+value from the chart the tape holds it on to the value brms reports
+under \verb{Ymi_<resp>[k]}, and back. \code{varcorr_matrices(fit, theta)} is the covariance matrix of every block at \code{theta},
 \code{varcorr_layout(fit)} is brms's \code{VarCorr()} grouping for the fit,
 and \code{varcorr_values(fit, vals, comp, layout)} gives the standard
 deviations, correlations and covariances of that layout at one

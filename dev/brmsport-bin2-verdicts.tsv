@@ -68,7 +68,7 @@ brmsfit-methods:519	frmtmb.sample	pass
 brmsfit-methods:522	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
 brmsfit-methods:522	frmtmb.sample	pass	
 brmsfit-methods:523	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
-brmsfit-methods:523	frmtmb.sample	divergence	loo_linpred() of an ordinal fit with a cs() term returns one matrix where brms returns one layer per threshold (dim(llp)[3] is 3 in brms, NA here): posterior_linpred() of draws has no cs() threshold layer, and loo_linpred() inherits it (dev/test-backlog.md, filed at 0.73.0)
+brmsfit-methods:523	frmtmb.sample	pass	
 brmsfit-methods:526	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
 brmsfit-methods:526	frmtmb.sample	divergence	loo_linpred(scale = ) is refused by name: brms 2.23.0 reads it nowhere, and its result is the default's, on a logit link too (lane loodraws, decision 3; its review re-ran brms)
 brmsfit-methods:533	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()

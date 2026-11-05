@@ -87,12 +87,32 @@ it and pass it back. Its section "The default starting values"
 tells how the defaults are set; the entries you do not name in
 \code{start} keep those defaults.
 
+An exact \code{gp()} on a gaussian response with a constant \code{sigma} starts at
+the maximum of the model's marginal, read from the best cell of six
+length scales on a coarse grid. Another
+family, a non-identity link, \verb{sigma ~}, \code{ar()}, \code{mi()}, \code{me()} or \code{mo()}
+starts at that marginal of the response on its link's scale, for \code{sdgp} and
+the length scale. A nonlinear body, a mixture and \code{sigma ~ gp()} start at
+the best of a few length scales read from the objective. A \code{theta} here
+replaces all of this, and a \code{beta} or \code{betad} replaces only itself.
+
+None of this can be certain. A marginal can have more than one maximum. On
+744 rows of curves no test had seen, the fit stopped more than 0.001
+short of the maximum on 1, the worst 0.56, with no warning, where 0.78.0
+read 40 and 62 short on the two tables of 192. A fit from other
+\code{start} values is how to check one that matters.
+
 A component is read by NAME when its vector has names, so
 \code{start = list(beta = c("(Intercept)" = 5000))} moves that one
 coefficient and leaves the rest at their defaults; parentheses may
 be dropped, as everywhere a parameter is named. A vector with no
 names is positional and must be full length. Naming some entries
-of one vector and not others is refused.}
+of one vector and not others is refused.
+
+A nonlinear body can have more than one maximum, and nothing in a fit
+marks a second one. A \code{start} with other signs, or a located prior, can
+show it, and \code{\link[=frm_allfit]{frm_allfit()}} cannot, as it starts every optimizer from one
+point.}
 
 \item{control}{A list from \code{\link[=frmtmb_control]{frmtmb_control()}}.}
 
@@ -242,10 +262,28 @@ error of the corrected log-likelihood in \code{fit$importance};
 caveats worth knowing. The reported estimate is the optimum of the
 previous round's proposal, so the covariance is a Hessian at a
 point that is stationary only to \code{fit$importance$grad}. And
-\code{confint(method = "profile")} walks the FROZEN proposal instead of
-refitting, so it warns when a bound lands where the weights no
-longer cover the integrand. The seed, the round cap and the
-effective-sample-size threshold are \code{\link[=frmtmb_control]{frmtmb_control()}} settings.}
+\code{confint(method = "profile")} walks one tape instead of refitting:
+its proposal follows the parameters to first order around the
+estimate, so it warns when a bound lands where the weights no
+longer cover the integrand.
+
+The Monte Carlo standard error can read high or low. On a binomial
+model at 200 draws it reads 0.0044 where the error's standard
+deviation is 0.0017. On a Student response with \code{nu = 5}, 15 groups
+of 6 and 1000 draws, the error's standard deviation is 1.3 to 1.4
+times the number, a nominal 95 percent interval covers 0.86, and no
+warning fires. To judge two corrected fits, refit with another
+\code{importance_seed} or with twice the draws and read how far the
+log-likelihood moves.
+
+A count that is too small for the model stops the fit. The message
+gives the worst group's effective sample size and either a larger
+count at which the same fit settled or the counts it tried. That
+search can take several times the fit: up to four doublings, to at
+most 8192 draws and 2e6 rows times draws, measured at 15 times the
+fit and 3.3 GB at its worst. The seed,
+the round cap and the effective-sample-size threshold are
+\code{\link[=frmtmb_control]{frmtmb_control()}} settings.}
 
 \item{data2}{A named list of objects that are not columns of \code{data}:
 the adjacency matrix of \code{car()} and the mesh triple of \code{spde()}

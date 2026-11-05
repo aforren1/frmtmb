@@ -9,8 +9,8 @@ distributions:92	frmtmb	error		NOT CHECKED: the adapter's value does not exist
 distributions:95	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.11e-16, max rel 1.22e-16
 distributions:109	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 0, max rel 0
 distributions:111	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 0, max rel 0
-distributions:123	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.22e-15, max rel 4.62e-15
-distributions:125	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 2.22e-16, max rel 5.93e-16
+distributions:123	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 3.33e-16, max rel 2.27e-15
+distributions:125	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.5e-15, max rel 4.01e-15
 distributions:134	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 4.16e-17, max rel 4.72e-16
 distributions:137	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.11e-16, max rel 2.17e-16
 distributions:148	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 6.94e-18, max rel 2.97e-16
@@ -21,8 +21,8 @@ distributions:167	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs dif
 distributions:169	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.11e-16, max rel 2.08e-16
 distributions:172	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 5.55e-17, max rel 5.26e-16
 distributions:174	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.11e-16, max rel 1.05e-15
-distributions:177	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.11e-15, max rel 3.29e-15
-distributions:179	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 2.22e-16, max rel 5.08e-16
+distributions:177	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 2.78e-16, max rel 2.1e-15
+distributions:179	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.44e-15, max rel 3.3e-15
 distributions:183	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 2.22e-16, max rel 1.48e-16
 distributions:185	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 4.44e-16, max rel 8.25e-16
 distributions:193	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 0, max rel 0
@@ -55,7 +55,7 @@ log_lik:423	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 4.44
 log_lik:426	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 0, max rel 0
 log_lik:429	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 1.42e-14, max rel 5.43e-16
 log_lik:433	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 4.44e-16, max rel 1.23e-16
-log_lik:436	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 3.55e-15, max rel 1.54e-14
+log_lik:436	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 2.22e-15, max rel 1.37e-14
 log_lik:440	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 2.22e-16, max rel 1.68e-16
 log_lik:443	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 0, max rel 0
 log_lik:462	frmtmb	differs	NA in 0 values from the adapter, 200 from brms	DIFFERS: NA in 0 values from the adapter, 200 from brms

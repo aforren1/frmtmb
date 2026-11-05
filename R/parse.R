@@ -877,22 +877,34 @@ is_field_term <- function(tm) {
 #' @section What is refused:
 #'
 #' \describe{
-#'   \item{Other covariance structures}{`mm()` carries `us` and `diag`
-#'     only. `ar1()`, `cs()`, `toep()`, `exp()`, `gr(cov = )` and the
-#'     rest all describe a covariance over the block's levels, and the
-#'     pooled membership levels have no order, no coordinates and no
-#'     relationship matrix for one to be defined on.}
-#'   \item{`|ID|` keys}{A merged block indexes one level set per
-#'     observation row; an `mm()` row loads several at once.}
-#'   \item{brms's other `mm()` arguments}{`id =` is the `|ID|` key.
-#'     `cov =` is `gr(g, cov = A)` over a single-membership factor, and
-#'     `dist =` is `gr(g, dist = "student")` over one (see
-#'     [frmtmb-student-re]). Neither applies to a membership design,
-#'     whose rows load several levels at once. `pw =` has no equivalent
-#'     yet.}
+#'   \item{Other covariance structures}{`mm()` carries `us`, `diag` and
+#'     `cov =` only. `ar1()`, `cs()`, `toep()`, `exp()` and the rest all
+#'     describe a covariance over the block's levels, and the pooled
+#'     membership levels have no order and no coordinates for one to be
+#'     defined on.}
+#'   \item{brms's other `mm()` arguments}{`dist =` is
+#'     `gr(g, dist = "student")` over one factor (see
+#'     [frmtmb-student-re]). `pw =` has no equivalent yet.}
+#'   \item{Terms that disagree under one key}{Different weights under one
+#'     `|ID|` key are refused: brms reads the first term's weights for every
+#'     term, and frmtmb will not pick one silently.}
 #'   \item{Non-name members}{`mm()` reads its membership variables as
 #'     column names, as brms does. Build the column first.}
 #' }
+#'
+#' @section Keys and known covariances:
+#'
+#' `(x | p | mm(g1, g2))` and `(x | mm(g1, g2, id = "p"))` link the term
+#' to every other term with the key `p` over the same members, in any
+#' predictor or response, as `|ID|` does over a plain factor. The merged
+#' block has one unstructured covariance over the pooled levels. The
+#' linked terms take one set of weights.
+#'
+#' `(x | mm(g1, g2, cov = A))` is brms's known covariance over the pooled
+#' levels: `A` is a square matrix whose dimnames cover every level of
+#' every member, usually passed in `data2`, and the effects follow
+#' `A %x% Sigma` as they do under `gr(g, cov = A)`. Each row is still the
+#' weighted sum over its members.
 #'
 #' On `newdata`, a membership level that was not in the fitted data
 #' needs `allow_new_levels = TRUE`; that member then contributes the
@@ -1208,7 +1220,7 @@ mo_bar_rewrite <- function(tm, map) {
 # brms mm() arguments that describe something other than the membership
 # design itself. Each has a spelling here that is already supported, so
 # the refusal can name it rather than just say no.
-mm_brms_only_args <- c("cor", "id", "pw", "cov", "dist")
+mm_brms_only_args <- c("cor", "id", "pw", "dist")
 
 #' brms multi-membership grouping: `(x | mm(g1, g2, weights = W))`.
 #'
@@ -1229,7 +1241,7 @@ parse_mm_call <- function(tm, env) {
   aa <- as.list(tm)[-1L]
   nms <- names(aa) %||% rep("", length(aa))
   bad <- setdiff(nms[nzchar(nms)],
-                 c("weights", "scale", "by", mm_brms_only_args))
+                 c("weights", "scale", "by", "cov", mm_brms_only_args))
   if (length(bad)) {
     frm_stop("mm(): unknown argument(s) ", paste(bad, collapse = ", "),
              " (takes the membership variables plus weights =, scale = ",
@@ -1239,11 +1251,11 @@ parse_mm_call <- function(tm, env) {
   if (length(used)) {
     frm_stop("mm(", used[1L], " = ) is not supported. brms's other mm() ",
              "arguments have spellings here that apply to any grouping ",
-             "term: cor = is read in a plain term, (x | mm(g1, g2, cor = ",
-             "FALSE)), which is (x || mm(g1, g2)), id = is the ",
-             "|ID| key (x | q | g), cov = is gr(g, cov = A), and dist = is ",
-             "gr(g, dist = \"student\"). The last two take a ",
-             "single-membership factor only. pw = has no equivalent yet",
+             "term: cor = and id = are read in a plain term, (x | mm(g1, ",
+             "g2, cor = FALSE)) and (x | mm(g1, g2, id = \"q\")), which are ",
+             "(x || mm(g1, g2)) and (x | q | mm(g1, g2)), and dist = is ",
+             "gr(g, dist = \"student\") over a single-membership factor. ",
+             "pw = has no equivalent yet",
              call. = FALSE)
   }
   groups <- aa[!nzchar(nms)]
@@ -1275,8 +1287,11 @@ parse_mm_call <- function(tm, env) {
     by <- list(expr = aa[["by"]], label = deparse1(aa[["by"]]), fn = "mm")
     tm[["by"]] <- NULL
   }
+  # brms's mm(cov = A) is a block property, not a part of the name
+  cov_expr <- aa[["cov"]]
+  if (!is.null(cov_expr)) tm[["cov"]] <- NULL
   list(groups = groups, gvars = gvars, weights_expr = aa$weights,
-       scale = scale, by = by, label = deparse1(tm))
+       scale = scale, by = by, cov_expr = cov_expr, label = deparse1(tm))
 }
 
 #' A predictor's group-level terms in brms's order: brms numbers them by
@@ -1562,8 +1577,9 @@ expand_slash_groups <- function(form) {
 #' columns that is brms's model. A piece with several columns (a factor)
 #' is refused when its frame is built (`within_struct`). An `|ID|` key
 #' asks for correlation across terms, which `||` and `cor = FALSE` rule
-#' out; brms refuses `(x | p || g)` and silently drops the key from
-#' `(x | p | gr(g, cor = FALSE))`, and both are refused here.
+#' out. brms refuses `(x | p || g)`, and this does. It drops the key from
+#' `(x | p | gr(g, cor = FALSE))`, and so does this when every term under
+#' the key says `cor = FALSE` (`check_id_cor_flags()`).
 #'
 #' @noRd
 expand_double_verts <- function(form) {
@@ -1578,6 +1594,7 @@ expand_double_verts <- function(form) {
     key <- deparse1(bar)
     written[[key]] <<- c(written[[key]], text)
   }
+  id_no_cor <- list()
   for (tm in raw) {
     inner <- strip_parens(tm)
     orig <- paste0("(", deparse1(inner), ")")
@@ -1588,6 +1605,13 @@ expand_double_verts <- function(form) {
         stop_id_double_vert(tm)
       }
       read <- bar_read_cor(bar_read_id(inner, env), env)
+      if (!is.null(attr(read, "id_no_cor")) && bar_has_id_arg(inner)) {
+        id_no_cor[[length(id_no_cor) + 1L]] <- list(
+          label = attr(read, "id_no_cor"), group = bar_key_group(read[[3L]], env),
+          by_id = TRUE,
+          text = orig)
+      }
+      attr(read, "id_no_cor") <- NULL
       # in its brackets, so the sum the term goes back into still reads
       # it as one term
       if (!identical(read, inner)) {
@@ -1616,7 +1640,7 @@ expand_double_verts <- function(form) {
           as.character(rhs[[1L]]) %in% c("gr", "mm")) {
       rhs <- drop_cor_arg(rhs, env)
     }
-    if (is.call(rhs) && identical(rhs[[1L]], as.name("gr")) &&
+    if (is.call(rhs) && as.character(rhs[[1L]])[1L] %in% c("gr", "mm") &&
           any(c("cov", "prec") %in% names(rhs))) {
       ex <- reformulas::expandDoubleVerts(
         stats::as.formula(call("~", call("||", lhs, rhs)), env = env))
@@ -1631,7 +1655,29 @@ expand_double_verts <- function(form) {
   }
   reformulas::RHSForm(form) <- Reduce(function(a, b) call("+", a, b), out)
   attr(form, "dblbar_written") <- written
+  attr(form, "id_no_cor") <- id_no_cor
   form
+}
+
+#' The group that a term's key names: `mm()`'s is its members, by brms's name
+#' for them, as the terms in `parse_linpred()` key it.
+#'
+#' @noRd
+bar_key_group <- function(rhs, env) {
+  rhs <- strip_parens(rhs)
+  if (is.call(rhs) && identical(rhs[[1L]], as.name("mm"))) {
+    return(mm_group_name(parse_mm_call(rhs, env)))
+  }
+  deparse1(rhs)
+}
+
+#' Whether a bar term spells its key `gr(g, id = )` or `mm(g, id = )`.
+#'
+#' @noRd
+bar_has_id_arg <- function(bar) {
+  rhs <- strip_parens(bar[[3L]])
+  is.call(rhs) && is.name(rhs[[1L]]) &&
+    as.character(rhs[[1L]]) %in% c("gr", "mm") && "id" %in% names(rhs)
 }
 
 #' brms's refusal of an `|ID|` key beside `||`, `(x | p || g)` or
@@ -1662,13 +1708,18 @@ bar_read_cor <- function(bar, env) {
   rhs <- drop_cor_arg(rhs, env)
   if (cor) return(call("|", bar[[2L]], rhs))
   lhs <- strip_parens(bar[[2L]])
+  # a key correlates the terms that share it, and this asks for no
+  # correlation, so it has nothing to do if every term under it says so:
+  # brms's program then holds one independent z per column. Whether every
+  # term does is known only across the model (check_id_cor_flags())
+  key <- NULL
   if (is.call(lhs) && identical(lhs[[1L]], as.name("|"))) {
-    frm_stop("(", deparse1(bar), "): an |ID| key correlates the terms ",
-             "that share it, and ", fn, "(cor = FALSE) asks for no ",
-             "correlation. brms drops the key here without a word; write ",
-             "the term without one, or with cor = TRUE", call. = FALSE)
+    key <- deparse1(lhs[[3L]])
+    lhs <- lhs[[2L]]
   }
-  call("||", bar[[2L]], rhs)
+  out <- call("||", lhs, rhs)
+  attr(out, "id_no_cor") <- key
+  out
 }
 
 #' A bar term whose `gr()` carries brms's `id =`, as the `|ID|` term it
@@ -1676,24 +1727,26 @@ bar_read_cor <- function(bar, env) {
 #' builds the same way (one correlated block over the terms that share
 #' the id, dev/prilabel-log/brms-ref.txt). `id = NA`, brms's default,
 #' is no id. Both spellings at once name the key twice and are refused.
+#' `(x | mm(g1, g2, id = "a"))` is `(x | a | mm(g1, g2))` the same way.
 #' Any other term is returned as it is.
 #'
 #' @noRd
 bar_read_id <- function(bar, env) {
   rhs <- strip_parens(bar[[3L]])
-  if (!(is.call(rhs) && identical(rhs[[1L]], as.name("gr")) &&
+  if (!(is.call(rhs) && as.character(rhs[[1L]])[1L] %in% c("gr", "mm") &&
           "id" %in% names(rhs))) {
     return(bar)
   }
+  fn <- as.character(rhs[[1L]])[1L]
   id <- tryCatch(eval(rhs[["id"]], env), error = function(e) {
-    frm_stop("gr(): cannot evaluate id = ", deparse1(rhs[["id"]]), ": ",
+    frm_stop(fn, "(): cannot evaluate id = ", deparse1(rhs[["id"]]), ": ",
              conditionMessage(e), call. = FALSE)
   })
   # brms's as_one_character(id, allow_na = TRUE)
   if (length(id) != 1L || !(is.character(id) || is.numeric(id) ||
                               is.logical(id) && is.na(id))) {
-    frm_stop("gr(): id = ", deparse1(rhs[["id"]]), " must be a single ",
-             "string, as in brms's gr(g, id = \"a\")", call. = FALSE)
+    frm_stop(fn, "(): id = ", deparse1(rhs[["id"]]), " must be a single ",
+             "string, as in brms's ", fn, "(g, id = \"a\")", call. = FALSE)
   }
   rhs[["id"]] <- NULL
   if (identical(rhs[[1L]], as.name("gr")) && length(rhs) == 2L &&
@@ -1704,7 +1757,7 @@ bar_read_id <- function(bar, env) {
   lhs <- strip_parens(bar[[2L]])
   if (is.call(lhs) && identical(lhs[[1L]], as.name("|"))) {
     frm_stop("(", deparse1(bar), ") names its correlation id twice, as ",
-             "|", deparse1(lhs[[3L]]), "| and as gr(id = ). Write one of ",
+             "|", deparse1(lhs[[3L]]), "| and as ", fn, "(id = ). Write one of ",
              "them", call. = FALSE)
   }
   call("|", call("|", bar[[2L]], as.name(as.character(id))), rhs)
@@ -1862,6 +1915,8 @@ parse_linpred <- function(rhs_form, env) {
   rhs_form <- expand_double_verts(rhs_form)
   dblbar_written <- attr(rhs_form, "dblbar_written")
   attr(rhs_form, "dblbar_written") <- NULL
+  id_no_cor <- attr(rhs_form, "id_no_cor")
+  attr(rhs_form, "id_no_cor") <- NULL
   # terms()'s order of the variables, which orders the factors of an
   # interaction label as brms names it: `z + mo(x):z` is brms's `z:mox`
   mo_var_order <- tryCatch(
@@ -1985,6 +2040,8 @@ parse_linpred <- function(rhs_form, env) {
       # the term as written, whitespace removed: brms's name for it, and
       # the key conditional_smooths() selects and labels a term by
       attr(smsp, "frm_term") <- gsub("[ \t\r\n]+", "", deparse1(tm))
+      # as R deparses it, which is brms's coef of class "sds"
+      attr(smsp, "frm_term_brms") <- deparse1(tm)
       smooth[[length(smooth) + 1L]] <- smsp
     } else if (is.call(tm) && identical(tm[[1]], as.name("mo"))) {
       if (length(tm) != 2L) {
@@ -2239,11 +2296,10 @@ parse_linpred <- function(rhs_form, env) {
                  call. = FALSE)
       }
       if (!is.null(id)) {
-        frm_stop("A multi-membership term cannot share an |ID| key: ",
-                 deparse1(bar), " is keyed |", id_label,
-                 "|. Merged blocks index one level set per observation ",
-                 "row, and an mm() row loads several levels at once",
-                 call. = FALSE)
+        # the key follows brms's group, the members, so that terms that
+        # differ in their weights meet in check_id_mm_weights()
+        id_group <- as.name(mm_group_name(mm))
+        id <- paste0(id_label, "|", mm_group_name(mm))
       }
       sp <- split_mmc_lhs(bar[[2]], length(mm$groups), mm$label)
       mm$lhs <- sp$lhs
@@ -2262,6 +2318,22 @@ parse_linpred <- function(rhs_form, env) {
     within_struct <- NULL
     within_label <- NULL
     by_spec <- NULL
+    if (!is.null(mm$cov_expr)) {
+      if (!is.null(mm$by)) {
+        frm_stop("mm(g1, g2, by = , cov = ) is not supported, as ",
+                 "gr(g, by = , cov = ) is not: a known covariance across ",
+                 "the levels with one sd per by-level is neither ",
+                 "block-diagonal over the by-levels nor a Kronecker product",
+                 call. = FALSE)
+      }
+      # a structure asked for within the levels, as under gr(g, cov = A)
+      if (!identical(cls, "us")) {
+        within_struct <- cls
+        within_label <- written_text %||% deparse1(written)
+      }
+      cov_expr <- mm$cov_expr
+      cls <- "gr_cov"
+    }
     if (is.call(bar[[3]]) && identical(bar[[3]][[1]], as.name("gr"))) {
       ga <- as.list(bar[[3]])[-1]
       nms <- names(ga) %||% rep("", length(ga))
@@ -2303,11 +2375,9 @@ parse_linpred <- function(rhs_form, env) {
       if (has_cov || has_prec) {
         if (calls_function(gvar[[1L]], "mm")) {
           frm_stop("gr(mm(...), cov = ) / gr(mm(...), prec = ) is not ",
-                   "supported: a known relationship matrix indexes one level ",
-                   "per observation, and a multi-membership row loads several ",
-                   "levels at once. Write (x | mm(g1, g2)) for the membership ",
-                   "design, or (x | gr(g, cov = A)) for the relationship ",
-                   "matrix", call. = FALSE)
+                   "a spelling of a known covariance over the membership ",
+                   "levels: write (x | mm(g1, g2, cov = A)), as in brms",
+                   call. = FALSE)
         }
         # a structure asked for within the levels (diag() from || or
         # cor = FALSE, homdiag(), ...) is what the known-covariance block
@@ -2363,6 +2433,7 @@ parse_linpred <- function(rhs_form, env) {
               gpterms = gpterms, fieldterms = fieldterms,
               acterms = acterms, rhs = rhs_form)
   if (length(mo_re_map)) out$mo_re <- mo_re_map
+  if (length(id_no_cor)) out$id_no_cor <- id_no_cor
   if (!is.null(rsv[["fixed"]])) {
     out$center <- FALSE
     out$rsv_intercept <- rsv$pos
@@ -2388,15 +2459,14 @@ pull_autocor <- function(dpars, resp_name) {
     ats <- dpars[[nm]]$acterms %||% list()
     if (!length(ats)) next
     if (!identical(nm, "mu")) {
-      frm_stop("Residual correlation terms can only be written on 'mu'; ",
-               ats[[1L]]$label, " appears in the formula for '", nm,
-               "'. The term changes the residual density of the response, ",
-               "not a linear predictor",
+      frm_stop("Explicit covariance terms can only be specified on 'mu'. ",
+               "brms refuses the same call: ", ats[[1L]]$label,
+               " appears in the formula for '", nm, "'",
                if (grepl("^mu[0-9]", nm)) {
-                 paste0(". '", nm, "' is a mixture component, and a mixture ",
-                        "likelihood has no single residual to correlate; ",
-                        "an ar1()/toep() random effect over the time factor ",
-                        "is the available alternative there")
+                 paste0(", a component of a mixture, or a category of a ",
+                        "multi-category family, which has no single mu. An ",
+                        "ar1()/toep() random effect over the time factor is ",
+                        "the available alternative there")
                } else "", call. = FALSE)
     }
     found <- c(found, ats)
@@ -2567,6 +2637,38 @@ nl_reachable_pars <- function(dpars, start) {
   seen
 }
 
+#' Does `cs()` in a body mean a helper the user wrote?
+#'
+#' @noRd
+nl_cs_is_helper <- function(env) {
+  f <- get0("cs", envir = env %||% baseenv(), mode = "function")
+  !is.null(f) && !identical(environmentName(environment(f)), "brms")
+}
+
+#' A right-hand side's top-level residual correlation terms and the rest.
+#'
+#' @noRd
+rhs_split_ac <- function(rhs) {
+  ac <- list()
+  walk <- function(e) {
+    if (is.call(e) && identical(e[[1L]], as.name("+")) && length(e) == 3L) {
+      l <- walk(e[[2L]])
+      r <- walk(e[[3L]])
+      if (is.null(r)) return(l)
+      if (is.null(l)) return(r)
+      return(call("+", l, r))
+    }
+    if (is.call(e) && as.character(e[[1L]])[1L] %in% autocor_term_names() &&
+          !("|" %in% all.names(e))) {
+      ac[[length(ac) + 1L]] <<- e
+      return(NULL)
+    }
+    e
+  }
+  rest <- walk(rhs)
+  list(ac = ac, rest = rest)
+}
+
 #' One bf() -> one response entry of the spec.
 #'
 #' Takes one `frmtmb_formula` (a formula plus its family, dpar formulas,
@@ -2634,7 +2736,16 @@ parse_one_response <- function(bform) {
   mu_by_flag <- isTRUE(bform$nl) ||
     (length(nlf_pars) && !primaries[1L] %in% names(nl_bodies) &&
        length(intersect(nl_body_vars(main_rhs), nlf_pars)) > 0L)
+  ac_rhs <- NULL
   if (primaries[1L] %in% names(nl_bodies)) {
+    # bf(y ~ 1, autocor = ~ ar()) + nlf(mu ~ ...) and the same with
+    # + acformula(): the term joined the right-hand side before any nlf()
+    # arrived, and it belongs to the residual and not to the body
+    sp <- rhs_split_ac(main_rhs)
+    if (length(sp$ac) && identical(deparse1(sp$rest), "1")) {
+      ac_rhs <- sp$ac
+      main_rhs <- sp$rest
+    }
     # An explicit nlf() for the location parameter WINS over the
     # response formula's right-hand side, so that side would be
     # silently discarded (brms discards it). Say so instead. `nl = TRUE`
@@ -2649,12 +2760,19 @@ parse_one_response <- function(bform) {
                call. = FALSE)
     }
   } else if (mu_by_flag) {
-    if (!identical(primaries, "mu")) {
+    # brms writes the one body into every location predictor of a
+    # categorical, multinomial or simplex family and of a mixture, and
+    # they all read one set of nonlinear parameters (its Stan program
+    # computes mub[n] and muc[n] from the same nlp_b0). Any other family
+    # with several locations has no such reference.
+    if (!identical(primaries, "mu") && is.null(mu_stack_dpars(fam))) {
       frm_stop("nl = TRUE requires a family with a single 'mu' location ",
                "parameter", call. = FALSE)
     }
-    nl_bodies[["mu"]] <- main_rhs
-    nl_envs[["mu"]] <- env
+    for (p in setdiff(primaries, names(nl_bodies))) {
+      nl_bodies[[p]] <- main_rhs
+      nl_envs[[p]] <- env
+    }
   }
 
   nl_dpars <- names(nl_bodies)
@@ -2687,11 +2805,22 @@ parse_one_response <- function(bform) {
       ac_in_body <- called_functions(b, autocor_term_names())
       if (length(ac_in_body)) {
         frm_stop("Residual correlation terms are not supported in a ",
-                 "nonlinear (nl = TRUE) formula; '", ac_in_body[1L],
-                 "()' appears in the model body, where it would be evaluated ",
-                 "as ordinary R code rather than read as a term. brms reaches ",
-                 "the same model through acformula(), which has no analog ",
-                 "here", call. = FALSE)
+                 "nonlinear (nl = TRUE) formula body; '", ac_in_body[1L],
+                 "()' appears in the body, where it would be evaluated as ",
+                 "ordinary R code rather than read as a term. Give it to ",
+                 "bf() as brms does: bf(..., nl = TRUE, autocor = ~ ",
+                 ac_in_body[1L], "(...))", call. = FALSE)
+      }
+      # brms writes cs() into the Stan program as a call to a function
+      # that does not exist, so its compile refuses this; say why here. A
+      # helper of that name in the formula's environment is the user's,
+      # as a Stan name's is (nl_stan_for()), and brms's own cs() on the
+      # search path is the same missing call
+      if (calls_function(b, "cs") && !nl_cs_is_helper(env)) {
+        frm_stop("cs() is not supported in a nonlinear formula body: ",
+                 deparse1(b), ". brms 2.23.0 cannot compile it either. ",
+                 "Category specific effects are only supported for the ",
+                 "main parameter 'mu' of a linear formula", call. = FALSE)
       }
     }
     # A parameter cannot carry a design matrix AND a nonlinear body:
@@ -2983,6 +3112,23 @@ parse_one_response <- function(bform) {
   }
   dpars <- order_dpars_by_dependency(dpars, deparse1(ri$resp))
 
+  # bf(..., nl = TRUE, autocor = ~ term): the location has a body and no
+  # formula to read the term from, and brms's residual density takes the
+  # body's value as its mean all the same
+  if (!is.null(bform[["autocor"]]) || length(ac_rhs)) {
+    ac_tms <- if (!is.null(bform[["autocor"]])) {
+      ac_formula_terms(bform[["autocor"]])
+    }
+    dpars[[primaries[1L]]][["acterms"]] <- lapply(
+      c(ac_tms, ac_rhs), function(tm) {
+        if (as.character(tm[[1L]])[1L] %in% autocor_structs) {
+          parse_autocor_call(tm, env)
+        } else {
+          parse_autocor_seam_call(tm, env)
+        }
+      })
+  }
+
   # A mixture family has no 'mu': its location dpars are mu1, mu2, ...,
   # and main_lp is copied into each. pull_autocor() therefore refuses a
   # residual correlation term on a mixture, which is what brms does and
@@ -3057,6 +3203,7 @@ parse_one_response <- function(bform) {
 #'
 #' @noRd
 check_id_covstructs <- function(spec) {
+  check_id_cor_flags(spec)
   ids <- character(0)
   id_labels <- character(0)
   groups <- character(0)
@@ -3111,6 +3258,50 @@ check_id_covstructs <- function(spec) {
              "the long-format spelling, ",
              "bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)), ",
              "sigma ~ 0 + trait).", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' Terms under one `|ID|` key with conflicting `cor`: brms reads the first
+#' term's flag for all of them, so the two orders are two models and
+#' neither is what was written. Refused in both. A key whose terms all say
+#' `cor = FALSE` correlates nothing and is dropped (`bar_read_cor()`).
+#'
+#' @noRd
+check_id_cor_flags <- function(spec) {
+  off <- list()
+  on <- list()
+  for (resp in spec$responses) {
+    for (dp in resp$dpars) {
+      off <- c(off, dp[["id_no_cor"]])
+      for (z in dp[["re"]] %||% list()) {
+        if (is.null(z$id)) next
+        on[[length(on) + 1L]] <- list(label = z$id_label,
+                                      group = deparse1(z$id_group),
+                                      text = deparse1(z$bar))
+      }
+    }
+  }
+  for (o in off) {
+    same <- Filter(function(k) identical(k$label, o$label), c(on, off))
+    if (isTRUE(o$by_id) && !all(vapply(same, function(k) {
+      identical(k$group, o$group)
+    }, NA))) {
+      frm_stop("Can only combine group-level terms of the same grouping ",
+               "factors: the key '", o$label, "' of ", o$text, " is also ",
+               "used over another group. Write one group under a key, or ",
+               "give the terms different keys", call. = FALSE)
+    }
+    hit <- Filter(function(k) {
+      identical(k$label, o$label) && identical(k$group, o$group)
+    }, on)
+    if (!length(hit)) next
+    frm_stop("Terms under the |", o$label, "| key ask for different ",
+             "correlation: ", o$text, " says cor = FALSE and (", hit[[1L]]$text,
+             ") does not. brms reads the first term's flag for all of them, ",
+             "so swapping the two terms changes the model, and frmtmb will ",
+             "not pick one silently. Write the flag on every term, or give ",
+             "the terms different keys", call. = FALSE)
   }
   invisible(NULL)
 }

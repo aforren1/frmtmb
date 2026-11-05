@@ -73,6 +73,7 @@ reference:
   - frmtmb_ad_overload
   - frmtmb-extension-api
   - frmtmb-conditions
+  - frmtmb-gp
   - frmtmb-robust-dpars
   - us_sigma
   - latent_probs

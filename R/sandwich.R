@@ -214,7 +214,7 @@ cluster_guard <- function(fit, cl) {
              "`cluster` is given for the rows of the whole data. Use ",
              "frm_bootstrap()", call. = FALSE)
   }
-  if (length(frame[["mi_map"]] %||% list()) || !is.null(frame[["me"]])) {
+  if (!is.null(frame[["par_template"]][["miss"]])) {
     frm_stop("vcov_cluster() does not support mi() / me() fits: the latent ",
              "values are parameters of the outer problem and their ",
              "contribution belongs to no cluster. Use frm_bootstrap()",
@@ -330,8 +330,9 @@ cluster_scores_at <- function(fit, cl) {
   tpl[["clw"]] <- rep(1, length(gs))
   ri <- fit$obj$env$random
   random <- if (length(ri)) unique(names(fit$obj$env$par)[ri])
-  obj <- RTMB::MakeADFun(build_objective(frame), tpl, random = random,
-                         map = frame[["map"]], silent = TRUE)
+  obj <- gp_tape_scope(frame, RTMB::MakeADFun(
+    build_objective(frame), gp_tape_order(frame, tpl), random = random,
+    map = frame[["map"]], silent = TRUE))
   keep <- names(obj$par) != "clw"
   if (!identical(names(obj$par)[keep], names(fit$opt$par))) {
     frm_stop("the cluster-weighted objective did not reproduce the ",

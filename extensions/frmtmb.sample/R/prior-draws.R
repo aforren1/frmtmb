@@ -139,6 +139,9 @@ prior_plan <- function(fit, tab, cn, mix_theta = FALSE) {
   sm_label <- vapply(blocks[sm_blocks], function(bk) {
     bk[["group_name"]] %||% bk[["term_label"]] %||% ""
   }, "")
+  sm_term <- vapply(blocks[sm_blocks], function(bk) {
+    bk[["sm_term"]] %||% bk[["group_name"]] %||% ""
+  }, "")
   sm_lp <- lapply(blocks[sm_blocks], function(bk) {
     for (cp in bk[["components"]]) {
       lp <- fit$frame[["linpreds"]][[cp[["lp_key"]]]]
@@ -286,10 +289,10 @@ prior_plan <- function(fit, tab, cn, mix_theta = FALSE) {
         if (j > 1L && sm_key[j] %in% sm_key[seq_len(j - 1L)]) next
         k <- k + 1L
         g <- sm_label[j]
-        sg <- tab$class == "sd" & tab$group == g & !nzchar(tab$coef)
-        srow <- prior_tab_row(tab, sg & own) %||% prior_tab_row(tab, sg) %||%
-          prior_tab_row(tab, tab$class == "sd" & !nzchar(tab$group) &
-                          !nzchar(tab$coef) & tab$resp %in% c(rr, ""))
+        # brms's sds row of this term, or its prefix's class row
+        sg <- tab$class == "sds" & tab$coef == sm_term[j]
+        srow <- prior_tab_row(tab, sg & own) %||%
+          prior_tab_row(tab, tab$class == "sds" & !nzchar(tab$coef) & own)
         if (is.null(srow) || is.na(sm_base[j])) next
         add(prior_stmt(sm_base[j], paste0("sds", p, "_", k), srow$prior,
                        if (is.na(srow$lb)) 0 else srow$lb, srow$ub))

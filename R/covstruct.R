@@ -1237,16 +1237,92 @@ kron_prec_parts <- function(Q, d) {
 # otherwise; parameter count depends on the dimension count, so npar
 # and start are handled at the frame call sites (gp_npar/gp_start),
 # like rr.
-# the nugget (gp_nugget) keeps the notoriously ill-conditioned SE kernel
-# Cholesky-factorizable as the range grows (standard GP practice)
+#
+# The field is non-centered: the block's `b` is z, a standard normal, and
+# the field the predictors read is `sd L(lscale) z` (gp_field(), expanded by
+# expand_b() as a reduced-rank block's factors are). A centered field carries
+# K^-1 in its density and in the inner Hessian, so it cannot run at a nugget
+# small enough to leave the data alone: at a nugget of 1e-6 the white noise
+# took `1e-6 sd^2` off sigma^2, and at 1e-12 the same objective stops at false
+# convergence on nearly every fit (dev/gpgap-findings.md, dev/ncgp-findings.md).
 #' The exact gp()'s nugget, on the CORRELATION: white noise of
-#' `gp_nugget * sd^2` at each position, part of the fitted model. One
-#' constant, read by the density, the kriging and the sampler's draw of
-#' the field, so a change to it changes all three together; brms's
-#' Stan program uses 1e-12 absolute (dev/brms-likelihood-tests.md).
+#' `gp_nugget * sd^2` at each position, part of the fitted model. It
+#' keeps a near-singular kernel factorable. It is relative because the fit
+#' must not depend on y's units: brms's absolute 1e-12 has the same size at
+#' sdgp 1, and does not factor at y times 1000 (Rhat 3.77 on brms's own run,
+#' dev/reviews/2026-11-02-gpgap.md, M7). One constant, read by the factor,
+#' the kriging and the sampler's draw of the field, so a change to it
+#' changes all of them together.
 #'
 #' @noRd
-gp_nugget <- 1e-6
+gp_nugget <- 1e-12
+
+#' What the data say about an exact gp() field, position by position: the
+#' likelihood's curvature in each position's value, the inverse of the noise
+#' that position's rows carry about it.
+#'
+#' The inner Hessian in z is `I + sd^2 L' W L`, so the curvature in the field is
+#' read through the factor. Every route gives it the same way: a known `se()`,
+#' `sigma` on a predictor, repeated rows, a family's own information, a
+#' mixture's responsibilities, a nonlinear body's gradient. A negative value
+#' adds nothing.
+#'
+#' @noRd
+gp_position_info <- function(fit, bk) {
+  env <- fit$obj$env
+  par <- env$last.par.best
+  ri <- which(names(par)[env$random] == "b")[bk[["b_idx"]]]
+  H <- as.matrix(env$spHess(par, random = TRUE)[ri, ri, drop = FALSE])
+  th <- fit$estimates[["theta"]][bk[["theta_idx"]]]
+  Li <- solve(gp_factor(th, bk))
+  pmax(diag(t(Li) %*% (H - diag(nrow(H))) %*% Li), 0)
+}
+
+#' The warning for a fit whose noise has reached an exact gp()'s nugget.
+#'
+#' The nugget is white noise on the field, sd `1e-6 sdgp`, one draw per
+#' position, and the likelihood cannot tell it from the noise at that position.
+#' `r`, the nugget's variance over a position's working noise, is the relative
+#' bias that noise takes on: with one row per position and an estimated `sigma`,
+#' `sigma_read^2 = sigma^2 - 1e-12 sdgp^2`, so `log sigma` moves by `r / 2`
+#' against a standard error of about `1 / sqrt(2 m)` over `m` positions. So the
+#' rule is `r` against `sqrt(2 / m)`, one standard error, at its 90th
+#' percentile: a quarter of the positions at low noise moves the fit, where the
+#' median does not see them, and one low-noise row does not
+#' (dev/ncgp-findings.md, rates).
+#'
+#' A diagnostic of a finished fit, so nothing here may lose that fit: any
+#' failure to read the tape skips the check.
+#'
+#' @return The message, or `NULL`.
+#' @noRd
+gp_nugget_message <- function(fit) {
+  bks <- Filter(function(b) identical(b[["covstruct"]], "gp"),
+                fit$frame[["re_blocks"]] %||% list())
+  if (!length(bks)) return(NULL)
+  tryCatch(suppressWarnings({
+    hits <- character()
+    for (bk in bks) {
+      info <- gp_position_info(fit, bk)
+      r <- stats::quantile(gp_nugget * info, 0.9, names = FALSE)
+      if (isTRUE(r >= sqrt(2 / length(info)))) {
+        hits <- c(hits, sprintf("%s (%.2g of the noise at a position)",
+                                bk[["group_name"]] %||% bk[["term_label"]], r))
+      }
+    }
+    if (length(hits)) {
+      paste0("The noise has reached the nugget of the exact gp() term ",
+             paste(hits, collapse = ", "),
+             ": white noise of sd 1e-6 * sdgp, which the likelihood cannot ",
+             "tell from the data's. Where each position has one row, sigma ",
+             "can read low. Where positions repeat, or sigma is known, or the ",
+             "family has none, sdgp and the length scale can read low. The ",
+             "fitted ",
+             "means at observed positions hold; standard errors and new ",
+             "positions may not.")
+    }
+  }), error = function(e) NULL)
+}
 
 #' Number of `theta` entries for an exact gp block: one `log sd` plus one
 #' lengthscale, shared when `iso` and one per input dimension otherwise.
@@ -1254,10 +1330,17 @@ gp_nugget <- 1e-6
 #' @noRd
 gp_npar <- function(D, iso) if (isTRUE(iso)) 2L else 1L + as.integer(D)
 
-#' Starting `theta` for an exact gp block: unit sd and unit lengthscales.
+#' Starting `theta` for an exact gp block: unit sd, and a length scale that
+#' is a quarter of the largest distance between two positions, so that the
+#' start does not depend on x's units. `gp_start_scan()` moves it.
 #'
 #' @noRd
-gp_start <- function(D, iso) numeric(gp_npar(D, iso))
+gp_start <- function(blk) {
+  th <- numeric(gp_npar(blk[["gp_D"]], blk[["gp_iso"]]))
+  d <- sqrt(max(Reduce(`+`, blk[["aux_D2"]])))
+  if (is.finite(d) && d > 0) th[-1L] <- log(d / 4)
+  th
+}
 
 #' Correlation matrix of an exact gp block at a `theta`, assembled on the
 #' tape from the per-dimension squared-difference matrices. The nugget on
@@ -1268,9 +1351,220 @@ gp_corr <- function(theta, blk) {
   Q <- 0
   for (j in seq_along(blk[["aux_D2"]])) {
     rho <- if (isTRUE(blk[["gp_iso"]])) exp(theta[2]) else exp(theta[1 + j])
-    Q <- Q + blk[["aux_D2"]][[j]] / (2 * rho^2)
+    rho2 <- rho^2
+    # a reader's draw of a length scale with a large standard error can
+    # underflow, and 0 / 0 on the diagonal is not the white field that limit
+    # is. On the tape the NaN stays, so a failed step is never a number
+    if (!inherits(rho2, "advector")) rho2 <- max(rho2, .Machine$double.xmin)
+    Q <- Q + blk[["aux_D2"]][[j]] / (2 * rho2)
   }
   exp(-Q) + diag(gp_nugget, nrow(blk[["aux_D2"]][[1]]))
+}
+
+#' A numeric kernel's Cholesky factor when rounding may leave it just short
+#' of positive definite. At a nugget of 1e-12 a draw the tape's factor
+#' accepted can fail in LAPACK, and that must not lose a finished chain, or
+#' stop a prediction: the jitter it takes is the smallest that factors, at
+#' most 1e-6, and is far below what these fields can resolve.
+#'
+#' @noRd
+gp_chol_num <- function(K) {
+  R <- tryCatch(chol(K), error = function(e) NULL)
+  jit <- 1e-12
+  while (is.null(R) && jit <= 1e-6) {
+    Kj <- K
+    diag(Kj) <- diag(Kj) + jit
+    R <- tryCatch(chol(Kj), error = function(e) NULL)
+    jit <- jit * 10
+  }
+  if (is.null(R)) chol(K) else R
+}
+
+#' A farthest-first order of an exact gp() block's positions: the medoid, then
+#' at each step the position farthest from those taken. Over sorted positions
+#' the factor's pivots shrink from the second on, and rounding moves the field
+#' by 1.7e-5 at n 15, against 6.1e-11 in this order, which at noise 1e-3 is
+#' gradient noise a sampler cannot mix through (dev/ncgp-permsamp.R). frm()
+#' reads the same either way (dev/ncgp-perm3.R).
+#' The order is data, fixed at the frame, so z keeps one meaning across theta.
+#' Ties, rows at one position under `gr = FALSE`, take their turn at the end.
+#'
+#' @noRd
+gp_farthest_first <- function(blk) {
+  d2 <- Reduce(`+`, blk[["aux_D2"]])
+  m <- nrow(d2)
+  p <- integer(m)
+  p[1L] <- which.min(rowSums(d2))
+  gap <- d2[, p[1L]]
+  gap[p[1L]] <- -1
+  for (k in seq_len(m - 1L) + 1L) {
+    p[k] <- which.max(gap)
+    gap <- pmin(gap, d2[, p[k]])
+    gap[p[seq_len(k)]] <- -1
+  }
+  p
+}
+
+#' Lower triangular factor of the block's correlation plus nugget over
+#' `gp_order`, on the tape or on numbers. `chol()` on the tape is RTMB's atomic:
+#' one node per factor, whose adjoint is the triangular solves.
+#'
+#' @noRd
+gp_factor_ordered <- function(theta, blk) {
+  p <- blk[["gp_order"]]
+  K <- gp_corr(theta, blk)[p, p, drop = FALSE]
+  # not is.numeric(): it is TRUE of an advector, and a jitter that went onto
+  # the tape would be another model at every theta from then on
+  t(if (inherits(K, "advector")) chol(K) else gp_chol_num(K))
+}
+
+#' `L` with `L L'` the block's correlation plus nugget over its positions in
+#' their sorted order. Not triangular: `gp_factor_ordered()` is, row for row
+#' over `gp_order`.
+#'
+#' @noRd
+gp_factor <- function(theta, blk) {
+  gp_factor_ordered(theta, blk)[order(blk[["gp_order"]]), , drop = FALSE]
+}
+
+#' The field `sd L z` of an exact gp() block, on the tape or on numbers.
+#'
+#' The product is RTMB's atomic matmul on the tape: a tape built outside
+#' `gp_tape_scope()`, a test's or a retape on a parallel worker, must read
+#' the same. `TapeConfig()` is process-global, so it is put back before
+#' anything else tapes.
+#'
+#' @noRd
+gp_field <- function(z, theta, blk) {
+  L <- gp_factor(theta, blk)
+  if (inherits(L, "advector") || inherits(z, "advector")) {
+    old <- RTMB::TapeConfig()
+    on.exit(RTMB::TapeConfig(old), add = TRUE)
+    RTMB::TapeConfig(matmul = "atomic")
+  }
+  sd_floored(theta[1]) * as.vector(L %*% z)
+}
+
+#' Evaluate `expr` with the tape settings a dense inner Hessian needs, when
+#' `frame` has an exact gp() block.
+#'
+#' TMB's sparse Hessian tape holds one reverse sweep per column, and an exact
+#' field's columns are dense. Taped entry by entry, `I + sd^2 L' W L` costs
+#' n^3 nodes: 7.9 GB at 300 positions. An atomic matrix product keeps one node
+#' per sweep and still passes 13 GB at 500, and
+#' `tmbad.sparse_hessian_compress` replays the repeated sweep instead of
+#' storing it: 464 MB there. The atomic product also holds for the
+#' adjoint of the factor, which `sdreport()` tapes as well: 3.6 GB and 18 s at
+#' 200 positions against 0.4 GB and 1.4 s (dev/ncgp-findings.md, tape).
+#'
+#' Both settings are process-global and they change no value, so only a tape
+#' with such a block takes them, and a fit without one is the same tape as
+#' ever. `expr` is what builds the tape or reads it, `RTMB::MakeADFun()` or
+#' `RTMB::sdreport()`. A template given to it goes through `gp_tape_order()`.
+#'
+#' A worker of parallel chains, or a saved fit, retapes from the objective's own
+#' closure, out of any scope in the caller: at 300 positions that passed 11 GB
+#' against 1.9 GB on a sparse field. So the object's `retape` carries the
+#' settings with it. `hessian = FALSE` says this tape never reads the inner
+#' Hessian (`frm_sample()`'s joint chains), which then is not built.
+#'
+#' @noRd
+gp_tape_scope <- function(frame, expr, hessian = TRUE) {
+  dense <- any(vapply(frame[["re_blocks"]] %||% list(), function(bk) {
+    identical(bk[["covstruct"]], "gp")
+  }, NA))
+  if (!dense) return(expr)
+  # the DLL is there only once something has touched the namespace
+  loadNamespace("RTMB")
+  old <- TMB::config(DLL = "RTMB")[["tmbad.sparse_hessian_compress"]]
+  tc <- RTMB::TapeConfig()
+  on.exit({
+    TMB::config(tmbad.sparse_hessian_compress = old, DLL = "RTMB")
+    RTMB::TapeConfig(tc)
+  }, add = TRUE)
+  TMB::config(tmbad.sparse_hessian_compress = 1L, DLL = "RTMB")
+  RTMB::TapeConfig(matmul = "atomic")
+  obj <- expr
+  if (is.list(obj) && !is.null(obj[["env"]])) {
+    # TMB builds this tape on first use, which would be out of this scope
+    if (hessian && length(obj[["env"]][["random"]])) {
+      force(obj[["env"]][["spHess"]])
+    }
+    obj <- gp_retape_in_scope(obj, hessian)
+  }
+  obj
+}
+
+#' `obj` with a `retape` that runs in gp_tape_scope().
+#'
+#' @noRd
+gp_retape_in_scope <- function(obj, hessian) {
+  env <- obj[["env"]]
+  retape0 <- env[["retape"]]
+  env[["retape"]] <- function(...) {
+    gp_tape_scope(list(re_blocks = list(list(covstruct = "gp"))), {
+      retape0(...)
+      if (hessian && length(env[["random"]])) force(env[["spHess"]])
+      NULL
+    })
+    invisible(NULL)
+  }
+  obj[["retape"]] <- env[["retape"]]
+  obj
+}
+
+#' A template with `b` first, on a frame with an exact `gp()` block.
+#'
+#' TMB's compressed Hessian reverses wrong when another inner parameter comes
+#' ahead of the field: with the intercept first (REML), on a sorted gp(x), the
+#' outer gradient in the length scale read 0.23 where a central difference and
+#' the plain tape read 0.072, the value right, and the optimizer stopped at
+#' false convergence. With `b` first the two tapes agree (dev/ncgp-remlarm2.R,
+#' no frmtmb in it; dev/ncgp-grcheck.R, test-gp-noncentered.R). The outer
+#' parameters keep their order, and everything reads the inner ones by name.
+#'
+#' @noRd
+gp_tape_order <- function(frame, tpl) {
+  dense <- any(vapply(frame[["re_blocks"]] %||% list(), function(bk) {
+    identical(bk[["covstruct"]], "gp")
+  }, NA))
+  if (!dense || is.null(tpl[["b"]])) return(tpl)
+  tpl[c("b", setdiff(names(tpl), "b"))]
+}
+
+#' `d f / d theta` of one exact gp() block at a fixed `z`, as `sd L u`, one
+#' column of `u` per entry of the block's `theta`.
+#'
+#' With `L L' = K`, `dL = L Phi(L^-1 dK L^-T)`, where `Phi` keeps the lower
+#' triangle and half the diagonal. Exact where a central difference is
+#' not: the factor's rounding at a condition of 1e12 moved the field by 1e-5
+#' between theta +- 1e-5, and a step divides it.
+#'
+#' @noRd
+gp_field_dtheta <- function(z, theta, blk) {
+  L <- gp_factor_ordered(theta, blk)
+  p <- blk[["gp_order"]]
+  out <- matrix(0, length(z), length(theta))
+  out[, 1L] <- z
+  K0 <- gp_corr(theta, blk)
+  diag(K0) <- diag(K0) - gp_nugget
+  nr <- length(theta) - 1L
+  for (k in seq_len(nr)) {
+    dK <- 0
+    for (j in seq_along(blk[["aux_D2"]])) {
+      if (isTRUE(blk[["gp_iso"]]) || j == k) {
+        rho <- exp(theta[1L + (if (isTRUE(blk[["gp_iso"]])) 1L else j)])
+        dK <- dK + blk[["aux_D2"]][[j]] / rho^2
+      }
+    }
+    dK <- (K0 * dK)[p, p, drop = FALSE]
+    M <- backsolve(L, t(backsolve(L, dK, upper.tri = FALSE)),
+                   upper.tri = FALSE)
+    M[upper.tri(M)] <- 0
+    diag(M) <- 0.5 * diag(M)
+    out[, 1L + k] <- as.vector(M %*% z)
+  }
+  out
 }
 
 #' The rows confint_varcorr() reports for a gp() or hsgp() block: the
@@ -1317,17 +1611,16 @@ covstruct_core[["gp"]] <- list(
   # block dimension (the positions)
   npar = function(blk) gp_npar(blk[["gp_D"]], blk[["gp_iso"]]),
   sd_idx = by_dim(function(dim) 1L),
+  # b is z; the kernel reaches the likelihood through gp_field()
   nll = function(b, theta, blk) {
-    Sigma <- sd2_floored(theta[1]) * gp_corr(theta, blk)
-    dim(b) <- c(blk[["dim"]], length(b) %/% blk[["dim"]])
-    sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
+    sum(RTMB::dnorm(b, 0, 1, log = TRUE))
   },
   vcov = function(theta, blk) {
     V <- as.matrix(exp(theta[1])^2 * gp_corr(theta, blk))
     dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
-  start = function(blk) gp_start(blk[["gp_D"]], blk[["gp_iso"]]),
+  start = gp_start,
   natural = function(theta, blk) gp_natural(theta, blk)
 )
 
@@ -1525,9 +1818,10 @@ block_expands <- function(bk) {
 #' This is the property every caller that perturbs, bounds or batches
 #' `b` one entry at a time depends on, and `expand_b()` is where it can
 #' fail: an `rr` block's coefficients are the loadings times that
-#' level's factors, and an esicar block's are `b` with each connected
-#' component's mean removed, so one `b` entry reaches every coefficient
-#' of its component. Everything else copies `b` across unchanged.
+#' level's factors, an exact `gp()`'s are the factor of its kernel times
+#' z, and an esicar block's are `b` with each connected component's mean
+#' removed, so one `b` entry reaches every coefficient of its component.
+#' Everything else copies `b` across unchanged.
 #'
 #' Stated as one predicate beside `expand_b()` rather than tested where
 #' it is needed, because the two have to agree and a caller that
@@ -1540,7 +1834,7 @@ block_expands <- function(bk) {
 #'
 #' @noRd
 block_b_positionwise <- function(bk) {
-  !identical(bk[["covstruct"]], "rr") && !block_expands(bk)
+  !bk[["covstruct"]] %in% c("rr", "gp") && !block_expands(bk)
 }
 
 #' Whether a frame's `b` and its coefficient vector are different
@@ -1553,7 +1847,7 @@ block_b_positionwise <- function(bk) {
 #' would evaluate an esicar block WITHOUT centering while its density
 #' still carried the constrained normalizer: two different models, no
 #' error, and only off the mode, which is exactly the regime
-#' `imp_frozen_proposal()` and `cluster_scores_at()` work in. The
+#' `imp_fit_proposal()` and `cluster_scores_at()` work in. The
 #' blocks cannot go stale the way a cached boolean can, because the
 #' same build sets `expands` and chooses the density.
 #'
@@ -1569,11 +1863,12 @@ frame_needs_expand <- function(frame) {
 }
 
 #' Coefficient-space vector the Z matrices multiply: identical to b
-#' except for rr blocks, whose factors expand through the loadings, and
-#' esicar blocks, whose field is b with each component's mean removed.
-#' AD-safe (`RTMB::matrix` + `[<-` overload) and numeric-safe.
+#' except for rr blocks, whose factors expand through the loadings, exact
+#' gp() blocks, whose field is `sd L z`, and esicar blocks, whose field is
+#' b with each component's mean removed. AD-safe (`RTMB::matrix` + `[<-`
+#' overload) and numeric-safe.
 #'
-#' Both exceptions have to happen HERE rather than in the block density,
+#' The exceptions have to happen HERE rather than in the block density,
 #' because the vector that reaches the linear predictor is the
 #' coefficient vector and not the parameter vector, and for esicar the
 #' whole point is that the predictor never sees the component means.
@@ -1588,9 +1883,16 @@ expand_b <- function(frame, b, theta) {
       L <- rr_loadings(theta[bk[["theta_idx"]]], bk[["dim"]], bk[["rank"]])
       Fm <- RTMB::matrix(b[bk[["b_idx"]]], bk[["rank"]], bk[["n_levels"]])
       cvec[bk[["c_idx"]]] <- as.vector(L %*% Fm)
+    } else if (bk[["covstruct"]] == "gp") {
+      cvec[bk[["c_idx"]]] <- gp_field(b[bk[["b_idx"]]],
+                                      theta[bk[["theta_idx"]]], bk)
     } else if (block_expands(bk)) {
       ex <- cs_entry(bk[["covstruct"]])[["expand"]]
-      cvec[bk[["c_idx"]]] <- ex[["apply"]](b[bk[["b_idx"]]], bk)
+      cvec[bk[["c_idx"]]] <- if (isTRUE(ex[["uses_theta"]])) {
+        ex[["apply"]](b[bk[["b_idx"]]], bk, theta[bk[["theta_idx"]]])
+      } else {
+        ex[["apply"]](b[bk[["b_idx"]]], bk)
+      }
     } else {
       cvec[bk[["c_idx"]]] <- b[bk[["b_idx"]]]
     }
@@ -1790,14 +2092,12 @@ block_cor_prior <- function(bk) {
 #   ou, exp, gau,
 #   mat           a dense covariance over a spatial field's positions: a
 #                 full n x n factorization per gradient, on the tape.
-#                 An exact gp() pays that cost (see its chol_L below):
-#                 its centered field did not mix.
 #   toep, homtoep the banded parameterization does not guarantee a
 #                 positive definite matrix (glmmTMB's does not either),
 #                 so no factor exists over the whole parameter space and
 #                 `b = L z` would not be a bijection there.
-#   rr            already non-centered: its `b` IS a standard normal
-#                 factor vector, expanded through the loadings by
+#   rr, gp        already non-centered: `b` IS a standard normal vector,
+#                 expanded through the loadings or the kernel's factor by
 #                 `expand_b()`. Nothing to transform, nothing to report.
 
 #' Lower Cholesky factor of the equicorrelation matrix
@@ -1908,18 +2208,6 @@ covstruct_core[["gr_cov"]]$chol_A <- function(blk) {
   t(chol(as.matrix(blk[["aux_A"]])))
 }
 
-# An exact gp(): the field over its distinct positions has covariance
-# sd^2 K(lscale), K the kernel with gp_nugget on its diagonal, so its
-# factor is sd times the Cholesky factor of K, taken on the tape. brms
-# samples the same field as sdgp * L zgp with standard normal zgp. The
-# factorization is n^3 / 3 per gradient for n positions, which is what
-# the centered field avoided; the centered field is a funnel the sampler
-# does not mix in (on lane surface's y ~ gp(x), 4 chains of 1000: 1286
-# of 2000 transitions at the maximum tree depth, R-hat 1.52, bulk ESS
-# 7; dev/moparity-log/gp-cmp.txt, dev/moparity-findings.md, item 7).
-covstruct_core[["gp"]]$chol_L <- function(theta, blk) {
-  t(chol(gp_corr(theta, blk))) * exp(theta[1])
-}
 # WHICH BLOCKS ARE NON-CENTERED, and why it is not all of them.
 #
 # The funnel is made by the SCALE: `b | sd ~ N(0, sd^2 C)` narrows as
@@ -1972,10 +2260,6 @@ ncp_mode <- function(bk) {
     # they enter the block's standard deviations, so the factor is
     # diagonal and the whole of it comes out
     hsgp = n_sd,
-    # an exact gp()'s length scales enter its factor too, through the
-    # kernel, and class lscale reaches them, as it reaches hsgp's,
-    # so the whole of it comes out
-    gp = n_sd,
     tryCatch(reg$npar(bk), error = function(e) NA_integer_)
   )
   # every parameter the block has must be one the factor consumes and
@@ -2078,6 +2362,29 @@ covstruct_core[["gr_prec"]]$draw <- function(theta, blk) {
   as.vector(Matrix::solve(U, stats::rnorm(length(blk[["b_idx"]]))))
 }
 
+# The registry entry. It has no term slot and no formula spelling: the frame
+# builds the block from an autocorrelation term. `levels_coupled` because the
+# latents of one group are correlated and a new row has no law of its own, so
+# prediction on new data, the sandwich and importance all treat the block as
+# one unit.
+covstruct_core[["latres"]] <- list(
+  npar = function(blk) 1L + blk[["aux"]][["ac"]][["npar"]],
+  start = function(blk) c(log(0.5), numeric(blk[["aux"]][["ac"]][["npar"]])),
+  sd_idx = function(blk) 1L,
+  nll = latres_lpdf,
+  vcov = function(theta, blk) {
+    matrix(exp(2 * theta[1L]), 1L, 1L, dimnames = list("sderr", "sderr"))
+  },
+  natural = latres_natural,
+  draw = latres_draw,
+  levels_coupled = TRUE,
+  expand = list(
+    apply = latres_expand,
+    uses_theta = TRUE,
+    jacobian = latres_jacobian
+  )
+)
+
 # ------------------------------------------------------------ the registry
 #
 # The built-in entries above are the registry's first state; a package
@@ -2098,7 +2405,7 @@ covstruct_core[["gr_prec"]]$draw <- function(theta, blk) {
 for (nm_ in names(covstruct_core)) {
   covstruct_core[[nm_]][["full_rank"]] <- nm_ %in% c(
     "us", "diag", "homdiag", "cs", "homcs", "ar1", "hetar1", "ou", "toep",
-    "homtoep", "exp", "gau", "mat", "us_t", "diag_t")
+    "homtoep", "exp", "gau", "mat", "us_t", "diag_t", "latres")
 }
 rm(nm_)
 
@@ -2113,7 +2420,11 @@ cs_entries <- function() frmtmb_covstruct_registry$reg
 #' The names of every registered structure.
 #'
 #' @noRd
-cs_names <- function() names(frmtmb_covstruct_registry$reg)
+cs_names <- function() {
+  # brms's latent residual is an entry for its readers and no structure a
+  # formula, a compat row or a parser vocabulary can name
+  setdiff(names(frmtmb_covstruct_registry$reg), "latres")
+}
 
 #' One structure's entry. A name nothing registered is refused here,
 #' and when an extension supplies the structure the refusal names it: a

@@ -1,0 +1,26 @@
+# On the merge of nlfix and latres: do the refusals and rows state one condition?
+.libPaths(c("C:/Users/adf44/source/r/rev-nlfix-lib/merge-latres", "C:/Users/adf44/source/r/rellib-r16", "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressPackageStartupMessages(library(frmtmb))
+cat("lib:", find.package("frmtmb"), "\n")
+set.seed(4401)
+n <- 200
+d <- data.frame(x = rnorm(n), z = rnorm(n), g = factor(rep(1:10, each = 20)), t = rep(1:20, 10))
+d$y <- 1 + 0.5 * d$x + ave(rnorm(n, 0, 0.5), d$g, FUN = function(z) as.numeric(stats::filter(z, 0.5, "recursive")))
+d$yc <- rpois(n, exp(0.5 + 0.2 * d$x))
+d$yo <- cut(d$y, c(-Inf, 0, 1, 2, Inf), labels = 1:4, ordered_result = TRUE)
+show <- function(lab, expr) {
+  r <- tryCatch(suppressWarnings(suppressMessages(expr)), error = function(e) e)
+  cat(sprintf("%-34s %s\n", lab, if (inherits(r, "error")) paste("REFUSES", substr(conditionMessage(r), 1, 240)) else paste("fits ll", format(as.numeric(logLik(r)), digits = 9))))
+}
+show("poisson linear ar(cov=TRUE)", frm(yc ~ x + ar(t, g, cov = TRUE), family = poisson(), data = d))
+show("poisson body ar(cov=TRUE)", frm(bf(yc ~ a + b * x, a + b ~ 1, nl = TRUE, autocor = ~ ar(t, g, cov = TRUE)), family = poisson(), data = d))
+show("poisson body acformula", frm(bf(yc ~ a + b * x, a + b ~ 1, nl = TRUE) + acformula(~ ar(t, g, cov = TRUE)), family = poisson(), data = d))
+show("poisson body ar(cov=FALSE)", frm(bf(yc ~ a + b * x, a + b ~ 1, nl = TRUE, autocor = ~ ar(t, g)), family = poisson(), data = d))
+show("cumulative body ar(cov=TRUE)", frm(bf(yo ~ b * x, b ~ 1, nl = TRUE, autocor = ~ ar(t, g, cov = TRUE)), family = cumulative(), data = d))
+show("gaussian body ar(cov=TRUE)", frm(bf(y ~ a + b * x, a + b ~ 1, nl = TRUE, autocor = ~ ar(t, g, cov = TRUE)), data = d))
+show("poisson linear mu, nlf(sigma-like)", frm(bf(yc ~ x + ar(t, g, cov = TRUE)) + nlf(shape ~ exp(s0 + s1 * z)) + lf(s0 ~ 1) + lf(s1 ~ 1), family = negbinomial(), data = d))
+b <- tryCatch(brms::stancode(brms::bf(yc ~ x + ar(t, g, cov = TRUE)) + brms::nlf(shape ~ exp(s0 + s1 * z)) + brms::lf(s0 ~ 1) + brms::lf(s1 ~ 1), family = brms::negbinomial(), data = d), error = function(e) conditionMessage(e))
+cat("brms on that last one:", if (nchar(b) < 300) b else "builds", "\n")
+print(as.data.frame(frm_compat("ar()", "nl"))[, c("feature_a", "feature_b", "status")])
+print(as.data.frame(frm_compat("ar()", "poisson"))[, c("feature_a", "feature_b", "status", "note")])
+cat(substr(as.data.frame(frm_compat("ar()", "nl"))$note, 1, 300), "\n")

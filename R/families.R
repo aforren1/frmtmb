@@ -160,6 +160,22 @@
 #'   and the log-likelihood becomes a sum over nothing: a fit that
 #'   returns, with a log-likelihood of zero. Declare every per-row datum
 #'   the density indexes.
+#' @param mi_chart The chart of a missing value of this family's response
+#'   under `mi()`, for a family with `"mi"` in `accepts_aterms`: `"log"`
+#'   for support on `(0, Inf)`, `"logit"` for support on `(0, 1)`,
+#'   `"circle"` for support on `(-pi, pi)`, and `"identity"` (the default)
+#'   for a density on the whole line. A family with a bounded support must
+#'   set one: on the identity chart a latent value leaves the support, and
+#'   the density there is not a number. The latent value is held
+#'   on this chart with the map's log-Jacobian in the objective, so that
+#'   it is unconstrained, and its density has an interior mode whatever
+#'   the family's parameters: an exponential density has none in the
+#'   value itself. `"no_mode"` is the identity chart for a density with
+#'   no curvature at its mode, such as `asym_laplace()`, whose log density
+#'   is piecewise linear: [frm()] refuses a value another density reads,
+#'   because a Laplace approximation needs that curvature, and
+#'   `frmtmb.sample::frm_sample()` samples it. A value no density reads
+#'   needs no chart on [frm()], where its row leaves the objective.
 #' @param accepts_aterms The addition terms this family reads or lets the
 #'   core act on, named as a formula writes them and without
 #'   parentheses: `c("weights", "trials", "cens")`. Frame assembly
@@ -236,6 +252,8 @@
 #'   the dpar system (for example ordinal thresholds). They join the
 #'   parameter template under their own names and reach `lpdf` as its
 #'   fourth argument.
+#'   Keep each on a scale near 1: `frm(importance =)` differentiates by steps of
+#'   1e-4 on it.
 #' @param aterm_data Optional function `(y, aterms)` returning a named
 #'   list of DATA the densities read, built once from the observed
 #'   response at frame assembly (step 3 of "Slot call order") and added
@@ -553,7 +571,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           family_finalize = NULL,
                           extra_pars = NULL, drop_intercept = FALSE,
                           structure = NULL, aterm_data = NULL,
-                          simplex_pars = NULL) {
+                          simplex_pars = NULL, mi_chart = NULL) {
   if (!is.character(family) || length(family) != 1L || is.na(family)) {
     frm_stop("frmtmb_family(family =) must be one string, the name of ",
              "the family, not ", arg_desc(family), call. = FALSE)
@@ -654,6 +672,16 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
   # the slot names, and the partial matches of `$` on them, it had
   if (!is.null(aterm_data)) slots[["aterm_data"]] <- aterm_data
   if (!is.null(simplex_pars)) slots[["simplex_pars"]] <- simplex_pars
+  if (!is.null(mi_chart)) {
+    ok <- c("identity", "log", "logit", "circle", "no_mode")
+    if (!is.character(mi_chart) || length(mi_chart) != 1L ||
+          !mi_chart %in% ok) {
+      frm_stop("frmtmb_family(mi_chart =) must be one of ",
+               paste0("\"", ok, "\"", collapse = ", "), ", not ",
+               arg_desc(mi_chart), call. = FALSE)
+    }
+    slots[["mi_chart"]] <- mi_chart
+  }
   # base::structure(), spelled out: the `structure` ARGUMENT above masks
   # the base function inside this body
   base::structure(
@@ -1824,7 +1852,8 @@ fam_Gamma <- function(link = "log", link_shape = "log") {
   lk_shape <- dpar_link(link_shape, "shape", "Gamma", dpar_links_positive)
   frmtmb_family(
     "Gamma",
-    accepts_aterms = c("weights", "cens", "trunc"),
+    accepts_aterms = c("weights", "cens", "trunc", "mi"),
+    mi_chart = "log",
     dpars = c("mu", "shape"),
     links = list(mu = mu_link(link, "Gamma"), shape = lk_shape),
     lpdf = function(y, dpars, aterms) {
@@ -1868,7 +1897,8 @@ fam_lognormal <- function(link = "identity", link_sigma = "log") {
   lk_sigma <- dpar_link(link_sigma, "sigma", "lognormal", dpar_links_positive)
   frmtmb_family(
     "lognormal",
-    accepts_aterms = c("weights", "cens", "trunc"),
+    accepts_aterms = c("weights", "cens", "trunc", "mi"),
+    mi_chart = "log",
     dpars = c("mu", "sigma"),
     links = list(mu = mu_link(link, "lognormal"), sigma = lk_sigma),
     lpdf = function(y, dpars, aterms) {
@@ -1998,6 +2028,56 @@ lgamma_shift_diff <- function(a, s) {
   b <- a + m
   (b - 0.5) * log1p(s / b) + s * log(b + s) - s +
     lgamma_binet(b + s) - lgamma_binet(b) - acc
+}
+
+#' `lgamma(a + s) - lgamma(a)` for a whole number `s` that is data: the sum of
+#' `log(a + j)` over `j < s` on rows with a short shift, and
+#' `lgamma_shift_diff()` on the others.
+#'
+#' The sum is exact with no series, and a row's cost is one `log()` per step.
+#' The tape's size is what a fit pays for. Whole fits at n = 3e4, against
+#' `RTMBdist::dbetabinom()` (dev/nlfix-findings.md): `lgamma_shift_diff()` alone
+#' costs 3.0 to 3.7 times at every number of trials, and this 0.7 times at 5
+#' trials, 0.9 at 10, 1.9 at 30 and 3.1 at 200. A longer sum (48) does not reduce
+#' the middle, and a shorter one (6, 12) raises it.
+#'
+#' @noRd
+lgamma_count_shift <- function(a, s) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  n <- max(length(a), length(s))
+  s <- rep_len(s, n)
+  if (length(a) == 1L && n > 1L) a <- a[rep_len(1L, n)]
+  long <- which(s > 24 | s != round(s))
+  short <- s
+  short[long] <- 0
+  acc <- rep(0, n)
+  for (j in seq_len(max(short, 0L)) - 1L) {
+    i <- which(short > j)
+    acc[i] <- acc[i] + log(a[i] + j)
+  }
+  if (length(long)) acc[long] <- lgamma_shift_diff(a[long], s[long])
+  acc
+}
+
+#' Beta-binomial log mass at a count `y` (data) of `size` trials, with shapes
+#' `a` and `b` and `phi = a + b`.
+#'
+#' `RTMBdist::dbetabinom()` adds raw `lgamma()` of the shapes, and those
+#' differences cancel as `phi` grows. The true density is flat there, the
+#' binomial's, but on data with no overdispersion the optimizer went to where
+#' it read -66752 at log phi 39 and +327680 at 45, code 0, against -548.982078.
+#' Each difference is formed here without the cancellation. `RTMB`'s own `osa`
+#' and `simref` responses go to `dbetabinom()`, which refuses the one and
+#' simulates the other.
+#'
+#' @noRd
+beta_binomial_lpmf <- function(y, size, a, b, phi) {
+  if (inherits(y, c("osa", "simref"))) {
+    return(RTMBdist::dbetabinom(y, size, a, b, log = TRUE))
+  }
+  lgamma(size + 1) - lgamma(y + 1) - lgamma(size - y + 1) +
+    lgamma_count_shift(a, y) + lgamma_count_shift(b, size - y) -
+    lgamma_count_shift(phi, size)
 }
 
 #' Log density of a standard student-t, stable for every `nu`.
@@ -2300,7 +2380,8 @@ fam_beta <- function(link = "logit", link_phi = "log") {
   lk <- mu_link(link, "beta")
   frmtmb_family(
     "beta",
-    accepts_aterms = c("weights", "cens", "trunc"),
+    accepts_aterms = c("weights", "cens", "trunc", "mi"),
+    mi_chart = "logit",
     dpars = c("mu", "phi"),
     links = list(mu = lk, phi = lk_phi),
     lpdf = function(y, dpars, aterms) {
@@ -2661,7 +2742,8 @@ fam_hurdle_poisson <- function(link = "log", link_hu = "logit") {
     type = "discrete",
     post = list(
       mean_fn = function(dpars, aterms) {
-        (1 - dpars[["hu"]]) * dpars[["mu"]] / (1 - exp(-dpars[["mu"]]))
+        # -expm1(): 1 - exp(-mu) is 0 at a mu of 1e-17, and the mean there is 1
+        (1 - dpars[["hu"]]) * dpars[["mu"]] / -expm1(-dpars[["mu"]])
       }
     ),
     # The generative process the family's name states: clear the hurdle
@@ -2885,7 +2967,8 @@ fam_geometric <- function(link = "log") {
 fam_exponential <- function(link = "log") {
   frmtmb_family(
     "exponential",
-    accepts_aterms = c("weights", "cens", "trunc"),
+    accepts_aterms = c("weights", "cens", "trunc", "mi"),
+    mi_chart = "log",
     dpars = "mu",
     links = list(mu = mu_link(link, "exponential")),
     lpdf = function(y, dpars, aterms) {
@@ -2930,7 +3013,8 @@ fam_weibull <- function(link = "log", link_shape = "log") {
   lk_shape <- dpar_link(link_shape, "shape", "weibull", dpar_links_positive)
   frmtmb_family(
     "weibull",
-    accepts_aterms = c("weights", "cens", "trunc"),
+    accepts_aterms = c("weights", "cens", "trunc", "mi"),
+    mi_chart = "log",
     dpars = c("mu", "shape"),
     links = list(mu = mu_link(link, "weibull"), shape = lk_shape),
     lpdf = function(y, dpars, aterms) {
@@ -3873,7 +3957,8 @@ fam_asym_laplace <- function(link = "identity", link_sigma = "log",
     link_quantile, "quantile", "asym_laplace", dpar_links_unit)
   frmtmb_family(
     "asym_laplace",
-    accepts_aterms = c("weights", "cens", "trunc"),
+    accepts_aterms = c("weights", "cens", "trunc", "mi"),
+    mi_chart = "no_mode",
     dpars = c("mu", "sigma", "quantile"),
     links = list(mu = mu_link(link, "asym_laplace"),
                  sigma = lk_sigma, quantile = lk_quantile),
@@ -4098,12 +4183,10 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
     links = list(mu = lk, phi = lk_phi),
     lpdf = function(y, dpars, aterms) {
       size <- aterm_trials(aterms, "beta_binomial")
-      # RTMBdist has no log-odds form, so the robustness has to go into
-      # the shapes: a zero second shape gives lgamma(0) = NaN
+      # the shapes off the log-odds, so a second shape does not round to 0
       mp <- dpar_complement(dpars, "mu", lk)
-      RTMBdist::dbetabinom(y, size, mp$p * dpars[["phi"]],
-                mp$q * dpars[["phi"]],
-                           log = TRUE)
+      beta_binomial_lpmf(y, size, mp$p * dpars[["phi"]], mp$q * dpars[["phi"]],
+                         dpars[["phi"]])
     },
     cdf_log = function(q, dpars, aterms) {
       beta_binomial_cdf_pair(q, dpars, aterms, lk, "beta_binomial")
@@ -4173,8 +4256,8 @@ fam_zi_beta_binomial <- function(link = "logit", link_phi = "log",
       # the shapes off the log-odds, for the reason fam_beta_binomial()
       # gives; at y = 0 `base` is the beta-binomial's own P(0)
       mp <- dpar_complement(dpars, "mu", lk)
-      base <- RTMBdist::dbetabinom(y, size, mp$p * dpars[["phi"]],
-                                   mp$q * dpars[["phi"]], log = TRUE)
+      base <- beta_binomial_lpmf(y, size, mp$p * dpars[["phi"]],
+                                 mp$q * dpars[["phi"]], dpars[["phi"]])
       i0 * RTMB::logspace_add(g$l, g$l1m + base) + (1 - i0) * (g$l1m + base)
     },
     cdf_log = function(q, dpars, aterms) {
@@ -4232,16 +4315,17 @@ fam_skew_normal <- function(link = "identity", link_sigma = "log",
   lk_alpha <- dpar_link(link_alpha, "alpha", "skew_normal", dpar_links_signed)
   frmtmb_family(
     "skew_normal",
-    accepts_aterms = c("weights", "cens", "trunc"),
+    accepts_aterms = c("weights", "cens", "trunc", "mi", "se"),
+    se_dpar = "sigma",
     dpars = c("mu", "sigma", "alpha"),
     links = list(mu = mu_link(link, "skew_normal"),
                  sigma = lk_sigma, alpha = lk_alpha),
     lpdf = function(y, dpars, aterms) {
-      RTMBdist::dskewnorm2(y, dpars[["mu"]], dpars[["sigma"]], dpars[["alpha"]],
-                           log = TRUE)
+      RTMBdist::dskewnorm2(y, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms),
+                           dpars[["alpha"]], log = TRUE)
     },
     cdf_log = function(q, dpars, aterms) {
-      skew_normal_cdf_log(q, dpars[["mu"]], dpars[["sigma"]],
+      skew_normal_cdf_log(q, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms),
                           dpars[["alpha"]])
     },
     init_dpars = list(
@@ -4279,7 +4363,8 @@ fam_skew_normal <- function(link = "identity", link_sigma = "log",
       stationary = list(alpha = list(at = 0, tol = 0.05, from = c(2, -2)))
     ),
     sim = function(dpars, aterms, n) {
-      RTMBdist::rskewnorm2(n, dpars[["mu"]], dpars[["sigma"]], dpars[["alpha"]])
+      RTMBdist::rskewnorm2(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms),
+                           dpars[["alpha"]])
     }
   )
 }
@@ -4293,7 +4378,8 @@ fam_inverse_gaussian <- function(link = "1/mu^2", link_shape = "log") {
     link_shape, "shape", "inverse.gaussian", dpar_links_positive)
   frmtmb_family(
     "inverse.gaussian",
-    accepts_aterms = c("weights", "cens", "trunc"),
+    accepts_aterms = c("weights", "cens", "trunc", "mi"),
+    mi_chart = "log",
     dpars = c("mu", "shape"),
     links = list(mu = mu_link(link, "inverse.gaussian"), shape = lk_shape),
     lpdf = function(y, dpars, aterms) {
@@ -4361,7 +4447,7 @@ fam_exgaussian <- function(link = "identity", link_sigma = "log",
   lk_beta <- dpar_link(link_beta, "beta", "exgaussian", dpar_links_positive)
   frmtmb_family(
     "exgaussian",
-    accepts_aterms = c("weights", "cens", "trunc"),
+    accepts_aterms = c("weights", "cens", "trunc", "mi"),
     dpars = c("mu", "sigma", "beta"),
     links = list(mu = mu_link(link, "exgaussian"),
                  sigma = lk_sigma, beta = lk_beta),
@@ -4981,6 +5067,10 @@ hurdle_above_aterms <- function(aterms, y) {
 #' `k` names component `k` of an ordinal mixture, whose `disc<k>`,
 #' `mu<k>` and threshold block are checked the same way.
 #'
+#' A `disc` body has no design to read an intercept from, so this is silent on
+#' one. Its constant term, `d0` in `d0 + d1 * z`, has the same flat direction,
+#' and the standard errors report that.
+#'
 #' @noRd
 ord_fit_check <- function(fit, resp, k = NULL) {
   fam <- fit$spec$responses[[resp]]$family
@@ -4989,7 +5079,9 @@ ord_fit_check <- function(fit, resp, k = NULL) {
   }
   sfx <- if (is.null(k)) "" else as.character(k)
   lp <- fit$frame[["linpreds"]][[linpred_key(resp, paste0("disc", sfx))]]
-  if (is.null(lp) || !is.null(lp[["constant"]])) return(invisible(NULL))
+  if (is.null(lp) || !is.null(lp[["constant"]]) || is.null(lp[["X"]])) {
+    return(invisible(NULL))
+  }
   mx <- fam[["mix"]][["ord"]]
   if (!is.null(k) && isTRUE(mx$shared)) {
     # thresholds shared with a component whose disc is held fixed are on
@@ -6146,6 +6238,30 @@ mixture_build <- function(comps, groups, ref) {
     accepts_aterms = if (!any(vapply(comp_acc, is.null, NA))) {
       setdiff(unique(unlist(comp_acc, use.names = FALSE)), "se")
     },
+    # the mixture of the components' tails, brms's censored mixture
+    lcdf = if (all(vapply(comps, function(cp) !is.null(cp$lcdf), NA))) {
+      function(q, dpars, aterms) {
+        lp <- log_pi(dpars)
+        out <- 0
+        for (k in seq_len(K)) {
+          out <- out + exp(lp[[k]]) *
+            fam_lcdf(comps[[k]], q, comp_dpars(dpars, k), aterms, NULL)
+        }
+        out
+      }
+    },
+    lccdf = if (all(vapply(comps, function(cp) !is.null(cp$lccdf), NA))) {
+      function(q, dpars, aterms) {
+        lp <- log_pi(dpars)
+        out <- NULL
+        for (k in seq_len(K)) {
+          tk <- lp[[k]] +
+            fam_lccdf(comps[[k]], q, comp_dpars(dpars, k), aterms, NULL)
+          out <- if (is.null(out)) tk else RTMB::logspace_add(out, tk)
+        }
+        out
+      }
+    },
     # Exclusivity is the INTERSECTION where the allow-list is the union,
     # and the asymmetry is not an oversight: a term reaches the density
     # if any component reads it, but two spellings are interchangeable
@@ -6227,6 +6343,14 @@ mixture_build <- function(comps, groups, ref) {
     },
     primary_dpars = paste0("mu", seq_len(K))
   )
+  # a read missing value of a mixture has one mode per component, so the
+  # Laplace route has no single mode to expand about, as under REML. A
+  # sampler holds it on the components' chart, when they share one
+  charts <- unique(vapply(comps, function(cp) {
+    cp[["mi_chart"]] %||% "identity"
+  }, ""))
+  if (length(charts) == 1L) fam[["mi_chart"]] <- charts
+  fam[["mi_no_laplace"]] <- TRUE
   # read by the frame checks brms applies through a mixture's components
   # (trials(), the bernoulli message)
   fam[["component_families"]] <- vapply(comps, `[[`, "", "family")
@@ -7334,7 +7458,8 @@ fam_von_mises <- function(link = "tan_half", link_kappa = "log") {
   lk_kappa <- dpar_link(link_kappa, "kappa", "von_mises", dpar_links_positive)
   frmtmb_family(
     "von_mises",
-    accepts_aterms = c("weights", "cens", "trunc"),
+    accepts_aterms = c("weights", "cens", "trunc", "mi"),
+    mi_chart = "circle",
     dpars = c("mu", "kappa"),
     links = list(mu = mu_link(link, "von_mises"), kappa = lk_kappa),
     lpdf = function(y, dpars, aterms) {

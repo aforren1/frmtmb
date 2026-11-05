@@ -30,7 +30,8 @@ frmtmb_family(
   drop_intercept = FALSE,
   structure = NULL,
   aterm_data = NULL,
-  simplex_pars = NULL
+  simplex_pars = NULL,
+  mi_chart = NULL
 )
 
 custom_family(
@@ -58,7 +59,8 @@ custom_family(
   drop_intercept = FALSE,
   structure = NULL,
   aterm_data = NULL,
-  simplex_pars = NULL
+  simplex_pars = NULL,
+  mi_chart = NULL
 )
 }
 \arguments{
@@ -310,7 +312,9 @@ holds (see Deriving a family from the data).}
 list of numeric starting vectors for family-level parameters outside
 the dpar system (for example ordinal thresholds). They join the
 parameter template under their own names and reach \code{lpdf} as its
-fourth argument.}
+fourth argument.
+Keep each on a scale near 1: \code{frm(importance =)} differentiates by steps of
+1e-4 on it.}
 
 \item{drop_intercept}{If \code{TRUE}, the intercept column is removed from
 the main formula's design matrix (ordinal families: thresholds take
@@ -348,6 +352,23 @@ from (\code{frmtmb_control(mo_search = )}), the softmax chart and brms's
 \code{set_prior("dirichlet(...)", class = name)}. A name must not be
 one of frmtmb's own prior classes other than \code{"sbhaz"}, which is
 brms's class for a baseline hazard.}
+
+\item{mi_chart}{The chart of a missing value of this family's response
+under \code{mi()}, for a family with \code{"mi"} in \code{accepts_aterms}: \code{"log"}
+for support on \verb{(0, Inf)}, \code{"logit"} for support on \verb{(0, 1)},
+\code{"circle"} for support on \verb{(-pi, pi)}, and \code{"identity"} (the default)
+for a density on the whole line. A family with a bounded support must
+set one: on the identity chart a latent value leaves the support, and
+the density there is not a number. The latent value is held
+on this chart with the map's log-Jacobian in the objective, so that
+it is unconstrained, and its density has an interior mode whatever
+the family's parameters: an exponential density has none in the
+value itself. \code{"no_mode"} is the identity chart for a density with
+no curvature at its mode, such as \code{asym_laplace()}, whose log density
+is piecewise linear: \code{\link[=frm]{frm()}} refuses a value another density reads,
+because a Laplace approximation needs that curvature, and
+\code{frmtmb.sample::frm_sample()} samples it. A value no density reads
+needs no chart on \code{\link[=frm]{frm()}}, where its row leaves the objective.}
 }
 \value{
 An object of class \code{frmtmb_family}. \code{$} on it also answers

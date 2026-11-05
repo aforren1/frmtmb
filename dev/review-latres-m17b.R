@@ -1,0 +1,106 @@
+# Short check, item 6: m1 coef(), m5 latent_state names on draws, M7's stopgap on
+# every route that reads the dense covariance. Plus the first review's m2, m3, m4,
+# m8, m9, n1, the compat rows.
+source("C:/Users/adf44/source/r/frmtmb-wt-latres/dev/review-latres-common.R")
+set.seed(167)
+d <- expand.grid(t = 1:5, g = factor(1:12))
+d <- d[order(d$g, d$t), ]
+n <- nrow(d)
+d$x <- rnorm(n)
+d$z <- rnorm(n)
+e <- as.vector(replicate(12, arima.sim(list(ar = .5), 5, sd = .5)))
+d$y <- rpois(n, exp(.5 + .4 * d$x + e))
+d$pos <- rgamma(n, 4, 4 / exp(.5 + .4 * d$x + e))
+fa <- frm(y ~ x + z + ar(t, g, cov = TRUE), family = poisson(), data = d)
+fr <- frm(y ~ x + (1 | g) + ar(t, g, cov = TRUE), family = poisson(), data = d)
+cat("== m1\n")
+cat("coef latent-only:\n"); print(coef(fa))
+cat("fixef:\n"); print(fixef(fa))
+fp <- frm(y ~ x + z, family = poisson(), data = d)
+cat("coef plain:\n"); print(coef(fp))
+cat("coef with RE names:", names(coef(fr)), " dim:", dim(coef(fr)$g), "\n")
+cat("lmtest:"); print(class(msg_of(lmtest::coeftest(fa))$val))
+cat("ranef latent-only:", length(ranef(fa)), "\n")
+
+cat("\n== m2 m4 m8 n1\n")
+s <- function(e) { r <- msg_of(e); cat(substr(r$err %||% "ok", 1, 220), "\n"); invisible(r$val) }
+s(simulate(fa, nsim = 1, newdata = d[1:3, c("x", "z", "g")]))
+s(predict(fa, newdata = d[1:3, c("x", "z", "t")], ndraws = 5))
+d$id2 <- factor(seq_len(n))
+d$id <- seq_len(n)
+s(frm(y ~ x + ar(id, id2, cov = TRUE), family = poisson(), data = d))
+s(frm(y ~ x + ar(id, id2), family = poisson(), data = d))
+s(frm(y ~ x + cosy(gr = id2), family = poisson(), data = d))
+d$fv <- 1
+print(round(autocor_matrix(frm(y ~ x + ar(t, g), family = poisson(), data = d))[1:3, 1:3], 3))
+s(frm(bf(cbind(u1, 1 - u1) ~ x + ar(t, g, cov = TRUE)), family = dirichlet(), data = transform(d, u1 = plogis(x))))
+s(frm(y ~ x + ar(t, g, cov = TRUE), family = asym_laplace(), data = d))
+for (a in list(c("fcor()", "residuals_osa"), c("ar()", "fitted"), c("cosy()", "fitted"), c("cosy()", "mi()"), c("ar()", "mi()"), c("ar()", "quadrature"), c("ar()", "asym_laplace"), c("ar()", "Gamma"), c("ar()", "poisson"), c("ar()", "nl"), c("ar()", "residuals_osa"))) {
+  r <- as.data.frame(frm_compat(a[1], a[2]))
+  cat(sprintf("%-8s x %-14s %-12s %s\n", a[1], a[2], r$status[1], substr(r[[ncol(r)]][1], 1, 240)))
+}
+
+cat("\n== m5\n")
+suppressPackageStartupMessages(library(frmtmb.sample))
+dr <- frm_sample(frmtmb::bf(y ~ x + ma(t, g, cov = TRUE)), family = poisson(), data = d, chains = 2, iter = 400, warmup = 200, seed = 11, refresh = 0)
+v <- variables(dr)
+cat("rows", n, " latent_state cols", length(grep("^latent_state", v)), " b[k]", length(grep("^b\\[", v)), "\n")
+print(v[c(1:4, (length(v) - 5):length(v))])
+ps <- posterior_summary(dr)
+print(dim(ps)); print(round(head(ps, 3), 3)); print(round(ps[grep("latent_state", rownames(ps))[1:3], ], 3)); print(round(tail(ps, 6), 3))
+print(names(posterior::as_draws_df(dr))[c(1:3, 70:74)])
+r <- msg_of(hypothesis(dr, "latent_state[1] > 0", class = NULL)); cat("hypothesis on a state:", if (is.null(r$err)) r$val$hypothesis$Estimate else r$err, "\n")
+r <- msg_of(as.matrix(dr, variable = "latent_state[3]")); cat("as.matrix variable:", if (is.null(r$err)) dim(r$val) else r$err, "\n")
+r <- msg_of(as.matrix(dr, variable = "b[3]")); cat("old b[3]:", substr(r$err %||% paste(dim(r$val), collapse = "x"), 1, 200), "\n")
+r <- msg_of(bayesplot::mcmc_trace(posterior::as_draws_array(dr), pars = "latent_state[1]")); cat("mcmc_trace:", if (is.null(r$err)) "ok" else r$err, "\n")
+for (fn in c("ranef", "coef", "fixef", "VarCorr")) {
+  r <- msg_of(get(fn)(dr)); cat(fn, "on draws:", if (is.null(r$err)) paste(class(r$val), collapse = "/") else substr(r$err, 1, 130), if (is.null(r$err) && is.list(r$val)) paste(names(r$val), collapse = ","), "\n")
+}
+dm <- frm_sample(frmtmb::bf(y ~ x + ar(t, g, cov = TRUE)) + frmtmb::bf(pos ~ x + cosy(t, g), family = Gamma(link = "log")), family = poisson(), data = d, chains = 1, iter = 200, warmup = 100, seed = 11, refresh = 0)
+vm <- variables(dm)
+cat("mv: state cols", length(grep("latent_state", vm)), " unique", length(unique(grep("latent_state", vm, value = TRUE))), " any duplicates in variables:", anyDuplicated(vm), "\n")
+print(head(grep("latent_state", vm, value = TRUE), 3)); print(tail(grep("latent_state", vm, value = TRUE), 3))
+pm <- msg_of(posterior_summary(dm)); cat("posterior_summary mv:", if (is.null(pm$err)) paste(dim(pm$val), collapse = "x") else pm$err, "\n")
+cat("readers of b[k] in the sample code:\n")
+for (f in list.files("extensions/frmtmb.sample/R", full.names = TRUE)) {
+  l <- readLines(f, warn = FALSE)
+  h <- grep('"b\\[|\\^b\\[|\\^b\\\\\\\\\\[|paste0\\("b\\["', l)
+  if (length(h)) cat(basename(f), h, "\n")
+}
+
+cat("\n== M7, 4000 rows: which routes skip and which pay?\n")
+set.seed(1)
+N <- 4000
+dd <- data.frame(t = seq_len(N), g = factor(1), x = rnorm(N), f = factor(sample(letters[1:3], N, TRUE)))
+dd$y <- rpois(N, exp(.5 + .3 * dd$x + as.numeric(arima.sim(list(ar = .5), N, sd = .5))))
+fb <- frm(y ~ x + f + ar(t, g, cov = TRUE), family = poisson(), data = dd)
+cl <- function(lab, e) {
+  ms <- character(0)
+  t0 <- proc.time()[[3]]
+  v <- withCallingHandlers(tryCatch(e, error = function(z) z), message = function(m) { ms <<- c(ms, conditionMessage(m)); invokeRestart("muffleMessage") }, warning = function(w) { ms <<- c(ms, paste("W:", conditionMessage(w))); invokeRestart("muffleWarning") })
+  el <- proc.time()[[3]] - t0
+  cat(sprintf("%-30s %7.1f s  %s  %s\n", lab, el, if (inherits(v, "error")) paste("ERR", substr(conditionMessage(v), 1, 90)) else "", if (length(ms)) substr(ms[1], 1, 170) else ""))
+  invisible(v)
+}
+a <- cl("fitted", fitted(fb)); print(head(a, 2))
+cl("frm_linpred se", frm_linpred(fb, se.fit = TRUE)$se.fit[1:2])
+a <- cl("residuals", residuals(fb)); print(head(a, 2))
+cl("predict 20", predict(fb, ndraws = 20))
+cl("fitted newdata", fitted(fb, newdata = dd[1:50, ]))
+cl("linpred newdata se", frm_linpred(fb, newdata = dd[1:50, ], se.fit = TRUE))
+cl("residuals pearson", residuals(fb, type = "pearson"))
+cl("conditional_effects", conditional_effects(fb, "x"))
+cl("emmeans", emmeans::emmeans(fb, ~ f))
+cl("marginaleffects predictions", marginaleffects::predictions(fb, newdata = dd[1:5, ]))
+cl("marginaleffects avg_slopes", marginaleffects::avg_slopes(fb, variables = "x"))
+cl("frm_curve", frm_curve(fb, newdata = dd[1:10, ]))
+cl("confint", confint(fb))
+cl("hypothesis", hypothesis(fb, "x > 0"))
+cl("summary", summary(fb))
+cl("cooks.distance", cooks.distance(fb))
+cl("rstandard", rstandard(fb))
+op <- options(frmtmb.latres_se_rows = 1e5)
+cat("after moving the limit, message gone?\n")
+options(op)
+cat("\n== predread's layers: read-only\n")
+cat("n rows of `se.fit` guard before layers? see the review\n")

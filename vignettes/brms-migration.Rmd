@@ -58,7 +58,7 @@ Then load the extensions a model needs, for example
 | `(x || g)`, `(x | gr(g, cor = FALSE))` | same | one term coded as `(x | g)` codes it, with one SD per column and no correlation: `(1 + f || g)` has `Intercept`, `fb` and `fc`, where lme4 gives `f` a column per level |
 | `mvbind(y1, y2) ~ x`, `mvbf()`, `set_rescor()` | same | per-response families, ordinal ones included; `rescor` all gaussian or all student, with one shared `nu`; `mvbf() + family` fills only responses without a family (below) |
 | `y | trials(n)`, `weights(w)`, `cens(c)`, `trunc(lb=, ub=)` | same | `cens`/`trunc` need a CDF-carrying family; a DISCRETE bound is read as brms reads it (below) |
-| `nl = TRUE` | same | a located prior places the start, else provide `start` (`par_template()` names it); se.fit on the nonlinear mu not yet |
+| `nl = TRUE` | same | a located prior places the start, a body the link cannot evaluate at 0 moves to the response mean, else provide `start` (`par_template()` names it); se.fit on the nonlinear mu not yet |
 | `lf()`, `nlf()` | same | `nlf()` on any dpar, bodies chain to any depth (below) |
 | `y ~ 0 + Intercept + x`, `bf(center = FALSE)` | same | the intercept is class `"b"` at zero, not class `"Intercept"` at the predictor means; refused in an ordinal family, as in brms |
 | `custom_family()` | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
@@ -67,7 +67,7 @@ Then load the extensions a model needs, for example
 | `xbeta()`, `zero_inflated_beta_binomial()`, `hurdle_cumulative()` | same | brms's density, links and `posterior_epred()`; `hurdle_cumulative()` takes brms's threshold structures, `thres(gr = )` and `cs()` (see What changes) |
 | `car(M, gr = g, type =)` | same, with `library(frmtmb.spatial)` | all four types; the term is in the extension package frmtmb.spatial |
 | `(1 | mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
-| `me(x, sdx)`, `me(x, sdx, gr = g)`, `set_mecor()` | same | latent values integrated by Laplace; new data uses the observed `x` (below) |
+| `me(x, sdx)`, `me(x, sdx, gr = g)`, `set_mecor()` | same | latent values integrated by Laplace; new data draws them from `N(x, sdx)`, as brms does (below) |
 | `(x | gr(g, by = f))` | same | one set of SDs and correlations per level of `f`, named `sd_g__Intercept:fa` as in brms; not with `cov =` |
 | `ar(t, g)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; both `cov = FALSE` (brms's default) and `cov = TRUE` (below) |
 | `fcor(M)` | same | gaussian/student only; `M` in `data2`, `sigma` scales it, and a predicted `sigma` gives `D M D`, as in brms; `newdata` only on the fitted rows, as brms without `newdata2` |
@@ -206,7 +206,7 @@ brms does.
   `brms::prior(normal(0, 0.5), class = "sigma")` gave all along.
 
   A prior class frmtmb keeps somewhere else (brms's mixture `theta`,
-  `simo`, `sds`, `sdgp`, `lscale`, `sdcar`, `car`) is refused by name,
+  `sdcar`, `car`) is refused by name,
   with the class that reaches the same parameters where one exists,
   rather than translated into something else. So is a `coef` on a `sd`
   or `cor` row: frmtmb addresses a whole random-effect block there, and
@@ -247,6 +247,16 @@ brms does.
   `cens()` response both draw the LATENT uncensored value, as brms
   does; `simulate(censored = TRUE)` applies the censoring mechanism
   instead.
+- The exact `gp(x)` is brms's model, with `sdgp * L * zgp` for the field. The
+  nugget is relative: `1e-12 * sdgp^2` on the kernel's diagonal, where brms
+  adds an absolute `1e-12`. At `sdgp` near 1 the two are one number. The model
+  does not depend on the units of `y`, and a fit depends on them only to the
+  optimizer's tolerance. brms's fit does depend on them: at `y * 1000` its
+  kernel does not factor at the estimates. `frmtmb` factors the kernel over a
+  farthest-first order of the distinct positions, where rounding moves the
+  field least, and brms factors it in order of first appearance, so the `b[i]`
+  columns of `frm_sample()` draws are not brms's `zgp[i]` columns. Read the
+  field through `ranef()` or the predictive methods.
 - `sample_prior = "only"` plus `posterior_predict()` is the same call
   on `frmtmb.sample::frm_sample()`, which samples the prior of the
   whole model as brms does. Without a sampler,
@@ -481,10 +491,10 @@ when it refuses one:
 | brms | frmtmb |
 |---|---|
 | `mm(g1, g2, cor = FALSE)` | same, or `(x || mm(g1, g2))` |
-| `mm(g1, g2, id = "q")` | the `|ID|` key, `(x | q | g)` - not yet over `mm()` |
-| `mm(g1, g2, cov = A)` | `gr(g, cov = A)` - not yet over `mm()` |
+| `mm(g1, g2, id = "q")` | same, or the `|ID|` key, `(x | q | mm(g1, g2))` |
+| `mm(g1, g2, cov = A)` | same |
 | `mm(g1, g2, by = cbind(f1, f2))` | same, one by-variable column per member |
-| `mm(g1, g2, pw = )`, `dist =` | no equivalent yet |
+| `mm(g1, g2, pw = )`, `dist =`, `by =` with `cov =` | no equivalent yet |
 
 `?frmtmb-multimembership` is the full page.
 
@@ -504,14 +514,14 @@ exact. The names follow brms: the coefficient of `me(x, sx)` is
 `bsp_mexsx`, and `summary()` reports `meanme_mex`, `sdme_mex` and
 `corme__mex__mez`, which brms reports only through `variables()`.
 
-Two differences to know when you port:
-
-- On new data, `predict()` and `fitted()` use the observed `x` in place
-  of the latent value. brms draws it from `N(x, sdx)`, so the two agree
-  on the mean of a linear term, but brms's prediction interval is wider.
-- brms's prior classes `meanme`, `sdme` and `corme` have no slot here
-  and are refused by name. The flat rows of a `get_prior()` table and
-  its `lkj(1)` `corme` row are dropped, because they apply nothing.
+On new data, a row has no latent value. `predict()` and `simulate()` draw one
+per replicate from `N(x, sdx)`, as brms's draws do. `fitted()` has no draws: it
+reports the mean of the expected response over that draw, by Gauss-Hermite, and
+the draw's variance and quantiles in `Est.Error` and the `Q` columns.
+`frm_linpred()` stays at the observed `x` and adds the variance to `se.fit`. New
+data must hold `sdx`, as in brms. Under `gr = g`, rows at one level read one
+latent value. Two responses or two dpars read one latent value too, where brms
+draws one per predictor against its own Stan program.
 
 `?frmtmb-me` is the full page.
 
@@ -567,18 +577,33 @@ a prior on `sigma` and the coefficients of a `sigma ~ x` model compare
 with brms's directly. Pearson residuals divide by the marginal SD,
 `sigma / sqrt(1 - phi^2)` for an AR(1).
 
-**Only `gaussian()` and `student()`.** These are the two families brms
-gives a real residual covariance. brms accepts the same spelling for
-poisson, binomial and the rest, but fits a latent Gaussian AR process
-added to the linear predictor instead - which is a random effect, and
-is spelled as one here:
+**Other families get brms's latent residual.** `gaussian()` and
+`student()` are the two families with a residual covariance. On poisson,
+binomial and the rest, brms and frmtmb add a latent residual to the
+linear predictor, with its own SD, `sderr`. frmtmb integrates the latents
+by the Laplace approximation:
 
 ```{r, eval = FALSE}
-# brms, poisson: a latent AR process on the linear predictor
-brm(cnt ~ x + ar(week, subj), data = d, family = poisson())
-# frmtmb: the same idea as a random effect over the time factor
-frm(bf(cnt ~ x + ar1(factor(week) + 0 | subj)) + poisson(), data = d)
+# brms
+brm(cnt ~ x + ar(week, subj, cov = TRUE), data = d, family = poisson())
+# frmtmb
+frm(bf(cnt ~ x + ar(week, subj, cov = TRUE)), family = poisson(), data = d)
 ```
+
+`?frmtmb-autocor`, section Latent residuals, has the model. brms's refusals
+hold here too: `cov = TRUE` is of order one on these families, and
+`cov = FALSE` has no MA part.
+
+The Laplace approximation of this model is not always good. On binary and
+ordinal responses, on a binomial with at most 3 trials, on counts with a mean
+below 1 and on a family whose dispersion trades off against the latent,
+`frm()` warns, because `sderr` and `ar` are biased: `sderr` reads 0.39 against
+an exact 1.10 on bernoulli and 0.26 against 0.65 on `beta_binomial()`. `frm()`
+refuses `cov = FALSE` on `Gamma()` or `Beta()`, where no number from the fit says
+whether it reads true, and a mean less than 2 marginal sds of the latent from
+the edge of an identity or inverse link. `frm_sample()` fits all of these and
+agrees with brms. `?frmtmb-autocor`, section Where the Laplace approximation
+fails, has the tables.
 
 **Higher orders are allowed, and gaps are honored.** brms limits
 `cov = TRUE` to order one; `ar(p = 3)` and `arma(p = 2, q = 1)` work

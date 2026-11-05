@@ -1,3 +1,31 @@
+# frmtmb.learn 0.7.4
+
+Needs frmtmb 0.79.0 for the numbers of `frm(importance =)` it documents and
+for the discrete-likelihood check.
+
+## Bug fixes
+
+* `rlddm()` is a density, and declares `type = "continuous"`. A correct
+  fit with tight response times, logLik +666.77, was told "a probability
+  mass is at most 1". DHARMa's `integerResponse` reads the same type,
+  and is right on it now.
+
+## Other changes
+
+* The documented numbers for `frm(importance =)` are measured again on
+  frmtmb's corrected proposal. At 100 trials, the correction moves
+  `sd(alpha)` by 0.02 to 0.05 log units, not 0.11 to 0.18. No dataset is
+  refused, and a collapsed component no longer walks. Needs frmtmb
+  0.79.0 for these numbers. Apart from `rlddm()`'s `type`, the package code
+  is unchanged but for the note on its `frm_compat()` row.
+
+* `frm_compat()` by `nl` is "refused" on these families: `nl = TRUE`
+  needs a family with a single `mu`. `nlf()` on one parameter is the
+  route.
+
+* `frm_compat()`: `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` by these
+  families are "refused", as `frm()` and brms refuse them: they have no `mu`.
+
 # frmtmb.learn 0.7.3
 
 ## Other changes

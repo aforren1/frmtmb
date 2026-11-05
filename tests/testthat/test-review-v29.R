@@ -258,8 +258,10 @@ test_that("frm_linpred(type = 'response') gives ordinal category probabilities",
 
   # the link scale is untouched, and se.fit lives there
   expect_true(is.numeric(frm_linpred(fit, newdata = nd)))
+  # dpar = "mu" on the response scale is the family's link inverse, as
+  # brms's posterior_epred(dpar = "mu")
   expect_equal(frm_linpred(fit, newdata = nd, dpar = "mu", type = "response"),
-               frm_linpred(fit, newdata = nd, type = "link"))
+               stats::plogis(frm_linpred(fit, newdata = nd, type = "link")))
   expect_error(frm_linpred(fit, type = "response", se.fit = TRUE),
                "not supported")
 })

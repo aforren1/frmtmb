@@ -8,9 +8,9 @@
 # the `dim` in the spec is never read. It also freezes its rescaling
 # once, so a stale calibration BREAKS the objective, which is what
 # quad_fit() spends five seeds and three recalibration rounds fighting.
-# A frozen Gaussian importance proposal cannot break that way. It stays
-# a valid proposal wherever theta walks and only loses efficiency, and
-# the effective sample size measures how much. Any block dimension, and
+# A Gaussian importance proposal cannot break that way. It stays a valid
+# proposal wherever theta walks and only loses efficiency, and the
+# effective sample size measures how much. Any block dimension, and
 # the remaining error is a number the fit reports rather than an
 # assumption it makes.
 #
@@ -27,18 +27,21 @@
 #
 # and the objective is -sum_g log m_g(theta), which is an unbiased
 # estimate of the exact marginal log-likelihood at EVERY theta, not
-# only near the anchor. The draws are numeric constants baked into the
-# closure, so the tape's parameters are the fixed effects, the
+# only near the anchor. The standard normals are numeric constants baked
+# into the closure, so the tape's parameters are the fixed effects, the
 # dispersion and the covariance parameters alone: `random = NULL`, no
-# inner problem, and sdreport works the ordinary way.
+# inner problem, and sdreport works the ordinary way. u_hat_g and L_g
+# are functions of theta on the tape, to first order around the anchor
+# (build_importance_objective() says why). The Jacobian of the map from
+# z to u is L_g(theta), so log|L_g| is on the tape with them.
 #
 # STACKED, NEVER LOOPED. For draw i every group's block is set to its
-# i-th draw at once. `Z U` is one sparse product forming the whole
-# n x N random-effect contribution as a CONSTANT, the family's density
-# is called ONCE on a length n*N vector with the response and the
-# addition terms recycled, and the per-group aggregation is one sparse
-# indicator product. A loop over draws would put N copies of the
-# likelihood on the tape as N separate calls.
+# i-th draw at once. The G x N draws of each coefficient reach the n x N
+# predictor through one index, the family's density is called ONCE on a
+# length n*N vector with the response and the addition terms recycled,
+# and the per-group aggregation is one sparse indicator product. A loop
+# over draws would put N copies of the likelihood on the tape as N
+# separate calls.
 
 #' The covariance structures whose block density factorizes over
 #' grouping levels AND is Gaussian in the level's coefficients. Both
@@ -61,7 +64,7 @@ imp_covstructs <- c("us", "diag", "homdiag", "cs", "homcs", "toep",
 #'
 #' @noRd
 imp_crosslevel <- function() {
-  ents <- cs_entries()
+  ents <- cs_entries()[cs_names()]
   c("equalto", names(ents)[vapply(ents, function(e) {
     isTRUE(e[["levels_coupled"]])
   }, TRUE)])
@@ -82,6 +85,12 @@ check_importance_scope <- function(spec, frame, template, REML, quadrature,
              "random intercept at a time; the importance correction ",
              "reweights the Laplace Gaussian and takes any block ",
              "dimension. Keep one", call. = FALSE)
+  }
+  if (length(frame_latres(frame))) {
+    frm_stop("`importance` cannot be combined with a latent residual: the ",
+             "correction draws one proposal per group of a grouping factor, ",
+             "and these latents are a chain with no such factor. Fit with ",
+             "importance = 0", call. = FALSE)
   }
   if (frame_has_mo_re(frame)) {
     frm_stop("`importance` cannot be combined with a group-level mo() ",
@@ -467,13 +476,14 @@ imp_draws <- function(nb, n_draw, seed) {
 #' @noRd
 imp_n_draw <- function(n) 2L * ((as.integer(n) + 1L) %/% 2L)
 
-#' The proposal, frozen at one outer parameter vector: conditional
-#' modes, per-level Hessian blocks, their Cholesky factors, and the
-#' draws they map the standard normals through.
+#' The proposal, anchored at one outer parameter vector: conditional
+#' modes, per-level Hessian blocks, their Cholesky factors, the draws
+#' they map the standard normals through, and the rates at which the
+#' tape moves the proposal away from the anchor.
 #'
 #' The modes and the Hessian come from the Laplace objective's own
-#' inner Newton solve, so the proposal IS the Laplace Gaussian and
-#' nothing has to be re-derived. `spHess(random = TRUE)` is the
+#' inner Newton solve, so the proposal AT THE ANCHOR is the Laplace
+#' Gaussian and nothing has to be re-derived. `spHess(random = TRUE)` is the
 #' conditional Hessian of the joint negative log-density; under the
 #' scope above it is block diagonal by grouping level, and that is
 #' checked here rather than assumed, because it is the one property
@@ -522,13 +532,26 @@ imp_plan <- function(lap_obj, frame, lay, par, n_draw, seed) {
   nd <- ncol(z)
   u <- matrix(0, nb, nd)
   logdet_l <- numeric(ng)
+  hess_b <- imp_block_filler(hess, lay)(hess)
+  # The Hessian splits in two: the prior's precision, which is a known
+  # function of theta and goes on the tape, and the likelihood's
+  # curvature at the mode. A likelihood that is not log-concave can have a
+  # negative direction here, and the proposal then has its negative part
+  # cut off so that any theta the optimizer tries still has a positive
+  # definite Gaussian.
+  theta_a <- imp_par_list(frame[["par_template"]], par,
+                          frame[["map"]])[["theta"]]
+  prior_t <- imp_prior_scales(lay, theta_a)
+  prior_fn <- imp_prior_terms(lay, prior_t)
+  prec <- imp_prior_precision(prior_fn(theta_a), q)
+  hlik <- array(0, c(q, q, ng))
   if (q == 1L) {
     # one scalar block and nothing else: H is a diagonal, so L is one
     # reciprocal square root per level and no factorization is needed.
     # Still addressed through `idx`, so the fast path reads the same
     # index as the general one rather than re-deriving the layout.
     p1 <- idx[1L, ]
-    hd <- Matrix::diag(hess)[p1]
+    hd <- hess_b[1L, 1L, ]
     if (any(!is.finite(hd)) || any(hd <= 0)) {
       frm_stop("`importance` found a non-positive conditional variance for ",
                sum(!is.finite(hd) | hd <= 0), " level(s) of `",
@@ -536,13 +559,14 @@ imp_plan <- function(lap_obj, frame, lay, par, n_draw, seed) {
                "there. The Laplace fit is at a singular variance ",
                "component; refit it first", call. = FALSE)
     }
-    sdv <- 1 / sqrt(hd)
+    hlik[1L, 1L, ] <- pmax(hd - prec[1L, 1L], 0)
+    sdv <- 1 / sqrt(hlik[1L, 1L, ] + prec[1L, 1L])
     u[p1, ] <- uhat[p1] + sdv * z[p1, , drop = FALSE]
     logdet_l <- log(sdv)
   } else {
     for (k in seq_len(ng)) {
       ii <- idx[, k]
-      hk <- as.matrix(hess[ii, ii, drop = FALSE])
+      hk <- hess_b[, , k]
       pk <- tryCatch(chol(hk), error = function(e) NULL)
       if (is.null(pk)) {
         frm_stop("`importance` could not factor the conditional Hessian of ",
@@ -551,6 +575,9 @@ imp_plan <- function(lap_obj, frame, lay, par, n_draw, seed) {
                  "Gaussian proposal. The Laplace fit sits on a singular ",
                  "variance component; refit it first", call. = FALSE)
       }
+      hl <- imp_psd_part(hk - prec)
+      hlik[, , k] <- hl
+      pk <- chol(hl + prec)
       # L = P^-1 with P'P = H gives L L' = H^-1, upper triangular and
       # backsolved rather than inverted
       lk <- backsolve(pk, diag(q))
@@ -558,6 +585,7 @@ imp_plan <- function(lap_obj, frame, lay, par, n_draw, seed) {
       logdet_l[k] <- -sum(log(diag(pk)))
     }
   }
+  sl <- imp_anchor_slopes(lap_obj, full, lay, hlik, prec, frame, prior_fn)
   # 0.5 |z_{g,i}|^2, one value per group and draw. Row j of `idx` is
   # the j-th coefficient of every group at once, which is what makes
   # this a q-term loop over G x N matrices and not a loop over groups.
@@ -566,9 +594,273 @@ imp_plan <- function(lap_obj, frame, lay, par, n_draw, seed) {
     zsq <- zsq + z[idx[j, ], , drop = FALSE]^2
   }
   zsq <- 0.5 * zsq
-  list(u = u, zsq = zsq, logdet_l = logdet_l, n_draw = nd, par = par,
+  list(u = u, z = z, zsq = zsq, logdet_l = logdet_l, n_draw = nd, par = par,
        uhat = uhat, q = q, n_group = ng, levels = lay[["levels"]],
-       idx = idx)
+       idx = idx, hlik = hlik, prec = prec, prior_t = prior_t,
+       cross_d = sl[["cross"]],
+       hlik_rate = sl[["rate"]])
+}
+
+#' The per-group blocks of a block-diagonal sparse matrix, as a
+#' `q x q x G` array.
+#'
+#' `imp_anchor_slopes()` reads this matrix several times per coordinate, and
+#' its sparsity pattern does not change, so the map from its entries to the
+#' array is built once here and each read fills it from `@x`: the triplet
+#' conversion is the part worth not repeating.
+#'
+#' @noRd
+imp_block_filler <- function(m, lay) {
+  q <- lay[["qt"]]
+  ng <- lay[["n_group"]]
+  # where a position sits inside its group, which `idx` holds by column
+  within <- integer(lay[["nb"]])
+  within[as.vector(lay[["idx"]])] <- rep(seq_len(q), ng)
+  group <- lay[["pos_group"]]
+  # the entries of a compressed column matrix in the order @x holds them
+  i <- m@i + 1L
+  j <- rep(seq_len(ncol(m)), diff(m@p))
+  same <- group[i] == group[j]
+  dims <- c(q, q, ng)
+  lin <- (group[i[same]] - 1L) * q * q + (within[j[same]] - 1L) * q +
+    within[i[same]]
+  mirror <- (group[i[same]] - 1L) * q * q + (within[i[same]] - 1L) * q +
+    within[j[same]]
+  sym <- methods::is(m, "symmetricMatrix")
+  function(mm) {
+    out <- array(0, dims)
+    out[lin] <- mm@x[same]
+    if (sym) out[mirror] <- mm@x[same]
+    out
+  }
+}
+
+#' The symmetric part of a small matrix with its negative eigenvalues
+#' set to zero. Returned untouched when it has none, so a log-concave
+#' likelihood keeps the Laplace Hessian to the last bit.
+#'
+#' @noRd
+imp_psd_part <- function(m) {
+  m <- 0.5 * (m + t(m))
+  e <- eigen(m, symmetric = TRUE)
+  if (all(e$values >= 0)) return(m)
+  e$vectors %*% (pmax(e$values, 0) * t(e$vectors))
+}
+
+#' The prior's precision matrix of one group, from `imp_prior_terms()`.
+#'
+#' @noRd
+imp_prior_precision <- function(terms, q) {
+  out <- matrix(0, q, q)
+  for (j in seq_len(q)) out[j, j] <- -2 * terms[["diag"]][[j]]
+  for (e in terms[["off"]]) {
+    out[e[["j"]], e[["k"]]] <- out[e[["k"]], e[["j"]]] <- -e[["value"]]
+  }
+  out
+}
+
+#' How the mode's score and the likelihood's curvature move with the
+#' outer parameters, at the anchor.
+#'
+#' `cross` is `d^2 f / du dpar`, `nb x p`, the likelihood's slope for the
+#' one Newton step the proposal takes. Its covariance-parameter columns
+#' stay zero: those parameters reach the joint density through the prior
+#' alone, whose precision is on the tape at its exact value.
+#'
+#' `rate` is `G x p`, the rate at which each group's likelihood curvature
+#' scales as the parameter moves AND THE MODE MOVES WITH IT. The total
+#' derivative is the one that matters, because the proposal sits at the
+#' moved mode: a step in a log-link intercept moves the mode by minus that
+#' step, the predictor at the mode stays where it is, and the curvature
+#' there does not change, where its partial derivative equals itself
+#' (measured: taking the partial halved the tape's curvature along the
+#' intercept, 4.1 against 8.1, and left two fits of 648 rising). It is
+#' the least-squares scalar that takes the group's `Hlik` to that
+#' derivative, so that the curvature stays positive semi-definite at any
+#' theta. On a gaussian response a dispersion scales it exactly, at -2 per
+#' log sigma, and nothing else moves it.
+#'
+#' A difference of the AD gradient and the sparse Hessian, because the
+#' tape offers those cheaply and no mixed derivative at all, and because
+#' nothing here has to be exact: a proposal that does not depend on the
+#' weights leaves the estimator unbiased, so an error here costs efficiency
+#' and never validity. For the same reason a coordinate whose difference is
+#' not finite stays at zero, which leaves the proposal where it is along
+#' that coordinate, rather than a refusal. A fixed effect's difference is
+#' one-sided, since at the step below it reaches about one part in 1e4 and
+#' costs half the Hessians, which set the cost of a freeze at many outer
+#' parameters. A dispersion's stays central: a gaussian fit's fixed point
+#' is exact only as far as its rate of -2 is.
+#'
+#' @noRd
+imp_anchor_slopes <- function(lap_obj, full, lay, hlik, prec, frame, prior_fn) {
+  env <- lap_obj$env
+  rnd <- env$random
+  fix <- setdiff(seq_along(full), rnd)
+  q <- lay[["qt"]]
+  ng <- lay[["n_group"]]
+  idx <- lay[["idx"]]
+  is_theta <- names(full)[fix] == "theta"
+  is_beta <- names(full)[fix] == "beta"
+  theta_of <- function(at) unname(at[fix][is_theta])
+  # f() and spHess() record the point they read, and a later reader of
+  # last.par wants the anchor the inner solve left there
+  on.exit(env$last.par <- full, add = TRUE)
+  grad_u <- function(at) as.numeric(env$f(at, order = 1L))[rnd]
+  fill <- imp_block_filler(env$spHess(full, random = TRUE), lay)
+  prec_v <- rep(as.vector(prec), ng)
+  # the likelihood's part of the group blocks at a point, the same split
+  # imp_plan() makes at the anchor. Only theta moves the prior's part.
+  hlik_at <- function(at, theta_moved) {
+    pv <- if (theta_moved) {
+      rep(as.vector(imp_prior_precision(prior_fn(theta_of(at)), q)), ng)
+    } else {
+      prec_v
+    }
+    matrix(fill(env$spHess(at, random = TRUE)) - pv, q * q, ng)
+  }
+  # H^-1 of each group, once: every coordinate solves against it
+  hinv <- array(0, c(q, q, ng))
+  for (k in seq_len(ng)) hinv[, , k] <- chol2inv(chol(hlik[, , k] + prec))
+  hsolve <- function(d) {
+    out <- numeric(length(d))
+    for (j in seq_len(q)) {
+      for (k in seq_len(q)) {
+        out[idx[j, ]] <- out[idx[j, ]] + hinv[j, k, ] * d[idx[k, ]]
+      }
+    }
+    out
+  }
+  cross <- matrix(0, length(rnd), length(fix))
+  rate <- matrix(0, ng, length(fix))
+  hl <- matrix(hlik, q * q, ng)
+  den <- colSums(hl^2)
+  steps <- imp_outer_steps(frame, full[fix])
+  g0 <- if (any(is_beta)) grad_u(full)
+  h0 <- if (any(is_beta)) hlik_at(full, FALSE)
+  for (j in seq_along(fix)) {
+    h <- steps[[j]]
+    up <- full
+    up[[fix[[j]]]] <- up[[fix[[j]]]] + h
+    if (is_beta[[j]]) {
+      d <- (grad_u(up) - g0) / h
+      if (!all(is.finite(d))) next
+      cross[, j] <- d
+      up[rnd] <- up[rnd] - hsolve(d) * h
+      r <- colSums((hlik_at(up, FALSE) - h0) * hl) / (h * den)
+    } else {
+      dn <- full
+      dn[[fix[[j]]]] <- dn[[fix[[j]]]] - h
+      d <- (grad_u(up) - grad_u(dn)) / (2 * h)
+      if (!all(is.finite(d))) next
+      if (!is_theta[[j]]) cross[, j] <- d
+      du <- -hsolve(d) * h
+      up[rnd] <- up[rnd] + du
+      dn[rnd] <- dn[rnd] - du
+      r <- colSums((hlik_at(up, is_theta[[j]]) -
+                      hlik_at(dn, is_theta[[j]])) * hl) / (2 * h * den)
+    }
+    r[!is.finite(r)] <- 0
+    rate[, j] <- r
+  }
+  list(cross = cross, rate = rate)
+}
+
+#' Each outer parameter's step for those differences, in units of the
+#' predictor it moves.
+#'
+#' A coefficient of column `x` moves the predictor by `h |x|`, so the step
+#' that keeps the predictor's move at `imp_cross_step` is that over the
+#' largest `|x|`, whatever the column's center and scale. On `year =
+#' round(2000 + 5 z)` a step of `1e-4` moves the predictor by 0.2, the slope's
+#' cross derivative comes out wrong, and with it the proposal off the anchor:
+#' slope standard errors up to 1.47 times the centered fit's, or capped
+#' rounds, or a refusal (measured over six data seeds).
+#'
+#' A predictor in a response's units moves in those units. Without that, a
+#' Student fit on `y x 1e-6` steps by 100 of its own scale, its slopes come out
+#' wrong, and it stops on 2 of 4 data seeds.
+#'
+#' No step reads a parameter's own size. A parameter with no column moves
+#' the predictor or a density's scale one for one or not at all, so its size
+#' says nothing about how far it may step. An ordinal's first threshold takes
+#' a column's center: at about 1600, a step of its own size moved the predictor
+#' by 0.16, and the slope's SE read 4.56 times the centered fit's, silently.
+#'
+#' @noRd
+imp_outer_steps <- function(frame, at) {
+  h <- rep(imp_cross_step, length(at))
+  pos <- imp_outer_pos(frame[["par_template"]], at, frame[["map"]])
+  units <- predictor_units(frame)
+  scale <- lapply(frame[["par_template"]], function(v) rep(NA_real_, length(v)))
+  for (key in names(frame[["linpreds"]])) {
+    lp <- frame[["linpreds"]][[key]]
+    cp <- lp[["par"]]
+    X <- lp[["X"]]
+    if (is.null(scale[[cp]]) || is.null(X) || !ncol(X)) next
+    if (length(lp[["idx"]]) != ncol(X)) next
+    biggest <- imp_col_max(X)
+    biggest[!is.finite(biggest) | biggest <= 0] <- 1
+    u <- if (key %in% names(units)) units[[key]] else 1
+    scale[[cp]][lp[["idx"]]] <- pmin(scale[[cp]][lp[["idx"]]], u / biggest,
+                                     na.rm = TRUE)
+  }
+  pn <- names(at)
+  for (cp in names(pos)) {
+    s <- scale[[cp]][pos[[cp]]]
+    known <- !is.na(s)
+    h[pn == cp][known] <- imp_cross_step * s[known]
+  }
+  h
+}
+
+#' The largest absolute entry of each column of a design, dense or sparse.
+#'
+#' @noRd
+imp_col_max <- function(X) {
+  if (!methods::is(X, "sparseMatrix")) {
+    return(apply(abs(as.matrix(X)), 2L, max))
+  }
+  tx <- methods::as(X, "TsparseMatrix")
+  out <- numeric(ncol(X))
+  o <- order(abs(tx@x))
+  # the last assignment to a column is its largest entry
+  out[tx@j[o] + 1L] <- abs(tx@x[o])
+  out
+}
+
+#' How far those differences move the predictor. Well below the scale a
+#' density's curvature changes on and well above the rounding of its
+#' gradient.
+#'
+#' @noRd
+imp_cross_step <- 1e-4
+
+#' Where each outer parameter sits in its template component. A `map`
+#' fixes or shares entries, so a component's outer values are not its
+#' entries one for one: the position is the first entry of each level
+#' the map keeps, in level order, which is the order the tape holds them.
+#'
+#' @noRd
+imp_outer_pos <- function(template, par, map = NULL) {
+  pn <- names(par)
+  out <- list()
+  for (cp in unique(pn)) {
+    mp <- map[[cp]]
+    out[[cp]] <- if (is.null(mp)) {
+      seq_along(template[[cp]])
+    } else {
+      fm <- factor(mp)
+      match(seq_len(nlevels(fm)), as.integer(fm))
+    }
+    if (length(out[[cp]]) != sum(pn == cp)) {
+      frm_stop("`importance` read ", sum(pn == cp), " outer values for `",
+               cp, "`, whose template and map keep ", length(out[[cp]]),
+               ". The two have to agree for the proposal to follow the ",
+               "parameters", call. = FALSE)
+    }
+  }
+  out
 }
 
 #' Repeat an observation-length quantity once per draw. Anything that
@@ -609,20 +901,62 @@ imp_expand <- function(v, ridx, n) {
 #' theta.
 #'
 #' @noRd
-imp_prior_terms <- function(lay, u_slices) {
+imp_prior_terms <- function(lay, scales) {
   per <- lapply(seq_along(lay[["blocks"]]), function(m) {
-    imp_block_prior(lay[["blocks"]][[m]],
-                    u_slices[lay[["offset"]][[m]] +
-                               seq_len(lay[["q"]][[m]])])
+    imp_block_prior(lay[["blocks"]][[m]], scales[[m]])
   })
   tix <- lapply(lay[["blocks"]], function(bk) bk[["theta_idx"]])
+  q <- lay[["q"]]
+  offset <- lay[["offset"]]
   function(theta) {
-    out <- per[[1L]](theta[tix[[1L]]])
-    for (m in seq_along(per)[-1L]) {
-      out <- out + per[[m]](theta[tix[[m]]])
+    c0 <- 0
+    dg <- list()
+    off <- list()
+    for (m in seq_along(per)) {
+      tm <- per[[m]](theta[tix[[m]]])
+      c0 <- c0 + tm[["c0"]]
+      dg <- c(dg, tm[["diag"]])
+      for (e in tm[["off"]]) {
+        e[["j"]] <- e[["j"]] + offset[[m]]
+        e[["k"]] <- e[["k"]] + offset[[m]]
+        off[[length(off) + 1L]] <- e
+      }
     }
-    out
+    list(c0 = c0, diag = dg, off = off)
   }
+}
+
+#' Where to read each coefficient's precision: per block, a `t` per
+#' coefficient at which the block's density at `t e_j` lies about one nat
+#' below its value at zero, at the anchor's theta.
+#'
+#' The precision is a difference from the normalizer, and at `t = 1` that
+#' difference rounds once `1 / sd^2` nears the normalizer's `eps`: relative
+#' error 1.9e-3 at sd 1e6, 0.29 at 1e7, and it reads 0 at 1e8. A fit on
+#' `y x 1e6` then stopped with a request to report the model. The block is
+#' Gaussian in its coefficients, so one density at any `t` reads the same
+#' number. A search on doubles, off the tape, once per anchor.
+#'
+#' @noRd
+imp_prior_scales <- function(lay, theta) {
+  lapply(lay[["blocks"]], function(bk) {
+    bfn <- cs_entry(bk[["covstruct"]])$nll
+    q <- bk[["dim"]]
+    bk1 <- bk
+    bk1[["n_levels"]] <- 1L
+    th <- theta[bk[["theta_idx"]]]
+    zero <- numeric(q)
+    c0 <- bfn(zero, th, bk1)
+    vapply(seq_len(q), function(j) {
+      t0 <- 1
+      for (i in seq_len(20L)) {
+        v <- c0 - bfn(replace(zero, j, t0), th, bk1)
+        if (!is.finite(v) || v > 1e-2) break
+        t0 <- t0 * 1e3
+      }
+      if (is.finite(v) && v > 0) t0 / sqrt(v) else 1
+    }, 0)
+  })
 }
 
 #' One block's contribution to that sum, on the coefficient slices it
@@ -636,46 +970,46 @@ imp_prior_terms <- function(lay, u_slices) {
 #' fails far from its cause.
 #'
 #' @noRd
-imp_block_prior <- function(bk, u_slices) {
+imp_block_prior <- function(bk, t0) {
   bfn <- cs_entry(bk[["covstruct"]])$nll
   q <- bk[["dim"]]
   bk1 <- bk
   bk1[["n_levels"]] <- 1L
   zero <- numeric(q)
-  unit <- lapply(seq_len(q), function(j) replace(zero, j, 1))
+  unit <- lapply(seq_len(q), function(j) replace(zero, j, t0[[j]]))
   pair <- list()
   if (q > 1L) {
     for (j in seq_len(q - 1L)) {
       for (k in (j + 1L):q) {
-        pair[[paste0(j, ".", k)]] <- replace(zero, c(j, k), 1)
+        pair[[paste0(j, ".", k)]] <- replace(zero, c(j, k), t0[c(j, k)])
       }
     }
   }
   function(theta) {
     c0 <- bfn(zero, theta, bk1)
-    # dg[[j]] = -P[j, j] / 2
-    dg <- lapply(unit, function(e) bfn(e, theta, bk1) - c0)
-    quad <- dg[[1L]] * (u_slices[[1L]] * u_slices[[1L]])
+    # at[[j]] = -P[j, j] t_j^2 / 2
+    at <- lapply(unit, function(e) bfn(e, theta, bk1) - c0)
+    dg <- lapply(seq_len(q), function(j) at[[j]] / t0[[j]]^2)
+    off <- list()
     if (q > 1L) {
-      for (j in 2:q) {
-        quad <- quad + dg[[j]] * (u_slices[[j]] * u_slices[[j]])
-      }
       for (j in seq_len(q - 1L)) {
         for (k in (j + 1L):q) {
-          # -P[j, k], from the value at e_j + e_k less both diagonals
-          cjk <- bfn(pair[[paste0(j, ".", k)]], theta, bk1) - c0 -
-            dg[[j]] - dg[[k]]
-          quad <- quad + cjk * (u_slices[[j]] * u_slices[[k]])
+          # -P[j, k] t_j t_k, from the value at both less both diagonals
+          off[[length(off) + 1L]] <- list(
+            j = j, k = k,
+            value = (bfn(pair[[paste0(j, ".", k)]], theta, bk1) - c0 -
+                       at[[j]] - at[[k]]) / (t0[[j]] * t0[[k]]))
         }
       }
     }
-    c0 + quad
+    list(c0 = c0, diag = dg, off = off)
   }
 }
 
 #' The theta-only negative log-likelihood closure: `-sum_g log m_g`,
-#' with the draws, their random-effect contribution to every linear
-#' predictor, and the per-group indicator all baked in as constants.
+#' with the standard normals, the design values that carry them into
+#' every linear predictor, and the per-group indicator all baked in as
+#' constants.
 #'
 #' Returns the closure and, beside it, an `amat` that hands back the
 #' G x N matrix of log importance weights at a numeric parameter list.
@@ -684,7 +1018,8 @@ imp_block_prior <- function(bk, u_slices) {
 #' optimized and not a second computation of it.
 #'
 #' @noRd
-build_importance_objective <- function(frame, lay, gmap, plan) {
+build_importance_objective <- function(frame, lay, gmap, plan,
+                                       neg_log_prior = NULL) {
   lps <- frame[["linpreds"]]
   spec <- frame[["spec"]]
   rn <- names(spec$responses)[[1L]]
@@ -697,6 +1032,13 @@ build_importance_objective <- function(frame, lay, gmap, plan) {
   yraw <- imp_expand(frame[["y"]][[rn]], ridx, n)
   av <- imp_expand(frame[["aterm_values"]][[rn]], ridx, n)
   wts <- av[["weights"]] %||% 1
+  # the rows mi_ml_frame() took out, as the objective's weight has them
+  gone <- frame[["mi_map"]][[rn]][["unread"]]
+  if (length(gone)) {
+    keep <- rep(1, n)
+    keep[gone] <- 0
+    wts <- wts * imp_expand(list(k = keep), ridx, n)$k
+  }
   extra_names <- frame[["extra_names"]] %||% character(0)
   smat <- gmap[["S"]]
   # A structured family's own factorization, resolved HERE, off the
@@ -722,31 +1064,140 @@ build_importance_objective <- function(frame, lay, gmap, plan) {
                                  dims = c(ng, length(to)))
   }
 
-  # The draws are constants, so Z U is a constant too: the whole
-  # n x N random-effect contribution to each linear predictor is one
-  # sparse product, formed here, once, off the tape.
-  zu <- lapply(lps, function(lp) {
+  # The draws reach each linear predictor through Z, one coefficient at
+  # a time. A row belongs to one group (imp_group_map() refuses a row that
+  # does not), so coefficient j of the row's group has one design value on
+  # that row, and the n x N predictor reads the G x N draws of j through
+  # one index. A coefficient that is 1 on every row needs no product.
+  rl <- gmap[["row_level"]]
+  rlidx <- rep(rl, nd) + rep(ng * (seq_len(nd) - 1L), each = n)
+  z_design <- lapply(lps, function(lp) {
     if (is.null(lp[["Z"]])) return(NULL)
-    as.vector(as.matrix(lp[["Z"]] %*% plan[["u"]]))
+    lapply(seq_len(q), function(j) {
+      zv <- as.vector(lp[["Z"]][, plan[["idx"]][j, ], drop = FALSE] %*%
+                        rep(1, ng))
+      if (all(zv == 0)) NULL else if (all(zv == 1)) 1 else zv[ridx]
+    })
   })
-  # one G x N slice per within-GROUP coefficient, gathered by row j of
-  # the scattered index rather than by a stride, because a group's
-  # coefficients are only contiguous when there is one block. The
-  # quadratic form multiplies pairs of them, and the products are
-  # formed inside the closure so only q slices are held on the R side
-  u_slices <- lapply(seq_len(q), function(j) {
-    plan[["u"]][plan[["idx"]][j, ], , drop = FALSE]
+  # one G x N slice of standard normals per within-GROUP coefficient,
+  # gathered by row j of the scattered index rather than by a stride,
+  # because a group's coefficients are only contiguous when there is one
+  # block
+  z_slices <- lapply(seq_len(q), function(j) {
+    plan[["z"]][plan[["idx"]][j, ], , drop = FALSE]
   })
-  prior_fn <- imp_prior_terms(lay, u_slices)
+  uhat_g <- lapply(seq_len(q), function(j) {
+    plan[["uhat"]][plan[["idx"]][j, ]]
+  })
+  hlik <- plan[["hlik"]]
+  prec_a <- plan[["prec"]]
+  prior_fn <- imp_prior_terms(lay, plan[["prior_t"]])
   zsq <- plan[["zsq"]]
   # A per-group constant subtracted before the exponential, so that the
   # weights sit near 1 at the anchor. It cancels exactly from the
   # result, and being a CONSTANT it puts no branch on parameter values,
   # which a running maximum would.
   offs <- matrix(0, ng, nd)
-  const <- sum(q / 2 * log(2 * pi) + plan[["logdet_l"]])
+  # Outer parameters that reach the likelihood, against the anchor.
+  tmpl <- frame[["par_template"]]
+  opos <- imp_outer_pos(tmpl, plan[["par"]], frame[["map"]])
+  anchor <- unname(plan[["par"]])
+  cross_d <- plan[["cross_d"]]
+  hlik_rate <- plan[["hlik_rate"]]
+  gidx <- rep.int(seq_len(ng), nd)
 
-  amat <- function(pars) {
+  # THE PROPOSAL FOLLOWS THE PARAMETERS. With the draws frozen in place, a
+  # step d in an intercept moves every group's integrand by d under a
+  # proposal that stays put. The curvature the optimizer then sees is the
+  # group's conditional information times (1 - mean z^2), a sample
+  # statistic far larger than the marginal curvature it has to resolve
+  # (measured: exact 34, and 5 to 70 over seeds at 200 draws, negative at
+  # one), and the re-anchored iteration diverges wherever it lands too
+  # small, however good the weights are at the anchor. So the optimizer's
+  # theta gets its own Gaussian: one Newton step from the anchor's mode
+  # toward theta's, with the prior's precision exact and the likelihood's
+  # curvature and slope carried to first order. That removes the (z^2 - 1)
+  # terms from the gradient at the anchor: on a gaussian response the
+  # weights stay equal to first order for every draw, and the fixed point
+  # is the exact optimum at any draw count. At a given anchor the proposal
+  # is a function of theta alone, so the estimate is unbiased at each
+  # theta. From round 2 the anchor is the optimum over the same standard
+  # normals, which measurably does not move the error. They stay fixed, so
+  # the objective stays one smooth function.
+  proposal <- function(pars) {
+    "c" <- RTMB::ADoverload("c")
+    tm <- prior_fn(pars[["theta"]])
+    th <- pars[[names(opos)[[1L]]]][opos[[1L]]]
+    for (cp in names(opos)[-1L]) th <- c(th, pars[[cp]][opos[[cp]]])
+    dth <- th - anchor
+    hscale <- exp(as.vector(hlik_rate %*% dth))
+    prec <- function(j, k) {
+      if (j == k) return(-2 * tm[["diag"]][[j]])
+      for (e in tm[["off"]]) {
+        if (e[["j"]] == j && e[["k"]] == k) return(-e[["value"]])
+      }
+      NULL
+    }
+    # the upper Cholesky factor R of H(theta), one G-vector per entry, and
+    # its inverse: a q(q+1)/2 loop, never a loop over groups
+    rr <- rinv <- vector("list", q * q)
+    at <- function(j, k) (k - 1L) * q + j
+    for (j in seq_len(q)) {
+      for (k in j:q) {
+        pjk <- prec(j, k)
+        s <- hlik[j, k, ] * hscale
+        if (!is.null(pjk)) s <- s + pjk
+        for (l in seq_len(j - 1L)) s <- s - rr[[at(l, j)]] * rr[[at(l, k)]]
+        rr[[at(j, k)]] <- if (k == j) sqrt(s) else s / rr[[at(j, j)]]
+      }
+    }
+    for (j in rev(seq_len(q))) {
+      rinv[[at(j, j)]] <- 1 / rr[[at(j, j)]]
+      for (k in seq_len(q)[seq_len(q) > j]) {
+        s <- rr[[at(j, j + 1L)]] * rinv[[at(j + 1L, k)]]
+        for (l in seq_len(q)[seq_len(q) > j + 1L & seq_len(q) <= k]) {
+          s <- s + rr[[at(j, l)]] * rinv[[at(l, k)]]
+        }
+        rinv[[at(j, k)]] <- -s * rinv[[at(j, j)]]
+      }
+    }
+    logdet <- -log(rr[[at(1L, 1L)]])
+    for (j in seq_len(q)[-1L]) logdet <- logdet - log(rr[[at(j, j)]])
+    # the score of the joint density at the anchor's mode under theta: the
+    # prior's moved precision on that mode, and the likelihood's slope
+    lik <- as.vector(cross_d %*% dth)
+    rhs <- lapply(seq_len(q), function(j) {
+      s <- lik[plan[["idx"]][j, ]]
+      for (k in seq_len(q)) {
+        pjk <- prec(min(j, k), max(j, k))
+        if (is.null(pjk)) next
+        s <- s + (pjk - prec_a[j, k]) * uhat_g[[k]]
+      }
+      s
+    })
+    # H^-1 rhs through R^-1 R^-T, and then the draws. Only upper entries
+    # exist, so each sum runs over them alone.
+    half <- lapply(seq_len(q), function(k) {
+      s <- rinv[[at(1L, k)]] * rhs[[1L]]
+      for (j in seq_len(k)[-1L]) s <- s + rinv[[at(j, k)]] * rhs[[j]]
+      s
+    })
+    u <- lapply(seq_len(q), function(j) {
+      s <- rinv[[at(j, j)]] * half[[j]]
+      for (k in seq_len(q)[seq_len(q) > j]) {
+        s <- s + rinv[[at(j, k)]] * half[[k]]
+      }
+      center <- uhat_g[[j]] - s
+      draw <- center[gidx] + rinv[[at(j, j)]][gidx] * z_slices[[j]]
+      for (k in seq_len(q)[seq_len(q) > j]) {
+        draw <- draw + rinv[[at(j, k)]][gidx] * z_slices[[k]]
+      }
+      draw
+    })
+    list(u = u, logdet = logdet, prior = tm)
+  }
+
+  weights <- function(pars) {
     "c" <- RTMB::ADoverload("c")
     "[<-" <- RTMB::ADoverload("[<-")
     extra <- NULL
@@ -754,13 +1205,19 @@ build_importance_objective <- function(frame, lay, gmap, plan) {
       extra <- lapply(stats::setNames(extra_names, extra_names),
                       function(nm) pars[[nm]])
     }
+    pr <- proposal(pars)
+    u <- pr[["u"]]
     dpv <- list()
     for (k in seq_along(lps)) {
       lp <- lps[[k]]
       # the fixed part is the same for every draw, so it is built once
       # at length n and expanded; only Z u varies from draw to draw
       eta <- lp_eta_fixed(lp, pars, n, list(), frame[["y"]])[ridx]
-      if (!is.null(zu[[k]])) eta <- eta + zu[[k]]
+      for (j in seq_along(z_design[[k]])) {
+        zv <- z_design[[k]][[j]]
+        if (is.null(zv)) next
+        eta <- eta + zv * u[[j]][rlidx]
+      }
       dpv[[lp[["dpar"]]]] <- lp[["link"]]$linkinv(eta)
       dpv[[paste0(".eta_", lp[["dpar"]])]] <- eta
     }
@@ -782,16 +1239,30 @@ build_importance_objective <- function(frame, lay, gmap, plan) {
     # dimensions through exp(). The test is on CLASS, so it resolves
     # while the tape is being built and leaves no branch on it.
     if (!inherits(agg, "advector")) agg <- as.matrix(agg)
-    agg + prior_fn(pars[["theta"]]) + zsq
+    tm <- pr[["prior"]]
+    logp <- tm[["c0"]] + tm[["diag"]][[1L]] * (u[[1L]] * u[[1L]])
+    for (j in seq_len(q)[-1L]) {
+      logp <- logp + tm[["diag"]][[j]] * (u[[j]] * u[[j]])
+    }
+    for (e in tm[["off"]]) {
+      logp <- logp + e[["value"]] * (u[[e[["j"]]]] * u[[e[["k"]]]])
+    }
+    list(a = agg + logp + zsq, logdet = pr[["logdet"]])
   }
 
-  list(amat = amat,
+  list(amat = function(pars) weights(pars)[["a"]],
        fn = function(pars) {
-         a <- amat(pars)
+         w <- weights(pars)
          # RTMB::rowSums, not the base one: base's drops the advector
          # class and the tape then ends in a bare complex vector
-         -sum(offs[, 1L] + log(RTMB::rowSums(exp(a - offs)) / nd)) - const
+         # A prior reads the outer parameters only, so it factors out of
+         # every group's integral.
+         val <- -sum(offs[, 1L] +
+                       log(RTMB::rowSums(exp(w[["a"]] - offs)) / nd)) -
+           sum(q / 2 * log(2 * pi) + w[["logdet"]])
+         if (is.null(neg_log_prior)) val else val + neg_log_prior(pars)
        },
+       neg_log_prior = neg_log_prior,
        set_offset = function(value) {
          offs <<- matrix(value, ng, nd)
          invisible(NULL)
@@ -850,8 +1321,8 @@ imp_ess <- function(a, n_draw) {
 #' the draw, or that fails to cancel across groups, is caught.
 #'
 #' @noRd
-imp_verify <- function(io, nll, plan, template, par) {
-  pars <- imp_par_list(template, par)
+imp_verify <- function(io, nll, plan, template, par, map = NULL) {
+  pars <- imp_par_list(template, par, map)
   a <- as.matrix(io$amat(pars))
   nd <- plan[["n_draw"]]
   ng <- plan[["n_group"]]
@@ -864,9 +1335,9 @@ imp_verify <- function(io, nll, plan, template, par) {
              "this model, and fit it with importance = 0 meanwhile",
              call. = FALSE)
   }
-  agrees <- function(ours, theirs) {
+  agrees <- function(ours, theirs, size = 0) {
     is.finite(ours) && is.finite(theirs) &&
-      abs(ours - theirs) <= 1e-6 * max(1, abs(theirs))
+      abs(ours - theirs) <= 1e-6 * max(1, abs(theirs), size)
   }
   # the total, at each of two columns: catches an offset shared by
   # every group, which the per-group differences below cannot see
@@ -874,6 +1345,7 @@ imp_verify <- function(io, nll, plan, template, par) {
     joint <- pars
     joint[["b"]] <- plan[["u"]][, j]
     ours <- sum(a[, j] - plan[["zsq"]][, j])
+    if (!is.null(io$neg_log_prior)) ours <- ours - io$neg_log_prior(pars)
     theirs <- -nll(joint)
     if (!agrees(ours, theirs)) refuse(paste("draw", j), ours, theirs)
   }
@@ -897,7 +1369,9 @@ imp_verify <- function(io, nll, plan, template, par) {
     idx <- plan[["idx"]][, g]
     swapped[["b"]][idx] <- plan[["u"]][idx, 1L]
     theirs <- nll_base - nll(swapped)
-    if (!agrees(mine[g], theirs)) {
+    # the difference of two sums rounds at the sums' size, not its own:
+    # measured 5e-6 on an uncentered slope, at a block condition of 4e12
+    if (!agrees(mine[g], theirs, abs(nll_base))) {
       refuse(paste0("group '", plan[["levels"]][g], "'"), mine[g], theirs)
     }
   }
@@ -917,12 +1391,21 @@ imp_template <- function(template, random) {
 #' (verification and diagnostics) that call the closure directly.
 #'
 #' @noRd
-imp_par_list <- function(template, par) {
+imp_par_list <- function(template, par, map = NULL) {
   out <- template
   pn <- names(par)
   for (cp in unique(pn)) {
     if (is.null(out[[cp]])) next
-    out[[cp]][] <- unname(par[pn == cp])
+    mp <- map[[cp]]
+    if (is.null(mp)) {
+      out[[cp]][] <- unname(par[pn == cp])
+    } else {
+      # the entries a map fixes keep their template value; recycling the
+      # free ones over them would evaluate another model
+      fm <- as.integer(factor(mp))
+      keep <- !is.na(fm)
+      out[[cp]][keep] <- unname(par[pn == cp])[fm[keep]]
+    }
   }
   out
 }
@@ -931,10 +1414,12 @@ imp_par_list <- function(template, par) {
 #' Laplace optimum, optimize theta, refreeze at the new theta, optimize
 #' again.
 #'
-#' Refreezing is what keeps the weights from degenerating. The estimate
-#' is unbiased at every theta whatever the proposal, so a round that
-#' moves far is not wrong, only noisy; refreezing buys the accuracy
-#' back.
+#' Between refreezes the proposal follows the optimizer's theta to first
+#' order (`build_importance_objective()`), which is what makes a round's
+#' optimum close to the exact one. Refreezing resets the point that first
+#' order is taken around, and the estimate is unbiased at every theta
+#' whatever the proposal, so a round that moves far is not wrong, only
+#' noisy.
 #'
 #' The loop stops at a fixed point: a theta at which the objective
 #' anchored AT theta is stationary. The freshly anchored gradient says
@@ -948,6 +1433,20 @@ importance_fit <- function(nll, template, random, map, lap_obj, control,
                            bounds, par_units, frame, n_draw, vb) {
   if (vb) t0 <- vb_now()
   lap_opt <- optimize_obj(lap_obj, control, bounds, par_units)
+  # The rounds start where the Laplace route ends. A false collapse of a
+  # variance component is a stop the Laplace route leaves through
+  # sd_up_escape(), and nothing later leaves it: at log sd -130 every weight
+  # is equal. A column's center makes that stop: on an uncentered ordinal, 15
+  # of 40 data sets stayed there, 0.15 to 3.33 nats below the Laplace fit.
+  lap_esc <- sd_up_escape(
+    structure(
+      list(spec = frame[["spec"]], frame = frame, obj = lap_obj, opt = lap_opt,
+           REML = FALSE, quadrature = FALSE, control = control,
+           estimates = solved_par_list(lap_obj, lap_opt$par), prior = NULL,
+           cache = new.env(parent = emptyenv())),
+      class = "frmtmb_fit"),
+    control, bounds, par_units)
+  if (!is.null(lap_esc)) lap_opt <- lap_esc
   if (vb) vb_stage("importance warm start", t0, vb_opt_detail(lap_opt))
   lay <- imp_layout(frame[["re_blocks"]])
   gmap <- imp_group_map(frame, lay)
@@ -957,18 +1456,19 @@ importance_fit <- function(nll, template, random, map, lap_obj, control,
   seed <- control$importance_seed %||% 1L
   rounds <- max(1L, as.integer(control$importance_rounds %||% 5L))
 
-  # One freeze: build the proposal at `at`, centre the weights on it,
+  # One freeze: build the proposal at `at`, center the weights on it,
   # and tape. The offset is the anchor's own row maxima, so the
   # exponentials start at 1 and stay in range as the optimizer walks.
   # It cancels from the value exactly, and being a constant it puts no
   # branch on parameter values the way a running maximum would.
-  freeze <- function(at, verify) {
+  freeze <- function(at, verify, n_draw) {
     if (vb) tf <- vb_now()
     plan <- imp_plan(lap_obj, frame, lay, at, n_draw, seed)
-    io <- build_importance_objective(frame, lay, gmap, plan)
-    amat <- as.matrix(io$amat(imp_par_list(template, at)))
+    io <- build_importance_objective(frame, lay, gmap, plan,
+                                     attr(nll, "neg_log_prior"))
+    amat <- as.matrix(io$amat(imp_par_list(template, at, map)))
     io$set_offset(apply(amat, 1L, max))
-    if (verify) imp_verify(io, nll, plan, template, at)
+    if (verify) imp_verify(io, nll, plan, template, at, map)
     obj <- RTMB::MakeADFun(io$fn, otpl, map = omap, silent = TRUE)
     if (vb) {
       vb_stage("importance tape", tf,
@@ -978,95 +1478,98 @@ importance_fit <- function(nll, template, random, map, lap_obj, control,
     list(plan = plan, io = io, obj = obj, amat = amat)
   }
 
-  par <- lap_opt$par
-  # The first proposal is the Laplace Gaussian at the Laplace optimum,
-  # which is where it is closest to the conditional it approximates.
-  fz <- freeze(par, TRUE)
-  # The corrected objective AT the Laplace estimates. Every later round
-  # is judged against it, because the whole point of the correction is
-  # to do better than the fit it corrects.
-  start_ess <- imp_ess(fz$amat, fz$plan[["n_draw"]])
-  start_value <- fz$obj$fn(par)
-  opt <- NULL
-  moves <- numeric(0)
-  grads <- numeric(0)
-  for (k in seq_len(rounds)) {
-    if (vb) t0 <- vb_now()
-    # start_par, not the tape's own par: MakeADFun sets that from the
-    # START TEMPLATE, so without it every round would re-optimize from
-    # a cold start and the Laplace warm start would be used for the
-    # anchor and thrown away for the optimizer. On a ridge that also
-    # lets consecutive rounds land in different basins, which is the
-    # very failure the divergence guard exists to catch.
-    opt <- optimize_obj(fz$obj, control, bounds, par_units, verbose = vb,
-                        start_par = par)
-    moved <- max(abs((opt$par - par) * (par_units %||% 1)))
-    moves <- c(moves, moved)
-    par <- opt$par
-    # Every round ends by refreezing AT its own estimate. That serves
-    # twice: it is the next round's proposal, and if the loop stops
-    # here it is the tape the fit reports from. Reporting from the
-    # anchor is not a detail. The optimizer minimizes the exact
-    # objective plus a Monte Carlo error that is EXACTLY zero at the
-    # anchor and grows away from it (measured: zero variance over seeds
-    # at the anchor for a gaussian response, at every draw count), so
-    # the value it stops at is optimistic by construction and by an
-    # amount no draw count removes. At the anchor the weights are as
-    # near equal as this proposal can make them, which is also what
-    # makes the effective sample sizes below describe the estimate that
-    # is actually reported.
-    fz <- freeze(par, FALSE)
-    # The fixed point this loop is looking for is a theta at which the
-    # objective anchored AT theta is stationary, so the gradient of the
-    # fresh tape is the criterion that says so directly; the
-    # parameter move is the cruder one that catches a round which
-    # simply did not go anywhere. Either ends the loop.
-    grad <- try(max(abs(fz$obj$gr(par) * (par_units %||% 1))),
-                silent = TRUE)
-    if (inherits(grad, "try-error")) grad <- NA_real_
-    grads <- c(grads, grad)
-    if (vb) {
-      # the round's own effective sample sizes, at its own anchor: a
-      # proposal that has stopped covering the integrand shows up here,
-      # round by round, rather than only in the closing line
-      re <- imp_ess(fz$amat, fz$plan[["n_draw"]])
-      vb_stage("importance round", t0,
-               paste0(vb_opt_detail(opt), ", moved ",
-                      format(moved, digits = 3), ", re-anchored grad ",
-                      format(grad, digits = 3), ", ESS min ",
-                      format(min(re$ess), digits = 3), " median ",
-                      format(stats::median(re$ess), digits = 3)))
+  # one complete iteration at one draw count, so that a refusal can
+  # measure the count that works by running the same thing
+  iterate <- function(n_draw) {
+    par <- lap_opt$par
+    # The first proposal is the Laplace Gaussian at the Laplace optimum,
+    # which is where it is closest to the conditional it approximates.
+    fz <- freeze(par, TRUE, n_draw)
+    # The corrected objective AT the Laplace estimates. Every later round
+    # is judged against it, because the whole point of the correction is
+    # to do better than the fit it corrects.
+    start_ess <- imp_ess(fz$amat, fz$plan[["n_draw"]])
+    start_value <- fz$obj$fn(par)
+    opt <- NULL
+    moves <- numeric(0)
+    grads <- numeric(0)
+    for (k in seq_len(rounds)) {
+      if (vb) t0 <- vb_now()
+      # start_par, not the tape's own par: MakeADFun sets that from the
+      # START TEMPLATE, so without it every round would re-optimize from
+      # a cold start and the Laplace warm start would be used for the
+      # anchor and thrown away for the optimizer.
+      opt <- optimize_obj(fz$obj, control, bounds, par_units, verbose = vb,
+                          start_par = par)
+      moved <- max(abs((opt$par - par) * (par_units %||% 1)))
+      moves <- c(moves, moved)
+      par <- opt$par
+      # Every round ends by refreezing AT its own estimate. That serves
+      # twice: it is the next round's proposal, and if the loop stops
+      # here it is the tape the fit reports from. Reporting from the
+      # anchor is not a detail. A round's optimum is the minimum of the
+      # exact objective plus a Monte Carlo error, so the value it stops
+      # at is optimistic, and a fresh proposal at that point gives the
+      # weights the fit can stand behind. It is also what makes the
+      # effective sample sizes below describe the estimate that is
+      # actually reported.
+      fz <- freeze(par, FALSE, n_draw)
+      # The fixed point this loop is looking for is a theta at which the
+      # objective anchored AT theta is stationary, so the gradient of the
+      # fresh tape is the criterion that says so directly; the
+      # parameter move is the cruder one that catches a round which
+      # simply did not go anywhere. Either ends the loop.
+      grad <- try(max(abs(fz$obj$gr(par) * (par_units %||% 1))),
+                  silent = TRUE)
+      if (inherits(grad, "try-error")) grad <- NA_real_
+      grads <- c(grads, grad)
+      if (vb) {
+        # the round's own effective sample sizes, at its own anchor: a
+        # proposal that has stopped covering the integrand shows up here,
+        # round by round, rather than only in the closing line
+        re <- imp_ess(fz$amat, fz$plan[["n_draw"]])
+        vb_stage("importance round", t0,
+                 paste0(vb_opt_detail(opt), ", moved ",
+                        format(moved, digits = 3), ", re-anchored grad ",
+                        format(grad, digits = 3), ", ESS min ",
+                        format(min(re$ess), digits = 3), " median ",
+                        format(stats::median(re$ess), digits = 3)))
+      }
+      if (moved < imp_move_tol) break
+      if (is.finite(grad) && grad < control$grad_tol) break
     }
-    if (moved < imp_move_tol) break
-    if (is.finite(grad) && grad < control$grad_tol) break
+    opt$objective <- fz$obj$fn(par)
+    ess <- imp_ess(fz$amat, fz$plan[["n_draw"]])
+    # The iteration must not have made the fit WORSE than the correction
+    # it started from. Both values estimate the same exact marginal
+    # likelihood, each at its own theta and each from a proposal anchored
+    # there, so they compare directly.
+    worse <- opt$objective - start_value
+    last_grad <- grads[length(grads)]
+    capped <- length(moves) >= rounds &&
+      moves[length(moves)] >= imp_move_tol &&
+      !(is.finite(last_grad) && last_grad < control$grad_tol)
+    rose <- is.finite(worse) &&
+      worse > imp_worse_tol(ess$mcse, start_ess$mcse)
+    list(fz = fz, opt = opt, par = par, moves = moves, grads = grads,
+         ess = ess, start_value = start_value, start_ess = start_ess,
+         worse = worse, tol = imp_worse_tol(ess$mcse, start_ess$mcse),
+         rose = rose, capped = capped, settled = !rose && !capped)
   }
 
-  opt$objective <- fz$obj$fn(par)
-  ess <- imp_ess(fz$amat, fz$plan[["n_draw"]])
-  grad <- grads[length(grads)]
-  # The iteration must not have made the fit WORSE than the correction
-  # it started from. Both values estimate the same exact marginal
-  # likelihood, each at its own theta and each from a proposal frozen
-  # there, so they compare directly. A rise means the fixed-point
-  # iteration diverged, which is what an unidentified covariance does
-  # to it: the surface has a ridge, the optimizer wanders along it, and
-  # the rounds chase each other out to a collapsed variance component
-  # where every weight is trivially equal and the effective sample
-  # sizes look perfect. Refusing beats reporting a corrected fit that
-  # is worse than the Laplace fit it corrected.
-  worse <- opt$objective - start_value
-  if (is.finite(worse) && worse > imp_worse_tol(ess$mcse, start_ess$mcse)) {
-    frm_stop("`importance` did not converge on this model: the corrected ",
-             "negative log-likelihood ROSE from ",
-             format(start_value, digits = 8), " at the Laplace estimates ",
-             "to ", format(opt$objective, digits = 8), " after ",
-             length(moves), " rounds, so the iteration moved away from the ",
-             "answer instead of toward it. That is what an unidentified ",
-             "covariance does to it: check whether the Laplace fit itself ",
-             "converged and whether `", lay[["label"]], "` has enough ",
-             "rows per group to identify every variance component",
-             call. = FALSE)
+  it <- iterate(n_draw)
+  if (it$rose) {
+    imp_refuse_draws(it, n_draw, iterate, lay, frame[["n_obs"]],
+                     control$importance_ess %||% imp_ess_floor)
   }
+  fz <- it$fz
+  opt <- it$opt
+  moves <- it$moves
+  grads <- it$grads
+  ess <- it$ess
+  start_value <- it$start_value
+  start_ess <- it$start_ess
+  grad <- grads[length(grads)]
   if (vb) {
     vb_stage("importance report", vb_now(),
              paste0(vb_opt_detail(opt), ", min ESS ",
@@ -1081,10 +1584,92 @@ importance_fit <- function(nll, template, random, map, lap_obj, control,
        rounds = length(moves), moved = moves[length(moves)], moves = moves,
        seed = seed, grad = grad, grads = grads,
        start_value = start_value, start_ess_min = min(start_ess$ess),
-       capped = length(moves) >= rounds &&
-         moves[length(moves)] >= imp_move_tol &&
-         !(is.finite(grad) && grad < control$grad_tol))
+       capped = it$capped)
 }
+
+#' The refusal for a fit that came out worse than the correction it
+#' started from. It runs the same iteration at larger draw counts, so a
+#' count it names is one it saw settle: not worse than where it started, not
+#' capped, and with every group above the effective sample size floor. It
+#' says what it tried and no more. A larger count that it did
+#' not try, or that ran out of memory, is not evidence about that count.
+#'
+#' @noRd
+imp_refuse_draws <- function(it, n_draw, iterate, lay, n_obs, ess_floor) {
+  top <- min(imp_refuse_max, floor(imp_refuse_cells / n_obs))
+  worst <- min(it$ess$ess, it$start_ess$ess)
+  ask <- paste0(
+    "`importance = ", n_draw, "` did not settle on this model. Optimizing ",
+    "over its draws reached estimates where a new estimate of the negative ",
+    "log-likelihood is ", format(it$worse, digits = 3), " worse than at ",
+    "the Laplace estimates, and the Monte Carlo error explains ",
+    format(it$tol, digits = 3), ". The worst group's effective sample size ",
+    "is ", format(worst, digits = 2), " of its draws, which is ",
+    format(worst * n_draw, digits = 2), " of ", n_draw, ". ")
+  tried <- integer(0)
+  why_not <- list()
+  worst_tried <- NA_real_
+  m <- 2L * n_draw
+  while (length(tried) < imp_refuse_doublings && m <= top) {
+    next_try <- tryCatch(iterate(m), error = function(e) e)
+    if (inherits(next_try, "error")) {
+      # bad_alloc on a smaller machine: the message is what this is for
+      why_not <- list(m = m, msg = conditionMessage(next_try))
+      break
+    }
+    tried <- c(tried, m)
+    # A count whose worst group rests on a handful of draws is not one to
+    # name, though it passes: on a slope near separation, 128 draws passed at
+    # a worst group of 0.012 with an error of 1.87 nats, and 256 to 1024 capped
+    if (next_try$settled && min(next_try$ess$ess) >= ess_floor) {
+      frm_stop(ask, "The same fit settled at importance = ", m,
+               ", with a worst group of ",
+               format(min(next_try$ess$ess), digits = 2), " and a Monte Carlo ",
+               "standard error of ", format(next_try$ess$mcse, digits = 2),
+               ". Use importance = ", m, call. = FALSE)
+    }
+    worst_tried <- min(next_try$ess$ess, next_try$start_ess$ess)
+    m <- 2L * m
+  }
+  frm_stop(ask,
+           if (length(tried)) {
+             paste0("It did not settle with every group above an effective ",
+                    "sample size of ", ess_floor, " at importance = ",
+                    paste(tried, collapse = ", "),
+                    " either (worst group ", format(worst_tried, digits = 2),
+                    " at the last). ")
+           },
+           if (length(why_not)) {
+             paste0("importance = ", why_not[["m"]], " could not run: ",
+                    why_not[["msg"]], ". ")
+           } else if (m > imp_refuse_max) {
+             paste0("No count above ", m %/% 2L, " was tried: this check ",
+                    "stops at ", imp_refuse_max, " draws. ")
+           } else if (m > top) {
+             paste0("No count above ", m %/% 2L, " was tried: on ", n_obs,
+                    " rows it would tape more than ",
+                    format(imp_refuse_cells, scientific = TRUE),
+                    " rows times draws. ")
+           } else {
+             paste0("No count above ", m %/% 2L, " was tried. ")
+           },
+           "Check whether the Laplace fit converged and whether `",
+           lay[["label"]], "` has enough rows per group to identify every ",
+           "variance component", call. = FALSE)
+}
+
+#' How many times that refusal doubles the draw count, the largest count
+#' it tries, and the most rows times draws it tapes. A refused fit pays
+#' for them, so they stay bounded. Measured on 2400 poisson rows at 8192
+#' draws: a tape holds about 1.1 KB per row and draw, and the ladder from
+#' 1024 to 8192 took 22.1 GB and 33.8 times the fit that failed, where the
+#' fit at 512 took 2.36 GB. Under 2e6 cells the worst ladder, 244 rows from
+#' 512 draws, took 3.3 GB and 15.3 times the fit.
+#'
+#' @noRd
+imp_refuse_doublings <- 4L
+imp_refuse_max <- 8192L
+imp_refuse_cells <- 2e6
 
 #' How far the parameters may move between rounds and still count as a
 #' fixed point. Fixed rather than a control knob because there is
@@ -1097,48 +1682,6 @@ importance_fit <- function(nll, template, random, map, lap_obj, control,
 #' @noRd
 imp_move_tol <- 1e-3
 
-#' How nearly equal the round-to-round moves must be before the
-#' iteration is reported as stalled rather than as needing more rounds.
-#'
-#' Measured, as a spread relative to the moves' own size, so no
-#' parameter scale enters it.
-#'
-#' A correction that is converging shrinks its move by a factor of
-#' three to ten each round, and its moves are therefore nothing like
-#' equal: over the capped fits on this package's own designs (the
-#' scalar Bernoulli intercept, the correlated 2x2 probe, and the
-#' gaussian mu-and-sigma design, each stopped short at two or three
-#' rounds) the relative spread is 1.15, 1.35, 1.65 and 2.06.
-#'
-#' A stalled correction takes the SAME step every round: over ten
-#' capped `frmtmb.learn` fits (three reversal datasets at 100 and 400
-#' draws, one 8-subject fit at 24, 50, 100 and 200 draws) the relative
-#' spread runs from 5.4e-06 to 2.6e-04. The two regimes are four orders
-#' of magnitude apart, and 1e-2 sits with a factor of 39 over the
-#' widest stalled spread and a factor of 115 under the narrowest
-#' converging one.
-#'
-#' The threshold is loose on purpose. A fit that really was converging
-#' but whose moves agreed to one percent would be shrinking them by a
-#' factor of 0.9975 per round, which from a move of 0.36 needs some
-#' 2400 more rounds to reach `imp_move_tol`, and "raise the round
-#' count" is not honest advice there either.
-#'
-#' @noRd
-imp_stall_tol <- 1e-2
-
-#' Is the correction taking the same step every round?
-#'
-#' One round says nothing: a single move is trivially equal to itself,
-#' and a cap of one round is exactly the case where raising the cap is
-#' the right advice.
-#'
-#' @noRd
-imp_stalled <- function(moves) {
-  if (length(moves) < 2L || !all(is.finite(moves))) return(FALSE)
-  m <- mean(moves)
-  m > 0 && (max(moves) - min(moves)) / m < imp_stall_tol
-}
 
 #' The effective sample size, as a fraction of the draw count, below
 #' which the proposal is reported as having stopped covering its
@@ -1151,21 +1694,21 @@ imp_stalled <- function(moves) {
 #' Ordinary designs sit far above it: the probe (60 groups of 8
 #' Bernoulli rows, correlated slope) reports 0.93, the scalar-intercept
 #' design 0.97, a gaussian response exactly 1.00, and the design in
-#' `vignette("diagnostics")` 0.64.
+#' `vignette("diagnostics")` 0.63. Over the 648 fits of six families
+#' behind `imp_worse_tol()`, at 64 to 2000 draws, the worst group runs
+#' from 0.27 up, and its median is 0.97. Forty groups of three binary
+#' rows with a standard deviation of two is genuinely hard, and over
+#' seeds 1, 2, 3, 7, 11, 101 and 601 at a thousand draws it reports 0.90,
+#' 0.75, 0.41, 0.50, 0.28, 0.83 and 0.85.
 #'
-#' A proposal that has genuinely stopped working sits far below it:
-#' displacing the probe's two log standard deviations by half a unit,
-#' already worth about half a unit of log-likelihood, drops the worst
-#' group to 0.009, some thirty times under.
-#'
-#' Between those two regimes the threshold is meant to FIRE, and does.
-#' Forty groups of three binary rows with a standard deviation of two
-#' is genuinely hard, and over seeds 1, 2, 3, 7, 11, 101 and 601 at a
-#' thousand draws it reports 0.49, 0.35, 0.08, 0.16, 0.60, 0.62 and
-#' 0.32: the warning fires on the hard half and stays quiet on the
-#' rest. That is the diagnostic working, not a false alarm, and it is
-#' why the number is not calibrated to clear every design anyone can
-#' build.
+#' A proposal that has stopped working sits below it, and draws move it
+#' back or do not: a correlated slope in `mu` plus a `sigma` block over
+#' 12 groups of 10 rows holds 0.14 at 500 draws and 0.35 at 2000. On 30
+#' groups of two null binary rows with a correlated slope, the worst group
+#' at 500 draws runs from 0.019 to 1 over ten data sets, and the one at 0.019
+#' holds 0.043 at 2000, because its integrand's tail is the prior's and the
+#' Gaussian's is narrower. There the estimate rests on a handful of draws
+#' whatever the count, and the warning is the point.
 #'
 #' @noRd
 imp_ess_floor <- 0.25
@@ -1235,23 +1778,20 @@ imp_report_line <- function(imp) {
 #' How much the corrected objective may RISE across the rounds and
 #' still count as noise rather than divergence.
 #'
-#' Measured on nine designs. Every fit whose iteration settled came out
-#' the same or better (deltas -0.128 to -0.009), and the only rises
-#' among them were the gaussian designs' optimizer drift, at most
-#' +0.010. The two diverging fits rose by +0.352 and +3.227. The floor
-#' of 0.1 sits ten times above the worst legitimate rise and three
-#' times below the smallest divergence, and it is also a tenth of the
-#' log-likelihood unit that one AIC unit is worth, so nothing that
-#' could change a model comparison passes it. The Monte Carlo term
-#' covers a low draw count, where the two estimates are noisy in their
-#' own right.
+#' Measured over 648 fits (six families, three block shapes and three
+#' group sizes at 64 to 2000 draws): the rise runs from -0.365 to +0.078
+#' and never passes 0.15 of this tolerance. The floor of 0.1 is a tenth of
+#' the log-likelihood unit that one AIC unit is worth, so nothing that
+#' could change a model comparison passes it. The Monte Carlo term covers
+#' a low draw count, where the two estimates are noisy in their own
+#' right.
 #'
 #' @noRd
 imp_worse_tol <- function(mcse_final, mcse_start) {
   max(3 * mcse_final, 3 * mcse_start, 0.1)
 }
 
-#' A corrected fit's own frozen proposal, rebuilt from the fit.
+#' A corrected fit's own proposal, rebuilt from the fit.
 #'
 #' The proposal is a deterministic function of the frame, the reported
 #' estimates, the draw count and the seed, all of which the fit
@@ -1265,7 +1805,7 @@ imp_worse_tol <- function(mcse_final, mcse_start) {
 #' to be serialized with every corrected model.
 #'
 #' @noRd
-imp_frozen_proposal <- function(fit) {
+imp_fit_proposal <- function(fit) {
   fr <- fit[["frame"]]
   lay <- imp_layout(fr[["re_blocks"]])
   tpl <- fit[["estimates"]]
@@ -1274,38 +1814,38 @@ imp_frozen_proposal <- function(fit) {
   plan <- imp_plan(lap, fr, lay, fit$opt$par, fit$importance$draws,
                    fit$importance$seed)
   list(io = build_importance_objective(fr, lay, imp_group_map(fr, lay), plan),
-       plan = plan, template = tpl)
+       plan = plan, template = tpl, map = fr[["map"]])
 }
 
-#' The effective sample sizes of that frozen proposal, read at an
+#' The effective sample sizes of that proposal, read at an
 #' arbitrary outer parameter vector. One numeric evaluation of the
 #' log-weight matrix, no tape.
 #'
 #' @noRd
 imp_ess_at <- function(prop, at) {
-  imp_ess(as.matrix(prop$io$amat(imp_par_list(prop$template, at))),
+  imp_ess(as.matrix(prop$io$amat(imp_par_list(prop$template, at,
+                                              prop$map))),
           prop$plan[["n_draw"]])
 }
 
-#' Warn when a profile bound was computed where the frozen proposal no
+#' Warn when a profile bound was computed where the fit's proposal no
 #' longer covers the integrand.
 #'
 #' `confint(method = "profile")` walks one parameter away from the
-#' estimate and reoptimizes the rest ON THE FIT'S OWN TAPE. That tape
-#' carries a proposal frozen at the estimate, so the further the walk
-#' goes the worse the weights get, and a covariance parameter can walk
-#' far: measured, `theta_1` moved by 0.43 and the worst group's
-#' effective sample size fell to 0.09 while the fit's reported 0.93
-#' described the anchor and said nothing about the path.
+#' estimate and reoptimizes the rest ON THE FIT'S OWN TAPE. That tape's
+#' proposal follows theta to first order around the estimate, so the
+#' further the walk goes the worse the weights can get, while the fit's
+#' reported effective sample sizes describe the anchor and say nothing
+#' about the path.
 #'
-#' The proposal is NOT refrozen along the path, deliberately. Doing so
-#' would make the profiled objective a different random function at
-#' every grid point, and the interpolation the profile uses to find its
-#' crossing assumes one smooth deterministic curve, which is exactly
-#' what freezing the draws buys. Measured on a 40-group design, it
-#' would also cost at least three times the profile it replaces. So the
-#' curve stays frozen and the bound is reported with a warning when the
-#' weights say it should not be trusted.
+#' The anchor is NOT moved along the path, deliberately. Doing so would
+#' make the profiled objective a different random function at every grid
+#' point, and the interpolation the profile uses to find its crossing
+#' assumes one smooth deterministic curve, which is exactly what fixing
+#' the draws buys. Measured on a 40-group design, it would also cost at
+#' least three times the profile it replaces. So the anchor stays and the
+#' bound is reported with a warning when the weights say it should not
+#' be trusted.
 #'
 #' @noRd
 imp_profile_ess_warn <- function(fit, prop, parname, i, bounds) {
@@ -1327,7 +1867,7 @@ imp_profile_ess_warn <- function(fit, prop, parname, i, bounds) {
               parname, "' lies where this fit's importance proposal has ",
               "stopped covering the integrand: the worst group holds ",
               format(worst, digits = 2), " of its draws there, against a ",
-              "threshold of ", floor_at, ". The proposal is frozen at the ",
+              "threshold of ", floor_at, ". The proposal is anchored at the ",
               "estimate, so a profile that walks far from it is reweighting ",
               "with the wrong Gaussian and this bound is not reliable. Use ",
               "confint(method = \"wald\"), or refit with more draws",

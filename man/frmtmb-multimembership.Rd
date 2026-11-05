@@ -85,22 +85,36 @@ slope whose covariate is the same for every member.
 
 
 \describe{
-\item{Other covariance structures}{\code{mm()} carries \code{us} and \code{diag}
-only. \code{ar1()}, \code{cs()}, \code{toep()}, \code{exp()}, \code{gr(cov = )} and the
-rest all describe a covariance over the block's levels, and the
-pooled membership levels have no order, no coordinates and no
-relationship matrix for one to be defined on.}
-\item{\verb{|ID|} keys}{A merged block indexes one level set per
-observation row; an \code{mm()} row loads several at once.}
-\item{brms's other \code{mm()} arguments}{\verb{id =} is the \verb{|ID|} key.
-\verb{cov =} is \code{gr(g, cov = A)} over a single-membership factor, and
-\verb{dist =} is \code{gr(g, dist = "student")} over one (see
-\link{frmtmb-student-re}). Neither applies to a membership design,
-whose rows load several levels at once. \verb{pw =} has no equivalent
-yet.}
+\item{Other covariance structures}{\code{mm()} carries \code{us}, \code{diag} and
+\verb{cov =} only. \code{ar1()}, \code{cs()}, \code{toep()}, \code{exp()} and the rest all
+describe a covariance over the block's levels, and the pooled
+membership levels have no order and no coordinates for one to be
+defined on.}
+\item{brms's other \code{mm()} arguments}{\verb{dist =} is
+\code{gr(g, dist = "student")} over one factor (see
+\link{frmtmb-student-re}). \verb{pw =} has no equivalent yet.}
+\item{Terms that disagree under one key}{Different weights under one
+\verb{|ID|} key are refused: brms reads the first term's weights for every
+term, and frmtmb will not pick one silently.}
 \item{Non-name members}{\code{mm()} reads its membership variables as
 column names, as brms does. Build the column first.}
 }
+}
+
+\section{Keys and known covariances}{
+
+
+\code{(x | p | mm(g1, g2))} and \code{(x | mm(g1, g2, id = "p"))} link the term
+to every other term with the key \code{p} over the same members, in any
+predictor or response, as \verb{|ID|} does over a plain factor. The merged
+block has one unstructured covariance over the pooled levels. The
+linked terms take one set of weights.
+
+\code{(x | mm(g1, g2, cov = A))} is brms's known covariance over the pooled
+levels: \code{A} is a square matrix whose dimnames cover every level of
+every member, usually passed in \code{data2}, and the effects follow
+\code{A \%x\% Sigma} as they do under \code{gr(g, cov = A)}. Each row is still the
+weighted sum over its members.
 
 On \code{newdata}, a membership level that was not in the fitted data
 needs \code{allow_new_levels = TRUE}; that member then contributes the

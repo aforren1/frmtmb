@@ -689,6 +689,15 @@ build_objective <- function(frame) {
     if (autocor_is_seam(ac)) ac_block_entry(ac)
   })
 
+  # the latent residuals that act on mu after the inverse link: brms's AR
+  # part there, and the support of a mean they can push out of it
+  lat_post <- Filter(function(bk) {
+    isTRUE(bk[["aux"]][["on_response"]]) ||
+      !is.null(bk[["aux"]][["mu_range"]])
+  }, frame_latres(frame))
+
+  lat_disp <- latres_disp_dpars(frame, spec)
+
   extra_names <- frame[["extra_names"]] %||% character(0)
   me_fr <- frame[["me"]]
 
@@ -702,6 +711,15 @@ build_objective <- function(frame) {
   # below (autocor, hmm, mixtures, rescor), so this is the only place a
   # cluster weight has to enter.
   clw_idx <- frame[["cluster_w"]]
+  # rows the maximum-likelihood route takes out, as a weight (mi_ml_frame())
+  mi_gone <- list()
+  for (vn in names(frame[["mi_map"]] %||% list())) {
+    gone <- frame[["mi_map"]][[vn]][["unread"]]
+    if (!length(gone)) next
+    keep <- rep(1, NROW(y[[vn]]))
+    keep[gone] <- 0
+    mi_gone[[vn]] <- keep
+  }
 
   # brms's sample_prior = "only": the response densities are left out,
   # and what brms keeps outside `if (!prior_only)` stays: the
@@ -771,7 +789,15 @@ build_objective <- function(frame) {
     for (vn in names(frame[["mi_map"]] %||% list())) {
       mm_ <- frame[["mi_map"]][[vn]]
       xv <- y[[vn]]
-      xv[mm_$rows] <- pars[["miss"]][mm_$idx]
+      if (length(mm_$rows)) {
+        um <- pars[["miss"]][mm_$idx]
+        xv[mm_$rows] <- mi_chart_inv(um, mm_$chart)
+        # the latent value is integrated over its chart; on the identity
+        # chart this is nothing, and on a tape it must not be folded in
+        if (mi_chart_maps(mm_$chart)) {
+          nll <- nll - sum(mi_chart_logjac(um, mm_$chart))
+        }
+      }
       mivals[[vn]] <- xv
       if (!is.null(mm_$se)) {
         # measurement model: observed values scatter around the latent
@@ -878,6 +904,24 @@ build_objective <- function(frame) {
       dparv[[r]][[".eta_mu"]] <- NULL
     }
 
+    for (r in names(lat_post)) {
+      bk <- lat_post[[r]]
+      a <- bk[["aux"]]
+      mu_r <- dparv[[r]]$mu
+      if (isTRUE(a[["on_response"]])) {
+        # the link-scale value no longer describes mu
+        mu_r <- mu_r + latres_shift(bfull[bk[["b_idx"]]], bk,
+                                    pars[["theta"]][bk[["theta_idx"]]])
+        dparv[[r]][[".eta_mu"]] <- NULL
+      }
+      dparv[[r]]$mu <- latres_guard(mu_r, a)
+    }
+    for (r in names(lat_disp)) {
+      for (d in lat_disp[[r]]) {
+        dparv[[r]][[d]] <- latres_disp_guard(dparv[[r]][[d]])
+      }
+    }
+
     if (rescor) {
       # gaussian joint likelihood: standardized residuals against a
       # constant correlation matrix keeps this vectorized even with
@@ -906,6 +950,8 @@ build_objective <- function(frame) {
         fam <- resps[[r]]$family
         w <- atv[[r]]$weights %||% 1
         if (!is.null(clw_idx)) w <- w * pars[["clw"]][clw_idx[[r]]]
+        # a missing value no density reads integrates to 1 (mi_ml_frame())
+        if (length(mi_gone[[r]])) w <- w * mi_gone[[r]]
         if (!is.null(acs[[r]]) && !autocor_is_cond(acs[[r]])) {
           # R-side residual correlation: the response's density is a
           # joint (multivariate normal / t) one per group, not a

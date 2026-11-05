@@ -37,7 +37,7 @@ ce_locked_vars <- function(fit) {
 ce_kept_blocks <- function(fit, re_formula) {
   blocks <- fit$frame[["re_blocks"]] %||% list()
   grp <- which(vapply(blocks, function(bk) {
-    !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")
+    !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "latres")
   }, NA))
   if (!inherits(re_formula, "formula")) {
     return(if (is.null(re_formula)) grp else integer(0))

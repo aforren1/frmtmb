@@ -94,6 +94,38 @@ formula are refused, \code{vcov = TRUE} gives the model-based standard
 errors, and \code{\link[=frm_bootstrap]{frm_bootstrap()}} is the route to a robust one.
 }
 
+\section{What the standard error holds}{
+
+marginaleffects forms a standard error from the coefficients \code{get_coef()}
+holds, the population-level and distributional ones, by the delta method. It
+cannot carry a variance that is in no such coefficient. The default \code{vcov}
+gives the warning of class \code{frmtmb_interop_se_part} on a fit where that gap
+exists, because \code{get_vcov()} is not told which rows or which quantity it
+serves.
+\itemize{
+\item A \code{me()} term. Every row reads as a new row, whose latent value brms draws
+from \code{N(x, sdx)}. The standard error of a level reads 0.07 where
+\code{\link[=frm_linpred]{frm_linpred()}} reads 1.11. A slope, a contrast or a test of a coefficient
+needs no such draw and is right: -0.491, standard error 0.0485.
+\item A smooth, \code{gp()} or \code{hsgp()} term. \code{get_coef()} holds no coefficient of the
+field. On a \code{gp()} the standard error is 0.31 on every row, where
+\code{\link[=frm_linpred]{frm_linpred()}} reads 0.087 to 0.695; on \code{s(x)} it reads 0.70, 0.12, 1.07,
+1.59 where \code{\link[=frm_linpred]{frm_linpred()}} reads 0.088, 0.068, 0.55, 1.32. It is too wide
+near the data and too narrow far from it.
+\item Group-level effects, with \code{re_formula} keeping them. The standard error
+holds neither their uncertainty nor their covariance with the intercept:
+0.209 where \code{\link[=fitted.frmtmb_fit]{fitted.frmtmb_fit()}} reads 0.104 on a gaussian \code{(1 | g)},
+1.435 where it reads 0.488 on a poisson one. Under \code{re_formula = NA} the
+two agree, and no warning comes.
+}
+
+\code{frm_linpred(se.fit = TRUE)} and \code{\link[=fitted.frmtmb_fit]{fitted.frmtmb_fit()}} carry each of these.
+On the response scale of a \code{me()} fit, the estimate is the mean over the
+draw, as \code{\link[=fitted.frmtmb_fit]{fitted.frmtmb_fit()}} reads it. \code{vcov = FALSE} gives the estimates
+alone. A covariance matrix passed as \code{vcov} is read as you give it, and gives
+no warning.
+}
+
 \section{brms's prediction arguments}{
 
 \code{re_formula}, \code{allow_new_levels}, \code{dpar} (also under brms's name

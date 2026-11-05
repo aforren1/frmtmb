@@ -253,9 +253,11 @@ test_that("fitted() holds the Wald bounds of a count between 0 and trials", {
   fit <- frm(Y | trials(N) ~ x, family = dirichlet_multinomial(), data = dd)
   nd <- data.frame(x = c(3, 5, 8), N = c(50L, 50L, 50L))
   ft <- fitted(fit, newdata = nd)
+  # the band is on the share of the trials, so it stays inside them; it was
   # held at the trials themselves, not at the estimates' sum, which
   # matches them only to rounding and passed 50 on a Windows runner
-  expect_identical(ft[3, "Q97.5", 2], 50)
+  expect_lte(ft[3, "Q97.5", 2], 50)
+  expect_gt(ft[3, "Q97.5", 2], ft[3, "Estimate", 2])
   expect_true(all(ft[, "Q2.5", 2] > 1))
   expect_true(all(ft[, "Q2.5", ] >= 0) && all(ft[, "Q97.5", ] <= 50))
 })

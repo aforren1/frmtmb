@@ -24,6 +24,8 @@ upstream-rtmb/
 *.RData
 *.rda
 *.driverlog
+*.progress
+*.done
 *.lst
 /*.tsv
 /*.csv

@@ -150,7 +150,7 @@ re_fit_components <- function(fit) {
   named <- list()
   for (i in seq_along(blocks)) {
     bk <- blocks[[i]]
-    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")) next
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "latres")) next
     for (j in seq_along(bk[["components"]])) {
       cp <- bk[["components"]][[j]]
       bar <- cp[["bar"]]

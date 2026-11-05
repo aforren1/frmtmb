@@ -52,7 +52,22 @@
 #'   nonlinear expression of named parameters, each given its own
 #'   `...` formula with the full predictor grammar. `NULL`, the default
 #'   as in brms, means `FALSE` for a new formula and keeps the setting
-#'   of a formula `bf()` already built.
+#'   of a formula `bf()` already built. The body is R code on the tape,
+#'   and it can call the functions of the Stan language that brms's own
+#'   bodies call: `inv_logit()`, `logit()`, `inv_cloglog()`, `Phi()`,
+#'   `square()`, `cbrt()`, `exp2()`, `pow()`, `inv()`, `inv_sqrt()`,
+#'   `inv_square()`, `hypot()`, `log1m()`, `step()`, `log1p_exp()`,
+#'   `log1m_exp()`, `log_diff_exp()`, `log_sum_exp()`, `log_inv_logit()`
+#'   and `log1m_inv_logit()`, with Stan's values and derivatives. A function
+#'   of the same name found from the formula's environment comes first,
+#'   which includes the packages on the search path, except for
+#'   `stats::step()`. `x^b` and `pow(x, b)` with `x = 0` on a row have Stan's
+#'   gradient. On a family with
+#'   several location parameters (`categorical()`, `multinomial()`,
+#'   `dirichlet()` and the other simplex families, a `mixture()`), the
+#'   one body is every location's, with one set of nonlinear parameters,
+#'   as in brms. On an ordinal family the body is the latent predictor,
+#'   and the thresholds stay.
 #' @param center Whether the location formula's intercept is brms's
 #'   class `"Intercept"`, a density on the intercept at the means of the
 #'   predictors. `NULL`, the default, means `TRUE` for a new formula and
@@ -66,7 +81,9 @@
 #' @param autocor A one-sided formula of autocorrelation terms, as in
 #'   brms, e.g. `~ ar(week, subj)`. The terms are added to the location
 #'   formula, so `bf(y ~ x, autocor = ~ ar(week, subj))` is
-#'   `bf(y ~ x + ar(week, subj))`. See [autocor-terms].
+#'   `bf(y ~ x + ar(week, subj))`. With `nl = TRUE` this is the way to
+#'   give a nonlinear model a term, since a body is evaluated and not
+#'   read as terms. See [autocor-terms].
 #' @param cmc Cell-mean coding, as in brms. `NULL`, the default, means
 #'   `TRUE` for a new formula and keeps the setting of a formula `bf()`
 #'   already built. With `TRUE`, R's rule applies: a formula without an
@@ -153,6 +170,56 @@
 #'   multipliers in a `mo()` or `mi()` interaction must be numeric, with
 #'   character and factor columns both refused rather than coerced to
 #'   all-`NA` and surfacing later as an optimizer failure.
+#' @section Missing values under `mi()`:
+#' `bf(y | mi() ~ x)` takes a response with missing values, for the 14
+#' continuous families brms takes it for. What [frm()] does with a value
+#' depends on whether another density reads it:
+#'
+#' \describe{
+#'   \item{No density in the objective reads it}{It integrates to 1, so it
+#'     leaves the objective. The fit is the complete-case one, exactly. A
+#'     reader whose own density has left does not read: `z | mi() ~ mi(y)` with
+#'     `z` missing where `y` is takes both rows out, and a reader's weight of 0
+#'     does not read. The row stays in the frame and predicts;
+#'     `fit$estimates$miss` has no entry for it.}
+#'   \item{A density reads it}{(a predictor's `mi(y)`, `mi(sd)`, a
+#'     `cov = FALSE` autocorrelation term.) It stays latent and is
+#'     integrated out by a Laplace approximation, on a chart that holds it
+#'     in the family's support. `asym_laplace()` and a `mixture()` have no mode
+#'     for it to expand about and are refused here.}
+#' }
+#'
+#' The approximation is exact only for a `gaussian` value that `gaussian` means
+#' read. Elsewhere it can move an estimate. The largest shift from an exact
+#' maximum, in its standard errors, on 200 rows: 2.74 `exgaussian` with 60 read
+#' by a slope of 0.05, 2.14 `student` with the same, 0.98 `beta` and 0.96
+#' `Gamma` with 100 read by a slope of 0.7, 0.14 `exgaussian` with 60 read by a
+#' slope of 0.7. A reader that carries little leaves the row nearly unread, with
+#' an unread row's error. Per value, against `integrate()`, on 80 rows with 8
+#' missing and a gaussian reader: 0 `gaussian`, -0.114 `Gamma`, -0.098
+#' `exponential`, -0.078 `weibull`, +0.008 `frechet`, -0.125 `beta`, -0.079
+#' `exgaussian`, -0.076 `von_mises`, -0.037 `lognormal`, -0.023 `skew_normal`,
+#' +0.021 `inverse.gaussian`, +0.008 `gen_extreme_value`. `von_mises` loses -1 to
+#' -4.2 per value at a mean near the end of its window, where the value has two
+#' modes, and estimates there can be off by up to 17 standard errors.
+#'
+#' After the fit, [frm()] warns, with class `frmtmb_mi_laplace_error`, when the
+#' approximation moves an estimate. Three inner Hessians over every read value
+#' give Tierney-Kadane's term, a gate that costs 0.1 percent of a fit. Past it, an
+#' `integrate()` over 10 of the values at the estimate and at one standard error
+#' above it, per parameter of the read response, tells how far a parameter moves:
+#' a move of 0.5 or more warns, and `fit$mi_laplace` holds the moves. That stage
+#' costs about 37 percent of the fit. For a `von_mises` value, 10 percent or more
+#' of read rows with `pi - abs(mu) < 2 / sqrt(kappa)` warn with no integral.
+#' `check_mi` in [frmtmb_control()] sets what happens. The shift from an exact
+#' maximum, in standard errors, over 144 fits: a shift of 1 or more warned on 75 of
+#' 76, and a shift below 0.5 on 3 of 39, and the largest silent shift was 1.01.
+#'
+#' `frmtmb.sample::frm_sample()` holds every value and has no such error. Its
+#' draws name a value as brms does, `Ymi_<resp>[k]`, on the response's scale. If
+#' the reader carries little about the value, deleting those rows gives nearly
+#' the same model without the error.
+#'
 #' @srrstats {G2.14c} Missing predictor values can be replaced by imputed
 #'   ones inside the model rather than dropped. `bf(x | mi() ~ ...)`
 #'   declares an imputation model for a partially observed variable, and
@@ -210,8 +277,18 @@ bf <- function(formula, ..., family = NULL, nl = NULL, center = NULL,
     })
     return(do.call(mvbf, forms))
   }
-  # brms's autocor argument: the terms join the formula of mu
-  if (!is.null(autocor)) formula <- add_ac_terms(formula, autocor)
+  # brms's autocor argument: the terms join the formula of mu. A nonlinear
+  # right-hand side is a body, evaluated as R code rather than read as
+  # terms, so there they stay beside it for the parser
+  ac_slot <- NULL
+  if (!is.null(autocor)) {
+    if (isTRUE(nl)) {
+      ac_formula_terms(autocor)
+      ac_slot <- autocor
+    } else {
+      formula <- add_ac_terms(formula, autocor)
+    }
+  }
   parsed <- bf_dots(list(...))
   pforms <- parsed[["pforms"]]
   pfix <- parsed[["pfix"]]
@@ -226,6 +303,7 @@ bf <- function(formula, ..., family = NULL, nl = NULL, center = NULL,
   )
   if (!is.null(center)) out$center <- center
   if (!is.null(cmc)) out$cmc <- cmc
+  if (!is.null(ac_slot)) out[["autocor"]] <- ac_slot
   out
 }
 
@@ -358,7 +436,12 @@ bf_update <- function(formula, ..., family = NULL, nl = NULL,
     return(formula)
   }
   if (!is.null(autocor)) {
-    formula[["formula"]] <- add_ac_terms(formula[["formula"]], autocor)
+    if (isTRUE(nl) || (is.null(nl) && isTRUE(formula[["nl"]]))) {
+      ac_formula_terms(autocor)
+      formula[["autocor"]] <- autocor
+    } else {
+      formula[["formula"]] <- add_ac_terms(formula[["formula"]], autocor)
+    }
   }
   if (length(dots)) {
     parsed <- bf_dots(dots, formula[["pforms"]], formula[["pfix"]],
@@ -811,7 +894,12 @@ plus_bf <- function(e1, e2) {
       frm_stop("acformula() names resp = '", r, "', but the bf() it is ",
                "added to models '", bform_resp_label(e1), "'", call. = FALSE)
     }
-    e1$formula <- add_ac_terms(e1$formula, e2)
+    if (isTRUE(e1[["nl"]])) {
+      ac_formula_terms(e2)
+      e1[["autocor"]] <- e2
+    } else {
+      e1$formula <- add_ac_terms(e1$formula, e2)
+    }
     return(e1)
   }
   if (inherits(e2, "frmtmb_rescor")) {
@@ -1008,6 +1096,9 @@ print.frmtmb_formula <- function(x, ...) {
   frm_check_dots(...)
   cat(deparse1(x$formula), if (isTRUE(x$nl)) " (nonlinear)" else "",
       if (isFALSE(x[["cmc"]])) " (cmc = FALSE)" else "", "\n", sep = "")
+  if (!is.null(x[["autocor"]])) {
+    cat("autocor: ", deparse1(x[["autocor"]]), "\n", sep = "")
+  }
   for (f in x$nlforms) cat(deparse1(f), " (nonlinear)\n", sep = "")
   for (f in x$pforms) print_pform(f)
   for (nm in names(x$pfix)) cat(nm, "=", x$pfix[[nm]], "\n")

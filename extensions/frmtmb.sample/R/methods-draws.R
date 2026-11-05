@@ -273,7 +273,33 @@ draws_fit_at <- function(x, i, idx = draws_index(x), fill = NA_real_) {
   # draw from its conditional given the draw's own field, as brms makes
   # it, and not that conditional's mean
   fit[["krige_draw"]] <- TRUE
+  # and of a me() value at a row the fit did not see: a new latent value
+  # from normal(x, sdx) per draw, as brms draws it. One value per draw of the
+  # call, across the responses, which draws_me_stores() lets a call share
+  st <- x[["me_stores"]]
+  if (is.null(st)) {
+    fit[["me_draw"]] <- new.env(parent = emptyenv())
+  } else {
+    key <- as.character(i)
+    if (is.null(st[[key]])) st[[key]] <- new.env(parent = emptyenv())
+    fit[["me_draw"]] <- st[[key]]
+  }
   fit
+}
+
+#' One store of latent values per posterior draw, for one call of a method, so
+#' that the responses a call answers for read one latent of a `me()` term at a
+#' new
+#' row: each response has its own loop over the draws, and its own
+#' `draws_fit_at()`. A call that already holds the stores is the same call, one
+#' response further on.
+#'
+#' @noRd
+draws_me_stores <- function(x) {
+  if (is.null(x[["me_stores"]])) {
+    x[["me_stores"]] <- new.env(parent = emptyenv())
+  }
+  x
 }
 
 #' Row indices of an evenly spaced subsample of the draws, or of the
@@ -709,8 +735,9 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #' `posterior_predict()` uses the same simulator [simulate()] does,
 #' including the structured families (`frmtmb.latent::hmm()`, `mixture(groups = )`,
 #' [frmtmb.latent::mixture_mvn()]) and residual correlation terms; see the Structured
-#' draws section of [frmtmb::simulate.frmtmb_fit()]. Those draws index the rows
-#' the model was fitted on, so `newdata` is refused for them.
+#' draws section of [frmtmb::simulate.frmtmb_fit()]. A structured family indexes
+#' the rows the model was fitted on, so `newdata` is refused for it. A residual
+#' correlation term is drawn on the groups and times of `newdata`.
 #'
 #' @section Argument spellings:
 #' One rule decides every name in this package: where lme4 or glmmTMB
@@ -754,7 +781,9 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #' `NULL` on every draws method, `NA` on `pp_check()` for a fit.
 #'
 #' @param object A `frmtmb_draws` from [frm_sample()].
-#' @param newdata,resp As in [frmtmb::predict.frmtmb_fit()].
+#' @param newdata,resp As in [frmtmb::predict.frmtmb_fit()]. A model with one
+#'   response does not read `resp`, as in brms. An empty `resp` is every
+#'   response.
 #' @param re_formula The random-effect switch, in brms's spelling:
 #'   `NULL` (the default) conditions on each draw's own random effects,
 #'   `NA` or `~0` gives the population-level quantity. Its meaning is
@@ -818,6 +847,19 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #'   every response (`resp = NULL`) or for several, a
 #'   draws-by-observations-by-responses array; see *Multivariate
 #'   models*.
+#' @section New rows of a model with me():
+#' A new row has no latent value, so each posterior draw draws one from
+#' `normal(x, sdx)`, per row, or per level under `me(gr = )`, as brms does.
+#' `newdata` must hold `sdx`, and `corme` is not read. Two responses or two
+#' dpars
+#' that read one term read one latent value per draw, a stated divergence: brms
+#' draws one per predictor, against its own Stan program, which has one
+#' `Xme_1`, and
+#' at the training rows of a two-response fit the residuals correlate at 0.734,
+#' one
+#' latent predicts 0.739 and brms's replicates give -0.001. Without new data,
+#' the
+#' latent values are the draws' own.
 #' @section Multivariate models:
 #' Without `resp`, the three methods answer for every response of a
 #' multivariate model, as brms does: a draws x observations x responses
@@ -897,6 +939,8 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
                                          draw_ids = NULL, sort = FALSE,
                                          point_estimate = NULL,
                                          ndraws_point_estimate = 1, ...) {
+  object <- draws_me_stores(object)
+  resp <- draws_resp_read(object, resp)
   # unknown names are refused rather than swallowed (item 2.5e); the
   # new-level spellings pass to draws_refuse_new_levels(), which answers
   # them. Forwarding allow_new_levels to the per-draw predictor, as this
@@ -935,8 +979,10 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
   # summary in frmtmb's development version, and what one draw
   # contributes here is the expected response at its parameters
   rn <- resp %||% names(object$fit$spec$responses)[1L]
+  # brms draws new latent residuals for new rows, once per posterior draw
+  lat <- latres_new_spec(object$fit, object$fit$spec$responses[[rn]], newdata)
   at <- function(r, fill = NA_real_, rf = re_form) {
-    sh <- draws_fit_at(object, r, idx, fill)
+    sh <- latres_shifted(draws_fit_at(object, r, idx, fill), lat, rn)
     # brms fills a cov = FALSE response that newdata leaves NA with a
     # draw at this draw's parameters, so the epred draws carry that
     # spread; NULL when nothing needs filling
@@ -1002,6 +1048,8 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
                                            draw_ids = NULL, sort = FALSE,
                                            point_estimate = NULL,
                                            ndraws_point_estimate = 1, ...) {
+  object <- draws_me_stores(object)
+  resp <- draws_resp_read(object, resp)
   re_form <- re_form_arg(re_formula, re.form, "posterior_linpred()")
   draws_refuse_new_levels(object, newdata, list(...), "posterior_linpred()",
                           re_form)
@@ -1017,7 +1065,8 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
                         ndraws = ndraws, draw_ids = draw_ids,
                         point_estimate = point_estimate,
                         ndraws_point_estimate = ndraws_point_estimate, ...)
-    }), "posterior_linpred()"))
+    }), "posterior_linpred()", thresholds = !isTRUE(transform) &&
+      is.null(dpar) && is.null(nlpar)))
   }
   # brms's spelling of the name too, as posterior_predict() takes it
   if (!is.null(resp) && length(object$fit$spec$responses) > 1L) {
@@ -1038,6 +1087,10 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
   # a family over categories, or of a mixture, one layer each
   # (posterior_epred.brmsprep(), "multiple mu parameters")
   stack <- if (is.null(dpar) && !incl) draws_mu_stack(rs$family)
+  # no dpar named on the linear scale also reads each threshold's own
+  # predictor of a cs() term; core stacks both (dpar = "mu" is the shared
+  # part, as in brms)
+  layered <- is.null(dpar) && !incl && !isTRUE(transform)
   if (length(stack) && isTRUE(transform)) {
     # brms's transform = TRUE asks for dpar "mu", which these families
     # do not have, a two-category categorical() with its one mub too;
@@ -1060,20 +1113,18 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
   # distribution (posterior_epred()'s quantity), not the mu predictor
   # this promises.
   dpar <- dpar %||% draws_default_dpar(object$fit, resp)
+  # brms draws new latent residuals for new rows, once per posterior draw
+  rn_lat <- resp %||% names(object$fit$spec$responses)[1L]
+  lat <- latres_new_spec(object$fit, object$fit$spec$responses[[rn_lat]],
+                         newdata)
   at <- function(r, fill = NA_real_, rf = re_form) {
-    f <- draws_fit_at(object, r, idx, fill)
+    f <- latres_shifted(draws_fit_at(object, r, idx, fill), lat, rn_lat)
     if (incl) {
       return(ord_thres_linpred(f, newdata = newdata, resp = resp,
                                re_formula = rf))
     }
-    if (length(stack) > 1L) {
-      return(do.call(cbind, lapply(stack, function(d) {
-        as.numeric(frm_linpred(f, newdata = newdata, resp = resp,
-                               dpar = d, re_formula = rf, type = "link"))
-      })))
-    }
-    frm_linpred(f, newdata = newdata, resp = resp, dpar = dpar,
-                re_formula = rf,
+    frm_linpred(f, newdata = newdata, resp = resp,
+                dpar = if (!layered) dpar, re_formula = rf,
                 type = if (transform) "response" else "link")
   }
   at_na <- function(fill) at(rows[1L], fill, NA)
@@ -1095,9 +1146,10 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
       out[k, , ] <- p
       next
     }
-    if (length(stack) > 1L) {
-      # draws x observations x predictors, every margin unnamed, as brms
-      # 2.23.0 returns it (dev/catmulti-out/brms-fits.txt)
+    if (is.matrix(p)) {
+      # draws x observations x layers, every margin unnamed, as brms 2.23.0
+      # returns it (dev/catmulti-out/brms-fits.txt,
+      # dev/predread-cs-layout-brms.R)
       if (is.null(out)) {
         out <- array(NA_real_, c(length(rows), nrow(p), ncol(p)))
       }
@@ -1182,6 +1234,8 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
                                            ntrys = NULL, cores = NULL,
                                            point_estimate = NULL,
                                            ndraws_point_estimate = 1, ...) {
+  object <- draws_me_stores(object)
+  resp <- draws_resp_read(object, resp)
   frm_check_dots(..., .allow = draws_new_level_args)
   re_form <- re_form_arg(re_formula, re.form, "posterior_predict()")
   draws_refuse_new_levels(object, newdata, list(...), "posterior_predict()",
@@ -1230,6 +1284,17 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   out
 }
 
+#' `resp` as a method of a univariate model reads it: not at all. brms's
+#' prepare_predictions() ignores it there, whatever it holds (run on brms
+#' 2.23.0, dev/predread-resp-brms-probe.R: an empty vector, a name given
+#' twice, an unknown name, `NA`, a number).
+#'
+#' @noRd
+draws_resp_read <- function(x, resp) {
+  fit <- if (inherits(x, "frmtmb_fit")) x else x$fit
+  if (length(fit$spec$responses) == 1L) NULL else resp
+}
+
 #' The responses a call names, in frmtmb's spelling: every response
 #' when `resp` is `NULL`, as brms's `validate_resp()` takes it, and
 #' brms's own spelling of a name (`ya` for a column `y_a`) as well as
@@ -1275,7 +1340,23 @@ draws_resp_stacks <- function(fit, resp) {
 #' is refused rather than flattened.
 #'
 #' @noRd
-draws_resp_stack <- function(fit, want, layers, what) {
+draws_resp_stack <- function(fit, want, layers, what, thresholds = FALSE) {
+  resps <- names(fit$spec$responses)
+  nm <- brms_stan_name(resps)[match(want, resps)]
+  if (thresholds) {
+    # a cs() response on the linear scale: one layer per threshold, which
+    # brms names <resp>1, <resp>2, ... (dev/predread-resp-brms-probe.R)
+    k <- vapply(layers, function(l) {
+      if (length(dim(l)) == 3L) dim(l)[3L] else 1L
+    }, 1L)
+    nm <- unlist(Map(function(n, m) {
+      if (m > 1L) paste0(n, seq_len(m)) else n
+    }, nm, k), use.names = FALSE)
+    layers <- unlist(lapply(layers, function(l) {
+      if (length(dim(l)) != 3L) return(list(l))
+      lapply(seq_len(dim(l)[3L]), function(j) l[, , j])
+    }), recursive = FALSE)
+  }
   d1 <- dim(layers[[1L]])
   flat <- vapply(layers, function(l) {
     length(dim(l)) == 2L && identical(dim(l), d1)
@@ -1286,9 +1367,7 @@ draws_resp_stack <- function(fit, want, layers, what) {
              "one value per row. Name the response with resp =",
              call. = FALSE)
   }
-  resps <- names(fit$spec$responses)
-  nm <- brms_stan_name(resps)[match(want, resps)]
-  array(unlist(layers, use.names = FALSE), c(d1, length(want)),
+  array(unlist(layers, use.names = FALSE), c(d1, length(nm)),
         dimnames = list(NULL, NULL, nm))
 }
 
@@ -1323,13 +1402,22 @@ draws_pp_setup <- function(object, fit, resp, newdata, re_form, rows, idx) {
   # so a cov = FALSE term is not a structured draw, on newdata or under
   # re_formula, as core's predict() treats it
   structured <- draws_pp_structured(fit, resp, av)
+  # a cov = TRUE term on newdata's own groups and times, as core's predict()
+  # and simulate(newdata = ) draw it, and as brms does
+  ac_nd <- NULL
+  ac0 <- fit$frame[["autocor"]][[resp]]
+  if (!is.null(newdata) && structured && !is.null(ac0) && !arma_cond &&
+        !draws_pp_refuses_newdata(fit, resp, av)) {
+    ac_nd <- autocor_for_newdata(fit, ac0, rspec, newdata)
+    structured <- FALSE
+  }
   if (!is.null(newdata) && structured) {
     # the sequence, group and residual-correlation structures a
     # structured draw walks were built from the TRAINING rows and index
     # them; newdata rows appear in none of them
     frm_stop("posterior_predict(newdata =) is not supported for this ",
-             "model: its draws are structured (a hidden state sequence, a ",
-             "group-level latent class, or a correlated residual) and that ",
+             "model: its draws are structured (a hidden state sequence or a ",
+             "group-level latent class) and that ",
              "structure indexes the rows the model was fitted on. Drop ",
              "newdata to predict those rows", call. = FALSE)
   }
@@ -1398,8 +1486,10 @@ draws_pp_setup <- function(object, fit, resp, newdata, re_form, rows, idx) {
   dp_at <- function(sh, rf = re_form, ev = NULL) {
     cs_offsets_add(sh, resp, newdata, dpars_at(sh, rf, ev))
   }
+  lat <- latres_new_spec(object$fit, rspec, newdata)
   idx_at <- function(r, fill, rf = re_form) {
-    sh <- draws_fit_at(object, r, idx, fill)
+    sh <- latres_shifted(draws_fit_at(object, r, idx, fill), lat, resp)
+    if (!is.null(ac_nd)) sh$frame[["autocor"]][[resp]] <- ac_nd
     list(sh = sh, dp = dp_at(sh, rf))
   }
   at_na <- function(fill) idx_at(rows[1L], fill, NA)$dp
@@ -2201,6 +2291,7 @@ predictive_error.frmtmb_draws <- function(object, newdata = NULL,
                                           method = "posterior_predict",
                                           resp = NULL, ndraws = NULL,
                                           draw_ids = NULL, ...) {
+  resp <- draws_resp_read(object, resp)
   re_form <- re_form_arg(re_formula, re.form, "predictive_error()")
   method <- frm_match_arg(method,
                           c("posterior_predict", "posterior_epred"))
@@ -2275,9 +2366,9 @@ draws_error_y <- function(fit, resp, newdata) {
 #' A fitted response as it was OBSERVED: `NA` where an `mi()` response
 #' is missing.
 #'
-#' The frame keeps the placeholder 0 at those rows, and the tape reads
+#' The frame keeps a placeholder at those rows, and the tape reads
 #' the latent value there instead; read as an observation, the
-#' placeholder made `predictive_error()` report `0 - yrep` at a row
+#' placeholder made `predictive_error()` report a residual at a row
 #' nobody observed. brms keeps its `Y` `NA` there (`get_y()` with
 #' `internal = TRUE`), so its predictive error and `bayes_R2()` are `NA`,
 #' and its `pp_check()` drops the row with a warning. Under `mi(sd = )`
@@ -2290,7 +2381,7 @@ draws_observed_y <- function(fit, resp) {
   mm <- fit$frame[["mi_map"]][[resp]]
   if (is.null(mm) || is.matrix(y)) return(y)
   miss <- if (is.null(mm$obs)) mm$rows else setdiff(mm$rows, mm$obs)
-  y[miss] <- NA
+  y[c(miss, mm$unread)] <- NA
   y
 }
 
@@ -2823,17 +2914,18 @@ pp_mixture.frmtmb_draws <- function(x, newdata = NULL,
                                     log = FALSE, summary = TRUE,
                                     robust = FALSE,
                                     probs = c(0.025, 0.975), ...) {
+  resp <- draws_resp_read(x, resp)
   draws_refuse_newdata(newdata, re_formula, arg_unset(), "pp_mixture()",
                        "mixture_probs() classifies the rows the model ",
                        "was fitted on: the component probability of a ",
                        "row is a statement about that row's own ",
                        "response, and newdata carries no response to ",
                        "classify")
-  if (!is.null(resp) && !resp %in% names(x$fit$spec$responses)) {
-    frm_stop("pp_mixture(resp = \"", resp, "\") names no response of this ",
-             "model; it has ",
-             paste(names(x$fit$spec$responses), collapse = ", "),
-             call. = FALSE)
+  if (length(x$fit$spec$responses) > 1L) {
+    # refuses an unknown name and one given twice; brms takes one response
+    # and no fewer here, unlike its other methods
+    resp <- draws_resp_set(x$fit, resp)
+    if (length(resp) != 1L) resp_refuse_single()
   }
   rsp <- x$fit$spec$responses[[resp %||% 1L]]
   if (is.null(rsp$family[["mix"]])) {
@@ -2846,13 +2938,17 @@ pp_mixture.frmtmb_draws <- function(x, newdata = NULL,
   check_flag(robust, "robust")
   idx <- draws_index(x)
   rows <- draws_subsample(x, ndraws, draw_ids)
+  pick <- function(f) {
+    f[["resp_pick"]] <- resp
+    f
+  }
   draws_laplace_probe(x, "pp_mixture()", function(fill) {
-    mixture_probs(draws_fit_at(x, rows[1L], idx, fill))
+    mixture_probs(pick(draws_fit_at(x, rows[1L], idx, fill)))
   })
   watch <- draws_laplace_watch(x, "pp_mixture()")
   out <- NULL
   for (k in seq_along(rows)) {
-    P <- mixture_probs(draws_fit_at(x, rows[k], idx))
+    P <- mixture_probs(pick(draws_fit_at(x, rows[k], idx)))
     watch(P)
     if (is.null(out)) {
       out <- array(NA_real_, c(length(rows), nrow(P), ncol(P)),
@@ -2899,9 +2995,9 @@ draws_summarize_margin <- function(out, probs = c(0.025, 0.975),
 
 #' Whether `posterior_predict()` draws response `resp` as a walk over
 #' the fitted rows (a hidden state sequence, a group-level latent
-#' class, a correlated residual), and so refuses `newdata` and
-#' `re_formula` for it. brms's `cov = FALSE` ARMA is not one: its rows
-#' are drawn one by one around their one-step means.
+#' class, a correlated residual), and so refuses `re_formula` for it, and
+#' `newdata` where `draws_pp_refuses_newdata()` says so. brms's `cov = FALSE`
+#' ARMA is not one: its rows are drawn one by one around their one-step means.
 #'
 #' @noRd
 draws_pp_structured <- function(fit, resp,
@@ -2909,6 +3005,21 @@ draws_pp_structured <- function(fit, resp,
   ctx0 <- sim_context(fit, fit$spec$responses[[resp]], list(),
                       aterms = av)
   if (resp %in% arma_cond_resp(fit)) ctx0[["autocor"]] <- NULL
+  sim_is_structured(ctx0)
+}
+
+#' Whether `posterior_predict(newdata =)` refuses response `resp`. A residual
+#' correlation of either form is drawn on newdata's own groups and times, so
+#' only a family that draws through its own simulator is left: its walk indexes
+#' the rows the model was fitted on. `log_lik()` names the alternatives by this
+#' test, so its refusal cannot point at a route that answers, or the reverse.
+#'
+#' @noRd
+draws_pp_refuses_newdata <- function(fit, resp,
+                                     av = fit$frame[["aterm_values"]][[resp]]) {
+  ctx0 <- sim_context(fit, fit$spec$responses[[resp]], list(),
+                      aterms = av)
+  ctx0[["autocor"]] <- NULL
   sim_is_structured(ctx0)
 }
 
@@ -3102,7 +3213,9 @@ plot.frmtmb_draws <- function(x, pars = NA, combo = c("hist", "trace"),
 #' how the model is sampled and not the model itself: `sample_prior`,
 #' `prior`, and the sampler's options (`chains`, `iter`, `seed`,
 #' `control`, ...). It calls [frm_sample()] again on the same model with
-#' the arguments of the first call, the ones given here replacing them.
+#' the arguments of the first call, the ones given here replacing them. A
+#' new `prior` merges as in brms: it takes the slots it names, and the first
+#' call's other specifications stay.
 #' brms's `update(fit, sample_prior = "yes")` is the common use: it adds
 #' prior draws to a model sampled without them, for
 #' [prior_draws()] and the evidence ratios of [frmtmb::hypothesis()].
@@ -3181,6 +3294,11 @@ update.frmtmb_draws <- function(object, formula., newdata = NULL,
   }
   args <- sa[setdiff(names(sa), c("own", "from_formula"))]
   args[nm] <- dots
+  # brms keeps the first call's user rows and a new row takes its slot
+  # (update.brmsfit(), lines 150 to 155); a prior with no rows keeps them
+  if ("prior" %in% nm) {
+    args["prior"] <- list(update_merge_prior(sa[["prior"]], dots[["prior"]]))
+  }
   fit <- object$fit
   # the fit's own prior, which frm_sample() stacks under `prior =`, and
   # not the effective prior the draws record
@@ -3494,6 +3612,7 @@ fitted.frmtmb_draws <- function(object, newdata = NULL,
                                 sort = FALSE, summary = TRUE,
                                 robust = FALSE, probs = c(0.025, 0.975),
                                 ...) {
+  resp <- draws_resp_read(object, resp)
   scale <- frm_match_arg(scale)
   draws_refuse_sort(sort, "fitted()")
   # checked here as well as in posterior_epred(), so a refusal names the
@@ -3509,7 +3628,25 @@ fitted.frmtmb_draws <- function(object, newdata = NULL,
                       resp = resp, dpar = dpar, nlpar = nlpar,
                       ndraws = ndraws, draw_ids = draw_ids, ...)
   })
-  draws_summarize_or_not(out, summary, probs, robust)
+  s <- draws_summarize_or_not(out, summary, probs, robust)
+  # brms names a linear-scale summary's layers over thresholds and categories
+  # eta1, eta2, ..., and leaves its draws and a mixture's unnamed
+  rs <- object$fit$spec$responses[[if (length(resp) == 1L) resp else 1L]]
+  if (summary && identical(scale, "linear") && length(dim(s)) == 3L &&
+      is.null(dimnames(s)[[3L]]) && !is.null(rs) &&
+      isTRUE(rs$family[["type"]] %in% c("ordinal", "categorical"))) {
+    dimnames(s)[[3L]] <- paste0("eta", seq_len(dim(s)[3L]))
+  }
+  if (summary && identical(scale, "linear") && length(dim(s)) == 3L &&
+      length(object$fit$spec$responses) > 1L) {
+    # and a multivariate summary's thresholds eta1, eta2, ..., where its
+    # draws say <resp>1, <resp>2, ... (dev/predread-sample-cells.R)
+    dn <- dimnames(s)[[3L]]
+    lay <- !dn %in% brms_stan_name(names(object$fit$spec$responses))
+    dn[lay] <- sub("^.*?([0-9]+)$", "eta\\1", dn[lay], perl = TRUE)
+    dimnames(s)[[3L]] <- dn
+  }
+  s
 }
 
 #' @rdname frmtmb-draws-summaries
@@ -3522,6 +3659,7 @@ predict.frmtmb_draws <- function(object, newdata = NULL,
                                  ntrys = NULL, cores = NULL,
                                  summary = TRUE, robust = FALSE,
                                  probs = c(0.025, 0.975), ...) {
+  resp <- draws_resp_read(object, resp)
   draws_refuse_sort(sort, "predict()")
   draws_refuse_ntrys_cores(ntrys, cores, "predict()")
   draws_refuse_new_levels(object, newdata, list(...), "predict()",
@@ -3577,6 +3715,7 @@ residuals.frmtmb_draws <- function(object, newdata = NULL,
                                    draw_ids = NULL, sort = FALSE,
                                    summary = TRUE, robust = FALSE,
                                    probs = c(0.025, 0.975), ...) {
+  resp <- draws_resp_read(object, resp)
   type <- frm_match_arg(type)
   draws_refuse_sort(sort, "residuals()")
   draws_refuse_new_levels(object, newdata, list(...), "residuals()",

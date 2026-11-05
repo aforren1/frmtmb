@@ -1,6 +1,7 @@
 # The two brms tiers that need Stan:
 #   tests/testthat/test-brms-likelihood.R  the log-density identity
 #   tests/testthat/test-brms-methods.R     what the post-fit methods return
+#   tests/testthat/test-brms-lik-gp-exact.R  exact gp() on unsorted positions
 #
 # They share one job because they share one compiled-model cache. The
 # methods tier builds its brms fits from the SAME programs the identity
@@ -95,11 +96,11 @@ jobs:
           needs: check
       # The cache is content addressed per Stan program, so the key only
       # has to change when the set of programs can change. That set is
-      # determined by the FOUR tier files and by the rstan version whose
+      # determined by the FIVE tier files and by the rstan version whose
       # DSOs are stored, and the restore-keys prefix means a changed key
       # still recovers every program that did not change.
       #
-      # All four, not two. actions/cache saves at post-job only when the
+      # All five, not two. actions/cache saves at post-job only when the
       # primary key was not an exact hit. Hash the identity tier's two
       # files alone and the first run compiles the methods tier's extra
       # program, restores an exact key hit, saves nothing, and recompiles
@@ -113,6 +114,7 @@ jobs:
           # key never misses and the cache never saves a recompile
           vb <- as.character(packageVersion("brms"))
           h <- tools::md5sum(c("tests/testthat/test-brms-likelihood.R",
+                               "tests/testthat/test-brms-lik-gp-exact.R",
                                "tests/testthat/helper-brms.R",
                                "tests/testthat/test-brms-methods.R",
                                "tests/testthat/helper-brms-methods.R"))
@@ -179,6 +181,36 @@ jobs:
           df <- as.data.frame(res)
           if (sum(df$failed) > 0 || any(df$error)) {
             stop("the brms log-density identity tier failed")
+          }
+          if (any(df$skipped)) {
+            stop("a test skipped with the gate set: ",
+                 paste(df$test[df$skipped], collapse = "; "))
+          }
+        shell: Rscript {0}
+      - name: Run the exact gp() identity on unsorted positions
+        # its own step and process, as the two tiers around it, for the
+        # reason above; on any outcome of the log-density tier, because a
+        # translator fault shows in both
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: |
+          stopifnot(
+            requireNamespace("rstan", quietly = TRUE),
+            requireNamespace("brms", quietly = TRUE),
+            identical(Sys.getenv("FRMTMB_BRMS_FIT_TESTS"), "true"),
+            identical(Sys.getenv("NOT_CRAN"), "true")
+          )
+          pkgload::load_all(".", quiet = TRUE)
+          res <- testthat::test_file(
+            "tests/testthat/test-brms-lik-gp-exact.R",
+            package = "frmtmb",
+            reporter = testthat::MultiReporter$new(list(
+              testthat::ProgressReporter$new(),
+              testthat::CheckReporter$new()
+            ))
+          )
+          df <- as.data.frame(res)
+          if (sum(df$failed) > 0 || any(df$error)) {
+            stop("the exact gp() identity failed")
           }
           if (any(df$skipped)) {
             stop("a test skipped with the gate set: ",

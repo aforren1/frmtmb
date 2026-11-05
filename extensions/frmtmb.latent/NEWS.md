@@ -1,3 +1,9 @@
+# frmtmb.latent 0.7.2
+
+Needs frmtmb 0.79.0. The package itself is unchanged, and one of its
+tests pins the interval of `fitted()` on a `mixture_mvn()` fit that
+frmtmb 0.79.0 gives.
+
 # frmtmb.latent 0.7.1
 
 Needs frmtmb 0.75.0. The package itself is unchanged, and one of its

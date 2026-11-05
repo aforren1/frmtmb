@@ -368,10 +368,11 @@ The non-linear grammar reaches a real published model, one written by other
 people in another language, without a change of variable that the model itself
 did not already contain.
 
-`nlf()` is the tool that gets there. A `categorical()` family cannot be given
-`nl = TRUE`, because that requires a family with a single mean parameter. Naming
-the distributional parameters directly with `nlf()` sidesteps that, and lets a
-multi-category likelihood be written as algebra.
+`nlf()` is the tool that gets there. On a `categorical()` family, `nl = TRUE`
+writes one body into every category, with one set of parameters, as brms does, and
+that is not this model. Naming the distributional parameters directly with `nlf()`
+gives each category its own body, and lets a multi-category likelihood be written
+as algebra.
 
 A hard-wired link is not an obstacle when it is invertible. The softmax was
 driven through its own inverse here, which cost one logarithm per category.

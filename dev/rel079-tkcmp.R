@@ -1,0 +1,5 @@
+rd <- function(f) read.table(f, sep = "\t", header = TRUE, quote = "\"", comment.char = "", stringsAsFactors = FALSE)
+a <- rd("dev/rel079-log/tk-0322/fresh-f_nb1.tsv"); b <- rd("dev/rel079-log/tk-lanelib/fresh-f_nb1.tsv")
+cat("rows", nrow(a), nrow(b), " warned same", sum(a$warned == b$warned), " why same", sum(a$why == b$why), " ll max diff", max(abs(a$ll - b$ll)), "\n")
+print(table(a$warned)); print(table(b$warned))
+print(head(cbind(a$why, b$why), 2))

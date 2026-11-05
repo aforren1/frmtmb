@@ -213,31 +213,37 @@ test_that("posterior_linpred is frmtmb's frm_linpred(type = 'link')", {
   }
 })
 
-test_that("a multi-column linear predictor is one vector to frmtmb", {
+test_that("a multi-column linear predictor has brms's columns", {
   skip_unless_brms_fit()
 
-  # DIVERGENCE in shape, not in value. Where the mu predictor has more
-  # than one column per observation, as a cs() term's thresholds and a
-  # categorical family's K - 1 categories both do, brms's
-  # posterior_linpred() returns draws x N x columns while frmtmb's
-  # frm_linpred(type = "link") returns the N-vector of the mu predictor
-  # alone. The extra columns are reachable through frm_linpred(dpar = ) for
-  # the categorical case and are not reachable at all for cs().
+  # Where the predictor has more than one column per observation, as a cs()
+  # term's thresholds and a categorical family's K - 1 categories both do,
+  # brms's posterior_linpred() returns draws x N x columns, and
+  # frm_linpred(type = "link") one column per layer. On 0.78.0 this file
+  # recorded the N-vector of the first as a divergence in shape; for cs() the
+  # columns were not reachable at all.
   s <- brms_shape("r13")
   pl <- brms::posterior_linpred(s$brmsfit)
   expect_identical(dim(pl), c(10L, 300L, 2L))
-  expect_length(as.numeric(frm_linpred(s$fit, type = "link")), 300L)
+  m <- frm_linpred(s$fit, type = "link")
+  expect_identical(dim(m), c(300L, 2L))
   # the columns ARE frmtmb's per-dpar link predictions
   for (k in seq_len(2L)) {
     dp <- paste0("mu", k + 1L)
     expect_exact_num(pl[1, , k], frm_linpred(s$fit, type = "link", dpar = dp),
                      label = paste("categorical linpred column", dp))
+    expect_exact_num(pl[1, , k], m[, k],
+                     label = paste("categorical linpred layer", k))
   }
 
   s2 <- brms_shape("r12e")
-  expect_identical(dim(brms::posterior_linpred(s2$brmsfit)),
-                   c(10L, 300L, 2L))
-  expect_length(as.numeric(frm_linpred(s2$fit, type = "link")), 300L)
+  pl2 <- brms::posterior_linpred(s2$brmsfit)
+  expect_identical(dim(pl2), c(10L, 300L, 2L))
+  m2 <- frm_linpred(s2$fit, type = "link")
+  for (k in seq_len(2L)) {
+    expect_exact_num(pl2[1, , k], m2[, k],
+                     label = paste("cs() linpred layer", k))
+  }
 })
 
 test_that("transform = TRUE is the inverse link, not always the mean", {

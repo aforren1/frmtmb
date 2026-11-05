@@ -35,7 +35,22 @@ passed to \code{\link[=frm]{frm()}}, which uses \code{gaussian()} when nothing n
 nonlinear expression of named parameters, each given its own
 \code{...} formula with the full predictor grammar. \code{NULL}, the default
 as in brms, means \code{FALSE} for a new formula and keeps the setting
-of a formula \code{bf()} already built.}
+of a formula \code{bf()} already built. The body is R code on the tape,
+and it can call the functions of the Stan language that brms's own
+bodies call: \code{inv_logit()}, \code{logit()}, \code{inv_cloglog()}, \code{Phi()},
+\code{square()}, \code{cbrt()}, \code{exp2()}, \code{pow()}, \code{inv()}, \code{inv_sqrt()},
+\code{inv_square()}, \code{hypot()}, \code{log1m()}, \code{step()}, \code{log1p_exp()},
+\code{log1m_exp()}, \code{log_diff_exp()}, \code{log_sum_exp()}, \code{log_inv_logit()}
+and \code{log1m_inv_logit()}, with Stan's values and derivatives. A function
+of the same name found from the formula's environment comes first,
+which includes the packages on the search path, except for
+\code{stats::step()}. \code{x^b} and \code{pow(x, b)} with \code{x = 0} on a row have Stan's
+gradient. On a family with
+several location parameters (\code{categorical()}, \code{multinomial()},
+\code{dirichlet()} and the other simplex families, a \code{mixture()}), the
+one body is every location's, with one set of nonlinear parameters,
+as in brms. On an ordinal family the body is the latent predictor,
+and the thresholds stay.}
 
 \item{center}{Whether the location formula's intercept is brms's
 class \code{"Intercept"}, a density on the intercept at the means of the
@@ -67,7 +82,9 @@ refused on \code{ar1()}, \code{hetar1()}, \code{cs()}, \code{homcs()}, \code{toe
 \item{autocor}{A one-sided formula of autocorrelation terms, as in
 brms, e.g. \code{~ ar(week, subj)}. The terms are added to the location
 formula, so \code{bf(y ~ x, autocor = ~ ar(week, subj))} is
-\code{bf(y ~ x + ar(week, subj))}. See \link{autocor-terms}.}
+\code{bf(y ~ x + ar(week, subj))}. With \code{nl = TRUE} this is the way to
+give a nonlinear model a term, since a body is evaluated and not
+read as terms. See \link{autocor-terms}.}
 }
 \value{
 An object of class \code{frmtmb_formula}.
@@ -156,6 +173,58 @@ thresholds take the intercept's place. A data column named
 \code{Intercept} must hold only ones in such a model, as brms requires;
 in a formula with an intercept, \code{Intercept} is an ordinary variable.
 Prediction needs no \code{Intercept} column in \code{newdata}.
+}
+
+\section{Missing values under \code{mi()}}{
+
+\code{bf(y | mi() ~ x)} takes a response with missing values, for the 14
+continuous families brms takes it for. What \code{\link[=frm]{frm()}} does with a value
+depends on whether another density reads it:
+
+\describe{
+\item{No density in the objective reads it}{It integrates to 1, so it
+leaves the objective. The fit is the complete-case one, exactly. A
+reader whose own density has left does not read: \code{z | mi() ~ mi(y)} with
+\code{z} missing where \code{y} is takes both rows out, and a reader's weight of 0
+does not read. The row stays in the frame and predicts;
+\code{fit$estimates$miss} has no entry for it.}
+\item{A density reads it}{(a predictor's \code{mi(y)}, \code{mi(sd)}, a
+\code{cov = FALSE} autocorrelation term.) It stays latent and is
+integrated out by a Laplace approximation, on a chart that holds it
+in the family's support. \code{asym_laplace()} and a \code{mixture()} have no mode
+for it to expand about and are refused here.}
+}
+
+The approximation is exact only for a \code{gaussian} value that \code{gaussian} means
+read. Elsewhere it can move an estimate. The largest shift from an exact
+maximum, in its standard errors, on 200 rows: 2.74 \code{exgaussian} with 60 read
+by a slope of 0.05, 2.14 \code{student} with the same, 0.98 \code{beta} and 0.96
+\code{Gamma} with 100 read by a slope of 0.7, 0.14 \code{exgaussian} with 60 read by a
+slope of 0.7. A reader that carries little leaves the row nearly unread, with
+an unread row's error. Per value, against \code{integrate()}, on 80 rows with 8
+missing and a gaussian reader: 0 \code{gaussian}, -0.114 \code{Gamma}, -0.098
+\code{exponential}, -0.078 \code{weibull}, +0.008 \code{frechet}, -0.125 \code{beta}, -0.079
+\code{exgaussian}, -0.076 \code{von_mises}, -0.037 \code{lognormal}, -0.023 \code{skew_normal},
++0.021 \code{inverse.gaussian}, +0.008 \code{gen_extreme_value}. \code{von_mises} loses -1 to
+-4.2 per value at a mean near the end of its window, where the value has two
+modes, and estimates there can be off by up to 17 standard errors.
+
+After the fit, \code{\link[=frm]{frm()}} warns, with class \code{frmtmb_mi_laplace_error}, when the
+approximation moves an estimate. Three inner Hessians over every read value
+give Tierney-Kadane's term, a gate that costs 0.1 percent of a fit. Past it, an
+\code{integrate()} over 10 of the values at the estimate and at one standard error
+above it, per parameter of the read response, tells how far a parameter moves:
+a move of 0.5 or more warns, and \code{fit$mi_laplace} holds the moves. That stage
+costs about 37 percent of the fit. For a \code{von_mises} value, 10 percent or more
+of read rows with \code{pi - abs(mu) < 2 / sqrt(kappa)} warn with no integral.
+\code{check_mi} in \code{\link[=frmtmb_control]{frmtmb_control()}} sets what happens. The shift from an exact
+maximum, in standard errors, over 144 fits: a shift of 1 or more warned on 75 of
+76, and a shift below 0.5 on 3 of 39, and the largest silent shift was 1.01.
+
+\code{frmtmb.sample::frm_sample()} holds every value and has no such error. Its
+draws name a value as brms does, \verb{Ymi_<resp>[k]}, on the response's scale. If
+the reader carries little about the value, deleting those rows gives nearly
+the same model without the error.
 }
 
 \examples{

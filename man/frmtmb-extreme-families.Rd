@@ -126,9 +126,8 @@ inclusive.
 
 \section{Addition terms}{
 
-All three take \code{weights()}, \code{cens()} and \code{trunc()}. brms also takes
-\code{mi()} on a \code{frechet} or \code{gen_extreme_value} response; frmtmb takes
-\code{mi()} on a gaussian or student response only.
+All three take \code{weights()}, \code{cens()} and \code{trunc()}. \code{frechet} and
+\code{gen_extreme_value} also take \code{mi()}, as in brms.
 }
 
 \examples{

@@ -317,13 +317,8 @@ test_that("loo_linpred has reasonable outputs", {
     "",
     expect_equal(nrow(llp), nobs(fit4))
   )
-  brms_port("brmsfit-methods:523", "divergence",
-    paste0(
-      "loo_linpred() of an ordinal fit with a cs() term returns ",
-      "one matrix where brms returns one layer per threshold ",
-      "(dim(llp)[3] is 3 in brms, NA here): posterior_linpred() of ",
-      "draws has no cs() threshold layer, and loo_linpred() ",
-      "inherits it (dev/test-backlog.md, filed at 0.73.0)"),
+  brms_port("brmsfit-methods:523", "pass",
+    "",
     expect_equal(dim(llp)[3], 3)
   )
   brms_setup("brmsfit-methods:525",

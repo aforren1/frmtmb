@@ -28,6 +28,12 @@ fit_end_checks <- function(fit) {
                 conditionMessage(e),
                 ". The fit itself is complete and unaffected", call. = FALSE)
   }))
+  tryCatch(discrete_loglik_warning(fit), error = keep_missing(function(e) {
+    frm_warning("The check of the discrete log-likelihood failed after the ",
+                "fit finished, so nothing was checked about it: ",
+                conditionMessage(e),
+                ". The fit itself is complete and unaffected", call. = FALSE)
+  }))
   for (resp in fit$spec$responses) {
     fc <- resp$family[["post"]][["fit_check"]]
     if (!is.function(fc)) next
@@ -48,5 +54,34 @@ fit_end_checks <- function(fit) {
                   call. = FALSE)
     })
   }
+  invisible(NULL)
+}
+
+#' A warning for a fit of discrete responses with a log-likelihood above 0.
+#'
+#' A probability mass is at most 1, so that value cannot be a likelihood. It
+#' marks a density that lost its digits (`beta_binomial()` read +94208 at code
+#' 0 before its density was rewritten) or a custom family that dropped a
+#' constant. It is one-sided: a value below 0 can be just as wrong, so this does
+#' not vouch for a fit. Under a prior `logLik()` holds the log prior as well, and
+#' REML integrates over a flat prior, so neither is a mass there.
+#'
+#' @noRd
+discrete_loglik_warning <- function(fit) {
+  if (isTRUE(fit$REML) || NROW(fit$prior) > 0L) return(invisible(NULL))
+  ll <- -fit$opt$objective
+  if (length(ll) != 1L || !is.finite(ll)) return(invisible(NULL))
+  # a sum of near-zero log masses can pass 0 by its rounding
+  if (ll <= 1e-8 * max(1, fit$frame[["n_obs"]])) return(invisible(NULL))
+  types <- vapply(fit$spec$responses, function(resp) {
+    as.character(resp$family[["type"]] %||% "")[1L]
+  }, "")
+  if (!all(types == "discrete")) return(invisible(NULL))
+  frm_warning(
+    "The log-likelihood is ", format(ll, digits = 7), ", above 0, but every ",
+    "response is discrete and a probability mass is at most 1. The density ",
+    "has lost its digits at these estimates, or a custom family has dropped ",
+    "a constant. Do not read this fit",
+    call. = FALSE, class = "frmtmb_discrete_loglik")
   invisible(NULL)
 }

@@ -196,6 +196,35 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 #' formula are refused, `vcov = TRUE` gives the model-based standard
 #' errors, and [frm_bootstrap()] is the route to a robust one.
 #'
+#' @section What the standard error holds:
+#' marginaleffects forms a standard error from the coefficients `get_coef()`
+#' holds, the population-level and distributional ones, by the delta method. It
+#' cannot carry a variance that is in no such coefficient. The default `vcov`
+#' gives the warning of class `frmtmb_interop_se_part` on a fit where that gap
+#' exists, because `get_vcov()` is not told which rows or which quantity it
+#' serves.
+#'
+#' * A `me()` term. Every row reads as a new row, whose latent value brms draws
+#'   from `N(x, sdx)`. The standard error of a level reads 0.07 where
+#'   [frm_linpred()] reads 1.11. A slope, a contrast or a test of a coefficient
+#'   needs no such draw and is right: -0.491, standard error 0.0485.
+#' * A smooth, `gp()` or `hsgp()` term. `get_coef()` holds no coefficient of the
+#'   field. On a `gp()` the standard error is 0.31 on every row, where
+#'   [frm_linpred()] reads 0.087 to 0.695; on `s(x)` it reads 0.70, 0.12, 1.07,
+#'   1.59 where [frm_linpred()] reads 0.088, 0.068, 0.55, 1.32. It is too wide
+#'   near the data and too narrow far from it.
+#' * Group-level effects, with `re_formula` keeping them. The standard error
+#'   holds neither their uncertainty nor their covariance with the intercept:
+#'   0.209 where [fitted.frmtmb_fit()] reads 0.104 on a gaussian `(1 | g)`,
+#'   1.435 where it reads 0.488 on a poisson one. Under `re_formula = NA` the
+#'   two agree, and no warning comes.
+#'
+#' `frm_linpred(se.fit = TRUE)` and [fitted.frmtmb_fit()] carry each of these.
+#' On the response scale of a `me()` fit, the estimate is the mean over the
+#' draw, as [fitted.frmtmb_fit()] reads it. `vcov = FALSE` gives the estimates
+#' alone. A covariance matrix passed as `vcov` is read as you give it, and gives
+#' no warning.
+#'
 #' @section brms's prediction arguments:
 #' `re_formula`, `allow_new_levels`, `dpar` (also under brms's name
 #' `nlpar`) and `resp` go to [frm_linpred()], as they go to brms's
@@ -642,6 +671,48 @@ set_coef.frmtmb_fit <- function(model, coefs, ...) {
   model
 }
 
+#' What the standard error of a level from `marginaleffects` does not hold, said
+#' once per call.
+#'
+#' It forms `J V J'` over `get_coef()`, the population-level coefficients and
+#' the distributional ones. It cannot carry anything else, and `get_vcov()` gets
+#' no rows, and every row reads as new, so this cannot be told by row. It cannot
+#' be a refusal either: a slope, a contrast or a test of a coefficient is right
+#' on a `me()` term (z -0.491, se 0.0485; dev/review-predread-r1-check3.R, seed
+#' 7402). The gaps are measured in dev/predread-mfx-se.R, seed 7411, and in
+#' dev/review-predread-r1-check3.R, seed 7403: `(1 | g)` reads 0.209 where
+#' `fitted()` reads 0.104, and agrees under `re_formula = NA`; a `gp()` reads
+#' 0.31 on every row where `frm_linpred(se.fit = TRUE)` reads 0.087 to 0.695.
+#'
+#' @noRd
+interop_warn_se_part <- function(model, dots) {
+  blocks <- vapply(model$frame[["re_blocks"]] %||% list(),
+                   function(bk) bk[["covstruct"]], "")
+  field <- blocks %in% c("smooth", "gp", "hsgp")
+  omits <- c(
+    if (!is.null(model$frame[["me"]])) {
+      "the draw of a new row's me() value"
+    },
+    if (any(field)) "the coefficients of a smooth, gp() or hsgp() term",
+    if (any(!field) && re_form_keeps(dots[["re_formula"]])) {
+      "the group-level effects (re_formula = NA drops them, and then a level agrees)"
+    })
+  if (!length(omits)) return(invisible(NULL))
+  frm_warning("marginaleffects forms its standard errors from the population-",
+              "level coefficients alone. It holds fixed ",
+              paste(omits, collapse = ", and "),
+              ". The standard error of a level from predictions(), or of an ",
+              "average of levels, can be too wide or too narrow, often by a ",
+              "factor of 2 or more. On a log or logit link, or with a ",
+              "group-level slope, a slope or contrast can be off too. A test ",
+              "of a coefficient is not affected. frm_linpred(newdata = , ",
+              "se.fit = TRUE) and fitted(newdata = ) give a level's standard ",
+              "error. vcov = FALSE gives the estimates alone, with no ",
+              "standard error", call. = FALSE,
+              class = "frmtmb_interop_se_part")
+  invisible(NULL)
+}
+
 #' @exportS3Method marginaleffects::get_vcov
 get_vcov.frmtmb_fit <- function(model, vcov = NULL, ...) {
   # marginaleffects passes its `vcov =` argument here. Through 0.76.0
@@ -650,6 +721,7 @@ get_vcov.frmtmb_fit <- function(model, vcov = NULL, ...) {
   # (doubling the matrix left them unchanged where lm() gives sqrt(2)).
   if (isFALSE(vcov)) return(NULL)
   if (!is.null(vcov) && !isTRUE(vcov)) return(interop_user_vcov(model, vcov))
+  interop_warn_se_part(model, list(...))
   # NOT vcov(model): that is brms's population-level block since item
   # 2.6f, and it has neither the rows nor the names of get_coef(), which
   # is the vector marginaleffects perturbs. A covariance one row short
@@ -932,11 +1004,37 @@ get_predict.frmtmb_fit <- function(model, newdata, type = "response",
   # predictions(re_formula = NA) returned the conditional predictions.
   dots <- list(...)
   me_refuse_dots(names(dots))
+  # a univariate fit does not read it, whichever reader is next
+  dots["resp"] <- list(resp_read(model, dots[["resp"]]))
   dpar <- dots[["dpar"]] %||% dots[["nlpar"]]
+  latres_refuse_newdata(model, newdata)
   p <- frm_linpred(model, newdata = newdata, type = type,
                    dpar = dpar, resp = dots[["resp"]],
                    re_formula = dots[["re_formula"]],
                    allow_new_levels = isTRUE(dots[["allow_new_levels"]]))
+  # the expected response over a new row's me() value and latent residual,
+  # as fitted() and brms's posterior_epred() read it
+  if (type == "response") {
+    read_mean <- function(r, value) {
+      anl <- isTRUE(dots[["allow_new_levels"]])
+      mm <- fitted_me_moments(model, newdata, dots[["re_formula"]], r, dpar, anl,
+                              mean_only = TRUE)
+      if (is.null(mm)) {
+        return(latres_fitted_mean(model, newdata, dots[["re_formula"]], r, dpar,
+                                  anl, value))
+      }
+      attributes(mm$mean) <- attributes(value)
+      mm$mean
+    }
+    # with no `resp` the frame holds every response, and each has its own load
+    rns <- names(model$spec$responses)
+    if (is.null(dots[["resp"]]) && length(rns) > 1L &&
+          identical(colnames(p), rns)) {
+      for (r in rns) p[, r] <- read_mean(r, p[, r])
+    } else {
+      p <- read_mean(dots[["resp"]], p)
+    }
+  }
   # marginaleffects pads new data with a row for each level of a factor
   # and marks those rows with a negative rowid, which it drops again by
   # that rowid. Numbering the rows afresh kept them: predictions() with
@@ -1107,6 +1205,20 @@ me_refuse_dots <- function(nms) {
 #' grid rows at one position load one residual, so a contrast between
 #' them is the coefficient part alone.
 #'
+#' @section New rows of a model with me():
+#' The reference grid holds a new row of a `me()` term, with its noisy variable
+#' and its SD at the grid's values. brms's draws take the latent value from
+#' `N(x, sdx)`. Here the estimate reads the value at `x` and `SE` adds that
+#' draw's variance, so it is not coefficient uncertainty alone. A contrast here
+#' answers for two new rows, each with its own measurement error, as brms's
+#' draws do, so it carries both draws, even in a variable the term does not
+#' read: 0.97 on a coefficient with a standard error of 0.05, as brms's HPD
+#' interval of width 3.77 does. For the effect of a variable, that is not the
+#' reading: use the coefficient or `frm_curve(contrast = )` for `z`, and
+#' [frm_curve_deriv()] for `x`. With `epred = TRUE` the interval emmeans builds
+#' is symmetric about the estimate, where brms's is not: 2.99 with `SE` 1.79
+#' against an HPD interval of 0.67 to 7.98.
+#'
 #' @section Divergence from brms:
 #' For a nonlinear `mu` without `nlpar`, the brms reference grid holds
 #' only the covariates of the nonlinear body. frmtmb also puts in the
@@ -1185,7 +1297,7 @@ emm_target <- function(object, resp = NULL, dpar = NULL, nlpar = NULL,
     frm_stop("'dpar' and 'nlpar' cannot be specified at the same time.",
              call. = FALSE)
   }
-  resp <- brms_validate_resp(object, resp)
+  resp <- brms_validate_resp(object, resp_read(object, resp))
   # re_resolve() refuses a term that matches no group-level term of the
   # fit, rather than reading a misspelled factor as "drop them all"
   use_re <- re_form_keeps(
@@ -1193,7 +1305,13 @@ emm_target <- function(object, resp = NULL, dpar = NULL, nlpar = NULL,
   targets <- lapply(resp, emm_target_one, object = object, dpar = dpar,
                     nlpar = nlpar, epred = epred)
   names(targets) <- resp
-  design <- !epred && !use_re &&
+  # a design basis over the shared coefficients has no column for a cs() term
+  cs_K1 <- if (epred) {
+    rep(0L, length(targets))
+  } else {
+    vapply(targets, `[[`, 1L, "cs_K1")
+  }
+  design <- !epred && !use_re && !any(cs_K1 > 0L) &&
     all(vapply(targets, function(t) emm_is_design(t$lp), NA))
   # emmeans has one .offset. column for the whole grid, which would add
   # one response's offset to every response; the grid route adds each
@@ -1216,7 +1334,17 @@ emm_target <- function(object, resp = NULL, dpar = NULL, nlpar = NULL,
     }
     misc <- targets[[1L]]$misc
   }
-  if (length(resp) > 1L) misc$ylevs <- list(rep.meas = resp)
+  if (length(resp) > 1L || any(cs_K1 > 0L)) {
+    # brms names the layers of the array it reshapes, and numbers them when
+    # it has no names; a cs() response has K - 1 layers
+    misc$ylevs <- list(rep.meas = if (length(resp) == 1L) {
+      as.character(seq_len(cs_K1))
+    } else {
+      unlist(Map(function(r, k) {
+        if (k > 0L) paste0(r, seq_len(k)) else r
+      }, resp, cs_K1), use.names = FALSE)
+    })
+  }
   list(resp = resp, targets = targets, epred = epred,
        re_formula = re_formula, use_re = use_re,
        route = if (design) "design" else "grid", misc = misc)
@@ -1293,8 +1421,15 @@ emm_target_one <- function(object, r, dpar, nlpar, epred) {
   } else {
     emm_link_misc(if (nm == "mu") fam[["family"]] else "", lp[["link"]])
   }
+  # no parameter named on a cs() term: every threshold's own predictor, as
+  # brms's posterior_linpred() has them; dpar = "mu" is the shared part
+  cs_K1 <- if (is.null(dpar) && is.null(nlpar) && length(lp[["cs"]])) {
+    length(object$estimates[[lp[["cs"]][[1L]]$par]])
+  } else {
+    0L
+  }
   list(resp = r, rspec = rspec, name = nm, lp = lp,
-       link = if (latent) "latent" else link, misc = misc)
+       link = if (latent) "latent" else link, misc = misc, cs_K1 = cs_K1)
 }
 
 #' The expected response is one number per grid row, or refused.
@@ -1354,7 +1489,8 @@ emm_link_misc <- function(family, link) {
 #' @noRd
 emm_is_design <- function(lp) {
   is.null(lp[["nl_body"]]) && !length(lp[["smooths"]]) &&
-    !length(lp[["gps"]]) && !length(lp[["mo"]]) && !length(lp[["mi"]])
+    !length(lp[["gps"]]) && !length(lp[["mo"]]) && !length(lp[["mi"]]) &&
+    !length(lp[["me"]])
 }
 
 #' The predictors a grid-route prediction reads: every covariate of the
@@ -1391,6 +1527,19 @@ emm_grid_vars <- function(object, t, tg) {
       # (dev/resmooth-emm-before.txt against -after.txt).
       for (si in lpk[["smooths"]] %||% list()) {
         if (!is.null(si[["group_var"]])) v <- c(v, si[["group_var"]])
+      }
+      # a cs() term's variable lives with the term, not in `terms`
+      for (ct in lpk[["cs"]] %||% list()) {
+        v <- c(v, all.vars(ct[["expr"]] %||%
+                             str2lang(sub("^cs", "", ct[["label"]]))))
+      }
+      # a me() term reads its noisy variable, its SD and its level at every
+      # grid row, as brms's grid holds them
+      for (mt in lpk[["me"]] %||% list()) {
+        for (k in mt$terms) {
+          tm <- object$frame[["me"]]$terms[[k]]
+          v <- c(v, all.vars(tm$x), all.vars(tm$sdx), tm$gr)
+        }
       }
       if (tg$use_re) {
         gv <- emm_group_vars(rspec, lpk[["dpar"]])
@@ -1698,7 +1847,8 @@ emm_basis_grid <- function(object, tg, grid) {
     p <- if (tg$epred) {
       emm_epred_part(object, t, nd, tg$re_formula)
     } else {
-      emm_lp_part(object, t$resp, t$name, nd, tg$re_formula)
+      emm_lp_part(object, t$resp, if (t$cs_K1 == 0L) t$name, nd,
+                  tg$re_formula)
     }
     emm_check_part(p, t$resp, length(tg$targets) > 1L)
     p
@@ -1829,9 +1979,10 @@ frmtmb_getME_vocab <- c("X", "Z", "Zt", "beta", "fixef", "b", "theta",
 #'
 #' @noRd
 getME_group_blocks <- function(object) {
-  Filter(function(bk) !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp") &&
-           !is.null(bk[["components"]][[1L]]$bar),
-         object$frame[["re_blocks"]])
+  Filter(function(bk) {
+    !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "latres") &&
+      !is.null(bk[["components"]][[1L]]$bar)
+  }, object$frame[["re_blocks"]])
 }
 
 #' Labels for the random-effect coefficient vector, which is also the

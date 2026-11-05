@@ -453,11 +453,13 @@ test_that("an mi() fit builds a grid from the complete cases", {
 
   # the imputed predictor has gaps; the grid spans what is observed
   ce <- conditional_effects(fmi, resp = "y", resolution = 5)
-  expect_named(ce, "x")
-  expect_equal(range(ce$x$x), range(d$x, na.rm = TRUE))
-  expect_true(all(is.finite(ce$x$estimate__)))
-  expect_true(all(is.finite(ce$x$se__)))
-  expect_true(all(ce$x$lower__ <= ce$x$upper__))
+  # brms names a multivariate model's panel <resp>.<resp>_<effect>
+  expect_named(ce, "y.y_x")
+  ce1 <- ce[["y.y_x"]]
+  expect_equal(range(ce1$x), range(d$x, na.rm = TRUE))
+  expect_true(all(is.finite(ce1$estimate__)))
+  expect_true(all(is.finite(ce1$se__)))
+  expect_true(all(ce1$lower__ <= ce1$upper__))
   # the raw-observation overlay carries the gaps and still draws
   grDevices::pdf(NULL)
   on.exit(grDevices::dev.off(), add = TRUE)

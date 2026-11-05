@@ -153,10 +153,13 @@ Addition terms are the most family-sensitive part of the grammar.
 `cens()` and `trunc()` need a family that supplies a cumulative
 distribution function, and that is all they need: a discrete family
 that has one is censored and truncated as brms censors and truncates it
-(see [`frmtmb_family()`]). `mi()`
-needs a gaussian or student model. `se()` needs a family that DECLARES
-it reads the term, with `accepts_aterms`; gaussian and student are the
-built-in ones that do.
+(see [`frmtmb_family()`]). `mi()` needs a family that DECLARES it,
+with `accepts_aterms`: the 14 continuous families brms takes it for.
+On `frm()`, a missing value no density reads leaves the objective, so the
+fit is the complete-case one; a value another density reads stays latent
+under a Laplace approximation, whose size `?bf` states. `se()` needs
+a family that DECLARES it reads the term, with `accepts_aterms`;
+gaussian, student and skew_normal are the built-in ones that do.
 
 ```{r fam-aterm}
 grid_table("family", "aterm", rows = kind_of("family"),
@@ -260,12 +263,13 @@ note_table("structure", "method")
 `ar()`, `ma()`, `arma()`, `cosy()`, `unstr()` and `fcor()` replace the
 response's per-row density with one joint density per group (for
 `fcor()`, one group holding every row). That is
-what decides almost every pair below: a family needs a real residual
-to correlate, and an addition term that reshapes a per-row
-contribution has nothing left to reshape. brms's default `cov = FALSE`
-for `ar()`, `ma()` and `arma()` keeps the per-row density and shifts
-`mu` instead, so the rows naming those three terms say where its
-answer differs.
+what decides almost every pair below on `gaussian()` and `student()`:
+an addition term that reshapes a per-row contribution has nothing left
+to reshape. brms's default `cov = FALSE` for `ar()`, `ma()` and `arma()`
+keeps the per-row density and shifts `mu` instead, so the rows naming
+those three terms say where its answer differs. On every other family
+that takes the terms, they are brms's latent residual, a latent per row
+on the linear predictor of `mu`, and the density stays per row.
 
 ```{r autocor-fam}
 grid_table("autocor", "family", rows = kind_of("autocor"),
@@ -316,7 +320,9 @@ note_table("special", "mode")
 
 The specials `mi()`, `gp()`, and `cs()` share a name with a covariance
 structure. The registry writes the predictor forms as `mi_pred()`,
-`gp_pred()`, and `cs_pred()` to keep them apart.
+`gp_pred()`, and `cs_pred()` to keep them apart. A row that marks the exact
+`gp()` as working means its model apart from the nugget, which `?"frmtmb-gp"`
+states.
 
 ## Formula grammar
 

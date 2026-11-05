@@ -125,9 +125,11 @@ draws_natural_cols <- function(fit) {
   # a gp() term's sd and length scales: brms's sdgp_ and lscale_ draws
   # are on brms's scales, which the internal log theta is not
   gpn <- gp_brms_natural(fit)
-  out <- list(names = c(tab$brms[i], gpn$names),
-              linkinv = c(attr(tab, "linkinv")[i], gpn$linkinv),
-              linkfun = c(attr(tab, "linkfun")[i], gpn$linkfun),
+  # a missing value on the response's own scale, not the sampler's chart
+  min <- mi_sampling(fit, "natural")
+  out <- list(names = c(tab$brms[i], gpn$names, min$names),
+              linkinv = c(attr(tab, "linkinv")[i], gpn$linkinv, min$linkinv),
+              linkfun = c(attr(tab, "linkfun")[i], gpn$linkfun, min$linkfun),
               simplex = smp, equated = equated,
               # a mo() simplex is renamed and mapped as an ordinal block
               # is: its chart columns become brms's simo_ weights
@@ -178,8 +180,8 @@ draws_cov_cols <- function(fit, have = character(0)) {
   ev <- tryCatch(hyp_env_vals(fit, vo$vals, vo$comp),
                  error = function(e) NULL)
   if (is.null(ev)) return(none)
-  pat <- paste0("^(sd_|cor_|sds_|rescor__|cortime__|sdme_|corme_|",
-                "ar[[]|ma[[]|cosy$)")
+  pat <- paste0("^(sd_|cor_|sds_|rescor__|cortime_|sdme_|corme_|",
+                "(ar|ma)(_[^[]+)?[[]|cosy(_.+)?$|sderr(_.+)?$)")
   # a registry term names its own parameters; core lists them, so this
   # package keeps no list of those names
   nm <- setdiff(union(grep(pat, names(ev), value = TRUE),

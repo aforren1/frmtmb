@@ -35,6 +35,10 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   lane ordmix on the `cs()` path: `yh ~ cs(x)` with
   `hurdle_cumulative()` (logit) stops at "index 4 out of range"
   (`dev/ordmix-findings.md`, "brms 2.23.0 defects met").
+  Met again 2026-11-02 by lane nlfix on `disc` with a body and without one: the
+  program's process exits 139 under `rstan::log_prob()` in the survey's
+  instrument, and with the test patched to `nthres + 1` the log density equals
+  frm()'s (5.7e-14, `dev/reviews/2026-11-02-nlfix.md`, "The segfault").
 - Status: not reported.
 
 ### brms-2. The softit link does not compile
@@ -831,6 +835,27 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   2026-10-28.
 - Status: not reported.
 
+### brms-50. `me()` on new data draws one latent per predictor, against its own Stan program
+
+Numbering is settled at consolidation. Not reported.
+
+- Seen: 2.23.0, 2026-11-02 (`dev/review-predread-mejoint.R`, seed 7701;
+  `dev/predread-me-brms-probe.R`, data seed 41).
+- Repro: `mvbf(bf(y1 ~ me(xo, sx)), bf(y2 ~ me(xo, sx)), rescor = FALSE)`, then
+  `posterior_epred()` and `posterior_predict()` with `newdata`. The same for a
+  `mu` and a `sigma` that read one call.
+- Expected: one latent value per row and draw, as the program has one `Xme_1`
+  that `mu_y1` and `mu_y2` both read. Actual: `prepare_predictions_sp()` draws for
+  each predictor. `cor(y1, y2)` of the expected values over draws is 0.007, 0.003,
+  -0.015 by row on new data, and 0.99 to 0.97 in sample under
+  `save_pars(latent = TRUE)` on the same fit, same rows.
+- Why it matters: at the training rows the observed correlation of
+  `y - E[y | x_obs]` is 0.734, one shared latent predicts 0.7385 and brms's
+  replicates give -0.001. The 95 percent width of `y1 - y2` at `sdx = 2` is 15.08
+  drawn independently and 3.18 shared. A marginal moves too on `mu` and `sigma`:
+  predictive skew 0.03, -0.02, -0.14 against 0.33, 0.36, 0.63.
+- frmtmb: shares one latent, a stated divergence (`?predict.frmtmb_fit`).
+
 ### brms-44. A `resp` out of model order stops every method that prepares several responses under `set_rescor(TRUE)`
 
 - Seen: 2.23.0, 2026-10-28 (`dev/rescorpp-compare.R`, log
@@ -861,6 +886,91 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
 - Record: `dev/rescorpp-findings.md`, section 2 and "Filed, not fixed";
   `dev/reviews/2026-10-28-rescorpp.md`, finding 8. No upstream issue
   found by `gh search issues` on `rescor`, 2026-10-28.
+- Status: not reported.
+
+### brms-45. Under `cov = FALSE` on a family with no residual, the methods leave out the AR part of the model
+
+- Seen: 2.23.0, 2026-11-02 (`dev/latres-brms45.R`, data seed 167, log
+  `dev/latres-out/brms45.log`; lane latres, `dev/latres-findings.md`).
+- Repro: `count ~ x + ar(t, g)`, family `poisson()`, 150 rows, at one parameter
+  point held by Stan's Fixed_param algorithm. `sum(log_lik(fit)) + log N(zerr)`
+  reads -400.185140 and `log_prob` -399.897154, a gap of 0.288 nats. The same
+  sum under `ar(t, g, cov = TRUE)` is within 5.7e-14 of `log_prob`.
+- Expected: `posterior_epred()` and `log_lik()` read the mean of the Stan
+  program. Actual: they read `eta + err`, and the program's mean is
+  `eta + err + Err[n, 1:Kar] * ar`.
+- Cause: `predictor_ac()` in `predictor.R` adds `prep$ac$err` and takes no other
+  branch, while `stan_ac()` writes the AR sum into the model block alone.
+- Workaround: frmtmb's methods read the model, so they differ from brms's on
+  this form (`?frmtmb-autocor`, section Latent residuals).
+- A larger point: at `ar` 0.6, `sderr` 0.5 the review's reading
+  (`dev/review-latres-brms45.R`) is -6.78 nats on poisson and -113.48 on Gamma
+  log, with means apart by up to factors of 1.62 and 5.18. Decision of
+  2026-11-02: frmtmb keeps its reading, stated in `NEWS.md` and the help. Nothing
+  is posted upstream.
+- Status: not reported.
+
+### brms-49. `predictor.bprepnl()` drops the ARMA term the Stan program has
+
+- Seen: 2.23.0. Found 2026-11-02.
+- Repro: `bf(y ~ a + b * x, a + b ~ 1, nl = TRUE, autocor = ~ ar(time = t,
+  gr = g, cov = FALSE))` on gaussian data with an AR part, at any draw.
+- Expected: `posterior_epred()` and `log_lik()` read the one-step mean, as
+  the program's `mu[n] += Err[n, 1:Kar] * ar` does and as the linear formula's
+  `predictor.bprepl()` does through `predictor_ac()`. Actual:
+  `predictor.bprepnl()` (`R/predictor.R`) never calls `predictor_ac()`, so
+  `posterior_epred()` is the body alone and `log_lik()` is the density at an
+  ARMA coefficient of 0. Nothing warns.
+- Numbers: phi 0.531, nl `log_lik` sum -185.87332294, by-hand density at phi = 0
+  -185.8733; Stan `log_prob` on the nl program, the linear program and the
+  linear `log_lik` -150.99326554, 34.9 nats away (`dev/reviews/2026-11-02-nlfix.md`,
+  item 4). Second model, seed 1582: -149.1356 against -148.6737
+  (`dev/nlfix-arnl2.R`).
+- Distinct from the other `predictor_ac()` entry of this round: that one's
+  latent arm (`prep$ac$err`) misses the AR sum, and this branch calls neither
+  arm.
+- Workaround: frmtmb follows the model, a divergence by decision stated in NEWS
+  and `?frmtmb-autocor`.
+- Record: `dev/nlfix-findings.md`. Status: not reported.
+
+### brms-46. `mi()` with `cens()` never reads the latent value
+
+- Seen: 2.23.0, 2026-11-02.
+- Repro: `bf(y | mi() + cens(ce) ~ x)` on a response with `NA`, every `ce`
+  0. The model block is `target += normal_lpdf(Y[Jevent[1:Nevent]] | ...)`:
+  `Y`, not `Yl`, and `standata()` holds `Inf` at the missing rows.
+- Expected: the density at the latent value, or a refusal. Actual:
+  `log_prob` is -Inf at any finite point and `brm()` keeps 0 draws. Coded
+  -1 at those rows, the log_prob is finite and does not read `Ymi`.
+- Workaround: frmtmb refuses the pair when a value is latent.
+- Record: `dev/refuse-l1-iddiag.R`; `dev/reviews/2026-11-02-refuse.md`, item 7.
+- Status: not reported.
+
+### brms-47. Terms under one `mm()` `id` read the first term's weights
+
+- Seen: 2.23.0, 2026-11-02.
+- Repro: `bf(y ~ (1 | p | mm(g1, g2, weights = cbind(w1, w2))),
+  sigma ~ (1 | p | mm(g1, g2)))`. `standata()` holds `W_1_1`, `W_1_2` per
+  group, not per term.
+- Expected: each term's weights, or a refusal. Actual: every term reads the
+  first term's weights, silently, and swapping the terms changes the model:
+  log_prob equals the hand density with the first term's weights to 2.8e-14,
+  and misses each term's own by -0.122 (swapped, -0.223).
+- Workaround: frmtmb refuses different weights under one key.
+- Record: `dev/reviews/2026-11-02-refuse.md`, M1,
+  `dev/review-refuse-mm-weights.R` (seed 9810).
+- Status: not reported.
+
+### brms-48. Terms under one `id` read the first term's `cor`
+
+- Seen: 2.23.0, 2026-11-02.
+- Repro: `bf(y ~ (1 | gr(g, id = "p")), sigma ~ (1 | gr(g, id = "p", cor =
+  FALSE)))` has `L_1` and `cor_1`. With the two terms swapped it has neither.
+- Expected: one model for one set of terms, or a refusal. Actual: the order
+  of the terms decides the correlation, with no message.
+- Workaround: frmtmb refuses conflicting flags under one key in both orders.
+- Record: `dev/reviews/2026-11-02-refuse.md`, M2,
+  `dev/review-refuse-misc2.R` (seed 10203).
 - Status: not reported.
 
 ## RTMB
@@ -1109,6 +1219,20 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
 - Record: `dev/cdfs-findings.md`, Fix round 1.
 - Status: not reported.
 
+### RTMBdist-5. `dbetabinom()` loses the density as the shapes grow
+
+- Seen: 1.1.0, 2026-11-02. Number to be settled at consolidation.
+- Repro: `dbetabinom(5, 10, 0.5 * phi, 0.5 * phi, log = TRUE)` on the tape, or
+  summed over 300 rows, with `phi = exp(39)`: the sum of raw `lgamma()` values of
+  shapes near 1e17 cancels. One data set reads -66752 at log phi 39 and +327680
+  at 45, against -548.982078 by the finite product.
+- Expected: the binomial limit, flat in `phi`. The finite product
+  `sum(log(a + j))` has no large `lgamma()`.
+- Workaround: `beta_binomial_lpmf()` (`R/families.R`).
+- Record: `dev/nlfix-findings.md`, section 0a;
+  `dev/reviews/2026-11-02-nlfix.md`, R3.
+- Status: not reported.
+
 ## TMB
 
 ### TMB-1. The taped second derivative of `tanh(x)` is NaN for |x| >= 711
@@ -1178,6 +1302,21 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   fixed"; `dev/reviews/2026-10-14-illse2.md`, item 6 of the re-check.
 - Status: not reported.
 
+### TMB-5. `tmbad.sparse_hessian_compress` gives a wrong gradient with an inner parameter ahead of the field
+
+- Seen: TMB 1.9.25, 2026-11-03 (`dev/review-ncgp-tmbcpp.R`, a plain C++ template, no
+  RTMB, no frmtmb; seed 20261102).
+- Repro: `mu`, then `b`, both random, the field a Cholesky factor times `b`, over
+  sorted positions. `TMB::config(tmbad.sparse_hessian_compress = 1, DLL = )`.
+- Expected: the gradient of the Laplace objective, in the length scale 0.0717, as
+  compress 0 and a central difference read. Actual: 0.182, with the value right to
+  every digit. Under RTMB 0.232. The error falls with the order of the positions and
+  does not go: 1.6e-1 sorted, 8e-8 farthest-first.
+- Workaround: `b` first in the parameter list (`gp_tape_order()`), 2e-9 in every arm.
+  `tests/testthat/test-gp-noncentered.R` pins it on a sorted hand tape.
+- Record: `dev/reviews/2026-11-03-ncgp.md`, "TMB's defect"; `dev/ncgp-findings.md`.
+- Status: not reported. The user decides.
+
 ## tmbstan
 
 ### tmbstan-1. tmbstan 1.2.0 built against StanHeaders 2.39 samples a standard normal
@@ -1194,6 +1333,19 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
 - Status: reported by the user, kaskr/tmbstan#33, closed. Nothing to file.
 
 ## rstan and StanHeaders
+
+### Stan-2. `beta_binomial_lpmf()` loses the density as the shapes grow
+
+- Seen: StanHeaders 2.39.1, 2026-11-02. Number to be settled at consolidation.
+- Repro: brms's program for `beta_binomial()` at log phi 30, 39, 45 and 60,
+  through `rstan::log_prob()`, on one data set of 300 rows.
+- Expected: -548.982078 at each, by the finite product. Actual: -548.981164,
+  -759.93, +1440.07, +1440.07. `lbeta` fails later than a raw `lgamma()`
+  difference, near log phi 35 to 39 against 20, but it does fail.
+- Workaround: none needed in frmtmb, which does not read this code. A brms fit
+  from a large `phi` meets it.
+- Record: `dev/reviews/2026-11-02-nlfix.md`, R3 (`dev/review-nlfix-c4.R`).
+- Status: not reported.
 
 ### rstan-1. rstan 2.32.7 cannot compile a Stan program against StanHeaders 2.39.1
 

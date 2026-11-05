@@ -298,7 +298,7 @@ test_that("set_prior allows arguments to be vectors (brms)", {
   expect_equal(length(unclass(set_prior(prior_normal(0, 1),
                                         class = c("b", "sd")))), 2L)
   # each row is checked as a call of its own would be
-  expect_error(set_prior("normal(0, 1)", class = c("b", "sds")), "sds")
+  expect_error(set_prior("normal(0, 1)", class = c("b", "sdcar")), "sdcar")
 })
 
 test_that("print for a prior object prints brms's layout (brms)", {
@@ -357,7 +357,7 @@ test_that("a column of a prior object can be edited in place", {
                                      class = "sd"))[[1L]]$dist)
   # an edit is checked as a new call is
   expect_error({
-    pr$class[1] <- "sds"
+    pr$class[1] <- "sdcar"
   }, "row 1")
   expect_error({
     pr$nonsense <- "x"

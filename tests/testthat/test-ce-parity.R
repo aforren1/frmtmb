@@ -101,7 +101,7 @@ test_that("a display of mi(x, idx = ) is refused by name, with the reason", {
   # the guard absent: a response that does not read the term answers,
   # and so does mi() without idx
   expect_named(conditional_effects(mv, "w", resp = "x", resolution = 3),
-               "w")
+               "x.x_w")
   set.seed(3)
   dn <- data.frame(w = stats::rnorm(80))
   dn$x <- stats::rnorm(80, 0.5 * dn$w)
@@ -110,7 +110,7 @@ test_that("a display of mi(x, idx = ) is refused by name, with the reason", {
   mn <- frm(bf(y ~ mi(x) + w) + bf(x | mi() ~ w), data = dn,
             family = gaussian())
   expect_named(conditional_effects(mn, "w", resp = "y", resolution = 3),
-               "w")
+               "y.y_w")
 })
 
 # Punch round 1.

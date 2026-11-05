@@ -68,7 +68,8 @@ test_that("pp_mixture() on a fit is mixture_probs() in brms's array", {
   expect_error(pp_mixture(fit, ndraws = 10), "`ndraws`")
   expect_error(pp_mixture(fit, newdata = dd), "does not take newdata")
   expect_error(pp_mixture(fit, re_formula = NA), "does not take re_formula")
-  expect_error(pp_mixture(fit, resp = "z"), "names no response")
+  # brms ignores `resp` on a univariate model (dev/predread-resp-brms-probe.R)
+  expect_identical(pp_mixture(fit, resp = "z"), pp_mixture(fit))
 })
 
 test_that("pp_mixture()'s Est.Error is the SD of its interval's law", {

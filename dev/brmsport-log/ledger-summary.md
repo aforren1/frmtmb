@@ -2,19 +2,19 @@
 
 ### Per file
 
-| file | assertions | pass | defect | divergence | cannot transfer |
-|---|---|---|---|---|---|
-| `tests.brm.R` | 23 | 23 | 0 | 0 | 0 |
-| `tests.brmsfit-helpers.R` | 3 | 2 | 0 | 0 | 1 |
-| `tests.brmsfit-methods.R` | 223 | 162 | 1 | 43 | 17 |
-| `tests.brmsformula.R` | 16 | 16 | 0 | 0 | 0 |
-| `tests.brmsterms.R` | 5 | 0 | 0 | 0 | 5 |
-| `tests.data-helpers.R` | 6 | 2 | 0 | 1 | 3 |
-| `tests.emmeans.R` | 11 | 11 | 0 | 0 | 0 |
-| `tests.families.R` | 84 | 76 | 0 | 0 | 8 |
-| `tests.priors.R` | 36 | 28 | 0 | 2 | 6 |
-| `tests.standata.R` | 87 | 77 | 0 | 2 | 8 |
-| **total** | **494** | **397** | **1** | **48** | **48** |
+| file | assertions | pass | divergence | cannot transfer |
+|---|---|---|---|---|
+| `tests.brm.R` | 23 | 23 | 0 | 0 |
+| `tests.brmsfit-helpers.R` | 3 | 2 | 0 | 1 |
+| `tests.brmsfit-methods.R` | 223 | 162 | 44 | 17 |
+| `tests.brmsformula.R` | 16 | 16 | 0 | 0 |
+| `tests.brmsterms.R` | 5 | 0 | 0 | 5 |
+| `tests.data-helpers.R` | 6 | 2 | 1 | 3 |
+| `tests.emmeans.R` | 11 | 11 | 0 | 0 |
+| `tests.families.R` | 84 | 76 | 0 | 8 |
+| `tests.priors.R` | 36 | 28 | 2 | 6 |
+| `tests.standata.R` | 87 | 77 | 2 | 8 |
+| **total** | **494** | **397** | **49** | **48** |
 
 ### Outcome by class
 
@@ -23,8 +23,7 @@
 | pass | - | 367 |
 | pass | own-words | 29 |
 | pass | weak-pass | 1 |
-| defect | start-values | 1 |
-| divergence | class | 21 |
+| divergence | class | 22 |
 | divergence | ggplot | 6 |
 | divergence | hollow | 1 |
 | divergence | no-draws | 10 |

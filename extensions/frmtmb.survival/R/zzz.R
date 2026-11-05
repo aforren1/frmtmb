@@ -55,6 +55,10 @@ sv_compat_rules <- function() {
     "Refused: a survival time has no mean on the response scale here. Use frm_linpred(type = \"link\") for the log hazard ratio.")
 
   ## ---- royston_parmar() --------------------------------------
+  r("cox", "nl", "works",
+    "A body with a level of its own, b0 + b1 * x, reaches the linear maximum. Without one, b1 * x is another model, as in brms: the baseline's scale is the intercept.")
+  r("royston_parmar", "nl", "works",
+    "A body with a level of its own, b0 + b1 * x, reaches the linear maximum.")
   r("royston_parmar", "cens()", "works",
     "Exact since frmtmb 0.52.0. Core used to form a right-censored term as log(1 - F(y)) on the probability scale and offered a family no complementary log-CDF slot, so the scored log S was floored at -35.127363 and its GRADIENT was exactly zero past -log S of 30: a converged, warning-free fit could report a log likelihood short by tens of thousands and a treatment coefficient out by tens of percent. Core now takes an lccdf slot and this family supplies it, in closed form on all three scales, so no complement is ever formed. Measured on the hazard scale: -log S of 40 was scored as -35.127363 and is scored as -40 exactly, and -log S of 100 as -100. The identity against flexsurv on bc still reaches only -log S = 2.01, so the evidence for the deep region is the direct arithmetic check rather than that test.")
   r("royston_parmar", "trunc()", "conditional",

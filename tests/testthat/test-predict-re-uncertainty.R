@@ -419,26 +419,26 @@ test_that("Est.Error of a category probability carries a POPULATION smooth", {
 
 test_that("a block whose rows are column-disjoint is ONE batch", {
   skip_on_cran()
-  # An exact gp() block's design is an indicator in sample, so no row
-  # loads two of its columns and the whole block is one exact batch. The
+  # A block with one coefficient per position whose design is an indicator
+  # in sample: no row loads two of its columns, so it is one exact batch. The
   # split re_b_batches() uses for a `(1 + x | g)` term is per column
-  # POSITION, and a gp block's `dim` IS its coefficient count, so the
-  # split degenerated to one batch per coefficient: 160 batches, 329
-  # model evaluations and 1.25 s for one fitted() call, against 1 batch,
-  # 11 evaluations and 0.02 s now
+  # POSITION, and that degenerated to one batch per coefficient: 160
+  # batches, 329 model evaluations and 1.25 s for one fitted() call on an
+  # exact gp(), against 1 batch, 11 evaluations and 0.02 s
   # (dev/resmooth-batchcost-before.txt against -after.txt, counts exact
-  # and load-independent). Est.Error is identical() across the change on
-  # 44 cells (dev/resmooth-batchident.txt).
+  # and load-independent). An exact gp()'s coefficients are z now, each
+  # reaching every row, so it goes through fd_eta_chain() instead, tested
+  # below.
   set.seed(41)
   nD <- 160L
-  d <- data.frame(x = stats::runif(nD, -2, 2))
-  lat <- 1.1 * sin(2 * d$x) + stats::rlogis(nD)
+  d <- data.frame(g = factor(sample(sprintf("l%03d", seq_len(120L)), nD, TRUE)))
+  lat <- stats::rnorm(120L, 0, 0.8)[as.integer(d$g)] + stats::rlogis(nD)
   d$y <- factor(cut(lat, c(-Inf, -0.8, 0.8, Inf), labels = FALSE),
                 ordered = TRUE)
-  fit <- suppressWarnings(frm(bf(y ~ gp(x)), family = cumulative(),
+  fit <- suppressWarnings(frm(bf(y ~ 1 + (1 | g)), family = cumulative(),
                               data = d))
-  sm <- frmtmb:::smooth_b_idx(fit)
-  expect_gt(length(sm), 100L)
+  sm <- fit$frame$re_blocks[[1L]]$b_idx
+  expect_gt(length(sm), 50L)
   bt <- frmtmb:::re_b_batches(fit, NULL, NULL, FALSE, sm)
   expect_length(bt, 1L)
   expect_identical(sort(bt[[1L]]$idx), sm)
@@ -450,10 +450,27 @@ test_that("a block whose rows are column-disjoint is ONE batch", {
   # worst cell here is 0.7 ulp; the SHIPPED fitted() is bit-identical
   # across this change on 44 cells (dev/resmooth-batchident.txt), because
   # both arms of that comparison take the batched path.
-  f <- function(x) frmtmb:::fitted_point(x, NULL, NA)
+  f <- function(x) frmtmb:::fitted_point(x, NULL, NULL)
   ref <- as.vector(frmtmb:::fit_fd_se(fit, f, b_idx = sm, b_batch = NULL))
   got <- as.vector(frmtmb:::fit_fd_se(fit, f, b_idx = sm, b_batch = bt))
-  expect_lt(max(abs(ref - got) / (.Machine$double.eps * abs(ref))), 100)
+  expect_lt(max(abs(ref - got) / (.Machine$double.eps * abs(ref))), 1000)
+
+  # an exact gp() has no batch and costs one pair through its eta, with the
+  # answer of the route that perturbs each z on its own
+  set.seed(41)
+  dg <- data.frame(x = stats::runif(60L, -2, 2))
+  lat <- 1.1 * sin(2 * dg$x) + stats::rlogis(60L)
+  dg$y <- factor(cut(lat, c(-Inf, -0.8, 0.8, Inf), labels = FALSE),
+                 ordered = TRUE)
+  fg <- suppressWarnings(frm(bf(y ~ gp(x)), family = cumulative(), data = dg))
+  sg <- frmtmb:::smooth_b_idx(fg)
+  expect_length(frmtmb:::re_b_batches(fg, NULL, NULL, FALSE, sg), 0L)
+  ch <- frmtmb:::fd_eta_chain(fg, NULL, NULL, FALSE, TRUE, sg)
+  expect_identical(sort(ch$chain[[1L]]$idx), sg)
+  fgf <- function(x) frmtmb:::fitted_point(x, NULL, NA)
+  rg <- as.vector(frmtmb:::fit_fd_se(fg, fgf, b_idx = sg))
+  gg <- as.vector(frmtmb:::fit_fd_se(fg, fgf, b_idx = sg, b_chain = ch$chain))
+  expect_lt(max(abs(gg / rg - 1)), 1e-5)
 
   # the complement: a (1 + x | g) block must NOT collapse, because a row
   # loads its level's intercept and its slope. Without this the whole

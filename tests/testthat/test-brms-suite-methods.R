@@ -1285,15 +1285,14 @@ test_that("update has reasonable outputs", {
   brms_setup("brmsfit-methods:954",
     up <- update(fit2, formula. = bf(count ~ a + b, nl = TRUE), testmode = TRUE)
   )
-  brms_port("brmsfit-methods:955", "defect",
+  brms_port("brmsfit-methods:955", "divergence",
     paste0(
-      "update(fit2, formula. = bf(count ~ a + b, nl = TRUE)) keeps ",
-      "fit2's parameter formulas with brms's message, but the ",
-      "fixture lacks fit2's priors; the update stops at its zero ",
-      "start ('NA/NaN gradient evaluation'); with the priors it ",
-      "converges (7.1488, 11.5849, 1.6474, -0.7932; ",
-      "dev/fixes-rev3-u955.R). brms's testmode does not fit, so ",
-      "brms never meets the start"),
+      "update(fit2, formula. = bf(count ~ a + b, nl = TRUE)) ",
+      "refits now, from a start the domain of Gamma(\"identity\") ",
+      "allows (logLik -116.1874, code 0, with the flat-direction ",
+      "warning a + b deserves; dev/nlfix-u955.R); the row asserts ",
+      "is(up, 'brmsfit'), which rule 2 of 2026-09-17 forbids, as ",
+      "brmsfit-methods:957"),
     expect_true(is(up, "brmsfit"))
   )
   brms_setup("brmsfit-methods:956",

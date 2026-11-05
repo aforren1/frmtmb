@@ -186,7 +186,7 @@ gp_krig_deriv_cov <- function(fit, gi, newdata, env, var, o) {
   thc <- th
   thc[1] <- 0
   K <- unname(cs_entry("gp")$vcov(thc, bk))
-  R <- tryCatch(chol(K), error = function(e) NULL)
+  R <- tryCatch(gp_chol_num(K), error = function(e) NULL)
   if (!is.null(R)) {
     S <- S - tcrossprod(t(backsolve(R, t(g), transpose = TRUE)))
   } else {

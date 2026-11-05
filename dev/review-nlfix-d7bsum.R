@@ -1,0 +1,11 @@
+fs <- list.files("dev", "^review-nlfix-d7b-.*log$", full.names = TRUE)
+x <- do.call(rbind, lapply(fs, function(f) { l <- grep("^[a-z_]+ [0-9] -?0[.]6 ", readLines(f), value = TRUE); if (!length(l)) return(NULL); read.table(text = l, stringsAsFactors = FALSE, col.names = c("family", "seed", "slope", "body", "default", "no_early", "ref", "t_def", "t_all")) }))
+cat("rows", nrow(x), " families", paste(unique(x$family), collapse = ","), "\n")
+x$short <- x$ref - x$default; x$lost <- x$no_early - x$default; x$short_all <- x$ref - x$no_early
+ok <- is.finite(x$short) & is.finite(x$lost)
+cat("default within 1e-4 of the best of 8 starts:", sum(x$short[ok] <= 1e-4), "of", sum(ok), "\n")
+cat("restarting through every pattern is higher than the shipped rule by > 1e-4:", sum(x$lost[ok] > 1e-4), " shipped higher:", sum(x$lost[ok] < -1e-4), "\n")
+cat("time: shipped", round(sum(x$t_def), 1), "s, no early stop", round(sum(x$t_all), 1), "s, ratio", round(sum(x$t_all) / sum(x$t_def), 2), "\n")
+print(x[ok & x$lost > 1e-4, c("family", "seed", "slope", "body", "default", "no_early", "ref")], row.names = FALSE)
+cat("short of the best of 8 by more than 0.01, shipped rule:\n")
+print(x[ok & x$short > 0.01, c("family", "seed", "slope", "body", "default", "no_early", "ref", "short")], row.names = FALSE)

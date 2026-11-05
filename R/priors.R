@@ -25,7 +25,7 @@
 #'   prior lands. On an ordinal family the thresholds are the intercept,
 #'   here as in brms, so this class addresses the whole threshold
 #'   vector; see Ordinal thresholds.
-#' - `"sd"`: random-effect standard deviations (and smoothing SDs), on
+#' - `"sd"`: random-effect standard deviations, on
 #'   the NATURAL sd scale with the log-Jacobian applied, so
 #'   `set_prior("exponential(1)", class = "sd")` means what it says;
 #'   narrow with `group`, and to one coefficient's standard deviation
@@ -100,7 +100,8 @@
 #'   deviation (`"sd"`, `"sdgp"`), a `gp()` length scale (`"lscale"`),
 #'   a correlation an LKJ density fits (`"cor"`), a residual
 #'   correlation (`"rescor"`, `"ar"`, `"ma"`, `"cosy"`, `"cortime"`,
-#'   frmtmb.spatial's `"lagsar"`). Its internal row is not listed, and a
+#'   frmtmb.spatial's `"lagsar"`), the SD of a latent residual
+#'   (`"sderr"`). Its internal row is not listed, and a
 #'   class `"theta"` prior on it is refused with the class to use.
 #' - a DISTRIBUTIONAL parameter's own name (`"sigma"`, `"shape"`,
 #'   `"phi"`, `"zi"`, `"nu"`, ...): a density on that parameter ITSELF,
@@ -289,6 +290,12 @@
 #' coefficient-specific one applies.
 #'
 #' @section Residual correlation:
+#' On a family with no residual `y - mu` these terms are brms's latent
+#' residuals ([frmtmb-autocor]), and class `"sderr"` is the standard
+#' deviation of the latents, written and carried as class `"sd"` is. Their
+#' coefficients take the classes below, on brms's intervals: (-1, 1) on `ar`
+#' and `ma`, each entry on its own under `cov = FALSE`, and (0, 1) on `cosy`.
+#'
 #' frmtmb holds an `ar()`, `ma()`, `arma()`, `cosy()` or `unstr()`
 #' residual block in one unconstrained vector, chosen so the optimizer
 #' cannot step outside the stationary and invertible region. A prior is
@@ -414,7 +421,13 @@
 #'   `mo()` simplex and on a `cox()` baseline. So do `meanme`, `sdme`
 #'   and `corme`, the hyperparameters of a `me()` term, brms's `lkj(1)`
 #'   default on `corme` included.
-#' - `theta`/`theta1`/`theta2`, `sds`, `sdcar` and `car` are refused by
+#' - `sds` is the standard deviation of a smooth's penalized part, brms's
+#'   class of the same name. `coef` names one smooth term as
+#'   [default_prior()] lists it (`"s(x)"`, `"t2(x, z)"`,
+#'   `"s(x, by = f)"`), and a term with several standard deviations
+#'   (a `t2()` or a by-smooth) takes the density on each of them, as in
+#'   brms. Class `"sd"` does not reach a smooth.
+#' - `theta`/`theta1`/`theta2`, `sdcar` and `car` are refused by
 #'   name, each saying where frmtmb keeps that quantity instead. A
 #'   refusal is deliberate: translating one of them would produce a
 #'   different model rather than no model.
@@ -475,7 +488,7 @@
 #' @param prior Distribution string, e.g. `"normal(0, 5)"`, or a
 #'   [prior_normal()]/[prior_t()]/[prior_lkj()] object, or `""` for
 #'   bounds only.
-#' @param class `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"`, one
+#' @param class `"b"`, `"Intercept"`, `"sd"`, `"sds"`, `"cor"`, `"theta"`, one
 #'   of the residual-structure classes `"ar"`, `"ma"`, `"cosy"`,
 #'   `"cortime"` and `"rescor"`, the simplex classes `"simo"` and
 #'   `"sbhaz"`, the `me()` classes `"meanme"`, `"sdme"` and `"corme"`,
@@ -484,7 +497,8 @@
 #'   own class.
 #' @param coef Restrict to one coefficient (classes `"b"`/`"Intercept"`),
 #'   to the standard deviation of one coefficient (class `"sd"`, with
-#'   `group`), name the simplex of class `"simo"`, name one `me()`
+#'   `group`), to one smooth term (class `"sds"`), name the simplex of
+#'   class `"simo"`, name one `me()`
 #'   variable of class `"meanme"` or `"sdme"`, or name one internal
 #'   parameter of class `"theta"`. A coefficient is
 #'   named as brms names it and as [default_prior()] lists it: `logxp`
@@ -514,7 +528,7 @@
 #'   the vocabulary is a property of the model rather than of the
 #'   package: a name that is neither one of frmtmb's own classes nor a
 #'   usable parameter name errors here and lists the permitted values,
-#'   a name frmtmb refuses on principle (`sds`, `car`, ...)
+#'   a name frmtmb refuses on principle (`sdcar`, `car`, ...)
 #'   errors here saying where that quantity lives, and any other name
 #'   is read as a distributional parameter's and checked against the
 #'   model's own parameters when the prior is resolved, which is where
@@ -627,7 +641,8 @@ prior_class_bounds <- function(s) {
       c(lb = FALSE, ub = FALSE)))
   }
   switch(s$class,
-    sd = , sdgp = , lscale = , delta = , sdme = c(lb = TRUE, ub = FALSE),
+    sd = , sds = , sdgp = , lscale = , delta = ,
+    sdme = c(lb = TRUE, ub = FALSE),
     cosy = c(lb = TRUE, ub = TRUE),
     c(lb = FALSE, ub = FALSE))
 }
@@ -875,10 +890,12 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
 #' a distributional parameter, which is a class in brms too.
 #'
 #' @noRd
-frmtmb_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale", "cor",
+frmtmb_prior_classes <- c("b", "Intercept", "sd", "sds", "sdgp", "lscale",
+                          "cor",
                           "theta", "ar", "ma", "cosy", "cortime", "rescor",
                           "delta", "simo", "sbhaz", "lncor",
-                          "meanme", "sdme", "corme")
+                          "meanme", "sdme", "corme",
+                          "sderr")
 
 #' Refuse a class name that is neither frmtmb's own nor usable as a
 #' distributional parameter's name.
@@ -887,8 +904,8 @@ frmtmb_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale", "cor",
 #' dpars the model actually has: `resolve_priorlist()` does that, where
 #' it can list them. What CAN be checked is the vocabulary brms and
 #' frmtmb disagree about, and it is checked with the same messages the
-#' translated route uses, so `set_prior(class = "sds")` and a brms
-#' `sds` row now say the same thing.
+#' translated route uses, so `set_prior(class = "car")` and a brms
+#' `car` row now say the same thing.
 #'
 #' @noRd
 check_dpar_prior_class <- function(cls) {
@@ -1247,6 +1264,12 @@ unhonored_coef_refusal <- function(cls, coef, group = "") {
                   "are addressed with class = \"b\" or ",
                   "class = \"Intercept\". "))
   }
+  if (identical(cls, "sds") && nzchar(group)) {
+    return(paste0("class = \"sds\" has no group: a smooth is not a ",
+                  "grouping term, and brms's rows for it carry none. ",
+                  "`coef` names the term, as get_prior() lists it ",
+                  "(\"s(x)\", \"s(x, by = f)\"). "))
+  }
   if (cls %in% c("sdgp", "lscale") && nzchar(group)) {
     return(paste0("class = \"", cls, "\" has no group: a gp() term is not ",
                   "a grouping term, and brms's rows for it carry none. ",
@@ -1279,10 +1302,11 @@ unhonored_coef_refusal <- function(cls, coef, group = "") {
 #' meaning, so a translated row keeps its class untouched.
 #'
 #' @noRd
-brms_direct_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale",
-                               "cor", "ar", "ma", "cosy", "cortime",
+brms_direct_prior_classes <- c("b", "Intercept", "sd", "sds", "sdgp",
+                               "lscale", "cor", "ar", "ma", "cosy", "cortime",
                                "rescor", "delta", "simo", "sbhaz", "lncor",
-                               "meanme", "sdme", "corme")
+                               "meanme", "sdme", "corme",
+                               "sderr")
 
 #' Why a brms class cannot be carried over, or `NULL` when it can.
 #'
@@ -1311,11 +1335,6 @@ brms_prior_class_refusal <- function(cls) {
                   "row applies nothing in brms either. "))
   }
   switch(cls,
-    sds = paste0(
-      "brms's \"sds\" is the wiggliness standard deviation of a smooth. ",
-      "frmtmb holds a smooth as a random-effect block, so its frmtmb ",
-      "spelling is class = \"sd\" with group = the smooth's label, e.g. ",
-      "group = \"s(x)\"; get_prior() lists the label this model has. "),
     sdcar = paste0(
       "brms's \"sdcar\" is the standard deviation of a car() term. ",
       "frmtmb holds a car() as a random-effect block, so its frmtmb ",
@@ -2103,7 +2122,7 @@ fill_prior_table <- function(tab, pl) {
   # brms (sd_spec_reach())
   covers <- function(resp, dpar, nlpar, class, rows) {
     wide <- identical(class, "cor")
-    sd <- identical(class, "sd")
+    sd <- class %in% c("sd", "sds")
     (rows$resp == resp | (!sd & !nzchar(resp))) &
       (rows$dpar == dpar | (wide & !nzchar(dpar))) &
       (rows$nlpar == nlpar | (wide & !nzchar(nlpar)))
@@ -2304,8 +2323,76 @@ prior_table <- function(spec, frame, route) {
     )
   }
 
+  # the threshold rows of an ordinal location, its body's as well as its
+  # design's: a nonlinear location has thresholds all the same
+  add_thres_rows <- function(ob, resp_lab) {
+    # an ordinal family has no intercept column: the thresholds
+    # replace it, and class "Intercept" is what addresses them here as
+    # it does in brms. Under sum_to_zero brms's Intercept is a vector
+    # frmtmb does not have (ordinal_threshold_entry()), and under
+    # equidistant the distance between thresholds is class "delta",
+    # listed once for the model and once per level of thres(gr = ).
+    # An ordinal mixture's component k lists its own under dpar
+    # "mu<k>"; the vector an order = "mu" mixture shares is listed
+    # once, with no dpar, as brms lists its fixed_Intercept
+    th <- ob$fam[["thres"]]
+    type <- th[["type"]] %||% "flexible"
+    grouped <- isTRUE(th[["grouped"]])
+    tdp <- ob$prior_dpar
+    if (identical(type, "equidistant")) {
+      # brms bounds delta below by 0 where the thresholds are ordered,
+      # and says so in its table
+      lb_d <- if (ob$ordered) 0 else NA_real_
+      add("delta", dpar = tdp, resp = resp_lab, lb = lb_d)
+      if (grouped) {
+        for (g in th[["groups"]]) {
+          add("delta", group = g, dpar = tdp, resp = resp_lab, lb = lb_d)
+        }
+      }
+    }
+    if (!identical(type, "sum_to_zero")) {
+      add("Intercept", dpar = tdp, resp = resp_lab)
+      # under flexible thresholds brms lists one row per threshold,
+      # coef = "1", "2", ..., under each level of thres(gr = ) when
+      # they are grouped; equidistant thresholds have none. The count
+      # is the block's own component: in a mixture the plain
+      # "tau_raw" component does not exist, and each row carries the
+      # block's dpar, "mu<k>" under order = "none" and none for the
+      # vector an order = "mu" mixture shares, as brms lists them
+      flex <- identical(type, "flexible")
+      if (!grouped && flex) {
+        K1 <- length(frame[["par_template"]][[ob$comp]])
+        for (k in seq_len(K1)) {
+          add("Intercept", coef = as.character(k), dpar = tdp,
+              resp = resp_lab)
+        }
+      }
+      # one row per level of thres(gr = ), each a threshold vector of
+      # its own that group = addresses, as brms lists them
+      if (grouped) {
+        for (gi in seq_along(th[["groups"]])) {
+          g <- th[["groups"]][gi]
+          add("Intercept", group = g, dpar = tdp, resp = resp_lab)
+          if (flex) {
+            for (k in seq_len(th[["nthres"]][gi])) {
+              add("Intercept", coef = as.character(k), group = g,
+                  dpar = tdp, resp = resp_lab)
+            }
+          }
+        }
+      }
+    }
+  }
+
   simo_rows <- list()
   for (lp in frame[["linpreds"]]) {
+    if (!is.null(lp[["nl_body"]]) &&
+          !is.null(ob <- ord_lp_block(frame, spec, lp)) &&
+          (!ob$shared || identical(ob$k, 1L)) &&
+          length(frame[["par_template"]][[ob$comp]] %||% numeric(0))) {
+      add_thres_rows(ob, if (multi && !isTRUE(lp[["shared"]])) lp[["resp"]]
+                     else "")
+    }
     # an equated dpar has no parameter of its own; its target's row is
     # the one brms lists
     if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]]) ||
@@ -2365,62 +2452,7 @@ prior_table <- function(spec, frame, route) {
                  (!ob$shared || identical(ob$k, 1L)) &&
                  length(frame[["par_template"]][[ob$comp]] %||%
                           numeric(0))) {
-      # an ordinal family has no intercept column: the thresholds
-      # replace it, and class "Intercept" is what addresses them here as
-      # it does in brms. Under sum_to_zero brms's Intercept is a vector
-      # frmtmb does not have (ordinal_threshold_entry()), and under
-      # equidistant the distance between thresholds is class "delta",
-      # listed once for the model and once per level of thres(gr = ).
-      # An ordinal mixture's component k lists its own under dpar
-      # "mu<k>"; the vector an order = "mu" mixture shares is listed
-      # once, with no dpar, as brms lists its fixed_Intercept
-      th <- ob$fam[["thres"]]
-      type <- th[["type"]] %||% "flexible"
-      grouped <- isTRUE(th[["grouped"]])
-      tdp <- ob$prior_dpar
-      if (identical(type, "equidistant")) {
-        # brms bounds delta below by 0 where the thresholds are ordered,
-        # and says so in its table
-        lb_d <- if (ob$ordered) 0 else NA_real_
-        add("delta", dpar = tdp, resp = resp_lab, lb = lb_d)
-        if (grouped) {
-          for (g in th[["groups"]]) {
-            add("delta", group = g, dpar = tdp, resp = resp_lab, lb = lb_d)
-          }
-        }
-      }
-      if (!identical(type, "sum_to_zero")) {
-        add("Intercept", dpar = tdp, resp = resp_lab)
-        # under flexible thresholds brms lists one row per threshold,
-        # coef = "1", "2", ..., under each level of thres(gr = ) when
-        # they are grouped; equidistant thresholds have none. The count
-        # is the block's own component: in a mixture the plain
-        # "tau_raw" component does not exist, and each row carries the
-        # block's dpar, "mu<k>" under order = "none" and none for the
-        # vector an order = "mu" mixture shares, as brms lists them
-        flex <- identical(type, "flexible")
-        if (!grouped && flex) {
-          K1 <- length(frame[["par_template"]][[ob$comp]])
-          for (k in seq_len(K1)) {
-            add("Intercept", coef = as.character(k), dpar = tdp,
-                resp = resp_lab)
-          }
-        }
-        # one row per level of thres(gr = ), each a threshold vector of
-        # its own that group = addresses, as brms lists them
-        if (grouped) {
-          for (gi in seq_along(th[["groups"]])) {
-            g <- th[["groups"]][gi]
-            add("Intercept", group = g, dpar = tdp, resp = resp_lab)
-            if (flex) {
-              for (k in seq_len(th[["nthres"]][gi])) {
-                add("Intercept", coef = as.character(k), group = g,
-                    dpar = tdp, resp = resp_lab)
-              }
-            }
-          }
-        }
-      }
+      add_thres_rows(ob, resp_lab)
     }
     # cs() terms are class "b" rows under their own coef, as brms lists
     # them; the resolver reaches them through the same class
@@ -2439,7 +2471,10 @@ prior_table <- function(spec, frame, route) {
   sd_rows <- list()
   cor_rows <- list()
   gp_rows <- list()
+  sm_rows <- list()
   for (bk in frame[["re_blocks"]]) {
+    # a latent residual's rows come with the autocorrelation terms, below
+    if (identical(bk[["covstruct"]], "latres")) next
     key <- list(group = bk[["group_name"]], nlpar = block_nlpar(spec, frame,
                                                                 bk),
                 dpar = block_dpar(spec, frame, bk),
@@ -2455,6 +2490,16 @@ prior_table <- function(spec, frame, route) {
           sfx1 = bk[["gp_brms"]][["sfx1"]],
           sfx2 = bk[["gp_brms"]][["sfx2"]])
       }
+      next
+    }
+    # a smooth's sd is brms's class sds, keyed by the prefix class "sd"
+    # uses, coef the term as written; a by-smooth's levels and a t2()'s
+    # penalties share the one row
+    if (identical(bk[["covstruct"]], "smooth")) {
+      sm_rows[[length(sm_rows) + 1L]] <- cbind(
+        unique(block_sd_prefix(spec, frame, bk)[, c("resp", "dpar",
+                                                    "nlpar")]),
+        coef = block_sm_term(bk), stringsAsFactors = FALSE)
       next
     }
     # brms lists sd rows per prefix, so a block spanning mu and sigma
@@ -2507,16 +2552,32 @@ prior_table <- function(spec, frame, route) {
       }
     }
   }
+  # brms bounds the class row of sds below by 0 and leaves the term
+  # rows without one
+  if (length(sm_rows)) {
+    sm_rows <- unique(do.call(rbind, sm_rows))
+    pre <- unique(sm_rows[, c("resp", "dpar", "nlpar")])
+    for (i in seq_len(nrow(pre))) {
+      add("sds", dpar = pre$dpar[i], nlpar = pre$nlpar[i], resp = pre$resp[i],
+          lb = 0)
+    }
+    for (i in seq_len(nrow(sm_rows))) {
+      add("sds", coef = sm_rows$coef[i], dpar = sm_rows$dpar[i],
+          nlpar = sm_rows$nlpar[i], resp = sm_rows$resp[i])
+    }
+  }
   # the R-side residual structures, under the class names brms shows for
   # them. `resp` narrows a class to one response, as it does above
-  for (rs in names(frame[["autocor"]] %||% list())) {
-    ac <- frame[["autocor"]][[rs]]
+  for (rs in names(frame_ac_terms(frame))) {
+    ac <- frame_ac_terms(frame)[[rs]]
     resp_lab <- if (multi) rs else ""
     for (cl in names(autocor_prior_classes)) {
       if (!length(autocor_class_idx(ac, cl))) next
       bd <- autocor_class_bounds(ac, cl, route)
       add(cl, resp = resp_lab, lb = bd[[1L]], ub = bd[[2L]])
     }
+    # brms's SD of the latent residuals, one per response
+    if (isTRUE(ac[["latent"]])) add("sderr", resp = resp_lab, lb = 0)
     # a registry term's bounded parameters (sar()'s lagsar), under
     # their natural names and on their interval, as brms lists them
     for (pr in autocor_seam_bounded(ac)) {
@@ -2871,6 +2932,9 @@ sd_spec_reach <- function(spec, frame, bk, s) {
   n <- length(block_sd_idx(bk))
   none <- list(reach = logical(n), exact = FALSE)
   if (!n) return(none)
+  # brms's sd and sds are two classes: neither reaches the other's blocks
+  is_sm <- identical(bk[["covstruct"]], "smooth")
+  if (is_sm != identical(s$class, "sds")) return(none)
   if (nzchar(s$group) && !identical(bk[["group_name"]], s$group)) {
     return(none)
   }
@@ -2878,6 +2942,15 @@ sd_spec_reach <- function(spec, frame, bk, s) {
             nlpar = s$nlpar %||% "")
   eq <- sp$resp == want[["resp"]] & sp$dpar == want[["dpar"]] &
     sp$nlpar == want[["nlpar"]]
+  if (is_sm) {
+    # coef names the term and is matched as written, as brms matches it
+    # ("s(z,k=5)" names nothing on s(z, k = 5)); the term's standard
+    # deviations go together
+    hit <- !nzchar(s$coef %||% "") ||
+      identical(s$coef, block_sm_term(bk))
+    reach <- rep(hit && any(eq), n)
+    return(list(reach = reach, exact = any(reach)))
+  }
   if (nzchar(s$coef %||% "")) {
     cf <- block_sd_coefs(frame, bk)
     hit <- prior_coef_match_brms(cf, s$coef)
@@ -2895,6 +2968,39 @@ sd_spec_reach <- function(spec, frame, bk, s) {
   }
   reach <- vapply(seq_len(n), function(j) any(fits[sp$k == j]), TRUE)
   list(reach = reach, exact = any(eq))
+}
+
+#' The smooth term a smooth block belongs to, brms's coef of class
+#' `"sds"`: the term as R deparses it, one for all the penalties of a
+#' `t2()` and all the levels of a by-smooth.
+#'
+#' @noRd
+block_sm_term <- function(bk) {
+  bk[["sm_term"]] %||% bk[["group_name"]]
+}
+
+#' What a refused class `"sds"` specification could have named.
+#'
+#' @noRd
+sds_term_hint <- function(spec, frame) {
+  bks <- Filter(function(bk) identical(bk[["covstruct"]], "smooth"),
+                frame[["re_blocks"]])
+  if (!length(bks)) return("This model has no smooth terms")
+  trm <- unique(vapply(bks, block_sm_term, ""))
+  pre <- unique(do.call(rbind, lapply(bks, function(bk) {
+    block_sd_prefix(spec, frame, bk)[, c("resp", "dpar", "nlpar")]
+  })))
+  lab <- apply(pre, 1L, function(r) {
+    f <- c(if (nzchar(r[["resp"]])) paste0("resp = \"", r[["resp"]], "\""),
+           if (nzchar(r[["dpar"]])) paste0("dpar = \"", r[["dpar"]], "\""),
+           if (nzchar(r[["nlpar"]])) paste0("nlpar = \"", r[["nlpar"]], "\""))
+    if (length(f)) paste(f, collapse = ", ") else "no resp, dpar or nlpar"
+  })
+  paste0("As in brms, coef names a smooth term as default_prior() lists ",
+         "it, and class \"sds\" is addressed per response, distributional ",
+         "parameter and nonlinear parameter. This model's terms: ",
+         paste0("\"", trm, "\"", collapse = ", "), "; its prefixes: ",
+         paste0("(", lab, ")", collapse = "; "))
 }
 
 #' The structures whose standard deviations no brms coefficient names,
@@ -2948,6 +3054,7 @@ block_col_coefs <- function(bk) {
 #'
 #' @noRd
 block_written_label <- function(bk) {
+  if (identical(bk[["covstruct"]], "latres")) return(bk[["term_label"]])
   wt <- unique(unlist(lapply(bk[["components"]] %||% list(), function(cp) {
     cp[["written_text"]]
   })))
@@ -2996,7 +3103,7 @@ sd_coef_hint <- function(frame, s) {
 #' @noRd
 sd_coef_shared <- function(spec, frame, bk, s) {
   if (!nzchar(s$coef %||% "") || !length(block_sd_idx(bk)) ||
-        bk[["covstruct"]] %in% sd_coef_unaddressable) {
+        bk[["covstruct"]] %in% c(sd_coef_unaddressable, "smooth")) {
     return(character(0))
   }
   if (nzchar(s$group) && !identical(bk[["group_name"]], s$group)) {
@@ -3020,9 +3127,11 @@ sd_prefix_hint <- function(spec, frame) {
   sp <- unique(do.call(rbind, c(
     list(data.frame(resp = character(0), dpar = character(0),
                     nlpar = character(0))),
-    # a gp() term's sd is class "sdgp", which the caller names
-    lapply(Filter(function(bk) !bk[["covstruct"]] %in% c("gp", "hsgp"),
-                  frame[["re_blocks"]]), function(bk) {
+    # a gp() term's sd is class "sdgp", a smooth's "sds" and a latent
+    # residual's "sderr", which the caller names
+    lapply(Filter(function(bk) {
+      !bk[["covstruct"]] %in% c("gp", "hsgp", "smooth", "latres")
+    }, frame[["re_blocks"]]), function(bk) {
       block_sd_prefix(spec, frame, bk)[, c("resp", "dpar", "nlpar")]
     }))))
   if (!NROW(sp)) return("This model has no random-effect standard deviations")
@@ -3436,6 +3545,12 @@ cov_class_coefs <- function(spec, frame) {
   for (bk in frame[["re_blocks"]]) {
     ti <- bk[["theta_idx"]]
     if (!length(ti)) next
+    if (identical(bk[["covstruct"]], "latres")) {
+      # its coefficients are `autocor_class_coefs()`'s, under brms's classes
+      add("theta", ti[1L], nm_th[ti[1L]], "sderr",
+          pre = list(resp = if (multi) bk[["aux"]][["ac"]][["resp"]] else ""))
+      next
+    }
     if (bk[["covstruct"]] %in% c("gp", "hsgp")) {
       # the positions resolve_gp_class() reaches: the sd first, then one
       # length scale per sub-GP
@@ -3453,10 +3568,13 @@ cov_class_coefs <- function(spec, frame) {
     sd_i <- block_sd_idx(bk)
     sp <- block_sd_prefix(spec, frame, bk)
     cf <- block_sd_coefs(frame, bk)
+    is_sm <- identical(bk[["covstruct"]], "smooth")
     for (j in seq_along(sd_i)) {
       i <- ti[sd_i[j]]
-      add("theta", i, nm_th[i], "sd", group = bk[["group_name"]],
-          coef = cf[j], pre = sp[sp$k == j, , drop = FALSE][1L, ])
+      add("theta", i, nm_th[i], if (is_sm) "sds" else "sd",
+          group = if (is_sm) "" else bk[["group_name"]],
+          coef = if (is_sm) block_sm_term(bk) else cf[j],
+          pre = sp[sp$k == j, , drop = FALSE][1L, ])
     }
     if (identical(block_cor_prior(bk), "lkj")) {
       pre <- list(resp = if (multi) block_resp(frame, bk) else "",
@@ -3497,11 +3615,12 @@ cov_class_refusal <- function(row) {
                  }, ")")
   what <- switch(row$class,
     sd = "a standard deviation",
+    sds = "a smooth's standard deviation",
     sdgp = "a gp() standard deviation",
     lscale = "a gp() length scale",
     cor = "a random-effect correlation",
     rescor = "a residual correlation")
-  noun <- switch(row$class, sd = , sdgp = "standard deviation",
+  noun <- switch(row$class, sd = , sds = , sdgp = "standard deviation",
                  lscale = "length scale", "")
   scale <- switch(row$class,
     cor = paste0(" A correlation takes lkj() on the block's whole ",
@@ -3825,8 +3944,38 @@ resolve_priorlist <- function(fit, pl) {
     invisible(NULL)
   }
 
+  # brms's class "sderr": the log sd in a latent residual block's theta,
+  # with the log-Jacobian class "sd" takes
+  resolve_sderr <- function(s) {
+    lrs <- frame_latres(frame)
+    hit <- FALSE
+    for (rs in names(lrs)) {
+      if (nzchar(s$resp %||% "") && !identical(rs, s$resp)) next
+      hit <- TRUE
+      i <- lrs[[rs]][["theta_idx"]][1L]
+      key <- nm_of("theta", i)
+      if (!is.null(s$dist)) {
+        claim("theta", i)
+        assigned[[key]] <<- list(comp = "theta", idx = i, dist = s$dist,
+                                 scale = "sd", lb = s$lb, ub = s$ub)
+      } else if (!is.null(assigned[[key]])) {
+        assigned[[key]] <<- entry_bounds(assigned[[key]], s)
+      }
+      nm_theta <- paste0("theta_", i)
+      if (!is.na(s$lb)) lower[nm_theta] <<- if (s$lb > 0) log(s$lb) else -Inf
+      if (!is.na(s$ub)) upper[nm_theta] <<- log(s$ub)
+    }
+    if (!hit) {
+      frm_stop("No latent residual matches ", spec_target(s), ". brms's ",
+               "class \"sderr\" is the SD of the latent residuals of an ",
+               "autocorrelation term on a family with no residual y - mu",
+               call. = FALSE)
+    }
+    invisible(NULL)
+  }
+
   resolve_ac_class <- function(s) {
-    acs <- frame[["autocor"]] %||% list()
+    acs <- frame_ac_terms(frame)
     hit <- FALSE
     for (rs in names(acs)) {
       ac <- acs[[rs]]
@@ -3836,7 +3985,8 @@ resolve_priorlist <- function(fit, pl) {
       hit <- TRUE
       idx <- ac[["theta_idx"]][within]
       tr <- autocor_trans(ac, s$class)
-      nms <- par_template_names(frame[["par_template"]][["thetaac"]], "thetaac")
+      cmp_ac <- ac_comp(ac)
+      nms <- par_template_names(frame[["par_template"]][[cmp_ac]], cmp_ac)
       if (!is.null(s$dist)) {
         dst <- if (identical(s$class, "cortime")) {
           lkj_dist(s$dist$eta, list(kind = "chol", d = ac[["d"]]),
@@ -3844,9 +3994,9 @@ resolve_priorlist <- function(fit, pl) {
         } else {
           trans_dist(s$dist, tr)
         }
-        claim("thetaac", idx)
-        assigned[[nm_of("thetaac", idx)]] <<-
-          list(comp = "thetaac", idx = idx, dist = dst,
+        claim(cmp_ac, idx)
+        assigned[[nm_of(cmp_ac, idx)]] <<-
+          list(comp = cmp_ac, idx = idx, dist = dst,
                scale = "internal", lb = NA, ub = NA)
       }
       # set_prior() has already refused lb/ub on the matrix-valued
@@ -3854,7 +4004,7 @@ resolve_priorlist <- function(fit, pl) {
       if (!is.na(s$lb) || !is.na(s$ub)) {
         # a box on unconstrained coefficients IS a box on the internal
         # ones, so only the transformed maps are limited to order one
-        if (length(idx) > 1L && !identical(tr$map, "identity")) {
+        if (length(idx) > 1L && !tr$map %in% c("identity", "box")) {
           frm_stop("class = \"", s$class, "\" takes no lb/ub at order ",
                    length(idx), ": coefficient ", s$class,
                    "[1] is a function of every one of this block's ",
@@ -4349,8 +4499,9 @@ resolve_priorlist <- function(fit, pl) {
         if (!is.na(s$lb)) lower[tg$name] <- internal_bound(s$lb, pm, "lb")
         if (!is.na(s$ub)) upper[tg$name] <- internal_bound(s$ub, pm, "ub")
       }
-    } else if (s$class == "sd") {
-      if (nzchar(s$coef %||% "") && !nzchar(s$group)) {
+    } else if (s$class %in% c("sd", "sds")) {
+      is_sd <- identical(s$class, "sd")
+      if (is_sd && nzchar(s$coef %||% "") && !nzchar(s$group)) {
         # brms keys a coefficient's sd row by its group and has no
         # row sd_x: "The following priors do not correspond to any
         # model parameter" (dev/prilabel-log/brms-ref.txt)
@@ -4379,8 +4530,10 @@ resolve_priorlist <- function(fit, pl) {
       }, TRUE))
       hit <- FALSE
       for (bk in if (exact) frame[["re_blocks"]]) {
-        # a gp() term's sd is brms's class "sdgp", not "sd"
-        if (bk[["covstruct"]] %in% c("gp", "hsgp")) next
+        # a gp() term's sd is brms's class "sdgp", not "sd", a smooth's is
+        # "sds" (sd_spec_reach() keeps those two apart) and a latent
+        # residual's is class "sderr"
+        if (bk[["covstruct"]] %in% c("gp", "hsgp", "latres")) next
         sd_i <- cs_entry(bk[["covstruct"]])$sd_idx(bk)
         sd_i <- sd_i[sd_spec_reach(fit$spec, frame, bk, s)$reach]
         for (k in sd_i) {
@@ -4401,15 +4554,23 @@ resolve_priorlist <- function(fit, pl) {
           if (!is.na(s$ub)) upper[nm_theta] <- log(s$ub)
         }
       }
+      if (!hit && !is_sd) {
+        frm_stop("No smooth standard deviations match ", spec_target(s),
+                 ". ", sds_term_hint(fit$spec, frame), call. = FALSE)
+      }
       if (!hit) {
+        cs_all <- vapply(frame[["re_blocks"]], `[[`, "", "covstruct")
         frm_stop("No random-effect SDs match ", spec_target(s), ". ",
                  if (nzchar(s$coef %||% "")) sd_coef_hint(frame, s),
                  sd_prefix_hint(fit$spec, frame),
-                 if (any(vapply(frame[["re_blocks"]], function(bk) {
-                   bk[["covstruct"]] %in% c("gp", "hsgp")
-                 }, NA))) {
+                 if (any(cs_all %in% c("gp", "hsgp"))) {
                    paste0(". A gp() term's standard deviation is class ",
                           "\"sdgp\", as in brms")
+                 },
+                 if ("smooth" %in% cs_all) {
+                   paste0(". A smooth's standard deviation is class ",
+                          "\"sds\" with coef = the term, as in brms: ",
+                          "class \"sd\" does not reach it")
                  }, call. = FALSE)
       }
     } else if (s$class %in% c("sdgp", "lscale")) {
@@ -4491,9 +4652,7 @@ resolve_priorlist <- function(fit, pl) {
         }
       }
       own <- autocor_class_coefs(frame)
-      hit <- if (identical(cmp, "thetaac")) {
-        intersect(nms[tgt$idx], own$coef)
-      } else character(0)
+      hit <- intersect(nms[tgt$idx], own$coef)
       if (length(hit)) {
         k <- match(hit[1L], own$coef)
         frm_stop("class = \"theta\", coef = \"", hit[1L], "\" is the ",
@@ -4520,6 +4679,8 @@ resolve_priorlist <- function(fit, pl) {
       }
     } else if (s$class %in% names(autocor_prior_classes)) {
       resolve_ac_class(s)
+    } else if (s$class == "sderr") {
+      resolve_sderr(s)
     } else if (s$class == "rescor") {
       resolve_rescor(s)
     } else if (s$class == "lncor") {
@@ -5622,15 +5783,15 @@ autocor_class_idx <- function(ac, cls) {
 autocor_class_coefs <- function(frame) {
   out <- data.frame(coef = character(0), class = character(0),
                     resp = character(0), stringsAsFactors = FALSE)
-  for (rs in names(frame[["autocor"]] %||% list())) {
-    ac <- frame[["autocor"]][[rs]]
+  for (rs in names(frame_ac_terms(frame))) {
+    ac <- frame_ac_terms(frame)[[rs]]
     cls <- c(names(autocor_prior_classes),
              vapply(autocor_seam_bounded(ac), `[[`, "", "name"))
     for (cl in cls) {
       within <- autocor_class_idx(ac, cl)
       if (!length(within)) next
       out <- rbind(out, data.frame(
-        coef = paste0("thetaac_", ac[["theta_idx"]][within]), class = cl,
+        coef = paste0(ac_comp(ac), "_", ac[["theta_idx"]][within]), class = cl,
         resp = rs, stringsAsFactors = FALSE))
     }
   }
@@ -5655,6 +5816,12 @@ autocor_class_bounds <- function(ac, cls, route = "fit") {
     hit <- Filter(function(pr) identical(pr$name, cls),
                   autocor_seam_bounded(ac))
     return(if (length(hit)) c(hit[[1L]]$lower, hit[[1L]]$upper) else none)
+  }
+  # brms bounds a latent residual's coefficients as it bounds a covariance
+  # form's, entrywise under cov = FALSE too, and its cosy on [0, 1], which is
+  # all a shared latent can reach on either route
+  if (isTRUE(ac[["latent"]])) {
+    return(switch(cls, cosy = c(0, 1), cortime = none, c(-1, 1)))
   }
   if (autocor_is_cond(ac) || identical(cls, "cortime")) return(none)
   if (identical(cls, "cosy")) {
@@ -5698,9 +5865,9 @@ autocor_flat_priors <- function(fit) {
   # a registry term's bounds live in its package, which a saved fit
   # may come back without; refused there with the package to load
   if (length(fit$frame[["autocor"]])) require_fit_packages(fit)
-  for (rs in names(fit$frame[["autocor"]] %||% list())) {
-    ac <- fit$frame[["autocor"]][[rs]]
-    if (autocor_is_cond(ac)) next
+  for (rs in names(frame_ac_terms(fit$frame))) {
+    ac <- frame_ac_terms(fit$frame)[[rs]]
+    if (autocor_is_cond(ac) && !isTRUE(ac[["latent"]])) next
     cls <- c(setdiff(names(autocor_prior_classes), "cortime"),
              vapply(autocor_seam_bounded(ac), `[[`, "", "name"))
     for (cl in cls) {
@@ -5754,8 +5921,8 @@ autocor_bound_chart <- function(fit, lower, upper) {
   get_b <- function(b, nm, fill) if (nm %in% names(b)) b[[nm]] else fill
   out <- list()
   if (length(fit$frame[["autocor"]])) require_fit_packages(fit)
-  for (rs in names(fit$frame[["autocor"]] %||% list())) {
-    ac <- fit$frame[["autocor"]][[rs]]
+  for (rs in names(frame_ac_terms(fit$frame))) {
+    ac <- frame_ac_terms(fit$frame)[[rs]]
     cls <- c(setdiff(names(autocor_prior_classes), "cortime"),
              vapply(autocor_seam_bounded(ac), `[[`, "", "name"))
     for (cl in cls) {
@@ -5763,11 +5930,11 @@ autocor_bound_chart <- function(fit, lower, upper) {
       if (length(within) != 1L) next
       tr <- autocor_trans(ac, cl)
       if (is.null(tr) || identical(tr$map, "identity")) next
-      nm <- paste0("thetaac_", ac[["theta_idx"]][within])
+      nm <- paste0(ac_comp(ac), "_", ac[["theta_idx"]][within])
       lo <- get_b(lower, nm, -Inf)
       hi <- get_b(upper, nm, Inf)
       if (!is.finite(lo) && !is.finite(hi)) next
-      img <- unname(switch(tr$map, bounded = c(tr$lo, tr$hi),
+      img <- unname(switch(tr$map, bounded = , box = c(tr$lo, tr$hi),
                            cosy = c(-tr$a, 1), c(-1, 1)))
       L <- if (is.finite(lo)) as.numeric(ac_trans_value(lo, tr)) else img[1L]
       U <- if (is.finite(hi)) as.numeric(ac_trans_value(hi, tr)) else img[2L]
@@ -5781,7 +5948,7 @@ autocor_bound_chart <- function(fit, lower, upper) {
       L <- snap(unname(L))
       U <- snap(unname(U))
       out[[length(out) + 1L]] <- ac_chart_term(
-        nm, cl, rs, ac[["theta_idx"]][within], L, U, tr)
+        nm, cl, rs, ac[["theta_idx"]][within], L, U, tr, ac_comp(ac))
     }
   }
   out
@@ -5790,10 +5957,10 @@ autocor_bound_chart <- function(fit, lower, upper) {
 #' One term of `autocor_bound_chart()`.
 #'
 #' @noRd
-ac_chart_term <- function(nm, cl, rs, idx, L, U, tr) {
+ac_chart_term <- function(nm, cl, rs, idx, L, U, tr, comp = "thetaac") {
   # natural -> internal, the inverse of ac_trans_value() for a scalar map
   inv <- function(r) {
-    if (identical(tr$map, "bounded")) {
+    if (tr$map %in% c("bounded", "box")) {
       q <- (r - tr$lo) / (tr$hi - tr$lo)
       return(log(q) - log(1 - q))
     }
@@ -5804,7 +5971,7 @@ ac_chart_term <- function(nm, cl, rs, idx, L, U, tr) {
     r / sqrt(1 - r * r)
   }
   list(
-    comp = "thetaac", idx = idx, name = nm, class = cl, resp = rs,
+    comp = comp, idx = idx, name = nm, class = cl, resp = rs,
     L = L, U = U,
     to_internal = function(v) inv(L + (U - L) / (1 + exp(-v))),
     # d internal / d v = (d natural / d v) / (d natural / d internal)
@@ -5821,7 +5988,7 @@ ac_chart_term <- function(nm, cl, rs, idx, L, U, tr) {
     },
     to_natural = function(th) as.numeric(ac_trans_value(th, tr)),
     # the ends of the map's own image, which a bound narrows
-    image = unname(switch(tr$map, bounded = c(tr$lo, tr$hi),
+    image = unname(switch(tr$map, bounded = , box = c(tr$lo, tr$hi),
                           cosy = c(-tr$a, 1), c(-1, 1))))
 }
 
@@ -5833,6 +6000,12 @@ ac_chart_term <- function(nm, cl, rs, idx, L, U, tr) {
 #'
 #' @noRd
 autocor_trans <- function(ac, cls) {
+  if (isTRUE(ac[["latent"]])) {
+    if (identical(cls, "cortime")) return(NULL)
+    if (identical(cls, "cosy")) return(list(map = "box", lo = 0, hi = 1))
+    if (autocor_is_cond(ac)) return(list(map = "box", lo = -1, hi = 1))
+    return(list(map = "levinson"))
+  }
   if (autocor_is_seam(ac)) {
     hit <- Filter(function(pr) identical(pr$name, cls),
                   autocor_seam_bounded(ac))[[1L]]
@@ -5863,6 +6036,7 @@ trans_dist <- function(inner, trans) {
 #' @noRd
 ac_trans_value <- function(th, tr) {
   if (identical(tr$map, "identity")) return(th)
+  if (identical(tr$map, "box")) return(tr$lo + (tr$hi - tr$lo) / (1 + exp(-th)))
   if (identical(tr$map, "bounded")) {
     return(tr$lo + (tr$hi - tr$lo) / (1 + exp(-th[1])))
   }
@@ -5888,6 +6062,10 @@ ac_trans_value <- function(th, tr) {
 #' @noRd
 ac_trans_logjac <- function(th, tr) {
   if (identical(tr$map, "identity")) return(0)
+  if (identical(tr$map, "box")) {
+    s <- 1 / (1 + exp(-th))
+    return(sum(log(tr$hi - tr$lo) + log(s) + log(1 - s)))
+  }
   if (identical(tr$map, "bounded")) {
     # d rho / d theta = (hi - lo) p (1 - p), the same form as cosy's
     s <- 1 / (1 + exp(-th[1]))
@@ -5923,8 +6101,8 @@ ac_trans_logjac <- function(th, tr) {
 #' @noRd
 ac_bound_theta <- function(v, tr, ac, cls, what) {
   if (identical(tr$map, "identity")) return(v)
-  ends <- switch(tr$map, bounded = c(tr$lo, tr$hi), cosy = c(-tr$a, 1),
-                 c(-1, 1))
+  ends <- switch(tr$map, bounded = , box = c(tr$lo, tr$hi),
+                 cosy = c(-tr$a, 1), c(-1, 1))
   # an end is computed (1 / an eigenvalue for sar()) and carries a few
   # ulps, so a bound typed at it, ub = 1 for a row-standardized W, is
   # that end within the snap autocor_bound_chart() applies
@@ -5933,7 +6111,7 @@ ac_bound_theta <- function(v, tr, ac, cls, what) {
   }
   if (identical(what, "lb") && at_end(ends[1L])) return(-Inf)
   if (identical(what, "ub") && at_end(ends[2L])) return(Inf)
-  if (identical(tr$map, "bounded")) {
+  if (tr$map %in% c("bounded", "box")) {
     if (v <= tr$lo || v >= tr$hi) {
       frm_stop("class = \"", cls, "\" ", what, " = ", v, " is outside ",
                "the interval of ", ac[["label"]], ", (",

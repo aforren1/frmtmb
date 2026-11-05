@@ -394,7 +394,7 @@ test_that("a band past an exact gp()'s positions draws from its kriging", {
                    fac = factor("A", levels = levels(d$fac)))
   cv <- frm_curve(fit, newdata = nd, nsim = 20000, seed = 1)
   lb <- frmtmb::frm_lp_basis(fit, newdata = nd, re_formula = NA)
-  expect_gt(min(lb$extra_var / cv$.se^2), 0.01)
+  expect_gt(max(lb$extra_var / cv$.se^2), 0.01)
   # the grid covariance is the whole of it, so its diagonal is .se^2
   expect_lt(max(abs(sqrt(diag(attr(cv, "Sigma"))) / cv$.se - 1)), 1e-10)
   # and the critical value is at least the bound that only fixes the

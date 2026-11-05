@@ -112,7 +112,7 @@ test_that("a block is eligible when its factor consumes all its theta", {
     frmtmb::ncp_eligible(list(covstruct = cs, dim = d, n_levels = 3L))
   }
   # every parameter is a standard deviation: nothing to expose
-  for (cs in c("diag", "homdiag", "smooth", "equalto", "hsgp", "gp")) {
+  for (cs in c("diag", "homdiag", "smooth", "equalto", "hsgp")) {
     expect_true(el(cs), info = cs)
   }
   expect_true(el("us", 1L))
@@ -829,7 +829,11 @@ test_that("smooth and diag blocks non-center through the sampler", {
   fit <- frm(ff, family = gaussian(), data = dd)
   cs <- vapply(fit$frame$re_blocks, function(bk) bk$covstruct, "")
   expect_true(all(cs %in% c("smooth", "diag")))
-  plan <- frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, theta_priors(fit)$entries)
+  # a smooth's sd is class sds, which the helper's class sd does not reach
+  pr <- frmtmb::resolve_prior_input(
+    fit, set_prior("lognormal(-0.7, 0.5)", class = "sd") +
+      set_prior("lognormal(-0.7, 0.5)", class = "sds"))
+  plan <- frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, pr$entries)
   expect_equal(plan$idx, seq_along(cs))
   expect_length(plan$centered, 0L)
 
@@ -856,11 +860,12 @@ test_that("smooth and diag blocks non-center through the sampler", {
 
 ## ---- an exact gp() field (dev/moparity-findings.md, item 7) ----------
 
-test_that("an exact gp() field non-centers as brms's sdgp * L zgp", {
+test_that("an exact gp() field is brms's sdgp * L zgp on the sampler's tape", {
   # On 0.69.0 (rellib-r7) a gp block had no factor and was sampled
   # centered: on lane surface's y ~ gp(x) the formula route ran 1286 of
   # 2000 transitions into the maximum tree depth, with R-hat 1.52 on
-  # b_Intercept (dev/moparity-gp-ncp.R)
+  # b_Intercept (dev/moparity-gp-ncp.R). frm() holds the field the same
+  # way now, so frm_sample() has nothing left to transform.
   set.seed(5)
   n <- 60
   d9 <- data.frame(x = round(stats::runif(n, 0, 6), 1))
@@ -868,26 +873,24 @@ test_that("an exact gp() field non-centers as brms's sdgp * L zgp", {
   fit <- frm(bf(y ~ gp(x)), family = gaussian(), data = d9)
   bk <- fit$frame$re_blocks[[1L]]
   expect_identical(bk$covstruct, "gp")
-  expect_true(frmtmb::ncp_eligible(bk))
+  expect_false(frmtmb::ncp_eligible(bk))
+  plan <- frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, NULL)
+  expect_length(plan$idx, 0L)
+  expect_length(plan$centered, 0L)
   th <- fit$estimates$theta[bk$theta_idx]
-  L <- frmtmb:::ncp_block_chol(bk, th)
+  f_n <- frmtmb::build_objective(fit$frame)
+  pz <- fit$estimates
+  # the density of z is standard normal, and the rest is the likelihood at
+  # the field sd L z, read by hand here
   V <- frmtmb:::cs_entry("gp")$vcov(th, bk)
-  expect_equal(L %*% t(L), unname(as.matrix(V)),
-               tolerance = 1e-10 * max(abs(V)))
-  z <- stats::rnorm(bk$dim)
-  b <- frmtmb::ncp_scale_b(bk, z, th)
-  expect_equal(frmtmb::ncp_unscale_b(bk, b, th), z,
-               tolerance = 1e-8 * max(abs(z)))
-  # the non-centered objective is the centered one plus log |L|
-  frn <- fit$frame
-  frn$ncp_blocks <- 1L
-  f_c <- frmtmb::build_objective(fit$frame)
-  f_n <- frmtmb::build_objective(frn)
-  p <- fit$estimates
-  pz <- p
-  pz$b <- frmtmb::ncp_unscale_b(bk, p$b, th)
-  jac <- sum(log(diag(L)))
-  expect_equal(f_c(p) - f_n(pz), jac, tolerance = 1e-8 * abs(jac))
+  p <- bk$gp_order
+  L <- t(chol(as.matrix(V)[p, p]))[order(p), , drop = FALSE]
+  u <- sort(unique(d9$x))
+  fld <- as.vector(L %*% pz$b)[match(d9$x, u)]
+  sg <- sigma(fit)[1L]
+  hand <- -sum(stats::dnorm(pz$b, 0, 1, log = TRUE)) -
+    sum(stats::dnorm(d9$y, pz$beta[[1L]] + fld, sg, log = TRUE))
+  expect_equal(f_n(pz), hand, tolerance = 1e-8 * abs(hand))
   # and on the tape, where the factor is taken by RTMB's chol()
   obj_n <- RTMB::MakeADFun(f_n, pz, silent = TRUE)
   expect_equal(obj_n$fn(obj_n$par), f_n(pz), tolerance = 1e-10 *
@@ -905,4 +908,120 @@ test_that("an exact gp() field non-centers as brms's sdgp * L zgp", {
   fd_err <- abs(fd - fd_at(5e-6)) +
     .Machine$double.eps * abs(obj_n$fn(obj_n$par)) / 5e-6
   expect_lt(abs(g[k] - fd), 10 * fd_err)
+})
+
+test_that("frm_sample() reads an exact gp()'s columns off the chain by name", {
+  # gp_tape_order() tapes b first, and sample_finish() labeled the stanfit's
+  # columns by position in the template's order: sigma read 2.3 where the
+  # chain held 0.011 (dev/ncgp-findings.md), and sdgp, last in both orders,
+  # read right
+  skip_sampler()
+  set.seed(9)
+  n <- 30L
+  d <- data.frame(x = sort(round(stats::runif(n, 0, 6), 3)))
+  d$y <- 0.5 + sin(2 * d$x) + stats::rnorm(n, 0, 0.1)
+  ds <- suppressWarnings(suppressMessages(
+    frm_sample(bf(y ~ gp(x)), family = gaussian(), data = d, chains = 1L,
+               iter = 200L, refresh = 0, seed = 4L, save_warmup = TRUE)))
+  a <- rstan::extract(ds$stanfit, permuted = FALSE)
+  raw <- function(nm) as.vector(a[, 1L, nm])
+  beta <- grep("^beta", dimnames(a)[[3L]], value = TRUE)
+  betad <- grep("^betad", dimnames(a)[[3L]], value = TRUE)
+  expect_identical(unname(ds$draws[, "b_Intercept"]), raw(beta[1L]))
+  expect_equal(unname(ds$draws[, "sigma"]), exp(raw(betad[1L])),
+               tolerance = 8 * .Machine$double.eps)
+  # the reader that hands a draw back to the model: the mean curve follows y,
+  # within a few residual sd, which it cannot through a shifted z
+  e <- posterior_epred(ds)
+  sg <- stats::median(ds$draws[, "sigma"])
+  expect_lt(sg, 10 * stats::sigma(ds$fit)[1L])
+  expect_lt(max(abs(colMeans(e) - d$y)), 6 * sg)
+  # the saved warmup goes through the same steps
+  w <- frmtmb.sample:::draws_warmup(ds)
+  aw <- rstan::extract(ds$stanfit, permuted = FALSE, inc_warmup = TRUE)
+  nw <- nrow(w)
+  expect_equal(unname(w[, "sigma"]),
+               exp(as.vector(aw[seq_len(nw), 1L, betad[1L]])),
+               tolerance = 8 * .Machine$double.eps)
+  # draws_in_template_order() leaves every other model's columns alone
+  fit0 <- frm(bf(y ~ x), family = gaussian(), data = d)
+  a0 <- array(seq_len(6), c(1L, 2L, 3L),
+              list(NULL, NULL, c("beta[1]", "betad", "lp__")))
+  expect_identical(frmtmb.sample:::draws_in_template_order(a0, fit0), a0)
+})
+
+test_that("the GEV xi replay hands an exact gp()'s tape its own order", {
+  # the draws are in the template's order and the tape holds b first
+  set.seed(9)
+  n <- 30L
+  d <- data.frame(x = sort(round(stats::runif(n, 0, 6), 3)))
+  d$y <- sin(2 * d$x) + stats::rnorm(n, 0, 0.3)
+  fit <- suppressWarnings(frm(bf(y ~ gp(x)), family = gaussian(), data = d))
+  tpl <- fit$frame$par_template
+  tape <- gp_tape_order(fit$frame, tpl)
+  seg <- rep(names(tape), lengths(tape))
+  m <- matrix(0, 2L, length(seg) + 1L)
+  # one row's beta, in the template's position, is the value to find again
+  pos <- frmtmb.sample:::draws_par_index(fit, laplace = FALSE)
+  m[, pos$beta[1L]] <- c(0.25, -0.5)
+  last <- stats::setNames(numeric(length(seg)), seg)
+  obj <- list(env = list(last.par = last),
+              report = function(row) {
+                list(frmtmb_gev_xi = row[which(seg == "beta")[1L]])
+              })
+  tm <- list(par = "theta", idx = 1L, blocked = NULL,
+             link = list(linkfun = identity))
+  out <- frmtmb.sample:::gev_draws_to_xi(m, obj, fit, list(tm), FALSE)
+  expect_identical(out[, pos$theta[1L]], c(0.25, -0.5))
+})
+
+test_that("frm_sample(fit) leaves the mode where the fit sits at the nugget", {
+  # chains started at the mode stayed pinned: at true sigma 1e-6, n 15, q50
+  # 2.65e-8 and Rhat 14.4 (dev/ncgp-randstart.R). At ordinary noise the mode is
+  # the better start
+  skip_sampler()
+  set.seed(6601)
+  n <- 15L
+  x <- round(stats::runif(n, 0, 6), 3)
+  e <- stats::rnorm(n)
+  fits <- lapply(c(1e-6, 1e-2), function(s) {
+    suppressWarnings(frm(bf(y ~ gp(x)), family = gaussian(),
+                         data = data.frame(x = x, y = sin(2 * x) + s * e)))
+  })
+  said <- function(fit, ...) {
+    msg <- character()
+    withCallingHandlers(
+      suppressWarnings(frm_sample(fit, chains = 1L, iter = 20L, refresh = 0,
+                                  seed = 1L, ...,
+                                  control = list(max_treedepth = 3L))),
+      message = function(m) {
+        msg <<- c(msg, conditionMessage(m))
+        invokeRestart("muffleMessage")
+      })
+    any(grepl("chains start at random", msg, fixed = TRUE))
+  }
+  expect_false(is.null(gp_nugget_message(fits[[1L]])))
+  expect_null(gp_nugget_message(fits[[2L]]))
+  expect_true(said(fits[[1L]]))
+  expect_false(said(fits[[1L]], init = "last.par.best"))
+  expect_false(said(fits[[2L]]))
+})
+
+test_that("a joint-chain tape does not build the inner Hessian", {
+  skip_sampler()
+  set.seed(9)
+  n <- 30L
+  d <- data.frame(x = sort(round(stats::runif(n, 0, 6), 3)))
+  d$y <- sin(2 * d$x) + stats::rnorm(n, 0, 0.3)
+  fit <- suppressWarnings(frm(bf(y ~ gp(x)), family = gaussian(), data = d))
+  seen <- NULL
+  local_mocked_bindings(
+    gp_tape_scope = function(frame, expr, hessian = TRUE) {
+      seen <<- hessian
+      expr
+    }, .package = "frmtmb.sample")
+  frmtmb.sample:::prior_augmented_obj(fit, list(), hessian = FALSE)
+  expect_false(seen)
+  frmtmb.sample:::prior_augmented_obj(fit, list())
+  expect_true(seen)
 })

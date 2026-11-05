@@ -508,7 +508,7 @@ test_that("the objective expands esicar whatever the frame's flag says", {
   #
   # It is invisible at the mode, because the inert coordinate is zero
   # there, so the check has to be made OFF the mode. That is the regime
-  # imp_frozen_proposal() and cluster_scores_at() work in, and both
+  # imp_fit_proposal() and cluster_scores_at() work in, and both
   # rebuild the objective from a STORED fit$frame.
   s <- car_lattice_data(42)
   W <- s$W

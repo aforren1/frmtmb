@@ -289,7 +289,7 @@ curve_se <- function(q, e, lost = FALSE, na = FALSE) {
 curve_add_extra <- function(S, E) {
   if (is.null(E)) return(S)
   if (inherits(E, "Matrix")) {
-    if (!length(E@x) || !any(E@x != 0)) return(S)
+    if (!length(E@x) || !any(E@x != 0, na.rm = TRUE)) return(S)
     E <- as.matrix(E)
   }
   S + unname(E)
@@ -329,7 +329,11 @@ curve_cov_check <- function(fit, nd, se, dpar, resp, re_formula,
              "disagree is one it must not report a band for", call. = FALSE)
   }
   if (all(miss)) return(NA_real_)
-  rel <- max(abs(se[!miss] / pmax(se_ref[!miss], .Machine$double.eps) - 1))
+  # as a difference: a row with no coefficient in it (a shared predictor at
+  # x = 0) has a standard error of exactly 0 on both routes, and the ratio read
+  # that agreement as a disagreement of 1
+  rel <- max(abs(se[!miss] - se_ref[!miss]) /
+               pmax(se_ref[!miss], .Machine$double.eps))
   if (!is.finite(rel) || rel > tol) {
     frm_stop("frm_curve(): the assembled covariance of ", side,
              " disagrees with frm_linpred(se.fit = TRUE) by ",
@@ -340,6 +344,19 @@ curve_cov_check <- function(fit, nd, se, dpar, resp, re_formula,
              "disagree is one it must not report a band for", call. = FALSE)
   }
   rel
+}
+
+#' A curve is read off one response, so a multivariate fit must name it.
+#'
+#' @noRd
+curve_one_response <- function(fit, resp) {
+  if (is.null(resp) && length(fit$spec$responses) > 1L) {
+    frm_stop("frm_curve(): this fit has ", length(fit$spec$responses),
+             " responses (", paste(names(fit$spec$responses), collapse = ", "),
+             "), and a curve is read off one. Name it with resp =",
+             call. = FALSE)
+  }
+  invisible(NULL)
 }
 
 #' Everything the three exported functions share: the grid, the design,
@@ -379,6 +396,20 @@ curve_parts <- function(fit, newdata, dpar, resp, re_formula,
     frm_stop("`newdata` must be a data frame with at least one row: it is ",
              "the grid the curve is evaluated on", call. = FALSE)
   }
+  resp <- resp_read(fit, resp)
+  curve_one_response(fit, resp)
+  rn <- resp %||% names(fit$spec$responses)[1L]
+  if (autocor_is_cond(fit$frame[["autocor"]][[rn]]) &&
+      (is.null(dpar) || identical(dpar, "mu"))) {
+    # said here because the covariance check would otherwise refuse it as
+    # a misread seam: the design has no column for the earlier residuals
+    frm_stop("frm_curve(): the mean under a cov = FALSE autocorrelation term ",
+             "reads the residual of the row before it, which a grid of ",
+             "covariates does not have, and the coefficient design carries ",
+             "no column for it. frm_linpred(newdata = ) gives the one-step ",
+             "mean on rows that hold the response, as brms's ",
+             "posterior_linpred() does", call. = FALSE)
+  }
   nl <- curve_is_nl(fit, dpar, resp)
   if (is.null(contrast)) {
     a <- curve_one_basis(fit, newdata, dpar, resp, re_formula,
@@ -390,7 +421,8 @@ curve_parts <- function(fit, newdata, dpar, resp, re_formula,
                 contrast = contrast,
                 dpar = dpar, resp = resp, re_formula = re_formula,
                 allow_new_levels = allow_new_levels, fit = fit,
-                span = a$span, extra_var = a$lb$extra_var)
+                span = a$span, extra_var = a$lb$extra_var,
+                layers = a$lb$layers)
     # A nonlinear body is the case core refuses se.fit for, so there is
     # no second number to check against. Everything else is checked.
     if (!nl) {
@@ -413,8 +445,22 @@ curve_parts <- function(fit, newdata, dpar, resp, re_formula,
   ix <- match(key, key[uq])
   j1 <- ix[i1]
   j2 <- ix[n + i1]
-  st <- curve_one_basis(fit, stk[uq, , drop = FALSE], dpar, resp,
+  # two grids at one x and one sdx read one draw of a me() value, and it
+  # cancels,
+  # as a kriging residual at one position does; brms's draws take one per row
+  by_value <- fit
+  by_value[["me_one_draw_by_value"]] <- TRUE
+  st <- curve_one_basis(by_value, stk[uq, , drop = FALSE], dpar, resp,
                         re_formula, allow_new_levels)
+  # the seam returns the grid once per layer, layer slowest, and both grids
+  # read the same layer in a row
+  layers <- st$lb$layers
+  if (length(layers)) {
+    per <- (seq_along(layers) - 1L) * length(uq)
+    j1 <- as.vector(outer(j1, per, `+`))
+    j2 <- as.vector(outer(j2, per, `+`))
+    i1 <- seq_along(j1)
+  }
   dif <- function(M) M[j1, j1] + M[j2, j2] - M[j1, j2] - M[j2, j1]
   C <- st$C[j1, , drop = FALSE] - st$C[j2, , drop = FALSE]
   E <- dif(st$E)
@@ -444,7 +490,7 @@ curve_parts <- function(fit, newdata, dpar, resp, re_formula,
               contrast = contrast,
               dpar = dpar, resp = resp, re_formula = re_formula,
               allow_new_levels = allow_new_levels, fit = fit, span = span,
-              extra_var = as.numeric(E[cbind(i1, i1)]))
+              extra_var = as.numeric(E[cbind(i1, i1)]), layers = layers)
   if (!nl) {
     r <- c(
       curve_cov_check(fit, newdata, st$se[j1], dpar, resp, re_formula,
@@ -496,6 +542,10 @@ curve_row_key <- function(d) {
 curve_is_nl <- function(fit, dpar, resp) {
   rn <- resp %||% names(fit$spec$responses)[1L]
   rspec <- fit$spec$responses[[rn]]
+  # several predictors on one call: core refuses se.fit if any has a body
+  for (l in if (is.null(dpar)) lp_layers(fit, rspec)) {
+    if (!is.null(l$lp[["nl_body"]])) return(TRUE)
+  }
   dp <- dpar %||% if ("mu" %in% names(rspec$dpars)) "mu" else
     rspec$primary_dpars[1L]
   lp <- fit$frame[["linpreds"]][[paste0(rn, ".", dp)]]
@@ -548,6 +598,14 @@ curve_sim_crit <- function(S, div, nsim, level, seed = NULL) {
              "simultaneous = FALSE, or move the grid inside the span",
              call. = FALSE)
   }
+  # a row of NA in the grid has no place in the band; the others do
+  gone <- !is.finite(diag(S))
+  if (any(gone)) {
+    S <- S[!gone, !gone, drop = FALSE]
+    keep <- keep[!gone]
+    div <- div[!gone]
+    m <- nrow(S)
+  }
   ev <- eigen((S + t(S)) / 2, symmetric = TRUE)
   L <- ev$vectors %*% diag(sqrt(pmax(ev$values, 0)), nrow = m)
   z <- matrix(stats::rnorm(m * nsim), m, nsim)
@@ -574,11 +632,29 @@ curve_sim_crit <- function(S, div, nsim, level, seed = NULL) {
 #' @noRd
 curve_extra_deriv <- function(sp, nd, ct, var, order, e) {
   if (curve_is_nl(sp$fit, sp$dpar, sp$resp)) return(NULL)
-  one <- function(g) {
+  rn <- sp$resp %||% names(sp$fit$spec$responses)[1L]
+  layers <- if (is.null(sp$dpar)) {
+    lp_layers(sp$fit, sp$fit$spec$responses[[rn]])
+  }
+  one1 <- function(g, dp) {
     frm_extra_cov_deriv(sp$fit, g, var = var, order = order,
-                                eps = e, dpar = sp$dpar, resp = sp$resp,
-                                re_formula = sp$re_formula,
-                                allow_new_levels = sp$allow_new_levels)
+                        eps = e, dpar = dp, resp = sp$resp,
+                        re_formula = sp$re_formula,
+                        allow_new_levels = sp$allow_new_levels)
+  }
+  # the block of each predictor, once per threshold of its cs() term and
+  # covarying fully across them, as lp_basis_layers() has it
+  one <- function(g) {
+    if (is.null(layers)) return(one1(g, sp$dpar))
+    pick <- sp$fit[["layer_pick"]]
+    if (!is.null(pick)) {
+      # one layer: a threshold shares its predictor's block
+      per <- rep(seq_along(layers), vapply(layers, `[[`, 1L, "k"))
+      return(one1(g, layers[[per[pick]]]$dpar))
+    }
+    Matrix::bdiag(lapply(layers, function(l) {
+      Matrix::kronecker(matrix(1, l$k, l$k), one1(g, l$dpar))
+    }))
   }
   E <- if (is.null(ct)) {
     one(nd)
@@ -592,8 +668,8 @@ curve_extra_deriv <- function(sp, nd, ct, var, order, e) {
   }
   # an empty sparse matrix is the no-source case, and costs nothing
   if (inherits(E, "Matrix")) {
-    if (!length(E@x) || !any(E@x != 0)) return(NULL)
+    if (!length(E@x) || !any(E@x != 0, na.rm = TRUE)) return(NULL)
     E <- as.matrix(E)
   }
-  if (!any(E != 0)) NULL else unname(E)
+  if (!any(E != 0, na.rm = TRUE)) NULL else unname(E)
 }

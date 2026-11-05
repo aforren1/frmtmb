@@ -1,0 +1,8 @@
+.libPaths(c("C:/Users/adf44/source/r/rev-ncgp-lib", "C:/Users/adf44/source/r/rellib-r16", "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressPackageStartupMessages(library(frmtmb))
+set.seed(1); d <- data.frame(x = runif(30, 0, 6)); d$y <- sin(d$x) + rnorm(30, sd = .2)
+f <- suppressWarnings(frm(y ~ gp(x), d))
+r <- tryCatch(fitted(f, newdata = data.frame(x = c(1.1, 2.2))), error = function(e) conditionMessage(e)); print(r)
+print(frmtmb:::gp_block_nugget(f$frame$re_blocks[[1]])); print(frmtmb:::gp_nugget)
+print(tryCatch(frmtmb:::gp_nugget_message, error = function(e) "none") |> class())
+cat(paste(sprintf("%s", intersect(c("gp_position_info", "gp_nugget_message", "gp_block_nugget", "gp_chol_num"), ls(asNamespace("frmtmb")))), collapse = " "), "\n")

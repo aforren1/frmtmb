@@ -141,6 +141,117 @@ nl_shadow_for <- function(expr) {
   intersect(nl_rtmb_shadow, setdiff(all.names(expr), all.vars(expr)))
 }
 
+#' Stan's functions a nonlinear body can call.
+#'
+#' brms writes a body into its Stan program, so a body there can call any
+#' function of the Stan language that takes one row's values, and brms
+#' mirrors a list of them in R for its post-processing
+#' (`brms:::names_stan_functions()`). These are the members of that list
+#' that Stan 2.32 parses with real arguments (dev/nlfix-stanc.R), which
+#' is what a row-wise body passes. `softmax()` and `log_softmax()` take a
+#' vector only, so no brms body can call them on a row. Each is written
+#' for the tape and for doubles alike, so the fitted and the post-fit
+#' paths read the same number, and through RTMB's log-space sums where
+#' the plain formula loses its derivative at the ends (`logspace_add()`
+#' has a finite gradient at x = 800, where `log1p(exp(x))` has none).
+#' `test-nl-stan-funs.R` holds the values against Stan's.
+#'
+#' `step()` is Stan's: 0 below zero and 1 otherwise, with derivative 0,
+#' written through `sign()` because a comparison cannot go on the tape.
+#'
+#' @noRd
+nl_stan_funs <- list(
+  logit = function(x) log(x) - log1p(-x),
+  inv_logit = function(x) RTMB::plogis(x),
+  # through the log-space difference: expm1's derivative rounds to 0 long
+  # before the true one, 5e-63 at x = 5
+  inv_cloglog = function(x) {
+    u <- exp(x)
+    exp(RTMB::logspace_sub(0 * u, -u))
+  },
+  Phi = function(x) RTMB::pnorm(x),
+  square = function(x) x * x,
+  cbrt = function(x) sign(x) * abs(x)^(1 / 3),
+  exp2 = function(x) 2^x,
+  pow = function(x, y) nl_pow(x, y),
+  inv = function(x) 1 / x,
+  inv_sqrt = function(x) 1 / sqrt(x),
+  # x^(-2) and not 1 / (x * x), whose derivative is 0 / 0 at x = 0
+  inv_square = function(x) x^(-2),
+  # scaled by the larger side, so that neither square overflows or
+  # underflows; sign(m) keeps both sides at 0 from dividing by 0
+  hypot = function(x, y) {
+    a <- abs(x)
+    b <- abs(y)
+    m <- 0.5 * (a + b + abs(a - b))
+    r <- (a + b - m) / (m + (1 - sign(m)))
+    m * sqrt(1 + r * r)
+  },
+  log1m = function(x) log1p(-x),
+  step = function(x) {
+    s <- sign(x)
+    1 + s / 2 - s * s / 2
+  },
+  log1p_exp = function(x) RTMB::logspace_add(0 * x, x),
+  log1m_exp = function(x) RTMB::logspace_sub(0 * x, x),
+  log_diff_exp = function(x, y) {
+    RTMB::logspace_sub(x + 0 * y, y + 0 * x)
+  },
+  log_sum_exp = function(x, y) {
+    RTMB::logspace_add(x + 0 * y, y + 0 * x)
+  },
+  log_inv_logit = function(x) -RTMB::logspace_add(0 * x, -x),
+  log1m_inv_logit = function(x) -RTMB::logspace_add(0 * x, x)
+)
+
+#' `x^y` with Stan's value and gradient where a data `x` is 0.
+#'
+#' On the tape, `x^y` differentiates to `x^y * log(x)` in `y`, which is
+#' `0 * -Inf` at `x = 0`, so `a * x^b` with a zero row stops with a NaN
+#' gradient where Stan's is finite (`stan::math::pow` skips the log term
+#' there). The value at 0 is a function of `y` alone: 1 at `y = 0`, 0 above
+#' it, Inf below. With `s = sign(y)` and `t = sign(-y)`, which the tape takes
+#' as 1 at 0, `(1 - s) / (1 + s)` gives the two sides and
+#' `(1 + s) * (1 + t) / 4` the point, and their derivative in `y` is 0. Only a
+#' `y` on the tape with a data `x` that holds a 0 takes this branch: everything
+#' else is `x^y`, the same operation.
+#'
+#' @noRd
+nl_pow <- function(x, y) {
+  if (!inherits(y, "advector") || inherits(x, "advector") || !any(x == 0)) {
+    return(x^y)
+  }
+  "[<-" <- RTMB::ADoverload("[<-")
+  n <- max(length(x), length(y))
+  x <- rep_len(x, n)
+  i0 <- which(x == 0)
+  x[i0] <- 1
+  s <- sign(y)
+  f <- (1 - s) / (1 + s) + (1 + s) * (1 + sign(-y)) / 4
+  out <- x^y
+  out[i0] <- if (length(f) == 1L) f else f[i0]
+  out
+}
+
+#' The Stan functions to bind for this body: the names it calls, less one
+#' its own environment already resolves. A helper the user wrote under
+#' one of these names is found as before. `stats::step()` does not count:
+#' it reaches a body only through the search path, and it fits a stepwise
+#' regression, which no body means.
+#'
+#' @noRd
+nl_stan_for <- function(expr, parent) {
+  if (is.null(expr)) return(character(0))
+  # a name in call position, even if the same body also reads a column of
+  # that name: eval() looks for a function there and skips the column
+  called <- called_functions(expr, names(nl_stan_funs))
+  Filter(function(nm) {
+    f <- get0(nm, envir = parent %||% baseenv(), mode = "function")
+    is.null(f) ||
+      (identical(nm, "step") && identical(f, stats::step))
+  }, called)
+}
+
 #' An evaluation enclosure carrying the AD overloads and RTMB's math.
 #'
 #' For `eval(expr, values, enclos)` sites - the nonlinear formula
@@ -170,6 +281,16 @@ ad_overload_env <- function(parent, expr = NULL) {
   for (nm in nl_shadow_for(expr)) {
     f <- nl_shadow_fun(nm)
     if (!is.null(f)) assign(nm, f, envir = e)
+  }
+  for (nm in nl_stan_for(expr, parent)) {
+    assign(nm, nl_stan_funs[[nm]], envir = e)
+  }
+  # the same zero row for the operator, unless the user's environment
+  # redefined it
+  if ("^" %in% all.names(expr %||% quote(x)) &&
+        identical(get0("^", envir = parent %||% baseenv(), mode = "function"),
+                  base::`^`)) {
+    assign("^", nl_pow, envir = e)
   }
   e
 }

@@ -119,13 +119,11 @@ ln_common_rules <- function(r, nm, nominal = TRUE) {
            "the plain objective at the first freeze. MEASURED, and the ",
            "answer depends on the design rather than on the family: on ",
            "40 subjects by 100 trials the fixed effects move by less ",
-           "than 0.02 and the subject-level standard deviation moves up ",
-           "substantially where the Laplace fit had not collapsed it; ",
-           "on 20-trial data the correction still runs but the quantity ",
-           "it corrects is already gone. dev/learn2-findings.md carries ",
-           "the per-dataset table with its Monte Carlo error and its ",
-           "effective sample sizes, and vignette('learning') carries ",
-           "the summary."))
+           "than 0.01 and the subject-level standard deviation moves up ",
+           "by 0.02 to 0.05 log units where the Laplace fit had not ",
+           "collapsed it; on 20 trials the one dataset that kept it ",
+           "moves up by 0.24. dev/learn2-findings.md carries the history ",
+           "of these numbers, and vignette('learning') the summary."))
   r(nm, "quadrature", "refused",
     paste0("Refused by the protocol's conservative default, and a real ",
            "refusal rather than a missing slot. Gauss-Kronrod ",
@@ -260,11 +258,14 @@ ln_common_rules <- function(r, nm, nominal = TRUE) {
            "5.6e-10), where autoscale = FALSE was 20.4 to 52.3 units ",
            "short (dev/predfix-p1-ext.R). The other families share the ",
            "engine and its design matrices."))
-  r(nm, "nl", "untested",
-    paste0("A nonlinear body on one of these parameters is not ",
-           "exercised. Nothing about the recursion argues against it: ",
-           "the family reads a linear predictor's VALUE and does not ",
-           "care how it was built."))
+  r(nm, "group:autocor", "refused",
+    "Refused as brms refuses it ('Explicit covariance terms can only be specified on 'mu''): this family has no mu.")
+  r(nm, "nl", "refused",
+    paste0("Refused: nl = TRUE needs a family with a single 'mu' location, ",
+           "and this family has none. nlf() on one parameter is the route: ",
+           "the recursion reads a linear predictor's VALUE, and on ",
+           "bandit2arm_delta nlf(tau ~ ...) and nlf(alpha ~ ...) reach the ",
+           "linear maximum."))
   r(nm, "mi()", "untested",
     "Not exercised. A missing choice drops its row; see keep_na = FALSE.")
   invisible(NULL)

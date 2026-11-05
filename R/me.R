@@ -22,6 +22,24 @@
 # own: `meanme` (natural scale), `logsdme` (log of sdme) and `thetame`
 # (the unconstrained correlation parameters of us_chol_cor()).
 
+#' brms's check that every row of a `me(gr = )` level carries one measured
+#' value and one SD, at the fit and on new data.
+#'
+#' @noRd
+me_check_level_values <- function(xv, sv, J, levels, cl) {
+  for (l in seq_along(levels)) {
+    take <- J == l
+    # a missing value is that row's own NA, and says nothing of the level
+    if (length(unique(stats::na.omit(xv[take]))) > 1L ||
+          length(unique(stats::na.omit(sv[take]))) > 1L) {
+      frm_stop("Measured values and measurement error should be ",
+               "unique for each group. Occured for level '", levels[l],
+               "' of group '", cl$gr, "' in ", cl$key, call. = FALSE)
+    }
+  }
+  invisible(NULL)
+}
+
 #' The formals of brms's `me()`, used to name a call's arguments the way
 #' brms's own `match.call()` does.
 #'
@@ -268,14 +286,7 @@ me_build_frame <- function(spec, mf, env, n, n_miss, check_noise = TRUE) {
       # brms keeps the first value of each level, after checking that
       # every row of the level carries the same one
       first <- match(seq_along(levels), J)
-      for (l in seq_along(levels)) {
-        take <- J == l
-        if (length(unique(xv[take])) > 1L || length(unique(sv[take])) > 1L) {
-          frm_stop("Measured values and measurement error should be ",
-                   "unique for each group. Occured for level '", levels[l],
-                   "' of group '", cl$gr, "' in ", cl$key, call. = FALSE)
-        }
-      }
+      me_check_level_values(xv, sv, J, levels, cl)
       xv <- xv[first]
       sv <- sv[first]
     }
@@ -407,29 +418,399 @@ me_col_value <- function(mt, values) {
   v
 }
 
-#' `me()` column values in new data. The observed value stands in for
-#' the latent one, as the mean of brms's own draw does: brms predicts new
-#' rows from `normal(x, sdx)` draws, whose expectation is `x`, and it
-#' has no latent value for a row it did not fit. So `sdx` is not needed
-#' here, and a missing `x` is refused rather than predicted at the
-#' population mean.
+#' `me()` column values in new data.
+#'
+#' A row the fit did not see has no latent value. `fit$me_draw`, an
+#' environment one replicate or posterior draw holds, asks for brms's answer
+#' (prepare_predictions(), "sample new values of latent variables"): a new
+#' latent value per draw from `normal(x, sdx)`, one per row, or one per level
+#' under `gr =`, independent between calls whatever `corme` says. Without it
+#' the observed value stands in for the latent one, which is the mean of that
+#' draw and what a summary at the estimate reads.
+#'
+#' A latent value is one number however many columns of the predictor read
+#' it (`me(x, sdx) + me(x, sdx):z`), however many times one draw evaluates the
+#' predictor, and whichever response or dpar reads it, hence the store, keyed
+#' by the call. brms draws anew for each predictor, against its own Stan
+#' program, which holds one `Xme_1`: at the training rows the observed
+#' correlation of two responses' residuals is 0.734, one shared latent predicts
+#' 0.739 and brms's replicates give -0.001 (dev/review-predread-mejoint.R, seed
+#' 7701). So this is a stated divergence.
 #'
 #' @noRd
-me_newdata_value <- function(fit, mt, newdata, env, nd_mult) {
+me_newdata_value <- function(fit, lp, mt, newdata, env, nd_mult) {
   terms <- fit$frame[["me"]]$terms
   v <- 1
   for (k in mt$terms) {
-    t <- terms[[k]]
-    xv <- tryCatch(eval(t$x, newdata, env), error = function(e) NULL)
-    if (is.null(xv) || !is.numeric(xv) || anyNA(xv)) {
-      frm_stop(t$key, ": newdata must supply complete numeric values of ",
-               "the noisy variable '", t$xname, "'. A new row has no ",
-               "latent value, so its observed value is used", call. = FALSE)
-    }
-    v <- v * as.numeric(xv)
+    v <- v * me_newdata_latent(fit, lp, terms[[k]], k, newdata, env)
   }
   for (f in mt$mult_factors) v <- v * nd_mult(f)
   v
+}
+
+#' The observed values of one `me()` call on the rows of `newdata`.
+#'
+#' @noRd
+me_newdata_x <- function(t, newdata, env) {
+  xv <- tryCatch(eval(t$x, newdata, env), error = function(e) NULL)
+  if (is.null(xv) || !(is.numeric(xv) || (is.logical(xv) && all(is.na(xv))))) {
+    frm_stop(t$key, ": newdata must supply numeric values of ",
+             "the noisy variable '", t$xname, "'. A new row has no ",
+             "latent value, so it is read from the observed one",
+             call. = FALSE)
+  }
+  if (anyNA(xv)) me_warn_missing(t, t$xname, sum(is.na(xv)))
+  as.numeric(xv)
+}
+
+#' Say once per reader's call that rows of `newdata` read `NA`.
+#'
+#' A row with no `x` or `sdx` reads `NA`, as a plain predictor's does, and the
+#' fit's own data can hold such rows: refusing stopped `fitted(fit, newdata = )`
+#' on the 198 rows that have values (dev/review-predread-r1-check5.R). brms
+#' reads `NaN` and warns.
+#'
+#' One reader builds the design many times, once per finite-difference step and
+#' per draw, so the mark sits in the frame of the outermost function of this
+#' family of packages, which ends with the reader's call and needs no state in
+#' the session.
+#'
+#' @noRd
+me_warn_missing <- function(t, what, n) {
+  top <- NULL
+  for (i in seq_len(sys.nframe())) {
+    ns <- topenv(environment(sys.function(i)))
+    if (isNamespace(ns) && startsWith(getNamespaceName(ns), "frmtmb")) {
+      top <- sys.frame(i)
+      break
+    }
+  }
+  key <- paste(t$key, what)
+  seen <- if (!is.null(top)) get0(".me_missing_said", top, inherits = FALSE)
+  if (key %in% seen) return(invisible(NULL))
+  if (!is.null(top)) assign(".me_missing_said", c(seen, key), envir = top)
+  frm_warning(t$key, ": ", n, " row(s) of newdata have no value of '", what,
+              "', so they read NA", call. = FALSE,
+              class = "frmtmb_me_missing")
+  invisible(NULL)
+}
+
+#' One `me()` call's value on the rows of `newdata`: the observed value,
+#' checked, or under `fit$me_draw` the drawn latent value.
+#'
+#' @noRd
+me_newdata_latent <- function(fit, lp, t, k, newdata, env) {
+  xv <- me_newdata_x(t, newdata, env)
+  store <- fit[["me_draw"]]
+  if (is.null(store)) {
+    # a row with no SD has no draw, so no reader reads a value for it
+    xv[is.na(me_newdata_observed(t, newdata, env)$sd)] <- NA_real_
+    return(xv)
+  }
+  key <- as.character(k)
+  old <- store[[key]]
+  if (!is.null(old) && identical(old$x, xv)) return(old$value)
+  o <- me_newdata_observed(t, newdata, env)
+  val <- rep(NA_real_, length(xv))
+  ok <- which(!is.na(o$x) & !is.na(o$sd))
+  if (length(ok)) {
+    lev <- unique(o$J[ok])
+    first <- ok[match(lev, o$J[ok])]
+    drawn <- stats::rnorm(length(first), o$x[first], o$sd[first])
+    val[ok] <- drawn[match(o$J[ok], lev)]
+  }
+  store[[key]] <- list(x = xv, value = val)
+  val
+}
+
+#' One `me()` call on the rows of `newdata`, with brms's checks on them
+#' (`data_Xme()`, `get_me_noise()`): the observed value, its SD, and the
+#' index of the row's latent value, the row's own or its level's under
+#' `gr =`.
+#'
+#' @noRd
+me_newdata_observed <- function(t, newdata, env) {
+  xv <- me_newdata_x(t, newdata, env)
+  sv <- tryCatch(eval(t$sdx, newdata, env), error = function(e) NULL)
+  if (is.null(sv) || !(is.numeric(sv) || (is.logical(sv) && all(is.na(sv))))) {
+    frm_stop(t$key, ": newdata must supply numeric values of the ",
+             "measurement SD '", deparse1(t$sdx), "'. A new row's latent ",
+             "value reads it", call. = FALSE)
+  }
+  sv <- rep_len(as.numeric(sv), length(xv))
+  if (anyNA(sv)) me_warn_missing(t, deparse1(t$sdx), sum(is.na(sv)))
+  if (any(sv <= 0, na.rm = TRUE)) {
+    frm_stop("Measurement error should be positive: ", deparse1(t$sdx),
+             " in ", t$key, " has ", sum(sv <= 0, na.rm = TRUE),
+             " value(s) <= 0 in newdata", call. = FALSE)
+  }
+  J <- seq_along(xv)
+  if (!is.null(t$gr)) {
+    gv <- newdata[[t$gr]]
+    if (is.null(gv)) stop_newdata_missing(t$gr)
+    gc <- as.character(gv)
+    # a missing level is a new level of its own, as brms makes it (#706), and
+  # a display grid holds the group at NA, so each of its rows is one
+    gc[is.na(gc)] <- paste0("new_", seq_len(sum(is.na(gc))), "__")
+    lev <- unique(gc)
+    J <- match(gc, lev)
+    me_check_level_values(xv, sv, J, lev, t)
+  }
+  list(x = xv, sd = sv, J = J)
+}
+
+#' A `me(gr = )` level the fit did not see, refused unless allowed, as brms's
+#' validate_newdata() refuses it. A missing level is a new one.
+#'
+#' @noRd
+me_check_new_levels <- function(fit, lp, newdata, allow_new_levels) {
+  if (isTRUE(allow_new_levels)) return(invisible(NULL))
+  terms <- fit$frame[["me"]]$terms
+  for (k in unique(unlist(lapply(lp[["me"]], `[[`, "terms")))) {
+    t <- terms[[k]]
+    if (is.null(t$gr) || is.null(newdata[[t$gr]])) next
+    gc <- as.character(newdata[[t$gr]])
+    new <- unique(gc[!gc %in% t$levels])
+    if (length(new)) {
+      stop_new_levels(paste0("Levels ", paste0("'", new, "'", collapse = ", "),
+                             " of grouping factor '", t$gr, "' in ", t$key,
+                             " cannot be found in the fitted model"),
+                      "Consider setting argument 'allow_new_levels' to TRUE")
+    }
+  }
+  invisible(NULL)
+}
+
+#' What a new row's `me()` draw adds to one predictor's variance.
+#'
+#' `frm_linpred(type = "link")` reads the observed value, which is exactly the
+#' mean of the predictor under that draw, and leaves the spread of the draw to a
+#' variance that is not coefficient uncertainty, as a new grouping level's. One
+#' entry per call: `k`, `g`, `d eta / d Xme` at the observed values, the SD and
+#' the row's level. A term linear in the call has exactly `(b sdx)^2`. A product
+#' of calls has one more entry, `k = NA`, for the part no one call carries, so
+#' the variance is exact: `(b sx sz)^2` on `me(x, sx):me(z, sz)`.
+#'
+#' Read through `sdx`, which `newdata` must therefore hold, as brms's
+#' standata() requires it for every prediction.
+#'
+#' `fit$me_one_draw_by_value`, set by a difference curve, reads two rows with
+#' one value and one SD, to a tolerance (`me_same_value()`), as one draw, which
+#' is what a contrast at one position means; every other reader takes a draw per
+#' row, as brms's draws do.
+#'
+#' @noRd
+me_newdata_extra <- function(fit, lp, newdata, env, nd_mult, n) {
+  if (!length(lp[["me"]]) || isTRUE(fit[["me_no_extra"]])) return(list())
+  terms <- fit$frame[["me"]]$terms
+  est <- fit$estimates
+  obs <- list()
+  x_of <- function(k) {
+    key <- as.character(k)
+    if (is.null(obs[[key]])) {
+      obs[[key]] <<- me_newdata_observed(terms[[k]], newdata, env)
+    }
+    obs[[key]]
+  }
+  g <- list()
+  rest <- numeric(n)
+  rest_J <- NULL
+  for (mt in lp[["me"]]) {
+    b <- est[[lp[["par"]]]][lp[["idx"]][mt$col]]
+    m <- 1
+    for (fct in mt$mult_factors) m <- m * nd_mult(fct)
+    first <- numeric(n)
+    for (k in mt$terms) {
+      others <- 1
+      for (o in setdiff(mt$terms, k)) others <- others * x_of(o)$x
+      key <- as.character(k)
+      g[[key]] <- (g[[key]] %||% numeric(n)) + b * m * others
+      first <- first + (others * x_of(k)$sd)^2
+    }
+    if (length(mt$terms) > 1L) {
+      # Var(prod X_k) is prod(x^2 + s^2) - prod(x^2) for independent calls;
+      # what the calls' first-order parts leave of it
+      ob <- lapply(mt$terms, x_of)
+      all_v <- Reduce(`*`, lapply(ob, function(o) o$x^2 + o$sd^2))
+      all_x <- Reduce(`*`, lapply(ob, function(o) o$x^2))
+      rest <- rest + (b * m)^2 * pmax(all_v - all_x - first, 0)
+      rest_J <- ob[[1L]]$J
+      if (!all(vapply(ob, function(o) identical(o$J, rest_J), NA))) {
+        rest_J <- seq_len(n)
+      }
+    }
+  }
+  by_value <- isTRUE(fit[["me_one_draw_by_value"]])
+  out <- lapply(names(g), function(key) {
+    x <- x_of(as.integer(key))
+    J <- x$J
+    if (by_value && is.null(terms[[as.integer(key)]]$gr)) {
+      id <- paste(me_same_value(x$x), me_same_value(x$sd))
+      J <- match(id, id)
+    }
+    list(k = as.integer(key), g = g[[key]], sd = x$sd, J = J)
+  })
+  if (any(rest > 0, na.rm = TRUE)) {
+    out[[length(out) + 1L]] <- list(k = NA_integer_, g = sqrt(rest),
+                                    sd = rep(1, n), J = rest_J)
+  }
+  out
+}
+
+#' Which values of `v` are one value, as an id per position. Exact equality made
+#' the standard error of a difference jump by 20 times: 0.0485 at `dx = 0`,
+#' 0.9979 at `dx = 1e-12`, on a grid built by arithmetic
+#' (dev/review-predread-r1-check2.R). The tolerance is `all.equal()`'s, relative
+#' to the pair and to the column's scale, so a column near 0 has a scale too.
+#'
+#' @noRd
+me_same_value <- function(v) {
+  id <- rep(NA_integer_, length(v))
+  ok <- which(!is.na(v))
+  if (!length(ok)) return(id)
+  o <- ok[order(v[ok])]
+  s <- v[o]
+  tol <- sqrt(.Machine$double.eps) *
+    pmax(abs(s[-1L]), abs(s[-length(s)]), mean(abs(s)))
+  id[o] <- cumsum(c(TRUE, diff(s) > tol))
+  id
+}
+
+#' How one response's predictors load the latent of a new row's `me()` value,
+#' or `NULL` when no predictor reads one.
+#'
+#' `lead` is the first predictor that reads one, `s2` its total variance per
+#' row, `by_key` each predictor's movement per unit of the latent. A second
+#' predictor moves by its regression on the lead, which is exact when one call
+#' carries both, as the shared latent has it.
+#'
+#' @noRd
+me_row_loads <- function(fit, rspec, newdata, use_re, anl, dpar = NULL) {
+  if (is.null(newdata)) return(NULL)
+  rn <- rspec$resp_name
+  sl <- latres_row_sd(fit, rn, dpar)
+  if (is.null(fit$frame[["me"]])) {
+    if (is.null(sl)) return(NULL)
+    key <- linpred_key(rn, "mu")
+    s <- rep_len(sl, nrow(newdata))
+    return(list(key = key, s2 = s^2, by_key = stats::setNames(list(s), key)))
+  }
+  dps <- if (is.null(dpar)) names(rspec$dpars) else dpar
+  parts <- list()
+  for (d in dps) {
+    lp <- fit$frame[["linpreds"]][[linpred_key(rn, d)]]
+    if (is.null(lp) || !length(lp[["me"]])) next
+    mp <- lp_eta_design(fit, lp, newdata, use_re, anl)[["me_parts"]]
+    if (length(mp)) parts[[linpred_key(rn, d)]] <- mp
+  }
+  if (!length(parts)) {
+    if (is.null(sl)) return(NULL)
+    key <- linpred_key(rn, "mu")
+    s <- rep_len(sl, nrow(newdata))
+    return(list(key = key, s2 = s^2, by_key = stats::setNames(list(s), key)))
+  }
+  if (!is.null(sl) && !identical(names(parts)[1L], linpred_key(rn, "mu"))) {
+    # one node cannot read two independent draws, and the latent moves the mean
+    # by exp(s^2 / 2), where this me() value moves it by 0.1 percent
+    key <- linpred_key(rn, "mu")
+    s <- rep_len(sl, nrow(newdata))
+    return(list(key = key, s2 = s^2, by_key = stats::setNames(list(s), key)))
+  }
+  tot <- function(mp) Reduce(`+`, lapply(mp, function(e) (e$g * e$sd)^2))
+  lead <- parts[[1L]]
+  s2 <- tot(lead)
+  s <- sqrt(s2)
+  by_key <- list()
+  for (key in names(parts)) {
+    cv <- numeric(length(s2))
+    for (e in parts[[key]]) {
+      if (is.na(e$k)) next
+      for (l in lead) {
+        if (!is.na(l$k) && l$k == e$k) cv <- cv + e$g * l$g * e$sd * l$sd
+      }
+    }
+    by_key[[key]] <- ifelse(s > 0, cv / s, 0)
+  }
+  # the part of the lead no one call carries moves it too
+  by_key[[names(parts)[1L]]] <- s
+  # a latent residual is independent of the me() draws and moves mu alone, so
+  # the lead's variance grows by it and the other predictors' share of the
+  # node falls
+  if (!is.null(sl) && identical(names(parts)[1L], linpred_key(rn, "mu"))) {
+    s_new <- sqrt(s2 + sl^2)
+    for (k in names(by_key)) {
+      by_key[[k]] <- ifelse(s_new > 0, by_key[[k]] * s / s_new, 0)
+    }
+    by_key[[names(parts)[1L]]] <- s_new
+    s2 <- s_new^2
+  }
+  list(key = names(parts)[1L], s2 = s2, by_key = by_key)
+}
+
+#' The marginal sd a latent residual adds to `mu` of a new row, or `NULL` where
+#' the read is not of `mu` or the fit has none.
+#'
+#' @noRd
+latres_row_sd <- function(fit, rn, dpar) {
+  if (!is.null(dpar) && !identical(dpar, "mu")) return(NULL)
+  bk <- frame_latres(fit$frame)[[rn]]
+  if (is.null(bk) || isTRUE(fit$frame[["latres_off"]])) return(NULL)
+  latres_marginal_sd(fit$estimates[["theta"]][bk[["theta_idx"]]],
+                     bk[["aux"]])
+}
+
+#' The value of `fit` at a node of the latent: `what(fit)` with every predictor
+#' of `loads` moved. The nodes cost one prediction each, so they are kept.
+#'
+#' @noRd
+me_node_value <- function(fit, loads, what) {
+  # a list: z has one value per row, and an environment's name holds 10000
+  # bytes, which about 500 rows pass. A fit reads a few hundred nodes at most
+  memo <- list()
+  function(z, d = 0) {
+    for (m in memo) if (m$d == d && identical(m$z, z)) return(m$value)
+    sh <- fit
+    moved <- lapply(loads$by_key, function(g) g * z)
+    moved[[loads$key]] <- moved[[loads$key]] + d
+    sh[["eta_shift"]] <- list(by_key = moved)
+    value <- what(sh)
+    memo[[length(memo) + 1L]] <<- list(z = z, d = d, value = value)
+    value
+  }
+}
+
+#' The value of a new row's mean at probability `p` of its `me()` draw and its
+#' coefficients: the mean at that quantile of the predictor. It is the draw's
+#' own
+#' quantile, whatever the family's mean is, so it holds on a mean that no link
+#' inverse gives (`hurdle`, `lognormal`), and it stays in the support. `se_coef`
+#' is the coefficient part of the standard error on the response scale at the
+#' observed value.
+#'
+#' @noRd
+me_band_end <- function(mm, se_coef, p) {
+  # the coefficients' share against the draw's own variance on the response
+  # scale: the first predictor's gradient alone understates the draw when others
+  # read the term, up to 3.3 times too wide on me() in mu and zi
+  # (dev/review-predread-r1-band.R)
+  extra <- ifelse(mm$var > 0, as.numeric(se_coef)^2 / mm$var, 0)
+  # the direction of the draw as a whole: mm$grad moves the first predictor
+  # alone, and a zi that rises with the same term can turn the mean the other
+  # way, which swapped the two ends
+  up <- drop(mm$val(1)) >= drop(mm$val(-1))
+  z <- stats::qnorm(p) * sqrt(1 + extra) * ifelse(up, 1, -1)
+  v <- drop(mm$val(z))
+  v[!is.finite(v)] <- NA_real_
+  v
+}
+
+#' Whether a new row's `me()` variance is read at all: a `fit` with this mark
+#' reports the coefficient part alone, so a mean can add the integral's.
+#'
+#' @noRd
+me_coef_only <- function(fit) {
+  fit[["me_no_extra"]] <- TRUE
+  fit
 }
 
 #' The natural-scale hyperparameters of a fit's `me()` terms, brms's
@@ -643,12 +1024,18 @@ set_mecor <- function(mecor = TRUE) {
 #' [AIC()] does not check this, so compare by AIC only across fits that
 #' share their `me()` calls.
 #'
-#' [fitted()], [predict()], [residuals()] and [simulate()] on the fitted
-#' data use the estimated latent values (the conditional modes). On new
-#' data the observed value of the noisy variable stands in for the latent
-#' value. brms draws that value from `N(x, sdx)`, so the two agree on
-#' the mean of a linear term, and frmtmb does not add the measurement
-#' noise to a prediction interval.
+#' [fitted()], [predict()], [residuals()] and [simulate()] on the fitted data
+#' use the estimated latent values (the conditional modes). A new row has no
+#' latent value, and brms draws one from `N(x, sdx)` per draw. So do [predict()]
+#' and [simulate()], per replicate. [fitted()] reports the mean of the expected
+#' response over the draw, with its variance in `Est.Error` and its quantiles in
+#' the `Q` columns. [frm_linpred()] stays at the observed value and adds the
+#' variance to `se.fit`. New data must hold `sdx`, as in brms. Two responses or
+#' two dpars read one latent value, a stated divergence from brms, which draws
+#' one per predictor. Thus a category probability moves, as it is a joint
+#' function of both predictors: 0.3336 against brms's 0.3106. A row with no `x`
+#' or `sdx` reads `NA`, with a warning of class `frmtmb_me_missing`. brms reads
+#' `NaN` and warns.
 #'
 #' @return `me()` is a formula term, not a free-standing function:
 #'   `bf()` reads it at parse time, and the value it contributes is the

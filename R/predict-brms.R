@@ -116,6 +116,21 @@ predict_type_retired <- c(
 #' the interval covers less than nominal and for a group near it more.
 #' `dev/reunc-findings.md` reports the measured coverage.
 #'
+#' A new row of a `me()` term also has no latent value, so each replicate
+#' draws one from `normal(x, sdx)`, per row, or per level under `me(gr = )`, as
+#' brms's `posterior_predict()` does on new data. The latent value of a new row
+#' is
+#' measurement noise in the grid, not an estimate, so `propagate_error = FALSE`
+#' keeps it. `corme` is not read, as in
+#' brms. Two responses or two dpars that read one `me()` term read ONE latent
+#' value, a stated divergence from brms, which draws one per predictor against
+#' its
+#' own Stan program: at the training rows of a two-response fit the residuals
+#' correlate at 0.734, one latent predicts 0.739 and brms's replicates give
+#' -0.001, and the 95 percent width of `y1 - y2` at `sdx = 2` is 3.18 with one
+#' latent and 15.08 with two. `newdata` must hold `sdx`. On the data the model
+#' was fitted on the latent values are the fit's own.
+#'
 #' A level the fit did NOT see is different: there is no conditional
 #' law to draw from, so `allow_new_levels = TRUE` draws its effect from
 #' the block's own estimated covariance, once per replicate, at that
@@ -317,6 +332,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
   # and saying nothing is the failure mode this whole item exists to
   # stop, so `resp` is only a FILTER now, not a silent default.
   rnames <- names(object$spec$responses)
+  resp <- resp_read(object, resp)
   if (is.null(resp)) {
     resp <- rnames
   } else {
@@ -624,23 +640,24 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
                                  "predict()")
       ctx0[["autocor"]] <- NULL
     }
+    if (!is.null(newdata) && !is.null(ctx0[["autocor"]]) &&
+          is.null(fam_sim_ctx(ctx0[["family"]]))) {
+      # the cov = TRUE terms: newdata's own groups and times, the route
+      # simulate(newdata = ) takes, which agrees with brms's
+      # posterior_predict() (dev/review-predread-explain.R)
+      object$frame[["autocor"]][[rspec$resp_name]] <-
+        autocor_for_newdata(object, ctx0[["autocor"]], rspec, newdata)
+      ctx0[["autocor"]] <- NULL
+    }
     if (!is.null(newdata) && sim_is_structured(ctx0)) {
-      # said for the model at hand: the reason used to list a hidden
-      # state sequence, a latent class and a correlated residual, and a
-      # mixture_mvn() fit is none of the three
-      if (!is.null(fam_sim_ctx(fam))) {
-        frm_stop("predict(newdata = ) is not supported for family '",
-                 fam[["family"]], "': it draws the whole response at once, ",
-                 "through its own simulator, and a prediction at new rows ",
-                 "draws one row at a time. Drop newdata to predict the rows ",
-                 "the model was fitted on", call. = FALSE,
-                 package = frm_family_package(fam))
-      }
-      frm_stop("predict(newdata = ) is not supported for this model: its ",
-               "residuals are correlated (", ctx0[["autocor"]][["label"]] %||%
-                 "a residual correlation term", "), and a draw of them ",
-               "follows the rows the model was fitted on. Drop newdata to ",
-               "predict those rows", call. = FALSE)
+      # said for the model at hand: a hidden state sequence, a latent class
+      # and a mixture_mvn() fit each draw through their own simulator
+      frm_stop("predict(newdata = ) is not supported for family '",
+               fam[["family"]], "': it draws the whole response at once, ",
+               "through its own simulator, and a prediction at new rows ",
+               "draws one row at a time. Drop newdata to predict the rows ",
+               "the model was fitted on", call. = FALSE,
+               package = frm_family_package(fam))
     }
     nls[[nm]] <- predict_new_level_spec(object, rspec, newdata, re_formula,
                                         allow_new_levels, sample_new_levels,
@@ -672,6 +689,9 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
   for (s in seq_len(ndraws)) {
     fs <- draw(s)
     if (!is.null(bdraw)) fs <- bdraw(fs, s)
+    # a new row's me() value is drawn per replicate, at the estimates too:
+    # it is measurement noise in the grid, not an estimate (me_newdata_value())
+    if (!is.null(newdata)) fs[["me_draw"]] <- new.env(parent = emptyenv())
     # after the group-effect draw, which has a stream of its own; draw()
     # takes nothing from the stream, so this is where it always was
     set.seed(seeds[s])
@@ -982,6 +1002,23 @@ predict_new_level_spec <- function(object, rspec, newdata, re_formula,
                                    allow_new_levels,
                                    sample_new_levels = "gaussian",
                                    pick = list()) {
+  # brms draws a new latent residual for new rows, whatever re_formula
+  # and allow_new_levels say: it is not a group-level term
+  lat <- latres_new_spec(object, rspec, newdata)
+  out <- predict_new_group_spec(object, rspec, newdata, re_formula,
+                                allow_new_levels, sample_new_levels, pick)
+  if (is.null(lat)) return(out)
+  if (is.null(out)) out <- list()
+  attr(out, "latres") <- lat
+  out
+}
+
+#' `predict_new_level_spec()` for the group-level terms.
+#'
+#' @noRd
+predict_new_group_spec <- function(object, rspec, newdata, re_formula,
+                                   allow_new_levels, sample_new_levels,
+                                   pick) {
   if (!isTRUE(allow_new_levels) || is.null(newdata)) return(NULL)
   use_re <- re_form_keeps(re_formula)
   if (!use_re) return(NULL)
@@ -1124,6 +1161,10 @@ predict_new_level_draw <- function(fs, spec) {
     }
     out[[dnm]] <- o
   }
+  lat <- attr(spec, "latres")
+  if (!is.null(lat)) {
+    out[["mu"]] <- (out[["mu"]] %||% 0) + latres_new_draw(fs, lat)
+  }
   out
 }
 
@@ -1254,6 +1295,8 @@ predict_par_drawer <- function(object, propagate_error, ndraws) {
   # all ndraws draws at once, column s for replicate s: the caller's
   # stream is consumed by the same amount whatever the rows are
   D <- v0 + crossprod(L, matrix(stats::rnorm(p * ndraws), p, ndraws))
+  held <- latres_held_pos(object, map)
+  if (length(held)) D[held, ] <- v0[held]
   out <- function(s) fit_set_outer(object, D[, s], map)
   # the group-effect draw conditions on this replicate's parameters, so
   # it needs how far they moved (predict_b_drawer())
@@ -1317,8 +1360,9 @@ predict_b_drawer <- function(object, re_formula, delta, ndraws,
   rn <- rownames(Q)
   if (is.null(Q) || !any(rn == "b")) {
     frm_warning("predict(): the fitted objective carries no random-effect ",
-                "block in its joint precision (quadrature = TRUE ",
-                "marginalizes it), so the group effects at the levels the ",
+                "block in its joint precision (quadrature = TRUE or ",
+                "importance = marginalizes it), so the group effects at the ",
+                "levels the ",
                 "fit saw are held at their modes and their uncertainty is ",
                 "NOT in the interval", call. = FALSE)
     return(NULL)
@@ -1524,6 +1568,10 @@ re_b_batches <- function(fit, newdata, resp, allow_new_levels, b_idx) {
     ci <- bk[["c_idx"]]
     bi <- bk[["b_idx"]]
     if (!any(bi %in% b_idx)) next
+    # an exact gp()'s z reaches every position, so no batch can hold it, and
+    # fd_eta_chain() takes it where a design exists; the rest of the fit keeps
+    # its batches
+    if (identical(bk[["covstruct"]], "gp")) next
     # The batch assumes expand_b() carries b to the coefficients
     # POSITIONWISE, so that perturbing every level at once moves each
     # row by its own level's step and nothing else. That is the whole
@@ -1626,7 +1674,7 @@ fd_eta_chain <- function(fit, newdata, resp, allow_new_levels, use_re,
     if (is.null(ed)) next
     for (bk in fit$frame[["re_blocks"]] %||% list()) {
       if (!bk[["covstruct"]] %in% c("smooth", "gp", "hsgp") ||
-          !block_b_positionwise(bk)) {
+          (!block_b_positionwise(bk) && bk[["covstruct"]] != "gp")) {
         next
       }
       mine <- vapply(bk[["components"]], function(cp) {
@@ -1643,6 +1691,17 @@ fd_eta_chain <- function(fit, newdata, resp, allow_new_levels, use_re,
                    ed[["sm_parts"]])
         if (is.null(sp)) next
         as.matrix(sp$Xr)[, keep, drop = FALSE]
+      }
+      # an exact gp()'s design is over its field, and b is z: linear in z
+      # at a theta, so the chain still holds through d cvec / d b
+      if (bk[["covstruct"]] == "gp") {
+        Js <- rr_jacobians(fit)$Jb[bk[["c_idx"]], bk[["b_idx"]], drop = FALSE]
+        Zc <- if (is.null(newdata)) {
+          lp[["Z"]][, bk[["c_idx"]], drop = FALSE]
+        } else {
+          sp$Xr
+        }
+        Z <- as.matrix(Zc %*% Js[, keep, drop = FALSE])
       }
       chain[[length(chain) + 1L]] <- list(key = key,
                                           idx = bk[["b_idx"]][keep], Z = Z)
@@ -1672,7 +1731,7 @@ fd_eta_chain <- function(fit, newdata, resp, allow_new_levels, use_re,
 smooth_b_idx <- function(fit) {
   ids <- integer(0)
   for (bk in fit$frame[["re_blocks"]]) {
-    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")) {
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "latres")) {
       ids <- c(ids, bk[["b_idx"]])
     }
   }
@@ -1703,7 +1762,7 @@ re_governed_b <- function(fit) {
   ids <- integer(0)
   for (i in seq_along(blocks)) {
     bk <- blocks[[i]]
-    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")) {
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "latres")) {
       if (i %in% gs) ids <- c(ids, bk[["b_idx"]])
       next
     }

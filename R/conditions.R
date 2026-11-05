@@ -26,6 +26,12 @@
 #' | warning | `c("frmtmb_warning", "warning", "condition")` |
 #' | message | `c("frmtmb_message", "message", "condition")` |
 #'
+#' A few have one more class that says what happened, in front of these. For
+#' example, [frm()] warns with class `frmtmb_gp_nugget` when the noise reaches
+#' the nugget of an exact `gp()` term (see [`frmtmb-gp`]), and tells a boundary fit
+#' with class
+#' `frmtmb_boundary_fit` (see [frmtmb_control()]).
+#'
 #' A condition that an extension package raises has one more class in
 #' front, made from the package name with each dot changed to an
 #' underscore. For example, an error from frmtmb.eam has the class

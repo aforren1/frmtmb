@@ -44,6 +44,18 @@
 #' prior-augmented objective is this closure plus
 #' `neg_log_prior_fn()`'s.
 #'
+#' `gp_tape_scope(frame, expr)` evaluates `expr`, the call that builds a
+#' tape of such a closure, with the tape settings a frame with an exact
+#' `gp()` block needs: the field's inner Hessian is dense, and without them
+#' its tape passes 13 GB at 500 positions. They change no value. Its parameter
+#' list goes through `gp_tape_order(frame, pars)`, which puts `b` first: the
+#' settings give a wrong gradient otherwise. With `hessian = FALSE`,
+#' `gp_tape_scope()` leaves out the inner Hessian, for a tape that never reads
+#' it.
+#'
+#' `gp_nugget_message(fit)` is the warning of a fit whose noise has reached an
+#' exact `gp()`'s nugget, or `NULL`.
+#'
 #' `row_lpdf(fam, y, yobs, dpars, aterms, extra)` is the per-row
 #' log-density composition the objective itself runs, with `cens()` and
 #' `trunc()` folded in; it runs on numeric dpar values as readily as on
@@ -58,6 +70,15 @@
 #' earlier this paragraph said it took one response's list; a caller
 #' that passed one got no offsets, because they were written a level
 #' deeper than the simulator reads.
+#' `ce_by_response(resps, one, effects)` joins the conditional-effects panel
+#' sets
+#' `one(r, effects)` gives each response, in brms's order. `ce_na_vars(x,
+#' pop_level)` names the grid columns a display holds at `NA`.
+#' `autocor_for_newdata(fit, ac, rspec, newdata)` is a residual correlation term
+#' over the groups and times of `newdata`. `resp_refuse_single()` is brms's
+#' refusal of a method that reads one response of a multivariate model.
+#' `update_merge_prior(old, new)` is brms's merge of `update(prior = )`: new
+#' rows take their slots and the other old rows stay.
 #' `cs_offsets_add(fit, resp, newdata, dpv)` takes ONE response's
 #' dpar-value list, however it was built, and adds that response's
 #' `.cs` evaluated at `newdata` (the fitted rows when `NULL`); it is the
@@ -92,6 +113,17 @@
 #' row ([frmtmb-autocor], "The pointwise log-density"). The values do
 #' not sum to the log-likelihood. On a maximum-likelihood fit it is the
 #' value at the estimates.
+#'
+#' `frame_ac_terms(frame)` lists a frame's autocorrelation terms by
+#' response: the residual terms of `frame$autocor`, and each latent residual
+#' ([frmtmb-autocor]) with `theta_idx` into `theta` past its log `sderr`.
+#' `latres_new_spec(fit, rspec, newdata)` builds what a draw of the latent
+#' residuals of `newdata`'s rows needs, once per call, or `NULL` for a response
+#' with no such term, and refuses new rows under `cov = FALSE` in brms's words.
+#' `latres_shifted(fit, lat, resp)` gives the fit back with one draw of them
+#' in the predictor of `mu`. `autocor_cond_strip_latent(fit)` marks a fit whose
+#' predictions read a grid: its latent residuals are not read there, as brms's
+#' `incl_autocor = FALSE` drops them.
 #'
 #' `arma_cond_resp(fit)` names the responses carrying brms's default
 #' `cov = FALSE` form of `ar()`, `ma()` or `arma()`, and
@@ -273,7 +305,13 @@
 #' sampled parameter vector in template order, in brms's spelling where
 #' brms has a parameter with the same content, and
 #' `gp_brms_natural(fit)` maps the `theta` entries it labels `sdgp_`
-#' and `lscale_` to brms's scales and back. `varcorr_matrices(fit,
+#' and `lscale_` to brms's scales and back. `mi_sampling(fit)` gives a
+#' fit back the `mi()` rows maximum likelihood left out of its objective,
+#' which a sampler keeps; `mi_sampling(fit, "laplace")` gives an unfitted
+#' object that design, for a sampler that integrates the values out;
+#' `mi_sampling(fit, "natural")` maps a missing
+#' value from the chart the tape holds it on to the value brms reports
+#' under `Ymi_<resp>[k]`, and back. `varcorr_matrices(fit,
 #' theta)` is the covariance matrix of every block at `theta`,
 #' `varcorr_layout(fit)` is brms's `VarCorr()` grouping for the fit,
 #' and `varcorr_values(fit, vals, comp, layout)` gives the standard
@@ -468,9 +506,17 @@
 # rejects a multi-line @aliases outright where roxygen2 only warns.
 #' @aliases frmtmb-sampling-api
 #' @aliases build_objective
+#' @aliases gp_tape_scope
+#' @aliases gp_tape_order
+#' @aliases gp_nugget_message
 #' @aliases row_lpdf
 #' @aliases with_cs_offsets
 #' @aliases cs_offsets_add
+#' @aliases update_merge_prior
+#' @aliases ce_by_response
+#' @aliases resp_refuse_single
+#' @aliases ce_na_vars
+#' @aliases autocor_for_newdata
 #' @aliases us_chol_cor
 #' @aliases expand_b
 #' @aliases aterms_for_newdata
@@ -523,6 +569,7 @@
 #' @aliases hyp_expr_vars
 #' @aliases brms_par_labels
 #' @aliases gp_brms_natural
+#' @aliases mi_sampling
 #' @aliases varcorr_matrices
 #' @aliases varcorr_layout
 #' @aliases varcorr_values
@@ -559,6 +606,10 @@
 #' @aliases autocor_bound_chart
 #' @aliases autocor_row_loglik
 #' @aliases arma_cond_resp
+#' @aliases frame_ac_terms
+#' @aliases latres_new_spec
+#' @aliases latres_shifted
+#' @aliases autocor_cond_strip_latent
 #' @aliases arma_cond_dpars
 #' @aliases arma_cond_fill_dpars
 #' @aliases arma_cond_fill_epred
@@ -587,8 +638,10 @@
 #' @aliases ce_sim_one
 #' @aliases pp_check_resp
 #' @aliases check_weights_unbounded
-#' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
-#'   cs_offsets_add,
+#' @rawNamespace export(build_objective, gp_tape_scope, gp_tape_order,
+#'   gp_nugget_message, row_lpdf, with_cs_offsets,
+#'   cs_offsets_add, update_merge_prior, ce_by_response, resp_refuse_single,
+#'   ce_na_vars, autocor_for_newdata,
 #'   us_chol_cor, expand_b, aterms_for_newdata, has_trunc, as_priorlist,
 #'   check_prior_slots, resolve_prior_input, neg_log_prior_fn,
 #'   resolve_bounds, spec_target,
@@ -603,7 +656,8 @@
 #'   hyp_samples_frame, hyp_brms_result, brms_coef_names, brms_re_rnames,
 #'   brms_block_has_r, brms_coef_table, brms_stan_name, brms_group_name,
 #'   brms_levels, brms_re_parts, hyp_eval_in, hyp_expr_vars,
-#'   brms_par_labels, gp_brms_natural, varcorr_matrices, varcorr_layout,
+#'   brms_par_labels, gp_brms_natural, mi_sampling, varcorr_matrices,
+#'   varcorr_layout,
 #'   varcorr_values,
 #'   ce_grids_build, ce_boot_one,
 #'   ce_frame, ce_finalize, ce_spaghetti, ce_check_distance,
@@ -623,6 +677,8 @@
 #'   autocor_bound_chart,
 #'   autocor_row_loglik,
 #'   arma_cond_resp, arma_cond_dpars, arma_cond_fill_dpars,
+#'   frame_ac_terms, latres_new_spec, latres_shifted,
+#'   autocor_cond_strip_latent,
 #'   arma_cond_fill_epred, response_codes_newdata, subset_resp_check,
 #'   subset_newdata, mo_simplex, mo_coords, mo_chart_frame, mo_frame_terms,
 #'   simplex_frame_terms,

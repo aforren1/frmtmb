@@ -33,8 +33,9 @@
 # bym2 CAR parameterizations (row 19c). esicar left that list when it
 # was given the exact sum-to-zero constraint brms imposes and became
 # row 19c-esicar, an identity. Row 18d left it when frmtmb implemented
-# brms's cov = FALSE form and became an identity too; two entries
-# remain, over two rows, and bym2 is what is left of row 19c.
+# brms's cov = FALSE form and became an identity too. Row 10a left it
+# when frmtmb non-centered the exact field at a relative nugget; one
+# entry remains, bym2, what is left of row 19c.
 #
 # Stan compiles here. The whole file is opt-in, and skip_unless_brms()
 # calls skip_on_cran(), so outside R CMD check BOTH are needed:
@@ -946,14 +947,15 @@ test_that("check C: row 4, mi() imputation and mi(sdx) measurement error", {
   expect_setequal(names(pars), brms_stan_par_names(code))
   expect_par_roundtrip(sf, pars)
 
-  # the imputed block covers exactly the missing rows, the latent block
-  # covers every row, and the two together are frmtmb's `miss`
+  # the imputed block covers exactly the missing rows, and no density reads
+  # them, so they have left frm()'s objective; the latent block covers every
+  # row, and it is frmtmb's `miss`
   expect_identical(as.integer(sdat$Jmi_y), which(is.na(d4$y)))
   expect_length(pars[["Ymi_y"]], 30L)
+  expect_identical(fit$frame$mi_map$y$unread, which(is.na(d4$y)))
   expect_length(pars[["Yl_x"]], n)
-  expect_length(fit$estimates[["miss"]], 30L + n)
-  expect_lt(max(abs(c(pars[["Ymi_y"]], pars[["Yl_x"]]) -
-                      fit$estimates[["miss"]])), 1e-12)
+  expect_length(fit$estimates[["miss"]], n)
+  expect_lt(max(abs(pars[["Yl_x"]] - fit$estimates[["miss"]])), 1e-12)
   # mi(x) is a special term, so its coefficient is bsp_y and not a
   # column of X_y
   expect_lt(abs(pars[["bsp_y"]][[1]] - fixef_by_dpar(fit)$y_mu[["mix"]]), 1e-12)
@@ -1207,24 +1209,29 @@ test_that("check C: row 10, gp(x, k = 10) Hilbert-space approximation", {
   brms_lp_check(bform, gaussian(), d10, fit, joint = TRUE)
 })
 
-test_that("row 10: the exact gp() nugget is not brms's", {
-  skip_unless_brms()
-  skip_if_not_installed("mvtnorm")
+# brms's nugget line rewritten to frmtmb's. The two programs then differ in
+# nothing, so the constant and the gradient hold to this file's own tolerances.
+# With brms's own line both carry the nuggets' difference, 1e-12 against
+# 1e-12 * sdgp^2, which at sdgp 0.91 on this file's row 10a design is 0.015 in
+# the joint and 0.63 in the inner gradient, and 1e-3 would decide on rounding
+# (dev/ncgp-findings.md). Row 10a reads the own line too, with its measured
+# size.
+gpn_rel_line <- function(code) {
+  new <- gsub("cov[n, n] += 1e-12;", "cov[n, n] += 1e-12 * square(sdgp);", code,
+              fixed = TRUE)
+  testthat::expect_false(identical(new, code))
+  new
+}
 
-  # EXEMPTION. Both packages stabilize the exact GP by adding a nugget
-  # to the diagonal, and the two nuggets differ by six orders of
-  # magnitude: brms adds an absolute 1e-12 (its gp_exp_quad() writes
-  # "cov[n, n] += 1e-12") while frmtmb's gp_corr() adds 1e-6 to the
-  # CORRELATION, which is 1e-6 * sdgp^2 on the covariance. Everything
-  # else about the kernel agrees to floating point once the length-scale
-  # is put on brms's scale, so the joint densities differ by exactly the
-  # nugget, and on a kernel whose eigenvalues fall below both of them
-  # that difference is hundreds of nats. The marginal likelihood barely
-  # moves, which is why the fits agree and the joint densities do not.
-  #
-  # Nothing is skipped and no tolerance is widened: the two constants
-  # are asserted from their two sources, the kernels are compared, and
-  # the resulting gap is measured. See dev/brms-likelihood-tests.md.
+test_that("check C: row 10a, the exact gp() against brms's own program", {
+  skip_unless_brms_fit()
+
+  # Both packages hold the field as sdgp * L * z with standard normal z, so
+  # the joint densities read directly. The nuggets are one number at sdgp
+  # 1: brms adds an absolute 1e-12 (its gp_exp_quad() writes
+  # "cov[n, n] += 1e-12"), frmtmb 1e-12 on the correlation, which is
+  # 1e-12 * sdgp^2. Row 10a was an exemption through 0.78.0, when the field
+  # was centered at 1e-6 and no map could relate the two.
   d10 <- brms_gp_data()
   fit <- frm(bf(y ~ gp(x)) + gaussian(), data = d10)
   bform <- brms::bf(y ~ gp(x))
@@ -1233,8 +1240,6 @@ test_that("row 10: the exact gp() nugget is not brms's", {
                               prior = prior)
   sdat <- brms_standata(bform, data = d10, family = gaussian(),
                         prior = prior)
-
-  # brms's nugget, read off the program it generates
   expect_match(code, "cov[n, n] += 1e-12", fixed = TRUE)
 
   bk <- brms_gp_block(fit, "mu", 1)
@@ -1244,31 +1249,94 @@ test_that("row 10: the exact gp() nugget is not brms's", {
 
   # brms scales its GP coordinates to unit maximum distance and frmtmb
   # keeps the data scale, so frmtmb's length-scale is dmax times brms's.
-  # That part IS translatable and the rule does it.
   xg <- matrix(as.numeric(sdat$Xgp_1), ncol = as.integer(sdat$Dgp_1))
   expect_lt(abs(max(outer(xg[, 1], xg[, 1], "-")^2) - 1), 1e-10)
   pars <- stan_pars_from_fit(fit, sdat, code)
   expect_lt(abs(pars[["lscale_1"]][[1]] - exp(th[[2]]) / sdat$dmax_1),
             1e-12)
-
   kb <- sdgp^2 * exp(-outer(xg[, 1], xg[, 1], "-")^2 /
                        (2 * pars[["lscale_1"]][[1]]^2))
   diag(kb) <- diag(kb) + 1e-12
   kf <- brms_block_cov(fit, bk)
   # off the diagonal the two kernels are the same matrix
   expect_lt(max(abs((kb - kf)[upper.tri(kb)])), 1e-12)
-  # on it they differ by exactly the two nuggets and nothing else
-  expect_lt(max(abs(diag(kf - kb) - (1e-6 * sdgp^2 - 1e-12))), 1e-16)
+  # and on it they differ by the two nuggets
+  expect_lt(max(abs(diag(kf - kb) - (1e-12 * sdgp^2 - 1e-12))), 1e-15)
+  # z is the parameter, so the joint needs no map
+  expect_equal(attr(pars, "logJ"), 0)
+  # Stan reads our z through its own factor, whose near-null pivots differ. The
+  # fit reads the same to 10 digits on every BLAS and the tape's own inner
+  # gradient reads 1e-13, while Stan's reads 3.2e-4 to 1.3e-3 by BLAS build.
+  # On brms's own line, a kernel off by 1e-12, it reads 0.63.
+  brms_lp_check(bform, gaussian(), d10, fit, joint = TRUE,
+                code_fix = gpn_rel_line, tol_grad = 4 * 1.3e-3)
+  # brms's own program, unedited, in the nats its nugget costs
+  sf <- suppressMessages(rstan::sampling(brms_stan_model(code), data = sdat,
+                                         chains = 0))
+  lp <- rstan::log_prob(sf, rstan::unconstrain_pars(sf, pars),
+                        adjust_transform = FALSE)
+  e <- fit$obj$env
+  ours <- -as.numeric(e$f(e$last.par.best))
+  expect_lt(abs(lp - ours), 1e-3 * abs(ours))
+})
 
-  # and that is enough to move the joint density of the same field by
-  # far more than any tolerance this file uses, because the kernel has
-  # many eigenvalues below the larger nugget and none below the smaller
-  fv <- brms_block_b(fit, bk)
-  gap <- mvtnorm::dmvnorm(fv, sigma = kb, log = TRUE) -
-    mvtnorm::dmvnorm(fv, sigma = kf, log = TRUE)
-  expect_gt(abs(gap), 1)
-  expect_gt(sum(eigen(kf / sdgp^2, only.values = TRUE)$values < 1e-6),
-            10)
+gpn_data <- function() {
+  set.seed(20261102)
+  n <- 60L
+  x <- round(stats::runif(n, 0, 6), 3)
+  z <- round(stats::runif(n, 0, 4), 2)
+  e <- stats::rnorm(n)
+  d <- data.frame(x = x, z = z,
+                  f = factor(rep(c("a", "b", "c"), length.out = n)),
+                  w = stats::runif(n, 0.5, 2), e = e,
+                  y = sin(2 * x) + 0.3 * e)
+  d$yn <- (2 + sin(z)) * exp(0.3 * d$w) + 0.2 * e
+  d$xr <- rep(round(stats::runif(15L, 0, 6), 3), length.out = n)
+  d$yr <- sin(2 * d$xr) + 0.3 * e
+  d$ys <- stats::rnorm(n, 0, exp(-1 + sin(x)))
+  d$cnt <- stats::rpois(n, exp(1 + sin(2 * x)))
+  d$se <- 0.3
+  d
+}
+
+test_that("check C: row 10b, exact gp() spellings on unsorted positions", {
+  skip_unless_brms_fit()
+  # frmtmb sorts a term's distinct positions and brms keeps first appearance,
+  # and a Cholesky factor depends on the order, so the translator reads z
+  # through brms's order (brms_gp_order()).
+  dd <- gpn_data()
+  expect_true(is.unsorted(dd$x))
+  specs <- list(
+    list(bf(y ~ gp(x)), brms::bf(y ~ gp(x)), gaussian()),
+    list(bf(y ~ gp(x, z, iso = FALSE)), brms::bf(y ~ gp(x, z, iso = FALSE)),
+         gaussian()),
+    list(bf(y ~ gp(x, by = f, cmc = FALSE)),
+         brms::bf(y ~ gp(x, by = f, cmc = FALSE)), gaussian()),
+    list(bf(yr ~ gp(xr)), brms::bf(yr ~ gp(xr)), gaussian()),
+    list(bf(yr ~ gp(xr, gr = FALSE)), brms::bf(yr ~ gp(xr, gr = FALSE)),
+         gaussian()),
+    list(bf(ys ~ 1, sigma ~ gp(x)), brms::bf(ys ~ 1, sigma ~ gp(x)),
+         gaussian()),
+    list(bf(yn ~ b1 * exp(b2 * w), b1 ~ gp(z), b2 ~ 1, nl = TRUE),
+         brms::bf(yn ~ b1 * exp(b2 * w), b1 ~ gp(z), b2 ~ 1, nl = TRUE),
+         gaussian()),
+    list(bf(y | se(se) ~ gp(x)), brms::bf(y | se(se) ~ gp(x)), gaussian()),
+    list(bf(cnt ~ gp(x)), brms::bf(cnt ~ gp(x)), poisson())
+  )
+  for (s in specs) {
+    fit <- frm(s[[1]], family = s[[3]], data = dd)
+    brms_lp_check(s[[2]], s[[3]], dd, fit, joint = TRUE,
+                  code_fix = gpn_rel_line)
+  }
+})
+
+test_that("check C: row 10c, the approximate gp() on unsorted positions", {
+  # it has no kernel factor and no nugget, and its tape did not move
+  skip_unless_brms_fit()
+  dd <- gpn_data()
+  fit <- frm(bf(y ~ gp(x, k = 10)), family = gaussian(), data = dd)
+  expect_identical(fit$frame$re_blocks[[1L]]$covstruct, "hsgp")
+  brms_lp_check(brms::bf(y ~ gp(x, k = 10)), gaussian(), dd, fit, joint = TRUE)
 })
 
 # ---------------------------------------------------------------------
@@ -1636,7 +1704,8 @@ test_that("check C: row 25b, subset() with mi(x, idx = ) and index()", {
   expect_identical(as.integer(chk$sdat$idxl_y_x_1),
                    fm$frame$linpreds[["y.mu"]]$mi[[1]]$idxl)
   expect_identical(as.integer(chk$sdat$Jmi_x),
-                   as.integer(fm$frame$mi_map$x$rows))
+                   as.integer(sort(c(fm$frame$mi_map$x$rows,
+                                     fm$frame$mi_map$x$unread))))
   expect_true("mixidxEQg1" %in% brms::default_prior(bm, dm)$coef)
   expect_true("y_mixidxEQg1" %in% rownames(fixef(fm)))
 })

@@ -299,7 +299,15 @@ brms_ranef_block <- function(fit, gvar) {
 brms_block_group <- function(nm) {
   nm <- sub("[[][^]]*[]][[:space:]]*$", "", nm)
   parts <- strsplit(nm, "|", fixed = TRUE)[[1]]
-  trimws(parts[[length(parts)]])
+  g <- trimws(parts[[length(parts)]])
+  # brms's group for mm(g1, g2): its members
+  if (startsWith(g, "mm(")) {
+    args <- trimws(strsplit(sub("^mm[(](.*)[)]$", "\\1", g), ",",
+                            fixed = TRUE)[[1]])
+    g <- paste0("mm", paste(args[!grepl("=", args, fixed = TRUE)],
+                            collapse = ""))
+  }
+  g
 }
 
 # frmtmb's ordinal thresholds on the scale brms declares them.
@@ -460,6 +468,8 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
   links <- family(fit)$links
   out <- list()
   jac <- 0
+  mi_ld <- 0
+  mi_gone <- list()
   for (nm in need) {
     if (grepl("^b(_(.+))?$", nm)) {
       sfx <- brms_dpar_of(sub("^b_?", "", nm))
@@ -480,10 +490,6 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       out[[nm]] <- tg[2L] - tg[1L]
     } else if (grepl("^Intercept(_(.+))?$", nm)) {
       sfx <- brms_dpar_of(sub("^Intercept_?", "", nm))
-      x <- brms_X_of(sdat, sfx)
-      fe <- brms_fe_of(fit, sfx)
-      cn <- brms_Xc_cols(sdat, sfx)
-      shift <- sum(colMeans(x)[cn] * brms_fe_cols(fe, cn))
       if (identical(sfx, "mu") && !is.null(sdat[["nthres"]])) {
         # ordinal: Intercept is the threshold vector, X carries no
         # intercept column, and the centering enters with the opposite
@@ -496,6 +502,10 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
         # brms centers X inside the Stan program, so its Intercept is
         # the intercept of the centered fit, not the one frmtmb reports:
         #   b_Intercept = Intercept - dot_product(means_X, b)
+        x <- brms_X_of(sdat, sfx)
+        fe <- brms_fe_of(fit, sfx)
+        cn <- brms_Xc_cols(sdat, sfx)
+        shift <- sum(colMeans(x)[cn] * brms_fe_cols(fe, cn))
         out[[nm]] <- as.numeric(fe[["(Intercept)"]] + shift)
       }
     } else if (grepl("^bsp(_(.+))?$", nm)) {
@@ -577,30 +587,63 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       } else {
         out[[nm]] <- gp$L
       }
-    } else if (grepl("^(Ymi|Yl)_", nm)) {
+    } else if (grepl("^(Ymi|Yl)(_|$)", nm)) {
       # mi(): brms declares Ymi_<resp> for the missing entries of a plain
       # mi() response and Yl_<resp> for EVERY entry of a measurement-error
-      # one, and merges each with the observed data inside the program.
-      # frmtmb keeps both kinds in one `miss` vector, per response in
-      # formula order, and fit$frame$mi_map is the row-to-slot map. The
-      # map to brms is the identity, so this block adds nothing to the
-      # log-Jacobian.
-      resp <- sub("^(Ymi|Yl)_", "", nm)
+      # one (Ymi and Yl on a model with one response), and merges each
+      # with the observed data inside the program. frmtmb keeps both
+      # kinds in one `miss` vector, per response in formula order, and
+      # fit$frame$mi_map is the row-to-slot map. The map to brms is the
+      # family's chart (mi_chart_inv()): brms's density has no Jacobian
+      # under adjust_transform = FALSE, and frmtmb's objective carries the
+      # chart's, which comes off through the log-Jacobian here.
+      uni <- !grepl("_", nm, fixed = TRUE)
+      resp <- if (uni) {
+        names(fit$frame[["mi_map"]])[1L]
+      } else {
+        sub("^(Ymi|Yl)_", "", nm)
+      }
       mm <- fit$frame[["mi_map"]][[resp]]
       if (is.null(mm)) {
         stop("brms declares ", nm, " but the frmtmb fit has no mi() ",
              "block for response ", resp)
       }
+      sfx <- if (uni) "" else paste0("_", resp)
       want <- if (startsWith(nm, "Ymi")) {
-        as.integer(sdat[[paste0("Jmi_", resp)]])
+        as.integer(sdat[[paste0("Jmi", sfx)]])
       } else {
-        seq_len(sdat[[paste0("N_", resp)]])
+        seq_len(sdat[[paste0("N", sfx)]])
       }
-      if (!identical(as.integer(mm$rows), as.integer(want))) {
+      # brms's program on the observed rows has no latent value at all
+      # (brms_mi_observed()); on every row, a value no density reads has
+      # left the fit, and it takes the frame's placeholder, a value in the
+      # support, for a method that does not read it
+      all_rows <- sort(c(mm$rows, mm$unread))
+      if (!length(want) && length(mm$unread) && !length(mm$rows)) {
+        out[[nm]] <- array(numeric(0), 0L)
+        next
+      }
+      if (!identical(as.integer(all_rows), as.integer(want))) {
         stop("brms holds ", length(want), " latent values for ", resp,
-             " and frmtmb ", length(mm$rows), ", or in another order")
+             " and frmtmb ", length(all_rows), ", or in another order")
       }
-      v <- unname(fit$estimates[["miss"]][mm$idx])
+      u <- as.numeric(unname(fit$estimates[["miss"]][mm$idx]))
+      v <- fit$frame[["y"]][[resp]][all_rows]
+      v[match(mm$rows, all_rows)] <- frmtmb:::mi_chart_inv(u, mm$chart)
+      jac <- jac - sum(frmtmb:::mi_chart_logjac(u, mm$chart))
+      # brms's program holds a density at the placeholder of a row that left
+      # frm()'s objective (brms_mi_unread_ld())
+      if (length(mm$unread)) {
+        pos <- match(mm$unread, all_rows)
+        # at the row's mean: a latent mi() the row reads has no slope in a
+        # gaussian density there, so check C's gradient on that latent holds
+        mu_r <- frmtmb:::eval_dpars(fit)[[resp]][["mu"]]
+        if (!is.null(mu_r)) {
+          v[pos] <- if (length(mu_r) > 1L) mu_r[mm$unread] else mu_r
+        }
+        mi_ld <- mi_ld + brms_mi_unread_ld(fit, resp, mm$unread, v[pos])
+        mi_gone[[nm]] <- pos
+      }
       out[[nm]] <- array(v, length(v))
     } else if (grepl("^(meanme|sdme|zme|Lme)_\\d+$", nm)) {
       # me(): brms numbers the hyperparameters and the Cholesky factor by
@@ -723,8 +766,9 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
             # per sub-GP. The HSGP form rescales its inputs the same way
             # brms does and needs no correction.
             byfac <- !is.null(sdat[[paste0("Igp_", gsfx, i, "_1")]])
-            r <- r / sdat[[paste0("dmax_", gsfx, i,
-                                  if (byfac) paste0("_", j))]]
+            # brms ships no dmax under scale = FALSE: nothing was divided
+            dm <- sdat[[paste0("dmax_", gsfx, i, if (byfac) paste0("_", j))]]
+            if (!is.null(dm)) r <- r / dm
           }
           r
         }, numeric(dgp)))
@@ -736,25 +780,39 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       # diagonal of spectral densities and this reduces to f / sd.
       #
       # For the EXACT form the two kernels are not the same matrix: see
-      # the nugget divergence in dev/brms-likelihood-tests.md. Nothing
-      # here can repair that, and the exact spelling is asserted
-      # structurally instead of being run through the identity.
+      # the nugget divergence in dev/brms-likelihood-tests.md. A z read
+      # through frmtmb's factor rebuilds, in brms's program, a field a
+      # nugget's width from frmtmb's.
       # zgp_<i>_<j> is sub-GP j of a gp(by = ) term
       ip <- brms_idx_parts(nm, "zgp")
       bks <- brms_gp_term(fit, ip$dpar, ip$idx[[1]])
       bk <- bks[[if (length(ip$idx) > 1L) ip$idx[[2]] else 1L]]
       kb <- brms_block_cov(fit, bk)
+      fv <- brms_block_b(fit, bk)
       # the HSGP covariance is diagonal: its square root is elementwise,
       # which stays defined where a spectral density underflows a
       # Cholesky factorization's pivot tolerance
       lmat <- if (identical(bk[["covstruct"]], "hsgp")) {
         diag(sqrt(diag(kb)), nrow(kb))
       } else {
+        # L z in brms's program is position by position, so z must come
+        # from the factor in brms's order of the positions
+        io <- brms_gp_order(sdat, nm)
+        kb <- kb[io, io, drop = FALSE]
+        fv <- fv[io]
         t(chol(kb))
       }
-      v <- solve(lmat, brms_block_b(fit, bk))
+      v <- solve(lmat, fv)
       out[[nm]] <- array(as.numeric(v), length(v))
       jac <- jac + sum(log(diag(lmat)))
+      # frmtmb holds an exact field as z too, so the joint needs no map; its
+      # z runs farthest-first and brms's over first appearance, hence v
+      if (identical(bk[["covstruct"]], "gp")) jac <- jac - sum(log(diag(lmat)))
+    } else if (!is.null(brms_latres_of(fit, nm))) {
+      # a latent residual term: a field of frmtmb's `b`, with brms's names
+      lr <- brms_latres_pars(fit, brms_latres_of(fit, nm), nm)
+      out[[nm]] <- lr$value
+      jac <- jac + lr$logJ
     } else if (nm %in% c("ar", "ma", "cosy", "Lcortime")) {
       # Residual autocorrelation. frmtmb keeps these on unconstrained
       # scales in `thetaac` and has one internal function that puts them
@@ -821,7 +879,9 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       stop("no translation rule for Stan parameter ", nm)
     }
   }
-  attr(out, "logJ") <- jac
+  attr(out, "logJ") <- jac + mi_ld
+  attr(out, "mi_ld") <- mi_ld
+  attr(out, "mi_gone") <- mi_gone
   out
 }
 
@@ -839,9 +899,171 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
 #   rcar, zcar  a CAR field, on its own scale for the proper form and
 #               standardized for the intrinsic one
 #   zme_<i>     the standardized latent values of the me() terms
+#   zerr        the standardized latent residuals of an autocor term
 brms_inner_pat <- paste0(
-  "^(z_\\d+|zs_\\d+_\\d+|zgp_([A-Za-z0-9]+_)*\\d+(_\\d+)?|Ymi_.+|",
-  "Yl_.+|rcar|zcar|zme_\\d+)$")
+  "^(z_\\d+|zs_\\d+_\\d+|zgp_([A-Za-z0-9]+_)*\\d+(_\\d+)?|Ymi(_.+)?|",
+  "Yl_.+|rcar|zcar|zme_\\d+|zerr(_.+)?)$")
+
+# The mi() blocks whose chart in frmtmb is Stan's own transform (log on
+# real<lower=0>, logit on a bounded interval): frmtmb's inner mode is
+# the mode of the density with that chart's Jacobian, so their gradient
+# is read with Stan's Jacobian in it.
+brms_mi_chart_pat <- function(fit) {
+  mp <- fit$frame[["mi_map"]] %||% list()
+  on <- names(mp)[vapply(mp, function(m) {
+    !identical(m[["chart"]] %||% "identity", "identity")
+  }, NA)]
+  if (!length(on)) return(NULL)
+  paste0("^(Ymi|Yl)(_(", paste(on, collapse = "|"), "))?$")
+}
+
+# The gradient of brms's log_prob at `upars` as check C reads it.
+brms_lp_grad <- function(sf, upars, fit, pars) {
+  grad <- rstan::grad_log_prob(sf, upars, adjust_transform = FALSE)
+  pat <- brms_mi_chart_pat(fit)
+  if (!is.null(pat)) {
+    ix <- brms_inner_index(sf, pars, pat)
+    grad[ix] <- rstan::grad_log_prob(sf, upars, adjust_transform = TRUE)[ix]
+  }
+  grad
+}
+
+# Two block shapes the core translator does not read, as a wrap.
+#
+# gr(g, cov = A) and mm(g1, g2, cov = A): brms draws
+# r = (Lcov %x% diag(sd) L) z, so the standardized z the iid translation
+# returns is multiplied by t(Lcov)^-1, and the change of variables adds
+# M log|Lcov|.
+#
+# A mixture whose proportions have no predictor: brms declares
+# simplex[K] theta; frmtmb carries theta1..theta(K-1) as intercepts on
+# the logit (softmax, last component the reference) scale. The
+# translator reads the parameter list off the code only, so the
+# simplex is taken out of the list it reads and filled in here.
+brms_orig_stan_pars <- stan_pars_from_fit
+stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
+  simplex_theta <- grepl("\n  simplex\\[[0-9]+\\] theta;", code)
+  if (simplex_theta) {
+    code <- sub("\n  simplex\\[[0-9]+\\] theta;[^\n]*", "", code)
+  }
+  pars <- brms_orig_stan_pars(fit, sdat, code, rtab)
+  if (simplex_theta) {
+    fe <- fixef_by_dpar(fit)
+    a <- vapply(grep("^theta[0-9]+$", names(fe), value = TRUE),
+                function(nm) unname(fe[[nm]][["(Intercept)"]]), 0)
+    a <- c(a, 0)
+    pars[["theta"]] <- exp(a) / sum(exp(a))
+  }
+  lj <- attr(pars, "logJ") %||% 0
+  for (nm in grep("^Lcov_[0-9]+$", names(sdat), value = TRUE)) {
+    i <- sub("^Lcov_", "", nm)
+    zn <- paste0("z_", i)
+    if (is.null(pars[[zn]])) next
+    lc <- as.matrix(sdat[[nm]])
+    z <- as.matrix(pars[[zn]])
+    pars[[zn]] <- z %*% t(solve(lc))
+    lj <- lj + nrow(z) * sum(log(diag(lc)))
+  }
+  attr(pars, "logJ") <- lj
+  pars
+}
+
+# The latent residual block a Stan parameter belongs to, or NULL: `ar`,
+# `ma`, `cosy`, `Lcortime`, `sderr` and `zerr`, with brms's response suffix
+# in a multivariate model. A model with no such block keeps the rule for
+# frmtmb's natural residual terms.
+brms_latres_of <- function(fit, nm) {
+  if (!grepl("^(ar|ma|cosy|Lcortime|sderr|zerr)(_.+)?$", nm)) return(NULL)
+  lrs <- frame_latres(fit$frame)
+  if (!length(lrs)) return(NULL)
+  if (length(lrs) == 1L && !grepl("_", nm)) return(lrs[[1L]])
+  lrs[[sub("^[^_]+_", "", nm)]]
+}
+
+# brms's Cholesky factor of a group of `k` rows, from its own definitions
+# (fun_cholesky_cor_ar1.stan, _ma1, _arma1, _cosy), not from frmtmb's chain,
+# so that the map to zerr states the model it is checked against.
+brms_latres_chol <- function(a, th, k, J = NULL) {
+  if (identical(a$kind, "unstr") && identical(as.integer(J), seq_len(a$d))) {
+    return(as.matrix(us_chol_L(th, a$d)))
+  }
+  cf <- latres_coefs(th, a)
+  C <- switch(a$kind,
+    ar1 = cf$ar^abs(outer(seq_len(k), seq_len(k), "-")) / (1 - cf$ar^2),
+    ma1 = {
+      m <- diag(1 + cf$ma^2, k)
+      m[abs(row(m) - col(m)) == 1L] <- cf$ma
+      m
+    },
+    arma1 = {
+      g1 <- (1 + cf$ar * cf$ma) * (cf$ar + cf$ma)
+      lag <- abs(outer(seq_len(k), seq_len(k), "-"))
+      m <- g1 * cf$ar^pmax(lag - 1, 0)
+      diag(m) <- 1 + cf$ma^2 + 2 * cf$ar * cf$ma
+      m / (1 - cf$ar^2)
+    },
+    cosy = {
+      m <- matrix(cf$rho, k, k)
+      diag(m) <- 1
+      m
+    },
+    unstr = us_chol_cor(th, a$d)[J, J, drop = FALSE])
+  t(chol(C))
+}
+
+# One Stan parameter of a latent residual, and the part of the map's
+# log-Jacobian it carries, which for this block is the whole of
+#
+#   log N(zerr) - log p(b)
+#
+# at the conditional mode. `b` has `m` entries and `zerr` `n`. With `Q` the
+# precision of `b`, Sylvester's identity says the two Laplace values agree
+# when
+#
+#   joint_stan = joint_frm + (m - n) / 2 log(2 pi) - 1/2 log|Q|,
+#
+# and at the mode `b` is the point of least prior energy with the same err, so
+# the quadratic forms agree too. log|Q| is `log(1 - phi^2)` per group for a
+# stationary chain and 0 for iid latents.
+brms_latres_pars <- function(fit, bk, nm) {
+  a <- bk$aux
+  theta <- fit$estimates[["theta"]][bk$theta_idx]
+  th <- theta[-1L]
+  stem <- sub("_.*$", "", nm)
+  if (identical(stem, "sderr")) {
+    return(list(value = exp(theta[1L]), logJ = 0))
+  }
+  if (stem %in% c("ar", "ma", "cosy")) {
+    nat <- latres_natural_coefs(th, a)
+    v <- unname(nat[startsWith(names(nat), stem)])
+    return(list(value = if (identical(stem, "cosy")) v else array(v, length(v)),
+                logJ = 0))
+  }
+  if (identical(stem, "Lcortime")) {
+    return(list(value = as.matrix(us_chol_L(th, a$d)), logJ = 0))
+  }
+  b <- fit$estimates[["b"]][bk$b_idx]
+  if (identical(a$kind, "condar")) {
+    return(list(value = array(b, length(b)), logJ = 0))
+  }
+  # err / sderr in row order, then zerr in brms's sorted order, which is
+  # the frame's only when the rows come sorted by group and time; the data
+  # of every identity in the suite do
+  s <- latres_expand(b, bk, c(0, th))
+  n <- a$n
+  G <- a$G
+  z <- numeric(n)
+  for (rows in split(seq_len(n), a$group)) {
+    rows <- rows[order(a$tidx[rows])]
+    L <- brms_latres_chol(a, th, length(rows), a$tidx[rows])
+    z[rows] <- forwardsolve(L, s[rows])
+  }
+  m <- length(b)
+  logQ <- if (a$kind %in% c("ar1", "arma1")) {
+    -G * log(1 + th[1L]^2)
+  } else 0
+  list(value = z, logJ = (m - n) / 2 * log(2 * pi) - logQ / 2)
+}
 
 # Which entries of the unconstrained vector those blocks occupy, found
 # by perturbing them and diffing, so it needs no knowledge of the
@@ -852,9 +1074,62 @@ brms_inner_index <- function(sf, pars, pattern = brms_inner_pat) {
     return(integer())
   }
   bumped <- pars
-  for (nm in zn) bumped[[nm]] <- pars[[nm]] + 1
+  # toward the middle, so a block bounded on both sides stays inside
+  for (nm in zn) bumped[[nm]] <- pars[[nm]] * 0.5 + 0.0123
+  # a row that left frm()'s objective is no inner parameter of it
+  gone <- attr(pars, "mi_gone")
+  for (nm in names(gone)) bumped[[nm]][gone[[nm]]] <- pars[[nm]][gone[[nm]]]
   which(rstan::unconstrain_pars(sf, bumped) !=
           rstan::unconstrain_pars(sf, pars))
+}
+
+# A missing value no density reads has left frm()'s objective
+# (mi_ml_frame()), so brms's comparable program is the same program on the
+# observed rows. Where a response with such rows shares its rows with
+# another response, there is no such data frame, and the caller reads the
+# identity of brms_mi_unread_gap() instead.
+brms_mi_observed <- function(fit, data) {
+  mp <- fit$frame[["mi_map"]] %||% list()
+  gone <- unlist(lapply(mp, `[[`, "unread"))
+  if (!length(gone)) return(data)
+  if (length(fit$spec$responses) > 1L) return(data)
+  data[-gone, , drop = FALSE]
+}
+
+# The log density brms's program holds at a row that left frm()'s objective,
+# at the value the translator gave it: frmtmb's family at that row's dpars.
+# The value of the identity is then read from the rows that remain.
+brms_mi_unread_ld <- function(fit, resp, rows, v) {
+  fam <- fit$spec$responses[[resp]]$family
+  at <- function(d) if (length(d) > 1L) d[rows] else d
+  dp <- lapply(frmtmb:::eval_dpars(fit)[[resp]], at)
+  av <- lapply(fit$frame[["aterm_values"]][[resp]], at)
+  sum(fam$lpdf(v, dp, av))
+}
+
+# The identity behind that route, on brms's program with every row: its
+# log_prob minus the density at Ymi equals frm()'s complete-case logLik,
+# whatever Ymi is. `dens(y, fit)` is the family's log density of a value at
+# its row's fitted parameters, written by the caller, so that it is an
+# independent reference. Returns the gaps at each row of `ymi`, one per
+# column of the value matrix.
+brms_mi_unread_gap <- function(bform, family, data, fit, ymi, dens, ...) {
+  mm <- fit$frame[["mi_map"]][[1L]]
+  rows <- sort(c(mm$rows, mm$unread))
+  prior <- brms_flat_prior(bform, data = data, family = family, ...)
+  code <- brms::make_stancode(bform, data = data, family = family,
+                              prior = prior, ...)
+  sdat <- brms_standata(bform, data = data, family = family, prior = prior,
+                        ...)
+  mod <- brms_stan_model(code)
+  sf <- suppressMessages(rstan::sampling(mod, data = sdat, chains = 0))
+  pars <- stan_pars_from_fit(fit, sdat, code, NULL)
+  vapply(seq_len(ncol(ymi)), function(j) {
+    pars[["Ymi"]] <- array(ymi[, j], nrow(ymi))
+    up <- rstan::unconstrain_pars(sf, pars)
+    lp <- rstan::log_prob(sf, up, adjust_transform = FALSE, gradient = FALSE)
+    lp - sum(dens(ymi[, j], fit, rows)) - as.numeric(logLik(fit))
+  }, 0)
 }
 
 # The two checks of the plan, run at one point.
@@ -869,6 +1144,7 @@ brms_inner_index <- function(sf, pars, pattern = brms_inner_pat) {
 brms_lp_check <- function(bform, family, data, fit, joint = FALSE,
                           const = 0, tol_grad = 1e-3, code_fix = NULL,
                           ...) {
+  data <- brms_mi_observed(fit, data)
   prior <- brms_flat_prior(bform, data = data, family = family, ...)
   code <- brms::make_stancode(bform, data = data, family = family,
                               prior = prior, ...)
@@ -890,12 +1166,12 @@ brms_lp_check <- function(bform, family, data, fit, joint = FALSE,
   if (joint) {
     ours <- -fit$obj$env$f(fit$obj$env$last.par.best) + attr(pars, "logJ")
   } else {
-    ours <- as.numeric(logLik(fit))
+    ours <- as.numeric(logLik(fit)) + (attr(pars, "mi_ld") %||% 0)
   }
   tol <- 1e-6 * max(1, abs(ours))
   testthat::expect_lt(abs(lp - ours - const), tol)
 
-  grad <- rstan::grad_log_prob(sf, upars, adjust_transform = FALSE)
+  grad <- brms_lp_grad(sf, upars, fit, pars)
   if (joint) {
     idx <- brms_inner_index(sf, pars)
     testthat::expect_gt(length(idx), 0)
@@ -1088,6 +1364,10 @@ brms_smooth_term <- function(fit, dpar, i) {
 # of a smooth, and the unique-position order of a GP, are brms's own and
 # are checked element for element in test-brms-agreement.R.
 brms_block_b <- function(fit, bk) {
+  # an exact gp()'s b is z, and its coefficients are the field
+  if (identical(bk[["covstruct"]], "gp")) {
+    return(as.numeric(coef_b(fit)[bk[["c_idx"]]]))
+  }
   as.numeric(fit$estimates[["b"]][bk[["b_idx"]]])
 }
 
@@ -1110,6 +1390,21 @@ brms_gp_block <- function(fit, dpar, i) {
          "read them with brms_gp_term()")
   }
   bks[[1L]]
+}
+
+# Where brms's latent positions sit in frmtmb's. Under gr = TRUE frmtmb
+# sorts a term's distinct positions (R/frame.R) and brms keeps them in
+# order of first appearance (brms:::.data_gp), so the i-th value of
+# brms's vector is frmtmb's value number brms_gp_order()[i]. brms's
+# inputs are frmtmb's divided by one positive number, which keeps the
+# sort. Under gr = FALSE brms has no Jgp_ and both hold one value per
+# row, in row order.
+brms_gp_order <- function(sdat, zname) {
+  xb <- sdat[[sub("^zgp_", "Xgp_", zname)]]
+  if (is.null(sdat[[sub("^zgp_", "Jgp_", zname)]])) {
+    return(seq_len(NROW(xb)))
+  }
+  order(do.call(order, as.data.frame(as.matrix(xb))))
 }
 
 # One GP TERM's frmtmb blocks, in sub-GP order. A gp(by = f) term is one
@@ -1192,4 +1487,3 @@ brms_basis_map <- function(zb, zf, orthogonal = TRUE, tol = 1e-8) {
   }
   amat
 }
-

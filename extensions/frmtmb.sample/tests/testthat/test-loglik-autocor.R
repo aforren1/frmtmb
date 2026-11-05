@@ -623,19 +623,17 @@ test_that("log_lik(newdata =) names only an alternative that answers", {
   fit <- frm(y ~ x + ar(t, g, cov = TRUE), data = d, dry_run = "objective")
   ds <- lla_draws(fit, list(b_Intercept = b0, b_x = b1, sigma = sg,
                             thetaac_1 = lla_pinv(c(0.5, -0.3, 0.8))))
+  # posterior_predict(newdata =) now draws this term on the new rows, so the
+  # refusal names it, and the route it names answers
   e <- tryCatch(log_lik(ds, newdata = d), error = identity)
   expect_s3_class(e, "frmtmb_error")
   expect_match(conditionMessage(e), "does not take newdata", fixed = TRUE)
-  expect_match(conditionMessage(e), "Use posterior_epred(newdata =) for",
+  expect_match(conditionMessage(e),
+               "Use posterior_epred(newdata =) or posterior_predict(",
                fixed = TRUE)
-  expect_match(conditionMessage(e), "is refused for this model too",
-               fixed = TRUE)
-  # the alternative it rules out is refused indeed
-  pe <- tryCatch(posterior_predict(ds, newdata = d), error = identity)
-  expect_s3_class(pe, "error")
-  expect_match(conditionMessage(pe), "its draws are structured",
-               fixed = TRUE)
-  # the guard absent: without the residual term both are named
+  pe <- posterior_predict(ds, newdata = d[1:5, ])
+  expect_identical(ncol(pe), 5L)
+  # the guard absent: without the residual term both are named as well
   f2 <- frm(y ~ x, data = d, dry_run = "objective")
   ds2 <- lla_draws(f2, list(b_Intercept = b0, b_x = b1, sigma = sg))
   e2 <- tryCatch(log_lik(ds2, newdata = d), error = identity)

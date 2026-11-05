@@ -669,7 +669,7 @@ mode_aligned_bounds <- function(obj, bounds, laplace, n) {
 #' other model is retaped as it always was.
 #'
 #' @noRd
-prior_augmented_obj <- function(fit, entries, chart = NULL) {
+prior_augmented_obj <- function(fit, entries, chart = NULL, hessian = TRUE) {
   nll <- build_objective(mo_sample_frame(fit))
   entries <- mo_sample_entries(entries, fit)
   nlp <- neg_log_prior_fn(entries)
@@ -684,9 +684,12 @@ prior_augmented_obj <- function(fit, entries, chart = NULL) {
   } else {
     function(pars) nll(pars) + nlp(pars) + snlp(pars)
   }
-  RTMB::MakeADFun(chart_fn(fn, chart),
-                  chart_pars(mo_sample_pars(fit, fit$estimates), chart),
-                  random = random, map = fit$frame[["map"]], silent = TRUE)
+  gp_tape_scope(fit$frame, RTMB::MakeADFun(
+    chart_fn(fn, chart),
+    gp_tape_order(fit$frame,
+                  chart_pars(mo_sample_pars(fit, fit$estimates), chart)),
+    random = random, map = fit$frame[["map"]], silent = TRUE),
+    hessian = hessian)
 }
 
 #' The sampling objective read in the charts of core's
@@ -736,9 +739,9 @@ chart_mode_warning <- function(fit, chart) {
   if (!length(chart)) return(invisible(NULL))
   ap <- autocor_flat_priors(fit)
   multi <- length(fit$spec$responses) > 1L
-  th <- fit$estimates[["thetaac"]]
+  ests <- fit$estimates
   for (tm in chart) {
-    est <- tm$to_natural(th[tm$idx])
+    est <- tm$to_natural(ests[[tm$comp]][tm$idx])
     if (est > tm$L && est < tm$U) next
     dflt <- ap$class == tm$class & ap$resp == tm$resp & !is.na(ap$lb) &
       ap$lb == tm$L
@@ -966,12 +969,16 @@ gev_draws_to_xi <- function(m, obj, fit, terms, laplace) {
   free <- setdiff(seq_along(tpl[[tm$par]]), fx)
   j <- pidx[[tm$par]][match(tm$idx, free)]
   np <- if (laplace) length(obj$par) else length(obj$env$last.par)
+  # the matrix is in the template's order and the tape may hold b first
+  # (gp_tape_order()); under laplace b is not in either
+  to_tape <- if (!laplace) order(match(names(obj$env$last.par), names(tpl)))
   for (i in seq_len(nrow(m))) {
     row <- as.numeric(m[i, seq_len(np)])
     rep <- if (laplace) {
       obj$fn(row)
       obj$report()
     } else {
+      row[to_tape] <- row
       obj$report(row)
     }
     m[i, j] <- tm$link$linkfun(rep[["frmtmb_gev_xi"]][1L])
@@ -1120,10 +1127,11 @@ ncp_plan <- function(fit, reparameterize, laplace, entries = NULL) {
     all(bk[["theta_idx"]] %in% priored)
   }, TRUE)
   ok <- vapply(blocks, ncp_eligible, TRUE) & has_prior
-  # an rr() block's own coefficients ARE standard normal factors, so it
-  # is non-centered already and has nothing to report
+  # the coefficients of an rr() block and of an exact gp() ARE standard
+  # normal, so each is non-centered already and has nothing to report
   done <- vapply(blocks, function(bk) {
-    identical(bk[["covstruct"]], "rr")
+    # so is a latent residual's chain, in unit-scale coordinates
+    bk[["covstruct"]] %in% c("rr", "gp", "latres")
   }, TRUE)
   lab <- vapply(blocks, function(bk) {
     paste0(bk[["term_label"]], " [", bk[["covstruct"]], "]")
@@ -1185,7 +1193,7 @@ announce_ncp <- function(plan) {
 #' function, so no fitted object can acquire a non-centered tape.
 #'
 #' @noRd
-ncp_objective <- function(fit, idx, entries, chart = NULL) {
+ncp_objective <- function(fit, idx, entries, chart = NULL, hessian = TRUE) {
   frame <- mo_sample_frame(fit)
   frame[["ncp_blocks"]] <- idx
   nll <- build_objective(frame)
@@ -1206,10 +1214,13 @@ ncp_objective <- function(fit, idx, entries, chart = NULL) {
   random <- c(if (!is.null(tpl[["b"]])) "b",
               if (!is.null(tpl[["miss"]])) "miss")
   if (!length(random)) random <- NULL
-  RTMB::MakeADFun(chart_fn(fn, chart),
+  gp_tape_scope(frame, RTMB::MakeADFun(
+    chart_fn(fn, chart),
+    gp_tape_order(frame,
                   chart_pars(mo_sample_pars(fit, ncp_start_pars(fit, idx)),
-                             chart),
-                  random = random, map = fit$frame[["map"]], silent = TRUE)
+                             chart)),
+    random = random, map = fit$frame[["map"]], silent = TRUE),
+    hessian = hessian)
 }
 
 #' The starting parameter list on the non-centered scale: `z0 = L^-1 b`
@@ -1638,16 +1649,20 @@ brms_lscale_prior <- function(X, plb = 0.01, pub = 0.01) {
           format(p[2], digits = 15))
 }
 
-#' `gp = TRUE` gives the same prefixes for the `gp()` blocks, which brms
-#' priors as class `"sdgp"` rather than `"sd"`.
+#' `cls = "sdgp"` gives the same prefixes for the `gp()` blocks and
+#' `cls = "sds"` for the smooth blocks, which brms priors under those
+#' classes rather than `"sd"`.
 #'
 #' @noRd
-default_sd_prefixes <- function(fit, gp = FALSE) {
+default_sd_prefixes <- function(fit, cls = "sd") {
   multi <- length(fit$spec$responses) > 1L
   out <- list()
   for (bk in fit$frame[["re_blocks"]]) {
     if (!length(block_sd_idx(bk))) next
-    if (xor(gp, bk[["covstruct"]] %in% c("gp", "hsgp"))) next
+    if (identical(bk[["covstruct"]], "latres")) next
+    bk_cls <- switch(bk[["covstruct"]], gp = , hsgp = "sdgp", smooth = "sds",
+                     "sd")
+    if (!identical(bk_cls, cls)) next
     for (cp in bk[["components"]] %||% list()) {
       lp <- fit$frame[["linpreds"]][[cp[["lp_key"]] %||% ""]]
       if (is.null(lp)) next
@@ -1987,10 +2002,17 @@ default_priors_for <- function(fit, flat = FALSE) {
                   resp = k[["resp"]], dpar = k[["dpar"]],
                   nlpar = k[["nlpar"]]))
   }
+  # a smooth's sd: brms's prior_sm() writes the same def_scale_prior on
+  # class "sds"
+  for (k in default_sd_prefixes(fit, "sds")) {
+    add(set_prior(st(0, scales[[k[["rname"]]]]$scale), class = "sds",
+                  resp = k[["resp"]], dpar = k[["dpar"]],
+                  nlpar = k[["nlpar"]]))
+  }
   # a gp() term's sd: brms's prior_gp() writes the same def_scale_prior
   # on class "sdgp", and its length scales an inv_gamma tuned to each
   # sub-GP's own distances (def_lscale_prior())
-  for (k in default_sd_prefixes(fit, gp = TRUE)) {
+  for (k in default_sd_prefixes(fit, "sdgp")) {
     add(set_prior(st(0, scales[[k[["rname"]]]]$scale), class = "sdgp",
                   resp = k[["resp"]], dpar = k[["dpar"]],
                   nlpar = k[["nlpar"]]))
@@ -2051,10 +2073,16 @@ default_priors_for <- function(fit, flat = FALSE) {
     add(p)
   }
   # and on an unstr() residual correlation, class cortime, per response
-  for (r in names(fit$frame[["autocor"]] %||% list())) {
-    ac <- fit$frame[["autocor"]][[r]]
+  for (r in names(frame_ac_terms(fit$frame))) {
+    ac <- frame_ac_terms(fit$frame)[[r]]
     if (identical(ac[["struct"]], "unstr") && isTRUE(ac[["d"]] >= 2L)) {
       add(set_prior("lkj(1)", class = "cortime", resp = if (multi) r else ""))
+    }
+    # brms's def_scale_prior on the SD of a latent residual, as on any
+    # standard deviation of the response
+    if (isTRUE(ac[["latent"]])) {
+      add(set_prior(st(0, scales[[r]]$scale), class = "sderr",
+                    resp = if (multi) r else ""))
     }
   }
   # brms's prior_Xme(): (flat) on meanme and on sdme > 0, and lkj(1) on
@@ -2578,7 +2606,8 @@ announce_default_priors <- function(pl, notes) {
                           else if (isTRUE(s$flat_interval))
                             "  [flat on its interval, brms's (flat)]"
                           else if (isTRUE(s$natural)) "  [natural scale]"
-                          else if (s$class %in% c("sd", "sdgp", "sdme"))
+                          else if (s$class %in% c("sd", "sds", "sdgp",
+                                                  "sdme"))
                             "  [natural sd scale]"
                           else if (identical(s$class, "lscale"))
                             "  [brms's scaled inputs]"
@@ -2851,13 +2880,19 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' and the CORRELATED blocks `(x | g)`, `cs()`, `ar1()` and `hetar1()`.
 #' A `k =` Hilbert-space `gp()` block non-centers too, since its
 #' factor is diagonal and the defaults prior its sd and its length
-#' scales (brms's classes `"sdgp"` and `"lscale"`), and so does an exact
-#' `gp()` field, as brms's `sdgp * L zgp`: its factor is the Cholesky
-#' factor of the kernel over the field's distinct positions, taken on the
-#' tape at a cost of `n^3 / 3` per gradient for `n` positions.
-#' `rr()` is already non-centered by
-#' construction, since its own coefficients are the standard normal
-#' factors. What stays centered is a run whose variance parameters carry
+#' scales (brms's classes `"sdgp"` and `"lscale"`).
+#' `rr()` and an exact `gp()` are already non-centered by
+#' construction: the coefficients of `rr()` are its standard normal
+#' factors, and those of an exact `gp()` are brms's `zgp`, with the field
+#' `sdgp * L zgp`, `L` the Cholesky factor of the kernel over a farthest-first
+#' order of the field's distinct positions, taken on the tape at a cost of
+#' `n^3 / 3` per gradient for `n` positions, at a nugget of `1e-12 * sdgp^2`.
+#' Drawing that field does not converge at `sigma` near `1e-3` and below on a
+#' small `n`: at n 15, Rhat on `sdgp` read 1.04 to 2.37 at `1e-3`, 1.36 to 1.95 at
+#' `1e-4` and 1.56 to 2.47 at `1e-6`, and `sigma`'s median up to 394 times the
+#' truth at `1e-6`. brms's program does not mix there either.
+#' `laplace = TRUE` does, Rhat at most 1.02.
+#' What stays centered is a run whose variance parameters carry
 #' no density at all: [check_laplace()], which asks for that on purpose.
 #' Under `prior = "flat"` a standard deviation is flat on its own scale,
 #' as brms's `(flat)` is, which is a density on `theta` that vanishes
@@ -3162,12 +3197,20 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' class, and a name inside a correlation block dropped the LKJ density
 #' on the rest of the block.
 #'
+#' *A missing value under `mi()`.* A draw of it is named as in brms,
+#' `Ymi_<resp>[k]` (`Ymi[k]` with one response, `Yl_` under `mi(sd)`), and
+#' is on the response's own scale, whatever chart the sampler moves in. A
+#' [frmtmb::frm()] fit leaves out of its objective a value no density reads;
+#' sampling from that fit holds it again. `laplace = TRUE`, from a fit or from a
+#' formula, integrates the values out and leaves such a value out, as `frm()`
+#' does.
+#'
 #' *`prior = "flat"`.* brms has no opt-out of its priors; the nearest
 #' brms model is `""` in every slot, which is `(flat)`: no density on the
 #' parameter brms declares, inside the bounds it declares. That is what
 #' `prior = "flat"` samples. frmtmb holds several of those parameters
 #' through a map, so flat on brms's parameter is not flat on frmtmb's:
-#' a standard deviation (`sd`, `sdgp`, `lscale`) and a positive
+#' a standard deviation (`sd`, `sds`, `sdgp`, `lscale`) and a positive
 #' distributional parameter (`sigma`, `shape`, `nu`, ...) are flat on
 #' their own scale, not on their log; a correlation matrix (`cor`,
 #' `rescor`, `cortime`, `lncor`) is flat on the Cholesky factor brms
@@ -3614,10 +3657,31 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
     fit <- sample_assemble(fit, data, family, data2 = data2,
                            start = start, fit_control = fit_control,
                            na.action = na.action, REML = REML)
+    # laplace = TRUE integrates the values out as frm() does, and has its
+    # error on a value nothing reads unless that row leaves the objective
+    if (isTRUE(list(...)$laplace)) fit <- mi_sampling(fit, "laplace")
+  }
+  # the rows and the chart a maximum-likelihood fit left out; check_laplace()
+  # samples the density that fit maximized, and laplace = TRUE draws no value
+  if (!from_formula && !isTRUE(.diagnostic) && !isTRUE(list(...)$laplace)) {
+    fit <- mi_sampling(fit)
   }
   mo_sample_check_const(fit)
   # no mode to anchor on when the model was never optimized
+  init_asked <- !is.null(init)
   init <- init %||% if (from_formula) "random" else "last.par.best"
+  # at the nugget a fit's sigma has collapsed against it, and chains started
+  # there stay pinned: at true sigma 1e-6, n 15, q50 1.83e-8 and Rhat 2.25
+  # (dev/ncgp-findings.md). At ordinary noise the mode is the better start
+  if (!from_formula && !init_asked && !is.null(gp_nugget_message(fit))) {
+    init <- "random"
+    frm_message("frm_sample(): chains start at random, not at the mode of the ",
+                "fit: its noise has reached the nugget of an exact gp(), and ",
+                "chains started there stay pinned. These chains do not converge ",
+                "at this noise either: sigma read 24 and 394 times the truth on ",
+                "two seeds at n 15. laplace = TRUE is the route here. Pass ",
+                "init = \"last.par.best\" to start at the mode.")
+  }
   pr_lower <- c()
   pr_upper <- c()
   obj <- fit$obj
@@ -3736,17 +3800,19 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   tfit <- fit
   if (prior_only) tfit$frame[["prior_only"]] <- TRUE
   if (length(ncp$idx)) {
-    obj <- ncp_objective(tfit, ncp$idx, ri$entries %||% list(), chart)
+    obj <- ncp_objective(tfit, ncp$idx, ri$entries %||% list(), chart,
+                         hessian = laplace)
   } else if ((!is.null(ri) && length(ri$entries)) || isTRUE(rp$mix_theta) ||
                length(chart) || prior_only) {
-    obj <- prior_augmented_obj(tfit, ri$entries %||% list(), chart)
+    obj <- prior_augmented_obj(tfit, ri$entries %||% list(), chart,
+                               hessian = laplace)
   } else if (isTRUE(rp$flat) && !isTRUE(.diagnostic) && !is.null(own)) {
     # the opt-out has something to SUBTRACT here: a MAP fit's own prior
     # is part of fit$obj, and "flat" on the user-facing argument means
     # the likelihood without it. Under `.diagnostic` it means the
     # weaker thing - no prior ADDED to the density the fit maximized -
     # which is fit$obj as it stands
-    obj <- prior_augmented_obj(fit, list())
+    obj <- prior_augmented_obj(fit, list(), hessian = laplace)
   } else if (length(simplex_frame_terms(fit)) || gev_chart) {
     # fit$obj reads a mo() simplex in the maximum-likelihood chart, which
     # has no density a sampler can use; the retape samples the softmax
@@ -3757,7 +3823,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
       sample_resolve_priors(fit, NULL, base = own,
                             defaults = FALSE)$ri$entries
     }
-    obj <- prior_augmented_obj(fit, own_entries %||% list())
+    obj <- prior_augmented_obj(fit, own_entries %||% list(), hessian = laplace)
   }
   # the sampled simplex coordinates are softmax ones exactly when the
   # objective was retaped (mo_sample_frame())
@@ -3935,6 +4001,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
 #' @noRd
 sample_finish <- function(a, fit, recipe, chart = NULL, gev = NULL) {
   laplace <- isTRUE(recipe$laplace)
+  a <- draws_in_template_order(a, fit)
   # laplace draws skip the inner components entirely; labeling them
   # with the full template order would misattribute theta as a random
   # effect. brms's names where brms has the parameter (b_, r_), the
@@ -3954,6 +4021,21 @@ sample_finish <- function(a, fit, recipe, chart = NULL, gev = NULL) {
   # brms reports an unmodeled distributional parameter as the parameter
   # itself: the `sigma` column holds sigma, not log sigma
   draws_to_natural(m, fit)
+}
+
+#' A stanfit's columns in the order of the frame's parameter list.
+#'
+#' `gp_tape_order()` tapes `b` first on a frame with an exact `gp()`, and
+#' the stanfit keeps the tape's order. Every reader of the draws matrix
+#' goes by the list's own order: `brms_par_labels()`, `draws_par_index()`.
+#' Sorted by segment, not by moving `b`, so `lp__` stays last.
+#'
+#' @noRd
+draws_in_template_order <- function(a, fit) {
+  tpl <- fit$frame[["par_template"]]
+  if (identical(names(gp_tape_order(fit$frame, tpl)), names(tpl))) return(a)
+  seg <- sub("[[].*", "", dimnames(a)[[3L]])
+  a[, , order(match(seg, names(tpl))), drop = FALSE]
 }
 
 #' The saved warmup of draws in the draws' coordinates, or `NULL` when

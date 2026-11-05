@@ -257,12 +257,13 @@ test_that("the ordinal effect standard errors include the thresholds", {
 test_that("conditional_effects() keeps the latent route and refuses draws", {
   dd <- ordfit_data(108, n = 150)
   fit <- frm(bf(y ~ x) + acat(), data = dd)
-  # naming the dpar opts back into the ordinary latent-scale display
+  # naming the dpar opts back into one curve, on brms's response scale: the
+  # family's link inverse of the predictor (dev/predread-cs-layout-brms.R)
   ce <- conditional_effects(fit, dpar = "mu", resolution = 10L)
   expect_false("cats__" %in% names(ce[["x"]]))
   expect_equal(ce[["x"]]$estimate__,
-               frm_linpred(fit, newdata = data.frame(x = ce[["x"]]$x),
-                       type = "link"),
+               stats::plogis(frm_linpred(
+                 fit, newdata = data.frame(x = ce[["x"]]$x), type = "link")),
                tolerance = 1e-10, ignore_attr = TRUE)
   # a prediction interval on a probability curve is not a thing
   expect_error(conditional_effects(fit, method = "predict"),

@@ -1,3 +1,16 @@
+# frmtmb.eam 0.13.1
+
+## Other changes
+
+* `frm_compat()` by `nl`: `wiener` and `wiener_gng` are "works",
+  measured at the linear maximum. `lba` and `rdm` are "refused":
+  `nl = TRUE` needs a family with a single `mu`, and `nlf(v2 ~ ...)` is
+  the route.
+
+* `frm_compat()`: `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` by `lba` and
+  `rdm` are "refused", as `frm()` and brms refuse them: these families have no
+  `mu`.
+
 # frmtmb.eam 0.13.0
 
 Needs frmtmb 0.72.0, which reads every addition term on `newdata` and

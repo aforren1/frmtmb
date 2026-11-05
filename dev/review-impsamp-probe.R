@@ -1,0 +1,22 @@
+source("C:/Users/adf44/source/r/frmtmb-wt-impsamp/dev/review-impsamp-common.R")
+set_libs("after")
+library(frmtmb)
+cat("frmtmb", as.character(packageVersion("frmtmb")), "from",
+    find.package("frmtmb"), "\n")
+print(args(frmtmb_control))
+ctl <- frmtmb_control()
+cat("grad_tol", ctl$grad_tol, "\n")
+set.seed(124)
+G <- 10; n <- 20
+dd <- data.frame(g = factor(rep(seq_len(G), each = n)), x = rnorm(G * n))
+u <- rnorm(G, 0, 0.8)
+dd$y <- rbinom(G * n, 10, plogis(0.1 + 0.5 * dd$x + u[dd$g]))
+fit <- frm(bf(y | trials(10) ~ x + (1 | g)), family = binomial(), data = dd,
+           importance = 200L)
+print(fit)
+str(fit$importance, max.level = 1)
+print(fit$opt$par)
+print(names(fit))
+print(fit$obj$fn(fit$opt$par))
+print(logLik(fit))
+print(fit$obj$gr(fit$opt$par))

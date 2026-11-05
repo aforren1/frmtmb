@@ -108,6 +108,7 @@ loo_epred.frmtmb_draws <- function(object, type = c("mean", "var",
                                                     "quantile"),
                                    probs = 0.5, psis_object = NULL,
                                    resp = NULL, ...) {
+  resp <- draws_resp_read(object, resp)
   type <- frm_match_arg(type)
   loo_draws_expect(object, posterior_epred, "loo_epred()", type, probs,
                    psis_object, resp, list(...),
@@ -121,6 +122,7 @@ loo_linpred.frmtmb_draws <- function(object, type = c("mean", "var",
                                                       "quantile"),
                                      probs = 0.5, psis_object = NULL,
                                      resp = NULL, ...) {
+  resp <- draws_resp_read(object, resp)
   type <- frm_match_arg(type)
   loo_draws_expect(object, posterior_linpred, "loo_linpred()", type,
                    probs, psis_object, resp, list(...),
@@ -134,6 +136,7 @@ loo_predict.frmtmb_draws <- function(object, type = c("mean", "var",
                                                       "quantile"),
                                      probs = 0.5, psis_object = NULL,
                                      resp = NULL, ...) {
+  resp <- draws_resp_read(object, resp)
   type <- frm_match_arg(type)
   loo_draws_expect(object, posterior_predict, "loo_predict()", type,
                    probs, psis_object, resp, list(...),
@@ -444,6 +447,7 @@ loo_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
                                 robust = FALSE, probs = c(0.025, 0.975),
                                 seed = NULL, args_epred = list(),
                                 args_loglik = list(), ...) {
+  resp <- draws_resp_read(object, resp)
   check_flag(summary, "summary")
   check_flag(robust, "robust")
   if (!is.list(args_epred) || !is.list(args_loglik)) {

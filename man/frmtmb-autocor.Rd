@@ -136,11 +136,8 @@ brms counts it: a group that skips a time point treats the next
 row as one step later. The covariance form counts levels instead
 (see below).
 \item Families: \code{gaussian()} and \code{student()}, the two families brms
-gives a residual \code{y - mu}. A predicted \code{nu ~ ...} works. For other
-families brms refuses an MA part ("Please set cov = TRUE when
-modeling MA structures for this family") and fits latent residuals
-for an AR part; both are refused here, and the refusal names the
-random-effect spelling of a latent autoregressive process. With a
+gives a residual \code{y - mu}. A predicted \code{nu ~ ...} works. Every other
+family has the model of "Latent residuals" instead. With a
 non-identity link the term is added to \code{mu} on the response
 scale, after the inverse link, as brms's Stan code adds it.
 \item It combines with \code{weights()}, \code{cens()}, \code{trunc()}, \code{mi()} on
@@ -221,15 +218,12 @@ the fitted rows.
 
 \section{Families}{
 
-This section and the two after it describe the covariance form.
-\code{gaussian()} and \code{student()} only - the two families with a real
-residual, and exactly the two brms treats this way (\code{student()} gets
+This section and the two after it describe the covariance form on
+\code{gaussian()} and \code{student()}, the two families with a residual
+\code{y - mu}, and exactly the two brms treats this way. \code{student()} gets
 the multivariate-t analog, with one \code{nu} per group, so a predicted
-\code{nu ~ ...} is refused). brms accepts the same spelling for other
-families but fits a different model there: a latent Gaussian AR
-process added to the linear predictor. That model has a spelling of
-its own here - a random effect over the time factor, \code{+ ar1(factor(week) + 0 | subj)}, or \code{toep()} / \code{us()} for a freer lag
-structure - and the refusal names it.
+\code{nu ~ ...} is refused. Every other family has the model of "Latent
+residuals".
 }
 
 \section{Time points, gaps and ragged groups}{
@@ -265,6 +259,204 @@ effects ARE allowed and are the point of the feature: the marginal
 likelihood is a Laplace approximation over the modes with the
 correlated residual density inside, which reproduces
 \code{nlme::lme(random = ~ 1 | subj, correlation = corAR1())}.
+}
+
+\section{Latent residuals}{
+
+On a family with no residual \code{y - mu}, these terms add a latent residual
+to the linear predictor of \code{mu}, one per row, as brms 2.23.0 does:
+\deqn{\eta_i = \dots + err_i.}
+\code{sderr} is the standard deviation of the latent residuals, with brms's
+prior class \code{"sderr"}. The terms give \code{err} its law:
+\describe{
+\item{\code{ar()}, \code{ma()}, \code{arma()} with \code{cov = TRUE}}{Order one only. Each
+group is one draw of the stationary process, and \code{sderr} is the sd of
+its innovations, as \code{sigma} is on \code{gaussian()}. brms refuses a higher
+order, and so does \code{\link[=frm]{frm()}}.}
+\item{\code{ar()} with \code{cov = FALSE}}{Any order. The latents \code{z} are
+independent, and \eqn{err_i = sderr (z_i + \sum_j ar_j z_{i-j})}{err_i
+    = sderr (z_i + sum_j ar_j z_(i-j))}. Each \code{ar[j]} is in (-1, 1). This is
+a moving average of the latents, by brms's own program. On a family
+whose density brms writes on the response scale (\code{Gamma()}, \code{Beta()}, a
+non-canonical link, a \code{cens()} or \code{trunc()} response), brms adds the sum
+to \code{mu} after the inverse link, and only \code{frm_sample()} fits it; see
+"Where the Laplace approximation fails". \code{ma()} and \code{arma()} are refused,
+in brms's words, because AR and MA structures cannot be distinguished on
+one vector of latents.}
+\item{\code{cosy()}, \code{unstr()}}{\code{sderr} is the marginal sd. \code{cosy} is in
+(0, 1), as brms bounds it. \code{unstr()} reads the time levels of each
+row.}
+}
+\code{fcor()} and \code{sar()} are refused, in brms's words, and so are the
+multi-category families and the mixtures, where the term would not sit on
+\code{mu}, and a nonlinear \code{mu}. A nonlinear \code{shape} or \code{zi} beside a linear \code{mu}
+fits, as brms builds it. The lag counts rows of a group, as in brms, and not
+time levels as under the covariance form on \code{gaussian()}. If every group has
+one row, \code{\link[=frm]{frm()}} refuses the term: brms builds it, but the correlation is not
+seen in the data, so its chains walk a ridge.
+
+The latents are integrated by the Laplace approximation, on sparse
+coordinates that leave the approximation unchanged, so a long series costs
+a banded inner Hessian and not a dense one. They are not random effects
+of a group: \code{\link[=ranef]{ranef()}} and \code{\link[=VarCorr]{VarCorr()}} do not list them, and \code{re_formula = NA} keeps them, as brms keeps \code{err}. \code{\link[=summary]{summary()}} and \code{\link[=confint_varcorr]{confint_varcorr()}}
+report \code{sderr} and the coefficients, and \code{\link[=variables]{variables()}} names them as brms
+does. Under \code{frm_sample()} the draws of the latents are named
+\code{latent_state[k]}. These are the chain's own states and not \code{err}: \code{ma()},
+\code{arma()} and \code{cosy()} have one extra state per group, so 60 rows in 12 groups
+have 72 states.
+
+After the fit, \code{\link[=fitted]{fitted()}}, \code{\link[=frm_linpred]{frm_linpred()}}, \code{\link[=residuals]{residuals()}}, \code{\link[=predict]{predict()}} and
+\code{\link[=simulate]{simulate()}} read the conditional mode of \code{err} on the fitted rows. On new
+rows, under \code{cov = TRUE}:
+\itemize{
+\item \code{\link[=predict]{predict()}} and \code{\link[=simulate]{simulate()}} draw new latents per group of the new
+data, as brms does, at the estimates of \code{sderr} and the coefficients.
+\item \code{\link[=fitted]{fitted()}} is the mean over the latent, as brms's
+\code{posterior_epred()} is, by Gauss-Hermite quadrature at each row's
+marginal sd. With a log link and a marginal sd of 1.15 this is 1.95 times
+the value at \code{err = 0}. \code{marginaleffects} reads the same mean. Its delta
+method moves \code{beta} and holds \code{sderr} and the coefficients at their
+estimates, so its standard error leaves the latent's draw out, as on
+any fit with a group-level term: \code{predictions()} conditions on what
+\code{get_coef()} does not hold. \code{Est.Error} of \code{\link[=fitted]{fitted()}} holds the draw
+beside the coefficients', as on a new \code{me()} row, and its \code{Q} columns
+read that draw: on poisson \code{Est.Error} 0.133 became the draws' 1.005.
+\item \code{\link[=frm_linpred]{frm_linpred()}} stays at \code{err = 0}, because it is the predictor.
+}
+Under \code{cov = FALSE} new rows are refused, in brms's words.
+\code{\link[=conditional_effects]{conditional_effects()}} and \code{emmeans()} drop the term, as brms's do.
+
+Past \code{getOption("frmtmb.latres_dense_rows", 20000L)} rows, a standard error
+that reads the whole joint covariance is refused, with its size in the
+message, because it is \verb{16 n^2} bytes: \code{\link[=frm_curve]{frm_curve()}}, \code{\link[=frm_lp_basis]{frm_lp_basis()}} and
+\code{\link[=conditional_effects]{conditional_effects()}} read it.
+
+A standard error of a fitted row solves the whole joint precision as a dense
+matrix: 6 to 12 s at 2000 rows, 80 s at 4000, 984 s at 8000. Above 3000 rows
+\code{\link[=fitted]{fitted()}}, \code{\link[=residuals]{residuals()}} and \code{frm_linpred(se.fit = TRUE)} with \code{newdata = NULL} give \code{NA} for it with a message of class \code{frmtmb_latres_se_skipped}.
+\code{options(frmtmb.latres_se_rows = )} moves the limit. Rows in \code{newdata},
+\code{\link[=frm_curve]{frm_curve()}} and \code{\link[=conditional_effects]{conditional_effects()}} keep their standard errors. Beside
+another group-level block, \code{\link[=fitted]{fitted()}} on new rows reads the joint covariance
+up to \code{frmtmb.latres_dense_rows} rows, and above that reads \code{NA} with a message.
+
+A coefficient near an end of its range, or an \code{sderr} near 0 against the
+response's scale, is at a limit only if the fit's numbers say that end is not
+determined: the standard error of log \code{sderr} is above 1, or the row's own is
+not finite. \code{ar[1]} at 0.9992 on 2000 rows has a small standard error, and
+reports it. At a limit the fit says so with a message of class
+\code{frmtmb_boundary_fit}, \code{\link[=summary]{summary()}} gives \code{NA} for \code{Est.Error} and the
+interval, and \code{\link[=diagnose]{diagnose()}} lists the limit. At \code{ar[1] = 1} with \code{sderr = 0}
+the data read as \code{cosy()} or \code{(1 | group)}, and only the marginal sd is
+known. At \code{ar[1] = -1} they read as one size per group whose sign alternates
+by row, which \code{(1 | group)} does not fit. When \code{ar[1]} and \code{ma[1]} cancel,
+the data show no correlation and neither coefficient is known.
+
+One decision that differs from brms 2.23.0, under \code{cov = FALSE} only: brms's
+\code{posterior_epred()}, \code{log_lik()} and \code{predict()} read \code{err} and leave out the
+AR sum of its own Stan program, so their row densities do not add up to the
+model. Summed over the rows, brms's \code{log_lik()} misses the program's
+\code{log_prob} by -6.78 nats on poisson and -113.48 on Gamma(log). The methods
+here read the model, whose row densities add up to \code{log_prob}. At \code{ar} 0.6
+and \code{sderr} 0.5, the two means differ by up to a factor of 1.62 on poisson
+and 5.18 on Gamma(log).
+}
+
+\section{Where the Laplace approximation fails}{
+
+The inner problem of a latent residual reads what one row tells its latent.
+The share of a row is \eqn{d v / (1 + d v)}{d v / (1 + d v)}, with \code{d} the
+curvature of the row's log density in its linear predictor and \code{v} the
+latent's variance. It has no units. Where it is small, or where a dispersion
+trades off against the latent, the approximation is biased. Median over 40
+data sets, against the exact maximum likelihood estimate by forward
+recursion:\tabular{llll}{
+   Design \tab Share \tab \code{sderr} \tab Exact \cr
+   bernoulli, 20 groups of 10 \tab 0.11 \tab 0.46 \tab 1.71 \cr
+   cumulative, 5 categories \tab 0.13 \tab 0.43 \tab 0.73 \cr
+   poisson, mean about 0.25 \tab 0.11 \tab 0.55 \tab 0.33 \cr
+   binomial, 3 trials \tab 0.34 \tab 0.67 \tab 0.81 \cr
+   \code{Beta()}, phi 4 \tab 0.18 \tab 0.26 \tab 0.42 \cr
+   \code{beta_binomial()}, 10 trials, phi 10 \tab 0.16 \tab 0.26 \tab 0.65 \cr
+   \code{zero_one_inflated_beta()}, phi 10 \tab 0.24 \tab 0.28 \tab 0.59 \cr
+   negbinomial, mean 1, shape 2 \tab 0.19 \tab 0.46 \tab 0.57 \cr
+   negbinomial, mean 5, shape 2 \tab 0.28 \tab 0.43 \tab 0.55 \cr
+   \code{Gamma(link = "log")}, shape 5, \code{sderr} 0.05 \tab 0.12 \tab 0.12 \tab 0.05 \cr
+   binomial, 5 trials \tab 0.49 \tab 0.74 \tab 0.80 \cr
+   poisson, mean about 1, \code{sderr} 0.5 \tab 0.25 \tab 0.47 \tab 0.44 \cr
+   negbinomial, mean 20, shape 4 \tab 0.48 \tab 0.47 \tab 0.52 \cr
+   \code{Gamma()}, shape 50 \tab 0.66 \tab 0.31 \tab 0.31 \cr
+   \code{poisson("identity")}, mean 50 \tab 0.27 \tab 3.79 \tab 3.73 \cr
+   lognormal, sigma 2, where Laplace is exact \tab 0.28 \tab 0.95 \tab 0.95 \cr
+}
+
+
+\code{\link[=frm]{frm()}} warns, with class \code{frmtmb_latres_laplace}, when the rows are ordinal,
+whose error is not local, or when the first-order Laplace correction moves log
+\code{sderr} or \code{ar[1]} by more than 0.15, or cannot be read. The correction is
+\verb{C = -1/8 sum(h4 v^2) + 1/8 sum(h3 h3 v v v) + 1/12 sum(h3 h3 v^3)}, with \code{h3}
+and \code{h4} the third and fourth derivatives of a row's negative log density in
+its predictor and \code{v} the covariance of the latents at the mode. The exact value
+is about Laplace plus \code{C}: the median error falls from 0.340 to 0.012 on designs
+the rule was not read on, and the fit moved by that correction falls from a
+median of 0.106 to 0.010 in log \code{sderr}. Over 84 designs and 3130 fits, with a
+fit wrong when \code{sderr} is off the exact estimate by more than a factor of 1.25
+or \code{ar} by more than 0.3:\tabular{llll}{
+   Set of designs \tab Rule \tab Warns on a wrong fit \tab Warns on a right fit \cr
+   designs no side had seen \tab this rule \tab 0.816 \tab 0.169 \cr
+   designs the rule was read on \tab this rule \tab 0.960 \tab 0.147 \cr
+   all \tab this rule \tab 0.865 \tab 0.157 \cr
+}
+
+
+Above \code{frmtmb.latres_se_rows} rows, where the correction's dense \code{v} is the
+cost that limit avoids, the warning goes by the share above instead. It reads
+the rows' share of the latent, a row's trials and the dispersion's trade-off.
+\code{suppressWarnings(expr, classes = "frmtmb_latres_laplace")} silences it, and
+\code{check_se} does not reach it. \code{frmtmb.sample::frm_sample()} samples the same
+model and agrees
+with brms. A silent skew_normal() is right to be silent: at a coverage of 0.725,
+the exact estimate with this fit's standard error covers at 0.725 too, so the
+fault is the Wald interval and not the approximation.
+
+\code{\link[=frm]{frm()}} refuses \code{cov = FALSE} after the inverse link before the fit, with its
+reason: no number from a fit says whether it reads true. \code{frm_sample()}
+samples it. On benign designs, 25 groups of 6, 20 data sets each:\tabular{lllllll}{
+   \code{ar()} on \tab Margin \tab \code{sderr} \tab Exact \tab \code{ar[1]} \tab Exact \tab Read true \cr
+   \code{Gamma("log")}, mean 20 \tab 23.6 \tab 0.41 \tab 0.50 \tab -0.86 \tab 0.47 \tab 2 \cr
+   \code{inverse.gaussian("log")} \tab 33.7 \tab 0.28 \tab 0.40 \tab -0.55 \tab 0.52 \tab 3 \cr
+   \code{weibull()} \tab 27.4 \tab 0.35 \tab 0.40 \tab -1.00 \tab -0.04 \tab 6 \cr
+   \code{exponential()} \tab 52.2 \tab 0.29 \tab 0.25 \tab -0.55 \tab 0.37 \tab 13 \cr
+   \code{poisson("sqrt")}, mean 49 \tab 72.5 \tab 0.50 \tab 0.50 \tab -0.34 \tab 0.40 \tab 14 \cr
+   \code{Beta()}, phi 50 \tab 6.6 \tab 0.11 \tab 0.12 \tab 0.49 \tab 0.48 \tab 16 \cr
+}
+
+
+\code{beta_binomial()} at 10 trials and phi 10 stops at a nonzero code on 20 of
+20, with a gap of 9.0 nats to the exact value, and \code{zero_one_inflated_beta()}
+at phi 10 reads \code{sderr} 0.28 for 0.38 with code 0.
+
+On a link that does not hold the mean under \code{cov = TRUE} (identity, inverse,
+\code{1/mu^2}), the margin is the smallest distance of \code{eta} from the link's edge,
+in marginal sds of the latent. \code{\link[=frm]{frm()}} refuses after the fit below a margin
+of 2. On 680 fits against the exact marginal:\tabular{lllll}{
+   Margin \tab Fits \tab Read true \tab Coverage of log \code{sderr} \tab A start reads NaN \cr
+   below 1 \tab 62 \tab 0.00 \tab 0.00 \tab 0.89 \cr
+   1 to 2 \tab 88 \tab 0.16 \tab 0.13 \tab 0.09 \cr
+   2 to 3 \tab 82 \tab 0.50 \tab 0.61 \tab 0 \cr
+   3 to 5 \tab 182 \tab 0.62 \tab 0.81 \tab 0 \cr
+   5 and above \tab 266 \tab 0.55 \tab 0.98 \tab 0 \cr
+}
+
+
+A dispersion the rows do not ask for can run off beside a latent per row, and
+past a log of about 25 the objective is rounding: logLik read +6.5e17 on
+\code{beta_binomial()}. A constant dispersion is held at a log of 15, where the
+value agrees with the fit without the box to 1e-3, and a dispersion with a
+predictor reads \code{NaN} above 25. A fit at the box warns with class
+\code{frmtmb_latres_dispersion}.
+
+\code{\link[=frm]{frm()}} also refuses \code{mi()} on the response beside a latent residual, whose
+approximation has not been measured.
 }
 
 \section{Where the parameters appear}{
@@ -326,6 +518,14 @@ there too. brms 2.23.0 fits \code{se()} beside a \code{cov = TRUE} term, adding
 \eqn{se_i^2}{se_i^2} to the diagonal of each group's covariance
 (\code{normal_time_hom_se_lpdf()} and its relatives); frmtmb refuses that
 combination.
+
+On a nonlinear body with \code{cov = FALSE}, brms 2.23.0's post-processing does
+not follow its own model. Its Stan program carries the ARMA term in \code{mu},
+but \code{predictor.bprepnl()} has no \code{predictor_ac()}, so its \code{posterior_epred()}
+is the body alone and its \code{log_lik()} is the density at an ARMA coefficient
+of 0: on one model with a real AR part, -185.87 against -150.99 from its own
+\code{log_prob()}. \code{fitted()}, \code{predict()} and \code{logLik()} here follow the model,
+as they do for a linear \code{mu}, where brms and frmtmb agree.
 }
 
 \examples{
@@ -356,6 +556,11 @@ frm(bf(y ~ x + unstr(week, subj)) + gaussian(), data = d)
 # a random intercept alongside the correlated residual is allowed
 frm(bf(y ~ x + (1 | subj) + ar(week, subj, cov = TRUE)) + gaussian(),
     data = d)
+
+# a family with no residual: brms's latent residual, with its SD sderr
+d$cnt <- rpois(150, exp(0.5 + 0.3 * d$x + e))
+summary(frm(bf(cnt ~ x + ar(week, subj, cov = TRUE)), family = poisson(),
+            data = d))
 }
 \seealso{
 \code{\link[=autocor_matrix]{autocor_matrix()}} for the fitted correlation matrix,

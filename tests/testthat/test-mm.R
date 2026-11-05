@@ -461,7 +461,6 @@ test_that("mm() refuses the arguments it does not implement", {
                           dry_run = "frame")
   expect_error(f(y ~ (1 | mm(g1))), "at least two membership")
   expect_error(f(y ~ (1 | mm(factor(g1), g2))), "bare column name")
-  expect_error(f(y ~ (1 | mm(g1, g2, id = "q"))), "is not supported")
   # cor = is read in a plain bar term (test-double-bar.R), not inside
   # a structure, where it would say what the structure already says
   expect_error(f(y ~ diag(1 | mm(g1, g2, cor = FALSE))),
@@ -481,9 +480,8 @@ test_that("mm() refuses structures the weighted design cannot carry", {
   expect_error(f(y ~ ar1(0 + fc | mm(g1, g2))),
                "default \\(us\\) and diag structures only")
   expect_error(f(y ~ (1 | gr(mm(g1, g2), cov = A))),
-               "relationship matrix indexes one level")
-  expect_error(f(y ~ (1 | q | mm(g1, g2)) + (0 + x | q | mm(g1, g2))),
-               "cannot share an \\|ID\\| key")
+               "write \\(x \\| mm\\(g1, g2, cov = A\\)\\)")
+  expect_error(f(y ~ diag(1 | mm(g1, g2, id = "q"))), "is not supported")
 })
 
 test_that("mmc() is refused wherever it has no member to index", {
@@ -565,9 +563,14 @@ test_that("mm blocks are declared in the compatibility registry", {
   hit <- pairs[pairs$feature_a == "mm()" | pairs$feature_b == "mm()", ]
   expect_gt(nrow(hit), 0L)
   # the refusals the parser really raises must be declared as refusals
-  refused <- c("gr_cov", "gr_prec", "|ID|", "ar1", "cs")
+  refused <- c("gr_prec", "ar1", "cs")
   for (f2 in refused) {
     row <- hit[hit$feature_a == f2 | hit$feature_b == f2, ]
     expect_identical(row$status, "refused")
+  }
+  # and the two brms builds, by the rows the parser now keeps
+  for (f2 in c("gr_cov", "|ID|")) {
+    row <- hit[hit$feature_a == f2 | hit$feature_b == f2, ]
+    expect_identical(row$status, "works")
   }
 })

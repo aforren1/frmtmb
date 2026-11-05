@@ -94,7 +94,8 @@ test_that("predictions(re_formula =) reaches the prediction", {
   # with no way for a package to add its own, so it warns and passes the
   # argument on
   w <- "not known to be supported"
-  p0 <- marginaleffects::predictions(fit, newdata = nd)
+  p0 <- allow_warnings(marginaleffects::predictions(fit, newdata = nd),
+                       mfx_se_part)
   pna <- allow_warnings(marginaleffects::predictions(fit, newdata = nd,
                                                      re_formula = NA),
                         w, require = w)
@@ -103,7 +104,7 @@ test_that("predictions(re_formula =) reaches the prediction", {
                         w, require = w)
   pg <- allow_warnings(marginaleffects::predictions(fit, newdata = nd,
                                                     re_formula = ~ (1 | g)),
-                       w, require = w)
+                       c(w, mfx_se_part), require = w)
   fna <- fitted(fit, newdata = nd, re_formula = NA)
   f0 <- fitted(fit, newdata = nd)
   expect_equal(pna$estimate, unname(fna[, "Estimate"]))
@@ -124,7 +125,8 @@ test_that("predictions() keeps newdata's rows with unused factor levels", {
   # them by their negative rowid, which get_predict() renumbered: 3 rows
   # of a factor with 8 levels gave 11 predictions
   nd <- data.frame(z = c(-1, 0, 1), g = factor(1:3, levels = 1:8))
-  p <- marginaleffects::predictions(fit, newdata = nd)
+  p <- allow_warnings(marginaleffects::predictions(fit, newdata = nd),
+                      mfx_se_part)
   expect_identical(nrow(p), 3L)
   expect_equal(p$estimate, unname(fitted(fit, newdata = nd)[, "Estimate"]))
 })
@@ -212,7 +214,8 @@ test_that("a cluster sandwich is finite on a fit with a variance at 0", {
   V <- marginaleffects::get_vcov(fit, vcov = ~ g)
   expect_true(all(is.finite(V)))
   # the sandwich, not the default: 0.76.0 ignored vcov =
-  expect_false(isTRUE(all.equal(V, marginaleffects::get_vcov(fit))))
+  V0 <- allow_warnings(marginaleffects::get_vcov(fit), mfx_se_part)
+  expect_false(isTRUE(all.equal(V, V0)))
   # vcov_cluster() itself: NaN only in the lost row (every entry before)
   Vc <- vcov_cluster(fit, ~ g, "CR1")
   expect_true(all(is.finite(Vc)))
@@ -280,5 +283,6 @@ test_that("the gap warning counts the predictions asked for", {
   w <- "1 of 4 predictions read a mo() category"
   allow_warnings(marginaleffects::predictions(
     fit, newdata = data.frame(x = c(1, 2, 3, 5), z = 0,
-                              g = factor(1, levels = 1:20))), w, require = w)
+                              g = factor(1, levels = 1:20))),
+    c(w, mfx_se_part), require = w)
 })

@@ -115,6 +115,7 @@ jobs:
           v <- as.character(packageVersion("rstan"))
           vb <- as.character(packageVersion("brms"))
           h <- tools::md5sum(c("tests/testthat/test-brms-likelihood.R",
+                               "tests/testthat/test-brms-lik-gp-exact.R",
                                "tests/testthat/helper-brms.R",
                                "tests/testthat/test-brms-methods.R",
                                "tests/testthat/helper-brms-methods.R"))
@@ -175,6 +176,36 @@ jobs:
           df <- as.data.frame(res)
           if (sum(df$failed) > 0 || any(df$error)) {
             stop("the brms log-density identity tier failed")
+          }
+          if (any(df$skipped)) {
+            stop("a test skipped with the gate set: ",
+                 paste(df$test[df$skipped], collapse = "; "))
+          }
+        shell: Rscript {0}
+      - name: Run the exact gp() identity on unsorted positions
+        # its own step and process, as the two tiers around it, for the
+        # reason below; on any outcome of the log-density tier, because a
+        # translator fault shows in both
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: |
+          stopifnot(
+            requireNamespace("rstan", quietly = TRUE),
+            requireNamespace("brms", quietly = TRUE),
+            identical(Sys.getenv("FRMTMB_BRMS_FIT_TESTS"), "true"),
+            identical(Sys.getenv("NOT_CRAN"), "true")
+          )
+          pkgload::load_all(".", quiet = TRUE)
+          res <- testthat::test_file(
+            "tests/testthat/test-brms-lik-gp-exact.R",
+            package = "frmtmb",
+            reporter = testthat::MultiReporter$new(list(
+              testthat::ProgressReporter$new(),
+              testthat::CheckReporter$new()
+            ))
+          )
+          df <- as.data.frame(res)
+          if (sum(df$failed) > 0 || any(df$error)) {
+            stop("the exact gp() identity failed")
           }
           if (any(df$skipped)) {
             stop("a test skipped with the gate set: ",

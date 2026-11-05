@@ -1,0 +1,14 @@
+latres review-latres-tk.R m1b zip_hi 3001 3040 C:/Users/adf44/source/r/frmtmb-wt-rel079/dev/rel079-log/rr/latres/tk/m1b-zip_hi.tsv
+latres review-latres-tk.R m1b zip_lo 3001 3040 C:/Users/adf44/source/r/frmtmb-wt-rel079/dev/rel079-log/rr/latres/tk/m1b-zip_lo.tsv
+latres review-latres-tk.R m1b nb_m20 3001 3040 C:/Users/adf44/source/r/frmtmb-wt-rel079/dev/rel079-log/rr/latres/tk/m1b-nb_m20.tsv
+latres review-latres-tk.R m1b binom4 3001 3040 C:/Users/adf44/source/r/frmtmb-wt-rel079/dev/rel079-log/rr/latres/tk/m1b-binom4.tsv
+latres review-latres-tk.R m1b ln_s05 3001 3040 C:/Users/adf44/source/r/frmtmb-wt-rel079/dev/rel079-log/rr/latres/tk/m1b-ln_s05.tsv
+latres review-latres-tk.R m1b sn_u10 3001 3040 C:/Users/adf44/source/r/frmtmb-wt-rel079/dev/rel079-log/rr/latres/tk/m1b-sn_u10.tsv
+latres review-latres-tk.R m4b gid_s5 2001 2040 C:/Users/adf44/source/r/frmtmb-wt-rel079/dev/rel079-log/rr/latres/tk/m4b-gid_s5.tsv
+latres review-latres-tk.R m4b pid_20 2001 2040 C:/Users/adf44/source/r/frmtmb-wt-rel079/dev/rel079-log/rr/latres/tk/m4b-pid_20.tsv
+latres review-latres-tk.R m4b glog_c 2001 2040 C:/Users/adf44/source/r/frmtmb-wt-rel079/dev/rel079-log/rr/latres/tk/m4b-glog_c.tsv
+latres review-latres-tk.R m4b glog_w 2001 2040 C:/Users/adf44/source/r/frmtmb-wt-rel079/dev/rel079-log/rr/latres/tk/m4b-glog_w.tsv
+latres review-latres-tk.R m4b blog_w 2001 2040 C:/Users/adf44/source/r/frmtmb-wt-rel079/dev/rel079-log/rr/latres/tk/m4b-blog_w.tsv
+latres review-latres-tk.R m4b ginv_l 2001 2040 C:/Users/adf44/source/r/frmtmb-wt-rel079/dev/rel079-log/rr/latres/tk/m4b-ginv_l.tsv
+latres review-latres-tk.R m4b zoib_T 2001 2040 C:/Users/adf44/source/r/frmtmb-wt-rel079/dev/rel079-log/rr/latres/tk/m4b-zoib_T.tsv
+gpgap review-gpgap-ncgpfloor.R

@@ -597,7 +597,8 @@ ln_family <- function(nm, subject_expr, trial_expr, dpars, links, primary,
                       constants = list(), refusals = list(),
                       sim_refusal = NULL, saturated = TRUE,
                       valid_y = NULL, finalize = NULL,
-                      counterfactual = NULL, session_expr = NULL) {
+                      counterfactual = NULL, session_expr = NULL,
+                      type = "discrete") {
   # NULL derives the guard from the terms the family already names, and
   # FALSE is the explicit opt-out that no family in this package takes.
   # Anything else is refused here, at construction. See
@@ -613,7 +614,7 @@ ln_family <- function(nm, subject_expr, trial_expr, dpars, links, primary,
     dpars = dpars,
     links = links,
     primary_dpars = primary,
-    type = "discrete",
+    type = type,
     required_aterms = aterms,
     # The likelihood factorizes over trials but is not ROWWISE: a
     # trial's factor reads the whole history of its subject, which this

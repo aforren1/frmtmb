@@ -133,8 +133,9 @@ test_that("marginaleffects works through the extension generics", {
 
   # variables= keeps marginaleffects off the grouping factor (it has no
   # way to know g is a random-effect group for an external class)
-  sl_f <- marginaleffects::avg_slopes(fit, newdata = dd,
-                                      variables = c("x", "f"))
+  sl_f <- allow_warnings(marginaleffects::avg_slopes(fit, newdata = dd,
+                                                     variables = c("x", "f")),
+                         mfx_se_part)
   sl_g <- suppressWarnings(
     marginaleffects::avg_slopes(ref, newdata = dd,
                                 variables = c("x", "f"))
@@ -143,7 +144,8 @@ test_that("marginaleffects works through the extension generics", {
   expect_vector_equal(sl_f$estimate[of], sl_g$estimate[og], tol = 1e-4)
   expect_vector_equal(sl_f$std.error[of], sl_g$std.error[og], tol = 1e-3)
 
-  cm_f <- marginaleffects::avg_comparisons(fit, newdata = dd,
-                                           variables = "f")
+  cm_f <- allow_warnings(marginaleffects::avg_comparisons(fit, newdata = dd,
+                                                          variables = "f"),
+                         mfx_se_part)
   expect_true(is.finite(cm_f$estimate))
 })

@@ -617,12 +617,12 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   }
   ci <- matrix(NA_real_, length(idx), 3,
                dimnames = list(nm[idx], c("lwr", "upr", "est")))
-  # An importance-corrected fit profiles its own FROZEN tape, whose
-  # proposal sits at the estimate; a bound far from there can come from
+  # An importance-corrected fit profiles its own tape, whose proposal is
+  # anchored at the estimate; a bound far from there can come from
   # a region the proposal no longer covers, and the effective sample
   # sizes the fit reports describe the anchor only. Rebuilt once for
   # the whole call, then read at each bound.
-  prop <- if (!is.null(object$importance)) imp_frozen_proposal(object)
+  prop <- if (!is.null(object$importance)) imp_fit_proposal(object)
   for (k in seq_along(idx)) {
     i <- idx[k]
     if (method == "profile") {
@@ -698,9 +698,14 @@ varcorr_trans_rows <- function(fit) {
     # linear map with no differencing
     nat <- cs_natural_rows(bk, t0)
     if (!is.null(nat)) {
+      gone <- if (identical(bk[["covstruct"]], "latres")) {
+        latres_block_limit(fit, bk, Vth)$na
+      }
       for (i in seq_along(nat[["term"]])) {
         add(nat[["term"]][i], nat[["type"]][i], nat[["est"]][i],
-            cs_natural_se(nat[["grad"]][i, ], Vth), bk)
+            if (isTRUE(gone[i])) NA_real_ else {
+              cs_natural_se(nat[["grad"]][i, ], Vth)
+            }, bk)
       }
       next
     }
@@ -1173,6 +1178,7 @@ fit_has_nlpars <- function(fit) {
 #'
 #' @noRd
 flat_par_display <- function(fit, nms) {
+  nms <- latres_par_text(fit, nms)
   sd_i <- tryCatch(log_sd_theta_index(fit), error = keep_missing(integer(0)))
   if (!length(sd_i)) return(nms)
   key <- paste0("theta_", as.integer(sd_i))
@@ -1216,9 +1222,10 @@ flat_par_note <- function(fit) {
 #' @noRd
 diagnose_singular <- function(fit, tol = 1e-4) {
   if (!length(fit$frame[["re_blocks"]])) return(NULL)
+  lat <- latres_singular_rows(fit)
   vc <- tryCatch(as.data.frame(varcorr_matrices(fit)),
                  error = keep_missing(NULL))
-  if (is.null(vc) || !nrow(vc)) return(NULL)
+  if (is.null(vc) || !nrow(vc)) return(lat)
   is_cor <- !is.na(vc$var2)
   bad <- ifelse(is_cor, abs(vc$sdcor) > 1 - tol, vc$sdcor < tol)
   bad[is.na(bad)] <- FALSE
@@ -1237,6 +1244,9 @@ diagnose_singular <- function(fit, tol = 1e-4) {
     out <- rbind(out, ex[!paste(ex$block, ex$term) %in%
                            paste(out$block, out$term), , drop = FALSE])
   }
+  # a latent block's rows are lat's, under its own names
+  if (NROW(lat)) out <- out[!out$block %in% lat$block, , drop = FALSE]
+  out <- rbind(out, lat)
   if (!nrow(out)) return(NULL)
   rownames(out) <- NULL
   out
@@ -1555,7 +1565,7 @@ diagnose <- function(fit, quiet = FALSE) {
           "likelihood was evaluated once\n", sep = "")
     } else {
       cat("Max |gradient|:", format(out$max_grad, digits = 4),
-          "at", out$worst_grad, "\n")
+          "at", latres_par_text(fit, out$worst_grad), "\n")
       if (is.null(gv)) {
         cat("  The importance correction makes this a Monte Carlo ",
             "gradient, which no convergence criterion applies to; read ",
@@ -1658,11 +1668,19 @@ diagnose <- function(fit, quiet = FALSE) {
           paste(paste0(out$singular$block, " ", out$singular$term,
                        " = ", format(out$singular$value, digits = 3)),
                 collapse = "; "),
-          "\n  A variance component is on the boundary of its ",
-          "parameter space. The fit is valid but the random-effect ",
-          "structure is more complex than the data support; drop the ",
-          "collapsed term or use diag() instead of a correlated ",
-          "block.\n", sep = "")
+          if (length(frame_latres(fit$frame))) {
+            paste0("\n  A variance component or a latent residual's ",
+                   "coefficient is at the limit of its range. The data ",
+                   "support less than the model has: drop the collapsed term, ",
+                   "or read ar -> 1 with sderr -> 0 as cosy() or (1 | group).",
+                   "\n")
+          } else {
+            paste0("\n  A variance component is on the boundary of its ",
+                   "parameter space. The fit is valid but the random-effect ",
+                   "structure is more complex than the data support; drop the ",
+                   "collapsed term or use diag() instead of a correlated ",
+                   "block.\n")
+          }, sep = "")
     }
     if (!is.null(out$separation)) {
       cat("Likely complete separation: ",
@@ -2405,7 +2423,7 @@ bform_call <- function(b) {
   cl <- as.call(c(list(quote(frmtmb::bf), b$formula), unname(b$pforms),
                   b$pfix))
   if (isTRUE(b$nl)) cl$nl <- TRUE
-  for (nm in c("center", "cmc")) {
+  for (nm in c("center", "cmc", "autocor")) {
     if (!is.null(b[[nm]])) cl[[nm]] <- b[[nm]]
   }
   if (!is.null(b$family)) cl$family <- family_call_of(b$family)
@@ -3247,6 +3265,10 @@ hyp_env_vals <- function(fit, vals, comp) {
   thac <- vals[comp == "thetaac"]
   for (ac in fit$frame[["autocor"]] %||% list()) {
     nat <- autocor_natural(thac[ac[["theta_idx"]]], ac)
+    for (j in seq_along(nat)) put(names(nat)[j], nat[j])
+  }
+  for (bk in frame_latres(fit$frame)) {
+    nat <- latres_variables(fit, bk, th[bk[["theta_idx"]]])
     for (j in seq_along(nat)) put(names(nat)[j], nat[j])
   }
 

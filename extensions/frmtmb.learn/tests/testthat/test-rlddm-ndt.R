@@ -348,3 +348,28 @@ test_that("a settled bound is kept when the family is finalized again", {
   expect_length(again[["aterm_data"]](drop$rt, list(ndt_group = key)),
                 1L)
 })
+
+test_that("rlddm() is a density, so tight response times are no alarm", {
+  # logLik +666.77 read "a probability mass is at most 1" when every learn
+  # family declared type = "discrete" (dev/review-nlfix-d11.R, seed 13003)
+  expect_identical(rlddm(subject = id, trial = trial)[["type"]], "continuous")
+  expect_identical(bandit2arm_delta(subject = id, trial = trial)[["type"]],
+                   "discrete")
+  set.seed(13003)
+  d <- data.frame(id = rep(1:6, each = 40), trial = rep(1:40, times = 6),
+                  rt = 0.4 + stats::rnorm(240, 0, 0.004),
+                  choice = stats::rbinom(240, 1, 0.5),
+                  pay1 = stats::rbinom(240, 1, 0.7),
+                  pay2 = stats::rbinom(240, 1, 0.3))
+  hit <- FALSE
+  fit <- withCallingHandlers(
+    frm(bf(rt | dec(choice) + reward(pay1, pay2) ~ 1, drift ~ 1, bs ~ 1, ndt ~ 1,
+           bias ~ 1),
+        family = rlddm(subject = id, trial = trial), data = d),
+    warning = function(w) {
+      if (inherits(w, "frmtmb_discrete_loglik")) hit <<- TRUE
+      invokeRestart("muffleWarning")
+    })
+  expect_false(hit)
+  expect_gt(as.numeric(logLik(fit)), 0)
+})

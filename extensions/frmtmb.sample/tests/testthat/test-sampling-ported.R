@@ -581,8 +581,9 @@ test_that("posterior_linpred stays on the mu predictor for an ordinal fit", {
   plt <- posterior_linpred(ds, newdata = nd, ndraws = 10,
                            transform = TRUE)
   expect_equal(dim(plt), c(10L, 3L))
-  # the ordinal mu link is the identity, so the two agree exactly
-  expect_vector_equal(as.vector(plt), as.vector(pl), tol = 1e-12)
+  # the family's link inverse of the shared predictor, as brms's
+  # posterior_linpred(transform = TRUE) gives it
+  expect_vector_equal(as.vector(plt), stats::plogis(as.vector(pl)), tol = 1e-12)
 
   # posterior_epred is the one that carries the category distribution,
   # as a draws x observations x categories array (brms's convention)

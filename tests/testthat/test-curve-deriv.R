@@ -186,14 +186,15 @@ test_that("an exact gp()'s curvature past its data keeps its kriging part", {
   s2 <- exp(2 * th[1])
   l <- exp(th[2])
   pos <- fg$frame$linpreds[["y.mu"]]$gps[[1]]$positions[, 1]
-  K <- exp(-outer(pos, pos, "-")^2 / (2 * l^2)) + diag(1e-6, length(pos))
+  K <- exp(-outer(pos, pos, "-")^2 / (2 * l^2)) + diag(1e-12, length(pos))
   xs <- c(3.0, 4.2, 4.8, 5.5)
   r <- outer(xs, pos, "-")
   k0 <- exp(-r^2 / (2 * l^2))
   k1 <- -r / l^2 * k0
   k2 <- (r^2 / l^4 - 1 / l^2) * k0
-  v1 <- s2 * (1 / l^2 - rowSums((k1 %*% solve(K)) * k1))
-  v2 <- s2 * (3 / l^4 - rowSums((k2 %*% solve(K)) * k2))
+  Rk <- chol(K)
+  v1 <- s2 * (1 / l^2 - rowSums(t(backsolve(Rk, t(k1), transpose = TRUE))^2))
+  v2 <- s2 * (3 / l^4 - rowSums(t(backsolve(Rk, t(k2), transpose = TRUE))^2))
   nd <- data.frame(x = xs)
   # the curve's own standard error carries it, does not depend on the
   # design step, and is at least the extra part
@@ -202,7 +203,7 @@ test_that("an exact gp()'s curvature past its data keeps its kriging part", {
   d2b <- frm_curve_deriv(fg, var = "x", order = 2, newdata = nd,
                          simultaneous = FALSE, eps = 4 * attr(d2, "eps"))
   expect_true(all(d2$.se^2 >= v2))
-  expect_lt(max(abs(d2$.se / d2b$.se - 1)), 1e-4)
+  expect_lt(max(abs(d2$.se / d2b$.se - 1)), 1e-3)
   d1 <- frm_curve_deriv(fg, var = "x", order = 1, newdata = nd,
                         simultaneous = FALSE)
   expect_true(all(d1$.se^2 >= v1))

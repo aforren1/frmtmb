@@ -1,3 +1,175 @@
+# frmtmb.sample 0.26.0
+
+Needs frmtmb 0.79.0. The exact `gp()` field is non-centered in core, so the
+sampler has nothing to transform. It reads the sampling-API exports
+`gp_tape_scope()`, `gp_tape_order()`, `gp_nugget_message()`, and the new
+readers of a `me()` draw and of a latent residual.
+
+## Breaking changes
+
+* An exact `gp()` is non-centered in core, as brms's `zgp`, at a nugget
+  of `1e-12 * sdgp^2`. So `frm_sample()` samples the tape `frm()` fits,
+  with the sampler's priors added, and has nothing to transform. The
+  block no longer has a factor for `reparameterize =`, and that argument
+  does not reach it: an exact field is non-centered with or without it.
+  The `b[i]` columns of its draws are z, over a farthest-first order of
+  the positions, where they were the field. `ranef()` and every
+  predictive method read the field through `expand_b()`, as before.
+
+* `frm_sample(fit)` starts at random where the fit's noise has reached
+  the nugget of an exact `gp()`, and says so. Chains started at that
+  mode stay pinned: at true `sigma` 1e-6, n 15, a median `sigma` of
+  1.83e-8 and Rhat 2.25. These chains do not converge at this noise
+  either: `sigma` read 24 and 394 times the truth on two seeds at n 15.
+  `laplace = TRUE` is the route here. `init = "last.par.best"` starts at
+  the mode. At ordinary noise the mode stays the start.
+
+* `frm_sample(laplace = TRUE)` on an exact `gp()` takes 3.2 to 3.5 times
+  0.78.0's wall clock at 300 positions, 531 to 570 s against 165 s. The
+  dense gradient causes this. Memory holds, 1.91 to 1.95 GB against 1.92
+  GB.
+
+* brms's class `"sds"` carries a smooth's default,
+  `student_t(3, 0, <scale>)`, and a smooth's prior on `frm_sample()`,
+  with `coef` the term as written. Class `"sd"` no longer reaches a
+  smooth, as in brms. The table lists the rows brms lists.
+
+* A missing value's draw is reported under brms's name, `Ymi_<resp>[k]`
+  (`Ymi[k]` with one response, `Yl_` under `mi(sd)`), on the response's
+  own scale. It was `miss_<k>`, on the sampler's chart: `miss_1` under
+  `Gamma` ranged from -3.05 to 3.01 where brms's `Ymi[1]` ranges from
+  0.04 to 15.3. The sampler's Jacobian does not change.
+
+* A new row of a `me()` term draws a new latent value per posterior draw
+  from `normal(x, sdx)`, per row, or per level under `me(gr = )`. It
+  does so in `posterior_epred()`, `posterior_linpred()` and
+  `posterior_predict()`, as brms 2.23.0 does. Before, they read `x`: on
+  a model with `sdx = 0.3`, the sd over draws of the expected value was
+  0.603 of brms's. The 95 percent interval was 0.634 wide against 1.036.
+  New data must hold `sdx`, and `corme` is not read, as in brms.
+
+* One `me()` call is one latent value per row and draw, across the
+  responses and dpars one method answers for. **This diverges from brms
+  2.23.0**, which draws one per predictor on new data, against its own
+  Stan program, which has one `Xme_1`: at the training rows the
+  residuals correlate at 0.734, one latent predicts 0.739 and brms's
+  replicates give -0.001.
+
+* `posterior_linpred()` with no `dpar` on an ordinal family with a
+  `cs()` term returns brms's layout, draws x rows x thresholds, with
+  every margin unnamed. Before, it returned the shared part, the
+  predictor at no threshold of the model. `dpar = "mu"` and
+  `transform = TRUE` read the shared part, as in brms.
+
+* `conditional_effects()` of a multivariate model gives one panel set
+  per response without `resp`, and takes several, each named
+  `<resp>.<resp>_<effect>`, as brms does. A name given twice is refused,
+  where brms repeats the panel. Before, it gave the first response alone
+  and failed on several.
+
+* A univariate model does not read `resp`, as in brms:
+  `posterior_epred()`, `posterior_linpred()`, `posterior_predict()`,
+  `fitted()`, `predict()`, `residuals()`, `log_lik()`, `logLik()`,
+  `bayes_R2()`, `loo_R2()` and the three `loo_*()` predictions give the
+  same answer for an empty vector. They give the same answer for a name
+  given twice, an unknown name, `NA` and a number. Before, some gave
+  internal errors.
+
+* `update(<draws>, prior = )` merges with the first call's prior, as
+  brms's `update()` does: a new row takes its slot and the other rows
+  stay. A prior with no rows keeps them. Before, the new prior replaced
+  the first call's: after an `update()` that added a sigma prior, `b_x`
+  moved from 9.93 to 2.09. There is one exception: an edited row of a
+  `default_prior()` table stays here, where brms loses it because the
+  row's `source` is still `"default"`: `b_x` reads 9.52 here and 2.00 in
+  brms.
+
+* `posterior_predict(newdata = )` answers under `ar()`, `ma()`,
+  `arma()`, `cosy()` and `unstr()` with `cov = TRUE`, through core's
+  route over `newdata`'s own groups and times. Before, it refused.
+  `log_lik(newdata = )` still refuses where brms answers; its message
+  now names `posterior_predict(newdata = )` as a route on these models,
+  and that is all that changes.
+
+* A new row with no `x` or `sdx` of a `me()` term reads `NA` in
+  `posterior_epred()`, `posterior_linpred()` and `posterior_predict()`,
+  with a warning of class `frmtmb_me_missing`. The other rows answer.
+
+* `conditional_effects()` of a `me(gr = )` model holds the group at
+  `NA`, as brms does. Panels are in brms's order, with the effects
+  outside and the responses inside.
+
+## New features
+
+* `bayes_R2()` and `loo_R2()` read an empty `resp` as every response.
+  Before, they stopped with an internal error.
+
+* `pp_mixture()` of a multivariate mixture reads the one response named,
+  with brms's refusal of none or several. Before, it refused every such
+  model, and read the first response when `resp` was `NULL`.
+
+## Bug fixes
+
+* `frm_sample()` on `nl = TRUE` with `cumulative()`, `sratio()`,
+  `cratio()`, `acat()` or `hurdle_cumulative()` samples the body.
+  Before, it sampled the thresholds alone without a word, as `frm()`
+  fitted them, and `posterior_epred()` on those draws stopped with a
+  refusal.
+
+* `frm_sample()` takes `bf(..., nl = TRUE, autocor = ~ term)`, which was
+  refused, and `nl = TRUE` on `categorical()`, `multinomial()`, the
+  simplex families and a `mixture()`, with one body in every location,
+  as brms.
+
+* The drawn route for an exact `gp()` needs long chains at low noise,
+  and the numbers are stated. At true sigma 1e-3, 15 rows, 4 chains of
+  12000 read sigma 5.9e-4, 1.05e-3, 2.3e-3 (Rhat 1.025, sdgp Rhat 1.07,
+  58 minutes). brms's chains read 5.2e-4, 1.03e-3, 2.4e-3 (1.031, 1.15,
+  53 minutes, 20000 iterations). Neither reaches Rhat 1.01 at those
+  lengths. `frm_sample(laplace = TRUE)` serves the outer parameters
+  only: it refuses `posterior_epred()`, `posterior_linpred()`,
+  `posterior_predict()`, `fitted()`, `predict()`, `log_lik()`, `loo()`
+  and `conditional_effects()`.
+
+## Other changes
+
+* `frm_sample()` samples `mi()` under every family core takes, and under
+  `asym_laplace()` and `mixture()` where `frm()` refuses a value another
+  density reads. From a `frm()` fit it holds the missing values the fit
+  left out of its objective, through core's new `mi_sampling()`.
+
+* `frm_sample(formula, laplace = TRUE)` takes the route of
+  `frm_sample(fit, laplace = TRUE)`: a missing value no density reads
+  leaves the objective. On an `exgaussian` with 200 rows and 60 missing
+  the formula read sigma 0.910 and beta 1.590. It now reads 0.360 and
+  2.132, the fit 0.355 and 2.146, and the observed rows, fully sampled,
+  0.359 and 2.139. A value a density reads with no mode to expand about
+  is refused on this route as on `frm()`.
+
+* `frm_sample()` samples core's latent residuals: `ar()`, `ma()`,
+  `arma()`, `cosy()` and `unstr()` on a family with no residual
+  `y - mu`. Its defaults are brms's: `student_t(3, 0, <scale>)` on
+  `sderr`, flat on `ar` and `ma` over (-1, 1) and on `cosy` over (0, 1),
+  and `lkj(1)` on `cortime`. On a poisson `ar(cov = TRUE)` with 150
+  rows, the posterior means of the intercept, slope, `ar[1]` and `sderr`
+  read 0.797, 0.478, 0.456 and 0.692. In brms they are 0.796, 0.476,
+  0.459 and 0.690. `variables()` lists `ar[1]` and `sderr`. The latents
+  are the columns `latent_state[k]`, where brms has `zerr[n]` and
+  `err[n]`. These are the chain's own states: `ma()`, `arma()` and
+  `cosy()` have one extra state per group, so there are 72 of them for
+  60 rows in 12 groups. They are not `err` on a chain with `sderr` other
+  than 1.
+
+* `frm_sample()` fits the forms of a latent residual that `frm()`
+  refuses: `cov = FALSE` after the inverse link, and a mean less than 2
+  marginal sds of the latent from the edge of an identity or inverse
+  link.
+
+* `posterior_epred()`, `log_lik()` and `posterior_predict()` read each
+  draw's latents on the fitted rows, and `posterior_predict()` and
+  `posterior_epred()` draw new latents on new rows under `cov = TRUE`.
+  Under `cov = FALSE` new rows are refused in brms's words.
+
 # frmtmb.sample 0.25.0
 
 Needs frmtmb 0.78.0. Its `set_prior()` takes the classes `meanme`,

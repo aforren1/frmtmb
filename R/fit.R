@@ -77,12 +77,32 @@
 #'   tells how the defaults are set; the entries you do not name in
 #'   `start` keep those defaults.
 #'
+#'   An exact `gp()` on a gaussian response with a constant `sigma` starts at
+#'   the maximum of the model's marginal, read from the best cell of six
+#'   length scales on a coarse grid. Another
+#'   family, a non-identity link, `sigma ~`, `ar()`, `mi()`, `me()` or `mo()`
+#'   starts at that marginal of the response on its link's scale, for `sdgp` and
+#'   the length scale. A nonlinear body, a mixture and `sigma ~ gp()` start at
+#'   the best of a few length scales read from the objective. A `theta` here
+#'   replaces all of this, and a `beta` or `betad` replaces only itself.
+#'
+#'   None of this can be certain. A marginal can have more than one maximum. On
+#'   744 rows of curves no test had seen, the fit stopped more than 0.001
+#'   short of the maximum on 1, the worst 0.56, with no warning, where 0.78.0
+#'   read 40 and 62 short on the two tables of 192. A fit from other
+#'   `start` values is how to check one that matters.
+#'
 #'   A component is read by NAME when its vector has names, so
 #'   `start = list(beta = c("(Intercept)" = 5000))` moves that one
 #'   coefficient and leaves the rest at their defaults; parentheses may
 #'   be dropped, as everywhere a parameter is named. A vector with no
 #'   names is positional and must be full length. Naming some entries
 #'   of one vector and not others is refused.
+#'
+#'   A nonlinear body can have more than one maximum, and nothing in a fit
+#'   marks a second one. A `start` with other signs, or a located prior, can
+#'   show it, and [frm_allfit()] cannot, as it starts every optimizer from one
+#'   point.
 #' @param control A list from [frmtmb_control()].
 #' @param se If `TRUE`, run [RTMB::sdreport()] at fit time. The default
 #'   (`FALSE`) defers it until standard errors are first needed
@@ -227,10 +247,28 @@
 #'   caveats worth knowing. The reported estimate is the optimum of the
 #'   previous round's proposal, so the covariance is a Hessian at a
 #'   point that is stationary only to `fit$importance$grad`. And
-#'   `confint(method = "profile")` walks the FROZEN proposal instead of
-#'   refitting, so it warns when a bound lands where the weights no
-#'   longer cover the integrand. The seed, the round cap and the
-#'   effective-sample-size threshold are [frmtmb_control()] settings.
+#'   `confint(method = "profile")` walks one tape instead of refitting:
+#'   its proposal follows the parameters to first order around the
+#'   estimate, so it warns when a bound lands where the weights no
+#'   longer cover the integrand.
+#'
+#'   The Monte Carlo standard error can read high or low. On a binomial
+#'   model at 200 draws it reads 0.0044 where the error's standard
+#'   deviation is 0.0017. On a Student response with `nu = 5`, 15 groups
+#'   of 6 and 1000 draws, the error's standard deviation is 1.3 to 1.4
+#'   times the number, a nominal 95 percent interval covers 0.86, and no
+#'   warning fires. To judge two corrected fits, refit with another
+#'   `importance_seed` or with twice the draws and read how far the
+#'   log-likelihood moves.
+#'
+#'   A count that is too small for the model stops the fit. The message
+#'   gives the worst group's effective sample size and either a larger
+#'   count at which the same fit settled or the counts it tried. That
+#'   search can take several times the fit: up to four doublings, to at
+#'   most 8192 draws and 2e6 rows times draws, measured at 15 times the
+#'   fit and 3.3 GB at its worst. The seed,
+#'   the round cap and the effective-sample-size threshold are
+#'   [frmtmb_control()] settings.
 #' @param dry_run `"spec"` returns the parsed intermediate representation
 #'   without touching `data`; `"frame"` returns the assembled design
 #'   matrices and parameter template without fitting; `"objective"`
@@ -1018,16 +1056,29 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # under, which it resolves after this unfitted object exists
   if (!identical(dry_run, "objective")) {
     check_weights_unbounded(spec, frame, prior, exact = isTRUE(quadrature))
+    latres_refuse_laplace(spec, frame)
   }
 
-  fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
-                control = control, se = se, lower = NULL, upper = NULL,
-                prior = prior, quadrature = quadrature,
-                importance = importance, data2 = data2,
-                objective_only = identical(dry_run, "objective"),
-                # the user's own call is the one place a placed start is
-                # news; refit(), influence and the pre-fit are not
-                announce_start = TRUE)
+  run <- function(st, announce) {
+    fit_assembled(spec, frame, bform, cl, REML = REML, start = st,
+                  control = control, se = se, lower = NULL, upper = NULL,
+                  prior = prior, quadrature = quadrature,
+                  importance = importance, data2 = data2,
+                  objective_only = identical(dry_run, "objective"),
+                  # the user's own call is the one place a placed start is
+                  # news; refit(), influence and the pre-fit are not
+                  announce_start = announce, check_se = TRUE)
+  }
+  has_body <- any(vapply(frame[["linpreds"]], function(lp) {
+    !is.null(lp[["nl_body"]])
+  }, NA))
+  # iter.max = 0 asks for the objective at the start: a restart under the same
+  # control would return a moved start as if it had climbed there
+  if (!has_body || identical(dry_run, "objective") ||
+        isTRUE(control[["optCtrl"]][["iter.max"]] == 0)) {
+    return(run(start, TRUE))
+  }
+  nl_fit_off_saddle(run, frame, start, prior)
 }
 
 #' The refusal of `frm(threshold = )`, which names the family argument
@@ -1225,6 +1276,17 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   upper_arg <- upper
   vb <- verbose_level(control)
   n_imp <- as.integer(importance %||% 0L)
+  # every fit, the deletion refits of influence() among them; the sampler
+  # reads the objective of every row (objective_only)
+  if (!objective_only) {
+    frame <- mi_ml_frame(frame)
+    check_mi_laplace(frame)
+    if (!is.null(template) &&
+          length(template[["miss"]]) !=
+            length(frame[["par_template"]][["miss"]])) {
+      template[["miss"]] <- frame[["par_template"]][["miss"]]
+    }
+  }
   ascale <- if (!objective_only) autoscale_decide(frame, control, REML)
   # said once per fit, by the call that runs the pre-fit, and not by the
   # refits that are handed its template
@@ -1278,6 +1340,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   }
   if (vb) t0 <- vb_now()
   nll <- build_objective(frame)
+  nll_bare <- nll
   # also read by make_start(): a prior's location places a nonlinear
   # parameter's starting value
   prior_entries <- NULL
@@ -1291,6 +1354,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       nll0 <- nll
       nlp <- neg_log_prior_fn(ri$entries)
       nll <- function(pars) nll0(pars) + nlp(pars)
+      # importance = rebuilds the data's part draw by draw, and adds this
+      attr(nll, "neg_log_prior") <- nlp
     }
     # The prior is the ONLY source of bounds now that frm() has no
     # lower/upper of its own. `lower`/`upper` still arrive from the
@@ -1311,7 +1376,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   }
   if (is.null(template)) {
     template <- make_start(frame, start, prior_entries,
-                           announce = announce_start)
+                           announce = announce_start, nll = nll_bare)
   } else if (prefit_seeded && announce_start) {
     # the pre-fit's template replaces the cold start, and with it the
     # one place that says where a nonlinear start came from; say it
@@ -1448,6 +1513,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     }
     profile_arg <- "beta"
   }
+  template_guard <- template
   # An integrated beta on an ill-conditioned design is taped in the
   # design's coordinates, where the inner Hessian is well conditioned
   # (beta_whitener()); the estimates and the sdreport are carried back
@@ -1476,10 +1542,13 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                     silent = TRUE, inner.control = inner_ctl)
   }
   obj <- if (is.null(lap_obj)) {
-    RTMB::MakeADFun(nll, template, random = random, map = frame[["map"]],
-                    profile = profile_arg, silent = TRUE,
-                    inner.control = inner_ctl)
+    gp_tape_scope(frame, RTMB::MakeADFun(
+      nll, gp_tape_order(frame, template), random = random,
+      map = frame[["map"]], profile = profile_arg, silent = TRUE,
+      inner.control = inner_ctl))
   } else lap_obj
+  nl_check_body_read(frame, nll_bare, template_guard,
+                     nl_guard_gradient(obj, frame, bw))
   if (vb) {
     vb_stage("tape", t0,
              paste0(length(obj$par), " outer, ",
@@ -1507,6 +1576,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # profile = TRUE, and a shim without it misaligns every bound
   bounds <- resolve_bounds(list(frame = frame, REML = REML,
                                 control = control), lower, upper)
+  bounds$upper <- latres_disp_upper(
+    frame, spec, bounds$upper,
+    outer_par_map(list(frame = frame, REML = REML, control = control)))
   # a badly scaled coefficient has a badly scaled gradient too: judge
   # (and steer) the optimizer in per-parameter natural units
   par_units <- if (!is.null(ascale)) {
@@ -1544,6 +1616,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     obj <- imp$obj
     opt <- imp$opt
   } else if (is.null(integrate)) {
+    obj <- gp_start_scan(obj, template, frame, start, to_beta = function(b) {
+      if (is.null(bw)) b else beta_whiten_map(b, bw, inv = TRUE)
+    })
     opt <- fit_error_context(
       spec, start, REML, control, quadrature, prior,
       tryCatch(optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb,
@@ -1626,7 +1701,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       }
       est[[cp]][pos] <- unname(opt$par[pn == cp])
     }
-    est
+    # the template's order, whatever order the tape holds them in
+    est[intersect(names(frame[["par_template"]]), names(est))]
   }
   est <- est_at(opt)
   if (!is.null(integrate)) {
@@ -1695,6 +1771,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       # explains every lost parameter but a bound-held one (se_report())
       fit$cache$se_explained <- "nl_flat"
     }
+    gp_msg <- gp_nugget_message(fit)
+    if (!is.null(gp_msg)) {
+      frm_warning(gp_msg, call. = FALSE, class = "frmtmb_gp_nugget")
+    }
   }
   if (se) {
     if (vb) t0 <- vb_now()
@@ -1717,8 +1797,13 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # knot-span coverage of any ps() block. Both need the finished object,
   # which is why neither can live in family_finalize() or in the frame.
   fit_end_checks(fit)
+  latres_refuse_margin(fit)
+  latres_disp_report(fit)
+  latres_laplace_report(fit)
+  if (announce_start) fit <- mi_laplace_note(fit)
   if (check_se) {
     se_check(fit, control)
+    latres_limit_report(fit, control)
   }
   if (vb) {
     vb_stage("done", t_fit,
@@ -2192,6 +2277,10 @@ sdr_of <- function(fit) {
 #'   proportional to the identity, so the block and the residual are
 #'   separately identified. That is the animal model with one
 #'   measurement per individual.
+#' @param check_mi What to do when the Laplace approximation of a read `mi()`
+#'   value moves an estimate: `"warning"` (default), `"ignore"`, or `"stop"`.
+#'   See [bf()], section "Missing values under `mi()`". `"ignore"` skips the
+#'   check.
 #' @param check_se What to do when a converged fit has parameters with
 #'   no standard error: `"warning"` (default), `"ignore"`, or `"stop"`.
 #'   [frm()] looks at the Hessian at the optimum to find out, so the
@@ -2247,15 +2336,11 @@ sdr_of <- function(fit) {
 #'   the proposal at the current estimate and optimizes again, and the
 #'   loop stops as soon as either the estimates move less than `1e-3`
 #'   or the freshly anchored objective is stationary at them to
-#'   `grad_tol`. Measured on this package's own designs that takes two
-#'   to four rounds, with the move falling about tenfold each time, so
+#'   `grad_tol`. Over 648 measured fits of six families that took one
+#'   round in 398, two in 237, three in 12 and four in 1, so
 #'   the default leaves one in hand; an unused round costs nothing, and
 #'   each round actually taken costs one tape. A fit that uses every
-#'   round warns, and the warning distinguishes two cases: moves that
-#'   are still shrinking want a larger cap, while moves that are all
-#'   the SAME size are a stalled iteration, whose reported shift is
-#'   that step times the round count and grows with the cap instead of
-#'   settling.
+#'   round warns.
 #' @param importance_ess Effective sample size, as a fraction of the
 #'   draw count, below which `frm(importance =)` warns and names the
 #'   groups. The default `0.25` separates two measured regimes rather
@@ -2264,11 +2349,10 @@ sdr_of <- function(fit) {
 #'   groups of 8 Bernoulli rows, correlated slope) holds a worst group
 #'   of `0.95` at 1000 draws, and a gaussian response, where the
 #'   correction has nothing to correct, holds exactly `1` at any draw
-#'   count. Displacing that probe's two log standard deviations by half
-#'   a unit takes its worst group to `0.03`. The designs the warning is
-#'   FOR sit between the two, and draws are what move them: a correlated
-#'   slope in `mu` plus a `sigma` block over 12 groups of 10 rows holds
-#'   a worst group of `0.17` at 500 draws and `0.40` at 2000.
+#'   count. The designs the warning is FOR sit below that, and draws
+#'   are what move them: a correlated slope in `mu` plus a `sigma` block
+#'   over 12 groups of 10 rows holds a worst group of `0.14` at 500 draws
+#'   and `0.35` at 2000.
 #' @param mo_search After the fit, refit each `mo()` term whose simplex
 #'   has a weight at 0 with its scale coefficient held at the other sign,
 #'   and keep the better fit (see "Monotonic effects" in [frm()]). Each
@@ -2372,6 +2456,7 @@ frmtmb_control <- function(optimizer = "nlminb",
                            check_nlev_1 = c("warning", "ignore", "stop"),
                            check_olre = c("warning", "ignore", "stop"),
                            check_se = c("warning", "ignore", "stop"),
+                           check_mi = c("warning", "ignore", "stop"),
                            importance_seed = 1L, importance_rounds = 5L,
                            importance_ess = 0.25, mo_search = TRUE,
                            verbose = NULL) {
@@ -2420,6 +2505,7 @@ frmtmb_control <- function(optimizer = "nlminb",
        check_nlev_1 = frm_match_arg(check_nlev_1),
        check_olre = frm_match_arg(check_olre),
        check_se = frm_match_arg(check_se),
+       check_mi = frm_match_arg(check_mi),
        importance_seed = as.integer(importance_seed),
        importance_rounds = as.integer(importance_rounds),
        importance_ess = importance_ess, mo_search = isTRUE(mo_search),
@@ -2744,9 +2830,10 @@ fit_recovery_starts <- function(obj, nll, template, random, map, frame,
   }
   if (isTRUE(control$profile)) {
     plain <- tryCatch({
-      o <- RTMB::MakeADFun(nll, template, random = random, map = map,
-                           silent = TRUE, inner.control =
-                             predictor_inner_control(predictor_units(frame)))
+      o <- gp_tape_scope(frame, RTMB::MakeADFun(
+        nll, gp_tape_order(frame, template), random = random, map = map,
+        silent = TRUE,
+        inner.control = predictor_inner_control(predictor_units(frame))))
       # bounds and units are resolved for the profiled parameterization,
       # which has no beta in it; this fit only supplies a starting point
       # and the real optimization below applies both
@@ -4126,9 +4213,10 @@ nl_start_message <- function(spec, emsg) {
   paste0("The nonlinear fit failed from its default starting values (",
          emsg, "). A nonlinear coefficient starts at 0 unless `start` ",
          "or a located prior places it, and the body is often not defined ",
-         "there. frmtmb offers no start of its own: a start found by ",
-         "search can lead to a local maximum, which converges with no ",
-         "warning. ",
+         "there. frmtmb moves only a body that is defined at 0 and whose ",
+         "value the link cannot evaluate, to the response mean. Otherwise ",
+         "it offers no start of its own: a start found by search can lead ",
+         "to a local maximum, which converges with no warning. ",
          "Give the starts of ", nlq, " in one of two ways. (1) `start = ",
          "list(beta = c(<name> = <value>))`: par_template(formula, data) ",
          "gives the names, and the names go straight back. (2) A normal() ",
@@ -4336,7 +4424,7 @@ mu_residuals <- function(frame, resp, cache = NULL) {
 #'
 #' @noRd
 make_start <- function(frame, start, prior_entries = NULL,
-                       announce = FALSE) {
+                       announce = FALSE, nll = NULL) {
   tpl <- frame[["par_template"]]
   # computed at most once per response, and only for a family that asks
   resid_cache <- new.env(parent = emptyenv())
@@ -4458,6 +4546,9 @@ make_start <- function(frame, start, prior_entries = NULL,
     claimed <- start_claimed_idx(frame[["par_template"]][["beta"]],
                                  start[["beta"]], "beta")
   }
+  tpl <- nl_domain_start(frame, tpl, c(claimed, unlist(lapply(placed, `[[`,
+                                                              "idx"))),
+                         announce, nll)
   if (announce && length(placed)) {
     # what `start` set is the user's doing, not the prior's
     kept <- Filter(function(p) !p$idx %in% claimed, placed)
@@ -5063,6 +5154,11 @@ check_convergence <- function(fit, control) {
     # every fit (se_check()); this says which kind of point it judged
     room <- if (is.null(fit$importance)) conv_headroom(fit, gvec)
     at_max <- isTRUE(is.finite(room) && room <= control$grad_tol)
+    # the warm start of an exact gp() knows the marginal's maximum, which is another
+    # route to one number. A Newton step alone does not see a ridge: of 73 fits at
+    # that clause, 18 were short, up to 1 nat (dev/ncgp-findings.md, round 2)
+    gp_ok <- at_max && isTRUE(abs(fit$opt$objective -
+      fit$obj$env$.frmtmb_gp_marginal) <= control$grad_tol)
     # a nonlinear model that started at zero is the likeliest cause, and
     # `start` is the only lever, so name it here [brms#734]
     nl_hint <- if (!at_max &&
@@ -5072,11 +5168,13 @@ check_convergence <- function(fit, control) {
              "located prior placed them, the fit began at zero, which ",
              "is rarely in the right region (see par_template())")
     } else ""
-    msgs <- c(msgs, paste0("Optimizer did not report convergence: ",
-                           fit$opt$message, nl_hint,
-                           if (is.null(fit$importance)) {
-                             conv_headroom_clause(room, control$grad_tol)
-                           }))
+    if (!gp_ok) {
+      msgs <- c(msgs, paste0("Optimizer did not report convergence: ",
+                             fit$opt$message, nl_hint,
+                             if (is.null(fit$importance)) {
+                               conv_headroom_clause(room, control$grad_tol)
+                             }))
+    }
   }
   if (!is.null(fit$importance)) {
     # An importance-corrected objective is a Monte Carlo estimate, and
@@ -5089,35 +5187,17 @@ check_convergence <- function(fit, control) {
     # the Monte Carlo standard error; the gradient stays visible in
     # `fit$importance$grad`.
     if (isTRUE(fit$importance$capped)) {
-      # Two different fits reach `capped`, and only one of them wants
-      # more rounds. A stalled iteration takes the SAME step every
-      # round, so the shift it reports is that step times the round
-      # count and more rounds buy a proportionally larger wrong
-      # answer; telling that user to raise the cap is advice about a
-      # number that is not an estimate. imp_stalled() separates them.
-      msgs <- c(msgs, if (imp_stalled(fit$importance$moves)) {
-        paste0("The importance correction moved by the same amount, ",
-               format(fit$importance$moved, digits = 3), ", in every ",
-               "one of its ", fit$importance$rounds, " rounds, so it ",
-               "has not converged and its total shift is that step ",
-               "times the round count rather than an estimate. The ",
-               "step is a property of the draws and not of the data, ",
-               "so raising frmtmb_control(importance_rounds =) would ",
-               "only move the estimates proportionally further. A ",
-               "variance component the Laplace fit has already ",
-               "collapsed does this, because nothing is left to ",
-               "reweight: check VarCorr() before reading the ",
-               "corrected estimates")
-      } else {
-        paste0("The importance correction used all ",
-               fit$importance$rounds, " of its rounds and ",
-               "the estimates were still moving by ",
-               format(fit$importance$moved, digits = 3),
-               " at the last one. Raise ",
-               "frmtmb_control(importance_rounds =), or ",
-               "raise the draw count so each round lands ",
-               "in the same place")
-      })
+      msgs <- c(msgs, paste0(
+        "The importance correction used all ",
+        fit$importance$rounds, " of its rounds and ",
+        "the estimates were still moving by ",
+        format(fit$importance$moved, digits = 3),
+        " at the last one. Raise ",
+        "frmtmb_control(importance_rounds =), or ",
+        "raise the draw count so each round lands ",
+        "in the same place. If neither settles it, check whether the ",
+        "Laplace fit converged and whether the groups have enough rows to ",
+        "identify every variance component"))
     }
   } else if (is.null(sep) && is.finite(g) && g > control$grad_tol) {
     # (a separated fit's gradient and curvature are those of a run toward

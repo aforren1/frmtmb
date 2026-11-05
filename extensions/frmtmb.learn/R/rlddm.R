@@ -370,7 +370,7 @@ rlddm <- function(subject, trial = NULL, session = NULL, max_ndt = NULL) {
             aterms = c("dec", "reward1", "reward2"), spec = spec,
             data_map = c(reward1 = "pay1", reward2 = "pay2",
                          dec = "choice"),
-            sim = FALSE,
+            sim = FALSE, type = "continuous",
             constants = list(sim_out = list(dec = "choice"),
                              sim_response = "rt",
                              # frm_task_simulate() checks this once per

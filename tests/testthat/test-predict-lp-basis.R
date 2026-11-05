@@ -107,5 +107,6 @@ test_that("frm_lp_basis() refuses arguments it cannot interpret", {
   expect_error(frm_lp_basis(o$fit, newdata = 1:3), "must be a data frame")
   expect_error(frm_lp_basis(o$fit, re_formula = "g"), "must be NULL")
   expect_error(frm_lp_basis(o$fit, dpar = "nope"), "unknown dpar")
-  expect_error(frm_lp_basis(o$fit, resp = "nope"), "Unknown response")
+  # a univariate fit does not read resp, and a multivariate one refuses the
+  # name: test-resp-read.R
 })

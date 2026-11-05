@@ -1,3 +1,67 @@
+#' Exact Gaussian processes and their nugget
+#'
+#' @description
+#' `gp(x)` in a formula fits an exact Gaussian process, and `gp(x, k = )` its
+#' Hilbert-space approximation, with the arguments of [brms::gp()]. This page
+#' states where the exact form is not brms's model.
+#'
+#' @section The nugget:
+#' A squared exponential kernel is near singular, so a nugget on its diagonal
+#' keeps it factorable. `frm()` and `frm_sample()` read one tape, the field
+#' `sdgp * L z`, with `L` the Cholesky factor of the kernel plus `1e-12` on the
+#' correlation: a nugget of `1e-12 * sdgp^2`. brms adds an absolute `1e-12`. At
+#' `sdgp` near 1 the two are one number. A relative nugget does not depend on
+#' the units of y. brms's does: at y times 1000 its kernel does not factor at
+#' the estimates (its run reads Rhat 3.77), and at y divided by 1000 its nugget
+#' floors `sigma`.
+#'
+#' The two nuggets give one model until the noise reaches the nugget, near
+#' `sigma = 1e-6 * sdgp`:
+#'
+#' * With one row per position and an estimated `sigma`, `sigma` can read low.
+#' * Where positions repeat, or `sigma` is known through `se()`, or the family
+#'   has no `sigma`, `sdgp` and the length scale can read low.
+#'
+#' @section The warning:
+#' `frm()` warns with class `frmtmb_gp_nugget`, on top of `frmtmb_warning`, when
+#' the 90th percentile over the positions of the nugget's variance over the
+#' noise at a position reaches `sqrt(2 / m)` for `m` positions, which is about
+#' one standard error of `sigma`. The noise at a position is read from the
+#' likelihood's curvature, so the rule is the same for every family and route.
+#' `frm()` does not check an `importance =` or `integrate =` fit.
+#' `frm_sample(fit)` on a fit with this warning starts at random, because chains
+#' started at that mode stay pinned.
+#'
+#' @section What to do about it:
+#' `frm_sample(laplace = TRUE)` integrates the field out, and it mixes fast at
+#' low noise, for the outer parameters only (`sigma`, `sdgp`, the length
+#' scales): it refuses `posterior_epred()`, `posterior_linpred()`,
+#' `posterior_predict()`, `fitted()`, `predict()`, `log_lik()`, `loo()` and
+#' `conditional_effects()`. The drawn route, the default, is the one for the
+#' field and for predictions, and at low noise it needs long chains (at sigma
+#' 1e-3 and 15 rows, Rhat on `sdgp` read 1.04 to 2.37 on short chains, and 1.03
+#' on `sigma` and 1.07 on `sdgp` after an hour, and not yet converged).
+#' `gp(x, k = )` has no nugget and reaches brms's numbers when `k` is large
+#' enough for the field. Too small a `k` is a different failure, with no
+#' warning and with `convergence` 0: `sin(8 * x)` on 0 to 6 with noise 1e-3 at
+#' `k = 30` has a basis that stops
+#' at frequency 6.5, so it reads `sigma` 720 times high; `k = 60` reads it.
+#' Compare several `k`. A smooth trend written as fixed effects also lowers what
+#' the field has to carry.
+#'
+#' @section The order of the field:
+#' `frm_sample()`'s `b[i]` columns and `fit$estimates$b` of an exact term hold
+#' z, in a farthest-first order of the positions. [ranef()], [coef()] and
+#' `getME(fit, "b")` read the field, at the sorted distinct positions, where
+#' brms keeps first appearance. None of these is in the order of the rows of
+#' the data. Read a field at the data through `posterior_epred()` or
+#' `frm_linpred()`, which are right row by row.
+#'
+#' @name frmtmb-gp
+#' @aliases frmtmb_gp_nugget
+#' @seealso [frm()], [frmtmb_control()], `vignette("brms-migration")`
+NULL
+
 # brms's gp(..., by = ), read from brms 2.23.0 (R/formula-gp.R and
 # brms:::data_gp()).
 #

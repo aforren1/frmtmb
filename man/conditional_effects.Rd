@@ -224,6 +224,21 @@ intervals computed on the link scale and back-transformed. Smooth
 terms are part of the predicted curve; \code{\link[=conditional_smooths]{conditional_smooths()}} draws
 each smooth term on its own, as brms's function of that name does.
 }
+\section{New rows of a model with me()}{
+
+A grid row has no latent value. The estimate is the value at the held \code{x},
+which
+is close to the median of brms's draws, and \code{se__}, \code{lower__} and \code{upper__}
+carry the variance of the draw from \code{N(x, sdx)}, so they are not coefficient
+uncertainty alone. The band is the draw's own quantiles on the response
+scale.
+A \code{me(gr = )} group is held at \code{NA}, as brms holds it, so each grid row is a
+level of its own.
+
+With several responses, the panels are in brms's order: the effects outside,
+over what any response reads, and the responses inside.
+}
+
 \section{Several conditions become one faceted page}{
 
 A \code{conditions} data frame of several rows gives the effect one panel

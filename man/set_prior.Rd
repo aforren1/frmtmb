@@ -21,7 +21,7 @@ set_prior(
 \code{\link[=prior_normal]{prior_normal()}}/\code{\link[=prior_t]{prior_t()}}/\code{\link[=prior_lkj]{prior_lkj()}} object, or \code{""} for
 bounds only.}
 
-\item{class}{\code{"b"}, \code{"Intercept"}, \code{"sd"}, \code{"cor"}, \code{"theta"}, one
+\item{class}{\code{"b"}, \code{"Intercept"}, \code{"sd"}, \code{"sds"}, \code{"cor"}, \code{"theta"}, one
 of the residual-structure classes \code{"ar"}, \code{"ma"}, \code{"cosy"},
 \code{"cortime"} and \code{"rescor"}, the simplex classes \code{"simo"} and
 \code{"sbhaz"}, the \code{me()} classes \code{"meanme"}, \code{"sdme"} and \code{"corme"},
@@ -31,7 +31,8 @@ own class.}
 
 \item{coef}{Restrict to one coefficient (classes \code{"b"}/\code{"Intercept"}),
 to the standard deviation of one coefficient (class \code{"sd"}, with
-\code{group}), name the simplex of class \code{"simo"}, name one \code{me()}
+\code{group}), to one smooth term (class \code{"sds"}), name the simplex of
+class \code{"simo"}, name one \code{me()}
 variable of class \code{"meanme"} or \code{"sdme"}, or name one internal
 parameter of class \code{"theta"}. A coefficient is
 named as brms names it and as \code{\link[=default_prior]{default_prior()}} lists it: \code{logxp}
@@ -79,7 +80,7 @@ sub-formula's predictors, which is the intercept brms's own
 prior lands. On an ordinal family the thresholds are the intercept,
 here as in brms, so this class addresses the whole threshold
 vector; see Ordinal thresholds.
-\item \code{"sd"}: random-effect standard deviations (and smoothing SDs), on
+\item \code{"sd"}: random-effect standard deviations, on
 the NATURAL sd scale with the log-Jacobian applied, so
 \code{set_prior("exponential(1)", class = "sd")} means what it says;
 narrow with \code{group}, and to one coefficient's standard deviation
@@ -154,7 +155,8 @@ its one slot, as in brms, which has no class \code{"theta"}: a standard
 deviation (\code{"sd"}, \code{"sdgp"}), a \code{gp()} length scale (\code{"lscale"}),
 a correlation an LKJ density fits (\code{"cor"}), a residual
 correlation (\code{"rescor"}, \code{"ar"}, \code{"ma"}, \code{"cosy"}, \code{"cortime"},
-frmtmb.spatial's \code{"lagsar"}). Its internal row is not listed, and a
+frmtmb.spatial's \code{"lagsar"}), the SD of a latent residual
+(\code{"sderr"}). Its internal row is not listed, and a
 class \code{"theta"} prior on it is refused with the class to use.
 \item a DISTRIBUTIONAL parameter's own name (\code{"sigma"}, \code{"shape"},
 \code{"phi"}, \code{"zi"}, \code{"nu"}, ...): a density on that parameter ITSELF,
@@ -353,6 +355,12 @@ coefficient-specific one applies.
 
 \section{Residual correlation}{
 
+On a family with no residual \code{y - mu} these terms are brms's latent
+residuals (\link{frmtmb-autocor}), and class \code{"sderr"} is the standard
+deviation of the latents, written and carried as class \code{"sd"} is. Their
+coefficients take the classes below, on brms's intervals: (-1, 1) on \code{ar}
+and \code{ma}, each entry on its own under \code{cov = FALSE}, and (0, 1) on \code{cosy}.
+
 frmtmb holds an \code{ar()}, \code{ma()}, \code{arma()}, \code{cosy()} or \code{unstr()}
 residual block in one unconstrained vector, chosen so the optimizer
 cannot step outside the stationary and invertible region. A prior is
@@ -485,7 +493,13 @@ dispersion becomes no constraint rather than a floor of 1.
 \code{mo()} simplex and on a \code{cox()} baseline. So do \code{meanme}, \code{sdme}
 and \code{corme}, the hyperparameters of a \code{me()} term, brms's \code{lkj(1)}
 default on \code{corme} included.
-\item \code{theta}/\code{theta1}/\code{theta2}, \code{sds}, \code{sdcar} and \code{car} are refused by
+\item \code{sds} is the standard deviation of a smooth's penalized part, brms's
+class of the same name. \code{coef} names one smooth term as
+\code{\link[=default_prior]{default_prior()}} lists it (\code{"s(x)"}, \code{"t2(x, z)"},
+\code{"s(x, by = f)"}), and a term with several standard deviations
+(a \code{t2()} or a by-smooth) takes the density on each of them, as in
+brms. Class \code{"sd"} does not reach a smooth.
+\item \code{theta}/\code{theta1}/\code{theta2}, \code{sdcar} and \code{car} are refused by
 name, each saying where frmtmb keeps that quantity instead. A
 refusal is deliberate: translating one of them would produce a
 different model rather than no model.

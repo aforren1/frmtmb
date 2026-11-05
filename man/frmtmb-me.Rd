@@ -98,12 +98,18 @@ call puts its noisy variable's measurements into the likelihood.
 \code{\link[=AIC]{AIC()}} does not check this, so compare by AIC only across fits that
 share their \code{me()} calls.
 
-\code{\link[=fitted]{fitted()}}, \code{\link[=predict]{predict()}}, \code{\link[=residuals]{residuals()}} and \code{\link[=simulate]{simulate()}} on the fitted
-data use the estimated latent values (the conditional modes). On new
-data the observed value of the noisy variable stands in for the latent
-value. brms draws that value from \code{N(x, sdx)}, so the two agree on
-the mean of a linear term, and frmtmb does not add the measurement
-noise to a prediction interval.
+\code{\link[=fitted]{fitted()}}, \code{\link[=predict]{predict()}}, \code{\link[=residuals]{residuals()}} and \code{\link[=simulate]{simulate()}} on the fitted data
+use the estimated latent values (the conditional modes). A new row has no
+latent value, and brms draws one from \code{N(x, sdx)} per draw. So do \code{\link[=predict]{predict()}}
+and \code{\link[=simulate]{simulate()}}, per replicate. \code{\link[=fitted]{fitted()}} reports the mean of the expected
+response over the draw, with its variance in \code{Est.Error} and its quantiles in
+the \code{Q} columns. \code{\link[=frm_linpred]{frm_linpred()}} stays at the observed value and adds the
+variance to \code{se.fit}. New data must hold \code{sdx}, as in brms. Two responses or
+two dpars read one latent value, a stated divergence from brms, which draws
+one per predictor. Thus a category probability moves, as it is a joint
+function of both predictors: 0.3336 against brms's 0.3106. A row with no \code{x}
+or \code{sdx} reads \code{NA}, with a warning of class \code{frmtmb_me_missing}. brms reads
+\code{NaN} and warns.
 }
 
 \examples{

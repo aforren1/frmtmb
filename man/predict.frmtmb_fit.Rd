@@ -159,6 +159,21 @@ group toward the population, so for a group far from the population
 the interval covers less than nominal and for a group near it more.
 \code{dev/reunc-findings.md} reports the measured coverage.
 
+A new row of a \code{me()} term also has no latent value, so each replicate
+draws one from \code{normal(x, sdx)}, per row, or per level under \code{me(gr = )}, as
+brms's \code{posterior_predict()} does on new data. The latent value of a new row
+is
+measurement noise in the grid, not an estimate, so \code{propagate_error = FALSE}
+keeps it. \code{corme} is not read, as in
+brms. Two responses or two dpars that read one \code{me()} term read ONE latent
+value, a stated divergence from brms, which draws one per predictor against
+its
+own Stan program: at the training rows of a two-response fit the residuals
+correlate at 0.734, one latent predicts 0.739 and brms's replicates give
+-0.001, and the 95 percent width of \code{y1 - y2} at \code{sdx = 2} is 3.18 with one
+latent and 15.08 with two. \code{newdata} must hold \code{sdx}. On the data the model
+was fitted on the latent values are the fit's own.
+
 A level the fit did NOT see is different: there is no conditional
 law to draw from, so \code{allow_new_levels = TRUE} draws its effect from
 the block's own estimated covariance, once per replicate, at that

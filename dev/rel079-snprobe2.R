@@ -1,0 +1,21 @@
+.libPaths(c("C:/Users/adf44/source/r/wt-latres-lib", "C:/Users/adf44/source/r/rellib-r16", "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressPackageStartupMessages(library(frmtmb))
+cat(dirname(find.package("frmtmb")), "\n")
+ns <- asNamespace("frmtmb")
+src <- parse("R/autocor-latent.R", keep.source = FALSE)
+e1 <- new.env(parent = ns)
+for (x in src) if (is.call(x) && identical(x[[1]], as.name("<-")) && as.character(x[[2]]) %in% c("latres_tk", "latres_shift_tk")) eval(x, e1)
+f <- y ~ x + ar(t, g, cov = TRUE)
+set.seed(3L)
+d <- expand.grid(t = 1:8, g = factor(1:25))
+d <- d[order(d$g, d$t), ]
+d$x <- stats::rnorm(200L)
+e <- as.vector(replicate(25, stats::arima.sim(list(ar = 0.6), 8, sd = 0.5)))
+d$y <- stats::rlnorm(200L, e, 2)
+z <- 0.5 * stats::rnorm(200L)
+d$y <- e + z
+ft <- suppressMessages(suppressWarnings(frm(bf(f), family = skew_normal(), data = d)))
+bk <- ns$frame_latres(ft$frame)[[1L]]
+print(e1$latres_shift_tk(ft, bk))
+print(ft$opt$par)
+print(names(ft$opt$par)); print(sqrt(diag(as.matrix(ns$sdr_of(ft)$cov.fixed))))

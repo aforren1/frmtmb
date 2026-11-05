@@ -610,9 +610,10 @@ brms_par_labels <- function(fit, include_random = TRUE) {
   make.unique(out, sep = "__")
 }
 
-#' The `miss` segment's labels: `miss_<i>` for the values of an `mi()`
-#' response, which brms splits into `Ymi_` and `Yl_` vectors with no
-#' name per entry, and brms's `Xme_<coef>[<i>]` for the latent values of
+#' The `miss` segment's labels, brms's names: `Ymi_<resp>[k]` for the
+#' missing values of an `mi()` response, in the order of brms's `Jmi`,
+#' `Yl_<resp>[k]` for every value of a `mi(sd)` one, with no `_<resp>` on a
+#' model with one response, and `Xme_<coef>[<i>]` for the latent values of
 #' a `me()` call (`rename_Xme()`), indexed by row, or by level of `gr`
 #' with whitespace turned into `.`.
 #'
@@ -620,6 +621,15 @@ brms_par_labels <- function(fit, include_random = TRUE) {
 brms_miss_labels <- function(fit) {
   n <- length(fit$frame[["par_template"]][["miss"]])
   lab <- paste0("miss_", seq_len(n))
+  multi <- length(fit$spec$responses) > 1L
+  for (r in names(fit$frame[["mi_map"]] %||% list())) {
+    m <- fit$frame[["mi_map"]][[r]]
+    k <- match(m[["rows"]], sort(c(m[["rows"]], m[["unread"]])))
+    if (!length(k)) next
+    lab[m[["idx"]]] <- paste0(if (is.null(m[["se"]])) "Ymi" else "Yl",
+                              if (multi) paste0("_", brms_stan_name(r)),
+                              "[", k, "]")
+  }
   for (t in fit$frame[["me"]]$terms %||% list()) {
     ix <- if (is.null(t$levels)) seq_along(t$idx) else
       gsub("[ \t\r\n]", ".", t$levels)
@@ -635,6 +645,17 @@ brms_r_labels <- function(fit) {
   n_b <- length(fit$frame[["par_template"]][["b"]])
   lab <- paste0("b[", seq_len(n_b), "]")
   for (bk in fit$frame[["re_blocks"]]) {
+    # one latent per row and, under ma(), arma() and cosy(), one per group: the
+    # chain's own states, which are not err, and `b[k]` in brms is a slope
+    if (identical(bk[["covstruct"]], "latres")) {
+      k <- seq_along(bk[["b_idx"]])
+      # one block per response, under the suffix sderr carries
+      rs <- if (length(fit$spec$responses) > 1L) {
+        paste0("_", brms_stan_name(bk[["aux"]][["ac"]][["resp"]]))
+      }
+      lab[bk[["b_idx"]]] <- paste0("latent_state", rs, "[", k, "]")
+      next
+    }
     if (!brms_block_has_r(bk)) next
     D <- bk[["dim"]]
     g <- brms_group_name(bk)

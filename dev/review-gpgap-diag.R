@@ -1,0 +1,15 @@
+# Short check, item 2: which nugget does check_laplace()'s run carry? Seed 6601.
+.libPaths(c("C:/Users/adf44/source/r/wt-gpgap-lib","C:/Users/adf44/source/r/rellib-r16","C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressPackageStartupMessages({library(frmtmb); library(frmtmb.sample)})
+set.seed(6601); n <- 30; x <- round(runif(n,0,6),3); e0 <- rnorm(n)
+d <- data.frame(x=x,y=sin(2*x)+0.1*e0)
+f <- frm(bf(y~gp(x)),family=gaussian(),data=d)
+ds <- suppressWarnings(suppressMessages(frm_sample(f,chains=1,iter=30,warmup=15,refresh=0,seed=5,.diagnostic=TRUE)))
+bk <- Filter(function(b) identical(b$covstruct,"gp"), ds$fit$frame$re_blocks)[[1]]
+cat("DIAG reparameterize default, block nugget on ds$fit:", format(bk$gp_nugget), "\n")
+print(ds$reparameterized %||% NA)
+ns <- asNamespace("frmtmb.sample")
+pl <- ns$ncp_plan(f, TRUE, FALSE, NULL, diagnostic=TRUE)
+cat("DIAG ncp_plan(laplace=FALSE, diagnostic=TRUE) idx:", pl$idx, "\n")
+pl2 <- ns$ncp_plan(f, TRUE, TRUE, NULL, diagnostic=TRUE)
+cat("DIAG ncp_plan(laplace=TRUE, diagnostic=TRUE) idx:", pl2$idx, "\n")

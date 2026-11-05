@@ -1,0 +1,32 @@
+# Read the natural search: every firing's full message; each capped fit's moves,
+# spread and warnings; any fit with a large last move or gradient and no warning.
+root <- "C:/Users/adf44/source/r/frmtmb-wt-impsamp/dev/review-impsamp-out/fr1"
+fs <- list.files(root, "^natural-[0-9][.]rds$", full.names = TRUE)
+rows <- unlist(lapply(fs, readRDS), recursive = FALSE)
+cat("fits read", length(rows), "from", length(fs), "files\n")
+isfire <- vapply(rows, function(e) !is.null(e$msg) && grepl("did not settle", e$msg, fixed = TRUE), TRUE)
+other <- vapply(rows, function(e) !is.null(e$msg) && !grepl("did not settle", e$msg, fixed = TRUE), TRUE)
+capped <- vapply(rows, function(e) isTRUE(e$capped), TRUE)
+cat("fires", sum(isfire), "other errors", sum(other), "capped", sum(capped), "\n")
+for (e in rows[other]) cat("OTHER", e$design, e$s, e$N, substr(e$msg, 1, 150), "\n")
+cat("\nFIRINGS\n")
+for (e in rows[isfire]) cat(sprintf("[%s %d N=%d] %s\n", e$design, e$s, e$N, e$msg))
+sp <- vapply(rows[capped], function(e) (max(e$moves) - min(e$moves)) / mean(e$moves), 0)
+cat("\nCAPPED: relative spread of the moves, the old stalled rule was < 0.01\n")
+print(summary(sp))
+cat("capped with spread < 0.01:", sum(sp < 0.01), " < 0.1:", sum(sp < 0.1), "\n")
+cat("capped without a warning naming the rounds:", sum(vapply(rows[capped], function(e) !any(grepl("rounds", e$warn)), TRUE)), "\n")
+tab <- table(vapply(rows[capped], function(e) e$design, ""), vapply(rows[capped], function(e) e$N, 0L))
+print(tab)
+cat("\nlast moves of capped fits, by quantile:\n")
+print(quantile(vapply(rows[capped], function(e) e$moves[length(e$moves)], 0)))
+ok <- !isfire & !other & !capped
+silent_bad <- vapply(rows[ok], function(e) {
+  length(e$warn) == 0L && (e$moves[length(e$moves)] >= 1e-3 && e$grads[length(e$grads)] >= 1e-2)
+}, TRUE)
+cat("\nfits not capped, no warning, last move >= 1e-3 and grad >= 1e-2:", sum(silent_bad), "\n")
+gr <- vapply(rows[ok], function(e) e$grads[length(e$grads)], 0)
+nw <- vapply(rows[ok], function(e) length(e$warn) == 0L, TRUE)
+cat("silent fits", sum(nw), ": fresh gradient quantiles\n")
+print(quantile(gr[nw], c(.5, .9, .99, 1), na.rm = TRUE))
+for (e in rows[ok][nw & gr > 0.1]) cat("  silent, grad", format(e$grads[length(e$grads)], digits = 3), e$design, e$s, e$N, "rounds", e$rounds, "moved", format(e$moves[length(e$moves)], digits = 3), "ess", format(e$ess, digits = 3), "\n")
