@@ -2275,9 +2275,9 @@ draws_error_y <- function(fit, resp, newdata) {
 #' A fitted response as it was OBSERVED: `NA` where an `mi()` response
 #' is missing.
 #'
-#' The frame keeps the placeholder 0 at those rows, and the tape reads
+#' The frame keeps a placeholder at those rows, and the tape reads
 #' the latent value there instead; read as an observation, the
-#' placeholder made `predictive_error()` report `0 - yrep` at a row
+#' placeholder made `predictive_error()` report a residual at a row
 #' nobody observed. brms keeps its `Y` `NA` there (`get_y()` with
 #' `internal = TRUE`), so its predictive error and `bayes_R2()` are `NA`,
 #' and its `pp_check()` drops the row with a warning. Under `mi(sd = )`
@@ -2290,7 +2290,7 @@ draws_observed_y <- function(fit, resp) {
   mm <- fit$frame[["mi_map"]][[resp]]
   if (is.null(mm) || is.matrix(y)) return(y)
   miss <- if (is.null(mm$obs)) mm$rows else setdiff(mm$rows, mm$obs)
-  y[miss] <- NA
+  y[c(miss, mm$unread)] <- NA
   y
 }
 

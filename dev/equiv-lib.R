@@ -105,6 +105,9 @@ eq_brms_args <- function(spec, data, prior) {
 # the gradient is read at the estimate only, where it must vanish.
 eq_l1 <- function(spec, bform, family, data, fit, prior, joint,
                   refit = NULL) {
+  # a value no density reads has left the fit: brms's program on the
+  # observed rows is the same model (brms_mi_observed())
+  data <- brms_mi_observed(fit, data)
   args <- eq_brms_args(spec, data, prior)
   code <- do.call(brms::make_stancode,
                   c(list(bform, family = family), args))
@@ -130,9 +133,9 @@ eq_l1 <- function(spec, bform, family, data, fit, prior, joint,
       # the penalized objective, which carries the prior frm() applied
       -f$opt$objective
     } else {
-      as.numeric(stats::logLik(f))
+      as.numeric(stats::logLik(f)) + (attr(pars, "mi_ld") %||% 0)
     }
-    grad <- rstan::grad_log_prob(sf, upars, adjust_transform = FALSE)
+    grad <- brms_lp_grad(sf, upars, f, pars)
     # frm()'s MAP carries the log-Jacobian of the map from each
     # prior-carrying parameter to its internal one (NEWS 0.36.0 on
     # class "sigma", 0.33.0 on "sdgp"/"lscale"; the ordered map on
@@ -299,43 +302,6 @@ brms_block_group <- function(nm) {
   g
 }
 
-# gr(g, cov = A): brms draws r = (Lcov %x% diag(sd) L) z, so the
-# standardized z the iid translation returns is multiplied by
-# t(Lcov)^-1, and the change of variables adds M log|Lcov|.
-#
-# A mixture whose proportions have no predictor: brms declares
-# simplex[K] theta; frmtmb carries theta1..theta(K-1) as intercepts on
-# the logit (softmax, last component the reference) scale. The
-# translator reads the parameter list off the code only, so the
-# simplex is taken out of the list it reads and filled in here.
-eq_orig_stan_pars <- stan_pars_from_fit
-stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
-  simplex_theta <- grepl("\n  simplex\\[[0-9]+\\] theta;", code)
-  if (simplex_theta) {
-    code <- sub("\n  simplex\\[[0-9]+\\] theta;[^\n]*", "", code)
-  }
-  pars <- eq_orig_stan_pars(fit, sdat, code, rtab)
-  if (simplex_theta) {
-    fe <- fixef_by_dpar(fit)
-    a <- vapply(grep("^theta[0-9]+$", names(fe), value = TRUE),
-                function(nm) unname(fe[[nm]][["(Intercept)"]]), 0)
-    a <- c(a, 0)
-    pars[["theta"]] <- exp(a) / sum(exp(a))
-  }
-  lj <- attr(pars, "logJ") %||% 0
-  for (nm in grep("^Lcov_[0-9]+$", names(sdat), value = TRUE)) {
-    i <- sub("^Lcov_", "", nm)
-    zn <- paste0("z_", i)
-    if (is.null(pars[[zn]])) next
-    lc <- as.matrix(sdat[[nm]])
-    z <- as.matrix(pars[[zn]])
-    pars[[zn]] <- z %*% t(solve(lc))
-    lj <- lj + nrow(z) * sum(log(diag(lc)))
-  }
-  attr(pars, "logJ") <- lj
-  pars
-}
-
 # A VarCorr column keeps the call's spelling, mmc(x1, x2), where brms's
 # coefficient is the same text with its punctuation removed, mmcx1x2.
 eq_orig_frm_coef <- brms_frm_coef
@@ -345,6 +311,18 @@ brms_frm_coef <- function(cols, coef, dpar, resp = "", nlpar = "") {
   if (!inherits(out, "error")) return(out)
   bare <- gsub("[^A-Za-z0-9_.]", "", cols)
   hit <- cols[bare == coef]
+  if (length(hit) == 1L) return(hit)
+  # the same in a block merged by |ID|, whose columns carry their linear
+  # predictor: y.mu:mmc(x1, x2)
+  dp <- if (nzchar(dpar)) dpar else "mu"
+  pre <- sub(":.*$", "", cols)
+  mine <- if (nzchar(resp)) {
+    pre == paste0(resp, ".", dp)
+  } else {
+    pre == dp | endsWith(pre, paste0(".", dp))
+  }
+  hit <- cols[mine][gsub("[^A-Za-z0-9_.]", "",
+                         sub("^[^:]*:", "", cols[mine])) == coef]
   if (length(hit) == 1L) return(hit)
   stop(conditionMessage(out), call. = FALSE)
 }

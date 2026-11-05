@@ -1638,16 +1638,19 @@ brms_lscale_prior <- function(X, plb = 0.01, pub = 0.01) {
           format(p[2], digits = 15))
 }
 
-#' `gp = TRUE` gives the same prefixes for the `gp()` blocks, which brms
-#' priors as class `"sdgp"` rather than `"sd"`.
+#' `cls = "sdgp"` gives the same prefixes for the `gp()` blocks and
+#' `cls = "sds"` for the smooth blocks, which brms priors under those
+#' classes rather than `"sd"`.
 #'
 #' @noRd
-default_sd_prefixes <- function(fit, gp = FALSE) {
+default_sd_prefixes <- function(fit, cls = "sd") {
   multi <- length(fit$spec$responses) > 1L
   out <- list()
   for (bk in fit$frame[["re_blocks"]]) {
     if (!length(block_sd_idx(bk))) next
-    if (xor(gp, bk[["covstruct"]] %in% c("gp", "hsgp"))) next
+    bk_cls <- switch(bk[["covstruct"]], gp = , hsgp = "sdgp", smooth = "sds",
+                     "sd")
+    if (!identical(bk_cls, cls)) next
     for (cp in bk[["components"]] %||% list()) {
       lp <- fit$frame[["linpreds"]][[cp[["lp_key"]] %||% ""]]
       if (is.null(lp)) next
@@ -1987,10 +1990,17 @@ default_priors_for <- function(fit, flat = FALSE) {
                   resp = k[["resp"]], dpar = k[["dpar"]],
                   nlpar = k[["nlpar"]]))
   }
+  # a smooth's sd: brms's prior_sm() writes the same def_scale_prior on
+  # class "sds"
+  for (k in default_sd_prefixes(fit, "sds")) {
+    add(set_prior(st(0, scales[[k[["rname"]]]]$scale), class = "sds",
+                  resp = k[["resp"]], dpar = k[["dpar"]],
+                  nlpar = k[["nlpar"]]))
+  }
   # a gp() term's sd: brms's prior_gp() writes the same def_scale_prior
   # on class "sdgp", and its length scales an inv_gamma tuned to each
   # sub-GP's own distances (def_lscale_prior())
-  for (k in default_sd_prefixes(fit, gp = TRUE)) {
+  for (k in default_sd_prefixes(fit, "sdgp")) {
     add(set_prior(st(0, scales[[k[["rname"]]]]$scale), class = "sdgp",
                   resp = k[["resp"]], dpar = k[["dpar"]],
                   nlpar = k[["nlpar"]]))
@@ -2578,7 +2588,8 @@ announce_default_priors <- function(pl, notes) {
                           else if (isTRUE(s$flat_interval))
                             "  [flat on its interval, brms's (flat)]"
                           else if (isTRUE(s$natural)) "  [natural scale]"
-                          else if (s$class %in% c("sd", "sdgp", "sdme"))
+                          else if (s$class %in% c("sd", "sds", "sdgp",
+                                                  "sdme"))
                             "  [natural sd scale]"
                           else if (identical(s$class, "lscale"))
                             "  [brms's scaled inputs]"
@@ -3162,12 +3173,20 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' class, and a name inside a correlation block dropped the LKJ density
 #' on the rest of the block.
 #'
+#' *A missing value under `mi()`.* A draw of it is named as in brms,
+#' `Ymi_<resp>[k]` (`Ymi[k]` with one response, `Yl_` under `mi(sd)`), and
+#' is on the response's own scale, whatever chart the sampler moves in. A
+#' [frmtmb::frm()] fit leaves out of its objective a value no density reads;
+#' sampling from that fit holds it again. `laplace = TRUE`, from a fit or from a
+#' formula, integrates the values out and leaves such a value out, as `frm()`
+#' does.
+#'
 #' *`prior = "flat"`.* brms has no opt-out of its priors; the nearest
 #' brms model is `""` in every slot, which is `(flat)`: no density on the
 #' parameter brms declares, inside the bounds it declares. That is what
 #' `prior = "flat"` samples. frmtmb holds several of those parameters
 #' through a map, so flat on brms's parameter is not flat on frmtmb's:
-#' a standard deviation (`sd`, `sdgp`, `lscale`) and a positive
+#' a standard deviation (`sd`, `sds`, `sdgp`, `lscale`) and a positive
 #' distributional parameter (`sigma`, `shape`, `nu`, ...) are flat on
 #' their own scale, not on their log; a correlation matrix (`cor`,
 #' `rescor`, `cortime`, `lncor`) is flat on the Cholesky factor brms
@@ -3614,6 +3633,14 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
     fit <- sample_assemble(fit, data, family, data2 = data2,
                            start = start, fit_control = fit_control,
                            na.action = na.action, REML = REML)
+    # laplace = TRUE integrates the values out as frm() does, and has its
+    # error on a value nothing reads unless that row leaves the objective
+    if (isTRUE(list(...)$laplace)) fit <- mi_sampling(fit, "laplace")
+  }
+  # the rows and the chart a maximum-likelihood fit left out; check_laplace()
+  # samples the density that fit maximized, and laplace = TRUE draws no value
+  if (!from_formula && !isTRUE(.diagnostic) && !isTRUE(list(...)$laplace)) {
+    fit <- mi_sampling(fit)
   }
   mo_sample_check_const(fit)
   # no mode to anchor on when the model was never optimized

@@ -1,3 +1,25 @@
+# frmtmb.sample (development version)
+
+* BREAKING: brms's class `"sds"` carries a smooth's default,
+  `student_t(3, 0, <scale>)`, and a smooth's prior on `frm_sample()`, with
+  `coef` the term as written. Class `"sd"` no longer reaches a smooth, as
+  in brms. The table lists the rows brms lists.
+* `frm_sample()` samples `mi()` under every family core takes, and under
+  `asym_laplace()` and `mixture()` where `frm()` refuses a value another
+  density reads. From a `frm()` fit it holds the missing values the fit left
+  out of its objective, through core's new `mi_sampling()`.
+* BREAKING: a missing value's draw is reported under brms's name,
+  `Ymi_<resp>[k]` (`Ymi[k]` with one response, `Yl_` under `mi(sd)`), on the
+  response's own scale. It was `miss_<k>`, on the sampler's chart: `miss_1`
+  under `Gamma` ranged from -3.05 to 3.01 where brms's `Ymi[1]` ranges from
+  0.04 to 15.3. The sampler's Jacobian does not change.
+* `frm_sample(formula, laplace = TRUE)` takes the route of `frm_sample(fit,
+  laplace = TRUE)`: a missing value no density reads leaves the objective. On
+  an `exgaussian` with 200 rows and 60 missing the formula read sigma 0.910 and
+  beta 1.590. It now reads 0.360 and 2.132, the fit 0.355 and 2.146, and the
+  observed rows, fully sampled, 0.359 and 2.139. A value a density reads with no mode to expand
+  about is refused on this route as on `frm()`.
+
 # frmtmb.sample 0.25.0
 
 Needs frmtmb 0.78.0. Its `set_prior()` takes the classes `meanme`,

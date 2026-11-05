@@ -143,7 +143,8 @@ test_that("mi() degenerates and guards correctly", {
                "matching imputation model")
   expect_error(frm(bf(y ~ mi(x) + z) + gaussian() +
                      bf(x | mi() ~ z) + poisson(), data = d3),
-               "gaussian or student")
+               "Argument 'mi' is not supported for family 'poisson'",
+               fixed = TRUE)
   # mi() interactions work since v0.18
   fint <- frm(bf(y ~ mi(x) * z) + gaussian() +
                 bf(x | mi() ~ z) + gaussian(), data = d2)

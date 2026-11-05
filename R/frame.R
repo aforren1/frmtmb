@@ -688,7 +688,7 @@ check_se_declared <- function(resp) {
     "honors se(x, sigma = TRUE) by reading aterms[[\"se_sigma\"]] ",
     "and using sqrt(dpars[[\"sigma\"]]^2 + aterms[[\"se\"]]^2) ",
     "where it is TRUE. The built-in families that read it are ",
-    "gaussian and student", call. = FALSE,
+    "gaussian, student and skew_normal", call. = FALSE,
     package = frm_family_package(resp$family))
 }
 
@@ -1483,6 +1483,493 @@ lookup_structural <- function(expr, data2, data, env, what) {
                                    if (is.null(e2)) e else e2),
              call. = FALSE)
   })
+}
+
+#' The known covariance of a `gr(g, cov = A)` or `mm(g1, g2, cov = A)`
+#' term, on the levels of its block.
+#'
+#' @noRd
+gr_cov_matrix <- function(expr, data2, data, env, lv, what) {
+  A <- lookup_structural(expr, data2, data, env, what)
+  if (!is.matrix(A) || nrow(A) != ncol(A)) {
+    frm_stop(what, ": cov must be a square matrix", call. = FALSE)
+  }
+  # brms's validate_recov_matrix(), in its words. A triangle that disagrees
+  # with the other changed the fit by which one the density read, and a
+  # matrix that is not positive definite stopped on a NaN gradient
+  if (!isSymmetric(unname(A))) {
+    frm_stop(what, ": within-group covariance matrices must be symmetric",
+             call. = FALSE)
+  }
+  if (is.null(rownames(A)) || !all(lv %in% rownames(A))) {
+    frm_stop(what, ": cov needs dimnames covering all grouping levels",
+             call. = FALSE)
+  }
+  if (min(eigen(A, symmetric = TRUE, only.values = TRUE)$values) <= 0) {
+    frm_stop(what, ": within-group covariance matrices must be positive ",
+             "definite", call. = FALSE)
+  }
+  unname(A[lv, lv])
+}
+
+#' A known-covariance block fits an unstructured covariance within the
+#' levels, so a term that asked for another structure there is refused
+#' once its columns are known: one column needs none.
+#'
+#' @noRd
+gr_cov_check_within <- function(re, cnms) {
+  ws <- re[["within_struct"]]
+  d <- length(cnms)
+  if (is.null(ws) || d < 2L) return(invisible(NULL))
+  lab <- re[["within_label"]]
+  if (!identical(ws, "diag")) {
+    frm_stop(lab, " has ", d, " columns. ",
+             "gr(cov = ) and gr(prec = ) fix the covariance over ",
+             "the levels and fit an unstructured one within ",
+             "them, so several columns do not combine with ",
+             "another structure", call. = FALSE)
+  }
+  frm_stop(lab, " has a term with ", d,
+           " columns (", paste(cnms, collapse = ", "),
+           "), and an uncorrelated term over gr(cov = ) or ",
+           "gr(prec = ) gives each column its own sd. That is ",
+           "brms's model, but frmtmb's known-covariance block ",
+           "correlates the columns within a level, so it is not ",
+           "available yet. Write each column as a numeric ",
+           "variable of its own in the || term, or fit the ",
+           "columns correlated with |", call. = FALSE)
+}
+
+#' A missing value's chart: `mi_chart_fun()` maps the value to the latent
+#' parameter frmtmb holds, `mi_chart_inv()` back, on doubles or on the
+#' tape, and `mi_chart_logjac()` is the log-Jacobian the objective adds
+#' for the map from the parameter to the value. Stan's own transform for
+#' `real<lower=0>`, `real<lower=0,upper=1>` and
+#' `real<lower=-pi(),upper=pi()>`.
+#'
+#' The two bounded charts stop half a unit in the last place short of each
+#' end. A value that rounds to the end of its interval is a density of
+#' `log(0)` on the tape, so a Newton step at `u = 37` was `-Inf` while
+#' `u = -700` was finite: beta `mi()` with a mean near 1 stopped on a NaN
+#' gradient and a mean near 0 did not.
+#'
+#' @noRd
+mi_chart_eps <- 2^-53
+
+#' @noRd
+mi_chart_fun <- function(y, chart) {
+  e <- mi_chart_eps
+  unit <- function(p) {
+    stats::qlogis(pmin(pmax((p - e) / (1 - 2 * e), e), 1 - e))
+  }
+  switch(chart %||% "identity", log = log(y), logit = unit(y),
+         circle = unit((y + pi) / (2 * pi)), y)
+}
+
+#' @noRd
+mi_chart_inv <- function(u, chart) {
+  e <- mi_chart_eps
+  switch(chart %||% "identity", log = exp(u),
+         logit = e + (1 - 2 * e) / (1 + exp(-u)),
+         circle = 2 * pi * (e + (1 - 2 * e) / (1 + exp(-u))) - pi, u)
+}
+
+#' @noRd
+mi_chart_logjac <- function(u, chart) {
+  # log(p) + log1p(-p) of the inverse logit, by |u|, so that neither end
+  # overflows; it is smooth at 0, where the two halves have slope 0
+  lp <- function(u) -abs(u) - 2 * log1p(exp(-abs(u)))
+  switch(chart %||% "identity",
+         log = u,
+         logit = lp(u),
+         # a periodic density has infinite mass on the line, so a sampler
+         # needs brms's window as much as a positive family needs its own
+         circle = log(2 * pi) + lp(u),
+         0 * u)
+}
+
+#' What stands in for a missing response on the data side, where a
+#' family's `valid_y` reads the column: a value of its observed rows' mean
+#' is in the support of any family that has one.
+#'
+#' @noRd
+mi_placeholder <- function(obs) {
+  mean(obs)
+}
+
+#' Whether a chart moves the value, which is what puts a Jacobian in the
+#' objective. `"no_mode"` is the identity chart under another name.
+#'
+#' @noRd
+mi_chart_maps <- function(chart) {
+  isTRUE(chart %in% c("log", "logit", "circle"))
+}
+
+#' A family whose likelihood is not a product over rows, or a term that
+#' reads the lagged residual, holds each row whatever the row's weight.
+#'
+#' @noRd
+mi_rows_joint <- function(frame, r) {
+  fam <- frame[["spec"]]$responses[[r]]$family
+  !is.null(fam_structure(fam)[["loglik"]]) ||
+    (!is.null(frame[["autocor"]][[r]]) &&
+       autocor_is_cond(frame[["autocor"]][[r]]))
+}
+
+#' Which rows of response `s` still have their density in the objective, with
+#' the missing rows of `read` (a list by response) latent: a missing row that
+#' has left, or a weight of 0, takes the density out.
+#'
+#' @noRd
+mi_rows_live <- function(frame, s, read) {
+  n <- NROW(frame[["y"]][[s]])
+  if (mi_rows_joint(frame, s)) return(rep(TRUE, n))
+  w <- frame[["aterm_values"]][[s]][["weights"]]
+  live <- if (is.null(w)) rep(TRUE, n) else rep_len(w > 0, n)
+  m <- frame[["mi_map"]][[s]]
+  if (!is.null(m)) live[setdiff(m[["rows"]], read[[s]])] <- FALSE
+  live
+}
+
+#' The rows of each `mi()` response that a density in the objective reads
+#' beyond the response's own: a predictor's `mi(r)`, the lagged residual of a
+#' `cov = FALSE` autocorrelation term, and every row of `mi(sd)` or of a family
+#' whose likelihood is not a product over rows.
+#'
+#' A value is read only if its reader's density stays, so this peels from the
+#' leaves until nothing moves: `z | mi() ~ mi(y)` with `z` missing where `y` is
+#' takes both rows out, in that order, each integrating to 1 once the one
+#' reading it has gone. A value on a cycle has a reader at every step and stays.
+#'
+#' @noRd
+mi_rows_read <- function(frame) {
+  mp <- frame[["mi_map"]]
+  read <- lapply(mp, `[[`, "rows")
+  peel <- names(mp)[!vapply(names(mp), function(r) {
+    !is.null(mp[[r]][["se"]]) || mi_rows_joint(frame, r)
+  }, NA)]
+  repeat {
+    before <- lengths(read)
+    for (r in peel) {
+      reached <- integer(0)
+      for (lp in frame[["linpreds"]]) {
+        for (mt in lp[["mi"]] %||% list()) {
+          if (!identical(mt[["var"]], r)) next
+          live <- which(mi_rows_live(frame, lp[["resp"]], read))
+          reached <- c(reached, if (is.null(mt[["idxl"]])) live else
+            mt[["idxl"]][live])
+        }
+      }
+      read[[r]] <- intersect(read[[r]], reached)
+    }
+    if (identical(lengths(read), before)) return(read)
+  }
+}
+
+#' The maximum-likelihood design of a frame with `mi()`: a missing value no
+#' density reads integrates to 1, so its row leaves the objective, and
+#' `logLik()` is the complete-case one without any approximation. Brms's
+#' posterior for every other parameter is that one too. A row some density
+#' reads stays latent, under its Laplace approximation, and `frm_sample()`
+#' keeps every row (`mi_sampling()`), which is what this saves.
+#'
+#' A read value keeps its family's chart, von_mises's window among them: a
+#' reader takes the value linearly, so the periodic density does not make the
+#' line equivalent, and a value on the line runs off to tens of radians.
+#'
+#' @noRd
+mi_ml_frame <- function(frame) {
+  mp <- frame[["mi_map"]] %||% list()
+  if (!length(mp) || !is.null(frame[["mi_sampling"]])) return(frame)
+  frame[["mi_sampling"]] <- list(mi_map = mp, me = frame[["me"]],
+                                 miss = frame[["par_template"]][["miss"]])
+  miss <- frame[["par_template"]][["miss"]]
+  keep <- rep(TRUE, length(miss))
+  read <- mi_rows_read(frame)
+  for (r in names(mp)) {
+    m <- mp[[r]]
+    k <- m[["rows"]] %in% read[[r]]
+    keep[m[["idx"]][!k]] <- FALSE
+    m[["unread"]] <- m[["rows"]][!k]
+    m[["rows"]] <- m[["rows"]][k]
+    m[["idx"]] <- m[["idx"]][k]
+    mp[[r]] <- m
+  }
+  pos <- cumsum(keep)
+  for (r in names(mp)) mp[[r]][["idx"]] <- pos[mp[[r]][["idx"]]]
+  frame[["mi_map"]] <- mp
+  # the me() values follow the mi() ones in the vector
+  gone <- sum(!keep)
+  me <- frame[["me"]]
+  if (!is.null(me) && gone) {
+    for (j in seq_along(me$terms)) {
+      me$terms[[j]]$idx <- me$terms[[j]]$idx - gone
+    }
+    for (j in seq_along(me$groups)) {
+      me$groups[[j]]$idx <- me$groups[[j]]$idx - gone
+    }
+    frame[["me"]] <- me
+  }
+  frame[["par_template"]][["miss"]] <- if (any(keep)) miss[keep]
+  frame
+}
+
+#' What a sampler needs of `mi()` that the fit does not hold, one seam for
+#' frmtmb.sample, which reads no internal.
+#'
+#' `what = "fit"`: the fit with every missing row latent again and the
+#' chart restored (the inverse of `mi_ml_frame()`), its objective retaped.
+#' A sampler has to hold the rows a density does not read, because brms
+#' reports a draw of each, and the posterior of everything else is the
+#' same with them or without them. Read rows start at their estimates.
+#'
+#' `what = "laplace"`: an unfitted object (`frm(dry_run = "objective")`) on
+#' the maximum-likelihood design, for `frm_sample(formula, laplace = TRUE)`.
+#' That route integrates the values out as `frm()` does, so it has the same
+#' error on an unread row unless the row leaves the objective.
+#'
+#' `what = "natural"`: the charted columns of the draws, by the name
+#' `brms_miss_labels()` gives them, with `linkinv` from the chart to the
+#' value and `linkfun` back, as `gp_brms_natural()` gives for a `gp()`.
+#'
+#' @noRd
+mi_sampling <- function(fit, what = "fit") {
+  what <- frm_match_arg(what, c("fit", "laplace", "natural"))
+  mp <- fit$frame[["mi_map"]] %||% list()
+  if (what == "natural") {
+    lab <- brms_miss_labels(fit)
+    out <- list(names = character(0), linkinv = list(), linkfun = list())
+    for (r in names(mp)) {
+      if (!mi_chart_maps(mp[[r]][["chart"]])) next
+      cht <- mp[[r]][["chart"]]
+      ix <- mp[[r]][["idx"]]
+      out$names <- c(out$names, lab[ix])
+      out$linkinv <- c(out$linkinv, rep(list(function(x) {
+        mi_chart_inv(x, cht)
+      }), length(ix)))
+      out$linkfun <- c(out$linkfun, rep(list(function(x) {
+        mi_chart_fun(x, cht)
+      }), length(ix)))
+    }
+    return(out)
+  }
+  if (what == "laplace") {
+    if (!length(mp)) return(fit)
+    fit$frame <- mi_ml_frame(fit$frame)
+    check_mi_laplace(fit$frame)
+    fit$estimates[["miss"]] <- fit$frame[["par_template"]][["miss"]]
+    return(mi_retape(fit))
+  }
+  full <- fit$frame[["mi_sampling"]]
+  if (is.null(full)) return(fit)
+  fit$frame[["mi_sampling"]] <- NULL
+  if (!any(lengths(lapply(mp, `[[`, "unread")))) return(fit)
+  est <- full$miss
+  old <- fit$estimates[["miss"]]
+  for (r in names(mp)) {
+    m <- mp[[r]]
+    if (!length(m[["rows"]])) next
+    n <- full$mi_map[[r]]
+    est[n[["idx"]][match(m[["rows"]], n[["rows"]])]] <- old[m[["idx"]]]
+  }
+  for (j in seq_along(full$me$groups)) {
+    est[full$me$groups[[j]]$idx] <- old[fit$frame[["me"]]$groups[[j]]$idx]
+  }
+  fit$frame[["mi_map"]] <- full$mi_map
+  fit$frame[["me"]] <- full$me
+  fit$frame[["par_template"]][["miss"]] <- full$miss
+  fit$estimates[["miss"]] <- est
+  mi_retape(fit)
+}
+
+#' The objective of a fit whose latent values changed.
+#'
+#' @noRd
+mi_retape <- function(fit) {
+  tpl <- fit$frame[["par_template"]]
+  random <- c(if (!is.null(tpl[["b"]])) "b",
+              if (!is.null(tpl[["miss"]])) "miss",
+              if (isTRUE(fit$REML)) "beta")
+  fit$obj <- RTMB::MakeADFun(build_objective(fit$frame), fit$estimates,
+                             random = random, map = fit$frame[["map"]],
+                             silent = TRUE)
+  fit
+}
+
+#' How far the Laplace approximation of each read value lands from its
+#' integral, `log(Laplace) - log(integrate())`, one value at a time with
+#' everything else at the estimate. The chart's Jacobian is in the objective,
+#' so the integral runs on the chart. `NA` where the integral did not resolve.
+#'
+#' The variable is in units of the value's own curvature, because `integrate()`
+#' takes a scale of 1 on an infinite range and a well-pinned value is far
+#' narrower than that. The tolerance is loose because the estimate behind it is
+#' conservative: at 0.1 the total matches a core and two tails at 1e-6 to 0.04 on
+#' eight shapes (`dev/refuse-f2-rule.R`), at about 100 sweeps per value, not 250.
+#'
+#' @noRd
+mi_laplace_row_errors <- function(fit, at) {
+  env <- fit$obj$env
+  par <- env$last.par.best
+  miss_pos <- which(names(par) == "miss")
+  H <- env$spHess(par, random = TRUE)
+  hk <- Matrix::diag(H)[match(miss_pos, env$random)]
+  f0 <- env$f(par)
+  vapply(at, function(k) {
+    u0 <- par[miss_pos[k]]
+    s <- 1 / sqrt(hk[k])
+    if (!is.finite(s)) return(NA_real_)
+    h <- function(z) {
+      vapply(z, function(zi) {
+        p <- par
+        p[miss_pos[k]] <- u0 + s * zi
+        v <- exp(f0 - env$f(p))
+        if (is.finite(v)) v else 0
+      }, 0)
+    }
+    i <- stats::integrate(h, -Inf, Inf, subdivisions = 100L, rel.tol = 0.1,
+                          stop.on.error = FALSE)$value
+    if (!is.finite(i) || i <= 0) return(NA_real_)
+    0.5 * log(2 * pi) - log(i)
+  }, 0)
+}
+
+#' The most read values `mi_laplace_note()` integrates: each is about 100
+#' sweeps of the whole objective, so beyond this the rest are scaled from an
+#' even sample. The share of a fit this costs is measured in
+#' `dev/refuse-f2-cost.R`.
+#'
+#' @noRd
+mi_laplace_max_rows <- 30L
+
+#' Terms under one `|ID|` key over `mm()` with different weights: brms holds
+#' the weights per group, so it reads the first term's for every term. Refused
+#' rather than picked: frmtmb's own model would give each term its weights,
+#' which is not brms's, and brms's drops what a term wrote. Compared by value,
+#' because `weights = W` and `weights = cbind(w1, w2)` can be one matrix.
+#'
+#' @noRd
+check_id_mm_weights <- function(cps) {
+  first <- cps[[1L]]
+  for (cp in cps[-1L]) {
+    if (is.null(first$mm_W) || is.null(cp$mm_W)) next
+    if (isTRUE(all.equal(first$mm_W, cp$mm_W, check.attributes = FALSE))) next
+    frm_stop("Terms under one |ID| key give mm() different weights: ",
+             first$label, " and ", cp$label, ". brms reads the first term's ",
+             "weights for every term, and frmtmb will not pick one silently. ",
+             "Give the terms one set of weights, or different keys",
+             call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' Where a read value's Laplace approximation is exact: a gaussian value that
+#' only gaussian means read, on the identity link, since its log density is
+#' then a quadratic.
+#'
+#' @noRd
+mi_laplace_exact <- function(frame) {
+  gaussian_resp <- function(r) {
+    identical(frame[["spec"]]$responses[[r]]$family[["family"]], "gaussian")
+  }
+  for (r in names(frame[["mi_map"]])) {
+    if (!length(frame[["mi_map"]][[r]][["rows"]])) next
+    if (!gaussian_resp(r)) return(FALSE)
+  }
+  for (lp in frame[["linpreds"]]) {
+    if (!length(lp[["mi"]])) next
+    if (!gaussian_resp(lp[["resp"]]) || !identical(lp[["dpar"]], "mu") ||
+          !identical(lp[["link"]][["name"]], "identity")) {
+      return(FALSE)
+    }
+  }
+  TRUE
+}
+
+#' How many rows of the data have no density left in the objective, which is
+#' what `BIC()` must not count: in a multivariate model a row that one response
+#' lost and another still reads stays. A response under `subset()` has its own
+#' rows, and `mi_map` is on those.
+#'
+#' @noRd
+mi_rows_gone <- function(frame) {
+  gone <- integer(0)
+  held <- integer(0)
+  for (r in names(frame[["y"]])) {
+    rows <- seq_len(NROW(frame[["y"]][[r]]))
+    un <- frame[["mi_map"]][[r]][["unread"]]
+    of <- frame[["subset_rows"]][[r]] %||% rows
+    gone <- c(gone, of[un])
+    held <- c(held, of[setdiff(rows, un)])
+  }
+  length(setdiff(gone, held))
+}
+
+#' After a fit: warn when the Laplace approximation of the read values has a
+#' material error. The threshold is on the total, in nats of `logLik()`,
+#' because that is what can move an estimate; its calibration against shifts
+#' measured in exact standard errors is in `?bf`.
+#'
+#' @noRd
+mi_laplace_note <- function(fit) {
+  mp <- fit$frame[["mi_map"]] %||% list()
+  n_read <- sum(vapply(mp, function(m) length(m[["rows"]]), 0L))
+  if (!n_read || mi_laplace_exact(fit$frame)) return(fit)
+  at <- if (n_read > mi_laplace_max_rows) {
+    unique(round(seq(1, n_read, length.out = mi_laplace_max_rows)))
+  } else {
+    seq_len(n_read)
+  }
+  err <- tryCatch(mi_laplace_row_errors(fit, at),
+                  error = function(e) rep(NA_real_, length(at)))
+  ok <- is.finite(err)
+  total <- if (any(ok)) mean(err[ok]) * n_read else NA_real_
+  fit$mi_laplace <- list(total = total, n_read = n_read, rows = at, error = err)
+  if (is.finite(total) && abs(total) > mi_laplace_limit) {
+    who <- names(mp)[vapply(mp, function(m) length(m[["rows"]]) > 0L, NA)]
+    frm_warning(
+      "The Laplace approximation of the ", n_read, " missing value(s) of ",
+      paste0("`", who, "`", collapse = ", "), " that another density reads ",
+      "is off by about ", format(abs(total), digits = 2), " in logLik() at ",
+      "this estimate, against integrate() per value, and an error of this ",
+      "size can shift an estimate by more than a standard error. ",
+      "frmtmb.sample::frm_sample() has no such error. If the predictor that ",
+      "reads the value carries little about it, deleting those rows gives ",
+      "nearly the same model without the error. See ?bf, Missing values ",
+      "under mi()", call. = FALSE, class = "frmtmb_mi_laplace_error")
+  }
+  fit
+}
+
+#' Calibrated in `dev/refuse-findings.md` against the shifts in exact
+#' standard errors of a read value's approximation.
+#'
+#' @noRd
+mi_laplace_limit <- 1
+
+#' `frm()` integrates a read value out by a Laplace approximation, which
+#' expands about one mode by its curvature. asym_laplace's log density is
+#' piecewise linear, so the inner Hessian is 0 on both sides of its kink
+#' and the fit stops on a NaN gradient, and a mixture has one mode per
+#' component. The rows no density reads have left the objective by now
+#' (`mi_ml_frame()`), so this speaks only of the rows that need the
+#' approximation. The sampler needs no curvature.
+#'
+#' @noRd
+check_mi_laplace <- function(frame) {
+  mp <- frame[["mi_map"]] %||% list()
+  bad <- names(mp)[vapply(mp, function(m) {
+    length(m[["rows"]]) &&
+      (identical(m[["chart"]], "no_mode") || isTRUE(m[["no_laplace"]]))
+  }, NA)]
+  if (!length(bad)) return(invisible(NULL))
+  frm_stop("frm() cannot fit mi() on `", bad[1L], "`: another density reads ",
+           "its missing values, so they are integrated out by a Laplace ",
+           "approximation, which expands about one mode by its curvature, ",
+           "and this family has no such mode: asym_laplace's log density has ",
+           "no curvature at its kink, and a mixture has one mode per ",
+           "component. frmtmb.sample::frm_sample() samples this model, as ",
+           "brms does", call. = FALSE)
 }
 
 #' Build one field term's block through its structure's `term$build`.
@@ -2686,21 +3173,49 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                "cratio() and acat()", call. = FALSE)
     }
     if (isTRUE(resp$aterms[["mi"]])) {
-      if (!resp$family[["family"]] %in% c("gaussian", "student")) {
-        frm_stop("mi() responses need a gaussian or student model",
-                 call. = FALSE)
+      # brms's own sentence. The families that take the term declare it
+      # (brms's list: the continuous families with one density on the
+      # line, the half line or the unit interval)
+      if (!"mi" %in% accepted_aterm_names(resp$family)) {
+        frm_stop("Argument 'mi' is not supported for family '",
+                 resp$family[["family"]], "', as in brms: a missing value ",
+                 "of the response is a latent parameter here, so the family ",
+                 "needs a continuous density it can be integrated over. A ",
+                 "family of your own declares it with ",
+                 "frmtmb_family(accepts_aterms = )", call. = FALSE)
       }
-      if (any(c("cens", "trunc_lb", "trunc_ub", "se") %in%
-                names(resp$aterms))) {
-        frm_stop("mi() cannot be combined with cens(), trunc(), or se() ",
-                 "on the same response", call. = FALSE)
-      }
+      mi_chart <- resp$family[["mi_chart"]] %||% "identity"
       if (spec$rescor) {
         frm_stop("mi() cannot be combined with rescor = TRUE", call. = FALSE)
       }
       yv <- y[[resp$resp_name]]
       if (is.matrix(yv)) {
         frm_stop("mi() responses must be numeric vectors", call. = FALSE)
+      }
+      if (all(is.na(yv))) {
+        frm_stop("mi(): the response `", resp$resp_name, "` has no observed ",
+                 "value, so the family's parameters have no data",
+                 call. = FALSE)
+      }
+      # with nothing latent the term asks for nothing these two conflict
+      # with; brms keeps every draw there
+      if (anyNA(yv) || !is.null(av[["mi_sd"]])) {
+        if ("cens" %in% names(resp$aterms)) {
+          # brms 2.23.0 builds this and reads no latent value: its density
+          # is taken at the data, where a missing value is Inf
+          frm_stop("mi() cannot be combined with cens() on the same response ",
+                   "when a value is latent: a missing value's own censoring ",
+                   "code has no meaning, and brms 2.23.0's program for this ",
+                   "pair takes the density at the placeholder of the missing ",
+                   "value, not at the latent one, so there is no model to ",
+                   "match", call. = FALSE)
+        }
+        if (any(c("trunc_lb", "trunc_ub") %in% names(resp$aterms))) {
+          frm_stop("mi() cannot be combined with trunc() on the same response ",
+                   "when a value is latent, yet: a missing value would need ",
+                   "a chart inside the truncation window of its row. brms ",
+                   "2.23.0 fits this pair", call. = FALSE)
+        }
       }
       if (!is.null(av[["mi_sd"]])) {
         # measurement error (brms me()): every true value is latent;
@@ -2716,22 +3231,28 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         rows <- seq_along(yv)
         mi_map[[resp$resp_name]] <- list(
           rows = rows, idx = n_miss + rows,
-          se = av[["mi_sd"]], obs = obs
+          se = av[["mi_sd"]], obs = obs, chart = mi_chart,
+          no_laplace = resp$family[["mi_no_laplace"]]
         )
         n_miss <- n_miss + length(rows)
         miss_init <- c(miss_init,
-                       ifelse(is.na(yv), mean(yv[obs]), yv))
-        yv[is.na(yv)] <- 0
+                       mi_chart_fun(ifelse(is.na(yv), mean(yv[obs]), yv),
+                                    mi_chart))
+        yv[is.na(yv)] <- mi_placeholder(yv[obs])
         y[[resp$resp_name]] <- yv
       } else {
         rows <- which(is.na(yv))
         if (length(rows)) {
           mi_map[[resp$resp_name]] <- list(rows = rows,
-                                           idx = n_miss + seq_along(rows))
+                                           idx = n_miss + seq_along(rows),
+                                           chart = mi_chart,
+                                           no_laplace = resp$family[[
+                                             "mi_no_laplace"]])
           n_miss <- n_miss + length(rows)
           miss_init <- c(miss_init,
-                         rep(mean(yv[-rows]), length(rows)))
-          yv[rows] <- 0
+                         rep(mi_chart_fun(mean(yv[-rows]), mi_chart),
+                             length(rows)))
+          yv[rows] <- mi_placeholder(yv[-rows])
           y[[resp$resp_name]] <- yv
         }
       }
@@ -2811,6 +3332,21 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                  "censoring may supply the log survivor function through ",
                  "lccdf instead", call. = FALSE,
                  package = frm_family_package(resp$family))
+      }
+      if (!is.null(resp$family[["mix"]]) &&
+            (!is.null(av[["trunc_lb"]]) || !is.null(av[["trunc_ub"]]))) {
+        # the tails above would truncate the mixture as one density, a
+        # different model from brms's, which truncates each component
+        # and then mixes them
+        frm_stop("trunc() on a mixture() is not available: brms 2.23.0 ",
+                 "truncates each component and then mixes them, and frmtmb ",
+                 "has no per-component window in its density", call. = FALSE)
+      }
+      if (!is.null(resp$family[["mix_groups"]]) && !is.null(av[["cens"]])) {
+        # a class is read off the whole group, whose density is summed
+        # before the mixing and has no censored row
+        frm_stop("cens() on a group-level mixture(groups = ) is not ",
+                 "available", call. = FALSE)
       }
       # brms's own two checks. A response outside its window is a row the
       # truncated likelihood says could not have been observed; scored
@@ -3332,13 +3868,26 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             md <- mm_member_designs(mms, mf, resp$formula_env,
                                     iw$n_members)
             Zk <- mm_local_Z(iw$J, iw$W, md$designs, length(levs))
+            aux_A <- NULL
+            aux_kron <- NULL
+            if (cs_name == "gr_cov") {
+              gr_cov_check_within(dp[["re"]][[k]], md$cnms)
+              aux_A <- gr_cov_matrix(dp[["re"]][[k]]$cov_expr, data2, data,
+                                     resp$formula_env, levs, "mm(cov = )")
+              if (length(md$cnms) > 1L) {
+                aux_kron <- kron_cov_index(length(md$cnms), length(levs))
+              }
+            }
             components[[length(components) + 1L]] <- list(
               lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
-              covstruct = cs_name, id = NULL, rank = NULL,
+              covstruct = cs_name, id = dp[["re"]][[k]]$id, rank = NULL,
               dim = length(md$cnms), n_levels = length(levs),
               levels = levs, cnms = md$cnms,
               bar = bars[[k]], Zlocal = methods::as(Zk, "CsparseMatrix"),
+              aux_A = aux_A, aux_kron = aux_kron,
               mm = mms,
+              # compared with the other terms under its key, then dropped
+              mm_W = if (!is.null(dp[["re"]][[k]]$id)) iw$W,
               written = dp[["re"]][[k]]$written,
               written_text = dp[["re"]][[k]][["written_text"]],
               # brms's name for the group, by its members alone, which
@@ -3376,26 +3925,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             rt$cnms[[kk]] <- rt$cnms[[kk]][keep]
           }
           d_k <- length(rt$cnms[[kk]])
-          ws <- dp[["re"]][[k]][["within_struct"]]
-          if (!is.null(ws) && d_k > 1L) {
-            lab <- dp[["re"]][[k]][["within_label"]]
-            if (!identical(ws, "diag")) {
-              frm_stop(lab, " has ", d_k, " columns. ",
-                       "gr(cov = ) and gr(prec = ) fix the covariance over ",
-                       "the levels and fit an unstructured one within ",
-                       "them, so several columns do not combine with ",
-                       "another structure", call. = FALSE)
-            }
-            frm_stop(lab, " has a term with ", d_k,
-                     " columns (", paste(rt$cnms[[kk]], collapse = ", "),
-                     "), and an uncorrelated term over gr(cov = ) or ",
-                     "gr(prec = ) gives each column its own sd. That is ",
-                     "brms's model, but frmtmb's known-covariance block ",
-                     "correlates the columns within a level, so it is not ",
-                     "available yet. Write each column as a numeric ",
-                     "variable of its own in the || term, or fit the ",
-                     "columns correlated with |", call. = FALSE)
-          }
+          gr_cov_check_within(dp[["re"]][[k]], rt$cnms[[kk]])
           len_k <- length(zrows)
           dist_cs <- c("ou", "exp", "gau", "mat")
           if (cs_name %in% c("ar1", "hetar1", "cs", "homcs", "toep",
@@ -3446,17 +3976,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             if (d_k > 1L) aux_Qk <- kron_prec_parts(aux_Q, d_k)
           }
           if (cs_name == "gr_cov") {
-            A <- lookup_structural(dp[["re"]][[k]]$cov_expr, data2, data,
-                                   resp$formula_env, "gr(cov = )")
-            if (!is.matrix(A) || nrow(A) != ncol(A)) {
-              frm_stop("gr(cov=): cov must be a square matrix", call. = FALSE)
-            }
-            lv <- levels(fac)
-            if (is.null(rownames(A)) || !all(lv %in% rownames(A))) {
-              frm_stop("gr(cov=): cov needs dimnames covering all grouping ",
-                       "levels", call. = FALSE)
-            }
-            aux_A <- unname(A[lv, lv])
+            aux_A <- gr_cov_matrix(dp[["re"]][[k]]$cov_expr, data2, data,
+                                   resp$formula_env, levels(fac),
+                                   "gr(cov = )")
             if (d_k > 1L) {
               aux_kron <- kron_cov_index(d_k, len_k %/% d_k)
             }
@@ -3578,6 +4100,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
               levels = NULL, cnms = paste0(sm$label, ".", seq_len(k_r)),
               bar = NULL, Zlocal = methods::as(Xr, "CsparseMatrix"),
               group_name = sm$label,
+              # brms's coef of class "sds": one row for every penalty and
+              # by-level of the term
+              sm_term = attr(sspec, "frm_term_brms") %||% sm$label,
               label = paste0(dp_prefix, sm$label)
             )
             sm_comp_ids <- c(sm_comp_ids, length(components))
@@ -4143,6 +4668,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                    }, call. = FALSE)
         }
       }
+      check_id_mm_weights(cps)
       D <- sum(vapply(cps, `[[`, 0L, "dim"))
       n_levels <- cps[[1]]$n_levels
       # A merged group of gr(cov =) / gr(prec =) terms is ONE Kronecker
@@ -4263,6 +4789,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       gp_brms = cps[[1]]$gp_brms,
       cnms = cnms,
       group_name = cps[[1]]$group_name,
+      sm_term = cps[[1]]$sm_term,
       term_label = label,
       dpar = cps[[1]]$dpar,
       components = lapply(seq_along(gd), function(k) {

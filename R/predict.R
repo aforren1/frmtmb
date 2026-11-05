@@ -429,7 +429,7 @@ frame_observed_y <- function(fit, resp) {
   mm <- fit$frame[["mi_map"]][[resp]]
   if (is.null(mm) || is.matrix(y)) return(y)
   miss <- if (is.null(mm$obs)) mm$rows else setdiff(mm$rows, mm$obs)
-  y[miss] <- NA
+  y[c(miss, mm$unread)] <- NA
   y
 }
 
@@ -439,7 +439,17 @@ frame_observed_y <- function(fit, resp) {
 mi_values <- function(fit, vn) {
   xv <- fit$frame[["y"]][[vn]]
   mm_ <- fit$frame[["mi_map"]][[vn]]
-  if (!is.null(mm_)) xv[mm_$rows] <- fit$estimates[["miss"]][mm_$idx]
+  if (is.null(mm_)) return(xv)
+  if (length(mm_$rows)) {
+    xv[mm_$rows] <- mi_chart_inv(fit$estimates[["miss"]][mm_$idx], mm_$chart)
+  }
+  # a row that left the objective holds a placeholder for the family's valid_y,
+  # no estimate of the value, so a reader's prediction there takes its mean
+  if (length(mm_$unread)) {
+    self <- fit
+    self$frame[["mi_map"]][[vn]][["unread"]] <- NULL
+    xv[mm_$unread] <- stats::fitted(self, resp = vn)[mm_$unread, "Estimate"]
+  }
   xv
 }
 

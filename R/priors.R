@@ -25,7 +25,7 @@
 #'   prior lands. On an ordinal family the thresholds are the intercept,
 #'   here as in brms, so this class addresses the whole threshold
 #'   vector; see Ordinal thresholds.
-#' - `"sd"`: random-effect standard deviations (and smoothing SDs), on
+#' - `"sd"`: random-effect standard deviations, on
 #'   the NATURAL sd scale with the log-Jacobian applied, so
 #'   `set_prior("exponential(1)", class = "sd")` means what it says;
 #'   narrow with `group`, and to one coefficient's standard deviation
@@ -414,7 +414,13 @@
 #'   `mo()` simplex and on a `cox()` baseline. So do `meanme`, `sdme`
 #'   and `corme`, the hyperparameters of a `me()` term, brms's `lkj(1)`
 #'   default on `corme` included.
-#' - `theta`/`theta1`/`theta2`, `sds`, `sdcar` and `car` are refused by
+#' - `sds` is the standard deviation of a smooth's penalized part, brms's
+#'   class of the same name. `coef` names one smooth term as
+#'   [default_prior()] lists it (`"s(x)"`, `"t2(x, z)"`,
+#'   `"s(x, by = f)"`), and a term with several standard deviations
+#'   (a `t2()` or a by-smooth) takes the density on each of them, as in
+#'   brms. Class `"sd"` does not reach a smooth.
+#' - `theta`/`theta1`/`theta2`, `sdcar` and `car` are refused by
 #'   name, each saying where frmtmb keeps that quantity instead. A
 #'   refusal is deliberate: translating one of them would produce a
 #'   different model rather than no model.
@@ -475,7 +481,7 @@
 #' @param prior Distribution string, e.g. `"normal(0, 5)"`, or a
 #'   [prior_normal()]/[prior_t()]/[prior_lkj()] object, or `""` for
 #'   bounds only.
-#' @param class `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"`, one
+#' @param class `"b"`, `"Intercept"`, `"sd"`, `"sds"`, `"cor"`, `"theta"`, one
 #'   of the residual-structure classes `"ar"`, `"ma"`, `"cosy"`,
 #'   `"cortime"` and `"rescor"`, the simplex classes `"simo"` and
 #'   `"sbhaz"`, the `me()` classes `"meanme"`, `"sdme"` and `"corme"`,
@@ -484,7 +490,8 @@
 #'   own class.
 #' @param coef Restrict to one coefficient (classes `"b"`/`"Intercept"`),
 #'   to the standard deviation of one coefficient (class `"sd"`, with
-#'   `group`), name the simplex of class `"simo"`, name one `me()`
+#'   `group`), to one smooth term (class `"sds"`), name the simplex of
+#'   class `"simo"`, name one `me()`
 #'   variable of class `"meanme"` or `"sdme"`, or name one internal
 #'   parameter of class `"theta"`. A coefficient is
 #'   named as brms names it and as [default_prior()] lists it: `logxp`
@@ -514,7 +521,7 @@
 #'   the vocabulary is a property of the model rather than of the
 #'   package: a name that is neither one of frmtmb's own classes nor a
 #'   usable parameter name errors here and lists the permitted values,
-#'   a name frmtmb refuses on principle (`sds`, `car`, ...)
+#'   a name frmtmb refuses on principle (`sdcar`, `car`, ...)
 #'   errors here saying where that quantity lives, and any other name
 #'   is read as a distributional parameter's and checked against the
 #'   model's own parameters when the prior is resolved, which is where
@@ -627,7 +634,8 @@ prior_class_bounds <- function(s) {
       c(lb = FALSE, ub = FALSE)))
   }
   switch(s$class,
-    sd = , sdgp = , lscale = , delta = , sdme = c(lb = TRUE, ub = FALSE),
+    sd = , sds = , sdgp = , lscale = , delta = ,
+    sdme = c(lb = TRUE, ub = FALSE),
     cosy = c(lb = TRUE, ub = TRUE),
     c(lb = FALSE, ub = FALSE))
 }
@@ -875,7 +883,8 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
 #' a distributional parameter, which is a class in brms too.
 #'
 #' @noRd
-frmtmb_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale", "cor",
+frmtmb_prior_classes <- c("b", "Intercept", "sd", "sds", "sdgp", "lscale",
+                          "cor",
                           "theta", "ar", "ma", "cosy", "cortime", "rescor",
                           "delta", "simo", "sbhaz", "lncor",
                           "meanme", "sdme", "corme")
@@ -887,8 +896,8 @@ frmtmb_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale", "cor",
 #' dpars the model actually has: `resolve_priorlist()` does that, where
 #' it can list them. What CAN be checked is the vocabulary brms and
 #' frmtmb disagree about, and it is checked with the same messages the
-#' translated route uses, so `set_prior(class = "sds")` and a brms
-#' `sds` row now say the same thing.
+#' translated route uses, so `set_prior(class = "car")` and a brms
+#' `car` row now say the same thing.
 #'
 #' @noRd
 check_dpar_prior_class <- function(cls) {
@@ -1247,6 +1256,12 @@ unhonored_coef_refusal <- function(cls, coef, group = "") {
                   "are addressed with class = \"b\" or ",
                   "class = \"Intercept\". "))
   }
+  if (identical(cls, "sds") && nzchar(group)) {
+    return(paste0("class = \"sds\" has no group: a smooth is not a ",
+                  "grouping term, and brms's rows for it carry none. ",
+                  "`coef` names the term, as get_prior() lists it ",
+                  "(\"s(x)\", \"s(x, by = f)\"). "))
+  }
   if (cls %in% c("sdgp", "lscale") && nzchar(group)) {
     return(paste0("class = \"", cls, "\" has no group: a gp() term is not ",
                   "a grouping term, and brms's rows for it carry none. ",
@@ -1279,8 +1294,8 @@ unhonored_coef_refusal <- function(cls, coef, group = "") {
 #' meaning, so a translated row keeps its class untouched.
 #'
 #' @noRd
-brms_direct_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale",
-                               "cor", "ar", "ma", "cosy", "cortime",
+brms_direct_prior_classes <- c("b", "Intercept", "sd", "sds", "sdgp",
+                               "lscale", "cor", "ar", "ma", "cosy", "cortime",
                                "rescor", "delta", "simo", "sbhaz", "lncor",
                                "meanme", "sdme", "corme")
 
@@ -1311,11 +1326,6 @@ brms_prior_class_refusal <- function(cls) {
                   "row applies nothing in brms either. "))
   }
   switch(cls,
-    sds = paste0(
-      "brms's \"sds\" is the wiggliness standard deviation of a smooth. ",
-      "frmtmb holds a smooth as a random-effect block, so its frmtmb ",
-      "spelling is class = \"sd\" with group = the smooth's label, e.g. ",
-      "group = \"s(x)\"; get_prior() lists the label this model has. "),
     sdcar = paste0(
       "brms's \"sdcar\" is the standard deviation of a car() term. ",
       "frmtmb holds a car() as a random-effect block, so its frmtmb ",
@@ -2103,7 +2113,7 @@ fill_prior_table <- function(tab, pl) {
   # brms (sd_spec_reach())
   covers <- function(resp, dpar, nlpar, class, rows) {
     wide <- identical(class, "cor")
-    sd <- identical(class, "sd")
+    sd <- class %in% c("sd", "sds")
     (rows$resp == resp | (!sd & !nzchar(resp))) &
       (rows$dpar == dpar | (wide & !nzchar(dpar))) &
       (rows$nlpar == nlpar | (wide & !nzchar(nlpar)))
@@ -2439,6 +2449,7 @@ prior_table <- function(spec, frame, route) {
   sd_rows <- list()
   cor_rows <- list()
   gp_rows <- list()
+  sm_rows <- list()
   for (bk in frame[["re_blocks"]]) {
     key <- list(group = bk[["group_name"]], nlpar = block_nlpar(spec, frame,
                                                                 bk),
@@ -2455,6 +2466,16 @@ prior_table <- function(spec, frame, route) {
           sfx1 = bk[["gp_brms"]][["sfx1"]],
           sfx2 = bk[["gp_brms"]][["sfx2"]])
       }
+      next
+    }
+    # a smooth's sd is brms's class sds, keyed by the prefix class "sd"
+    # uses, coef the term as written; a by-smooth's levels and a t2()'s
+    # penalties share the one row
+    if (identical(bk[["covstruct"]], "smooth")) {
+      sm_rows[[length(sm_rows) + 1L]] <- cbind(
+        unique(block_sd_prefix(spec, frame, bk)[, c("resp", "dpar",
+                                                    "nlpar")]),
+        coef = block_sm_term(bk), stringsAsFactors = FALSE)
       next
     }
     # brms lists sd rows per prefix, so a block spanning mu and sigma
@@ -2505,6 +2526,20 @@ prior_table <- function(spec, frame, route) {
         add(cl, coef = co, dpar = k$dpar, nlpar = k$nlpar, resp = k$resp,
             lb = 0)
       }
+    }
+  }
+  # brms bounds the class row of sds below by 0 and leaves the term
+  # rows without one
+  if (length(sm_rows)) {
+    sm_rows <- unique(do.call(rbind, sm_rows))
+    pre <- unique(sm_rows[, c("resp", "dpar", "nlpar")])
+    for (i in seq_len(nrow(pre))) {
+      add("sds", dpar = pre$dpar[i], nlpar = pre$nlpar[i], resp = pre$resp[i],
+          lb = 0)
+    }
+    for (i in seq_len(nrow(sm_rows))) {
+      add("sds", coef = sm_rows$coef[i], dpar = sm_rows$dpar[i],
+          nlpar = sm_rows$nlpar[i], resp = sm_rows$resp[i])
     }
   }
   # the R-side residual structures, under the class names brms shows for
@@ -2871,6 +2906,9 @@ sd_spec_reach <- function(spec, frame, bk, s) {
   n <- length(block_sd_idx(bk))
   none <- list(reach = logical(n), exact = FALSE)
   if (!n) return(none)
+  # brms's sd and sds are two classes: neither reaches the other's blocks
+  is_sm <- identical(bk[["covstruct"]], "smooth")
+  if (is_sm != identical(s$class, "sds")) return(none)
   if (nzchar(s$group) && !identical(bk[["group_name"]], s$group)) {
     return(none)
   }
@@ -2878,6 +2916,15 @@ sd_spec_reach <- function(spec, frame, bk, s) {
             nlpar = s$nlpar %||% "")
   eq <- sp$resp == want[["resp"]] & sp$dpar == want[["dpar"]] &
     sp$nlpar == want[["nlpar"]]
+  if (is_sm) {
+    # coef names the term and is matched as written, as brms matches it
+    # ("s(z,k=5)" names nothing on s(z, k = 5)); the term's standard
+    # deviations go together
+    hit <- !nzchar(s$coef %||% "") ||
+      identical(s$coef, block_sm_term(bk))
+    reach <- rep(hit && any(eq), n)
+    return(list(reach = reach, exact = any(reach)))
+  }
   if (nzchar(s$coef %||% "")) {
     cf <- block_sd_coefs(frame, bk)
     hit <- prior_coef_match_brms(cf, s$coef)
@@ -2895,6 +2942,39 @@ sd_spec_reach <- function(spec, frame, bk, s) {
   }
   reach <- vapply(seq_len(n), function(j) any(fits[sp$k == j]), TRUE)
   list(reach = reach, exact = any(eq))
+}
+
+#' The smooth term a smooth block belongs to, brms's coef of class
+#' `"sds"`: the term as R deparses it, one for all the penalties of a
+#' `t2()` and all the levels of a by-smooth.
+#'
+#' @noRd
+block_sm_term <- function(bk) {
+  bk[["sm_term"]] %||% bk[["group_name"]]
+}
+
+#' What a refused class `"sds"` specification could have named.
+#'
+#' @noRd
+sds_term_hint <- function(spec, frame) {
+  bks <- Filter(function(bk) identical(bk[["covstruct"]], "smooth"),
+                frame[["re_blocks"]])
+  if (!length(bks)) return("This model has no smooth terms")
+  trm <- unique(vapply(bks, block_sm_term, ""))
+  pre <- unique(do.call(rbind, lapply(bks, function(bk) {
+    block_sd_prefix(spec, frame, bk)[, c("resp", "dpar", "nlpar")]
+  })))
+  lab <- apply(pre, 1L, function(r) {
+    f <- c(if (nzchar(r[["resp"]])) paste0("resp = \"", r[["resp"]], "\""),
+           if (nzchar(r[["dpar"]])) paste0("dpar = \"", r[["dpar"]], "\""),
+           if (nzchar(r[["nlpar"]])) paste0("nlpar = \"", r[["nlpar"]], "\""))
+    if (length(f)) paste(f, collapse = ", ") else "no resp, dpar or nlpar"
+  })
+  paste0("As in brms, coef names a smooth term as default_prior() lists ",
+         "it, and class \"sds\" is addressed per response, distributional ",
+         "parameter and nonlinear parameter. This model's terms: ",
+         paste0("\"", trm, "\"", collapse = ", "), "; its prefixes: ",
+         paste0("(", lab, ")", collapse = "; "))
 }
 
 #' The structures whose standard deviations no brms coefficient names,
@@ -2996,7 +3076,7 @@ sd_coef_hint <- function(frame, s) {
 #' @noRd
 sd_coef_shared <- function(spec, frame, bk, s) {
   if (!nzchar(s$coef %||% "") || !length(block_sd_idx(bk)) ||
-        bk[["covstruct"]] %in% sd_coef_unaddressable) {
+        bk[["covstruct"]] %in% c(sd_coef_unaddressable, "smooth")) {
     return(character(0))
   }
   if (nzchar(s$group) && !identical(bk[["group_name"]], s$group)) {
@@ -3020,9 +3100,11 @@ sd_prefix_hint <- function(spec, frame) {
   sp <- unique(do.call(rbind, c(
     list(data.frame(resp = character(0), dpar = character(0),
                     nlpar = character(0))),
-    # a gp() term's sd is class "sdgp", which the caller names
-    lapply(Filter(function(bk) !bk[["covstruct"]] %in% c("gp", "hsgp"),
-                  frame[["re_blocks"]]), function(bk) {
+    # a gp() term's sd is class "sdgp" and a smooth's "sds", which the
+    # caller names
+    lapply(Filter(function(bk) {
+      !bk[["covstruct"]] %in% c("gp", "hsgp", "smooth")
+    }, frame[["re_blocks"]]), function(bk) {
       block_sd_prefix(spec, frame, bk)[, c("resp", "dpar", "nlpar")]
     }))))
   if (!NROW(sp)) return("This model has no random-effect standard deviations")
@@ -3453,10 +3535,13 @@ cov_class_coefs <- function(spec, frame) {
     sd_i <- block_sd_idx(bk)
     sp <- block_sd_prefix(spec, frame, bk)
     cf <- block_sd_coefs(frame, bk)
+    is_sm <- identical(bk[["covstruct"]], "smooth")
     for (j in seq_along(sd_i)) {
       i <- ti[sd_i[j]]
-      add("theta", i, nm_th[i], "sd", group = bk[["group_name"]],
-          coef = cf[j], pre = sp[sp$k == j, , drop = FALSE][1L, ])
+      add("theta", i, nm_th[i], if (is_sm) "sds" else "sd",
+          group = if (is_sm) "" else bk[["group_name"]],
+          coef = if (is_sm) block_sm_term(bk) else cf[j],
+          pre = sp[sp$k == j, , drop = FALSE][1L, ])
     }
     if (identical(block_cor_prior(bk), "lkj")) {
       pre <- list(resp = if (multi) block_resp(frame, bk) else "",
@@ -3497,11 +3582,12 @@ cov_class_refusal <- function(row) {
                  }, ")")
   what <- switch(row$class,
     sd = "a standard deviation",
+    sds = "a smooth's standard deviation",
     sdgp = "a gp() standard deviation",
     lscale = "a gp() length scale",
     cor = "a random-effect correlation",
     rescor = "a residual correlation")
-  noun <- switch(row$class, sd = , sdgp = "standard deviation",
+  noun <- switch(row$class, sd = , sds = , sdgp = "standard deviation",
                  lscale = "length scale", "")
   scale <- switch(row$class,
     cor = paste0(" A correlation takes lkj() on the block's whole ",
@@ -4349,8 +4435,9 @@ resolve_priorlist <- function(fit, pl) {
         if (!is.na(s$lb)) lower[tg$name] <- internal_bound(s$lb, pm, "lb")
         if (!is.na(s$ub)) upper[tg$name] <- internal_bound(s$ub, pm, "ub")
       }
-    } else if (s$class == "sd") {
-      if (nzchar(s$coef %||% "") && !nzchar(s$group)) {
+    } else if (s$class %in% c("sd", "sds")) {
+      is_sd <- identical(s$class, "sd")
+      if (is_sd && nzchar(s$coef %||% "") && !nzchar(s$group)) {
         # brms keys a coefficient's sd row by its group and has no
         # row sd_x: "The following priors do not correspond to any
         # model parameter" (dev/prilabel-log/brms-ref.txt)
@@ -4379,7 +4466,8 @@ resolve_priorlist <- function(fit, pl) {
       }, TRUE))
       hit <- FALSE
       for (bk in if (exact) frame[["re_blocks"]]) {
-        # a gp() term's sd is brms's class "sdgp", not "sd"
+        # a gp() term's sd is brms's class "sdgp", not "sd", and a
+        # smooth's is "sds" (sd_spec_reach() keeps those two apart)
         if (bk[["covstruct"]] %in% c("gp", "hsgp")) next
         sd_i <- cs_entry(bk[["covstruct"]])$sd_idx(bk)
         sd_i <- sd_i[sd_spec_reach(fit$spec, frame, bk, s)$reach]
@@ -4401,15 +4489,23 @@ resolve_priorlist <- function(fit, pl) {
           if (!is.na(s$ub)) upper[nm_theta] <- log(s$ub)
         }
       }
+      if (!hit && !is_sd) {
+        frm_stop("No smooth standard deviations match ", spec_target(s),
+                 ". ", sds_term_hint(fit$spec, frame), call. = FALSE)
+      }
       if (!hit) {
+        cs_all <- vapply(frame[["re_blocks"]], `[[`, "", "covstruct")
         frm_stop("No random-effect SDs match ", spec_target(s), ". ",
                  if (nzchar(s$coef %||% "")) sd_coef_hint(frame, s),
                  sd_prefix_hint(fit$spec, frame),
-                 if (any(vapply(frame[["re_blocks"]], function(bk) {
-                   bk[["covstruct"]] %in% c("gp", "hsgp")
-                 }, NA))) {
+                 if (any(cs_all %in% c("gp", "hsgp"))) {
                    paste0(". A gp() term's standard deviation is class ",
                           "\"sdgp\", as in brms")
+                 },
+                 if ("smooth" %in% cs_all) {
+                   paste0(". A smooth's standard deviation is class ",
+                          "\"sds\" with coef = the term, as in brms: ",
+                          "class \"sd\" does not reach it")
                  }, call. = FALSE)
       }
     } else if (s$class %in% c("sdgp", "lscale")) {

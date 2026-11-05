@@ -273,7 +273,13 @@
 #' sampled parameter vector in template order, in brms's spelling where
 #' brms has a parameter with the same content, and
 #' `gp_brms_natural(fit)` maps the `theta` entries it labels `sdgp_`
-#' and `lscale_` to brms's scales and back. `varcorr_matrices(fit,
+#' and `lscale_` to brms's scales and back. `mi_sampling(fit)` gives a
+#' fit back the `mi()` rows maximum likelihood left out of its objective,
+#' which a sampler keeps; `mi_sampling(fit, "laplace")` gives an unfitted
+#' object that design, for a sampler that integrates the values out;
+#' `mi_sampling(fit, "natural")` maps a missing
+#' value from the chart the tape holds it on to the value brms reports
+#' under `Ymi_<resp>[k]`, and back. `varcorr_matrices(fit,
 #' theta)` is the covariance matrix of every block at `theta`,
 #' `varcorr_layout(fit)` is brms's `VarCorr()` grouping for the fit,
 #' and `varcorr_values(fit, vals, comp, layout)` gives the standard
@@ -523,6 +529,7 @@
 #' @aliases hyp_expr_vars
 #' @aliases brms_par_labels
 #' @aliases gp_brms_natural
+#' @aliases mi_sampling
 #' @aliases varcorr_matrices
 #' @aliases varcorr_layout
 #' @aliases varcorr_values
@@ -603,7 +610,8 @@
 #'   hyp_samples_frame, hyp_brms_result, brms_coef_names, brms_re_rnames,
 #'   brms_block_has_r, brms_coef_table, brms_stan_name, brms_group_name,
 #'   brms_levels, brms_re_parts, hyp_eval_in, hyp_expr_vars,
-#'   brms_par_labels, gp_brms_natural, varcorr_matrices, varcorr_layout,
+#'   brms_par_labels, gp_brms_natural, mi_sampling, varcorr_matrices,
+#'   varcorr_layout,
 #'   varcorr_values,
 #'   ce_grids_build, ce_boot_one,
 #'   ce_frame, ce_finalize, ce_spaghetti, ce_check_distance,

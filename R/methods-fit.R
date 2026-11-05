@@ -1053,7 +1053,9 @@ logLik.frmtmb_fit <- function(object, ...) {
   structure(-object$opt$objective,
             df = as.vector(df),
             df_why = attr(df, "df_why"),
-            nobs = object$frame[["n_obs"]],
+            # a row a missing response took out of the objective is no
+            # observation for BIC, which is then the complete-case one
+            nobs = object$frame[["n_obs"]] - mi_rows_gone(object$frame),
             REML = object$REML,
             class = "logLik")
 }

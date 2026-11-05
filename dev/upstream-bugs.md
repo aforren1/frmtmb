@@ -1552,6 +1552,46 @@ Seen on 0.2.5. All four are patched with `assignInNamespace()` in
 - Record: `frmtmb-wt-fams2/dev/fams2-findings.md` sections 6, 6b.
 - Status: not reported. Check the starting values first.
 
+### brms-45 (refuse). `mi()` with `cens()` never reads the latent value
+
+- Seen: 2.23.0, 2026-11-02.
+- Repro: `bf(y | mi() + cens(ce) ~ x)` on a response with `NA`, every `ce`
+  0. The model block is `target += normal_lpdf(Y[Jevent[1:Nevent]] | ...)`:
+  `Y`, not `Yl`, and `standata()` holds `Inf` at the missing rows.
+- Expected: the density at the latent value, or a refusal. Actual:
+  `log_prob` is -Inf at any finite point and `brm()` keeps 0 draws. Coded
+  -1 at those rows, the log_prob is finite and does not read `Ymi`.
+- Workaround: frmtmb refuses the pair when a value is latent.
+- Record: `dev/refuse-l1-iddiag.R`; `dev/reviews/2026-11-02-refuse.md`, item 7.
+- Status: not reported.
+
+### brms-46 (refuse). Terms under one `mm()` `id` read the first term's weights
+
+- Seen: 2.23.0, 2026-11-02.
+- Repro: `bf(y ~ (1 | p | mm(g1, g2, weights = cbind(w1, w2))),
+  sigma ~ (1 | p | mm(g1, g2)))`. `standata()` holds `W_1_1`, `W_1_2` per
+  group, not per term.
+- Expected: each term's weights, or a refusal. Actual: every term reads the
+  first term's weights, silently, and swapping the terms changes the model:
+  log_prob equals the hand density with the first term's weights to 2.8e-14,
+  and misses each term's own by -0.122 (swapped, -0.223).
+- Workaround: frmtmb refuses different weights under one key.
+- Record: `dev/reviews/2026-11-02-refuse.md`, M1,
+  `dev/review-refuse-mm-weights.R` (seed 9810).
+- Status: not reported.
+
+### brms-47 (refuse). Terms under one `id` read the first term's `cor`
+
+- Seen: 2.23.0, 2026-11-02.
+- Repro: `bf(y ~ (1 | gr(g, id = "p")), sigma ~ (1 | gr(g, id = "p", cor =
+  FALSE)))` has `L_1` and `cor_1`. With the two terms swapped it has neither.
+- Expected: one model for one set of terms, or a refusal. Actual: the order
+  of the terms decides the correlation, with no message.
+- Workaround: frmtmb refuses conflicting flags under one key in both orders.
+- Record: `dev/reviews/2026-11-02-refuse.md`, M2,
+  `dev/review-refuse-misc2.R` (seed 10203).
+- Status: not reported.
+
 ## rtdists
 
 ### rtdists-1. `dlba_norm()` and `plba_norm()` subtract two normal CDFs

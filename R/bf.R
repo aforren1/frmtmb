@@ -153,6 +153,52 @@
 #'   multipliers in a `mo()` or `mi()` interaction must be numeric, with
 #'   character and factor columns both refused rather than coerced to
 #'   all-`NA` and surfacing later as an optimizer failure.
+#' @section Missing values under `mi()`:
+#' `bf(y | mi() ~ x)` takes a response with missing values, for the 14
+#' continuous families brms takes it for. What [frm()] does with a value
+#' depends on whether another density reads it:
+#'
+#' \describe{
+#'   \item{No density in the objective reads it}{It integrates to 1, so it
+#'     leaves the objective. The fit is the complete-case one, exactly. A
+#'     reader whose own density has left does not read: `z | mi() ~ mi(y)` with
+#'     `z` missing where `y` is takes both rows out, and a reader's weight of 0
+#'     does not read. The row stays in the frame and predicts;
+#'     `fit$estimates$miss` has no entry for it.}
+#'   \item{A density reads it}{(a predictor's `mi(y)`, `mi(sd)`, a
+#'     `cov = FALSE` autocorrelation term.) It stays latent and is
+#'     integrated out by a Laplace approximation, on a chart that holds it
+#'     in the family's support. `asym_laplace()` and a `mixture()` have no mode
+#'     for it to expand about and are refused here.}
+#' }
+#'
+#' The approximation is exact only for a `gaussian` value that `gaussian` means
+#' read. Elsewhere it can move an estimate. The largest shift from an exact
+#' maximum, in its standard errors, on 200 rows: 2.74 `exgaussian` with 60 read
+#' by a slope of 0.05, 2.14 `student` with the same, 0.98 `beta` and 0.96
+#' `Gamma` with 100 read by a slope of 0.7, 0.14 `exgaussian` with 60 read by a
+#' slope of 0.7. A reader that carries little leaves the row nearly unread, with
+#' an unread row's error. Per value, against `integrate()`, on 80 rows with 8
+#' missing and a gaussian reader: 0 `gaussian`, -0.114 `Gamma`, -0.098
+#' `exponential`, -0.078 `weibull`, +0.008 `frechet`, -0.125 `beta`, -0.079
+#' `exgaussian`, -0.076 `von_mises`, -0.037 `lognormal`, -0.023 `skew_normal`,
+#' +0.021 `inverse.gaussian`, +0.008 `gen_extreme_value`. `von_mises` loses about
+#' 1 per value at a mean near the end of its window, where the value has two
+#' modes: -1.22 at mean 3.14 and kappa 20, -0.98 at mean 3.05 and kappa 2.
+#'
+#' After the fit, [frm()] integrates each read value at the estimate and warns,
+#' with class `frmtmb_mi_laplace_error`, when the total is above 1 in
+#' `logLik()`. `fit$mi_laplace` holds the total and the per-value errors. Past
+#' 30 read values the total is scaled from an even sample of them. It warned at
+#' every shift above 1 standard error that was measured, and it also warns where
+#' an error is nearly constant in the parameters and shifts little: `Gamma` with
+#' 15 read reads -1.4 at a shift of 0.13.
+#'
+#' `frmtmb.sample::frm_sample()` holds every value and has no such error. Its
+#' draws name a value as brms does, `Ymi_<resp>[k]`, on the response's scale. If
+#' the reader carries little about the value, deleting those rows gives nearly
+#' the same model without the error.
+#'
 #' @srrstats {G2.14c} Missing predictor values can be replaced by imputed
 #'   ones inside the model rather than dropped. `bf(x | mi() ~ ...)`
 #'   declares an imputation model for a partially observed variable, and

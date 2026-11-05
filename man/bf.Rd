@@ -158,6 +158,54 @@ in a formula with an intercept, \code{Intercept} is an ordinary variable.
 Prediction needs no \code{Intercept} column in \code{newdata}.
 }
 
+\section{Missing values under \code{mi()}}{
+
+\code{bf(y | mi() ~ x)} takes a response with missing values, for the 14
+continuous families brms takes it for. What \code{\link[=frm]{frm()}} does with a value
+depends on whether another density reads it:
+
+\describe{
+\item{No density in the objective reads it}{It integrates to 1, so it
+leaves the objective. The fit is the complete-case one, exactly. A
+reader whose own density has left does not read: \code{z | mi() ~ mi(y)} with
+\code{z} missing where \code{y} is takes both rows out, and a reader's weight of 0
+does not read. The row stays in the frame and predicts;
+\code{fit$estimates$miss} has no entry for it.}
+\item{A density reads it}{(a predictor's \code{mi(y)}, \code{mi(sd)}, a
+\code{cov = FALSE} autocorrelation term.) It stays latent and is
+integrated out by a Laplace approximation, on a chart that holds it
+in the family's support. \code{asym_laplace()} and a \code{mixture()} have no mode
+for it to expand about and are refused here.}
+}
+
+The approximation is exact only for a \code{gaussian} value that \code{gaussian} means
+read. Elsewhere it can move an estimate. The largest shift from an exact
+maximum, in its standard errors, on 200 rows: 2.74 \code{exgaussian} with 60 read
+by a slope of 0.05, 2.14 \code{student} with the same, 0.98 \code{beta} and 0.96
+\code{Gamma} with 100 read by a slope of 0.7, 0.14 \code{exgaussian} with 60 read by a
+slope of 0.7. A reader that carries little leaves the row nearly unread, with
+an unread row's error. Per value, against \code{integrate()}, on 80 rows with 8
+missing and a gaussian reader: 0 \code{gaussian}, -0.114 \code{Gamma}, -0.098
+\code{exponential}, -0.078 \code{weibull}, +0.008 \code{frechet}, -0.125 \code{beta}, -0.079
+\code{exgaussian}, -0.076 \code{von_mises}, -0.037 \code{lognormal}, -0.023 \code{skew_normal},
++0.021 \code{inverse.gaussian}, +0.008 \code{gen_extreme_value}. \code{von_mises} loses about
+1 per value at a mean near the end of its window, where the value has two
+modes: -1.22 at mean 3.14 and kappa 20, -0.98 at mean 3.05 and kappa 2.
+
+After the fit, \code{\link[=frm]{frm()}} integrates each read value at the estimate and warns,
+with class \code{frmtmb_mi_laplace_error}, when the total is above 1 in
+\code{logLik()}. \code{fit$mi_laplace} holds the total and the per-value errors. Past
+30 read values the total is scaled from an even sample of them. It warned at
+every shift above 1 standard error that was measured, and it also warns where
+an error is nearly constant in the parameters and shifts little: \code{Gamma} with
+15 read reads -1.4 at a shift of 0.13.
+
+\code{frmtmb.sample::frm_sample()} holds every value and has no such error. Its
+draws name a value as brms does, \verb{Ymi_<resp>[k]}, on the response's scale. If
+the reader carries little about the value, deleting those rows gives nearly
+the same model without the error.
+}
+
 \examples{
 # brms-style model formulas: attach a family with `+`
 bf(y ~ x + (1 | g)) + gaussian()

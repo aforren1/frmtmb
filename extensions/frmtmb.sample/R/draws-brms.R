@@ -125,9 +125,11 @@ draws_natural_cols <- function(fit) {
   # a gp() term's sd and length scales: brms's sdgp_ and lscale_ draws
   # are on brms's scales, which the internal log theta is not
   gpn <- gp_brms_natural(fit)
-  out <- list(names = c(tab$brms[i], gpn$names),
-              linkinv = c(attr(tab, "linkinv")[i], gpn$linkinv),
-              linkfun = c(attr(tab, "linkfun")[i], gpn$linkfun),
+  # a missing value on the response's own scale, not the sampler's chart
+  min <- mi_sampling(fit, "natural")
+  out <- list(names = c(tab$brms[i], gpn$names, min$names),
+              linkinv = c(attr(tab, "linkinv")[i], gpn$linkinv, min$linkinv),
+              linkfun = c(attr(tab, "linkfun")[i], gpn$linkfun, min$linkfun),
               simplex = smp, equated = equated,
               # a mo() simplex is renamed and mapped as an ordinal block
               # is: its chart columns become brms's simo_ weights

@@ -440,7 +440,7 @@ test_that("brms prior rows frmtmb cannot mean are refused by name", {
   # and the structures frmtmb holds somewhere else entirely, each named
   # with the class that reaches the same parameters
   expect_error(frmtmb:::as_priorlist(brms::prior(student_t(3, 0, 1),
-                                                 class = "sds")),
+                                                 class = "sdcar")),
                "class = \"sd\" with group", fixed = TRUE)
   # a gp()'s sd and length scales are brms's classes here too, so their
   # rows carry over under the same class
@@ -575,15 +575,15 @@ test_that("every refused row of a table is named in one message", {
   gp <- brms::get_prior(brms::bf(y ~ gp(x)), data = dd,
                         family = stats::gaussian())
   expect_s3_class(frmtmb:::as_priorlist(gp), "frmtmb_priorlist")
-  two <- brms::prior(student_t(3, 0, 1), class = "sds") +
+  two <- brms::prior(student_t(3, 0, 1), class = "car") +
     brms::prior(student_t(3, 0, 1), class = "sdcar")
   msg <- tryCatch(frmtmb:::as_priorlist(two), error = conditionMessage)
   expect_match(msg, "2 rows", fixed = TRUE)
-  expect_match(msg, "sds", fixed = TRUE)
+  expect_match(msg, "\"car\"", fixed = TRUE)
   expect_match(msg, "sdcar", fixed = TRUE)
   # and one bad row still reads as one row
   one <- tryCatch(frmtmb:::as_priorlist(
-    brms::prior(student_t(3, 0, 1), class = "sds")),
+    brms::prior(student_t(3, 0, 1), class = "sdcar")),
     error = conditionMessage)
   expect_match(one, "1 row with", fixed = TRUE)
 })
@@ -778,7 +778,7 @@ test_that("a distributional class is refused by the same name on both routes", {
   # A class frmtmb keeps somewhere else used to be refused only when it
   # arrived on a brms frame; written by hand it fell through to a dpar
   # target that does not exist. Both paths now give the same sentence.
-  expect_error(set_prior("student_t(3, 0, 1)", class = "sds"),
+  expect_error(set_prior("student_t(3, 0, 1)", class = "sdcar"),
                "class = \"sd\" with group", fixed = TRUE)
   # simo is a class now (dev/moparity-findings.md, item 2), and any
   # density but dirichlet() on it is refused in brms's words
@@ -862,27 +862,31 @@ test_that("a brms table applies what its prior strings say", {
 
 test_that("a flat row of a class frmtmb cannot name is not a refusal", {
   skip_if_not_installed("brms")
-  # A smooth's wiggliness SD is class "sds" in brms and class "sd" with
-  # a group here, so the LIVE row is refused by name with the spelling
-  # that reaches the same parameters. Honoring the table exposes that
-  # refusal where the row used to be dropped in silence, which is the
-  # cost of reading the prior string instead of the `source` column.
-  dd <- data.frame(y = stats::rnorm(60), x = stats::rnorm(60))
-  gp <- brms::get_prior(y ~ s(x), data = dd, family = stats::gaussian())
-  expect_error(frmtmb:::as_priorlist(gp), "class = \"sd\" with group",
-               fixed = TRUE)
-
-  g <- as.data.frame(gp)
-  # brms puts a bound only on the row that carries the density, so its
-  # own flat rows never reach the gate. A hand-written flat row with a
-  # bound does, and it is a slot listing rather than a refusal: the
-  # bound restates a declaration frmtmb's parameterization already makes
-  g$prior[g$class == "sds"] <- ""
-  g$lb[g$class == "sds"] <- "0"
+  # brms's sdcar is class "sd" with a group here, so a LIVE row is refused
+  # by name with the spelling that reaches the same parameters. A flat row
+  # with a bound is a slot listing rather than a refusal: the bound
+  # restates a declaration frmtmb's parameterization already makes
+  live <- as.data.frame(brms::prior(student_t(3, 0, 1), class = "sdcar"))
+  expect_error(frmtmb:::as_priorlist(
+    structure(live, class = c("brmsprior", "data.frame"))),
+    "class = \"sd\" with group", fixed = TRUE)
+  g <- live
+  g$prior <- ""
+  g$lb <- "0"
   expect_silent(pl <- frmtmb:::as_priorlist(
     structure(g, class = c("brmsprior", "data.frame"))))
   expect_false(any(vapply(unclass(pl),
-                          function(s) identical(s$class, "sds"), TRUE)))
+                          function(s) identical(s$class, "sdcar"), TRUE)))
+})
+
+test_that("brms's table for a smooth carries over as it is", {
+  skip_if_not_installed("brms")
+  dd <- data.frame(y = stats::rnorm(60), x = stats::rnorm(60))
+  gp <- brms::get_prior(y ~ s(x), data = dd, family = stats::gaussian())
+  pl <- frmtmb:::as_priorlist(gp)
+  sds <- Filter(function(s) identical(s$class, "sds"), unclass(pl))
+  expect_gte(length(sds), 1L)
+  expect_true(any(vapply(sds, function(s) !is.null(s$dist), NA)))
 })
 
 # ---- nothing that already worked changed ------------------------------

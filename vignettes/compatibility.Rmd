@@ -153,10 +153,13 @@ Addition terms are the most family-sensitive part of the grammar.
 `cens()` and `trunc()` need a family that supplies a cumulative
 distribution function, and that is all they need: a discrete family
 that has one is censored and truncated as brms censors and truncates it
-(see [`frmtmb_family()`]). `mi()`
-needs a gaussian or student model. `se()` needs a family that DECLARES
-it reads the term, with `accepts_aterms`; gaussian and student are the
-built-in ones that do.
+(see [`frmtmb_family()`]). `mi()` needs a family that DECLARES it,
+with `accepts_aterms`: the 14 continuous families brms takes it for.
+On `frm()`, a missing value no density reads leaves the objective, so the
+fit is the complete-case one; a value another density reads stays latent
+under a Laplace approximation, whose size `?bf` states. `se()` needs
+a family that DECLARES it reads the term, with `accepts_aterms`;
+gaussian, student and skew_normal are the built-in ones that do.
 
 ```{r fam-aterm}
 grid_table("family", "aterm", rows = kind_of("family"),

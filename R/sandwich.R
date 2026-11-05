@@ -214,7 +214,7 @@ cluster_guard <- function(fit, cl) {
              "`cluster` is given for the rows of the whole data. Use ",
              "frm_bootstrap()", call. = FALSE)
   }
-  if (length(frame[["mi_map"]] %||% list()) || !is.null(frame[["me"]])) {
+  if (!is.null(frame[["par_template"]][["miss"]])) {
     frm_stop("vcov_cluster() does not support mi() / me() fits: the latent ",
              "values are parameters of the outer problem and their ",
              "contribution belongs to no cluster. Use frm_bootstrap()",

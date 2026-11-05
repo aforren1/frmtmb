@@ -1225,6 +1225,17 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   upper_arg <- upper
   vb <- verbose_level(control)
   n_imp <- as.integer(importance %||% 0L)
+  # every fit, the deletion refits of influence() among them; the sampler
+  # reads the objective of every row (objective_only)
+  if (!objective_only) {
+    frame <- mi_ml_frame(frame)
+    check_mi_laplace(frame)
+    if (!is.null(template) &&
+          length(template[["miss"]]) !=
+            length(frame[["par_template"]][["miss"]])) {
+      template[["miss"]] <- frame[["par_template"]][["miss"]]
+    }
+  }
   ascale <- if (!objective_only) autoscale_decide(frame, control, REML)
   # said once per fit, by the call that runs the pre-fit, and not by the
   # refits that are handed its template
@@ -1717,6 +1728,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # knot-span coverage of any ps() block. Both need the finished object,
   # which is why neither can live in family_finalize() or in the frame.
   fit_end_checks(fit)
+  if (announce_start) fit <- mi_laplace_note(fit)
   if (check_se) {
     se_check(fit, control)
   }

@@ -206,7 +206,7 @@ brms does.
   `brms::prior(normal(0, 0.5), class = "sigma")` gave all along.
 
   A prior class frmtmb keeps somewhere else (brms's mixture `theta`,
-  `simo`, `sds`, `sdgp`, `lscale`, `sdcar`, `car`) is refused by name,
+  `sdcar`, `car`) is refused by name,
   with the class that reaches the same parameters where one exists,
   rather than translated into something else. So is a `coef` on a `sd`
   or `cor` row: frmtmb addresses a whole random-effect block there, and
@@ -481,10 +481,10 @@ when it refuses one:
 | brms | frmtmb |
 |---|---|
 | `mm(g1, g2, cor = FALSE)` | same, or `(x || mm(g1, g2))` |
-| `mm(g1, g2, id = "q")` | the `|ID|` key, `(x | q | g)` - not yet over `mm()` |
-| `mm(g1, g2, cov = A)` | `gr(g, cov = A)` - not yet over `mm()` |
+| `mm(g1, g2, id = "q")` | same, or the `|ID|` key, `(x | q | mm(g1, g2))` |
+| `mm(g1, g2, cov = A)` | same |
 | `mm(g1, g2, by = cbind(f1, f2))` | same, one by-variable column per member |
-| `mm(g1, g2, pw = )`, `dist =` | no equivalent yet |
+| `mm(g1, g2, pw = )`, `dist =`, `by =` with `cov =` | no equivalent yet |
 
 `?frmtmb-multimembership` is the full page.
 

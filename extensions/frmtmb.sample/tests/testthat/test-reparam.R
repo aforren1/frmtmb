@@ -829,7 +829,11 @@ test_that("smooth and diag blocks non-center through the sampler", {
   fit <- frm(ff, family = gaussian(), data = dd)
   cs <- vapply(fit$frame$re_blocks, function(bk) bk$covstruct, "")
   expect_true(all(cs %in% c("smooth", "diag")))
-  plan <- frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, theta_priors(fit)$entries)
+  # a smooth's sd is class sds, which the helper's class sd does not reach
+  pr <- frmtmb::resolve_prior_input(
+    fit, set_prior("lognormal(-0.7, 0.5)", class = "sd") +
+      set_prior("lognormal(-0.7, 0.5)", class = "sds"))
+  plan <- frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, pr$entries)
   expect_equal(plan$idx, seq_along(cs))
   expect_length(plan$centered, 0L)
 

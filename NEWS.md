@@ -1,3 +1,126 @@
+# frmtmb (development version)
+
+* BREAKING: `class = "sds"` is brms's class for the standard deviation of a
+  smooth's penalized part, on `frm()` and on `frm_sample()`. `coef` names
+  the term as written (`"s(x)"`, `"t2(x, z)"`, `"s(x, by = f)"`), and a
+  term with several standard deviations (a `t2()`, a by-smooth) takes the
+  density on each of them. `default_prior()`, `validate_prior()` and
+  `prior_summary()` list a class row with `lb = 0` and one row per term,
+  as brms does. Class `"sd"` no longer reaches a smooth, in brms's
+  words: `class = "sd", group = "s(x)"` and a class `"sd"` prior on a
+  model with no random effect are refused, and `sd` beside `(1 | g)`
+  leaves the smooth alone. brms's log density and `frm()`'s objective are
+  equal up to one offset, the same at every point tried, which is the
+  brms normalizer of a half density and the map's Jacobian at the first
+  point.
+* `mm()` takes an `|ID|` key, `(x | p | mm(g1, g2))` or
+  `mm(g1, g2, id = "p")`. Terms with one key over the same members merge
+  into one block over the pooled levels, in any predictor or response.
+  They take one set of weights, compared by value, so `weights = W` beside
+  `weights = cbind(w1, w2)` of the same numbers fits: brms reads the first
+  term's for every term, so different weights are refused rather than picked.
+  `mm(g1, g2, cov = A)`
+  is a known covariance over the pooled levels, with several columns too, and
+  `(1 + x || mm(g1, g2, cov = A))` is one block per column, as over
+  `gr(cov = A)`. brms's log_prob equals frmtmb's joint density to 4e-9 and
+  6e-14.
+* `gr(cov = A)` and `mm(cov = A)` refuse a matrix that is not symmetric or
+  not positive definite, in brms's words. A wrong triangle changed the fit
+  by which one the density read, and a matrix that is not positive definite
+  stopped on a NaN gradient.
+* `mi()` on a response takes every family brms takes it for: `skew_normal`,
+  `exgaussian`, `gen_extreme_value`, `von_mises`, `beta`, `Gamma`,
+  `weibull`, `exponential`, `frechet`, `inverse.gaussian`, `lognormal`,
+  `asym_laplace`, and a `mixture()`, beside `gaussian` and `student`. Every
+  other family is refused in brms's words, and a response with no observed
+  value by name.
+* BREAKING: on `frm()`, a missing response value that no density reads leaves
+  the objective. It integrates to 1, so the fit is the complete-case one,
+  exactly, and `logLik()`, `AIC()` and `BIC()` with it; brms's posterior for
+  every other parameter is that one too. The row stays in the frame and
+  predicts; `fit$estimates$miss` has no entry for it. This changes every fit
+  of a `gaussian` or `student` `mi()` response no predictor reads that worked
+  before: a gaussian's by nothing, a `student`'s by a Laplace error that
+  moved `nu` by up to 33 standard errors on 200 rows with 60 missing and
+  fitted a true `nu = 6` as a gaussian. brms's log_prob on the observed rows
+  equals `logLik()` to 4e-13 on 13 families.
+* A missing value that a density in the objective reads, a predictor's `mi()`
+  or `mi(sd)`, stays latent on `frm()`, integrated out by a Laplace
+  approximation on the chart that holds it in the family's support: log on the
+  half line, logit on the unit interval, brms's window `(-pi, pi)` for
+  `von_mises`. A reader whose own density has left does not read: `z | mi() ~
+  mi(y)` with `z` missing where `y` is takes both rows out, along a chain and a
+  fork, and a reader's weight of 0 does not read either. Each of these equals
+  deleting the rows by hand, to 5e-9. A reader's `fitted()` at such a row reads
+  the value's mean. brms's log_prob equals the joint density to at most 2.3e-8.
+* `frm()` warns, with class `frmtmb_mi_laplace_error`, when that approximation
+  is off by more than 1 in `logLik()`, by `integrate()` over each read value at
+  the estimate. The warning names the remedy: `frm_sample()`, or deleting the
+  rows if the reader carries little about the value. On a `gaussian` value
+  that only `gaussian` means read, the approximation is exact and the check
+  does not run. The check costs about a third of the time of `frm()` on such
+  a fit; past 30 read values it scales the total from an even sample of them.
+  The approximation can move an estimate. The largest shift from an exact
+  maximum, in its standard errors, on 200 rows: 2.74 `exgaussian` with 60 read
+  by a slope of 0.05, 2.14 `student` with the same, 0.98 `beta` with 100 read
+  by a slope of 0.7, 0.96 `Gamma` with the same, 0.17 `exponential` with the
+  same, 0.14 `exgaussian` with 60 read by a slope of 0.7, 0 `gaussian`. A
+  reader that carries little leaves the row nearly unread, with an unread
+  row's error: `exgaussian`'s parameters sit 2.51 to 3.36 standard errors from
+  the observed rows' at slopes up to 0.2 with 60 read, and 0.47 at 0.7. Per
+  value, against `integrate()`, on 80 rows with 8 missing and a gaussian
+  reader: 0 `gaussian`, -0.114 `Gamma`, -0.098 `exponential`, -0.078 `weibull`,
+  +0.008 `frechet`, -0.125 `beta`, -0.079 `exgaussian`, -0.076 `von_mises`,
+  -0.037 `lognormal`, -0.023 `skew_normal`, +0.021 `inverse.gaussian`, +0.008
+  `gen_extreme_value`. `von_mises` loses about 1 per value at a mean near the
+  window's end, where the value has two modes: -1.22 at mean 3.14 and kappa 20,
+  -0.98 at mean 3.05 and kappa 2, -0.068 at mean 0, with a reader of slope 0.2.
+  Its largest shift over 13 replicates at a mean near 0 is 0.74. `frm_sample()`
+  has none of this. `asym_laplace` and a `mixture()` are refused for such a value on
+  `frm()`: the first has no curvature at its kink, and the second has one mode
+  per component. `frm_sample()` samples both.
+* `frmtmb_family(mi_chart = )` declares the chart of a family's missing
+  value (`"log"`, `"logit"`, `"circle"`, `"identity"`, `"no_mode"`). A family
+  with a bounded support must set one.
+* `se()` on `skew_normal`, and `mi()` with `se()` on one response, as brms
+  writes them. brms's log_prob equals the joint density to 1e-12.
+* `cens()` on a `mixture()` whose components have a CDF is the mixture of
+  the components' tails, as brms writes it; brms's log_prob equals the
+  density to 6e-14. A group-level `mixture(groups = )` refuses it.
+* `gr(g, id = "p", cor = FALSE)` is accepted when every term under the key
+  says `cor = FALSE`: nothing is correlated, so the key does nothing, as in
+  brms. Terms under one key that disagree are refused in both orders, over
+  `gr()` and over `mm()`: brms reads the first term's flag, so swapping them
+  changes its model. `id = "p"` with `cor = FALSE` over another group is refused
+  in brms's words.
+* `importance` and `vcov(cluster = )` run on a fit whose missing rows have all
+  left the objective, and read the observed rows. A value a density reads is
+  still refused: it has no group and no cluster.
+* These stay refused where brms 2.23.0 builds the model, for these reasons.
+  `mi()` with `cens()` when a value is latent: brms's program takes the
+  density at the data, where a missing value is the placeholder `Inf`, and
+  never reads the latent value, so there is no model to match. With nothing
+  missing `mi()` takes `cens()` and `trunc()`. `trunc()` on a `mixture()`: brms
+  truncates each component and then mixes them, and a CDF of the mixture would
+  be a different model. `gr(g, by = , cov = )` and `mm(by = , cov = )`: brms
+  scales each level by the covariance of its by-level and then correlates the
+  levels through `A`, which is neither block-diagonal over the by-levels nor a
+  Kronecker product, so frmtmb has no block density for it.
+  `gr(g, cov = , dist = "student")`, `mm(dist = "student")`: the t's mixing
+  variable is per level, and with levels correlated through `A`, or a row that
+  loads several levels, the joint density over the field is not a
+  multivariate t. brms samples the construction; the Laplace route has no
+  density to expand.
+* `frm_compat()` rows, each checked by running both packages: `cens()` x
+  `disc`, `cens()` x `equidistant`, `vint()` x `sum_to_zero` and `trials()`
+  x `cs_pred()` are refused, in both packages. `s()` x `prior`, `t2()` x
+  `prior`, `mm()` x `|ID|`, `mm()` x `gr_cov`, `|ID|` x `mmc()`, `gr_cov` x
+  `mmc()`, `mi()` x `se()`, `se()` x `skew_normal`, `cens()` x `mixture`,
+  `thres()` x `mvbf` and `mi()` x each family above work. `mi()` x
+  `asym_laplace`, `mi()` x `mixture`, `mi()` x `cens()`, `mi()` x `trunc()`,
+  `importance` x `mi()` and `quadrature` x `mi()` are conditional on no density
+  reading the value, and `trunc()` x `mixture` is refused.
+
 # frmtmb 0.78.0
 
 The main changes:

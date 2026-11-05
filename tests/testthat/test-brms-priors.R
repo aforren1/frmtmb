@@ -188,7 +188,7 @@ test_that("every default row's fate is one of five, by shape", {
 
   # and the classes that name a structure frmtmb keeps elsewhere say
   # where it is rather than offering a spelling that does not fit
-  expect_error(frmtmb:::check_brms_prior_class("sds",
+  expect_error(frmtmb:::check_brms_prior_class("sdcar",
                                                "student_t(3, 0, 1)"),
                "class = \"sd\" with group", fixed = TRUE)
 })

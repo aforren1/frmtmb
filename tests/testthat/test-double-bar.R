@@ -140,8 +140,9 @@ test_that("an |ID| key beside || is refused, as brms refuses it", {
                           dry_run = "frame")
   expect_error(f(y ~ x + (1 + x || p | g)), "Invalid syntax")
   expect_error(f(y ~ x + (1 + x | p || g)), "Invalid syntax")
-  expect_error(f(y ~ x + (1 + x | p | gr(g, cor = FALSE))),
-               "drops the key")
+  # brms builds this one and drops the key, which has nothing to correlate
+  fr <- f(y ~ x + (1 + x | p | gr(g, cor = FALSE)))
+  expect_identical(fr$re_blocks[[1L]]$covstruct, "diag")
   # the absent case: a key with correlation, and || beside a key
   expect_silent(f(y ~ x + (1 + x | p | gr(g, cor = TRUE))))
   expect_silent(f(y ~ x + (1 + x | p | g) + (1 + f || g1)))

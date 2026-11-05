@@ -354,7 +354,7 @@ response_observed <- function(frame, resp) {
     out[] <- FALSE
     out[mm[["obs"]]] <- TRUE
   } else {
-    out[mm[["rows"]]] <- FALSE
+    out[c(mm[["rows"]], mm[["unread"]])] <- FALSE
   }
   out
 }

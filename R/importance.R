@@ -697,6 +697,13 @@ build_importance_objective <- function(frame, lay, gmap, plan) {
   yraw <- imp_expand(frame[["y"]][[rn]], ridx, n)
   av <- imp_expand(frame[["aterm_values"]][[rn]], ridx, n)
   wts <- av[["weights"]] %||% 1
+  # the rows mi_ml_frame() took out, as the objective's weight has them
+  gone <- frame[["mi_map"]][[rn]][["unread"]]
+  if (length(gone)) {
+    keep <- rep(1, n)
+    keep[gone] <- 0
+    wts <- wts * imp_expand(list(k = keep), ridx, n)$k
+  }
   extra_names <- frame[["extra_names"]] %||% character(0)
   smat <- gmap[["S"]]
   # A structured family's own factorization, resolved HERE, off the

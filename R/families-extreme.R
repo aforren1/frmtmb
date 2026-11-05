@@ -97,9 +97,8 @@
 #' inclusive.
 #'
 #' @section Addition terms:
-#' All three take `weights()`, `cens()` and `trunc()`. brms also takes
-#' `mi()` on a `frechet` or `gen_extreme_value` response; frmtmb takes
-#' `mi()` on a gaussian or student response only.
+#' All three take `weights()`, `cens()` and `trunc()`. `frechet` and
+#' `gen_extreme_value` also take `mi()`, as in brms.
 #'
 #' @references
 #' Smith, R. L. (1985). Maximum likelihood estimation in a class of
@@ -232,7 +231,8 @@ fam_frechet <- function(link = "log", link_nu = "logm1") {
   logz <- function(q, dpars) log(q) - frechet_log_scale(dpars, lk, lk_nu)
   frmtmb_family(
     "frechet",
-    accepts_aterms = c("weights", "cens", "trunc"),
+    accepts_aterms = c("weights", "cens", "trunc", "mi"),
+    mi_chart = "log",
     dpars = c("mu", "nu"),
     links = list(mu = lk, nu = lk_nu),
     lpdf = function(y, dpars, aterms) {
@@ -617,7 +617,7 @@ fam_gev_impl <- function(link, link_sigma, link_xi, chart) {
   }
   frmtmb_family(
     "gen_extreme_value",
-    accepts_aterms = c("weights", "cens", "trunc"),
+    accepts_aterms = c("weights", "cens", "trunc", "mi"),
     dpars = c("mu", "sigma", "xi"),
     links = links,
     lpdf = lpdf,

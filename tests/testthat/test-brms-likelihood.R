@@ -946,14 +946,15 @@ test_that("check C: row 4, mi() imputation and mi(sdx) measurement error", {
   expect_setequal(names(pars), brms_stan_par_names(code))
   expect_par_roundtrip(sf, pars)
 
-  # the imputed block covers exactly the missing rows, the latent block
-  # covers every row, and the two together are frmtmb's `miss`
+  # the imputed block covers exactly the missing rows, and no density reads
+  # them, so they have left frm()'s objective; the latent block covers every
+  # row, and it is frmtmb's `miss`
   expect_identical(as.integer(sdat$Jmi_y), which(is.na(d4$y)))
   expect_length(pars[["Ymi_y"]], 30L)
+  expect_identical(fit$frame$mi_map$y$unread, which(is.na(d4$y)))
   expect_length(pars[["Yl_x"]], n)
-  expect_length(fit$estimates[["miss"]], 30L + n)
-  expect_lt(max(abs(c(pars[["Ymi_y"]], pars[["Yl_x"]]) -
-                      fit$estimates[["miss"]])), 1e-12)
+  expect_length(fit$estimates[["miss"]], n)
+  expect_lt(max(abs(pars[["Yl_x"]] - fit$estimates[["miss"]])), 1e-12)
   # mi(x) is a special term, so its coefficient is bsp_y and not a
   # column of X_y
   expect_lt(abs(pars[["bsp_y"]][[1]] - fixef_by_dpar(fit)$y_mu[["mix"]]), 1e-12)
@@ -1636,7 +1637,8 @@ test_that("check C: row 25b, subset() with mi(x, idx = ) and index()", {
   expect_identical(as.integer(chk$sdat$idxl_y_x_1),
                    fm$frame$linpreds[["y.mu"]]$mi[[1]]$idxl)
   expect_identical(as.integer(chk$sdat$Jmi_x),
-                   as.integer(fm$frame$mi_map$x$rows))
+                   as.integer(sort(c(fm$frame$mi_map$x$rows,
+                                     fm$frame$mi_map$x$unread))))
   expect_true("mixidxEQg1" %in% brms::default_prior(bm, dm)$coef)
   expect_true("y_mixidxEQg1" %in% rownames(fixef(fm)))
 })

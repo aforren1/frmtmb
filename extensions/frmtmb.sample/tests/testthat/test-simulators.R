@@ -400,14 +400,15 @@ test_that("a structured draw refuses trunc() and newdata", {
 
   # trunc() rejection resamples single rows, which a whole-group draw
   # cannot supply. Every structured model refuses trunc() at frame
-  # assembly already - a mixture density carries no CDF, and an autocor
-  # or hmm likelihood does not factorize by row - so the simulator's own
+  # assembly already - a mixture truncates per component in brms, which
+  # frmtmb's density has no window for, and an autocor or hmm likelihood
+  # does not factorize by row - so the simulator's own
   # guard is a backstop for a future structured family that does carry
   # one. What the user meets is the upstream refusal.
   expect_error(
     frm(bf(y | trunc(lb = lb) ~ 1) +
           mixture(gaussian(), gaussian(), groups = ~g), data = dd),
-    "CDF")
+    "truncates each component")
   d2 <- expand.grid(week = 1:5, subj = factor(1:8))
   d2 <- d2[order(d2$subj, d2$week), ]
   d2$lb <- -6

@@ -610,9 +610,10 @@ brms_par_labels <- function(fit, include_random = TRUE) {
   make.unique(out, sep = "__")
 }
 
-#' The `miss` segment's labels: `miss_<i>` for the values of an `mi()`
-#' response, which brms splits into `Ymi_` and `Yl_` vectors with no
-#' name per entry, and brms's `Xme_<coef>[<i>]` for the latent values of
+#' The `miss` segment's labels, brms's names: `Ymi_<resp>[k]` for the
+#' missing values of an `mi()` response, in the order of brms's `Jmi`,
+#' `Yl_<resp>[k]` for every value of a `mi(sd)` one, with no `_<resp>` on a
+#' model with one response, and `Xme_<coef>[<i>]` for the latent values of
 #' a `me()` call (`rename_Xme()`), indexed by row, or by level of `gr`
 #' with whitespace turned into `.`.
 #'
@@ -620,6 +621,15 @@ brms_par_labels <- function(fit, include_random = TRUE) {
 brms_miss_labels <- function(fit) {
   n <- length(fit$frame[["par_template"]][["miss"]])
   lab <- paste0("miss_", seq_len(n))
+  multi <- length(fit$spec$responses) > 1L
+  for (r in names(fit$frame[["mi_map"]] %||% list())) {
+    m <- fit$frame[["mi_map"]][[r]]
+    k <- match(m[["rows"]], sort(c(m[["rows"]], m[["unread"]])))
+    if (!length(k)) next
+    lab[m[["idx"]]] <- paste0(if (is.null(m[["se"]])) "Ymi" else "Yl",
+                              if (multi) paste0("_", brms_stan_name(r)),
+                              "[", k, "]")
+  }
   for (t in fit$frame[["me"]]$terms %||% list()) {
     ix <- if (is.null(t$levels)) seq_along(t$idx) else
       gsub("[ \t\r\n]", ".", t$levels)
