@@ -265,14 +265,20 @@ test_that("a mixture reads one body in every component", {
 })
 
 test_that("nl = TRUE on several locations without a brms form is refused", {
-  # the case the guard on the copy leaves: frmtmb.latent's hmm() and any
-  # family with several locations that brms has no such spelling for
-  skip_if_not_installed("frmtmb.latent")
-  d <- data.frame(y = rnorm(40), x = rnorm(40),
-                  id = factor(rep(1:4, each = 10)),
-                  tt = rep(1:10, times = 4))
-  expect_error(frm(bf(y ~ b1 * x, b1 ~ 1, nl = TRUE),
-                   family = frmtmb.latent::hmm(2, gaussian()), data = d),
+  # the case the guard on the copy leaves: any family with several
+  # locations that brms has no such spelling for. A family made here, not
+  # frmtmb.latent's hmm(): core's checks install no extension, and the
+  # skip gate fails a test that skips on one
+  local_frmtmb_registries()
+  two_fam <- frmtmb_family("tfamtwomu", dpars = c("mu1", "mu2", "sigma"),
+    links = list(mu1 = "identity", mu2 = "identity", sigma = "log"),
+    primary_dpars = c("mu1", "mu2"),
+    lpdf = function(y, dpars, aterms = NULL, extra = NULL) {
+      RTMB::dnorm(y, dpars$mu1 + dpars$mu2, dpars$sigma, log = TRUE)
+    })
+  d <- data.frame(y = rnorm(40), x = rnorm(40))
+  expect_error(frm(bf(y ~ b1 * x, b1 ~ 1, nl = TRUE), family = two_fam,
+                   data = d),
                "single 'mu' location", fixed = TRUE)
 })
 

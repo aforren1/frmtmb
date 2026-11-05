@@ -779,6 +779,10 @@ test_that("hmm() refuses the modes and terms it cannot express", {
   expect_error(frm(bf(y ~ 1), family = fam(), data = dd,
                    control = frmtmb_control(profile = TRUE)),
                "profile = TRUE\\) cannot be combined with hmm")
+  # raised by core's guard: one body cannot be written into a mean per state
+  expect_error(frm(bf(y ~ b1 * x, b1 ~ 1, nl = TRUE), family = fam(),
+                   data = transform(dd, x = rnorm(nrow(dd)))),
+               "single 'mu' location", fixed = TRUE)
   expect_error(
     frm(mvbf(bf(y ~ 1) + hmm(K = 2, gaussian(), time = t, group = id),
              bf(x ~ 1) + gaussian()),
