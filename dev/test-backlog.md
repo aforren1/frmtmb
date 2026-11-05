@@ -4661,6 +4661,21 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed at the 0.79.1 release (2026-11-05)
+
+- **`residuals(type = "osa")` on `binomial()` reads NaN with no warning.** 11 of
+  150 rows at 10 trials, RTMBdist 1.2.0, seed 9; `poisson()` and `negbinomial()`
+  read 0 of 150. `beta_binomial()` read 21 of 150 through RTMBdist 1.2.0's new
+  route, so 0.79.1 refuses it. The default `oneStepGeneric` integrates a discrete
+  response with no `discrete = TRUE`; `oneStepGaussianOffMode` read 150 of 150
+  finite on `beta_binomial()`. Fix both and lift the refusal.
+- **The local library held RTMBdist 1.1.0 at the 0.79.0 release; CI took 1.2.0,**
+  published 2026-10-31, inside the round. CI went red on it. Compare the library
+  with CRAN before the final suites of a round. Reread RTMBdist-5 in
+  `dev/upstream-bugs.md` against 1.2.0's NEWS.
+- `test-nl-family.R:93`, `hurdle_negbinomial`: large gradient warning, 0.00201 at
+  `shape_(Intercept)`, on ubuntu release only. It does not fail the test.
+
 ## Filed at the 0.79.0 release (2026-11-04)
 
 Seven lanes off d5d0056d (frmtmb 0.78.0), merged onto d5d0056d

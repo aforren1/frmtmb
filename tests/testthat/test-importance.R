@@ -1546,26 +1546,33 @@ test_that("a capped run has not settled, and a refused count is not named", {
 
 test_that("a slope near separation is never silent at few draws", {
   # 20 groups of 4, binary rows a slope nearly separates. Such a fit walks, and
-  # where it lands is chaotic, so this asserts what must hold on either side: it
-  # stops with the refusal, or it is capped and warns.
-  set.seed(7L)
-  g <- factor(rep(1:20, each = 4L))
-  x <- rnorm(80L)
-  eta <- x + rnorm(20L, 0, 2)[g] + rnorm(80L, 0, 0.1)
-  d <- data.frame(y = as.integer(eta > 0),
-                  x = x, g = g)
-  ws <- character(0)
-  r <- tryCatch(withCallingHandlers(
-    frm(bf(y ~ x + (x | g)), family = bernoulli(), data = d, importance = 8L),
-    warning = function(w) {
-      ws <<- c(ws, conditionMessage(w))
-      invokeRestart("muffleWarning")
-    }), error = conditionMessage)
-  if (is.character(r)) {
-    expect_match(r, "`importance = 8` did not settle", fixed = TRUE)
-  } else {
-    expect_true(r$importance$capped)
-    expect_true(any(grepl("still moving", ws, fixed = TRUE)))
+  # where it lands is chaotic and differs by platform, so this asserts what must
+  # hold on every side: it stops with the refusal, it is capped and warns, or the
+  # optimizer stops and warns. Over 61 data seeds at 8 draws those read 2, 55
+  # and 4, and none was silent. Seed 7 is capped here and took another side on
+  # ubuntu; seed 110 reaches the optimizer's stop here.
+  for (seed in c(7L, 110L)) {
+    set.seed(seed)
+    g <- factor(rep(1:20, each = 4L))
+    x <- rnorm(80L)
+    eta <- x + rnorm(20L, 0, 2)[g] + rnorm(80L, 0, 0.1)
+    d <- data.frame(y = as.integer(eta > 0),
+                    x = x, g = g)
+    ws <- character(0)
+    r <- tryCatch(withCallingHandlers(
+      frm(bf(y ~ x + (x | g)), family = bernoulli(), data = d, importance = 8L),
+      warning = function(w) {
+        ws <<- c(ws, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }), error = conditionMessage)
+    if (is.character(r)) {
+      expect_match(r, "`importance = 8` did not settle", fixed = TRUE)
+    } else if (isTRUE(r$importance$capped)) {
+      expect_true(any(grepl("still moving", ws, fixed = TRUE)))
+    } else {
+      expect_gt(r$opt$convergence, 0L)
+      expect_true(any(grepl("did not report convergence", ws, fixed = TRUE)))
+    }
   }
 })
 

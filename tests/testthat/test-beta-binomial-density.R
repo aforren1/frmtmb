@@ -267,4 +267,8 @@ test_that("simulate() and the OSA refusal keep their routes", {
   expect_lt(abs(mean(v - mu)) / (sd(v - mu) / sqrt(length(v))), 5)
   expect_error(beta_binomial_lpmf(structure(1, class = "osa"), 2, 1, 1, 2),
                "does not support OSA", fixed = TRUE)
+  # RTMBdist 1.2.0's own route reads NaN with no warning, so the refusal must
+  # hold on the real route and not depend on the installed RTMBdist
+  expect_error(residuals(fit, type = "osa"), "does not support OSA",
+               fixed = TRUE)
 })

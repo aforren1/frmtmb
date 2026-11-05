@@ -1,3 +1,16 @@
+# frmtmb 0.79.1
+
+* `residuals(type = "osa")` on `beta_binomial()` always stops with a
+  message. RTMBdist 1.1.0 refused this route. RTMBdist 1.2.0 gives a
+  value, and on a test of 150 rows 21 values were NaN with no warning. The
+  refusal now does not change with the version of RTMBdist.
+
+* The test "a slope near separation is never silent at few draws" accepts
+  a third result: the optimizer stops and warns. On 61 data seeds at 8
+  draws, 2 fits stopped with the refusal, 55 were capped and warned, and 4
+  stopped in the optimizer and warned. None was silent. The result differs
+  by platform.
+
 # frmtmb 0.79.0
 
 The main changes:

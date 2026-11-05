@@ -2066,13 +2066,18 @@ lgamma_count_shift <- function(a, s) {
 #' differences cancel as `phi` grows. The true density is flat there, the
 #' binomial's, but on data with no overdispersion the optimizer went to where
 #' it read -66752 at log phi 39 and +327680 at 45, code 0, against -548.982078.
-#' Each difference is formed here without the cancellation. `RTMB`'s own `osa`
-#' and `simref` responses go to `dbetabinom()`, which refuses the one and
-#' simulates the other.
+#' Each difference is formed here without the cancellation. `RTMB`'s `simref`
+#' response goes to `dbetabinom()`, which simulates it. The `osa` response is
+#' refused here: `dbetabinom()` refused it up to RTMBdist 1.1.0, and from 1.2.0
+#' it answers, with NaN on 21 of 150 rows and no warning.
 #'
 #' @noRd
 beta_binomial_lpmf <- function(y, size, a, b, phi) {
-  if (inherits(y, c("osa", "simref"))) {
+  if (inherits(y, "osa")) {
+    frm_stop("beta_binomial() does not support OSA residuals. ",
+             "Use another `type` of residuals()", call. = FALSE)
+  }
+  if (inherits(y, "simref")) {
     return(RTMBdist::dbetabinom(y, size, a, b, log = TRUE))
   }
   lgamma(size + 1) - lgamma(y + 1) - lgamma(size - y + 1) +
