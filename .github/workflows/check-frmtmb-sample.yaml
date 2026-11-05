@@ -74,6 +74,7 @@ jobs:
         with:
           r-version: 'release'
           use-public-rspm: true
+          extra-repositories: 'https://kaskr.r-universe.dev'
       # The core's own dependencies, resolved from the root DESCRIPTION,
       # so that R CMD INSTALL below has everything it needs.
       - uses: r-lib/actions/setup-r-dependencies@v2
