@@ -121,6 +121,22 @@ grid rows at one position load one residual, so a contrast between
 them is the coefficient part alone.
 }
 
+\section{New rows of a model with me()}{
+
+The reference grid holds a new row of a \code{me()} term, with its noisy variable
+and its SD at the grid's values. brms's draws take the latent value from
+\code{N(x, sdx)}. Here the estimate reads the value at \code{x} and \code{SE} adds that
+draw's variance, so it is not coefficient uncertainty alone. A contrast here
+answers for two new rows, each with its own measurement error, as brms's
+draws do, so it carries both draws, even in a variable the term does not
+read: 0.97 on a coefficient with a standard error of 0.05, as brms's HPD
+interval of width 3.77 does. For the effect of a variable, that is not the
+reading: use the coefficient or \code{frm_curve(contrast = )} for \code{z}, and
+\code{\link[=frm_curve_deriv]{frm_curve_deriv()}} for \code{x}. With \code{epred = TRUE} the interval emmeans builds
+is symmetric about the estimate, where brms's is not: 2.99 with \code{SE} 1.79
+against an HPD interval of 0.67 to 7.98.
+}
+
 \section{Divergence from brms}{
 
 For a nonlinear \code{mu} without \code{nlpar}, the brms reference grid holds

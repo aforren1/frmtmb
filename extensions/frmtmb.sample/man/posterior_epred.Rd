@@ -84,7 +84,9 @@ population level would drop the group variance from every draw.
 maximum-likelihood fit, and \code{re_formula = NA} predicts here at the
 population level.}
 
-\item{newdata, resp}{As in \code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}}.}
+\item{newdata, resp}{As in \code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}}. A model with one
+response does not read \code{resp}, as in brms. An empty \code{resp} is every
+response.}
 
 \item{re_formula}{The random-effect switch, in brms's spelling:
 \code{NULL} (the default) conditions on each draw's own random effects,
@@ -201,8 +203,9 @@ draws stack into \verb{draws x observations x columns}.
 \code{posterior_predict()} uses the same simulator \code{\link[=simulate]{simulate()}} does,
 including the structured families (\code{frmtmb.latent::hmm()}, \code{mixture(groups = )},
 \code{\link[frmtmb.latent:mixture_mvn]{frmtmb.latent::mixture_mvn()}}) and residual correlation terms; see the Structured
-draws section of \code{\link[frmtmb:simulate.frmtmb_fit]{frmtmb::simulate.frmtmb_fit()}}. Those draws index the rows
-the model was fitted on, so \code{newdata} is refused for them.
+draws section of \code{\link[frmtmb:simulate.frmtmb_fit]{frmtmb::simulate.frmtmb_fit()}}. A structured family indexes
+the rows the model was fitted on, so \code{newdata} is refused for it. A residual
+correlation term is drawn on the groups and times of \code{newdata}.
 }
 
 \section{Argument spellings}{
@@ -246,6 +249,22 @@ marker rather than a value, because \code{NULL} (keep the random effects)
 and \code{NA} (drop them) are both real settings here and neither can
 double as "unset". The behavior when neither is given is unchanged:
 \code{NULL} on every draws method, \code{NA} on \code{pp_check()} for a fit.
+}
+
+\section{New rows of a model with me()}{
+
+A new row has no latent value, so each posterior draw draws one from
+\code{normal(x, sdx)}, per row, or per level under \code{me(gr = )}, as brms does.
+\code{newdata} must hold \code{sdx}, and \code{corme} is not read. Two responses or two
+dpars
+that read one term read one latent value per draw, a stated divergence: brms
+draws one per predictor, against its own Stan program, which has one
+\code{Xme_1}, and
+at the training rows of a two-response fit the residuals correlate at 0.734,
+one
+latent predicts 0.739 and brms's replicates give -0.001. Without new data,
+the
+latent values are the draws' own.
 }
 
 \section{Multivariate models}{

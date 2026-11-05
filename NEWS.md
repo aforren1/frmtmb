@@ -1,3 +1,194 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* `frm_linpred(type = "link")` with no `dpar` returns every predictor of
+  the model as a matrix with one column per predictor, `eta1`, `eta2`, and so
+  on, as `posterior_linpred()` of brms 2.23.0 has one layer per predictor at
+  each draw. An ordinal family with a `cs()` term has one per threshold,
+  `eta + cs_k`, and a family with several location predictors (`categorical()`,
+  `mixture()`, the simplex families) has one per predictor. Before, the method
+  returned the shared `eta` or the first predictor without a word, where
+  `fitted(scale = "linear")` already matched brms. `dpar = "mu"` and
+  `dpar = "mu1"` return one predictor. `se.fit` has the matrix's shape.
+
+* `frm_curve()`, `frm_curve_deriv()`, `frm_curve_feature()` and
+  `frm_lp_basis()` read the same layers. A curve holds every grid row once per
+  predictor, with the predictor in a new column `.eta`, in the order
+  `as.numeric()` of brms's layers at one draw, and the band and the covariance
+  are over all of them. Under `cs()`, the standard error and the derivative read
+  the term's coefficients: on a `sratio()` fit the derivative in the `cs()`
+  variable is `bcs_z[k]` with its own standard error, where it was 0 with a
+  standard error of 0. `frm_lp_basis()` returns the stacked rows and a new
+  field `layers`.
+
+* `fitted(dpar = "mu", scale = "linear")` of a `cs()` fit returns the shared
+  part, as brms 2.23.0 does. Before, it returned one layer per threshold.
+
+* `frm_linpred(dpar = "mu", type = "response")`, `fitted(dpar = "mu")`,
+  `conditional_effects(dpar = "mu")` and `frm_curve(dpar = "mu", transform =
+  TRUE)` of an ordinal family apply the family's link inverse, as
+  `posterior_epred(dpar = "mu")` of brms 2.23.0 does: `plogis(mu)` under
+  `logit`. Before, they returned `mu` unchanged, because the location's own link
+  slot is the identity. frmtmb.sample's `posterior_epred(dpar = "mu")` and
+  `posterior_linpred(transform = TRUE)` read the same.
+
+* `emmeans()` of a `cs()` fit with no `dpar` averages the thresholds' predictors,
+  and `~ x | rep.meas` gives each, as brms does. Before, it read the shared part,
+  which `dpar = "mu"` still reads. At the estimate of an `acat()` fit with
+  `cs(f)` the means differed from brms's by 0.083.
+
+* `frm_curve()` under a `cov = FALSE` autocorrelation term refuses with its
+  reason, that the mean reads the residual of the row before it. Before, it
+  refused with a message about a misread covariance.
+
+* A new row of a `me()` term has no latent value, and brms 2.23.0 draws one from
+  `normal(x, sdx)`. `predict()`, `simulate()` and
+  `conditional_effects(method = "predict")` on new data do the same, per
+  replicate, per row or per level under `me(gr = )`, also under `propagate_error =
+  FALSE`, because the draw is measurement noise in the grid. Before, they read
+  `x`, and the interval was too narrow: at a coefficient of 1.01 and `sdx = 0.8`,
+  the predictive sd was 0.55 of brms's. New data must hold `sdx`, with positive
+  values and one value per `me(gr = )` level, and a level the fit did not see
+  needs `allow_new_levels = TRUE`, as in brms. `corme` is not read, as in brms.
+  A row with no `x` or `sdx` reads `NA` with a warning of class
+  `frmtmb_me_missing`, as a plain predictor's row reads `NA`; brms reads `NaN` and
+  warns. So `fitted(fit, newdata = )` on the fit's own data answers when the fit
+  dropped such rows.
+
+* `fitted()` on such a row is the mean of the expected response over the draw, by
+  Gauss-Hermite on the response scale, and `Est.Error` holds the draw's variance
+  beside the coefficients'. On a log link the mean is `exp((b sdx)^2 / 2)` times
+  the value at `x`: brms's mean is 1.41 to 1.76 times that value at `sdx = 1.2`,
+  and now 0.98 to 1.02 times `fitted()`. On lognormal, zero-inflated and hurdle
+  families, `Est.Error` was a constant in `sdx` and now reads 5.22 where brms's sd
+  is 5.21. `frm_linpred()` stays at the observed `x`, which on `type = "link"` is
+  exactly the mean. Its `se.fit`, `frm_curve()`, `conditional_effects()` and
+  `emmeans()` add the draw's variance, so their standard errors are not coefficient
+  uncertainty alone, as for a new grouping level. `frm_lp_basis()` reports it in
+  `extra_var`, exactly on a product of calls. `me(x, sx):me(z, sz)` now holds
+  `(b sx sz)^2`.
+
+* `fitted()`'s `Q` columns are the interval on the link's scale, mapped through its
+  inverse, so they stay in the support of the expected response: 0.51 and 17.3 on a
+  poisson mean at `sdx = 1.2`, where brms's quantiles are 0.50 and 17.7 and the Wald
+  interval read -2.26 and 8.24. Before, the interval was symmetric about the
+  estimate on every link. On an identity link it still is. On a `me()` row they
+  are the draw's quantiles, and over 200 simulated data sets at `sdx = 1` they cover
+  the mean at the drawn latent on 95.5 and 98 percent, where the old reading
+  covered it on 88 and 91 percent.
+
+* One `me()` call is one latent value per row and draw, whichever response or dpar
+  reads it. **This diverges from brms 2.23.0**, which draws one per predictor on
+  new data, against its own Stan program, which has one `Xme_1`. At the training
+  rows of a two-response fit, the residuals correlate at 0.734, one latent predicts
+  0.739 and brms's replicates give -0.001. The 95 percent width of `y1 - y2` at
+  `sdx = 2` is 3.18 with one latent and 15.08 with two. Marginals agree either way
+  for two responses. On `mu` and `sigma` reading one call, the predictive skew reads
+  0.33, 0.36, 0.63, where brms reads 0.03, -0.02, -0.14. A mean that is a joint
+  function of the predictors moves too: a `categorical()` probability reads 0.3336,
+  where brms reads 0.3106. A mixture and a `mu` with a `zi` that read one call are
+  the same.
+
+* `frm_curve(contrast = )` reads one draw of a `me()` value for two rows at one `x`
+  and one `sdx`, to `all.equal()`'s tolerance, so the draw cancels: a contrast in
+  `z` has the standard error of `z`'s coefficient, 0.051. It answers for one unit
+  with one unknown `x`. `emmeans()` contrasts answer for two new rows, each with its
+  own measurement error, as brms's draws do, so they carry both draws: 0.97 on that
+  coefficient, against brms's HPD width of 3.77. For the effect of `z`, read
+  `frm_curve(contrast = )` or the coefficient. For the effect of `x`, read
+  `frm_curve_deriv()`.
+
+* `marginaleffects`'s default `vcov` gives a warning of class
+  `frmtmb_interop_se_part` where the standard error of a level from `predictions()`
+  cannot hold a variance, because the delta method has only the coefficients in
+  `get_coef()`. `frm_linpred(se.fit = TRUE)` and `fitted()` carry each of these:
+  - a `me()` term: 0.07 against 1.11. A slope, contrast or test of a coefficient is
+    right, -0.491 with a standard error of 0.0485.
+  - a smooth, `gp()` or `hsgp()` term: 0.46 on every row of a `gp()`, against 0.089
+    to 0.880. On `s(x)` it reads 0.70, 0.12, 1.07, 1.59 against 0.088, 0.068, 0.55,
+    1.32.
+  - group-level effects with `re_formula` keeping them: 0.209 against 0.104 on a
+    gaussian `(1 | g)`. Under `re_formula = NA` the two agree, and no warning comes.
+
+* `fitted()`'s `Q` columns of a category probability are a Wald interval on its
+  logit, as `conditional_effects()` builds it. Before, they were a Wald interval on
+  the probability, clamped to 0 and 1. On a `cumulative()` row at `sdx = 1.2`,
+  category 1 read 0 to 0.419 and now reads 0.049 to 0.462, where brms's quantiles are
+  0.048 and 0.469.
+
+* `fitted()`'s `Q` columns on a `mixture_mvn()` fit are a Wald interval on each
+  mean. Before, they were held between 0 and 1, as for a probability, so they could
+  leave the estimate.
+
+* `conditional_effects()`'s `se__` on a lognormal or hurdle fit moved from the
+  response scale to the link scale, with no `me()` term too. This matches the help
+  and a poisson fit. It diverges from brms 2.23.0, whose `se__` is on the response
+  scale: 0.068 against 0.519, as a poisson fit reads 0.102 against 0.809.
+
+* `fitted(scale = "linear")` of a distributional parameter with no predictor reads
+  its link scale. This is not new, and it diverges from brms 2.23.0, which returns
+  the stored natural value: 2.01 against 7.48 with `shape` unmodeled, and 2.01 in
+  both with `shape ~ 1`, the same model. On another fit, 0.776 against 2.17.
+
+* `frm_curve_feature()` with no `resp` on a multivariate fit asks for `resp`. Before,
+  it stopped with an internal error. `insight::get_predicted()` on a multivariate
+  fit returns `Row`, `Response`, the columns of `data` and `Predicted`, as for brms.
+  Before, it returned one unlabeled number per row and response.
+
+* `frm_linpred()` with no `resp` on a multivariate fit returns every response, one
+  column each, as `posterior_linpred()` stacks them. `frm_lp_basis()` and
+  `frm_curve()` refuse it and ask for `resp`. Before, the three read the first
+  response without a word.
+
+* A univariate fit does not read `resp`, as in brms: `fitted()`, `predict()`,
+  `residuals()`, `frm_linpred()`, `frm_lp_basis()`, `frm_curve()`,
+  `frm_curve_deriv()`, `frm_curve_feature()`, `emmeans()`, `get_predict()`,
+  `conditional_effects()` and `pp_mixture()` give the same answer for an empty
+  vector, a name given twice and an unknown name. Before, the first two gave
+  internal errors and the third a refusal.
+
+* `conditional_effects()` of a multivariate fit gives one panel set per response
+  without `resp`, and takes several, each named `<resp>.<resp>_<effect>`, in brms's
+  order: the effects outside, over what any response reads, and the responses
+  inside, so a response that does not read an effect has a flat panel. A panel of
+  one named response has that name too. Before, it gave the first response alone,
+  named `<effect>`, and failed on several. A response name given twice is refused
+  here and in `pp_mixture()`, where brms repeats the panel, because brms answers
+  that input four different ways across its methods.
+
+* `conditional_effects()` of a `me(gr = )` fit holds the group at `NA`, as brms
+  does, so each grid row is a level of its own. `frm_curve_deriv()` and
+  `frm_curve_feature()` in that noisy variable refuse with the reason, that a level
+  holds one value.
+
+* `predict(newdata = )` answers under `ar()`, `ma()`, `arma()`, `cosy()` and
+  `unstr()` with `cov = TRUE`, through the draw `simulate(newdata = )` takes, as brms
+  does. Before, it refused.
+
+## New features and fixes
+
+* `pp_mixture()` takes one response of a multivariate mixture, with brms's
+  refusal of none or several. Before, it refused every multivariate fit.
+
+* `insight::get_predicted(predict = "link")` reads one predictor per row, the
+  shared part of a `cs()` term, because it returns one number per row.
+
+* `emmeans()` of a model with a `me()` term no longer leaves the term out of the
+  mean. Its design route read the intercept with no `b * mean(x)`. It now takes
+  the grid route, as `mo()` and `mi()` do.
+
+* `frm_curve()` no longer refuses a grid with a row that has a standard error of
+  exactly 0 on both routes of its covariance check, such as `x = 0` under
+  `dpar = "mu"` of an ordinal fit. It read the agreement as a disagreement of 1.
+
+* New sampling-API exports for frmtmb.sample: `ce_by_response()`,
+  `resp_refuse_single()` and `update_merge_prior()`.
+
+* `frm_compat()`: `cs_pred()` x `frm_curve` is now "works", where it was
+  "untested"; `me()` x `predict` and `me()` x `emmeans` are now "works", where
+  they were "conditional".
+
 # frmtmb 0.78.0
 
 The main changes:

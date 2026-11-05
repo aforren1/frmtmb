@@ -122,7 +122,7 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
   nd <- sp$newdata
   ct <- sp$contrast
   curve_check_contrast(nd, ct)
-  curve_check_var(nd, var)
+  curve_check_var(nd, var, sp$fit)
   curve_check_contrast_var(nd, ct, var)
   x <- as.numeric(nd[[var]])
   e <- curve_eps(eps, x, order)
@@ -143,7 +143,9 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
   parts <- curve_parts(sp$fit, stack, sp$dpar, sp$resp, sp$re_formula,
                        sp$allow_new_levels, tol, cstack)
   m <- nrow(nd)
-  lo <- seq_len(m)
+  # the seam stacks the whole stencil once per layer, layer slowest
+  per <- (seq_along(parts$layers %||% 1L) - 1L) * 3L * m
+  lo <- as.vector(outer(seq_len(m), per, `+`))
   mid <- m + lo
   hi <- 2L * m + lo
   if (order == 1L) {
@@ -215,6 +217,7 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
 #' @noRd
 curve_spec <- function(object, newdata, contrast, dpar, resp, re_formula,
                        allow_new_levels, anl_given) {
+  if (!inherits(object, "frmtmb_curve")) resp <- resp_read(object, resp)
   if (inherits(object, "frmtmb_curve")) {
     s <- attr(object, "spec")
     nd <- if (is.null(newdata)) s$newdata else newdata
@@ -273,10 +276,18 @@ curve_check_contrast_var <- function(nd, ct, var) {
 }
 
 #' @noRd
-curve_check_var <- function(nd, var) {
+curve_check_var <- function(nd, var, fit = NULL) {
   if (!is.character(var) || length(var) != 1L) {
     frm_stop("`var` must name one covariate of the grid, as a string",
              call. = FALSE)
+  }
+  for (t in fit$frame[["me"]]$terms %||% list()) {
+    if (!is.null(t$gr) && var %in% all.vars(t$x) && !is.null(nd[[t$gr]])) {
+      frm_stop("`var` is '", var, "', the noisy variable of ", t$key, ". A ",
+               "level of '", t$gr, "' holds one value of it, so it has no ",
+               "derivative or feature within a level. frm_curve() reads it ",
+               "across levels", call. = FALSE)
+    }
   }
   if (is.null(nd[[var]])) {
     frm_stop("`var` names '", var, "', which is not a column of the grid. ",

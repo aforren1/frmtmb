@@ -359,6 +359,7 @@ test_that("declared post-fit methods are callable", {
              confint_profile = "confint.frmtmb_fit",
              hypothesis_profile = "hypothesis",
              emmeans = "emm_basis.frmtmb_fit",
+             marginaleffects = "get_predict.frmtmb_fit",
              fitted = "fitted.frmtmb_fit",
              predict = "predict.frmtmb_fit",
              simulate = "simulate.frmtmb_fit",
@@ -571,7 +572,9 @@ test_that("the multivariate declarations match a multivariate fit", {
   # one-step residual is the univariate-only one
   expect_identical(dim(residuals(fit)), c(as.integer(n), 4L, 2L))
   expect_error(residuals(fit, type = "osa"), "multivariate")
-  expect_length(frm_linpred(fit), n)
+  # one column per response, as fitted() gives one slice per response
+  expect_identical(dim(frm_linpred(fit)), c(as.integer(n), 2L))
+  expect_identical(colnames(frm_linpred(fit)), c("y", "y2"))
 
   # the inference surface is declared to work, so it has to
   ci <- confint(fit, method = "profile", parm = "y_x")

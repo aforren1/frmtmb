@@ -53,7 +53,7 @@ it_brms_draw <- function(ds, s, fam, K1, thr_names, rows_K1 = NULL) {
   m <- as.matrix(ds, variable = thr_names)[s, ]
   eta <- as.numeric(frm_linpred(f, type = "link", dpar = "mu"))
   # a cs() term moves eta per threshold, as brms's mu does there
-  eta_k <- frmtmb:::ord_linear_per_threshold(f, eta, NULL, NULL)
+  eta_k <- frm_linpred(f, type = "link")
   if (!is.matrix(eta_k)) eta_k <- matrix(eta, length(eta), K1)
   disc <- as.numeric(frm_linpred(f, type = "response", dpar = "disc"))
   dens <- get(paste0("d", fam), asNamespace("brms"))

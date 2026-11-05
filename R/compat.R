@@ -873,7 +873,8 @@ compat_features_build <- function(extra = NULL) {
     lapply(c("fitted", "predict", "simulate", "residuals",
              "residuals_osa", "emmeans",
              "confint_profile", "hypothesis_profile",
-             "frm_lp_basis", "frm_curve", "frm_curve_contrast"), f,
+             "frm_lp_basis", "frm_curve", "frm_curve_contrast",
+             "marginaleffects"), f,
            kind = "method"),
     # formula-grammar spellings, which have their own restrictions and
     # belong in the table even though they name no package object
@@ -1816,17 +1817,27 @@ compat_hand_rules_tbl <- function() {
   r("me()", "mixture", "untested",
     "A mixture fit with a me() term runs; nothing checks its estimates.")
   r("me()", "fitted", "works",
-    "In-sample, fitted() uses the latent modes (brms with save_pars(latent = TRUE)). On new data the observed value stands in for the latent one, which is the mean of the N(x, sdx) draw brms makes there; sdx is not read.")
-  r("me()", "predict", "conditional",
-    "As fitted(): latent modes in-sample, the observed value on new data. brms adds the measurement noise N(x, sdx) to a new-data prediction; frmtmb does not, so a new-data interval is narrower than brms's. A missing noisy value in new data is refused.")
+    "In-sample, fitted() uses the latent modes (brms with save_pars(latent = TRUE)). On new data the estimate is the mean of the expected response over the N(x, sdx) draw brms makes there, by Gauss-Hermite on the response scale; Est.Error carries that draw's variance and the Q columns its quantiles. New data must hold sdx, as brms requires. A row with no noisy value or SD reads NA with a warning, where brms reads NaN and warns.")
+  r("me()", "predict", "works",
+    "In-sample, the latent modes. On new data each replicate draws the latent value from N(x, sdx), per row or per me(gr = ) level, as brms 2.23.0 does, under propagate_error = FALSE too. Two responses or two dpars read one latent value, a stated divergence: brms draws one per predictor against its own Stan program. New data must hold sdx. A row with no noisy value or SD reads NA with a warning, where brms reads NaN and warns.")
+  r("me()", "marginaleffects", "conditional",
+    "The default vcov gives the warning of class frmtmb_interop_se_part. The standard error of a level holds no variance of a new row's latent value, which is in no coefficient: every row reads as new, and get_vcov() gets no rows. A slope, contrast or test of a coefficient is right. frm_linpred(se.fit = TRUE) and fitted() carry the variance; vcov = FALSE gives the estimates alone.")
+  r("kind:covstruct", "marginaleffects", "conditional",
+    "The default vcov gives the warning of class frmtmb_interop_se_part while re_formula keeps a group-level term. get_coef() holds the population-level and distributional coefficients alone, so the standard error of a level holds neither the group-level effects' uncertainty nor their covariance with the intercept. Under re_formula = NA it agrees with fitted(). frm_linpred(se.fit = TRUE) and fitted() carry them.")
+  r("s()", "marginaleffects", "conditional",
+    "The default vcov gives the warning of class frmtmb_interop_se_part. get_coef() holds no coefficient of the smooth, so the standard error of a level is too wide near the data and too narrow far from it. frm_linpred(se.fit = TRUE) and fitted() carry it.")
+  r("t2()", "marginaleffects", "conditional",
+    "The default vcov gives the warning of class frmtmb_interop_se_part. get_coef() holds no coefficient of the smooth, as for s(). frm_linpred(se.fit = TRUE) and fitted() carry it.")
+  r("gp_pred()", "marginaleffects", "conditional",
+    "The default vcov gives the warning of class frmtmb_interop_se_part. get_coef() holds no coefficient of the field, so the standard error of a level is one value on every row. frm_linpred(se.fit = TRUE) and fitted() carry it.")
   r("me()", "simulate", "works",
-    "Simulates the response at the latent modes, as for a random effect's conditional modes; the noisy variable itself is data and is not simulated.")
+    "Simulates the response at the latent modes, as for a random effect's conditional modes; the noisy variable itself is data and is not simulated. On new data each replicate draws the latent value from N(x, sdx), as predict() does.")
   r("me()", "residuals", "works",
     "Residuals are taken against the fitted values at the latent modes.")
   r("me()", "residuals_osa", "works",
     "Verified by a tiny fit: the latent values are inner parameters of the one-step-ahead predictions like any random effect.")
-  r("me()", "emmeans", "conditional",
-    "The reference grid predicts on new data, so the noisy variable enters at its grid value, the observed-value convention of predict().")
+  r("me()", "emmeans", "works",
+    "The reference grid predicts on new data, so the noisy variable enters at its grid value and the standard error carries the N(x, sdx) draw that brms's draws carry, also in a contrast, as brms's does. The grid holds sdx at its mean, as brms's does.")
   r("me()", "confint_profile", "works",
     "Verified: profile intervals for a me() coefficient.")
   r("me()", "hypothesis_profile", "untested", "")
@@ -1839,6 +1850,8 @@ compat_hand_rules_tbl <- function() {
     "As brms 2.23.0 fits it, with brms's warning that the effects are experimental: row i reads the thresholds tau_k - cs_ik, brms's Intercept - transpose(mucs[n]). The log density equals brms 2.23.0's compiled program to at most 0.9 ulp at the optimum and at three perturbed points on six shapes: the logit and the probit, a predictor beside cs(), two cs() terms, a factor in cs(), disc ~ 0 + z, equidistant thresholds and a mixture with sratio(); at the 6 of 24 points whose offsets cross two thresholds on some row both are NaN (dev/rel068-cs-lpcheck.R). Rows whose offsets make two thresholds cross have a negative category probability: their density is NaN, as brms's is, their fitted() probabilities are NaN where brms returns the negative difference, and simulate() gives NA there; predict() gives NA proportions for a row that crosses at the estimates, and for a row that crosses only in some of its simulated parameter draws the proportions over the others, with a warning that counts the draws dropped. With thres(gr = ) it is refused, as in brms.")
   r("cs_pred()", "hurdle_cumulative", "works",
     "As brms fits it, with brms's warning that the effects are experimental: the offsets come off each row's thresholds, and the log density equals brms 2.23.0's compiled probit program to at most 0.8 ulp, with and without disc and hu predictors (dev/ordmix-lpcheck.R; brms's logit program reads the top category out of range, upstream brms-1). Rows whose offsets make two thresholds cross have a negative category probability: their density is NaN, as brms's is, their fitted() probabilities are NaN where brms returns the negative difference, and simulate() gives NA there; predict() gives NA proportions for a row that crosses at the estimates, and for a row that crosses only in some of its simulated parameter draws the proportions over the others, with a warning that counts the draws dropped. With thres(gr = ) it is refused, as in brms.")
+  r("cs_pred()", "frm_curve", "works",
+    "One curve per threshold, eta + cs_k, in a column .eta, as brms's posterior_linpred() has one layer per threshold; dpar = \"mu\" is the shared part. The band and frm_curve_deriv() read the term's coefficients, and frm_curve_feature() searches each curve.")
   r("cs_pred()", "mixture", "works",
     "An ordinal mixture takes cs() in the formula of each component, each with coefficients of its own (bcs_mu1_x[k]); a cumulative() or hurdle_cumulative() component warns as brms warns, once per component. Verified against brms 2.23.0's compiled program (dev/ordmix-lpcheck.R, dev/rel068-cs-lpcheck.R).")
   r("gp_pred()", "kind:mode", "untested", "", override = TRUE)
@@ -2064,7 +2077,7 @@ compat_hand_rules_tbl <- function() {
     r(nm, "fitted", "conditional",
       "Under cov = TRUE the mean structure is untouched. Under cov = FALSE fitted(), frm_linpred() and predict(type = \"response\") report brms's one-step mean: mu plus the ARMA term of the OBSERVED earlier residuals of the row's group. On newdata the recursion reads newdata's own response, whose rows are read as their own groups in their own time order, as brms reads new data; a response that is NA, or absent, is filled with its expected value. That diverges from brms on purpose: brms fills it with a draw per posterior draw, so its fitted() carries the fill's spread, and a maximum likelihood fit has no draws to propagate the fill through. frmtmb.sample's posterior_epred() fills with draws, as brms does. The standard error is a finite-difference delta method over the parameters and the group effects, because the mean reads the residuals of other rows. conditional_effects() and emmeans() drop the term, as brms's do (incl_autocor = FALSE).")
     r(nm, "predict", "conditional",
-      "Under cov = TRUE unchanged. Under cov = FALSE predict() draws each row around its one-step mean, conditional on the observed earlier residuals, which is brms's posterior_predict(). On newdata a response that is NA, or absent, is filled with a draw at its one-step mean before the later rows read its residual, as brms's .predictor_arma() fills it.")
+      "Under cov = TRUE predict() draws one multivariate residual per group, and on newdata it builds the term on the groups and times of newdata, as simulate(newdata = ) does. Under cov = FALSE predict() draws each row around its one-step mean, conditional on the observed earlier residuals, which is brms's posterior_predict(). On newdata a response that is NA, or absent, is filled with a draw at its one-step mean before the later rows read its residual, as brms's .predictor_arma() fills it.")
     r(nm, "simulate", "works",
       "Under cov = FALSE simulate() runs brms's recursion over its own draws, one within-group position at a time, so a replicate has the fitted serial dependence and a group's first row has no lagged term. Rows are drawn by the family's rowwise simulator, so trunc() works. newdata starts every group from an empty past and needs no response, which makes it the forecasting route. Under cov = TRUE see the group:autocor row.")
     r(nm, "residuals", "conditional",

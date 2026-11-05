@@ -831,6 +831,27 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   2026-10-28.
 - Status: not reported.
 
+### brms-NN. `me()` on new data draws one latent per predictor, against its own Stan program
+
+Numbering is settled at consolidation. Not reported.
+
+- Seen: 2.23.0, 2026-11-02 (`dev/review-predread-mejoint.R`, seed 7701;
+  `dev/predread-me-brms-probe.R`, data seed 41).
+- Repro: `mvbf(bf(y1 ~ me(xo, sx)), bf(y2 ~ me(xo, sx)), rescor = FALSE)`, then
+  `posterior_epred()` and `posterior_predict()` with `newdata`. The same for a
+  `mu` and a `sigma` that read one call.
+- Expected: one latent value per row and draw, as the program has one `Xme_1`
+  that `mu_y1` and `mu_y2` both read. Actual: `prepare_predictions_sp()` draws for
+  each predictor. `cor(y1, y2)` of the expected values over draws is 0.007, 0.003,
+  -0.015 by row on new data, and 0.99 to 0.97 in sample under
+  `save_pars(latent = TRUE)` on the same fit, same rows.
+- Why it matters: at the training rows the observed correlation of
+  `y - E[y | x_obs]` is 0.734, one shared latent predicts 0.7385 and brms's
+  replicates give -0.001. The 95 percent width of `y1 - y2` at `sdx = 2` is 15.08
+  drawn independently and 3.18 shared. A marginal moves too on `mu` and `sigma`:
+  predictive skew 0.03, -0.02, -0.14 against 0.33, 0.36, 0.63.
+- frmtmb: shares one latent, a stated divergence (`?predict.frmtmb_fit`).
+
 ### brms-44. A `resp` out of model order stops every method that prepares several responses under `set_rescor(TRUE)`
 
 - Seen: 2.23.0, 2026-10-28 (`dev/rescorpp-compare.R`, log

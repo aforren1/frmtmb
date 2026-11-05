@@ -628,6 +628,19 @@ ce_dots <- function(dots) {
 #' blanking their variable would remove the curve rather than the group.
 #'
 #' @noRd
+ce_me_grouped <- function(x) {
+  length(unlist(lapply(x$frame[["me"]]$terms %||% list(), `[[`, "gr"))) > 0L
+}
+
+#' @noRd
+ce_na_vars <- function(x, pop_level) {
+  # a me(gr = ) group is held at NA as brms holds it, at every re_formula: the
+  # grid moves the noisy variable, and each row is then a level of its own
+  me <- unlist(lapply(x$frame[["me"]]$terms %||% list(), `[[`, "gr"))
+  unique(c(if (!pop_level) ce_group_vars(x), me))
+}
+
+#' @noRd
 ce_group_vars <- function(x) {
   bks <- Filter(function(bk) {
     !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")
@@ -1335,6 +1348,19 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' intervals computed on the link scale and back-transformed. Smooth
 #' terms are part of the predicted curve; [conditional_smooths()] draws
 #' each smooth term on its own, as brms's function of that name does.
+#'
+#' @section New rows of a model with me():
+#' A grid row has no latent value. The estimate is the value at the held `x`,
+#' which
+#' is close to the median of brms's draws, and `se__`, `lower__` and `upper__`
+#' carry the variance of the draw from `N(x, sdx)`, so they are not coefficient
+#' uncertainty alone. The band is the draw's own quantiles on the response
+#' scale.
+#' A `me(gr = )` group is held at `NA`, as brms holds it, so each grid row is a
+#' level of its own.
+#'
+#' With several responses, the panels are in brms's order: the effects outside,
+#' over what any response reads, and the responses inside.
 #'
 #' @param x A `frmtmb_fit`.
 #' @param effects Character vector of variable names, or `"x:z"` pairs;
@@ -2266,7 +2292,7 @@ ce_finalize <- function(dfs_by_eff, effects, rspec, resp, dpar, band,
                         base, categorical, cond_sets = list(),
                         groups = character(0), cats_key = FALSE,
                         select_points = 0, pred_vars = character(0),
-                        draws_by_eff = NULL) {
+                        draws_by_eff = NULL, resp_prefix = FALSE) {
   out <- list()
   for (eff in effects) {
     ev <- strsplit(eff, ":", fixed = TRUE)[[1L]]
@@ -2326,7 +2352,54 @@ ce_finalize <- function(dfs_by_eff, effects, rspec, resp, dpar, band,
       attr(df, "points_df") <- pts
       attr(df, "points") <- ce_points_brms(pts, ev)
     }
+    # brms keys a multivariate model's panel `<resp>.<resp>_<effect>`
+    if (isTRUE(resp_prefix)) key <- paste0(resp, ".", resp, "_", key)
     out[[key]] <- df
+  }
+  structure(out, class = "frmtmb_conditional_effects")
+}
+
+#' The band of a display's rows that hold a new `me()` value: the draw's own
+#' quantiles on the response scale (`me_band_end()`), whatever the family's mean
+#' is. A delta-method band reads 0.38 to 10.6 on a hurdle mean at sdx 1.2 where
+#' brms's quantiles are 0.84 and 15.4.
+#'
+#' @noRd
+ce_me_band <- function(df, x, nd, re_formula, resp, dpar, anl, prob) {
+  mm <- fitted_me_moments(x, nd, re_formula, resp, dpar, anl)
+  if (is.null(mm)) return(df)
+  cf <- tryCatch(suppressWarnings(frm_linpred(
+    me_coef_only(x), newdata = nd, type = "response", dpar = dpar, resp = resp,
+    re_formula = re_formula, allow_new_levels = anl, se.fit = TRUE)$se.fit),
+    error = keep_missing(NULL))
+  if (is.null(cf)) return(df)
+  df$lower__ <- me_band_end(mm, cf, (1 - prob) / 2)
+  df$upper__ <- me_band_end(mm, cf, 1 - (1 - prob) / 2)
+  df
+}
+
+#' `conditional_effects()` of a multivariate model for several responses, in
+#' brms's layout: the effects outside, over the union of what the responses
+#' read,
+#' and each response in the order asked inside, so a response that does not read
+#' an effect has its flat panel, as brms's `y2.y2_f` is. `one(r, effects)` is
+#' one
+#' response's panel set. Exported through the sampling-API page.
+#'
+#' @noRd
+ce_by_response <- function(resps, one, effects = NULL) {
+  sets <- lapply(resps, function(r) unclass(one(r, effects)))
+  names(sets) <- resps
+  eff_of <- function(r) sub(paste0("^", r, "[.]", r, "_"), "", names(sets[[r]]))
+  all_eff <- unique(unlist(lapply(resps, eff_of), use.names = FALSE))
+  out <- list()
+  for (e in all_eff) {
+    for (r in resps) {
+      key <- paste0(r, ".", r, "_", e)
+      p <- sets[[r]][[key]]
+      if (is.null(p)) p <- unclass(one(r, e))[[key]]
+      out[[key]] <- p
+    }
   }
   structure(out, class = "frmtmb_conditional_effects")
 }
@@ -2458,6 +2531,30 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   allow_new_levels <- ce_dots(dots)
   pop_level <- !inherits(re_formula, "formula") &&
     length(re_formula) == 1L && is.na(re_formula)
+  mv <- length(x$spec$responses) > 1L
+  # a univariate model does not read `resp`, as in brms
+  if (!mv) resp <- NULL
+  if (mv && length(resp) != 1L) {
+    # brms's layout: one panel set per response, in the order asked
+    want <- brms_validate_resp(x, if (length(resp)) resp)
+    if (length(resp) && anyDuplicated(resp)) {
+      frm_stop("`resp` names the response '", resp[anyDuplicated(resp)],
+               "' twice. Name each response once", call. = FALSE)
+    }
+    return(ce_by_response(want, effects = effects, function(r, effects) {
+      conditional_effects(x, effects = effects, resp = r, dpar = dpar,
+                          resolution = resolution, prob = prob,
+                          method = method, band = band,
+                          re_formula = re_formula, ndraws = ndraws,
+                          boot = boot, profile_points = profile_points,
+                          seed = seed, conditions = conditions,
+                          surface = surface, spaghetti = spaghetti,
+                          select_points = select_points, too_far = too_far,
+                          data = data, int_conditions = int_conditions,
+                          categorical = categorical, ...)
+    }))
+  }
+  if (mv) brms_validate_resp(x, resp)
   resp <- resp %||% names(x$spec$responses)[1L]
   rspec <- x$spec$responses[[resp]]
   ce_structure_check(rspec)
@@ -2567,7 +2664,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   # A grouping variable the grid sets (in `conditions` or as an effect)
   # keeps its value, and ce_level_plan() decides per row and per block
   # whether that value is a level the fit saw.
-  na_vars <- if (!pop_level) ce_group_vars(x) else character(0)
+  na_vars <- ce_na_vars(x, pop_level)
   gb <- ce_grids_build(x, rspec, lp, effects, resp, dpar, resolution,
                        conditions, data, int_conditions, na_vars,
                        surface = surface, too_far = too_far)
@@ -2592,7 +2689,8 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   # brms predicts every conditional-effects grid with allow_new_levels =
   # TRUE: a row whose group is unset or unseen reads a new level, and
   # that is an answer, not an error
-  anl <- allow_new_levels || !pop_level
+  # a display holds a me(gr = ) group at NA, a new level per row
+  anl <- allow_new_levels || !pop_level || ce_me_grouped(x)
   z <- stats::qnorm(1 - (1 - prob) / 2)
   bd <- if (band == "boot") {
     # a new level's effects are DRAWN per replicate rather than left at
@@ -2722,6 +2820,12 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         } else {
           lp[["link"]]
         }
+        # a mean no link inverse gives, on an identity link: lognormal()'s
+        # exp(mu + sigma^2 / 2), whose band lives on the log
+        if (mean_display && identical(bl[["name"]], "identity") &&
+              !mean_is_mu(rspec$family) && all(p$fit > 0, na.rm = TRUE)) {
+          bl <- get_link("log")
+        }
         bs <- ce_band_scale(bl, p$fit)
         df$estimate__ <- p$fit
         # abs(): a decreasing link (1/mu) has a negative derivative,
@@ -2733,6 +2837,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         df$upper__ <- be$upper
         bfail <- bfail + c(be$outside, length(be$lower))
         blink <- blink %||% bl[["name"]]
+        df <- ce_me_band(df, x, nd, re_formula, resp, pred_dpar, anl, prob)
       } else {
         p <- if (nl) {
           ce_nl_link_se(x, nd, dpar, resp, re_formula)
@@ -2741,15 +2846,16 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
                       resp = resp, re_formula = re_formula,
                       se.fit = TRUE, allow_new_levels = anl)
         }
-        df$estimate__ <- lp[["link"]]$linkinv(p$fit)
+        lk <- dpar_response_link(rspec, lp, dpar)
+        df$estimate__ <- lk$linkinv(p$fit)
         df$se__ <- p$se.fit
-        be <- ce_band_ends(lp[["link"]]$linkinv, p$fit - z * p$se.fit,
-                           p$fit + z * p$se.fit,
-                           lp[["link"]]$mu_eta(p$fit))
+        be <- ce_band_ends(lk$linkinv, p$fit - z * p$se.fit,
+                           p$fit + z * p$se.fit, lk$mu_eta(p$fit))
         df$lower__ <- be$lower
         df$upper__ <- be$upper
         bfail <- bfail + c(be$outside, length(be$lower))
-        blink <- blink %||% lp[["link"]][["name"]]
+        blink <- blink %||% lk[["name"]]
+        df <- ce_me_band(df, x, nd, re_formula, resp, dpar, anl, prob)
       }
       if (method == "predict") {
         fam <- rspec$family
@@ -2761,8 +2867,21 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         avc <- ce_aterms(rspec, nd, n)
         # sim_response(), not fam$sim(): trunc() bounds are respected by
         # rejection, as everywhere else responses are drawn
-        sims <- replicate(ndraws, sim_response(
-          fam, dpv, avc, n, extra = fit_extras(x, rspec$resp_name)))
+        # a grid row of a me() term has no latent value: a replicate draws
+        # one from normal(x, sdx), as predict() does (me_newdata_value())
+        me_rows <- any(vapply(x$frame[["linpreds"]], function(l) {
+          identical(l[["resp"]], rspec$resp_name) && length(l[["me"]]) > 0L
+        }, NA))
+        sims <- replicate(ndraws, {
+          dpr <- if (me_rows) {
+            xd <- x
+            xd[["me_draw"]] <- new.env(parent = emptyenv())
+            dpars_natural(xd, rspec, nd, re_formula, anl)
+          } else {
+            dpv
+          }
+          sim_response(fam, dpr, avc, n, extra = fit_extras(x, rspec$resp_name))
+        })
         # the point estimate is the median of the same simulated
         # responses the band is a quantile band of, as brms's estimate__
         # is the median of its predictive draws (posterior_summary(robust
@@ -2817,7 +2936,8 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
                      categorical, cond_sets, gb$groups, categorical,
                      select_points = select_points,
                      pred_vars = gb$pred_vars,
-                     draws_by_eff = if (spaghetti) draws_by_eff)
+                     draws_by_eff = if (spaghetti) draws_by_eff,
+                     resp_prefix = mv)
   # the bootstrap rides along so a second call can reuse it: refits are
   # the expensive part and nobody should pay for them twice
   if (!is.null(bd)) attr(out, "boot") <- bd$bs
@@ -4029,10 +4149,7 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
 pp_check_resp <- function(object, resp) {
   rs <- object$spec$responses
   if (length(rs) == 1L) return(rs[[1L]])
-  if (is.null(resp)) {
-    frm_stop("Argument 'resp' must be a single variable name when applying ",
-             "this method to a multivariate model.", call. = FALSE)
-  }
+  if (is.null(resp)) resp_refuse_single()
   if (!is.character(resp) || length(resp) != 1L || is.na(resp)) {
     frm_stop("Cannot coerce 'resp' to a single character value.",
              call. = FALSE)

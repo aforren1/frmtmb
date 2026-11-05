@@ -67,7 +67,7 @@ Then load the extensions a model needs, for example
 | `xbeta()`, `zero_inflated_beta_binomial()`, `hurdle_cumulative()` | same | brms's density, links and `posterior_epred()`; `hurdle_cumulative()` takes brms's threshold structures, `thres(gr = )` and `cs()` (see What changes) |
 | `car(M, gr = g, type =)` | same, with `library(frmtmb.spatial)` | all four types; the term is in the extension package frmtmb.spatial |
 | `(1 | mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
-| `me(x, sdx)`, `me(x, sdx, gr = g)`, `set_mecor()` | same | latent values integrated by Laplace; new data uses the observed `x` (below) |
+| `me(x, sdx)`, `me(x, sdx, gr = g)`, `set_mecor()` | same | latent values integrated by Laplace; new data draws them from `N(x, sdx)`, as brms does (below) |
 | `(x | gr(g, by = f))` | same | one set of SDs and correlations per level of `f`, named `sd_g__Intercept:fa` as in brms; not with `cov =` |
 | `ar(t, g)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; both `cov = FALSE` (brms's default) and `cov = TRUE` (below) |
 | `fcor(M)` | same | gaussian/student only; `M` in `data2`, `sigma` scales it, and a predicted `sigma` gives `D M D`, as in brms; `newdata` only on the fitted rows, as brms without `newdata2` |
@@ -504,14 +504,14 @@ exact. The names follow brms: the coefficient of `me(x, sx)` is
 `bsp_mexsx`, and `summary()` reports `meanme_mex`, `sdme_mex` and
 `corme__mex__mez`, which brms reports only through `variables()`.
 
-Two differences to know when you port:
-
-- On new data, `predict()` and `fitted()` use the observed `x` in place
-  of the latent value. brms draws it from `N(x, sdx)`, so the two agree
-  on the mean of a linear term, but brms's prediction interval is wider.
-- brms's prior classes `meanme`, `sdme` and `corme` have no slot here
-  and are refused by name. The flat rows of a `get_prior()` table and
-  its `lkj(1)` `corme` row are dropped, because they apply nothing.
+On new data, a row has no latent value. `predict()` and `simulate()` draw one
+per replicate from `N(x, sdx)`, as brms's draws do. `fitted()` has no draws: it
+reports the mean of the expected response over that draw, by Gauss-Hermite, and
+the draw's variance and quantiles in `Est.Error` and the `Q` columns.
+`frm_linpred()` stays at the observed `x` and adds the variance to `se.fit`. New
+data must hold `sdx`, as in brms. Under `gr = g`, rows at one level read one
+latent value. Two responses or two dpars read one latent value too, where brms
+draws one per predictor against its own Stan program.
 
 `?frmtmb-me` is the full page.
 

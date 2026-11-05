@@ -516,7 +516,8 @@ test_that("a gap fit that lost another direction warns in get_vcov()", {
   fit <- allow_warnings(frm(y ~ mo(x) + z + (mo(x) | g), data = d),
                         "Optimizer did not report convergence")
   w <- "the fit lost another direction as well"
-  V <- allow_warnings(marginaleffects::get_vcov(fit), w, require = w)
+  V <- allow_warnings(marginaleffects::get_vcov(fit), c(w, mfx_se_part),
+                      require = w)
   cf <- c("(Intercept)", "z", "mox", "sigma_(Intercept)")
   expect_true(all(is.finite(V[cf, cf])))
   expect_true(all(is.nan(V["zeta1_cum1", ])))

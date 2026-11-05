@@ -297,7 +297,8 @@ sim_newdata_design <- function(fit, rspec, newdata, allow_new_levels) {
     ed <- lp_eta_design(fit, lp, newdata, TRUE, allow_new_levels)
     # the fixed part, formed exactly as lp_eta_design() forms it
     xb <- lp_fixed_part(ed[["X"]], est, lp)
-    per[[dnm]] <- list(lp = lp, ed = ed, xb = xb)
+    per[[dnm]] <- list(lp = lp, ed = ed, xb = xb,
+                       me_redraw = length(lp[["me"]]) > 0L)
   }
   n <- nrow(newdata)
   # one offset matrix per predictor that has cs() terms, under the slot
@@ -330,6 +331,13 @@ sim_newdata_dpars <- function(fit, rspec, newdata, allow_new_levels, dz,
   dp <- list()
   for (dnm in names(rspec$dpars)) {
     pd <- dz$per[[dnm]]
+    if (isTRUE(pd$me_redraw)) {
+      # a new row's me() value is drawn per replicate, so this predictor's
+      # design is too; through frm_linpred() it would read the one-step mean
+      # of a cov = FALSE term, which the recursion then counts again
+      pd$ed <- lp_eta_design(fit, pd$lp, newdata, TRUE, allow_new_levels)
+      pd$xb <- lp_fixed_part(pd$ed[["X"]], fit$estimates, pd$lp)
+    }
     ed <- pd$ed
     if (is.null(ed)) {
       eta <- as.vector(frm_linpred(fit, newdata = newdata, dpar = dnm,

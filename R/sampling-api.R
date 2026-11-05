@@ -58,6 +58,15 @@
 #' earlier this paragraph said it took one response's list; a caller
 #' that passed one got no offsets, because they were written a level
 #' deeper than the simulator reads.
+#' `ce_by_response(resps, one, effects)` joins the conditional-effects panel
+#' sets
+#' `one(r, effects)` gives each response, in brms's order. `ce_na_vars(x,
+#' pop_level)` names the grid columns a display holds at `NA`.
+#' `autocor_for_newdata(fit, ac, rspec, newdata)` is a residual correlation term
+#' over the groups and times of `newdata`. `resp_refuse_single()` is brms's
+#' refusal of a method that reads one response of a multivariate model.
+#' `update_merge_prior(old, new)` is brms's merge of `update(prior = )`: new
+#' rows take their slots and the other old rows stay.
 #' `cs_offsets_add(fit, resp, newdata, dpv)` takes ONE response's
 #' dpar-value list, however it was built, and adds that response's
 #' `.cs` evaluated at `newdata` (the fitted rows when `NULL`); it is the
@@ -471,6 +480,11 @@
 #' @aliases row_lpdf
 #' @aliases with_cs_offsets
 #' @aliases cs_offsets_add
+#' @aliases update_merge_prior
+#' @aliases ce_by_response
+#' @aliases resp_refuse_single
+#' @aliases ce_na_vars
+#' @aliases autocor_for_newdata
 #' @aliases us_chol_cor
 #' @aliases expand_b
 #' @aliases aterms_for_newdata
@@ -588,7 +602,8 @@
 #' @aliases pp_check_resp
 #' @aliases check_weights_unbounded
 #' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
-#'   cs_offsets_add,
+#'   cs_offsets_add, update_merge_prior, ce_by_response, resp_refuse_single,
+#'   ce_na_vars, autocor_for_newdata,
 #'   us_chol_cor, expand_b, aterms_for_newdata, has_trunc, as_priorlist,
 #'   check_prior_slots, resolve_prior_input, neg_log_prior_fn,
 #'   resolve_bounds, spec_target,

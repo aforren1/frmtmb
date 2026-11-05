@@ -105,6 +105,25 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   # method exists to remove.
   allow_new_levels <- ce_dots(dots)
   fit <- draws_base_fit(x)
+  mv <- length(fit$spec$responses) > 1L
+  resp <- draws_resp_read(x, resp)
+  if (mv && length(resp) != 1L) {
+    # brms's layout: one panel set per response, in the order asked
+    want <- draws_resp_set(fit, resp)
+    return(ce_by_response(want, effects = effects, function(r, effects) {
+      conditional_effects(x, effects = effects, conditions = conditions,
+                          int_conditions = int_conditions,
+                          re_formula = re_formula, prob = prob,
+                          robust = robust, method = method,
+                          spaghetti = spaghetti, surface = surface,
+                          categorical = categorical, ordinal = ordinal,
+                          transform = transform, resolution = resolution,
+                          select_points = select_points, too_far = too_far,
+                          probs = probs, ..., resp = r, dpar = dpar,
+                          ndraws = ndraws, data = data, seed = seed)
+    }))
+  }
+  if (mv) resp <- draws_resp_set(fit, resp)
   resp <- resp %||% names(fit$spec$responses)[1L]
   rspec <- fit$spec$responses[[resp]]
   ce_structure_check(rspec)
@@ -141,12 +160,13 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   # a grouping variable the grid sets keeps its value; core's
   # ce_level_plan() decides per row and per block whether it is a level
   # the fit saw, as brms does with allow_new_levels = TRUE
-  na_vars <- if (!pop_level) ce_group_vars(fit) else character(0)
+  na_vars <- ce_na_vars(fit, pop_level)
   gb <- ce_grids_build(fit, rspec, lp, effects, resp, dpar, resolution,
                        conditions, data, int_conditions, na_vars,
                        surface = surface, too_far = too_far)
   ce_spaghetti_check(spaghetti, surface, gb$grids, gb$base)
-  anl <- allow_new_levels || !pop_level
+  # a display holds a me(gr = ) group at NA, a new level per row
+  anl <- allow_new_levels || !pop_level || length(ce_na_vars(fit, TRUE)) > 0L
   plan <- if (!pop_level) ce_level_plan(fit, gb$grids, gb$base, re_formula)
   # the seed governs every random number the call takes: the new-level
   # draws of a plan, and the simulated responses of method = "predict"
@@ -272,5 +292,6 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   ce_finalize(dfs_by_eff, gb$effects, rspec, resp, dpar, "posterior",
               gb$base, categorical, gb$cond_sets, gb$groups, categorical,
               select_points = select_points, pred_vars = gb$pred_vars,
-              draws_by_eff = if (spaghetti) draws_by_eff)
+              draws_by_eff = if (spaghetti) draws_by_eff,
+              resp_prefix = mv)
 }

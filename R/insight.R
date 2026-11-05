@@ -175,37 +175,66 @@ get_predicted.frmtmb_fit <- function(x, data = NULL,
   }
   level <- if (is.null(ci) || !is.numeric(ci)) 0.95 else ci
   a <- (1 - level) / 2
-  if (identical(pr, "prediction")) {
-    sm <- stats::predict(x, newdata = data, probs = c(a, 1 - a))
-    est <- sm[, "Estimate"]
-    se <- sm[, "Est.Error"]
-    lo <- sm[, 3L]
-    hi <- sm[, 4L]
-  } else {
+  # one number per row and response. A multivariate fit reads each response, or
+  # the numbers carry no label of which is which
+  one <- function(resp) {
+    if (identical(pr, "prediction")) {
+      sm <- stats::predict(x, newdata = data, probs = c(a, 1 - a), resp = resp)
+      return(list(est = sm[, "Estimate"], se = sm[, "Est.Error"],
+                  lo = sm[, 3L], hi = sm[, 4L]))
+    }
     # a category-valued response has no single expectation, so the
     # latent linear predictor is what one number per row can be, which
     # is what insight's default produced here before
     type <- if (identical(pr, "link")) "link" else "response"
-    fam <- x$spec$responses[[1L]]$family
+    rs1 <- x$spec$responses[[resp %||% 1L]]
+    fam <- rs1$family
     if (fam[["type"]] %in% c("ordinal", "categorical")) type <- "link"
-    p <- tryCatch(frm_linpred(x, newdata = data, type = type,
-                              se.fit = TRUE),
+    # one number per row: the shared part of a cs() term, and one predictor
+    # of a family with several, which frm_linpred() stacks when none is named
+    dp <- if (type == "link") {
+      if ("mu" %in% names(rs1$dpars)) "mu" else rs1$primary_dpars[1L]
+    }
+    p <- tryCatch(frm_linpred(x, newdata = data, type = type, dpar = dp,
+                              resp = resp, se.fit = TRUE),
                   error = keep_missing(NULL))
     if (is.null(p)) {
-      est <- as.numeric(frm_linpred(x, newdata = data, type = type))
+      est <- as.numeric(frm_linpred(x, newdata = data, type = type,
+                                    dpar = dp, resp = resp))
       se <- rep(NA_real_, length(est))
     } else {
       est <- as.numeric(p$fit)
       se <- as.numeric(p$se.fit)
     }
     q <- stats::qnorm(1 - a)
-    lo <- est - q * se
-    hi <- est + q * se
+    list(est = est, se = se, lo = est - q * se, hi = est + q * se)
   }
-  out <- as.numeric(est)
-  attr(out, "ci_data") <- data.frame(SE = as.numeric(se),
-                                     CI_low = as.numeric(lo),
-                                     CI_high = as.numeric(hi))
+  resps <- names(x$spec$responses)
+  if (length(resps) > 1L) {
+    parts <- lapply(resps, one)
+    n <- length(parts[[1L]]$est)
+    key <- data.frame(Row = rep(seq_len(n), times = length(resps)),
+                      Response = rep(resps, each = n),
+                      stringsAsFactors = FALSE)
+    grid <- if (!is.null(data)) {
+      data[rep(seq_len(n), times = length(resps)), , drop = FALSE]
+    }
+    est <- unlist(lapply(parts, `[[`, "est"), use.names = FALSE)
+    out <- cbind(key, grid, Predicted = est)
+    rownames(out) <- NULL
+    read <- function(w) as.numeric(unlist(lapply(parts, `[[`, w)))
+    attr(out, "ci_data") <- cbind(key, SE = read("se"), CI_low = read("lo"),
+                                  CI_high = read("hi"))
+    attr(out, "data") <- data
+    attr(out, "predict") <- pr
+    class(out) <- c("get_predicted", "data.frame")
+    return(out)
+  }
+  v <- one(NULL)
+  out <- as.numeric(v$est)
+  attr(out, "ci_data") <- data.frame(SE = as.numeric(v$se),
+                                     CI_low = as.numeric(v$lo),
+                                     CI_high = as.numeric(v$hi))
   attr(out, "data") <- data
   attr(out, "predict") <- pr
   class(out) <- c("get_predicted", "numeric")

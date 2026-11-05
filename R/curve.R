@@ -213,6 +213,48 @@
 #' at each position, which has no derivative: [frm_curve_deriv()] and a
 #' peak's standard error leave it out.
 #'
+#' @section Several predictors in one call:
+#' With no `dpar`, an ordinal family with a `cs()` term has one curve per
+#' threshold, `eta + cs_k`, and a family with several location predictors has
+#' one per predictor: the predictors [frm_linpred()] returns as columns, which
+#' is what brms's `posterior_linpred()` returns as layers. The result holds
+#' every row of the grid once per curve, the column `.eta` naming it, in the
+#' order `as.numeric()` reads that matrix. The simultaneous band covers all the
+#' curves at once, and `"Sigma"` is over all the rows, so the covariance
+#' between two thresholds is there. [frm_curve_deriv()] has the same layout, and
+#' its derivative in a `cs()` variable differs by threshold.
+#' [frm_curve_feature()] searches each curve on its own and adds `.eta` to its
+#' table. `dpar = "mu"` reads the shared part, one curve, as in brms.
+#'
+#' @section A me() term:
+#' `newdata` must hold the measurement SD. The curve reads the observed value,
+#' and the band carries the variance of a new row's latent value, as
+#' [frm_linpred()] does. So `.se` is not coefficient uncertainty alone. That
+#' variance is white noise between rows, so a derivative and the location of a
+#' feature leave it out. Under `me(gr = )` a level holds one value, so its noisy
+#' variable has no derivative and no feature within a level, and both refuse.
+#'
+#' With `contrast`, two rows at one `x` and one `sdx`, to `all.equal()`'s
+#' tolerance, read one draw, and it cancels, as a kriging residual at one
+#' position does: a contrast in `z` has the standard error of `z`'s coefficient,
+#' 0.051 at a coefficient standard error of 0.051. brms has no such curve. A
+#' difference of its draws of the two grids reads a draw per row and has a
+#' standard deviation of 0.96 on that fit. Under `me(gr = )` one level is one
+#' draw in one grid in both packages.
+#'
+#' Two readers answer two questions, and each is right for its own:
+#'
+#' * `frm_curve(contrast = )` answers for one unit with one unknown `x*`,
+#'   reported as `x`, compared at two values of `z`. `x*` is not in that
+#'   difference.
+#' * `emmeans()` contrasts answer for two new rows, each with its own
+#'   measurement error, as brms's draws do. They carry both draws: 0.97 on that
+#'   fit.
+#'
+#' For the effect of `z`, read `frm_curve(contrast = )` or the coefficient. For
+#' the effect of `x`, read [frm_curve_deriv()], the slope's 0.053 on that fit: a
+#' contrast in `x` itself has two values of `x`, so it reads two draws, 0.998.
+#'
 #' @param object A `frmtmb_fit` from [frm()].
 #' @param newdata The grid, as a data frame. Every variable the linear
 #'   predictor reads must be a column, held at the value the curve is
@@ -273,7 +315,8 @@
 #' number with a standard error beside it and nothing to give it away.
 #'
 #' @return A data frame of class `frmtmb_curve`: the columns of
-#'   `newdata`, then `.estimate`, `.se`, `.crit`, `.lower_ci`,
+#'   `newdata`, `.eta` where there are several curves, then `.estimate`,
+#'   `.se`, `.crit`, `.lower_ci`,
 #'   `.upper_ci`, and when `simultaneous = TRUE` also `.crit_sim`,
 #'   `.lower_sim` and `.upper_sim`. The grid covariance, `A V A'` plus
 #'   the variance that is not coefficient uncertainty, is the `"Sigma"`
@@ -346,7 +389,7 @@ curve_assemble <- function(parts, est, se, Sigma, level, simultaneous,
   # (curve_one_basis()); said once, under the caller's own name
   curve_lost_warn(is.nan(se))
   crit <- stats::qnorm(1 - (1 - level) / 2)
-  out <- newdata
+  out <- curve_layer_frame(newdata, parts$layers)
   out[[".estimate"]] <- est
   out[[".se"]] <- se
   out[[".crit"]] <- crit
@@ -389,9 +432,24 @@ curve_assemble <- function(parts, est, se, Sigma, level, simultaneous,
                         re_formula = parts$re_formula,
                         allow_new_levels = parts$allow_new_levels),
             check = list(cov_rel_error = parts$rel,
+                         extra = any(parts$extra_var > 0, na.rm = TRUE),
                          n_predict = parts$n_predict,
                          crit_mcse = if (is.null(sim)) NA_real_ else sim$mcse),
             row.names = seq_len(nrow(out)))
+}
+
+#' The grid of a curve with several layers: every row once per layer,
+#' layer slowest, with the layer's name in `.eta`, which is the order
+#' `frm_lp_basis()` returns and `as.numeric()` of brms's draws x rows x
+#' layers array at one draw.
+#'
+#' @noRd
+curve_layer_frame <- function(newdata, layers) {
+  if (!length(layers)) return(newdata)
+  n <- nrow(newdata)
+  out <- newdata[rep(seq_len(n), length(layers)), , drop = FALSE]
+  out[[".eta"]] <- factor(rep(layers, each = n), levels = layers)
+  out
 }
 
 #' The link inverse of the linear predictor the curve came off.
@@ -418,12 +476,24 @@ curve_linkinv <- function(parts) {
              "refuses it, so the curve stays on the link scale",
              call. = FALSE)
   }
+  rn <- parts$resp %||% names(fit$spec$responses)[1L]
+  rs1 <- fit$spec$responses[[rn]]
+  if (identical(rs1$family[["type"]], "ordinal")) {
+    # the family's link, which the location's identity slot does not hold
+    dp <- parts$dpar %||% "mu"
+    lp1 <- fit$frame[["linpreds"]][[linpred_key(rn, dp)]]
+    return(dpar_response_link(rs1, lp1, dp)$linkinv)
+  }
   fam <- stats::family(fit)
   lnk <- fam[["links"]][[parts$dpar %||% "mu"]]
   if (!is.null(lnk) && is.function(lnk[["linkinv"]])) return(lnk[["linkinv"]])
   if (isTRUE(all.equal(lk, rs))) return(identity)
-  frm_stop("frm_curve(transform = TRUE): the link inverse of dpar '",
-           parts$dpar %||% "mu", "' is not reachable from the family object, ",
+  frm_stop("frm_curve(transform = TRUE): the link inverse of ",
+           if (is.null(parts$dpar) && is.null(lnk)) {
+             "several location predictors"
+           } else {
+             paste0("dpar '", parts$dpar %||% "mu", "'")
+           }, " is not reachable from the family object, ",
            "so the band cannot be transformed. Leave transform = FALSE and ",
            "transform the columns yourself", call. = FALSE)
 }
@@ -464,6 +534,10 @@ print.frmtmb_curve <- function(x, digits = NULL, ...) {
     cat("  covariance checked against frm_linpred(se.fit = TRUE) to ",
         format(ck$cov_rel_error, digits = 3), " relative\n",
         sep = "")
+  }
+  if (isTRUE(ck$extra)) {
+    cat("  the band holds variance that is not coefficient uncertainty (a ",
+        "new row's me() draw, a new level, a kriging residual)\n", sep = "")
   }
   n <- min(6L, nrow(x))
   print(as.data.frame(x)[seq_len(n), , drop = FALSE], digits = digits)

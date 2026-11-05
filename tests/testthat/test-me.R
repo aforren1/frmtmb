@@ -285,8 +285,10 @@ test_that("fitted() uses the latent modes, newdata the observed values", {
   # the latent modes shrink the noisy values toward meanme
   expect_lt(stats::var(xl), stats::var(d$x))
   expect_s3_class(simulate(fit, nsim = 2, seed = 1), "data.frame")
+  # a row with no x reads NA, as a plain predictor's row does
   nd$x[2] <- NA
-  expect_error(fitted(fit, newdata = nd), "must supply complete numeric")
+  fv <- allow_warnings(fitted(fit, newdata = nd), "read NA", "read NA")
+  expect_identical(which(is.na(fv[, "Estimate"])), 2L)
 })
 
 test_that("me() refusals name the term and the replacement", {

@@ -60,6 +60,17 @@ contributes), a dense matrix otherwise.}
 \code{frm_linpred(se.fit = TRUE)} is written that way. The covariance of
 the whole prediction is \verb{A V A' + extra_cov}.
 
+Under a \code{cov = FALSE} autocorrelation term \code{eta} is the predictor without the
+term, as brms's \code{emmeans()} reads it (\code{incl_autocor = FALSE}), and
+\code{frm_linpred()} adds the one-step part from the earlier residuals.
+
+With no \code{dpar} on a predictor that \code{\link[=frm_linpred]{frm_linpred()}} returns as several
+columns (a \code{cs()} term, several location predictors), every row of the grid
+comes once per column, the column slowest, so \code{eta} is \code{as.numeric()} of that
+matrix, and the list also has \code{layers}, the column names. Under a \code{cs()} term
+\code{A} has the term's coefficients beside the shared design. \code{dpar = "mu"} is
+the shared part.
+
 On a fit whose fixed design is ill-conditioned (a raw polynomial of
 high degree, a covariate far from zero) the list also has
 \describe{
@@ -89,7 +100,10 @@ the fixed block alone.
 }
 \section{Variance that is not coefficient uncertainty}{
 
-Two sources reach \code{extra_var}. An exact \code{gp()} evaluated at a position
+Three sources reach \code{extra_var}. A new row of a \code{me()} term adds the
+variance of its latent value's draw from \code{normal(x, sdx)}; rows at one
+level of \code{me(gr = )} read one draw and covary fully, and other rows are
+independent. An exact \code{gp()} evaluated at a position
 the fit did not see adds the field's conditional (kriging) covariance
 given its values at the fitted positions,
 \verb{k(x, x') - k(x, X) K^-1 k(X, x')}; rows at an observed position carry

@@ -1,3 +1,69 @@
+# frmtmb.sample (development version)
+
+## Breaking changes
+
+* A new row of a `me()` term draws a new latent value per posterior draw from
+  `normal(x, sdx)`, per row, or per level under `me(gr = )`, in
+  `posterior_epred()`, `posterior_linpred()` and `posterior_predict()`, as brms
+  2.23.0 does. Before, they read `x`: on a model with `sdx = 0.3`, the sd over
+  draws of the expected value was 0.603 of brms's, and the 95 percent interval
+  0.634 wide against 1.036. New data must hold `sdx`, and `corme` is not read, as
+  in brms.
+
+* One `me()` call is one latent value per row and draw, across the responses and
+  dpars one method answers for. **This diverges from brms 2.23.0**, which draws one
+  per predictor on new data, against its own Stan program, which has one `Xme_1`:
+  at the training rows the residuals correlate at 0.734, one latent predicts 0.739
+  and brms's replicates give -0.001.
+
+* `posterior_linpred()` with no `dpar` on an ordinal family with a `cs()` term
+  returns brms's layout, draws x rows x thresholds, with every margin unnamed.
+  Before, it returned the shared part, the predictor at no threshold of the
+  model. `dpar = "mu"` and `transform = TRUE` read the shared part, as in brms.
+
+* `conditional_effects()` of a multivariate model gives one panel set per
+  response without `resp`, and takes several, each named
+  `<resp>.<resp>_<effect>`, as brms does. A name given twice is refused, where
+  brms repeats the panel. Before, it gave the first response alone and failed on
+  several.
+
+* A univariate model does not read `resp`, as in brms: `posterior_epred()`,
+  `posterior_linpred()`, `posterior_predict()`, `fitted()`, `predict()`,
+  `residuals()`, `log_lik()`, `logLik()`, `bayes_R2()`, `loo_R2()` and the three
+  `loo_*()` predictions give the same answer for an empty vector, a name given
+  twice, an unknown name, `NA` and a number. Before, some gave internal errors.
+
+* `update(<draws>, prior = )` merges with the first call's prior, as brms's
+  `update()` does: a new row takes its slot and the other rows stay. A prior
+  with no rows keeps them. Before, the new prior replaced the first call's: after
+  an `update()` that added a sigma prior, `b_x` moved from 9.93 to 2.09. There is
+  one exception: an edited row of a `default_prior()` table stays here, where brms
+  loses it because the row's `source` is still `"default"`: `b_x` reads 9.52 here
+  and 2.00 in brms.
+
+* `posterior_predict(newdata = )` answers under `ar()`, `ma()`, `arma()`, `cosy()`
+  and `unstr()` with `cov = TRUE`, through core's route over `newdata`'s own groups
+  and times. Before, it refused. `log_lik(newdata = )` still refuses where brms
+  answers; its message now names `posterior_predict(newdata = )` as a route on these
+  models, and that is all that changes.
+
+* A new row with no `x` or `sdx` of a `me()` term reads `NA` in `posterior_epred()`,
+  `posterior_linpred()` and `posterior_predict()`, with a warning of class
+  `frmtmb_me_missing`, and the other rows answer.
+
+* `conditional_effects()` of a `me(gr = )` model holds the group at `NA`, as brms
+  does, and panels are in brms's order, with the effects outside and the responses
+  inside.
+
+## New features and fixes
+
+* `bayes_R2()` and `loo_R2()` read an empty `resp` as every response. Before,
+  they stopped with an internal error.
+
+* `pp_mixture()` of a multivariate mixture reads the one response named, with
+  brms's refusal of none or several. Before, it refused every such model, and
+  read the first response when `resp` was `NULL`.
+
 # frmtmb.sample 0.25.0
 
 Needs frmtmb 0.78.0. Its `set_prior()` takes the classes `meanme`,

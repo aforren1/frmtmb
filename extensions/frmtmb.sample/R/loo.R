@@ -384,6 +384,7 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
                                  add_point_estimate = FALSE,
                                  cores = NULL, point_estimate = NULL,
                                  ndraws_point_estimate = 1, ...) {
+  resp <- draws_resp_read(object, resp)
   object <- draws_at_point_estimate(object, point_estimate,
                                     ndraws_point_estimate)
   # brms's remaining slots, so a positional brms call is answered or
@@ -405,13 +406,14 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
              "package does not provide", call. = FALSE)
   }
   # posterior_epred(newdata =) answers for every model, and
-  # posterior_predict(newdata =) only where its draws are not structured
+  # posterior_predict(newdata =) except where a family draws through its own
+  # simulator
   alt <- paste0("Use posterior_epred(newdata =) or posterior_predict(",
                 "newdata =) for a quantity on other rows")
   if (!is.null(newdata)) {
     fb <- draws_base_fit(object)
     if (any(vapply(names(fb$spec$responses), function(r) {
-      draws_pp_structured(fb, r)
+      draws_pp_refuses_newdata(fb, r)
     }, NA))) {
       alt <- paste0("Use posterior_epred(newdata =) for a quantity on ",
                     "other rows; posterior_predict(newdata =) is ",
@@ -501,6 +503,7 @@ logLik.frmtmb_draws <- function(object, newdata = NULL, re_formula = NULL,
                                 resp = NULL, ndraws = NULL, draw_ids = NULL,
                                 pointwise = FALSE, combine = TRUE,
                                 cores = NULL, ...) {
+  resp <- draws_resp_read(object, resp)
   # brms's logLik.brmsfit() slots, passed on whole; `re_formula = NULL`
   # is brms's default and what log_lik() conditions on
   log_lik(object, newdata = newdata, re_formula = re_formula, resp = resp,
@@ -1194,7 +1197,8 @@ bayes_R2_newdata_y <- function(fit, resp, newdata) {
 #'
 #' @noRd
 brms_resp_index <- function(resp, stan) {
-  if (is.null(resp)) return(seq_along(stan))
+  # brms's validate_resp() reads an empty `resp` as every response
+  if (!length(resp)) return(seq_along(stan))
   s <- match(as.character(resp), stan)
   if (anyNA(s)) draws_refuse_resp(paste(stan, collapse = ", "))
   # as draws_resp_set() refuses it for every other method: bayes_R2()
@@ -1231,6 +1235,7 @@ bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
                                   probs = c(0.025, 0.975), ...,
                                   ndraws = NULL, newdata = NULL,
                                   re_formula = arg_unset()) {
+  resp <- draws_resp_read(object, resp)
   # brms's slots in brms's order: `robust` is fourth, so
   # bayes_R2(ds, NULL, TRUE, TRUE) asks for a median and MAD, as in
   # brms, where it used to land in `probs` and return a Q100 column

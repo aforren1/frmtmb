@@ -1806,8 +1806,28 @@ linpred_arma_cond <- function(object, lp, rspec, ac, newdata, type, use_re,
   pad <- function(v) if (is.null(newdata)) napred(object, v) else v
   v <- val_of(object)
   if (!se.fit) return(pad(v))
-  list(fit = pad(v),
-       se.fit = pad(autocor_cond_fd_se(object, val_of, use_re)))
+  se <- autocor_cond_fd_se(object, val_of, use_re)
+  if (!is.null(newdata)) {
+    # a new row's me() draw reaches this row and, through its residual, the row
+    # after it, and each latent is a draw of its own: moved one at a time.
+    # brms's
+    # draws read sd 0.364, 0.478, 0.479, 0.476 on a four-row series
+    # (dev/review-predread-misc.R, block G)
+    ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+    key <- linpred_key(lp[["resp"]], lp[["dpar"]])
+    move <- function(h) {
+      sh <- object
+      sh[["eta_shift"]] <- list(by_key = stats::setNames(list(h), key))
+      val_of(sh)
+    }
+    for (e in ed[["me_parts"]]) {
+      for (l in unique(e$J)) {
+        h <- ifelse(e$J == l, e$g * e$sd, 0)
+        se <- sqrt(se^2 + ((move(h) - move(-h)) / 2)^2)
+      }
+    }
+  }
+  list(fit = pad(v), se.fit = pad(se))
 }
 
 #' A fit with its `cov = FALSE` terms removed, which is brms's

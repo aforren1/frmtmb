@@ -139,6 +139,15 @@ standata.frmtmb_fit <- function(object, ...) {
 #' @export
 pp_mixture <- function(x, ...) UseMethod("pp_mixture")
 
+#' brms's words for a method of a multivariate model that reads one response,
+#' given none or several. Exported through the sampling-API page.
+#'
+#' @noRd
+resp_refuse_single <- function() {
+  frm_stop("Argument 'resp' must be a single variable name when applying ",
+           "this method to a multivariate model.", call. = FALSE)
+}
+
 #' @rdname pp_mixture
 #' @exportS3Method brms::pp_mixture
 #' @export
@@ -171,17 +180,19 @@ pp_mixture.frmtmb_fit <- function(x, newdata = NULL, re_formula = NULL,
              "condition on the group-level effects at their modes, which ",
              "is brms's default, re_formula = NULL", call. = FALSE)
   }
+  # a univariate model does not read `resp`, as in brms; a multivariate one
+  # names exactly one
   if (length(x$spec$responses) > 1L) {
-    frm_stop("pp_mixture() is not supported for a multivariate fit yet: ",
-             "mixture_probs() reads one response", call. = FALSE)
+    if (length(resp) != 1L) {
+      if (length(resp) > 1L) brms_validate_resp(x, resp)
+      resp_refuse_single()
+    }
+    brms_validate_resp(x, resp)
+    x[["resp_pick"]] <- resp
+  } else {
+    resp <- NULL
   }
-  rn <- names(x$spec$responses)
-  if (!is.null(resp) && !identical(resp, rn)) {
-    frm_stop("pp_mixture(resp = \"", paste(resp, collapse = ", "),
-             "\") names no response of this model; it has ", rn,
-             call. = FALSE)
-  }
-  if (is.null(x$spec$responses[[1L]]$family[["mix"]])) {
+  if (is.null(x$spec$responses[[resp %||% 1L]]$family[["mix"]])) {
     # brms's words
     frm_stop("Method 'pp_mixture' can only be applied to mixture models.",
              call. = FALSE)

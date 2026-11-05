@@ -138,11 +138,28 @@ frm_curve_feature <- function(object, var,
                    allow_new_levels, !missing(allow_new_levels))
   # before the root scan, not after: a search that finds no root returns
   # early and would otherwise never reach the covariance
+  curve_one_response(sp$fit, sp$resp)
   curve_family_check(sp$fit, sp$resp)
+  # a root belongs to one curve, so a predictor with several layers (a cs()
+  # term, a family with several location predictors) has its own per layer
+  if (is.null(sp$dpar) && is.null(sp$fit[["layer_pick"]])) {
+    rn <- sp$resp %||% names(sp$fit$spec$responses)[1L]
+    layers <- lp_layers(sp$fit, sp$fit$spec$responses[[rn]])
+    if (!is.null(layers)) {
+      L <- sum(vapply(layers, `[[`, 1L, "k"))
+      return(curve_feature_layers(lapply(seq_len(L), function(k) {
+        f <- sp$fit
+        f[["layer_pick"]] <- k
+        frm_curve_feature(f, var, type, at, sp$newdata, sp$contrast, NULL,
+                          sp$resp, sp$re_formula, sp$allow_new_levels, level,
+                          eps, maxit, tol)
+      })))
+    }
+  }
   nd <- sp$newdata
   ct <- sp$contrast
   curve_check_contrast(nd, ct)
-  curve_check_var(nd, var)
+  curve_check_var(nd, var, sp$fit)
   curve_check_contrast_var(nd, ct, var)
   x <- as.numeric(nd[[var]])
   if (length(x) < 3L) {
@@ -372,6 +389,29 @@ frm_curve_feature <- function(object, var,
             level = level, type = type,
             slope = f1, curvature = f2,
             row.names = seq_len(nrow(out)))
+}
+
+#' The feature tables of each layer as one, each row saying which layer's
+#' root it is in `.eta`. The check is the worst layer's.
+#'
+#' @noRd
+curve_feature_layers <- function(res) {
+  lab <- paste0("eta", seq_along(res))
+  tabs <- lapply(seq_along(res), function(k) {
+    d <- as.data.frame(res[[k]])
+    d[[".eta"]] <- factor(rep(lab[k], nrow(d)), levels = lab)
+    d
+  })
+  out <- do.call(rbind, tabs)
+  rownames(out) <- NULL
+  rel <- vapply(res, function(r) attr(r, "check")$cov_rel_error, 0)
+  ck <- attr(res[[1L]], "check")
+  ck$cov_rel_error <- if (all(is.na(rel))) NA_real_ else max(rel, na.rm = TRUE)
+  structure(out, class = c("frmtmb_feature", "data.frame"), check = ck,
+            level = attr(res[[1L]], "level"),
+            type = attr(res[[1L]], "type"),
+            slope = unlist(lapply(res, attr, "slope")),
+            curvature = unlist(lapply(res, attr, "curvature")))
 }
 
 # `digits` reaches the rows, as in print.frmtmb_curve()

@@ -116,6 +116,21 @@ predict_type_retired <- c(
 #' the interval covers less than nominal and for a group near it more.
 #' `dev/reunc-findings.md` reports the measured coverage.
 #'
+#' A new row of a `me()` term also has no latent value, so each replicate
+#' draws one from `normal(x, sdx)`, per row, or per level under `me(gr = )`, as
+#' brms's `posterior_predict()` does on new data. The latent value of a new row
+#' is
+#' measurement noise in the grid, not an estimate, so `propagate_error = FALSE`
+#' keeps it. `corme` is not read, as in
+#' brms. Two responses or two dpars that read one `me()` term read ONE latent
+#' value, a stated divergence from brms, which draws one per predictor against
+#' its
+#' own Stan program: at the training rows of a two-response fit the residuals
+#' correlate at 0.734, one latent predicts 0.739 and brms's replicates give
+#' -0.001, and the 95 percent width of `y1 - y2` at `sdx = 2` is 3.18 with one
+#' latent and 15.08 with two. `newdata` must hold `sdx`. On the data the model
+#' was fitted on the latent values are the fit's own.
+#'
 #' A level the fit did NOT see is different: there is no conditional
 #' law to draw from, so `allow_new_levels = TRUE` draws its effect from
 #' the block's own estimated covariance, once per replicate, at that
@@ -317,6 +332,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
   # and saying nothing is the failure mode this whole item exists to
   # stop, so `resp` is only a FILTER now, not a silent default.
   rnames <- names(object$spec$responses)
+  resp <- resp_read(object, resp)
   if (is.null(resp)) {
     resp <- rnames
   } else {
@@ -624,23 +640,24 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
                                  "predict()")
       ctx0[["autocor"]] <- NULL
     }
+    if (!is.null(newdata) && !is.null(ctx0[["autocor"]]) &&
+          is.null(fam_sim_ctx(ctx0[["family"]]))) {
+      # the cov = TRUE terms: newdata's own groups and times, the route
+      # simulate(newdata = ) takes, which agrees with brms's
+      # posterior_predict() (dev/review-predread-explain.R)
+      object$frame[["autocor"]][[rspec$resp_name]] <-
+        autocor_for_newdata(object, ctx0[["autocor"]], rspec, newdata)
+      ctx0[["autocor"]] <- NULL
+    }
     if (!is.null(newdata) && sim_is_structured(ctx0)) {
-      # said for the model at hand: the reason used to list a hidden
-      # state sequence, a latent class and a correlated residual, and a
-      # mixture_mvn() fit is none of the three
-      if (!is.null(fam_sim_ctx(fam))) {
-        frm_stop("predict(newdata = ) is not supported for family '",
-                 fam[["family"]], "': it draws the whole response at once, ",
-                 "through its own simulator, and a prediction at new rows ",
-                 "draws one row at a time. Drop newdata to predict the rows ",
-                 "the model was fitted on", call. = FALSE,
-                 package = frm_family_package(fam))
-      }
-      frm_stop("predict(newdata = ) is not supported for this model: its ",
-               "residuals are correlated (", ctx0[["autocor"]][["label"]] %||%
-                 "a residual correlation term", "), and a draw of them ",
-               "follows the rows the model was fitted on. Drop newdata to ",
-               "predict those rows", call. = FALSE)
+      # said for the model at hand: a hidden state sequence, a latent class
+      # and a mixture_mvn() fit each draw through their own simulator
+      frm_stop("predict(newdata = ) is not supported for family '",
+               fam[["family"]], "': it draws the whole response at once, ",
+               "through its own simulator, and a prediction at new rows ",
+               "draws one row at a time. Drop newdata to predict the rows ",
+               "the model was fitted on", call. = FALSE,
+               package = frm_family_package(fam))
     }
     nls[[nm]] <- predict_new_level_spec(object, rspec, newdata, re_formula,
                                         allow_new_levels, sample_new_levels,
@@ -672,6 +689,9 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
   for (s in seq_len(ndraws)) {
     fs <- draw(s)
     if (!is.null(bdraw)) fs <- bdraw(fs, s)
+    # a new row's me() value is drawn per replicate, at the estimates too:
+    # it is measurement noise in the grid, not an estimate (me_newdata_value())
+    if (!is.null(newdata)) fs[["me_draw"]] <- new.env(parent = emptyenv())
     # after the group-effect draw, which has a stream of its own; draw()
     # takes nothing from the stream, so this is where it always was
     set.seed(seeds[s])

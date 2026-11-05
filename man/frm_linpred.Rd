@@ -77,7 +77,8 @@ the brms spelling that replaced them.}
 \value{
 A numeric vector, or a list when \code{se.fit = TRUE}. For an
 ordinal family with \code{type = "response"}, an \verb{n x K} matrix of
-category probabilities.
+category probabilities. For several predictors, a matrix; see the
+section "Several predictors in one call".
 }
 \description{
 Predictions from a frmtmb fit
@@ -275,6 +276,45 @@ carries their uncertainty, through the joint covariance, as \code{se.fit}
 does for the linear predictor. Unseen grouping levels
 (\code{allow_new_levels = TRUE}) add their block's marginal variance,
 propagated through the same gradients.
+}
+
+\section{Several predictors in one call}{
+
+With \code{type = "link"} and no \code{dpar}, two kinds of model have more than one
+predictor, and \code{frm_linpred()} returns a matrix with one column per
+predictor, named \code{eta1}, \code{eta2}, and so on, as brms's
+\code{posterior_linpred()} returns one layer per predictor at each draw:
+\itemize{
+\item An ordinal family with a \code{cs()} term has one predictor per threshold,
+\code{eta + cs_k}. The term moves the predictor differently at each threshold,
+so the shared part \code{eta} alone is the predictor at no threshold of the
+model. \code{dpar = "mu"} returns that shared part, as it does in brms.
+\item A family with several location predictors (\code{categorical()}, the simplex
+families, \code{mixture()}) has one column per predictor, and a \code{mixture()}
+component with a \code{cs()} term has one per threshold of that component.
+\code{dpar = "mu1"} returns one predictor.
+}
+
+With \code{se.fit = TRUE}, \code{se.fit} has the same shape.
+}
+
+\section{New rows of a model with me()}{
+
+A new row has no latent value. brms draws one from \code{normal(x, sdx)} per draw.
+This function reads the observed value, on \code{type = "response"} too, which is
+the value of the expected response at that \code{x} and not its mean over the
+draw:
+\code{\link[=fitted.frmtmb_fit]{fitted.frmtmb_fit()}} gives the mean. On \code{type = "link"} it is exactly the
+mean
+of the predictor. \code{se.fit} adds the draw's variance to the coefficient
+uncertainty, as it adds the variance of a new grouping level. For a term
+linear
+in the call this is \code{(b * sdx)^2}. Thus \code{newdata} must have the measurement
+SD,
+as in brms. Under \code{me(gr = )}, rows at one level read one latent value.
+\code{\link[=predict]{predict()}} and \code{\link[=simulate]{simulate()}} draw the latent value per replicate. A row with
+no \code{x} or \code{sdx} reads \code{NA}, with a warning of class \code{frmtmb_me_missing}, as a
+plain predictor's row reads \code{NA}. brms reads \code{NaN} and warns.
 }
 
 \examples{

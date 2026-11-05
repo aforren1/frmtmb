@@ -219,6 +219,11 @@ re_form_keeps <- function(re_formula) {
 }
 
 #' @noRd
+resp_read <- function(object, resp) {
+  if (length(object$spec$responses) == 1L) NULL else resp
+}
+
+#' @noRd
 stop_unknown_response <- function(object, resp) {
   frm_stop("Unknown response: '", resp, "'. Available: ",
            paste(names(object$spec$responses), collapse = ", "), call. = FALSE)
@@ -912,9 +917,14 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     X <- cbind(X, matrix(as.numeric(v) * nd_mult(mt$mult_expr),
                          ncol = 1, dimnames = list(NULL, mt$label)))
   }
+  me_check_new_levels(fit, lp, newdata, allow_new_levels)
   for (mt in lp[["me"]] %||% list()) {
-    v <- me_newdata_value(fit, mt, newdata, env, nd_mult)
+    v <- me_newdata_value(fit, lp, mt, newdata, env, nd_mult)
     X <- cbind(X, matrix(v, ncol = 1, dimnames = list(NULL, mt$label)))
+  }
+  # a draw of the latent values (`me_draw`) has the spread in eta itself
+  me_parts <- if (is.null(fit[["me_draw"]])) {
+    me_newdata_extra(fit, lp, newdata, env, nd_mult, nrow(X))
   }
 
   if (!use_re) {
@@ -922,7 +932,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     # effect, so every smooth stays in and only the `(... | g)` blocks
     # below are left out
     return(list(X = X, off = off, re_parts = list(), sm_parts = sm_parts,
-                nonest = nonest, mo_rows = mo_rows))
+                nonest = nonest, mo_rows = mo_rows, me_parts = me_parts))
   }
 
   re_parts <- list()
@@ -1050,7 +1060,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     }
   }
   list(X = X, off = off, re_parts = re_parts, sm_parts = sm_parts,
-       nonest = nonest, mo_rows = mo_rows)
+       nonest = nonest, mo_rows = mo_rows, me_parts = me_parts)
 }
 
 #' The refusal of a grouping level the fit did not see. Classed, and the
@@ -1390,6 +1400,9 @@ rr_jacobians <- function(fit) {
 #' @rdname frmtmb-extension-api
 #' @export
 single_response <- function(fit, what) {
+  # pp_mixture(resp = ): one response of a multivariate mixture
+  pick <- fit[["resp_pick"]]
+  if (!is.null(pick)) return(fit$spec$responses[[pick]])
   if (length(fit$spec$responses) > 1) {
     frm_stop(what, " is not supported yet for multivariate fits",
              call. = FALSE)
@@ -2024,9 +2037,44 @@ predict_retired <- c(
 #' yes/no. And it covers the parametric fixed-effect block only:
 #' smooth null-space, `gp()`, `mo()` and `mi()` columns are appended
 #' after the rank check and are never dropped.
+#' @section Several predictors in one call:
+#' With `type = "link"` and no `dpar`, two kinds of model have more than one
+#' predictor, and `frm_linpred()` returns a matrix with one column per
+#' predictor, named `eta1`, `eta2`, and so on, as brms's
+#' `posterior_linpred()` returns one layer per predictor at each draw:
+#'
+#' * An ordinal family with a `cs()` term has one predictor per threshold,
+#'   `eta + cs_k`. The term moves the predictor differently at each threshold,
+#'   so the shared part `eta` alone is the predictor at no threshold of the
+#'   model. `dpar = "mu"` returns that shared part, as it does in brms.
+#' * A family with several location predictors (`categorical()`, the simplex
+#'   families, `mixture()`) has one column per predictor, and a `mixture()`
+#'   component with a `cs()` term has one per threshold of that component.
+#'   `dpar = "mu1"` returns one predictor.
+#'
+#' With `se.fit = TRUE`, `se.fit` has the same shape.
+#'
+#' @section New rows of a model with me():
+#' A new row has no latent value. brms draws one from `normal(x, sdx)` per draw.
+#' This function reads the observed value, on `type = "response"` too, which is
+#' the value of the expected response at that `x` and not its mean over the
+#' draw:
+#' [fitted.frmtmb_fit()] gives the mean. On `type = "link"` it is exactly the
+#' mean
+#' of the predictor. `se.fit` adds the draw's variance to the coefficient
+#' uncertainty, as it adds the variance of a new grouping level. For a term
+#' linear
+#' in the call this is `(b * sdx)^2`. Thus `newdata` must have the measurement
+#' SD,
+#' as in brms. Under `me(gr = )`, rows at one level read one latent value.
+#' [predict()] and [simulate()] draw the latent value per replicate. A row with
+#' no `x` or `sdx` reads `NA`, with a warning of class `frmtmb_me_missing`, as a
+#' plain predictor's row reads `NA`. brms reads `NaN` and warns.
+#'
 #' @return A numeric vector, or a list when `se.fit = TRUE`. For an
 #'   ordinal family with `type = "response"`, an `n x K` matrix of
-#'   category probabilities.
+#'   category probabilities. For several predictors, a matrix; see the
+#'   section "Several predictors in one call".
 #'
 #' @srrstats {G2.3,G2.3a} `type` is a univariate character parameter and
 #'   is restricted with `match.arg()` to the documented set, so an
@@ -2139,6 +2187,7 @@ frm_linpred <- function(object, newdata = NULL,
   # loop or under suppressWarnings() is a wrong number with no record.
   frm_check_dots(..., .unsupported = predict_retired)
   require_fitted(object, "frm_linpred()")
+  resp <- resp_read(object, resp)
   # re_formula is read three lines down as "NULL, a formula, or anything
   # else drops the random effects", so a typo used to return the
   # POPULATION prediction and say nothing. newdata that is not
@@ -2166,6 +2215,13 @@ frm_linpred <- function(object, newdata = NULL,
   # is TRUE, as brms asks (R/subset.R)
   subset_resp_check(object, resp %||% names(object$spec$responses),
                     "frm_linpred()")
+  # no response named on a multivariate fit: every one, as brms's
+  # posterior_linpred() stacks them. Through 0.78.0 this read the first in
+  # silence, which is a wrong answer on an unnamed call
+  if (is.null(resp) && length(object$spec$responses) > 1L) {
+    return(linpred_responses(object, newdata, type, dpar, re_formula, se.fit,
+                             allow_new_levels))
+  }
   resp <- resp %||% names(object$spec$responses)[1]
   rspec <- object$spec$responses[[resp]]
   if (is.null(rspec)) {
@@ -2301,6 +2357,14 @@ frm_linpred <- function(object, newdata = NULL,
     return(predict_mean_response(object, rspec, newdata, re_formula,
                                  allow_new_levels))
   }
+  # brms's posterior_linpred() reads every location predictor, and each
+  # threshold's own predictor of a cs() term, only when no dpar is named:
+  # dpar = "mu" is the shared part alone (dev/predread-cs-layout-brms.R)
+  layers <- if (is.null(dpar) && type == "link") lp_layers(object, rspec)
+  if (!is.null(layers)) {
+    return(linpred_layers(object, rspec, layers, newdata, re_formula, use_re,
+                          se.fit, allow_new_levels))
+  }
   dpar <- dpar %||% if ("mu" %in% names(rspec$dpars)) "mu" else
     rspec$primary_dpars[1]
   key <- linpred_key(resp, dpar)
@@ -2401,7 +2465,7 @@ frm_linpred <- function(object, newdata = NULL,
     out <- if (!is.null(hook)) {
       hook_val("value")
     } else if (type == "response") {
-      lp[["link"]]$linkinv(eta)
+      dpar_response_link(rspec, lp, dpar)$linkinv(eta)
     } else {
       eta
     }
@@ -2433,8 +2497,8 @@ frm_linpred <- function(object, newdata = NULL,
     list(fit = hook_val("value"),
          se.fit = abs(hook_val("deriv")) * se_eta)
   } else if (type == "response") {
-    list(fit = lp[["link"]]$linkinv(eta),
-         se.fit = abs(lp[["link"]]$mu_eta(eta)) * se_eta)
+    lk <- dpar_response_link(rspec, lp, dpar)
+    list(fit = lk$linkinv(eta), se.fit = abs(lk$mu_eta(eta)) * se_eta)
   } else {
     list(fit = eta, se.fit = se_eta)
   }
@@ -2442,6 +2506,249 @@ frm_linpred <- function(object, newdata = NULL,
     out$fit <- napred(object, out$fit)
     out$se.fit <- napred(object, out$se.fit)
   }
+  out
+}
+
+#' The link a dpar reports through on the response scale. A dpar's own link
+#' is the scale its predictor sits on, except an ordinal family's location,
+#' whose `lp$link` is the identity because the family's link meets the
+#' thresholds inside the density. brms's `posterior_epred(dpar = "mu")` and
+#' `posterior_linpred(transform = TRUE)` apply that link to it (at -0.9075, the
+#' logit gives 0.2875; dev/predread-cs-layout-brms.R).
+#'
+#' @noRd
+dpar_response_link <- function(rspec, lp, dpar) {
+  fam <- rspec$family
+  if (!identical(fam[["type"]], "ordinal")) return(lp[["link"]])
+  ol <- if (identical(dpar, "mu")) {
+    fam[["ord_link"]]
+  } else {
+    comps <- fam[["mix"]][["ord"]][["comps"]]
+    k <- match(dpar, paste0("mu", seq_along(comps)))
+    if (!is.na(k)) comps[[k]][["ord_link"]]
+  }
+  ol %||% lp[["link"]]
+}
+
+#' `frm_linpred()` of a multivariate fit with no response named: a matrix with
+#' one column per response, named by it, and for a response of several columns
+#' one per column, `<resp>1`, `<resp>2`, ..., as brms names them. `se.fit` has
+#' the
+#' same shape. Responses with different rows, under `subset()`, do not stack.
+#'
+#' @noRd
+linpred_responses <- function(object, newdata, type, dpar, re_formula, se.fit,
+                              anl) {
+  rs <- names(object$spec$responses)
+  each <- lapply(rs, function(r) {
+    frm_linpred(object, newdata = newdata, type = type, dpar = dpar, resp = r,
+                re_formula = re_formula, se.fit = se.fit,
+                allow_new_levels = anl)
+  })
+  bind <- function(vals) {
+    n <- vapply(vals, NROW, 1L)
+    if (length(unique(n)) > 1L) {
+      frm_stop("frm_linpred(): the responses have different numbers of rows (",
+               paste0(rs, " ", n, collapse = ", "), "), so they do not stack ",
+               "into one matrix. Name one response with resp =", call. = FALSE)
+    }
+    lab <- unlist(Map(function(r, v) {
+      if (is.matrix(v) && ncol(v) > 1L) paste0(r, seq_len(ncol(v))) else r
+    }, rs, vals), use.names = FALSE)
+    m <- do.call(cbind, lapply(vals, as.matrix))
+    dimnames(m) <- list(rownames(as.matrix(vals[[1L]])), lab)
+    m
+  }
+  if (!se.fit) return(bind(each))
+  list(fit = bind(lapply(each, `[[`, "fit")),
+       se.fit = bind(lapply(each, `[[`, "se.fit")))
+}
+
+#' The predictors `frm_linpred(type = "link")` stacks when no `dpar` is
+#' named, or `NULL` when there is one column to return.
+#'
+#' Two things make several columns, and brms's `posterior_linpred()` has
+#' both: a family with several location predictors (`mu_stack_dpars()`),
+#' and a `cs()` term, whose predictor is `eta + cs_k`, one column per
+#' threshold, because it moves the predictor differently at each threshold
+#' and the shared part alone is the predictor at no threshold of the model.
+#' The densities read the same sum, `tau_k - (eta + cs_k)`. On a mixture with
+#' `cs()` in `mu1` alone the layers are three for `mu1` and one for `mu2`.
+#'
+#' `layer_pick`, set by [frm_curve_feature()], reads one layer as if it were
+#' the only one: a root is a statement about one curve.
+#'
+#' @noRd
+lp_layers <- function(object, rspec) {
+  rn <- rspec$resp_name
+  dps <- mu_stack_dpars(rspec$family)
+  if (length(dps) < 2L) {
+    dps <- if ("mu" %in% names(rspec$dpars)) "mu" else rspec$primary_dpars[1L]
+  }
+  out <- list()
+  for (d in dps) {
+    lp <- object$frame[["linpreds"]][[linpred_key(rn, d)]]
+    if (is.null(lp)) next
+    k <- if (length(lp[["cs"]])) {
+      length(object$estimates[[lp[["cs"]][[1L]]$par]])
+    } else {
+      1L
+    }
+    out[[length(out) + 1L]] <- list(dpar = d, lp = lp, k = k)
+  }
+  if (sum(vapply(out, `[[`, 1L, "k")) < 2L) NULL else out
+}
+
+#' `eta` of one layer's predictor on the rows `frm_linpred()` reports,
+#' padded as it pads, one column per threshold under `cs()`.
+#'
+#' @noRd
+layer_eta <- function(object, rspec, l, newdata, re_formula, anl) {
+  v <- frm_linpred(object, newdata = newdata, type = "link", dpar = l$dpar,
+                   resp = rspec$resp_name, re_formula = re_formula,
+                   allow_new_levels = anl)
+  if (l$k == 1L) return(matrix(v, ncol = 1L, dimnames = list(names(v), NULL)))
+  n <- if (is.null(newdata)) nrow(l$lp[["X"]]) else nrow(newdata)
+  CS <- ord_cs_offsets(object, l$lp, newdata, n, l$k)
+  if (is.null(newdata)) CS <- napred(object, CS)
+  out <- as.numeric(v) + CS
+  rownames(out) <- names(v)
+  out
+}
+
+#' `frm_linpred(type = "link")` over the layers of `lp_layers()`: a matrix
+#' with one column per layer, named `eta1`, `eta2`, ..., which is what
+#' `fitted(scale = "linear")` calls them. The standard error is the stacked
+#' `frm_lp_basis()` read row by row, so `se.fit` and the basis are one route.
+#'
+#' @noRd
+linpred_layers <- function(object, rspec, layers, newdata, re_formula, use_re,
+                           se.fit, anl) {
+  fit <- do.call(cbind, lapply(layers, layer_eta, object = object,
+                               rspec = rspec, newdata = newdata,
+                               re_formula = re_formula, anl = anl))
+  dimnames(fit) <- list(rownames(fit), paste0("eta", seq_len(ncol(fit))))
+  pick <- object[["layer_pick"]]
+  take <- function(m) if (is.null(pick)) m else m[, pick]
+  if (!se.fit) return(take(fit))
+  for (l in layers) {
+    if (!is.null(l$lp[["nl_body"]])) {
+      # the refusal the predictor gives when it is named
+      frm_linpred(object, newdata = newdata, dpar = l$dpar,
+                  resp = rspec$resp_name, re_formula = re_formula,
+                  allow_new_levels = anl, se.fit = TRUE)
+    }
+  }
+  # the standard errors of every layer, whichever one is read
+  object[["layer_pick"]] <- NULL
+  lb <- lp_basis_layers(object, rspec, layers, newdata, use_re, anl, FALSE,
+                        get_joint_cov(object))
+  se <- sqrt(pmax(lb_rowvar(lb), 0) + lb$extra_var)
+  if (any(lb$nonest)) se[lb$nonest] <- NA_real_
+  se[lb$se_nonest] <- NaN
+  se_pred_warn(lb$se_nonest)
+  se <- matrix(se, length(se) / ncol(fit), ncol(fit))
+  # an NA-dropped row of the data has no value, as in the fitted matrix
+  if (is.null(newdata)) se <- napred(object, se)
+  dimnames(se) <- dimnames(fit)
+  list(fit = take(fit), se.fit = take(se))
+}
+
+#' One layer of `frm_lp_basis()`: `d eta / d coef` on the grid, or, under a
+#' `cs()` term, the grid once per threshold, threshold slowest. There it is
+#' the shared design in every threshold's rows plus, for each `cs()` column,
+#' its values in that column's own threshold.
+#'
+#' A coefficient no estimate moves (fixed to a constant) has no row in the
+#' covariance and gets no column. A variance that is not coefficient
+#' uncertainty is in the shared part, so every threshold carries it, and two
+#' thresholds at one grid row covary fully through it.
+#'
+#' @noRd
+lp_basis_layer <- function(object, l, rspec, newdata, use_re, anl, extra_cov,
+                           jc) {
+  lp <- l$lp
+  if (!is.null(lp[["nl_body"]])) {
+    out <- lp_basis_nl(object, lp, rspec, newdata, use_re, anl, jc)
+    # the nonlinear route refuses every source of extra variance
+    if (extra_cov) out$extra_cov <- Matrix::Diagonal(x = out$extra_var)
+    return(out)
+  }
+  ed <- lp_eta_design(object, lp, newdata, use_re, anl)
+  has_rr <- isTRUE(object$frame[["has_rr"]])
+  rrj <- if (has_rr) rr_jacobians(object)
+  da <- lp_delta_A(object, lp, ed, newdata, use_re, jc, has_rr, rrj)
+  A <- as.matrix(da$A)
+  pos <- da$coef_pos
+  eta <- ed[["eta"]]
+  ev <- lp_extra_var_vec(object, ed, use_re)
+  ne <- ed[["nonest"]]
+  if (l$k > 1L) {
+    n <- ed[["n"]]
+    K1 <- l$k
+    A <- A[rep(seq_len(n), K1), , drop = FALSE]
+    for (ct in ord_cs_values(object, lp, newdata, n)) {
+      ep <- which(jc$names == ct$par)
+      if (length(ep) != K1) next
+      B <- matrix(0, n * K1, K1)
+      for (k in seq_len(K1)) B[(k - 1L) * n + seq_len(n), k] <- ct$vals
+      A <- cbind(A, B)
+      pos <- c(pos, ep)
+    }
+    eta <- as.numeric(eta) +
+      as.numeric(ord_cs_offsets(object, lp, newdata, n, K1))
+    ev <- rep(ev, K1)
+    ne <- rep(rep_len(ne, n), K1)
+  }
+  out <- lp_basis_out(object, jc, eta, A, pos, ev, ne)
+  if (extra_cov) {
+    E <- lp_extra_cov(object, ed, use_re)
+    out$extra_cov <- if (l$k > 1L) {
+      Matrix::kronecker(matrix(1, l$k, l$k), E)
+    } else {
+      E
+    }
+  }
+  out
+}
+
+#' `frm_lp_basis()` over the layers of `lp_layers()`: the grid once per
+#' layer, layer slowest, so `eta` is `as.numeric()` of the matrix
+#' `frm_linpred()` returns. Two predictors' extra variances are independent
+#' here, the kriging residuals of two fields; a new level's draw in a block
+#' two predictors share is the one case that would covary, and a band over
+#' it is read one predictor at a time with `dpar =`.
+#'
+#' @noRd
+lp_basis_layers <- function(object, rspec, layers, newdata, use_re, anl,
+                            extra_cov, jc) {
+  parts <- lapply(layers, lp_basis_layer, object = object, rspec = rspec,
+                  newdata = newdata, use_re = use_re, anl = anl,
+                  extra_cov = extra_cov, jc = jc)
+  pos <- sort(unique(unlist(lapply(parts, `[[`, "coef_pos"))))
+  nr <- vapply(parts, function(p) length(p$eta), 1L)
+  rows <- split(seq_len(sum(nr)), rep(seq_along(nr), nr))
+  # per threshold of a layer, so a pick reads one threshold, not one dpar
+  n <- nr[[1L]] / layers[[1L]]$k
+  A <- matrix(0, sum(nr), length(pos))
+  for (i in seq_along(parts)) {
+    cols <- match(parts[[i]]$coef_pos, pos)
+    Ai <- as.matrix(parts[[i]]$A)
+    for (j in seq_along(cols)) {
+      A[rows[[i]], cols[j]] <- A[rows[[i]], cols[j]] + Ai[, j]
+    }
+  }
+  eta <- unlist(lapply(parts, function(p) as.numeric(p$eta)))
+  ev <- unlist(lapply(parts, `[[`, "extra_var"))
+  ne <- unlist(lapply(parts, function(p) rep_len(p$nonest, length(p$eta))))
+  E <- if (extra_cov) Matrix::bdiag(lapply(parts, `[[`, "extra_cov"))
+  L <- sum(vapply(layers, `[[`, 1L, "k"))
+  pick <- object[["layer_pick"]]
+  keep <- if (is.null(pick)) seq_along(eta) else (pick - 1L) * n + seq_len(n)
+  out <- lp_basis_out(object, jc, eta[keep], A[keep, , drop = FALSE], pos,
+                      ev[keep], ne[keep])
+  if (is.null(pick)) out$layers <- paste0("eta", seq_len(L))
+  if (extra_cov) out$extra_cov <- E[keep, keep, drop = FALSE]
   out
 }
 
@@ -2471,6 +2778,7 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
   key <- linpred_key(lp[["resp"]], lp[["dpar"]])
   re_parts <- list()
   sm_parts <- list()
+  me_parts <- NULL
   nonest <- FALSE
   sm_ids <- which(vapply(object$frame[["re_blocks"]], function(bk) {
     bk[["covstruct"]] %in% c("smooth", "gp", "hsgp") &&
@@ -2515,6 +2823,7 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
     sm_parts <- pd$sm_parts
     nonest <- pd$nonest
     mo_rows <- pd$mo_rows
+    me_parts <- pd$me_parts
     n <- nrow(X)
     eta <- lp_fixed_part(X, est, lp)
     cvec <- coef_b(object)
@@ -2543,9 +2852,11 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
   # a time cost a pair each
   sh <- object[["eta_shift"]]
   if (!is.null(sh) && identical(sh$key, key)) eta <- eta + sh$h
+  # a node of a latent that several predictors read (me_node_value())
+  if (!is.null(sh$by_key[[key]])) eta <- eta + sh$by_key[[key]]
   list(eta = eta, X = X, off = off, re_parts = re_parts,
        sm_parts = sm_parts, sm_blocks = sm_blocks, nonest = nonest, n = n,
-       mo_rows = mo_rows)
+       mo_rows = mo_rows, me_parts = me_parts)
 }
 
 #' A standard error that leaves out a variance component is only honest
@@ -2900,6 +3211,14 @@ lp_extra_cov <- function(object, ed, use_re) {
     blocks[[length(blocks) + 1L]] <- list(rows = kg$rows,
                                           C = gp_krig_cov(kg))
   }
+  # one latent value per row, or per level under me(gr = ): rows that read
+  # one value covary through it, and every other pair is independent
+  for (mp in ed[["me_parts"]]) {
+    for (r in split(seq_len(n), mp$J)) {
+      gs <- mp$g[r] * mp$sd[r]
+      blocks[[length(blocks) + 1L]] <- list(rows = r, C = outer(gs, gs))
+    }
+  }
   # the diagonal is the vector predict() adds, to the bit, so a band
   # built from this matrix and a standard error from se.fit agree
   extra_cov_assemble(blocks, n, lp_extra_var_vec(object, ed, use_re))
@@ -2946,9 +3265,10 @@ extra_cov_assemble <- function(blocks, n, dg = NULL) {
     return(Matrix::sparseMatrix(i = ii, j = jj, x = xx, dims = c(n, n)))
   }
   off <- ii != jj
-  Matrix::sparseMatrix(i = c(ii[off], which(dg != 0)),
-                       j = c(jj[off], which(dg != 0)),
-                       x = c(xx[off], dg[dg != 0]), dims = c(n, n))
+  # a row with no value has an NA here, which stays that row's
+  on <- which(is.na(dg) | dg != 0)
+  Matrix::sparseMatrix(i = c(ii[off], on), j = c(jj[off], on),
+                       x = c(xx[off], dg[on]), dims = c(n, n))
 }
 
 #' One draw of an exact `gp()`'s kriging residual at the unseen rows of
@@ -3227,6 +3547,20 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
       var_m <- var_m + grad[[dnm]]^2 * gv
     }
   }
+  # a new row's me() draw, through each predictor's gradient. One call is one
+  # latent whichever dpars read it, so they add before the square
+  by_call <- list()
+  for (dnm in dnames) {
+    for (e in eds[[dnm]][["me_parts"]]) {
+      if (is.na(e$k)) {
+        var_m <- var_m + (grad[[dnm]] * e$g * e$sd)^2
+        next
+      }
+      key <- as.character(e$k)
+      by_call[[key]] <- (by_call[[key]] %||% 0) + grad[[dnm]] * e$g * e$sd
+    }
+  }
+  for (v in by_call) var_m <- var_m + v^2
 
   se_m <- sqrt(var_m)
   names(se_m) <- names(m)   # the one-predictor path labels both alike
@@ -3287,6 +3621,31 @@ napred <- function(fit, x) {
 #' as a nonlinear body or a structured likelihood, reports `NA` in
 #' `Est.Error` and in the `Q` columns rather than a number it does not
 #' have. The estimate is unaffected.
+#'
+#' The `Q` columns are the interval on the scale of the link, mapped through its
+#' inverse, so they stay in the support of the expected response, and they are
+#' not symmetric about the estimate unless the link is the identity.
+#'
+#' @section New rows of a model with me():
+#' A new row has no latent value, and brms's draws take one from `N(x, sdx)`.
+#' The estimate here is the mean of the expected response over that draw, by
+#' Gauss-Hermite quadrature on the response scale. On a log link it is `exp((b
+#' sdx)^2 / 2)` times the value at `x`, and on an identity link it is that
+#' value. `Est.Error` holds the draw's variance beside the coefficients', so it
+#' is not coefficient uncertainty alone, and the `Q` columns are the draw's
+#' quantiles. `frm_linpred()` stays at the observed `x`. Two predictors that
+#' read one term read one latent value, a stated divergence from brms, and a
+#' category probability is a joint function of both, so its mean moves: 0.3336
+#' against brms's 0.3106. A mixture and a `mu` with a `zi` that read one term do
+#' the same.
+#'
+#' @section A distributional parameter with no predictor:
+#' With `scale = "linear"`, `dpar` reads a distributional parameter with no
+#' predictor on its link scale, as it reads one with a predictor. This diverges
+#' from brms 2.23.0, which returns the stored natural value. For one model, brms
+#' reads 7.48 with `shape` unmodeled and 2.01 with `shape ~ 1`, and frmtmb reads
+#' 2.01 in both. On another fit, frmtmb reads 0.776 where brms reads 2.17.
+#' `scale = "response"` reads the natural value in both packages.
 #'
 #' @param object A `frmtmb_fit`.
 #' @param newdata Optional data frame to evaluate on. Defaults to the
@@ -3356,6 +3715,9 @@ napred <- function(fit, x) {
 #'   `NULL`, as brms's are; the data's row names are on `frm_linpred()`
 #'   and `model.frame()`.
 #' @section Ordinal responses:
+#' The `Q` columns of a category probability are a Wald interval on its logit,
+#' as in [conditional_effects()], so they stay inside 0 and 1.
+#'
 #' An ordinal response has no mean, so `fitted()` summarizes the `K`
 #' category probabilities, with rows of `Estimate` summing to one,
 #' which is the brms `fitted()` convention. `cs()` terms are honored.
@@ -3407,6 +3769,7 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
   require_structure_packages(object)
   autocor_check_dpar(object, dpar)
   frm_check_dots(..., .unsupported = fitted_no_draws)
+  resp <- resp_read(object, resp)
   scale <- frm_match_arg(scale)
   fitted_refuse_draws_args("fitted()", ndraws, draw_ids, sort, summary,
                            robust)
@@ -3459,10 +3822,13 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
     # a multivariate call has drawn it already, for every response
     object <- fitted_old_levels(object, rnm, newdata, re_formula)
   }
+  mm <- if (scale == "response") {
+    fitted_me_moments(object, newdata, re_formula, resp, dpar, allow_new_levels)
+  }
   est <- fitted_point(object, newdata, re_formula, scale, resp, dpar,
-                      allow_new_levels)
+                      allow_new_levels, mm)
   se <- fitted_point_se(object, newdata, re_formula, scale, resp, dpar,
-                        allow_new_levels, est)
+                        allow_new_levels, est, mm)
   if (is.matrix(est) && isTRUE(attr(est, "per_threshold"))) {
     # the linear predictor of a cs() fit, one layer per threshold, which
     # brms names eta1, eta2, ... and does not bound (measured on brms
@@ -3493,17 +3859,74 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
     dn <- dimnames(out)
     dn[1L] <- list(NULL)
     dimnames(out) <- dn
+    # a matrix of means is no probability: mixture_mvn()'s n x D mean was held
+    # to 0 and 1, so its interval left its own estimate
+    if (!fam_is_polytomous(rs[["family"]])) return(out)
     if (fam_is_multinomial(rs[["family"]]) &&
           scale == "response" && is.null(dpar)) {
       # expected COUNTS, which brms labels P(Y = k) too: a row's counts
       # lie between 0 and its trials. The estimates sum to the trials
       # only to rounding, so a bound held at that sum could pass them by
       # a few ulps (Windows, CI); trials are whole numbers, so round
-      return(prob_clamp_quantiles(out, upper = round(rowSums(est))))
+      return(prob_band_quantiles(out, probs, mm, upper = round(rowSums(est))))
     }
-    return(prob_clamp_quantiles(out))
+    return(prob_band_quantiles(out, probs, mm))
   }
   out <- brms_summary_matrix(est, se, probs, rownames = NULL)
+  if (scale == "response") {
+    out <- fitted_response_band(out, object, rs, rnm, dpar, se, probs, mm)
+  }
+  out
+}
+
+#' The `Q` columns of a scalar expected response, on the link's scale and mapped
+#' through its inverse, as `conditional_effects()` builds its band: `Estimate +-
+#' z Est.Error` on the response scale leaves the support once a variance is not
+#' small, -2.26 to 8.24 on a poisson mean at sdx 1.2 where brms's quantiles are
+#' 0.50 and 17.75 (dev/review-predread-mefam.R). A new row's `me()` draw reads
+#' the
+#' draw's own quantiles (`me_band_end()`).
+#'
+#' On an identity link the ends are the Wald ones as they were. A mean that no
+#' link inverse gives, on an identity link (`lognormal()`'s), reads the log,
+#' which
+#' is `exp(mu + sigma^2 / 2)`'s own scale.
+#'
+#' @noRd
+fitted_response_band <- function(out, object, rs, rnm, dpar, se, probs, mm) {
+  if (is.null(se) || all(is.na(se))) return(out)
+  dp <- dpar %||% if ("mu" %in% names(rs$dpars)) "mu" else rs$primary_dpars[1L]
+  lp <- object$frame[["linpreds"]][[linpred_key(rnm, dp)]]
+  if (is.null(lp)) return(out)
+  hook <- if (!is.null(dpar)) dpar_report_hook(rs$family, dp, rs)
+  m0 <- as.numeric(out[, "Estimate"])
+  qc <- which(!colnames(out) %in% c("Estimate", "Est.Error"))
+  if (!is.null(mm)) {
+    # the coefficient part, off the whole standard error at the mean's slope
+    cf <- sqrt(pmax(as.numeric(se)^2 - mm$var, 0)) /
+      ifelse(mm$slope > 0, mm$slope, 1)
+    for (i in seq_along(probs)) {
+      out[, qc[i]] <- me_band_end(mm, cf, probs[i])
+    }
+    return(out)
+  }
+  link <- if (!is.null(hook) && all(m0 > 0 & m0 < 1, na.rm = TRUE)) {
+    get_link("logit")
+  } else {
+    dpar_response_link(rs, lp, dp)
+  }
+  if (is.null(dpar) && !mean_is_mu(rs$family) &&
+        identical(link[["name"]], "identity") && all(m0 > 0, na.rm = TRUE)) {
+    link <- get_link("log")
+  }
+  bs <- ce_band_scale(link, m0)
+  se_t <- as.numeric(se) / abs(bs$dm)
+  for (i in seq_along(probs)) {
+    z <- stats::qnorm(probs[i]) * ifelse(bs$dm < 0, -1, 1)
+    v <- suppressWarnings(bs$inv(bs$t + z * se_t))
+    v[!is.finite(v) | is.na(se_t)] <- NA_real_
+    out[, qc[i]] <- v
+  }
   out
 }
 
@@ -3569,28 +3992,36 @@ fitted_mv <- function(object, newdata, re_formula, scale, resp, dpar,
         dimnames = list(NULL, colnames(layers[[1L]]), labs))
 }
 
-#' Hold the quantile columns of a category-probability summary between
-#' 0 and 1.
-#'
-#' The `Q` columns of a maximum-likelihood summary are a Wald interval,
-#' `est + qnorm(p) * se`, which is unbounded; brms's are quantiles OF
-#' probabilities and cannot leave the range. Measured on a three-
-#' category ordinal fit, 15 of 450 bounds were below 0 and 5 above 1
-#' (`dev/reviews/20260918-shapes.md`, m1). Clamping keeps the reported
-#' bound inside the range the quantity lives in; it does NOT widen the
-#' interval, so a bound that was clamped is a sign that the normal
-#' approximation is poor there.
+#' The `Q` columns of a category's probability, or of its expected count: a Wald
+#' interval on the probability's logit, as `conditional_effects()` builds its
+#' band. On the probability itself the interval leaves the range, and a clamp at
+#' the bound is no quantile: category 1 of a `cumulative()` row at `sdx = 1.2`
+#' read 0 to 0.419 where brms's quantiles are 0.048 and 0.469
+#' (dev/review-predread-mefam.R).
 #'
 #' `upper` is the per-row bound when the layers are expected counts
 #' (a multinomial fit's), whose range is 0 to the row's trials.
 #'
 #' @noRd
-prob_clamp_quantiles <- function(out, upper = 1) {
+prob_band_quantiles <- function(out, probs, mm = NULL, upper = 1) {
   q <- setdiff(seq_len(dim(out)[2L]), 1:2)
-  if (length(q)) {
-    # out[i, q, k] varies fastest in i, so a per-row bound recycles
-    # down the rows
-    out[, q, ] <- pmin(pmax(out[, q, , drop = FALSE], 0), upper)
+  up <- rep_len(upper, dim(out)[1L])
+  # a new row of a me() term: the logit of the probability is close to symmetric
+  # in the draw, about its value at the observed x and not about the mean of the
+  # probability, and the mean's own variance sets its spread
+  at <- if (!is.null(mm)) matrix(mm$plug, dim(out)[1L], dim(out)[3L])
+  for (k in seq_len(dim(out)[3L])) {
+    mk <- as.numeric(out[, 1L, k]) / up
+    pk <- if (is.null(at)) mk else as.numeric(at[, k]) / up
+    sl <- as.numeric(out[, 2L, k]) / up /
+      pmax(mk * (1 - mk), .Machine$double.eps)
+    inside <- pk > 0 & pk < 1
+    for (i in seq_along(q)) {
+      v <- stats::plogis(stats::qlogis(pk) + stats::qnorm(probs[i]) * sl)
+      # a probability at 0 or 1 has no logit, and no spread either
+      v[which(!inside)] <- pk[which(!inside)]
+      out[, q[i], k] <- v * up
+    }
   }
   out
 }
@@ -3605,32 +4036,76 @@ prob_clamp_quantiles <- function(out, upper = 1) {
 #' @noRd
 fitted_point <- function(object, newdata = NULL, re_formula = NULL,
                          scale = "response", resp = NULL, dpar = NULL,
-                         allow_new_levels = FALSE) {
-  if (scale == "linear" && is.null(dpar)) {
-    rn <- resp %||% names(object$spec$responses)[1L]
-    mus <- mu_stack_dpars(object$spec$responses[[rn]]$family)
-    if (length(mus) > 1L) {
-      # brms stacks every location predictor here, one layer each
-      # (posterior_epred.brmsprep(), "multiple mu parameters")
-      cols <- lapply(mus, function(d) {
-        as.numeric(frm_linpred(object, newdata = newdata, type = "link",
-                               dpar = d, resp = resp,
-                               re_formula = re_formula,
-                               allow_new_levels = allow_new_levels))
-      })
-      out <- do.call(cbind, cols)
-      attr(out, "per_predictor") <- TRUE
-      return(out)
-    }
-  }
+                         allow_new_levels = FALSE, mm = NULL) {
   out <- frm_linpred(object, newdata = newdata,
                      type = if (scale == "response") "response" else "link",
                      dpar = dpar, resp = resp, re_formula = re_formula,
                      allow_new_levels = allow_new_levels)
-  if (scale == "linear" && (is.null(dpar) || identical(dpar, "mu"))) {
-    out <- ord_linear_per_threshold(object, out, newdata, resp)
+  # a new row's me() draw: the mean over it (fitted_me_moments())
+  if (!is.null(mm)) {
+    attributes(mm$mean) <- attributes(out)
+    out <- mm$mean
+  }
+  if (scale == "linear" && is.null(dpar) && is.matrix(out)) {
+    # frm_linpred()'s layers, brms's posterior_epred.brmsprep() "multiple
+    # mu parameters" and .predictor_cs(): unbounded, and named by fitted()
+    rn <- resp %||% names(object$spec$responses)[1L]
+    multi <- length(mu_stack_dpars(object$spec$responses[[rn]]$family)) > 1L
+    attr(out, if (multi) "per_predictor" else "per_threshold") <- TRUE
   }
   out
+}
+
+#' A new row's expected response over its `me()` draw and that draw's variance
+#' of it, by Gauss-Hermite on the response scale (`response_mean_gh()`), or
+#' `NULL`
+#' when the fit has no such row. `plug` is the value at the observed `x`,
+#' `slope` is `dE / deta` over `dm / deta` there, which scales the coefficient
+#' part of the standard error, and `grad` is `dm / deta` itself, which puts the
+#' draw on a band's scale.
+#'
+#' @noRd
+fitted_me_moments <- function(object, newdata, re_formula, resp, dpar,
+                              allow_new_levels) {
+  if (is.null(newdata) || is.null(object$frame[["me"]])) return(NULL)
+  resp <- resp_read(object, resp)
+  rn <- resp %||% names(object$spec$responses)[1L]
+  rspec <- object$spec$responses[[rn]]
+  # the one-step mean reads each earlier row's own latent, so one node cannot
+  # move them together; its link is the identity, where the mean is the value at
+  # the observed x and linpred_arma_cond() carries the variance row by row
+  if (autocor_is_cond(object$frame[["autocor"]][[rn]])) return(NULL)
+  rr <- re_resolve(object, re_formula, "fitted()")
+  loads <- me_row_loads(rr$fit, rspec, newdata, re_form_keeps(rr$re_formula),
+                        allow_new_levels, dpar)
+  if (is.null(loads)) return(NULL)
+  lp <- object$frame[["linpreds"]][[loads$key]]
+  what <- function(fit) {
+    as.matrix(frm_linpred(fit, newdata = newdata, type = "response",
+                          dpar = dpar, resp = resp, re_formula = re_formula,
+                          allow_new_levels = allow_new_levels))
+  }
+  val <- me_node_value(object, loads, what)
+  # the integral runs in the latent's own units: an identity link on eta = 0, so
+  # the node each row sees is its dpars$mu, and the predictors move with it
+  sds <- sqrt(loads$s2)
+  node <- function(u) ifelse(sds > 0, u / sds, 0)
+  over <- function(fn) {
+    response_mean_gh(rep_len(0, length(sds)), loads$s2,
+                     list(links = list(mu = list(linkinv = identity))), list(),
+                     mean_fn = function(fam, dpars, aterms) {
+                       fn(node(dpars[["mu"]]))
+                     })
+  }
+  m1 <- over(val)
+  m2 <- over(function(z) val(z)^2)
+  h <- 1e-4
+  grad <- (val(0, h) - val(0, -h)) / (2 * h)
+  gmean <- (over(function(z) val(z, h)) -
+              over(function(z) val(z, -h))) / (2 * h)
+  slope <- ifelse(abs(grad) > 0, gmean / grad, 1)
+  list(mean = drop(m1), var = pmax(drop(m2 - m1^2), 0), plug = drop(val(0)),
+       slope = drop(slope), grad = drop(grad), s2 = loads$s2, val = val)
 }
 
 #' The location predictors brms stacks into a third dimension when a
@@ -3647,38 +4122,6 @@ mu_stack_dpars <- function(fam) {
     return(fam[["primary_dpars"]])
   }
   NULL
-}
-
-#' The linear predictor of an ordinal fit with `cs()` terms, one column
-#' per threshold, as brms's `fitted(scale = "linear")` gives it.
-#'
-#' A `cs()` term moves the predictor differently at each threshold, so
-#' there is no single linear predictor to report: brms adds each
-#' threshold's category-specific part to the shared one and returns an
-#' `n x (K - 1)` layer per draw (`.predictor_cs()`). The shared part
-#' alone, which is what this returned before, is the predictor at no
-#' threshold of the model. The densities here read the same sum,
-#' `tau_k - (eta + cs_k)`, so the columns are that `eta + cs_k`. A fit
-#' without a `cs()` term gets `eta` back unchanged.
-#'
-#' @noRd
-ord_linear_per_threshold <- function(object, eta, newdata, resp) {
-  rn <- resp %||% names(object$spec$responses)[1L]
-  rspec <- object$spec$responses[[rn]]
-  if (!identical(rspec$family[["type"]], "ordinal")) return(eta)
-  lp <- object$frame[["linpreds"]][[linpred_key(rn, "mu")]]
-  cst <- lp[["cs"]] %||% list()
-  if (!length(cst) || is.matrix(eta)) return(eta)
-  K1 <- length(object$estimates[[cst[[1L]]$par]])
-  n_fit <- if (is.null(newdata)) object$frame[["n_obs"]] else nrow(newdata)
-  CS <- ord_cs_offsets(object, lp, newdata, n_fit, K1)
-  if (is.null(CS)) return(eta)
-  # in sample, a na.exclude fit pads eta back to the data's rows
-  if (is.null(newdata)) CS <- napred(object, CS)
-  out <- as.numeric(eta) + CS
-  rownames(out) <- names(eta)
-  attr(out, "per_threshold") <- TRUE
-  out
 }
 
 #' brms's linear predictor with the thresholds included, the quantity
@@ -3789,11 +4232,15 @@ ord_thres_linpred <- function(object, newdata = NULL, resp = NULL,
 #'
 #' @noRd
 fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
-                            allow_new_levels, est) {
+                            allow_new_levels, est, mm = NULL) {
   # the handler below muffles what fitted_point() already said, which
   # would include a waiting SE check's report
   se_flush_deferred(object)
-  if (is.matrix(est)) {
+  # a cs() fit's layers come back from frm_linpred(se.fit = TRUE) below
+  if (is.matrix(est) && !isTRUE(attr(est, "per_threshold"))) {
+    # the draw's variance comes from the integral, once, and each
+    # finite-difference step reads the coefficient part alone
+    if (!is.null(mm)) object <- me_coef_only(object)
     f <- function(fit) {
       fitted_point(fit, newdata, re_formula, scale, resp, dpar,
                    allow_new_levels)
@@ -3833,8 +4280,10 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
     # scalar route below adds through se.fit
     ch <- fd_eta_chain(object, newdata, resp, allow_new_levels,
                        re_form_keeps(re_formula), b_idx)
-    return(fit_fd_se(object, f, b_idx = b_idx, b_batch = bt,
-                     b_chain = ch$chain, extra = ch$extra))
+    fd <- fit_fd_se(object, f, b_idx = b_idx, b_batch = bt,
+                    b_chain = ch$chain, extra = ch$extra)
+    if (is.null(mm)) return(fd)
+    return(sqrt(fd^2 + matrix(mm$var, nrow(fd), ncol(fd))))
   }
   # fitted_point() has already raised this call's warnings, so they are
   # muffled here, except the one only the standard error can raise: a
@@ -3852,7 +4301,16 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
       }
     }),
     error = keep_missing(NULL))
-  if (is.null(p)) NULL else p$se.fit
+  if (is.null(p)) return(NULL)
+  # a new row's me() draw on the response scale: its variance by the integral,
+  # and the coefficients' at the mean's own slope, not the observed value's
+  if (is.null(mm)) return(p$se.fit)
+  cf <- tryCatch(suppressWarnings(frm_linpred(
+    me_coef_only(object), newdata = newdata, type = "response", dpar = dpar,
+    resp = resp, re_formula = re_formula, allow_new_levels = allow_new_levels,
+    se.fit = TRUE)$se.fit), error = keep_missing(NULL))
+  if (is.null(cf)) return(p$se.fit)
+  sqrt((as.numeric(cf) * mm$slope)^2 + mm$var)
 }
 
 #' The draws-only arguments of `fitted()` and `residuals()`, refused
@@ -4820,6 +5278,7 @@ residuals.frmtmb_fit <- function(object, type = c("response", "ordinary",
              "reads the fitted rows' own likelihood", call. = FALSE)
   }
   rnames <- names(object$spec$responses)
+  resp <- resp_read(object, resp)
   if (is.null(resp)) {
     resp <- rnames
   } else {
@@ -5643,6 +6102,9 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
     } else {
       fb <- object
       fb$estimates[["b"]] <- b_use
+      # a new row's me() value is measurement noise in the grid, drawn per
+      # replicate (me_newdata_value())
+      fb[["me_draw"]] <- new.env(parent = emptyenv())
       dp <- sim_newdata_dpars(fb, rspec, newdata, nl_ok, dz,
                               predict_new_level_draw(fb, nls))
       if (!is.null(resp)) dp <- with_shared_nu(fb, resp, dp)
@@ -6005,6 +6467,17 @@ b_coef_labels <- function(fit) {
 #' `frm_linpred(se.fit = TRUE)` is written that way. The covariance of
 #' the whole prediction is `A V A' + extra_cov`.
 #'
+#' Under a `cov = FALSE` autocorrelation term `eta` is the predictor without the
+#' term, as brms's `emmeans()` reads it (`incl_autocor = FALSE`), and
+#' `frm_linpred()` adds the one-step part from the earlier residuals.
+#'
+#' With no `dpar` on a predictor that [frm_linpred()] returns as several
+#' columns (a `cs()` term, several location predictors), every row of the grid
+#' comes once per column, the column slowest, so `eta` is `as.numeric()` of that
+#' matrix, and the list also has `layers`, the column names. Under a `cs()` term
+#' `A` has the term's coefficients beside the shared design. `dpar = "mu"` is
+#' the shared part.
+#'
 #' On a fit whose fixed design is ill-conditioned (a raw polynomial of
 #' high degree, a covariate far from zero) the list also has
 #' \describe{
@@ -6018,7 +6491,10 @@ b_coef_labels <- function(fit) {
 #' but `A V A'` formed from it in double precision is not: on a raw
 #' polynomial of degree 8 it can be wrong by a factor of 3.
 #' @section Variance that is not coefficient uncertainty:
-#' Two sources reach `extra_var`. An exact `gp()` evaluated at a position
+#' Three sources reach `extra_var`. A new row of a `me()` term adds the
+#' variance of its latent value's draw from `normal(x, sdx)`; rows at one
+#' level of `me(gr = )` read one draw and covary fully, and other rows are
+#' independent. An exact `gp()` evaluated at a position
 #' the fit did not see adds the field's conditional (kriging) covariance
 #' given its values at the fitted positions,
 #' `k(x, x') - k(x, X) K^-1 k(X, x')`; rows at an observed position carry
@@ -6080,6 +6556,7 @@ frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
                          extra_cov = FALSE) {
   require_frmtmb_fit(object, "frm_lp_basis()")
   require_fitted(object, "frm_lp_basis()")
+  resp <- resp_read(object, resp)
   check_flag(allow_new_levels, "allow_new_levels")
   check_flag(extra_cov, "extra_cov")
   if (!is.null(newdata) && !is.data.frame(newdata)) {
@@ -6090,10 +6567,27 @@ frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
   rr <- re_resolve(object, re_formula, "frm_lp_basis()")
   object <- rr$fit
   use_re <- re_form_keeps(rr$re_formula)
+  # it would stack rows of two models under one eta, which no reader asks for:
+  # through 0.78.0 it read the first response in silence
+  if (is.null(resp) && length(object$spec$responses) > 1L) {
+    frm_stop("frm_lp_basis(): this fit has ",
+             length(object$spec$responses), " responses (",
+             paste(names(object$spec$responses), collapse = ", "),
+             "), and a design belongs to one. Name it with resp =",
+             call. = FALSE)
+  }
   resp <- resp %||% names(object$spec$responses)[1]
   rspec <- object$spec$responses[[resp]]
   if (is.null(rspec)) {
     stop_unknown_response(object, resp)
+  }
+  jc <- get_joint_cov(object)
+  # the same reading as frm_linpred(): no dpar named is every layer, and
+  # dpar = "mu" the shared part
+  layers <- if (is.null(dpar)) lp_layers(object, rspec)
+  if (!is.null(layers)) {
+    return(lp_basis_layers(object, rspec, layers, newdata, use_re,
+                           allow_new_levels, extra_cov, jc))
   }
   dpar <- dpar %||% if ("mu" %in% names(rspec$dpars)) "mu" else
     rspec$primary_dpars[1]
@@ -6103,25 +6597,8 @@ frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
              resp, "'. Available: ",
              paste(names(rspec$dpars), collapse = ", "), call. = FALSE)
   }
-  jc <- get_joint_cov(object)
-  if (!is.null(lp[["nl_body"]])) {
-    out <- lp_basis_nl(object, lp, rspec, newdata, use_re,
-                       allow_new_levels, jc)
-    # the nonlinear route refuses every source of extra variance
-    if (extra_cov) {
-      out$extra_cov <- Matrix::Diagonal(x = out$extra_var)
-    }
-    return(out)
-  }
-  ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
-  has_rr <- isTRUE(object$frame[["has_rr"]])
-  rrj <- if (has_rr) rr_jacobians(object)
-  da <- lp_delta_A(object, lp, ed, newdata, use_re, jc, has_rr, rrj)
-  out <- lp_basis_out(object, jc, ed[["eta"]], as.matrix(da$A),
-                      da$coef_pos, lp_extra_var_vec(object, ed, use_re),
-                      ed[["nonest"]])
-  if (extra_cov) out$extra_cov <- lp_extra_cov(object, ed, use_re)
-  out
+  lp_basis_layer(object, list(lp = lp, k = 1L), rspec, newdata, use_re,
+                 allow_new_levels, extra_cov, jc)
 }
 
 #' The variance sources that are not coefficient uncertainty, summed to
@@ -6138,6 +6615,7 @@ lp_extra_var_vec <- function(object, ed, use_re) {
     out[B$rows] <- out[B$rows] + rowSums((Mr %*% B$S) * Mr)
   }
   for (gv in ev$gp) out <- out + gv
+  for (mp in ed[["me_parts"]]) out <- out + (mp$g * mp$sd)^2
   out
 }
 
@@ -6235,9 +6713,9 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
     if (any(ex != 0)) {
       frm_stop("frm_lp_basis(): the nonlinear body reaches '", nm,
                "', which contributes variance that is not coefficient ",
-               "uncertainty (an exact gp() kriging variance). Its chain ",
-               "rule through a nonlinear body has not been measured",
-               call. = FALSE)
+               "uncertainty (an exact gp() kriging variance, or the draw ",
+               "of a new row's me() value). Its chain rule through a ",
+               "nonlinear body has not been measured", call. = FALSE)
     }
     has_rr <- isTRUE(object$frame[["has_rr"]])
     dak <- lp_delta_A(object, lpk, edk, newdata, use_re, jc, has_rr,

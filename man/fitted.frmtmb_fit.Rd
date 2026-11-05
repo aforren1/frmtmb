@@ -133,8 +133,39 @@ A predictor whose standard error this package cannot produce, such
 as a nonlinear body or a structured likelihood, reports \code{NA} in
 \code{Est.Error} and in the \code{Q} columns rather than a number it does not
 have. The estimate is unaffected.
+
+The \code{Q} columns are the interval on the scale of the link, mapped through its
+inverse, so they stay in the support of the expected response, and they are
+not symmetric about the estimate unless the link is the identity.
 }
+\section{New rows of a model with me()}{
+
+A new row has no latent value, and brms's draws take one from \code{N(x, sdx)}.
+The estimate here is the mean of the expected response over that draw, by
+Gauss-Hermite quadrature on the response scale. On a log link it is \verb{exp((b sdx)^2 / 2)} times the value at \code{x}, and on an identity link it is that
+value. \code{Est.Error} holds the draw's variance beside the coefficients', so it
+is not coefficient uncertainty alone, and the \code{Q} columns are the draw's
+quantiles. \code{frm_linpred()} stays at the observed \code{x}. Two predictors that
+read one term read one latent value, a stated divergence from brms, and a
+category probability is a joint function of both, so its mean moves: 0.3336
+against brms's 0.3106. A mixture and a \code{mu} with a \code{zi} that read one term do
+the same.
+}
+
+\section{A distributional parameter with no predictor}{
+
+With \code{scale = "linear"}, \code{dpar} reads a distributional parameter with no
+predictor on its link scale, as it reads one with a predictor. This diverges
+from brms 2.23.0, which returns the stored natural value. For one model, brms
+reads 7.48 with \code{shape} unmodeled and 2.01 with \code{shape ~ 1}, and frmtmb reads
+2.01 in both. On another fit, frmtmb reads 0.776 where brms reads 2.17.
+\code{scale = "response"} reads the natural value in both packages.
+}
+
 \section{Ordinal responses}{
+
+The \code{Q} columns of a category probability are a Wald interval on its logit,
+as in \code{\link[=conditional_effects]{conditional_effects()}}, so they stay inside 0 and 1.
 
 An ordinal response has no mean, so \code{fitted()} summarizes the \code{K}
 category probabilities, with rows of \code{Estimate} summing to one,

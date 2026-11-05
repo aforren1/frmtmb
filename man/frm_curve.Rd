@@ -77,7 +77,8 @@ the assembled covariance may show before the call refuses.}
 }
 \value{
 A data frame of class \code{frmtmb_curve}: the columns of
-\code{newdata}, then \code{.estimate}, \code{.se}, \code{.crit}, \code{.lower_ci},
+\code{newdata}, \code{.eta} where there are several curves, then \code{.estimate},
+\code{.se}, \code{.crit}, \code{.lower_ci},
 \code{.upper_ci}, and when \code{simultaneous = TRUE} also \code{.crit_sim},
 \code{.lower_sim} and \code{.upper_sim}. The grid covariance, \verb{A V A'} plus
 the variance that is not coefficient uncertainty, is the \code{"Sigma"}
@@ -314,6 +315,53 @@ therefore widens where the grid leaves the observed positions. The
 \code{1e-6} nugget frmtmb puts on the kernel's correlation is white noise
 at each position, which has no derivative: \code{\link[=frm_curve_deriv]{frm_curve_deriv()}} and a
 peak's standard error leave it out.
+}
+
+\section{Several predictors in one call}{
+
+With no \code{dpar}, an ordinal family with a \code{cs()} term has one curve per
+threshold, \code{eta + cs_k}, and a family with several location predictors has
+one per predictor: the predictors \code{\link[=frm_linpred]{frm_linpred()}} returns as columns, which
+is what brms's \code{posterior_linpred()} returns as layers. The result holds
+every row of the grid once per curve, the column \code{.eta} naming it, in the
+order \code{as.numeric()} reads that matrix. The simultaneous band covers all the
+curves at once, and \code{"Sigma"} is over all the rows, so the covariance
+between two thresholds is there. \code{\link[=frm_curve_deriv]{frm_curve_deriv()}} has the same layout, and
+its derivative in a \code{cs()} variable differs by threshold.
+\code{\link[=frm_curve_feature]{frm_curve_feature()}} searches each curve on its own and adds \code{.eta} to its
+table. \code{dpar = "mu"} reads the shared part, one curve, as in brms.
+}
+
+\section{A me() term}{
+
+\code{newdata} must hold the measurement SD. The curve reads the observed value,
+and the band carries the variance of a new row's latent value, as
+\code{\link[=frm_linpred]{frm_linpred()}} does. So \code{.se} is not coefficient uncertainty alone. That
+variance is white noise between rows, so a derivative and the location of a
+feature leave it out. Under \code{me(gr = )} a level holds one value, so its noisy
+variable has no derivative and no feature within a level, and both refuse.
+
+With \code{contrast}, two rows at one \code{x} and one \code{sdx}, to \code{all.equal()}'s
+tolerance, read one draw, and it cancels, as a kriging residual at one
+position does: a contrast in \code{z} has the standard error of \code{z}'s coefficient,
+0.051 at a coefficient standard error of 0.051. brms has no such curve. A
+difference of its draws of the two grids reads a draw per row and has a
+standard deviation of 0.96 on that fit. Under \code{me(gr = )} one level is one
+draw in one grid in both packages.
+
+Two readers answer two questions, and each is right for its own:
+\itemize{
+\item \code{frm_curve(contrast = )} answers for one unit with one unknown \verb{x*},
+reported as \code{x}, compared at two values of \code{z}. \verb{x*} is not in that
+difference.
+\item \code{emmeans()} contrasts answer for two new rows, each with its own
+measurement error, as brms's draws do. They carry both draws: 0.97 on that
+fit.
+}
+
+For the effect of \code{z}, read \code{frm_curve(contrast = )} or the coefficient. For
+the effect of \code{x}, read \code{\link[=frm_curve_deriv]{frm_curve_deriv()}}, the slope's 0.053 on that fit: a
+contrast in \code{x} itself has two values of \code{x}, so it reads two draws, 0.998.
 }
 
 \section{Past a \code{ps()} knot span}{

@@ -6,6 +6,11 @@
 \alias{row_lpdf}
 \alias{with_cs_offsets}
 \alias{cs_offsets_add}
+\alias{update_merge_prior}
+\alias{ce_by_response}
+\alias{resp_refuse_single}
+\alias{ce_na_vars}
+\alias{autocor_for_newdata}
 \alias{us_chol_cor}
 \alias{expand_b}
 \alias{aterms_for_newdata}
@@ -181,6 +186,14 @@ call unconditionally before \code{row_lpdf()}. In frmtmb 0.62.0 and
 earlier this paragraph said it took one response's list; a caller
 that passed one got no offsets, because they were written a level
 deeper than the simulator reads.
+\code{ce_by_response(resps, one, effects)} joins the conditional-effects panel
+sets
+\code{one(r, effects)} gives each response, in brms's order. \code{ce_na_vars(x, pop_level)} names the grid columns a display holds at \code{NA}.
+\code{autocor_for_newdata(fit, ac, rspec, newdata)} is a residual correlation term
+over the groups and times of \code{newdata}. \code{resp_refuse_single()} is brms's
+refusal of a method that reads one response of a multivariate model.
+\code{update_merge_prior(old, new)} is brms's merge of \code{update(prior = )}: new
+rows take their slots and the other old rows stay.
 \code{cs_offsets_add(fit, resp, newdata, dpv)} takes ONE response's
 dpar-value list, however it was built, and adds that response's
 \code{.cs} evaluated at \code{newdata} (the fitted rows when \code{NULL}); it is the

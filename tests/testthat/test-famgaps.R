@@ -144,11 +144,13 @@ test_that("categorical() takes random effects and marginaleffects", {
   skip_if_not_installed("marginaleffects")
   # a categorical outcome predicts a DISTRIBUTION per row, which
   # marginaleffects keys with a `group` column
-  p <- marginaleffects::predictions(fit, newdata = dd[1:5, ])
+  p <- allow_warnings(marginaleffects::predictions(fit, newdata = dd[1:5, ]),
+                      mfx_se_part)
   expect_true("group" %in% names(p))
   expect_setequal(unique(as.character(p$group)), c("a", "b", "c"))
   expect_equal(nrow(p) %% 3L, 0L)
-  sl <- marginaleffects::avg_slopes(fit, variables = "x")
+  sl <- allow_warnings(marginaleffects::avg_slopes(fit, variables = "x"),
+                       mfx_se_part)
   expect_setequal(as.character(sl$group), c("a", "b", "c"))
   # the reference category's probability falls as x rises, and the
   # probabilities are a simplex, so the slopes sum to zero

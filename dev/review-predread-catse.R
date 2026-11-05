@@ -1,0 +1,25 @@
+# Item 1: se.fit of per-category predictors, by hand from the named covariance, and the
+# brms route on the spelling brms can compile. Data seed 7311.
+source("C:/Users/adf44/source/r/frmtmb-wt-predread/dev/review-predread-lib.R")
+set.seed(7311)
+n <- 400
+d <- data.frame(x = rnorm(n), z = rnorm(n))
+eta <- 0.7 * d$x
+d$cat <- as.integer(cut(eta + 0.5 * d$z + rlogis(n), c(-Inf, 0, 1.5, Inf), labels = FALSE))
+nd <- data.frame(x = c(-1, 0.3, 1.2, 0.5), z = c(0.7, -1.1, 1.4, 0.2))
+fit <- quiet(frm(bf(cat ~ 1, mu2 ~ x + z, mu3 ~ z), family = categorical(), data = d))
+V <- as.matrix(vcov(fit))
+print(rownames(V))
+li <- frm_linpred(fit, newdata = nd, se.fit = TRUE)
+pick <- function(p) grep(p, rownames(V), value = TRUE)
+m3 <- pick("mu3")
+m2 <- pick("mu2")
+cat("mu3 names", m3, " mu2 names", m2, "\n")
+X3 <- cbind(1, nd$z)
+X2 <- cbind(1, nd$x, nd$z)
+cat("se.fit mu3:", signif(li$se.fit[, 2], 5), "\nby hand   :", signif(sqrt(rowSums((X3 %*% V[m3, m3]) * X3)), 5), "\n")
+cat("se.fit mu2:", signif(li$se.fit[, 1], 5), "\nby hand   :", signif(sqrt(rowSums((X2 %*% V[m2, m2]) * X2)), 5), "\n")
+cat("dpar route:", signif(frm_linpred(fit, newdata = nd, dpar = "mu3", se.fit = TRUE)$se.fit, 5), "\n")
+cu <- frm_curve(fit, newdata = nd, seed = 1)
+S <- attr(cu, "Sigma")
+cat("cov between mu2 and mu3 at row 1:", signif(S[1, 5], 4), " by hand ", signif(as.numeric(X2[1, ] %*% V[m2, m3] %*% X3[1, ]), 4), "\n")

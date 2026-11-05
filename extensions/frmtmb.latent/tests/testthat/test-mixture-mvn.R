@@ -107,6 +107,9 @@ test_that("mixture_mvn matches direct ML", {
   # the response column means at the gaussian-mixture ML optimum
   fv <- fitted(fit)[, "Estimate", ]
   expect_equal(dim(fv), dim(Y))
+  # a mean is not a probability: its interval holds it, and is not held in 0, 1
+  ft <- fitted(fit)
+  expect_true(all(ft[, "Q2.5", ] < fv & fv < ft[, "Q97.5", ]))
   # in standard errors of the column mean: 1.1e-5 measured, 0.37 for
   # the mixture mean at mixing weights 0.01 off
   se_mean <- apply(Y, 2, stats::sd) / sqrt(nrow(Y))

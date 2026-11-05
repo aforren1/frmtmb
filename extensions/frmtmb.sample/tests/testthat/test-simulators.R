@@ -397,6 +397,12 @@ test_that("a structured draw refuses trunc() and newdata", {
   expect_error(
     posterior_predict(ml_draws(fit, 2L), newdata = dd[1:4, ]),
     "structured")
+  # log_lik() names that route as refused here, and only here: a correlated
+  # residual answers (test-loglik-autocor.R)
+  e <- tryCatch(log_lik(ml_draws(fit, 2L), newdata = dd[1:4, ]),
+                error = identity)
+  expect_match(conditionMessage(e), "is refused for this model too",
+               fixed = TRUE)
 
   # trunc() rejection resamples single rows, which a whole-group draw
   # cannot supply. Every structured model refuses trunc() at frame

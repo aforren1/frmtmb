@@ -24,7 +24,9 @@ brms's \code{update()} of a fitted model, for the arguments that change
 how the model is sampled and not the model itself: \code{sample_prior},
 \code{prior}, and the sampler's options (\code{chains}, \code{iter}, \code{seed},
 \code{control}, ...). It calls \code{\link[=frm_sample]{frm_sample()}} again on the same model with
-the arguments of the first call, the ones given here replacing them.
+the arguments of the first call, the ones given here replacing them. A
+new \code{prior} merges as in brms: it takes the slots it names, and the first
+call's other specifications stay.
 brms's \code{update(fit, sample_prior = "yes")} is the common use: it adds
 prior draws to a model sampled without them, for
 \code{\link[=prior_draws]{prior_draws()}} and the evidence ratios of \code{\link[frmtmb:hypothesis]{frmtmb::hypothesis()}}.
