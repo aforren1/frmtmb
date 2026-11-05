@@ -83,6 +83,10 @@
 #'   be dropped, as everywhere a parameter is named. A vector with no
 #'   names is positional and must be full length. Naming some entries
 #'   of one vector and not others is refused.
+#'
+#'   A nonlinear body can have more than one maximum, and nothing in a fit
+#'   marks a second one. A `start` with other signs can show it, and
+#'   [frm_allfit()] cannot, as it starts every optimizer from one point.
 #' @param control A list from [frmtmb_control()].
 #' @param se If `TRUE`, run [RTMB::sdreport()] at fit time. The default
 #'   (`FALSE`) defers it until standard errors are first needed
@@ -1020,14 +1024,26 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
     check_weights_unbounded(spec, frame, prior, exact = isTRUE(quadrature))
   }
 
-  fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
-                control = control, se = se, lower = NULL, upper = NULL,
-                prior = prior, quadrature = quadrature,
-                importance = importance, data2 = data2,
-                objective_only = identical(dry_run, "objective"),
-                # the user's own call is the one place a placed start is
-                # news; refit(), influence and the pre-fit are not
-                announce_start = TRUE)
+  run <- function(st, announce) {
+    fit_assembled(spec, frame, bform, cl, REML = REML, start = st,
+                  control = control, se = se, lower = NULL, upper = NULL,
+                  prior = prior, quadrature = quadrature,
+                  importance = importance, data2 = data2,
+                  objective_only = identical(dry_run, "objective"),
+                  # the user's own call is the one place a placed start is
+                  # news; refit(), influence and the pre-fit are not
+                  announce_start = announce, check_se = TRUE)
+  }
+  has_body <- any(vapply(frame[["linpreds"]], function(lp) {
+    !is.null(lp[["nl_body"]])
+  }, NA))
+  # iter.max = 0 asks for the objective at the start: a restart under the same
+  # control would return a moved start as if it had climbed there
+  if (!has_body || identical(dry_run, "objective") ||
+        isTRUE(control[["optCtrl"]][["iter.max"]] == 0)) {
+    return(run(start, TRUE))
+  }
+  nl_fit_off_saddle(run, frame, start, prior)
 }
 
 #' The refusal of `frm(threshold = )`, which names the family argument
@@ -1278,6 +1294,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   }
   if (vb) t0 <- vb_now()
   nll <- build_objective(frame)
+  nll_bare <- nll
   # also read by make_start(): a prior's location places a nonlinear
   # parameter's starting value
   prior_entries <- NULL
@@ -1311,7 +1328,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   }
   if (is.null(template)) {
     template <- make_start(frame, start, prior_entries,
-                           announce = announce_start)
+                           announce = announce_start, nll = nll_bare)
   } else if (prefit_seeded && announce_start) {
     # the pre-fit's template replaces the cold start, and with it the
     # one place that says where a nonlinear start came from; say it
@@ -1448,6 +1465,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     }
     profile_arg <- "beta"
   }
+  template_guard <- template
   # An integrated beta on an ill-conditioned design is taped in the
   # design's coordinates, where the inner Hessian is well conditioned
   # (beta_whitener()); the estimates and the sdreport are carried back
@@ -1480,6 +1498,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                     profile = profile_arg, silent = TRUE,
                     inner.control = inner_ctl)
   } else lap_obj
+  nl_check_body_read(frame, nll_bare, template_guard,
+                     nl_guard_gradient(obj, frame, bw))
   if (vb) {
     vb_stage("tape", t0,
              paste0(length(obj$par), " outer, ",
@@ -4126,9 +4146,10 @@ nl_start_message <- function(spec, emsg) {
   paste0("The nonlinear fit failed from its default starting values (",
          emsg, "). A nonlinear coefficient starts at 0 unless `start` ",
          "or a located prior places it, and the body is often not defined ",
-         "there. frmtmb offers no start of its own: a start found by ",
-         "search can lead to a local maximum, which converges with no ",
-         "warning. ",
+         "there. frmtmb moves only a body that is defined at 0 and whose ",
+         "value the link cannot evaluate, to the response mean. Otherwise ",
+         "it offers no start of its own: a start found by search can lead ",
+         "to a local maximum, which converges with no warning. ",
          "Give the starts of ", nlq, " in one of two ways. (1) `start = ",
          "list(beta = c(<name> = <value>))`: par_template(formula, data) ",
          "gives the names, and the names go straight back. (2) A normal() ",
@@ -4336,7 +4357,7 @@ mu_residuals <- function(frame, resp, cache = NULL) {
 #'
 #' @noRd
 make_start <- function(frame, start, prior_entries = NULL,
-                       announce = FALSE) {
+                       announce = FALSE, nll = NULL) {
   tpl <- frame[["par_template"]]
   # computed at most once per response, and only for a family that asks
   resid_cache <- new.env(parent = emptyenv())
@@ -4458,6 +4479,9 @@ make_start <- function(frame, start, prior_entries = NULL,
     claimed <- start_claimed_idx(frame[["par_template"]][["beta"]],
                                  start[["beta"]], "beta")
   }
+  tpl <- nl_domain_start(frame, tpl, c(claimed, unlist(lapply(placed, `[[`,
+                                                              "idx"))),
+                         announce, nll)
   if (announce && length(placed)) {
     # what `start` set is the user's doing, not the prior's
     kept <- Filter(function(p) !p$idx %in% claimed, placed)

@@ -480,10 +480,6 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       out[[nm]] <- tg[2L] - tg[1L]
     } else if (grepl("^Intercept(_(.+))?$", nm)) {
       sfx <- brms_dpar_of(sub("^Intercept_?", "", nm))
-      x <- brms_X_of(sdat, sfx)
-      fe <- brms_fe_of(fit, sfx)
-      cn <- brms_Xc_cols(sdat, sfx)
-      shift <- sum(colMeans(x)[cn] * brms_fe_cols(fe, cn))
       if (identical(sfx, "mu") && !is.null(sdat[["nthres"]])) {
         # ordinal: Intercept is the threshold vector, X carries no
         # intercept column, and the centering enters with the opposite
@@ -496,6 +492,10 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
         # brms centers X inside the Stan program, so its Intercept is
         # the intercept of the centered fit, not the one frmtmb reports:
         #   b_Intercept = Intercept - dot_product(means_X, b)
+        x <- brms_X_of(sdat, sfx)
+        fe <- brms_fe_of(fit, sfx)
+        cn <- brms_Xc_cols(sdat, sfx)
+        shift <- sum(colMeans(x)[cn] * brms_fe_cols(fe, cn))
         out[[nm]] <- as.numeric(fe[["(Intercept)"]] + shift)
       }
     } else if (grepl("^bsp(_(.+))?$", nm)) {

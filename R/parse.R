@@ -2567,6 +2567,38 @@ nl_reachable_pars <- function(dpars, start) {
   seen
 }
 
+#' Does `cs()` in a body mean a helper the user wrote?
+#'
+#' @noRd
+nl_cs_is_helper <- function(env) {
+  f <- get0("cs", envir = env %||% baseenv(), mode = "function")
+  !is.null(f) && !identical(environmentName(environment(f)), "brms")
+}
+
+#' A right-hand side's top-level residual correlation terms and the rest.
+#'
+#' @noRd
+rhs_split_ac <- function(rhs) {
+  ac <- list()
+  walk <- function(e) {
+    if (is.call(e) && identical(e[[1L]], as.name("+")) && length(e) == 3L) {
+      l <- walk(e[[2L]])
+      r <- walk(e[[3L]])
+      if (is.null(r)) return(l)
+      if (is.null(l)) return(r)
+      return(call("+", l, r))
+    }
+    if (is.call(e) && as.character(e[[1L]])[1L] %in% autocor_term_names() &&
+          !("|" %in% all.names(e))) {
+      ac[[length(ac) + 1L]] <<- e
+      return(NULL)
+    }
+    e
+  }
+  rest <- walk(rhs)
+  list(ac = ac, rest = rest)
+}
+
 #' One bf() -> one response entry of the spec.
 #'
 #' Takes one `frmtmb_formula` (a formula plus its family, dpar formulas,
@@ -2634,7 +2666,16 @@ parse_one_response <- function(bform) {
   mu_by_flag <- isTRUE(bform$nl) ||
     (length(nlf_pars) && !primaries[1L] %in% names(nl_bodies) &&
        length(intersect(nl_body_vars(main_rhs), nlf_pars)) > 0L)
+  ac_rhs <- NULL
   if (primaries[1L] %in% names(nl_bodies)) {
+    # bf(y ~ 1, autocor = ~ ar()) + nlf(mu ~ ...) and the same with
+    # + acformula(): the term joined the right-hand side before any nlf()
+    # arrived, and it belongs to the residual and not to the body
+    sp <- rhs_split_ac(main_rhs)
+    if (length(sp$ac) && identical(deparse1(sp$rest), "1")) {
+      ac_rhs <- sp$ac
+      main_rhs <- sp$rest
+    }
     # An explicit nlf() for the location parameter WINS over the
     # response formula's right-hand side, so that side would be
     # silently discarded (brms discards it). Say so instead. `nl = TRUE`
@@ -2649,12 +2690,19 @@ parse_one_response <- function(bform) {
                call. = FALSE)
     }
   } else if (mu_by_flag) {
-    if (!identical(primaries, "mu")) {
+    # brms writes the one body into every location predictor of a
+    # categorical, multinomial or simplex family and of a mixture, and
+    # they all read one set of nonlinear parameters (its Stan program
+    # computes mub[n] and muc[n] from the same nlp_b0). Any other family
+    # with several locations has no such reference.
+    if (!identical(primaries, "mu") && is.null(mu_stack_dpars(fam))) {
       frm_stop("nl = TRUE requires a family with a single 'mu' location ",
                "parameter", call. = FALSE)
     }
-    nl_bodies[["mu"]] <- main_rhs
-    nl_envs[["mu"]] <- env
+    for (p in setdiff(primaries, names(nl_bodies))) {
+      nl_bodies[[p]] <- main_rhs
+      nl_envs[[p]] <- env
+    }
   }
 
   nl_dpars <- names(nl_bodies)
@@ -2687,11 +2735,22 @@ parse_one_response <- function(bform) {
       ac_in_body <- called_functions(b, autocor_term_names())
       if (length(ac_in_body)) {
         frm_stop("Residual correlation terms are not supported in a ",
-                 "nonlinear (nl = TRUE) formula; '", ac_in_body[1L],
-                 "()' appears in the model body, where it would be evaluated ",
-                 "as ordinary R code rather than read as a term. brms reaches ",
-                 "the same model through acformula(), which has no analog ",
-                 "here", call. = FALSE)
+                 "nonlinear (nl = TRUE) formula body; '", ac_in_body[1L],
+                 "()' appears in the body, where it would be evaluated as ",
+                 "ordinary R code rather than read as a term. Give it to ",
+                 "bf() as brms does: bf(..., nl = TRUE, autocor = ~ ",
+                 ac_in_body[1L], "(...))", call. = FALSE)
+      }
+      # brms writes cs() into the Stan program as a call to a function
+      # that does not exist, so its compile refuses this; say why here. A
+      # helper of that name in the formula's environment is the user's,
+      # as a Stan name's is (nl_stan_for()), and brms's own cs() on the
+      # search path is the same missing call
+      if (calls_function(b, "cs") && !nl_cs_is_helper(env)) {
+        frm_stop("cs() is not supported in a nonlinear formula body: ",
+                 deparse1(b), ". brms 2.23.0 cannot compile it either. ",
+                 "Category specific effects are only supported for the ",
+                 "main parameter 'mu' of a linear formula", call. = FALSE)
       }
     }
     # A parameter cannot carry a design matrix AND a nonlinear body:
@@ -2982,6 +3041,23 @@ parse_one_response <- function(bform) {
     }
   }
   dpars <- order_dpars_by_dependency(dpars, deparse1(ri$resp))
+
+  # bf(..., nl = TRUE, autocor = ~ term): the location has a body and no
+  # formula to read the term from, and brms's residual density takes the
+  # body's value as its mean all the same
+  if (!is.null(bform[["autocor"]]) || length(ac_rhs)) {
+    ac_tms <- if (!is.null(bform[["autocor"]])) {
+      ac_formula_terms(bform[["autocor"]])
+    }
+    dpars[[primaries[1L]]][["acterms"]] <- lapply(
+      c(ac_tms, ac_rhs), function(tm) {
+        if (as.character(tm[[1L]])[1L] %in% autocor_structs) {
+          parse_autocor_call(tm, env)
+        } else {
+          parse_autocor_seam_call(tm, env)
+        }
+      })
+  }
 
   # A mixture family has no 'mu': its location dpars are mu1, mu2, ...,
   # and main_lp is copied into each. pull_autocor() therefore refuses a

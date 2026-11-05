@@ -65,7 +65,12 @@ formula, and frmtmb reads both: the \code{autocor} argument of \code{\link[=bf]{
 \code{bf(y ~ x, autocor = ~ ar(week, subj))}, and \code{acformula()} added to
 a formula, \code{bf(y ~ x) + acformula(~ ar(week, subj))}. Each adds the
 terms to the location formula, so both fit the model
-\code{bf(y ~ x + ar(week, subj))}. A term object added to a formula, as in
+\code{bf(y ~ x + ar(week, subj))}. They are also the only way to give a
+nonlinear model a term, \code{bf(y ~ a * exp(b * x), a + b ~ 1, nl = TRUE, autocor = ~ ar(week, subj))}: the body's value is the mean the term
+reads, and a term written in the body is refused, because a body is
+evaluated and not read as terms. On a body, a later term replaces an
+earlier one, as in brms, where a linear formula refuses two. A term
+object added to a formula, as in
 \code{bf(y ~ x) + ar(week, subj)}, is refused with brms's own message,
 because brms refuses it.
 }

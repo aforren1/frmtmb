@@ -326,6 +326,14 @@ there too. brms 2.23.0 fits \code{se()} beside a \code{cov = TRUE} term, adding
 \eqn{se_i^2}{se_i^2} to the diagonal of each group's covariance
 (\code{normal_time_hom_se_lpdf()} and its relatives); frmtmb refuses that
 combination.
+
+On a nonlinear body with \code{cov = FALSE}, brms 2.23.0's post-processing does
+not follow its own model. Its Stan program carries the ARMA term in \code{mu},
+but \code{predictor.bprepnl()} has no \code{predictor_ac()}, so its \code{posterior_epred()}
+is the body alone and its \code{log_lik()} is the density at an ARMA coefficient
+of 0: on one model with a real AR part, -185.87 against -150.99 from its own
+\code{log_prob()}. \code{fitted()}, \code{predict()} and \code{logLik()} here follow the model,
+as they do for a linear \code{mu}, where brms and frmtmb agree.
 }
 
 \examples{

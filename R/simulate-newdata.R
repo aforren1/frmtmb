@@ -332,9 +332,16 @@ sim_newdata_dpars <- function(fit, rspec, newdata, allow_new_levels, dz,
     pd <- dz$per[[dnm]]
     ed <- pd$ed
     if (is.null(ed)) {
-      eta <- as.vector(frm_linpred(fit, newdata = newdata, dpar = dnm,
-                                   resp = rn, type = "link",
-                                   allow_new_levels = allow_new_levels))
+      # the body alone: frm_linpred() of a cov = FALSE mu is the one-step
+      # mean on newdata's own response, and sim_autocor_cond() runs the
+      # recursion from an empty past on top of what this returns
+      eta <- if (!is.null(pd$lp)) {
+        as.vector(nl_body_value(fit, pd$lp, newdata, NULL, allow_new_levels))
+      } else {
+        as.vector(frm_linpred(fit, newdata = newdata, dpar = dnm, resp = rn,
+                              type = "link",
+                              allow_new_levels = allow_new_levels))
+      }
     } else {
       eta <- pd$xb
       if (length(ed[["re_parts"]])) {

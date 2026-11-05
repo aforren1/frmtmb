@@ -2323,47 +2323,13 @@ frm_linpred <- function(object, newdata = NULL,
                "request the nonlinear parameters (dpar = '",
                rspec$nlpars[1], "', ...) instead", call. = FALSE)
     }
-    # only the parameters this body names, each on its own linear-
-    # predictor scale. A parameter that carries a body of its own comes
-    # back through this same branch, so a chain of nlf() formulas
-    # unwinds by recursion in dependency order.
-    vals <- list()
-    for (np in lp[["nl_pars"]]) {
-      vals[[np]] <- frm_linpred(object, newdata = newdata, dpar = np,
-                                resp = resp, re_formula = re_formula,
-                                allow_new_levels = allow_new_levels)
+    # brms's cov = FALSE ARMA is part of mu itself, a body's too: below
+    if (!autocor_is_cond(object$frame[["autocor"]][[rspec$resp_name]]) ||
+          !identical(dpar, "mu")) {
+      eta <- nl_body_value(object, lp, newdata, re_formula, allow_new_levels)
+      out <- if (type == "response") lp[["link"]]$linkinv(eta) else eta
+      return(if (is.null(newdata)) napred(object, out) else out)
     }
-    # a reference to another dpar reads its VALUE, so it comes back
-    # through that parameter's link inverse - the NATURAL scale, which
-    # is what the body computes with, not a reporting scale
-    for (dr in lp[["nl_dpar_refs"]] %||% character(0)) {
-      lpr <- object$frame[["linpreds"]][[linpred_key(resp, dr)]]
-      vals[[dr]] <- lpr[["link"]]$linkinv(
-        frm_linpred(object, newdata = newdata, dpar = dr,
-                    type = "link", resp = resp, re_formula = re_formula,
-                    allow_new_levels = allow_new_levels))
-    }
-    dl <- if (is.null(newdata)) {
-      lp[["data_list"]]
-    } else {
-      lapply(stats::setNames(names(lp[["data_list"]]),
-             names(lp[["data_list"]])),
-             function(v) {
-               if (is.null(newdata[[v]])) {
-                 stop_newdata_missing(v)
-               }
-               newdata[[v]]
-             })
-    }
-    # `check` only on the newdata path: in sample the fit-end report has
-    # already said whatever there is to say about the knot span, and
-    # saying it again on every fitted() call would be noise.
-    eta <- eval(lp[["nl_body"]],
-                c(vals, dl, ps_env(lp, object$estimates, coef_b(object),
-                                   check = !is.null(newdata))),
-                ad_overload_env(lp[["nl_env"]], lp[["nl_body"]]))
-    out <- if (type == "response") lp[["link"]]$linkinv(eta) else eta
-    return(if (is.null(newdata)) napred(object, out) else out)
   }
 
   # brms's cov = FALSE ARMA is part of mu itself: the one-step mean
@@ -4128,11 +4094,7 @@ ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
     return(ord_mix_probs(object, rspec, newdata, use_re, allow_new_levels))
   }
   lp <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, "mu")]]
-  if (!is.null(lp[["nl_body"]])) {
-    frm_stop("type = \"response\" is not supported for an ordinal family ",
-             "with a nonlinear predictor", call. = FALSE)
-  }
-  ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+  ed <- lp_eta_or_body(object, lp, newdata, use_re, allow_new_levels)
   eta <- unname(ed[["eta"]])
   n <- length(eta)
   K <- ordinal_ncat(object, rspec$resp_name)
@@ -4158,6 +4120,75 @@ ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   P
 }
 
+#' The link-scale predictor of `lp` at the rows being predicted, in the
+#' shape `lp_eta_design()` gives for a linear one, for a body as well. A
+#' body's rows have no design to be non-estimable in.
+#'
+#' @noRd
+lp_eta_or_body <- function(object, lp, newdata, use_re, allow_new_levels) {
+  if (is.null(lp[["nl_body"]])) {
+    return(lp_eta_design(object, lp, newdata, use_re, allow_new_levels))
+  }
+  eta <- nl_body_value(object, lp, newdata,
+                       if (use_re) NULL else NA, allow_new_levels)
+  list(eta = eta, n = length(eta), nonest = rep(FALSE, length(eta)))
+}
+
+#' A body's value on its link scale at the rows being predicted, on the
+#' kept rows when `newdata` is `NULL`. Only the parameters this body
+#' names are read, each on its own linear-predictor scale. A parameter
+#' that carries a body of its own comes back through `frm_linpred()`, so
+#' a chain of nlf() formulas unwinds by recursion in dependency order.
+#'
+#' @noRd
+nl_body_value <- function(object, lp, newdata, re_formula, allow_new_levels) {
+  resp <- lp[["resp"]]
+  # frm_linpred() pads the rows na.action dropped, and the body's data
+  # columns hold the kept rows
+  kept <- function(v) {
+    if (is.null(newdata)) {
+      v[!is.na(napred(object, rep(1, object$frame[["n_obs"]])))]
+    } else {
+      v
+    }
+  }
+  vals <- list()
+  for (np in lp[["nl_pars"]]) {
+    vals[[np]] <- kept(frm_linpred(object, newdata = newdata, dpar = np,
+                                   resp = resp, re_formula = re_formula,
+                                   allow_new_levels = allow_new_levels))
+  }
+  # a reference to another dpar reads its VALUE, so it comes back
+  # through that parameter's link inverse - the NATURAL scale, which
+  # is what the body computes with, not a reporting scale
+  for (dr in lp[["nl_dpar_refs"]] %||% character(0)) {
+    lpr <- object$frame[["linpreds"]][[linpred_key(resp, dr)]]
+    vals[[dr]] <- lpr[["link"]]$linkinv(kept(
+      frm_linpred(object, newdata = newdata, dpar = dr,
+                  type = "link", resp = resp, re_formula = re_formula,
+                  allow_new_levels = allow_new_levels)))
+  }
+  dl <- if (is.null(newdata)) {
+    lp[["data_list"]]
+  } else {
+    lapply(stats::setNames(names(lp[["data_list"]]),
+                           names(lp[["data_list"]])),
+           function(v) {
+             if (is.null(newdata[[v]])) {
+               stop_newdata_missing(v)
+             }
+             newdata[[v]]
+           })
+  }
+  # `check` only on the newdata path: in sample the fit-end report has
+  # already said whatever there is to say about the knot span, and
+  # saying it again on every fitted() call would be noise.
+  eval(lp[["nl_body"]],
+       c(vals, dl, ps_env(lp, object$estimates, coef_b(object),
+                          check = !is.null(newdata))),
+       ad_overload_env(lp[["nl_env"]], lp[["nl_body"]]))
+}
+
 #' `ord_probs()` for an ordinal mixture: every dpar of the response at
 #' the rows being predicted, each component's `cs()` offsets in its own
 #' slot, and the category probabilities read out of the mixture's
@@ -4177,12 +4208,7 @@ ord_mix_probs <- function(object, rspec, newdata, use_re,
   rnm <- NULL
   for (dnm in names(rspec$dpars)) {
     lp <- object$frame[["linpreds"]][[linpred_key(rn, dnm)]]
-    if (!is.null(lp[["nl_body"]])) {
-      frm_stop("type = \"response\" is not supported for an ordinal ",
-               "mixture whose `", dnm, "` has a nonlinear predictor",
-               call. = FALSE)
-    }
-    ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+    ed <- lp_eta_or_body(object, lp, newdata, use_re, allow_new_levels)
     eta <- unname(ed[["eta"]])
     dp[[dnm]] <- as.vector(lp[["link"]]$linkinv(eta))
     ne[[dnm]] <- ed[["nonest"]]
@@ -4227,11 +4253,7 @@ ord_dpars_more <- function(object, rspec, newdata, use_re,
   out <- list()
   for (dnm in setdiff(names(rspec$dpars), "mu")) {
     lp <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, dnm)]]
-    if (!is.null(lp[["nl_body"]])) {
-      frm_stop("type = \"response\" is not supported for an ordinal family ",
-               "whose `", dnm, "` has a nonlinear predictor", call. = FALSE)
-    }
-    ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+    ed <- lp_eta_or_body(object, lp, newdata, use_re, allow_new_levels)
     eta <- unname(ed[["eta"]])
     out[[dnm]] <- list(value = as.vector(lp[["link"]]$linkinv(eta)),
                        eta = eta, ed = ed, lp = lp)
@@ -4278,11 +4300,7 @@ cat_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   rn <- NULL
   for (j in seq_along(dpn)) {
     lp <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, dpn[j])]]
-    if (!is.null(lp[["nl_body"]])) {
-      frm_stop("type = \"response\" is not supported for a categorical ",
-               "family with a nonlinear predictor", call. = FALSE)
-    }
-    ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+    ed <- lp_eta_or_body(object, lp, newdata, use_re, allow_new_levels)
     if (is.null(E)) {
       n <- length(ed[["eta"]])
       E <- matrix(0, n, K)
@@ -4370,7 +4388,15 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
   jc <- get_joint_cov(object)
   has_rr <- isTRUE(object$frame[["has_rr"]])
   rrj <- if (has_rr) rr_jacobians(object)
-  da <- lp_delta_A(object, lp, ed, newdata, use_re, jc, has_rr, rrj)
+  # a body has no design: its row of A is the Jacobian the body tapes
+  da <- if (!is.null(lp[["nl_body"]])) {
+    frm_lp_basis(object, newdata = newdata, dpar = lp[["dpar"]],
+                 resp = rspec$resp_name,
+                 re_formula = if (use_re) NULL else NA,
+                 allow_new_levels = allow_new_levels)
+  } else {
+    lp_delta_A(object, lp, ed, newdata, use_re, jc, has_rr, rrj)
+  }
   A <- as.matrix(da$A)
   pos <- da$coef_pos
 

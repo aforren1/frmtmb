@@ -1662,9 +1662,75 @@ compat_hand_rules_tbl <- function() {
     "Verified against a two-stage exact quadrature: REML stacks one more Laplace dimension on the t latent, and the objective error roughly doubles while staying small (0.11 against 0.05 at nu = 3 over 15 groups). The variance component moves in the direction REML exists to move it.")
 
   ## nl ----------------------------------------------------------------------
-  r("nl", "kind:family", "refused",
-    "Refused: nl = TRUE requires a family with a single mu location parameter.")
+  # A family outside the rows below (an extension's) has not been measured
+  # and reads "untested", the table's default. frm() refuses a body the
+  # family's density does not read (nl_check_body_read()), and nl = TRUE on
+  # a family with several locations and no brms reference.
+  nl_same <- "The body's maximum equals the linear predictor's, and brms builds the same spelling (test-nl-family.R)."
+  nl_ord <- "The body is the latent predictor and the thresholds stay, as in brms: log density identical to brms 2.23.0's Stan program at three points, with and without thres() and disc (test-nl-brms.R). A body constant across the rows at the start, b1 * exp(b2 * x) at 0, is restarted from moved coefficients and a higher point is kept; if none is found, a warning names the body and the thresholds-only model. A body with a constant term of its own, b0 + b1 * x, has a flat direction against the thresholds, as in brms, and the fit says so."
+  nl_multi <- "brms writes the one body into every location predictor, with one set of nonlinear parameters, and so does frm(): log density identical to brms 2.23.0's Stan program at three points (test-nl-brms.R)."
+  nl_start <- "The default link cannot evaluate a body at 0, so frm() moves one intercept to where the body equals the response mean, and says so. Log density identical to brms 2.23.0's Stan program at three points (test-nl-brms.R)."
   r("nl", "gaussian", "works", "")
+  r("nl", "student", "works", nl_same)
+  r("nl", "lognormal", "works", nl_same)
+  r("nl", "shifted_lognormal", "works", nl_same)
+  r("nl", "skew_normal", "works", nl_same)
+  r("nl", "exgaussian", "works", nl_same)
+  r("nl", "asym_laplace", "conditional",
+    "The density has a kink at mu, and the optimizer can stop at a kink on the body and on the linear spelling alike, so their maxima can differ a little: log likelihood -451.487 against -451.489 on one data set. A fit from the default start that reports a flat direction is restarted (-446.15 on another, where it first stopped at -446.98). Try other starts. The log density is identical to brms 2.23.0's Stan program.")
+  r("nl", "Gamma", "works", nl_start)
+  r("nl", "weibull", "works", nl_same)
+  r("nl", "exponential", "works", nl_same)
+  r("nl", "inverse.gaussian", "works", nl_start)
+  r("nl", "beta", "works", nl_same)
+  r("nl", "tweedie", "works",
+    "Works, no brms reference: brms has no tweedie family. The body's maximum equals the linear predictor's (test-nl-family.R).")
+  r("nl", "poisson", "works", nl_same)
+  r("nl", "negbinomial", "works", nl_same)
+  r("nl", "negbinomial2", "works", nl_same)
+  r("nl", "nbinom1", "works",
+    "Works, no brms reference: brms has no nbinom1 family. The body's maximum equals the linear predictor's (test-nl-family.R).")
+  r("nl", "geometric", "works", nl_same)
+  r("nl", "compois", "works", nl_same)
+  r("nl", "binomial", "works", nl_same)
+  r("nl", "bernoulli", "works", nl_same)
+  r("nl", "beta_binomial", "works", nl_same)
+  r("nl", "zero_inflated_beta_binomial", "works", nl_same)
+  r("nl", "zero_inflated_poisson", "works", nl_same)
+  r("nl", "zero_inflated_negbinomial", "works", nl_same)
+  r("nl", "zero_inflated_binomial", "works", nl_same)
+  r("nl", "zero_inflated_beta", "works", nl_same)
+  r("nl", "zero_one_inflated_beta", "works", nl_same)
+  r("nl", "xbeta", "works", nl_same)
+  r("nl", "hurdle_poisson", "works", nl_same)
+  r("nl", "hurdle_negbinomial", "works", nl_same)
+  r("nl", "hurdle_gamma", "works", nl_same)
+  r("nl", "hurdle_lognormal", "works", nl_same)
+  r("nl", "cumulative", "works", nl_ord)
+  r("nl", "hurdle_cumulative", "works",
+    "As for cumulative(): the body is the latent predictor, and a body constant at the start is restarted, and a warning names it if no restart leaves it. Log density identical to brms 2.23.0's Stan program at three points without disc. With disc, brms's program stops on every top-category row (it tests y == nthres + 2, and the top is nthres + 1), so frm() fits a model brms 2.23.0 cannot; with that test patched the log density is identical.")
+  r("nl", "sratio", "works", nl_ord)
+  r("nl", "cratio", "works", nl_ord)
+  r("nl", "acat", "works", nl_ord)
+  r("nl", "categorical", "works", nl_multi)
+  r("nl", "multinomial", "works", nl_multi)
+  r("nl", "dirichlet_multinomial", "works", nl_multi)
+  r("nl", "dirichlet", "works", nl_multi)
+  r("nl", "dirichlet2", "works", nl_multi)
+  r("nl", "logistic_normal", "works", nl_multi)
+  r("nl", "von_mises", "works", nl_same)
+  r("nl", "frechet", "works", nl_same)
+  r("nl", "gen_extreme_value", "works", nl_same)
+  r("nl", "discrete_weibull", "works", nl_same)
+  r("thres()", "nl", "works", nl_ord)
+  r("nl", "disc", "works", nl_ord)
+  r("nl", "equidistant", "works", nl_ord)
+  r("nl", "sum_to_zero", "works", nl_ord)
+  r("nl", "mixture", "works", nl_multi)
+  r("nl", "mvbf", "works",
+    "Each response keeps its own body and parameters. Log density identical to brms 2.23.0's Stan program at three points (test-nl-brms.R).")
+  r("cs_pred()", "nl", "refused",
+    "Refused, as brms does: in an nlpar's formula in brms's words, in the body because brms writes cs() into the Stan program as a call to a function that does not exist, and its compile fails.")
   r("nl", "kind:method", "untested", "")
   r("nl", "fitted", "works", "")
   r("nl", "predict", "conditional",
@@ -2010,8 +2076,8 @@ compat_hand_rules_tbl <- function() {
     "Refused: both describe the residual covariance - one across time, one across responses - and the joint structure is their Kronecker product, which is not implemented. brms refuses the same pair.")
   r("group:autocor", "mixture", "refused",
     "Refused: a mixture likelihood has no single residual to correlate. The term is rejected as sitting on mu1 rather than mu, which is also how brms rejects it.")
-  r("group:autocor", "nl", "refused",
-    "Refused: a nonlinear mu is arbitrary R code, so the term would be evaluated rather than read. brms reaches this model through acformula(), which has no analog here.")
+  r("group:autocor", "nl", "conditional",
+    "Written as brms writes it, bf(..., nl = TRUE, autocor = ~ term) or + acformula(~ term), since a body is evaluated rather than read as terms and a term in the body is refused. On gaussian and student: log density identical to brms 2.23.0's Stan program at three points for ar, ma and arma with cov TRUE and FALSE, cosy, unstr and fcor (test-nl-brms.R); fitted() and simulate() read the term as they do for a linear mu, which under cov = FALSE is not brms's posterior_epred() (see ?frmtmb-autocor). A family whose term would be a latent residual stays refused.")
   r("group:autocor", "quadrature", "refused",
     "Refused: the Gauss-Kronrod rule integrates a random effect against per-observation densities, and this residual is a joint density over each group.")
   r("group:autocor", "REML", "works",

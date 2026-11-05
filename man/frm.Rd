@@ -92,7 +92,11 @@ A component is read by NAME when its vector has names, so
 coefficient and leaves the rest at their defaults; parentheses may
 be dropped, as everywhere a parameter is named. A vector with no
 names is positional and must be full length. Naming some entries
-of one vector and not others is refused.}
+of one vector and not others is refused.
+
+A nonlinear body can have more than one maximum, and nothing in a fit
+marks a second one. A \code{start} with other signs can show it, and
+\code{\link[=frm_allfit]{frm_allfit()}} cannot, as it starts every optimizer from one point.}
 
 \item{control}{A list from \code{\link[=frmtmb_control]{frmtmb_control()}}.}
 

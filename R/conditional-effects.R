@@ -2541,18 +2541,26 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   # a nonlinear predictor's Wald band is the delta method through the
   # Jacobian frm_lp_basis() tapes. That Jacobian is of ONE predictor, so
   # a display that runs through several (the expected response of a
-  # zero-inflated family, a reported mixing weight, the ordinal
-  # categories) has no band from it and still needs refits
+  # zero-inflated family, a reported mixing weight) has no band from it
+  # and still needs refits. An ordinal family's categories run through
+  # the one latent predictor, and ord_prob_se() reads that Jacobian. The
+  # refusal names only what this family takes: method = "predict" has no
+  # meaning on a category
   nl <- !is.null(lp[["nl_body"]])
-  if (nl && band == "wald" && method != "predict" &&
+  ord_one <- identical(rspec$family[["type"]], "ordinal") &&
+    is.null(rspec$family[["mix"]])
+  if (nl && band == "wald" && method != "predict" && !ord_one &&
       (mean_display || !is.null(hook) || categorical || cats_mean)) {
     frm_stop("conditional_effects() has no Wald band for this display of a ",
              "nonlinear predictor: the delta method differentiates one ",
              "predictor, and this display runs through several. Use ",
              "band = \"boot\", which refits instead of differentiating, ",
-             "method = \"predict\", whose band is a quantile of simulated ",
-             "responses, or display the predictor itself with dpar = \"",
-             dpar, "\"", call. = FALSE)
+             if (!categorical && !cats_mean) {
+               paste0("method = \"predict\", whose band is a quantile of ",
+                      "simulated responses, ")
+             },
+             "or display the predictor itself with dpar = \"", dpar, "\"",
+             call. = FALSE)
   }
   # every grid of the call is built before any band is: one bootstrap
   # covers all of them, which is the whole point of doing it here rather
@@ -2629,7 +2637,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
     cond <- factor(clev[ci], levels = clev)
     if (categorical) {
       if (identical(rspec$family[["type"]], "ordinal")) {
-        ed <- lp_eta_design(x, lp, nd, !pop_level, anl)
+        ed <- lp_eta_or_body(x, lp, nd, !pop_level, anl)
         ps <- ord_prob_se(x, rspec, lp, ed, nd, !pop_level,
                           allow_new_levels = anl)
       } else if (ce_fitted_bands(rspec$family) && band != "boot") {
@@ -2674,7 +2682,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
       # applied to the gradient before the quadratic form. The weights
       # are the category codes, so a hurdle family's 0 scores 0; brms
       # weights by column position and reads one higher there.
-      ed <- lp_eta_design(x, lp, nd, !pop_level, anl)
+      ed <- lp_eta_or_body(x, lp, nd, !pop_level, anl)
       ps <- ord_prob_se(x, rspec, lp, ed, nd, !pop_level,
                         weights = ordinal_codes(x, rspec$resp_name),
                         allow_new_levels = anl)

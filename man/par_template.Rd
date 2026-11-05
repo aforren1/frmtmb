@@ -93,8 +93,28 @@ Beta() with the logit link. Every other fit, and every fit with a
 nonlinear or intercept-only \code{mu}, a smooth or \code{gp()} term in \code{mu}, an
 ill-conditioned design, a censored, truncated or \code{se()} response, or a
 scale held at a constant, starts each intercept at the family's
-initializer. The entries you name in \code{start} replace these values.
-The random-effect standard deviations start at the response's unit.
+initializer. A nonlinear coefficient starts at 0, or at the location
+of a prior on it. Where the body is defined at those values and the
+link cannot evaluate it, as under the default links of Gamma() and
+inverse.gaussian(), one intercept the body reads moves to where the
+body equals the response mean, and a message says so. The entries you
+name in \code{start} replace these values. The random-effect standard
+deviations start at the response's unit.
+
+A body can be constant across the rows at these values and stationary
+there, as \code{b1 * exp(b2 * x)} is at 0. \code{\link[=frm]{frm()}} then restarts from moved
+coefficients of every such body and keeps a higher point, and it does the
+same for a fit from the default start that runs along a flat direction. A
+message says so. If no restart leaves a constant body, a warning names it:
+the data may simply have no effect there, and a \code{start} can test that. A
+message names a constant body that is a local maximum along its coefficients.
+
+A body can also have more than one true maximum, and a default start finds
+one of them. \code{b1 * exp(b2 * x)} under \code{\link[=bernoulli]{bernoulli()}} on one data set reads
+-193.4967 from the default start and -189.999 from a positive \code{b1}. Nothing
+in the first fit marks it, so \code{\link[=frm]{frm()}} does not tell you. A \code{start} with
+another sign of \code{b1} can show it. \code{\link[=frm_allfit]{frm_allfit()}} cannot, as its optimizers
+start from one point and agree on the first maximum.
 }
 
 \section{Two vocabularies, one model}{

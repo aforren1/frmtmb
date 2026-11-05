@@ -2405,7 +2405,7 @@ bform_call <- function(b) {
   cl <- as.call(c(list(quote(frmtmb::bf), b$formula), unname(b$pforms),
                   b$pfix))
   if (isTRUE(b$nl)) cl$nl <- TRUE
-  for (nm in c("center", "cmc")) {
+  for (nm in c("center", "cmc", "autocor")) {
     if (!is.null(b[[nm]])) cl[[nm]] <- b[[nm]]
   }
   if (!is.null(b$family)) cl$family <- family_call_of(b$family)

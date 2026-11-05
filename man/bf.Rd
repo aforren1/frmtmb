@@ -35,7 +35,22 @@ passed to \code{\link[=frm]{frm()}}, which uses \code{gaussian()} when nothing n
 nonlinear expression of named parameters, each given its own
 \code{...} formula with the full predictor grammar. \code{NULL}, the default
 as in brms, means \code{FALSE} for a new formula and keeps the setting
-of a formula \code{bf()} already built.}
+of a formula \code{bf()} already built. The body is R code on the tape,
+and it can call the functions of the Stan language that brms's own
+bodies call: \code{inv_logit()}, \code{logit()}, \code{inv_cloglog()}, \code{Phi()},
+\code{square()}, \code{cbrt()}, \code{exp2()}, \code{pow()}, \code{inv()}, \code{inv_sqrt()},
+\code{inv_square()}, \code{hypot()}, \code{log1m()}, \code{step()}, \code{log1p_exp()},
+\code{log1m_exp()}, \code{log_diff_exp()}, \code{log_sum_exp()}, \code{log_inv_logit()}
+and \code{log1m_inv_logit()}, with Stan's values and derivatives. A function
+of the same name found from the formula's environment comes first,
+which includes the packages on the search path, except for
+\code{stats::step()}. \code{x^b} and \code{pow(x, b)} with \code{x = 0} on a row have Stan's
+gradient. On a family with
+several location parameters (\code{categorical()}, \code{multinomial()},
+\code{dirichlet()} and the other simplex families, a \code{mixture()}), the
+one body is every location's, with one set of nonlinear parameters,
+as in brms. On an ordinal family the body is the latent predictor,
+and the thresholds stay.}
 
 \item{center}{Whether the location formula's intercept is brms's
 class \code{"Intercept"}, a density on the intercept at the means of the
@@ -67,7 +82,9 @@ refused on \code{ar1()}, \code{hetar1()}, \code{cs()}, \code{homcs()}, \code{toe
 \item{autocor}{A one-sided formula of autocorrelation terms, as in
 brms, e.g. \code{~ ar(week, subj)}. The terms are added to the location
 formula, so \code{bf(y ~ x, autocor = ~ ar(week, subj))} is
-\code{bf(y ~ x + ar(week, subj))}. See \link{autocor-terms}.}
+\code{bf(y ~ x + ar(week, subj))}. With \code{nl = TRUE} this is the way to
+give a nonlinear model a term, since a body is evaluated and not
+read as terms. See \link{autocor-terms}.}
 }
 \value{
 An object of class \code{frmtmb_formula}.

@@ -1,0 +1,55 @@
+# The instrument itself (installed = source), the boot traceback, Stan's pow gradient
+# at a zero row, the ledger row's linear reading, a linear mixture's prior table.
+source("dev/review-nlfix-common.R")
+suppressPackageStartupMessages(library(testthat))
+cat("--- installed namespace against the worktree's R/\n")
+ns <- asNamespace("frmtmb")
+e <- new.env(parent = ns)
+for (f in list.files("R", "[.]R$", full.names = TRUE)) sys.source(f, envir = e, keep.source = FALSE)
+nm <- ls(e, all.names = TRUE)
+isf <- vapply(nm, function(x) is.function(e[[x]]), TRUE)
+dif <- character(0); miss <- character(0)
+for (x in nm[isf]) {
+  g <- get0(x, envir = ns, inherits = FALSE)
+  if (is.null(g)) { miss <- c(miss, x); next }
+  if (!identical(paste(deparse(body(e[[x]])), collapse = ""), paste(deparse(body(g)), collapse = ""))) dif <- c(dif, x)
+}
+cat("source functions", sum(isf), " differing bodies", length(dif), " not in namespace", length(miss), "\n")
+if (length(dif)) print(head(dif))
+cat("\n--- boot on an ordinal body: where it stops\n")
+set.seed(9901)
+n <- 200
+d <- data.frame(x = rnorm(n), z = rnorm(n))
+d$yo <- cut(0.8 * d$x + rlogis(n), c(-Inf, -1, 0, 1, Inf), labels = 1:4, ordered_result = TRUE)
+fa <- frm(bf(yo ~ b1 * x, b1 ~ 1, nl = TRUE), family = cumulative(), data = d)
+r <- tryCatch(withCallingHandlers(conditional_effects(fa, effects = "x", band = "boot", boot = 4, seed = 1),
+  error = function(c) { cat(paste(utils::head(vapply(sys.calls(), function(k) substr(deparse1(k), 1, 90), ""), 60), collapse = "\n"), "\n") },
+  message = function(m) invokeRestart("muffleMessage")), error = function(e) cat("ERR:", conditionMessage(e), "\n"))
+cat("\n--- Stan's gradient at a zero row of x^b\n")
+E <- new.env(parent = ns); E$`%||%` <- function(a, b) if (is.null(a)) b else a
+for (f in c("dev/equiv-lib.R", "dev/equiv-specs.R", "dev/equiv-flow.R")) sys.source(f, envir = E)
+set.seed(9302)
+dz <- data.frame(xz = abs(rnorm(100))); dz$xz[1:5] <- 0; dz$yp <- 2 * dz$xz^0.5 + rnorm(100, 0, 0.3)
+fb <- brms::bf(yp ~ a * xz^b, a + b ~ 1, nl = TRUE)
+fam <- brms::brmsfamily("gaussian")
+prior <- E$brms_flat_prior(fb, data = dz, family = fam)
+code <- brms::make_stancode(fb, data = dz, family = fam, prior = prior)
+sdat <- brms::make_standata(fb, data = dz, family = fam, prior = prior)
+sf <- suppressMessages(rstan::sampling(E$brms_stan_model(code), data = sdat, chains = 0))
+g <- rstan::grad_log_prob(sf, c(1, 1, 0), adjust_transform = FALSE)
+cat("Stan log_prob at a = 1, b = 1:", rstan::log_prob(sf, c(1, 1, 0), adjust_transform = FALSE), " gradient:", g, "\n")
+r <- tt(frm(bf(yp ~ a * xz^b, a + b ~ 1, nl = TRUE), data = dz, start = list(beta = c("a_(Intercept)" = 1, "b_(Intercept)" = 1))))
+cat("frm():", if (iserr(r)) substr(r$msg, 1, 120) else as.numeric(logLik(r)), "\n")
+s <- suppressWarnings(rstan::optimizing(E$brms_stan_model(code), data = sdat, seed = 1, init = list(b_a = array(1), b_b = array(1), sigma = 1), as_vector = FALSE))
+cat("brms optimizing:", s$value, " at", unlist(s$par[c("b_a", "b_b", "sigma")])[1:3], "\n")
+cat("\n--- the ledger row: linear reading on the same fixture\n")
+sys.source("tests/testthat/helper-brms-suite.R", envir = environment())
+fit2 <- brms_fixture(2)
+cat("fit2 formula:", deparse1(formula(fit2)$formula), "\n")
+print(fit2$call$formula)
+dd <- fit2$frame$data %||% fit2$data
+cat("\n--- a linear mixture's prior table\n")
+d$y0 <- rnorm(n)
+a <- as.data.frame(get_prior(bf(y0 ~ x), data = d, family = mixture(gaussian(), gaussian())))
+b <- as.data.frame(brms::default_prior(brms::bf(y0 ~ x), data = d, family = brms::mixture(brms::gaussian(), brms::gaussian())))
+cat("frm rows", nrow(a), " brms rows", nrow(b), " theta row in brms:", any(b$class == "theta"), " in frm:", any(a$class == "theta"), "\n")

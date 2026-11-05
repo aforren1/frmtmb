@@ -1,3 +1,8 @@
+# frmtmb.survival (development version)
+
+* `frm_compat()` by `nl`: `cox` and `royston_parmar` are "works". A body with a
+  level of its own reaches the linear maximum.
+
 # frmtmb.survival 0.2.0
 
 Needs frmtmb 0.75.0, whose `frmtmb_register_aterm(option =)` this

@@ -21,7 +21,12 @@ exempt <- list(
     # classed and must not be wrapped twice
     'R/fit.R | fit_assembled | stop(e)',
     'R/fit.R | optimizer_from_best | stop(e)',
-    'R/fit.R | fit_error_context | stop(e)'),
+    'R/fit.R | fit_error_context | stop(e)',
+    # the same for a nonlinear body's fit, which holds the warnings of a fit
+    # until it is the one returned, and raises them with their own classes
+    'R/par-template.R | nl_fit_off_saddle | warning(w)',
+    'R/par-template.R | nl_fit_off_saddle | warning(w)',
+    'R/par-template.R | nl_fit_off_saddle | stop(e)'),
   frmtmb.coupling = character(0),
   frmtmb.eam = character(0),
   frmtmb.latent = character(0),

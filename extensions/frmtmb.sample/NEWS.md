@@ -1,3 +1,19 @@
+# frmtmb.sample (development version)
+
+Needs the core build that fits a nonlinear body under every family; no
+code in this package changes.
+
+## Bug fixes
+
+* `frm_sample()` on `nl = TRUE` with `cumulative()`, `sratio()`, `cratio()`,
+  `acat()` or `hurdle_cumulative()` samples the body. Before, it sampled the
+  thresholds alone without a word, as `frm()` fitted them, and
+  `posterior_epred()` on those draws stopped with a refusal.
+
+* `frm_sample()` takes `bf(..., nl = TRUE, autocor = ~ term)`, which was
+  refused, and `nl = TRUE` on `categorical()`, `multinomial()`, the simplex
+  families and a `mixture()`, with one body in every location, as brms.
+
 # frmtmb.sample 0.25.0
 
 Needs frmtmb 0.78.0. Its `set_prior()` takes the classes `meanme`,

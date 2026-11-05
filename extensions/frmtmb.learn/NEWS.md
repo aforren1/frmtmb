@@ -1,3 +1,8 @@
+# frmtmb.learn (development version)
+
+* `frm_compat()` by `nl` is "refused" on these families: `nl = TRUE` needs a family
+  with a single `mu`. `nlf()` on one parameter is the route.
+
 # frmtmb.learn 0.7.3
 
 ## Other changes

@@ -146,6 +146,10 @@ ddm_compat_rules <- function() {
     "The drift rate is the primary dpar and would be integrated out. Not exercised.")
   r("wiener", "mixture", "works",
     "Verified with a lognormal contaminant. The Wiener component needs wiener(max_ndt =, allow_unreachable = TRUE) so that its non-decision time may sit above the fastest response time, which is the whole point of putting a contaminant there.")
+  r("wiener", "nl", "works",
+    "A body on the drift rate reaches the linear maximum (-228.5402 on both).")
+  r("lba", "nl", "refused",
+    "Refused: nl = TRUE needs a family with a single 'mu' location, and lba() has one per accumulator. nlf(v2 ~ ...) on one accumulator is the route, and reaches the linear maximum.")
   r("wiener", "quadrature", "refused",
     "By frmtmb, and correctly. quadrature = TRUE marginalizes RANDOM EFFECTS by Gauss-Kronrod and refuses a model with no random-effect block. The across-trial variability of wiener(variability =) is a different integral entirely, over per-row parameter distributions that no level is shared across, and it is done inside the density.")
 
@@ -279,6 +283,10 @@ rdm_gng_compat_rules <- function() {
   r("rdm", "mixture", "refused",
     "By frmtmb: mixture() components need a dpar called mu, and this family's primary dpars are v1..vn. A contaminant on a race would need drifts named the way mixture() expects, which is a change to mixture() rather than to this family.")
 
+  r("wiener_gng", "nl", "works",
+    "A body on the drift rate reaches the linear maximum (-271.2043402 on both).")
+  r("rdm", "nl", "refused",
+    "Refused: nl = TRUE needs a family with a single 'mu' location, and rdm() has one per accumulator. nlf(v2 ~ ...) on one accumulator is the route, and reaches the linear maximum.")
   r("wiener_gng", "dec()", "works",
     "Required, and the only spelling: dec() says whether a trial produced a response, coded 1, or did not, coded 0. With one observable boundary that is the same 0/1 wiener() reads and it means the same thing. A logical column gives the same fit as a 0/1 one, verified.")
   r("wiener_gng", "ndt_group()", "works",

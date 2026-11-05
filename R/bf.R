@@ -52,7 +52,22 @@
 #'   nonlinear expression of named parameters, each given its own
 #'   `...` formula with the full predictor grammar. `NULL`, the default
 #'   as in brms, means `FALSE` for a new formula and keeps the setting
-#'   of a formula `bf()` already built.
+#'   of a formula `bf()` already built. The body is R code on the tape,
+#'   and it can call the functions of the Stan language that brms's own
+#'   bodies call: `inv_logit()`, `logit()`, `inv_cloglog()`, `Phi()`,
+#'   `square()`, `cbrt()`, `exp2()`, `pow()`, `inv()`, `inv_sqrt()`,
+#'   `inv_square()`, `hypot()`, `log1m()`, `step()`, `log1p_exp()`,
+#'   `log1m_exp()`, `log_diff_exp()`, `log_sum_exp()`, `log_inv_logit()`
+#'   and `log1m_inv_logit()`, with Stan's values and derivatives. A function
+#'   of the same name found from the formula's environment comes first,
+#'   which includes the packages on the search path, except for
+#'   `stats::step()`. `x^b` and `pow(x, b)` with `x = 0` on a row have Stan's
+#'   gradient. On a family with
+#'   several location parameters (`categorical()`, `multinomial()`,
+#'   `dirichlet()` and the other simplex families, a `mixture()`), the
+#'   one body is every location's, with one set of nonlinear parameters,
+#'   as in brms. On an ordinal family the body is the latent predictor,
+#'   and the thresholds stay.
 #' @param center Whether the location formula's intercept is brms's
 #'   class `"Intercept"`, a density on the intercept at the means of the
 #'   predictors. `NULL`, the default, means `TRUE` for a new formula and
@@ -66,7 +81,9 @@
 #' @param autocor A one-sided formula of autocorrelation terms, as in
 #'   brms, e.g. `~ ar(week, subj)`. The terms are added to the location
 #'   formula, so `bf(y ~ x, autocor = ~ ar(week, subj))` is
-#'   `bf(y ~ x + ar(week, subj))`. See [autocor-terms].
+#'   `bf(y ~ x + ar(week, subj))`. With `nl = TRUE` this is the way to
+#'   give a nonlinear model a term, since a body is evaluated and not
+#'   read as terms. See [autocor-terms].
 #' @param cmc Cell-mean coding, as in brms. `NULL`, the default, means
 #'   `TRUE` for a new formula and keeps the setting of a formula `bf()`
 #'   already built. With `TRUE`, R's rule applies: a formula without an
@@ -210,8 +227,18 @@ bf <- function(formula, ..., family = NULL, nl = NULL, center = NULL,
     })
     return(do.call(mvbf, forms))
   }
-  # brms's autocor argument: the terms join the formula of mu
-  if (!is.null(autocor)) formula <- add_ac_terms(formula, autocor)
+  # brms's autocor argument: the terms join the formula of mu. A nonlinear
+  # right-hand side is a body, evaluated as R code rather than read as
+  # terms, so there they stay beside it for the parser
+  ac_slot <- NULL
+  if (!is.null(autocor)) {
+    if (isTRUE(nl)) {
+      ac_formula_terms(autocor)
+      ac_slot <- autocor
+    } else {
+      formula <- add_ac_terms(formula, autocor)
+    }
+  }
   parsed <- bf_dots(list(...))
   pforms <- parsed[["pforms"]]
   pfix <- parsed[["pfix"]]
@@ -226,6 +253,7 @@ bf <- function(formula, ..., family = NULL, nl = NULL, center = NULL,
   )
   if (!is.null(center)) out$center <- center
   if (!is.null(cmc)) out$cmc <- cmc
+  if (!is.null(ac_slot)) out[["autocor"]] <- ac_slot
   out
 }
 
@@ -358,7 +386,12 @@ bf_update <- function(formula, ..., family = NULL, nl = NULL,
     return(formula)
   }
   if (!is.null(autocor)) {
-    formula[["formula"]] <- add_ac_terms(formula[["formula"]], autocor)
+    if (isTRUE(nl) || (is.null(nl) && isTRUE(formula[["nl"]]))) {
+      ac_formula_terms(autocor)
+      formula[["autocor"]] <- autocor
+    } else {
+      formula[["formula"]] <- add_ac_terms(formula[["formula"]], autocor)
+    }
   }
   if (length(dots)) {
     parsed <- bf_dots(dots, formula[["pforms"]], formula[["pfix"]],
@@ -811,7 +844,12 @@ plus_bf <- function(e1, e2) {
       frm_stop("acformula() names resp = '", r, "', but the bf() it is ",
                "added to models '", bform_resp_label(e1), "'", call. = FALSE)
     }
-    e1$formula <- add_ac_terms(e1$formula, e2)
+    if (isTRUE(e1[["nl"]])) {
+      ac_formula_terms(e2)
+      e1[["autocor"]] <- e2
+    } else {
+      e1$formula <- add_ac_terms(e1$formula, e2)
+    }
     return(e1)
   }
   if (inherits(e2, "frmtmb_rescor")) {
@@ -1008,6 +1046,9 @@ print.frmtmb_formula <- function(x, ...) {
   frm_check_dots(...)
   cat(deparse1(x$formula), if (isTRUE(x$nl)) " (nonlinear)" else "",
       if (isFALSE(x[["cmc"]])) " (cmc = FALSE)" else "", "\n", sep = "")
+  if (!is.null(x[["autocor"]])) {
+    cat("autocor: ", deparse1(x[["autocor"]]), "\n", sep = "")
+  }
   for (f in x$nlforms) cat(deparse1(f), " (nonlinear)\n", sep = "")
   for (f in x$pforms) print_pform(f)
   for (nm in names(x$pfix)) cat(nm, "=", x$pfix[[nm]], "\n")

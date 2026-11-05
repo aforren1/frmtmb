@@ -1,3 +1,149 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* `beta_binomial()` and `zero_inflated_beta_binomial()` have a new density
+  form. A fit on data with no overdispersion changes. The old form added raw
+  `lgamma()` values of the shapes, and those differences lose their digits as
+  `phi` grows. The true density is flat there, the binomial's, so the optimizer
+  went on to where the rounding pointed. On one data set the true value is
+  -548.98 at every large `phi`, and the objective read -66752 at log phi 39 and
+  +327680 at 45. `frm()` returned +94208 with convergence code 0. On another,
+  -541.09 with nothing to mark it, 0.15 above the binomial limit. These fits now
+  reach the binomial limit with code 0, on the five data sets of the test. A
+  fit with overdispersion keeps its log likelihood to 11 digits. The censored
+  and truncated forms use the same mass function. The time of a fit at 3e4 rows
+  is 0.7 times the old time at 5 trials per row, 0.9 at 10, 1.9 at 30 and 3.1 at
+  200.
+
+* `nl = TRUE` on `cumulative()`, `sratio()`, `cratio()`, `acat()` and
+  `hurdle_cumulative()` now fits the body. Since nonlinear formulas
+  reached the ordinal families, the rule that thresholds replace the
+  intercept also took the intercept of a nonlinear parameter, so
+  `b1 ~ 1` left `b1 = 0`, and `frm()` and `frm_sample()` fitted the
+  thresholds alone without a word: on a test data set the log
+  likelihood was -267.12, the intercept-only fit, against -255.52 for the
+  same predictor written linearly and for the maximum of brms 2.23.0.
+  `b1 ~ 1 + z` lost its intercept in the same way. The log density now
+  equals brms 2.23.0's Stan program at three points, with and without
+  `thres()` and `disc`, and `fitted()`, `predict()`, `simulate()`,
+  `conditional_effects()` and the prior table read the body and list the
+  thresholds. On `hurdle_cumulative()` that holds without `disc`: with it,
+  brms 2.23.0's program stops on every top-category row, and frm() fits a
+  model brms cannot.
+
+* A body that is constant across the rows at a stationary point is no longer
+  returned as a fit. `b1 * exp(b2 * x)` at b1 = b2 = 0 is such a point on
+  every ordinal family, and `a + b1 * b2 * x` on any family; the optimizer
+  stopped there with convergence code 0 and "the data do not determine them",
+  at the log likelihood of the model without the body: -413.56 on one data
+  set, against -371.76 for brms and for a `start`. `frm()` now restarts from
+  moved coefficients of every such body and keeps a higher point, with a
+  message that gives both values and the optimizer's return code. It looks at
+  the kept fit again, so a second body does not stay there: a `sigma` body read
+  16.8 nats short and a `mu2` body 65.7. If no restart leaves a body, a warning
+  of class `frmtmb_nl_saddle` names it and says that the data may simply have
+  no effect there, which is correct for a slope of exactly 0, and that a
+  `start` can test it. A fit from the default start that runs along a flat
+  direction, as the standard errors report it, gets the same restarts: `acat()`
+  on that data set stopped at -378.10, against -372.23. A point that is a true
+  maximum along the body's coefficients is left alone, with a message of class
+  `frmtmb_nl_local`, and every fit that a restart does not beat comes back
+  digit for digit. The restarts do not read the session's random numbers.
+  `optCtrl = list(iter.max = 0)` still reads the objective at the start.
+
+* A fit whose responses are all discrete and whose log likelihood is above 0
+  now warns, with class `frmtmb_discrete_loglik`. A probability mass is at most
+  1, so that value marks a density that lost its digits or a custom family that
+  dropped a constant. The check is one-sided, and a value below 0 can also be
+  wrong. It does not apply under a prior, where `logLik()` holds the log prior,
+  or under REML.
+
+* An ordinal fit with a `disc` body no longer warns that the family's
+  `post$fit_check` hook failed. The check of an intercept in `disc` reads a
+  design, which a body does not have. On a body, the standard errors report a
+  constant term that the likelihood cannot place.
+
+* `frm_compat()` gives measured statuses for `nl` by family, in place of
+  a rule that said `refused` for every family but `gaussian`. All core
+  families are "works" except `asym_laplace` ("conditional": the optimizer
+  can stop at a kink of the density, on the body and on the linear spelling
+  alike). A family
+  no row measures, such as one from a package loaded later, is "untested".
+  `tweedie` and `nbinom1` are "works" and say there is no brms reference.
+  `thres()`, `disc`, `equidistant`, `sum_to_zero`, `mixture` and `mvbf` by `nl`
+  are "works", and `cs_pred()` by `nl` is "refused". `ar()`, `ma()`, `arma()`,
+  `cosy()`, `unstr()` and `fcor()` by `nl` are "conditional", where they were
+  "refused": they work on gaussian and student, and a family whose term would
+  be a latent residual stays refused.
+
+## New features
+
+* `bf(..., nl = TRUE, autocor = ~ term)` and `+ acformula(~ term)` fit a
+  nonlinear model with a residual correlation term, as brms does. The log
+  density equals brms 2.23.0's Stan program for `ar()`, `ma()` and `arma()`
+  with `cov` `TRUE` and `FALSE`, `cosy()`, `unstr()` and `fcor()`, on both
+  routes. A term written in the body is still refused, and the message
+  now says to use `autocor =`. `bf(y ~ 1, autocor = ~ term) + nlf(mu ~ ...)` and
+  `bf(y ~ 1) + nlf(mu ~ ...) + acformula(~ term)` take the term too.
+
+* Under `cov = FALSE`, `fitted()`, `predict()` and `logLik()` of a body follow
+  the model, on the one-step mean, as they do for a linear `mu`. This diverges
+  from brms 2.23.0 on purpose: brms's Stan program has the ARMA term, while its
+  `posterior_epred()` is the body alone and its `log_lik()` is the density at an
+  ARMA coefficient of 0, 34.9 nats from its own `log_prob()` on one model.
+  brms's post-processing for a nonlinear formula does not read the term.
+
+* `nl = TRUE` on `categorical()`, `multinomial()`, `dirichlet()`,
+  `dirichlet2()`, `logistic_normal()`, `dirichlet_multinomial()` and a
+  `mixture()` writes the one body into every location, with one set of
+  nonlinear parameters, as brms does. It was refused. The log density
+  equals brms 2.23.0's Stan program. `fitted()` works on these fits and on
+  a body under an ordinal mixture; both were refused.
+
+* A nonlinear body can call the functions of the Stan language that brms's
+  bodies call, which brms's nonlinear vignette does: `inv_logit()`,
+  `logit()`, `inv_cloglog()`, `Phi()`, `square()`, `cbrt()`, `exp2()`,
+  `pow()`, `inv()`, `inv_sqrt()`, `inv_square()`, `hypot()`, `log1m()`,
+  `step()`, `log1p_exp()`, `log1m_exp()`, `log_diff_exp()`, `log_sum_exp()`,
+  `log_inv_logit()` and `log1m_inv_logit()`. They have Stan's values and
+  derivatives, on the tape and off it. A function of the same name found from
+  the formula's environment comes first, which includes the packages on the
+  search path, except for `stats::step()`.
+
+* `x^b` and `pow(x, b)` in a body, with a data `x` that is 0 on a row, have
+  Stan's finite gradient. `a * x^b` stopped with "NA/NaN gradient evaluation"
+  there, where brms fits it.
+
+* A nonlinear fit under a link that cannot evaluate a body at 0 now starts.
+  `frm(bf(y ~ b0 + b1 * x, b0 + b1 ~ 1, nl = TRUE), family = Gamma())` and
+  the same under `inverse.gaussian()` stopped with "failed from its default
+  starting values". `frm()` now moves one intercept the body reads to where
+  the body equals the response mean, and says so in a message. A body
+  undefined at its start, such as `log(a) + b1 * x` under `Gamma()`, keeps the
+  error that asks for a start, and a start or a located prior stands.
+  `mixture(Gamma(), Gamma())` moves the same way.
+
+## Bug fixes
+
+* `frm()` refuses a nonlinear body the likelihood does not read: a family
+  whose density does not read the dpar the body computes, or a parameter
+  whose formula has terms and whose design came out empty. Both fitted
+  without the body before. The refusal needs the body's value to have moved
+  while the objective did not, so a flat or saturated start does not reach it.
+
+* `cs()` in a nonlinear body is refused with a sentence that says why. It
+  was R's "could not find function". brms 2.23.0's compile fails on it. A
+  helper called `cs()` that the formula's environment finds is the user's, and
+  it is called.
+
+* `conditional_effects()` on an ordinal body draws its Wald band through the
+  body's Jacobian, and `band = "boot"` works. Both stopped before.
+
+* `frm_linpred()` and `fitted()` on a nonlinear body under `na.exclude` read
+  the kept rows of a nonlinear parameter, where they mixed padded rows into
+  the body's data columns.
+
 # frmtmb 0.78.0
 
 The main changes:

@@ -2000,6 +2000,56 @@ lgamma_shift_diff <- function(a, s) {
     lgamma_binet(b + s) - lgamma_binet(b) - acc
 }
 
+#' `lgamma(a + s) - lgamma(a)` for a whole number `s` that is data: the sum of
+#' `log(a + j)` over `j < s` on rows with a short shift, and
+#' `lgamma_shift_diff()` on the others.
+#'
+#' The sum is exact with no series, and a row's cost is one `log()` per step.
+#' The tape's size is what a fit pays for. Whole fits at n = 3e4, against
+#' `RTMBdist::dbetabinom()` (dev/nlfix-findings.md): `lgamma_shift_diff()` alone
+#' costs 3.0 to 3.7 times at every number of trials, and this 0.7 times at 5
+#' trials, 0.9 at 10, 1.9 at 30 and 3.1 at 200. A longer sum (48) does not reduce
+#' the middle, and a shorter one (6, 12) raises it.
+#'
+#' @noRd
+lgamma_count_shift <- function(a, s) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  n <- max(length(a), length(s))
+  s <- rep_len(s, n)
+  if (length(a) == 1L && n > 1L) a <- a[rep_len(1L, n)]
+  long <- which(s > 24 | s != round(s))
+  short <- s
+  short[long] <- 0
+  acc <- rep(0, n)
+  for (j in seq_len(max(short, 0L)) - 1L) {
+    i <- which(short > j)
+    acc[i] <- acc[i] + log(a[i] + j)
+  }
+  if (length(long)) acc[long] <- lgamma_shift_diff(a[long], s[long])
+  acc
+}
+
+#' Beta-binomial log mass at a count `y` (data) of `size` trials, with shapes
+#' `a` and `b` and `phi = a + b`.
+#'
+#' `RTMBdist::dbetabinom()` adds raw `lgamma()` of the shapes, and those
+#' differences cancel as `phi` grows. The true density is flat there, the
+#' binomial's, but on data with no overdispersion the optimizer went to where
+#' it read -66752 at log phi 39 and +327680 at 45, code 0, against -548.982078.
+#' Each difference is formed here without the cancellation. `RTMB`'s own `osa`
+#' and `simref` responses go to `dbetabinom()`, which refuses the one and
+#' simulates the other.
+#'
+#' @noRd
+beta_binomial_lpmf <- function(y, size, a, b, phi) {
+  if (inherits(y, c("osa", "simref"))) {
+    return(RTMBdist::dbetabinom(y, size, a, b, log = TRUE))
+  }
+  lgamma(size + 1) - lgamma(y + 1) - lgamma(size - y + 1) +
+    lgamma_count_shift(a, y) + lgamma_count_shift(b, size - y) -
+    lgamma_count_shift(phi, size)
+}
+
 #' Log density of a standard student-t, stable for every `nu`.
 #'
 #' `RTMB::dt()` sends a double straight to `stats::dt()`, which is
@@ -4098,12 +4148,10 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
     links = list(mu = lk, phi = lk_phi),
     lpdf = function(y, dpars, aterms) {
       size <- aterm_trials(aterms, "beta_binomial")
-      # RTMBdist has no log-odds form, so the robustness has to go into
-      # the shapes: a zero second shape gives lgamma(0) = NaN
+      # the shapes off the log-odds, so a second shape does not round to 0
       mp <- dpar_complement(dpars, "mu", lk)
-      RTMBdist::dbetabinom(y, size, mp$p * dpars[["phi"]],
-                mp$q * dpars[["phi"]],
-                           log = TRUE)
+      beta_binomial_lpmf(y, size, mp$p * dpars[["phi"]], mp$q * dpars[["phi"]],
+                         dpars[["phi"]])
     },
     cdf_log = function(q, dpars, aterms) {
       beta_binomial_cdf_pair(q, dpars, aterms, lk, "beta_binomial")
@@ -4173,8 +4221,8 @@ fam_zi_beta_binomial <- function(link = "logit", link_phi = "log",
       # the shapes off the log-odds, for the reason fam_beta_binomial()
       # gives; at y = 0 `base` is the beta-binomial's own P(0)
       mp <- dpar_complement(dpars, "mu", lk)
-      base <- RTMBdist::dbetabinom(y, size, mp$p * dpars[["phi"]],
-                                   mp$q * dpars[["phi"]], log = TRUE)
+      base <- beta_binomial_lpmf(y, size, mp$p * dpars[["phi"]],
+                                 mp$q * dpars[["phi"]], dpars[["phi"]])
       i0 * RTMB::logspace_add(g$l, g$l1m + base) + (1 - i0) * (g$l1m + base)
     },
     cdf_log = function(q, dpars, aterms) {
@@ -4981,6 +5029,10 @@ hurdle_above_aterms <- function(aterms, y) {
 #' `k` names component `k` of an ordinal mixture, whose `disc<k>`,
 #' `mu<k>` and threshold block are checked the same way.
 #'
+#' A `disc` body has no design to read an intercept from, so this is silent on
+#' one. Its constant term, `d0` in `d0 + d1 * z`, has the same flat direction,
+#' and the standard errors report that.
+#'
 #' @noRd
 ord_fit_check <- function(fit, resp, k = NULL) {
   fam <- fit$spec$responses[[resp]]$family
@@ -4989,7 +5041,9 @@ ord_fit_check <- function(fit, resp, k = NULL) {
   }
   sfx <- if (is.null(k)) "" else as.character(k)
   lp <- fit$frame[["linpreds"]][[linpred_key(resp, paste0("disc", sfx))]]
-  if (is.null(lp) || !is.null(lp[["constant"]])) return(invisible(NULL))
+  if (is.null(lp) || !is.null(lp[["constant"]]) || is.null(lp[["X"]])) {
+    return(invisible(NULL))
+  }
   mx <- fam[["mix"]][["ord"]]
   if (!is.null(k) && isTRUE(mx$shared)) {
     # thresholds shared with a component whose disc is held fixed are on

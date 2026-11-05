@@ -3189,7 +3189,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       X <- if (sparse_x) sparse_mm(tt, mf) else stats::model.matrix(tt, mf)
       contr <- attr(X, "contrasts")   # subsetting X below drops the attr
       if (cmc_drop) X <- X[, colnames(X) != "(Intercept)", drop = FALSE]
-      if (isTRUE(resp$family[["drop_intercept"]]) && is_primary) {
+      # the family's own location only: `is_primary` also holds for the
+      # nonlinear parameters a location's body reaches, and through
+      # 0.78.0 this took the intercept of `b1 ~ 1`, which left b1 = 0 and
+      # the body 0 on every row, without a word
+      if (isTRUE(resp$family[["drop_intercept"]]) &&
+            dp[["name"]] %in% (resp$family[["primary_dpars"]] %||% "mu")) {
         # thresholds replace the intercept; a threshold-only model
         # (y ~ 1) leaves X with zero columns, which is fine
         X <- X[, colnames(X) != "(Intercept)", drop = FALSE]

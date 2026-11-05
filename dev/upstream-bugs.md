@@ -35,6 +35,10 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   lane ordmix on the `cs()` path: `yh ~ cs(x)` with
   `hurdle_cumulative()` (logit) stops at "index 4 out of range"
   (`dev/ordmix-findings.md`, "brms 2.23.0 defects met").
+  Met again 2026-11-02 by lane nlfix on `disc` with a body and without one: the
+  program's process exits 139 under `rstan::log_prob()` in the survey's
+  instrument, and with the test patched to `nthres + 1` the log density equals
+  frm()'s (5.7e-14, `dev/reviews/2026-11-02-nlfix.md`, "The segfault").
 - Status: not reported.
 
 ### brms-2. The softit link does not compile
@@ -863,6 +867,29 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   found by `gh search issues` on `rescor`, 2026-10-28.
 - Status: not reported.
 
+### brms-NN. `predictor.bprepnl()` drops the ARMA term the Stan program has
+
+- Seen: 2.23.0. Number to be settled at consolidation. Found 2026-11-02.
+- Repro: `bf(y ~ a + b * x, a + b ~ 1, nl = TRUE, autocor = ~ ar(time = t,
+  gr = g, cov = FALSE))` on gaussian data with an AR part, at any draw.
+- Expected: `posterior_epred()` and `log_lik()` read the one-step mean, as
+  the program's `mu[n] += Err[n, 1:Kar] * ar` does and as the linear formula's
+  `predictor.bprepl()` does through `predictor_ac()`. Actual:
+  `predictor.bprepnl()` (`R/predictor.R`) never calls `predictor_ac()`, so
+  `posterior_epred()` is the body alone and `log_lik()` is the density at an
+  ARMA coefficient of 0. Nothing warns.
+- Numbers: phi 0.531, nl `log_lik` sum -185.87332294, by-hand density at phi = 0
+  -185.8733; Stan `log_prob` on the nl program, the linear program and the
+  linear `log_lik` -150.99326554, 34.9 nats away (`dev/reviews/2026-11-02-nlfix.md`,
+  item 4). Second model, seed 1582: -149.1356 against -148.6737
+  (`dev/nlfix-arnl2.R`).
+- Distinct from the other `predictor_ac()` entry of this round: that one's
+  latent arm (`prep$ac$err`) misses the AR sum, and this branch calls neither
+  arm.
+- Workaround: frmtmb follows the model, a divergence by decision stated in NEWS
+  and `?frmtmb-autocor`.
+- Record: `dev/nlfix-findings.md`. Status: not reported.
+
 ## RTMB
 
 ### RTMB-1. `pbeta()`, `pbinom()` and `pnbinom()` have non-finite third derivatives
@@ -1109,6 +1136,20 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
 - Record: `dev/cdfs-findings.md`, Fix round 1.
 - Status: not reported.
 
+### RTMBdist-NN. `dbetabinom()` loses the density as the shapes grow
+
+- Seen: 1.1.0, 2026-11-02. Number to be settled at consolidation.
+- Repro: `dbetabinom(5, 10, 0.5 * phi, 0.5 * phi, log = TRUE)` on the tape, or
+  summed over 300 rows, with `phi = exp(39)`: the sum of raw `lgamma()` values of
+  shapes near 1e17 cancels. One data set reads -66752 at log phi 39 and +327680
+  at 45, against -548.982078 by the finite product.
+- Expected: the binomial limit, flat in `phi`. The finite product
+  `sum(log(a + j))` has no large `lgamma()`.
+- Workaround: `beta_binomial_lpmf()` (`R/families.R`).
+- Record: `dev/nlfix-findings.md`, section 0a;
+  `dev/reviews/2026-11-02-nlfix.md`, R3.
+- Status: not reported.
+
 ## TMB
 
 ### TMB-1. The taped second derivative of `tanh(x)` is NaN for |x| >= 711
@@ -1194,6 +1235,19 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
 - Status: reported by the user, kaskr/tmbstan#33, closed. Nothing to file.
 
 ## rstan and StanHeaders
+
+### stan-NN. `beta_binomial_lpmf()` loses the density as the shapes grow
+
+- Seen: StanHeaders 2.39.1, 2026-11-02. Number to be settled at consolidation.
+- Repro: brms's program for `beta_binomial()` at log phi 30, 39, 45 and 60,
+  through `rstan::log_prob()`, on one data set of 300 rows.
+- Expected: -548.982078 at each, by the finite product. Actual: -548.981164,
+  -759.93, +1440.07, +1440.07. `lbeta` fails later than a raw `lgamma()`
+  difference, near log phi 35 to 39 against 20, but it does fail.
+- Workaround: none needed in frmtmb, which does not read this code. A brms fit
+  from a large `phi` meets it.
+- Record: `dev/reviews/2026-11-02-nlfix.md`, R3 (`dev/review-nlfix-c4.R`).
+- Status: not reported.
 
 ### rstan-1. rstan 2.32.7 cannot compile a Stan program against StanHeaders 2.39.1
 

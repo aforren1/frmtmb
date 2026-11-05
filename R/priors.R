@@ -2304,8 +2304,76 @@ prior_table <- function(spec, frame, route) {
     )
   }
 
+  # the threshold rows of an ordinal location, its body's as well as its
+  # design's: a nonlinear location has thresholds all the same
+  add_thres_rows <- function(ob, resp_lab) {
+    # an ordinal family has no intercept column: the thresholds
+    # replace it, and class "Intercept" is what addresses them here as
+    # it does in brms. Under sum_to_zero brms's Intercept is a vector
+    # frmtmb does not have (ordinal_threshold_entry()), and under
+    # equidistant the distance between thresholds is class "delta",
+    # listed once for the model and once per level of thres(gr = ).
+    # An ordinal mixture's component k lists its own under dpar
+    # "mu<k>"; the vector an order = "mu" mixture shares is listed
+    # once, with no dpar, as brms lists its fixed_Intercept
+    th <- ob$fam[["thres"]]
+    type <- th[["type"]] %||% "flexible"
+    grouped <- isTRUE(th[["grouped"]])
+    tdp <- ob$prior_dpar
+    if (identical(type, "equidistant")) {
+      # brms bounds delta below by 0 where the thresholds are ordered,
+      # and says so in its table
+      lb_d <- if (ob$ordered) 0 else NA_real_
+      add("delta", dpar = tdp, resp = resp_lab, lb = lb_d)
+      if (grouped) {
+        for (g in th[["groups"]]) {
+          add("delta", group = g, dpar = tdp, resp = resp_lab, lb = lb_d)
+        }
+      }
+    }
+    if (!identical(type, "sum_to_zero")) {
+      add("Intercept", dpar = tdp, resp = resp_lab)
+      # under flexible thresholds brms lists one row per threshold,
+      # coef = "1", "2", ..., under each level of thres(gr = ) when
+      # they are grouped; equidistant thresholds have none. The count
+      # is the block's own component: in a mixture the plain
+      # "tau_raw" component does not exist, and each row carries the
+      # block's dpar, "mu<k>" under order = "none" and none for the
+      # vector an order = "mu" mixture shares, as brms lists them
+      flex <- identical(type, "flexible")
+      if (!grouped && flex) {
+        K1 <- length(frame[["par_template"]][[ob$comp]])
+        for (k in seq_len(K1)) {
+          add("Intercept", coef = as.character(k), dpar = tdp,
+              resp = resp_lab)
+        }
+      }
+      # one row per level of thres(gr = ), each a threshold vector of
+      # its own that group = addresses, as brms lists them
+      if (grouped) {
+        for (gi in seq_along(th[["groups"]])) {
+          g <- th[["groups"]][gi]
+          add("Intercept", group = g, dpar = tdp, resp = resp_lab)
+          if (flex) {
+            for (k in seq_len(th[["nthres"]][gi])) {
+              add("Intercept", coef = as.character(k), group = g,
+                  dpar = tdp, resp = resp_lab)
+            }
+          }
+        }
+      }
+    }
+  }
+
   simo_rows <- list()
   for (lp in frame[["linpreds"]]) {
+    if (!is.null(lp[["nl_body"]]) &&
+          !is.null(ob <- ord_lp_block(frame, spec, lp)) &&
+          (!ob$shared || identical(ob$k, 1L)) &&
+          length(frame[["par_template"]][[ob$comp]] %||% numeric(0))) {
+      add_thres_rows(ob, if (multi && !isTRUE(lp[["shared"]])) lp[["resp"]]
+                     else "")
+    }
     # an equated dpar has no parameter of its own; its target's row is
     # the one brms lists
     if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]]) ||
@@ -2365,62 +2433,7 @@ prior_table <- function(spec, frame, route) {
                  (!ob$shared || identical(ob$k, 1L)) &&
                  length(frame[["par_template"]][[ob$comp]] %||%
                           numeric(0))) {
-      # an ordinal family has no intercept column: the thresholds
-      # replace it, and class "Intercept" is what addresses them here as
-      # it does in brms. Under sum_to_zero brms's Intercept is a vector
-      # frmtmb does not have (ordinal_threshold_entry()), and under
-      # equidistant the distance between thresholds is class "delta",
-      # listed once for the model and once per level of thres(gr = ).
-      # An ordinal mixture's component k lists its own under dpar
-      # "mu<k>"; the vector an order = "mu" mixture shares is listed
-      # once, with no dpar, as brms lists its fixed_Intercept
-      th <- ob$fam[["thres"]]
-      type <- th[["type"]] %||% "flexible"
-      grouped <- isTRUE(th[["grouped"]])
-      tdp <- ob$prior_dpar
-      if (identical(type, "equidistant")) {
-        # brms bounds delta below by 0 where the thresholds are ordered,
-        # and says so in its table
-        lb_d <- if (ob$ordered) 0 else NA_real_
-        add("delta", dpar = tdp, resp = resp_lab, lb = lb_d)
-        if (grouped) {
-          for (g in th[["groups"]]) {
-            add("delta", group = g, dpar = tdp, resp = resp_lab, lb = lb_d)
-          }
-        }
-      }
-      if (!identical(type, "sum_to_zero")) {
-        add("Intercept", dpar = tdp, resp = resp_lab)
-        # under flexible thresholds brms lists one row per threshold,
-        # coef = "1", "2", ..., under each level of thres(gr = ) when
-        # they are grouped; equidistant thresholds have none. The count
-        # is the block's own component: in a mixture the plain
-        # "tau_raw" component does not exist, and each row carries the
-        # block's dpar, "mu<k>" under order = "none" and none for the
-        # vector an order = "mu" mixture shares, as brms lists them
-        flex <- identical(type, "flexible")
-        if (!grouped && flex) {
-          K1 <- length(frame[["par_template"]][[ob$comp]])
-          for (k in seq_len(K1)) {
-            add("Intercept", coef = as.character(k), dpar = tdp,
-                resp = resp_lab)
-          }
-        }
-        # one row per level of thres(gr = ), each a threshold vector of
-        # its own that group = addresses, as brms lists them
-        if (grouped) {
-          for (gi in seq_along(th[["groups"]])) {
-            g <- th[["groups"]][gi]
-            add("Intercept", group = g, dpar = tdp, resp = resp_lab)
-            if (flex) {
-              for (k in seq_len(th[["nthres"]][gi])) {
-                add("Intercept", coef = as.character(k), group = g,
-                    dpar = tdp, resp = resp_lab)
-              }
-            }
-          }
-        }
-      }
+      add_thres_rows(ob, resp_lab)
     }
     # cs() terms are class "b" rows under their own coef, as brms lists
     # them; the resolver reaches them through the same class

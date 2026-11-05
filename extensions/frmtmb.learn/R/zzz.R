@@ -260,11 +260,12 @@ ln_common_rules <- function(r, nm, nominal = TRUE) {
            "5.6e-10), where autoscale = FALSE was 20.4 to 52.3 units ",
            "short (dev/predfix-p1-ext.R). The other families share the ",
            "engine and its design matrices."))
-  r(nm, "nl", "untested",
-    paste0("A nonlinear body on one of these parameters is not ",
-           "exercised. Nothing about the recursion argues against it: ",
-           "the family reads a linear predictor's VALUE and does not ",
-           "care how it was built."))
+  r(nm, "nl", "refused",
+    paste0("Refused: nl = TRUE needs a family with a single 'mu' location, ",
+           "and this family has none. nlf() on one parameter is the route: ",
+           "the recursion reads a linear predictor's VALUE, and on ",
+           "bandit2arm_delta nlf(tau ~ ...) and nlf(alpha ~ ...) reach the ",
+           "linear maximum."))
   r(nm, "mi()", "untested",
     "Not exercised. A missing choice drops its row; see keep_na = FALSE.")
   invisible(NULL)

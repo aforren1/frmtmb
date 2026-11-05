@@ -350,6 +350,14 @@
 #' (`normal_time_hom_se_lpdf()` and its relatives); frmtmb refuses that
 #' combination.
 #'
+#' On a nonlinear body with `cov = FALSE`, brms 2.23.0's post-processing does
+#' not follow its own model. Its Stan program carries the ARMA term in `mu`,
+#' but `predictor.bprepnl()` has no `predictor_ac()`, so its `posterior_epred()`
+#' is the body alone and its `log_lik()` is the density at an ARMA coefficient
+#' of 0: on one model with a real AR part, -185.87 against -150.99 from its own
+#' `log_prob()`. `fitted()`, `predict()` and `logLik()` here follow the model,
+#' as they do for a linear `mu`, where brms and frmtmb agree.
+#'
 #' @return `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` are formula
 #'   terms, not free-standing functions: `bf()` reads them at parse
 #'   time, and the value they contribute is the fitted autocorrelation
@@ -1738,7 +1746,7 @@ arma_cond_dpars <- function(fit, dpv) {
 #'
 #' @noRd
 autocor_cond_mu_values <- function(fit, lp, rspec, ac, use_re) {
-  ed <- lp_eta_design(fit, lp, NULL, use_re, FALSE)
+  ed <- lp_eta_or_body(fit, lp, NULL, use_re, FALSE)
   mu <- lp[["link"]]$linkinv(ed[["eta"]])
   autocor_cond_mu(fit, ac, mu, mi_values(fit, rspec$resp_name))
 }
@@ -1790,7 +1798,7 @@ linpred_arma_cond <- function(object, lp, rspec, ac, newdata, type, use_re,
     m <- if (is.null(newdata)) {
       autocor_cond_mu_values(fit, lp, rspec, ac, use_re)
     } else {
-      ed <- lp_eta_design(fit, lp, newdata, use_re, allow_new_levels)
+      ed <- lp_eta_or_body(fit, lp, newdata, use_re, allow_new_levels)
       mu_ <- lp[["link"]]$linkinv(ed[["eta"]])
       # a missing response is filled with its expected value, where
       # brms's fitted() averages over filling it with draws; with none
@@ -1932,7 +1940,13 @@ autocor_draw_resid <- function(ac, R, sigma, n, nu = NULL) {
 #' `bf(y ~ x, autocor = ~ ar(week, subj))`, and `acformula()` added to
 #' a formula, `bf(y ~ x) + acformula(~ ar(week, subj))`. Each adds the
 #' terms to the location formula, so both fit the model
-#' `bf(y ~ x + ar(week, subj))`. A term object added to a formula, as in
+#' `bf(y ~ x + ar(week, subj))`. They are also the only way to give a
+#' nonlinear model a term, `bf(y ~ a * exp(b * x), a + b ~ 1, nl = TRUE,
+#' autocor = ~ ar(week, subj))`: the body's value is the mean the term
+#' reads, and a term written in the body is refused, because a body is
+#' evaluated and not read as terms. On a body, a later term replaces an
+#' earlier one, as in brms, where a linear formula refuses two. A term
+#' object added to a formula, as in
 #' `bf(y ~ x) + ar(week, subj)`, is refused with brms's own message,
 #' because brms refuses it.
 #'
