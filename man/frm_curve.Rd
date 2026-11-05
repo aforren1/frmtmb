@@ -311,7 +311,7 @@ An exact \code{gp()} evaluated at a position the fit did not see carries
 the field's kriging residual, one draw of the field shared by every
 unseen row, and its covariance enters \code{Sigma} the same way. The band
 therefore widens where the grid leaves the observed positions. The
-\code{1e-6} nugget frmtmb puts on the kernel's correlation is white noise
+\code{1e-12} nugget frmtmb puts on the kernel's correlation is white noise
 at each position, which has no derivative: \code{\link[=frm_curve_deriv]{frm_curve_deriv()}} and a
 peak's standard error leave it out.
 }

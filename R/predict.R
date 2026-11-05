@@ -59,6 +59,34 @@ get_joint_cov <- function(fit) {
   cache$Vjoint
 }
 
+#' A lost direction of the outer parameters, moved so that it holds an exact
+#' `gp()`'s field and not its z.
+#'
+#' A lost `sdgp` says the data do not fix the scale, while the field they fit
+#' stays where it is, so a prediction through the field does not move along
+#' the direction. Holding z instead read every such row as lost: 60 of 60
+#' standard errors NaN on a bernoulli fit with its sdgp at zero, finite on a
+#' centered field. So z moves by `-u dtheta`, with `sd L u = d f / d theta`.
+#'
+#' @noRd
+gp_null_at_field <- function(fit, null, r, f) {
+  bks <- Filter(function(bk) identical(bk[["covstruct"]], "gp"),
+                fit$frame[["re_blocks"]] %||% list())
+  if (!length(bks)) return(null)
+  onames <- names(fit$obj$par)
+  th_f <- f[onames == "theta"]
+  if (length(th_f) != length(fit$estimates[["theta"]])) return(null)
+  rn <- names(fit$obj$env$par)[r]
+  b_r <- r[rn == "b"]
+  for (bk in bks) {
+    th <- fit$estimates[["theta"]][bk[["theta_idx"]]]
+    u <- gp_field_dtheta(fit$estimates[["b"]][bk[["b_idx"]]], th, bk)
+    null[b_r[bk[["b_idx"]]], ] <-
+      -u %*% null[th_f[bk[["theta_idx"]]], , drop = FALSE]
+  }
+  null
+}
+
 #' The joint covariance of a fit with random effects whose outer Hessian
 #' lost standard errors or was repaired otherwise (sdr_rescue()), or
 #' `NULL` when the check kept sdreport()'s own inverse.
@@ -128,6 +156,7 @@ joint_cov_repair <- function(fit, Q, sdr) {
   if (NCOL(sdr$se_null)) {
     null <- matrix(0, p, NCOL(sdr$se_null))
     null[f, ] <- sdr$se_null
+    null <- gp_null_at_field(fit, null, r, f)
   }
   units <- rep(1, p)
   units[f] <- fit$par_units %||% 1
@@ -824,7 +853,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
         # sampler's draw (gp_krig_factor()) then share one arithmetic,
         # and a pivot at a small variance does not divide one formula's
         # rounding by another's
-        R <- tryCatch(chol(K), error = function(e) NULL)
+        R <- tryCatch(gp_chol_num(K), error = function(e) NULL)
         if (!is.null(R)) {
           P <- t(backsolve(R, t(Ks), transpose = TRUE))
           Xw <- t(backsolve(R, t(P)))
@@ -1339,16 +1368,42 @@ re_design_matrix <- function(re_parts, n, q) {
 #' means into every standard error, exactly `con_sd^2` of variance that
 #' the field the predictor sees does not have.
 #'
+#' An exact `gp()` block expands through `sd L(theta)`, dense in `b`, and
+#' its `theta` columns are `gp_field_dtheta()`'s. A cubic in its positions
+#' per call, so a fit that has one keeps the result for its estimates.
+#'
 #' The name is historical: rr was the first block that needed this.
 #'
 #' @noRd
 rr_jacobians <- function(fit) {
   frame <- fit$frame
   est <- fit$estimates
+  cache <- fit$cache
+  memo <- if (is.environment(cache)) cache$gp_jacobians
+  if (!is.null(memo) && identical(memo$theta, est[["theta"]]) &&
+        identical(memo$b, est[["b"]])) {
+    return(memo$val)
+  }
+  has_gp <- FALSE
   ii <- integer(0); jj <- integer(0); xx <- numeric(0)
   th_cols <- list()
   for (bk in frame[["re_blocks"]]) {
-    if (bk[["covstruct"]] == "rr") {
+    if (bk[["covstruct"]] == "gp") {
+      has_gp <- TRUE
+      th <- est[["theta"]][bk[["theta_idx"]]]
+      m <- length(bk[["b_idx"]])
+      ii <- c(ii, rep(bk[["c_idx"]], times = m))
+      jj <- c(jj, rep(bk[["b_idx"]], each = m))
+      J <- sd_floored(th[1]) * gp_factor(th, bk)
+      xx <- c(xx, as.vector(J))
+      dth <- gp_field_dtheta(est[["b"]][bk[["b_idx"]]], th, bk)
+      for (k in seq_along(th)) {
+        dvec <- numeric(frame[["n_c"]])
+        dvec[bk[["c_idx"]]] <- as.vector(J %*% dth[, k])
+        th_cols[[length(th_cols) + 1L]] <- list(j = bk[["theta_idx"]][k],
+                                                dvec = dvec)
+      }
+    } else if (bk[["covstruct"]] == "rr") {
       L <- rr_loadings(est[["theta"]][bk[["theta_idx"]]], bk[["dim"]],
         bk[["rank"]])
       for (l in seq_len(bk[["n_levels"]])) {
@@ -1381,10 +1436,73 @@ rr_jacobians <- function(fit) {
       xx <- c(xx, rep(1, length(bk[["b_idx"]])))
     }
   }
-  list(Jb = Matrix::sparseMatrix(i = ii, j = jj, x = xx,
-                                 dims = c(frame[["n_c"]],
-                                          length(est[["b"]]))),
-       th_cols = th_cols)
+  val <- list(Jb = Matrix::sparseMatrix(i = ii, j = jj, x = xx,
+                                        dims = c(frame[["n_c"]],
+                                                 length(est[["b"]]))),
+              th_cols = th_cols)
+  if (has_gp && is.environment(cache)) {
+    cache$gp_jacobians <- list(theta = est[["theta"]], b = est[["b"]],
+                               val = val)
+  }
+  val
+}
+
+#' Rows at one unseen position, made one row again after a product.
+#'
+#' `Zc` holds them identical, and a product with them does not: OpenBLAS rounds
+#' a row by where it sits in the matrix, and a difference curve stacks two grids
+#' and relies on their cancelling exactly (`gp_krig_cov()`,
+#' dev/cifix-findings.md).
+#'
+#' @noRd
+gp_rows_alike <- function(M, krig) {
+  if (is.null(krig)) return(M)
+  key <- paste(pos_rowkey(krig$X), krig$w)
+  first <- krig$rows[match(key, key)]
+  M[krig$rows, ] <- M[first, , drop = FALSE]
+  M
+}
+
+#' The delta method's columns for one block's curve, whatever `Zc` the
+#' caller holds over the block's coefficients. A smooth or `hsgp()`
+#' coefficient is its `b` entry. An exact `gp()` coefficient goes through
+#' `d cvec / d b` and has `theta` columns of its own.
+#'
+#' @noRd
+sm_delta_cols <- function(object, A, coef_pos, Zc, bk, b_pos, th_pos, rrj,
+                          krig = NULL) {
+  if (block_b_positionwise(bk)) {
+    return(list(A = Matrix::cbind2(A, Zc),
+                coef_pos = c(coef_pos, b_pos[bk[["b_idx"]]])))
+  }
+  rrj <- rrj %||% rr_jacobians(object)
+  A <- Matrix::cbind2(A, gp_rows_alike(
+    as.matrix(Zc %*% rrj$Jb[bk[["c_idx"]], bk[["b_idx"]], drop = FALSE]), krig))
+  coef_pos <- c(coef_pos, b_pos[bk[["b_idx"]]])
+  for (tc in rrj$th_cols) {
+    if (!tc$j %in% bk[["theta_idx"]]) next
+    A <- Matrix::cbind2(A, gp_rows_alike(
+      as.matrix(Zc %*% tc$dvec[bk[["c_idx"]]]), krig))
+    coef_pos <- c(coef_pos, th_pos[tc$j])
+  }
+  list(A = A, coef_pos = coef_pos)
+}
+
+#' The conditional standard deviation of an exact `gp()`'s field at its
+#' positions, for `ranef()`: the joint covariance read through
+#' `d cvec / d (z, theta)`, since `b` is z.
+#'
+#' @noRd
+gp_field_condsd <- function(fit, bk) {
+  jc <- get_joint_cov(fit)
+  n <- length(bk[["c_idx"]])
+  rrj <- rr_jacobians(fit)
+  upd <- sm_delta_cols(fit, matrix(0, n, 0L), integer(0), diag(n), bk,
+                       which(jc$names == "b"), which(jc$names == "theta"),
+                       rrj)
+  lb <- lp_basis_out(fit, jc, numeric(n), as.matrix(upd$A), upd$coef_pos,
+                     numeric(n), rep(FALSE, n))
+  sqrt(pmax(lb_rowvar(lb), 0))
 }
 
 #' @rdname frmtmb-extension-api
@@ -2720,8 +2838,11 @@ lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
         coef_pos <- upd$coef_pos
       } else if (!use_re && length(ed[["sm_blocks"]]) && !is.null(lp[["Z"]])) {
         for (bk in ed[["sm_blocks"]]) {
-          A <- Matrix::cbind2(A, lp[["Z"]][, bk[["c_idx"]], drop = FALSE])
-          coef_pos <- c(coef_pos, b_pos[bk[["b_idx"]]])
+          upd <- sm_delta_cols(object, A, coef_pos,
+                               lp[["Z"]][, bk[["c_idx"]], drop = FALSE], bk,
+                               b_pos, th_pos, rrj)
+          A <- upd$A
+          coef_pos <- upd$coef_pos
         }
       }
     } else {
@@ -2733,8 +2854,10 @@ lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
         coef_pos <- upd$coef_pos
       }
       for (sp in ed[["sm_parts"]]) {
-        A <- Matrix::cbind2(A, sp$Xr)
-        coef_pos <- c(coef_pos, b_pos[sp$bk[["b_idx"]]])
+        upd <- sm_delta_cols(object, A, coef_pos, sp$Xr, sp$bk, b_pos, th_pos,
+                             rrj, sp$krig)
+        A <- upd$A
+        coef_pos <- upd$coef_pos
       }
     }
   }
@@ -5271,8 +5394,9 @@ draw_b <- function(fit) {
   # block and read by the others
   t_mix <- list()
   for (bk in fit$frame[["re_blocks"]]) {
-    if (bk[["covstruct"]] == "rr") {
-      # standard-normal factors; eval_dpars expands them via loadings
+    if (bk[["covstruct"]] %in% c("rr", "gp")) {
+      # standard-normal factors; eval_dpars expands them via loadings or
+      # the kernel's factor
       b[bk[["b_idx"]]] <- stats::rnorm(length(bk[["b_idx"]]))
       next
     }

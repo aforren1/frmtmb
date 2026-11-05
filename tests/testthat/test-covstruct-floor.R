@@ -30,15 +30,15 @@ test_that("an exact gp() field has no +Inf log density at a tiny sd", {
   fit <- gp_fit()
   blk <- fit$frame$re_blocks[[1L]]
   expect_identical(blk$covstruct, "gp")
-  nll <- frmtmb:::cs_entry("gp")$nll
-  b <- fit$estimates$b
-  th <- fit$estimates$theta
-  # the control: at the estimates the density is finite
-  expect_true(is.finite(nll(b, th, blk)))
+  # the density is z's, so the sd reaches the objective through the field,
+  # which the floor keeps a number where exp() underflows
+  nll <- frmtmb::build_objective(fit$frame)
+  p <- fit$estimates
+  v0 <- nll(p)
+  expect_true(is.finite(v0))
   for (lsd in c(-400, -1137.64, -5000)) {
-    v <- nll(b, c(lsd, th[2L]), blk)
-    expect_false(isTRUE(v == Inf), info = paste("log sd", lsd))
-    expect_lt(v, nll(b, th, blk))
+    p$theta[1L] <- lsd
+    expect_true(is.finite(nll(p)), info = paste("log sd", lsd))
   }
 })
 
@@ -47,11 +47,13 @@ test_that("the floor leaves an exact gp() fit's objective unchanged", {
   blk <- fit$frame$re_blocks[[1L]]
   b <- fit$estimates$b
   th <- fit$estimates$theta
-  # the density as 0.68.1 wrote it, beside the one the fit uses
-  old <- sum(RTMB::dmvnorm(t(matrix(b, nrow = 1L)), 0,
-                           exp(2 * th[1L]) * frmtmb:::gp_corr(th, blk),
-                           log = TRUE))
-  expect_identical(frmtmb:::cs_entry("gp")$nll(b, th, blk), old)
+  # the density of z, whatever theta is, and the field the floor adds 1e-150
+  # to: nothing a sd that has not underflowed can read
+  expect_identical(frmtmb:::cs_entry("gp")$nll(b, th, blk),
+                   sum(stats::dnorm(b, 0, 1, log = TRUE)))
+  f1 <- frmtmb:::gp_field(b, th, blk)
+  f0 <- exp(th[1L]) * as.vector(frmtmb:::gp_factor(th, blk) %*% b)
+  expect_identical(f1, f0)
 })
 
 test_that("the other one-scale dense blocks take the same floor", {
@@ -74,7 +76,7 @@ test_that("the other one-scale dense blocks take the same floor", {
 })
 
 test_that("every structure the floor touches has no +Inf at a tiny sd", {
-  # the six nll()s that take sd2_floored(): gp, ou, homcs, homtoep, the
+  # the nll()s that take sd2_floored(): ou, homcs, homtoep, the
   # spatial entries (exp, gau, mat) and gr(cov =) with one coefficient.
   # Each block is read from its frame at the start values with the
   # field moved off zero, and its log sd put where exp() underflows.
@@ -94,7 +96,6 @@ test_that("every structure the floor touches has no +Inf at a tiny sd", {
   A <- diag(n_g) * 0.5 + 0.5
   dimnames(A) <- list(levels(dd$g), levels(dd$g))
   forms <- list(
-    gp = y ~ gp(x),
     ou = y ~ 1 + ou(tn + 0 | g),
     homcs = y ~ 1 + homcs(tim + 0 | g),
     homtoep = y ~ 1 + homtoep(tim + 0 | g),
@@ -118,7 +119,7 @@ test_that("every structure the floor touches has no +Inf at a tiny sd", {
     expect_false(isTRUE(v == Inf), info = nm)
     expect_lt(v, v0)
   }
-  expect_setequal(unique(seen), c("gp", "ou", "homcs", "homtoep", "exp",
+  expect_setequal(unique(seen), c("ou", "homcs", "homtoep", "exp",
                                   "gau", "mat", "gr_cov"))
 })
 

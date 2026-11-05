@@ -1524,6 +1524,10 @@ re_b_batches <- function(fit, newdata, resp, allow_new_levels, b_idx) {
     ci <- bk[["c_idx"]]
     bi <- bk[["b_idx"]]
     if (!any(bi %in% b_idx)) next
+    # an exact gp()'s z reaches every position, so no batch can hold it, and
+    # fd_eta_chain() takes it where a design exists; the rest of the fit keeps
+    # its batches
+    if (identical(bk[["covstruct"]], "gp")) next
     # The batch assumes expand_b() carries b to the coefficients
     # POSITIONWISE, so that perturbing every level at once moves each
     # row by its own level's step and nothing else. That is the whole
@@ -1626,7 +1630,7 @@ fd_eta_chain <- function(fit, newdata, resp, allow_new_levels, use_re,
     if (is.null(ed)) next
     for (bk in fit$frame[["re_blocks"]] %||% list()) {
       if (!bk[["covstruct"]] %in% c("smooth", "gp", "hsgp") ||
-          !block_b_positionwise(bk)) {
+          (!block_b_positionwise(bk) && bk[["covstruct"]] != "gp")) {
         next
       }
       mine <- vapply(bk[["components"]], function(cp) {
@@ -1643,6 +1647,17 @@ fd_eta_chain <- function(fit, newdata, resp, allow_new_levels, use_re,
                    ed[["sm_parts"]])
         if (is.null(sp)) next
         as.matrix(sp$Xr)[, keep, drop = FALSE]
+      }
+      # an exact gp()'s design is over its field, and b is z: linear in z
+      # at a theta, so the chain still holds through d cvec / d b
+      if (bk[["covstruct"]] == "gp") {
+        Js <- rr_jacobians(fit)$Jb[bk[["c_idx"]], bk[["b_idx"]], drop = FALSE]
+        Zc <- if (is.null(newdata)) {
+          lp[["Z"]][, bk[["c_idx"]], drop = FALSE]
+        } else {
+          sp$Xr
+        }
+        Z <- as.matrix(Zc %*% Js[, keep, drop = FALSE])
       }
       chain[[length(chain) + 1L]] <- list(key = key,
                                           idx = bk[["b_idx"]][keep], Z = Z)

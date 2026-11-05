@@ -277,13 +277,19 @@ non-centers
 and the CORRELATED blocks \code{(x | g)}, \code{cs()}, \code{ar1()} and \code{hetar1()}.
 A \verb{k =} Hilbert-space \code{gp()} block non-centers too, since its
 factor is diagonal and the defaults prior its sd and its length
-scales (brms's classes \code{"sdgp"} and \code{"lscale"}), and so does an exact
-\code{gp()} field, as brms's \verb{sdgp * L zgp}: its factor is the Cholesky
-factor of the kernel over the field's distinct positions, taken on the
-tape at a cost of \code{n^3 / 3} per gradient for \code{n} positions.
-\code{rr()} is already non-centered by
-construction, since its own coefficients are the standard normal
-factors. What stays centered is a run whose variance parameters carry
+scales (brms's classes \code{"sdgp"} and \code{"lscale"}).
+\code{rr()} and an exact \code{gp()} are already non-centered by
+construction: the coefficients of \code{rr()} are its standard normal
+factors, and those of an exact \code{gp()} are brms's \code{zgp}, with the field
+\verb{sdgp * L zgp}, \code{L} the Cholesky factor of the kernel over a farthest-first
+order of the field's distinct positions, taken on the tape at a cost of
+\code{n^3 / 3} per gradient for \code{n} positions, at a nugget of \code{1e-12 * sdgp^2}.
+Drawing that field does not converge at \code{sigma} near \code{1e-3} and below on a
+small \code{n}: at n 15, Rhat on \code{sdgp} read 1.04 and 1.69 at \code{1e-3}, 1.36 at
+\code{1e-4} and 1.56 and 2.47 at \code{1e-6}, and \code{sigma}'s median up to 394 times the
+truth at \code{1e-6}. brms's program does not mix there either.
+\code{laplace = TRUE} does, Rhat at most 1.02.
+What stays centered is a run whose variance parameters carry
 no density at all: \code{\link[=check_laplace]{check_laplace()}}, which asks for that on purpose.
 Under \code{prior = "flat"} a standard deviation is flat on its own scale,
 as brms's \code{(flat)} is, which is a density on \code{theta} that vanishes

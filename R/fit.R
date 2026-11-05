@@ -77,6 +77,19 @@
 #'   tells how the defaults are set; the entries you do not name in
 #'   `start` keep those defaults.
 #'
+#'   An exact `gp()` on a gaussian response with a constant `sigma` starts at
+#'   the maximum of the model's marginal, read from a coarse grid. Another
+#'   family, a non-identity link, `sigma ~`, `ar()`, `mi()`, `me()` or `mo()`
+#'   starts at that marginal of the response on its link's scale, for `sdgp` and
+#'   the length scale. A nonlinear body, a mixture and `sigma ~ gp()` start at
+#'   the best of a few length scales read from the objective. A `theta` here
+#'   replaces all of this, and a `beta` or `betad` replaces only itself.
+#'
+#'   None of this can be certain. A marginal can have more than one maximum. On
+#'   384 rows of 16 curves no test had seen, the fit stopped more than 0.001
+#'   short of the maximum on 5, the worst 9.4, with no warning. A fit from other
+#'   `start` values is how to check one that matters.
+#'
 #'   A component is read by NAME when its vector has names, so
 #'   `start = list(beta = c("(Intercept)" = 5000))` moves that one
 #'   coefficient and leaves the rest at their defaults; parentheses may
@@ -1476,9 +1489,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                     silent = TRUE, inner.control = inner_ctl)
   }
   obj <- if (is.null(lap_obj)) {
-    RTMB::MakeADFun(nll, template, random = random, map = frame[["map"]],
-                    profile = profile_arg, silent = TRUE,
-                    inner.control = inner_ctl)
+    gp_tape_scope(frame, RTMB::MakeADFun(
+      nll, gp_tape_order(frame, template), random = random,
+      map = frame[["map"]], profile = profile_arg, silent = TRUE,
+      inner.control = inner_ctl))
   } else lap_obj
   if (vb) {
     vb_stage("tape", t0,
@@ -1544,6 +1558,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     obj <- imp$obj
     opt <- imp$opt
   } else if (is.null(integrate)) {
+    obj <- gp_start_scan(obj, template, frame, start, to_beta = function(b) {
+      if (is.null(bw)) b else beta_whiten_map(b, bw, inv = TRUE)
+    })
     opt <- fit_error_context(
       spec, start, REML, control, quadrature, prior,
       tryCatch(optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb,
@@ -1626,7 +1643,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       }
       est[[cp]][pos] <- unname(opt$par[pn == cp])
     }
-    est
+    # the template's order, whatever order the tape holds them in
+    est[intersect(names(frame[["par_template"]]), names(est))]
   }
   est <- est_at(opt)
   if (!is.null(integrate)) {
@@ -1694,6 +1712,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       frm_warning(flat_msg, call. = FALSE)
       # explains every lost parameter but a bound-held one (se_report())
       fit$cache$se_explained <- "nl_flat"
+    }
+    gp_msg <- gp_nugget_message(fit)
+    if (!is.null(gp_msg)) {
+      frm_warning(gp_msg, call. = FALSE, class = "frmtmb_gp_nugget")
     }
   }
   if (se) {
@@ -2744,9 +2766,10 @@ fit_recovery_starts <- function(obj, nll, template, random, map, frame,
   }
   if (isTRUE(control$profile)) {
     plain <- tryCatch({
-      o <- RTMB::MakeADFun(nll, template, random = random, map = map,
-                           silent = TRUE, inner.control =
-                             predictor_inner_control(predictor_units(frame)))
+      o <- gp_tape_scope(frame, RTMB::MakeADFun(
+        nll, gp_tape_order(frame, template), random = random, map = map,
+        silent = TRUE,
+        inner.control = predictor_inner_control(predictor_units(frame))))
       # bounds and units are resolved for the profiled parameterization,
       # which has no beta in it; this fit only supplies a starting point
       # and the real optimization below applies both
@@ -5063,6 +5086,11 @@ check_convergence <- function(fit, control) {
     # every fit (se_check()); this says which kind of point it judged
     room <- if (is.null(fit$importance)) conv_headroom(fit, gvec)
     at_max <- isTRUE(is.finite(room) && room <= control$grad_tol)
+    # the warm start of an exact gp() knows the marginal's maximum, which is another
+    # route to one number. A Newton step alone does not see a ridge: of 73 fits at
+    # that clause, 18 were short, up to 1 nat (dev/ncgp-findings.md, round 2)
+    gp_ok <- at_max && isTRUE(abs(fit$opt$objective -
+      fit$obj$env$.frmtmb_gp_marginal) <= control$grad_tol)
     # a nonlinear model that started at zero is the likeliest cause, and
     # `start` is the only lever, so name it here [brms#734]
     nl_hint <- if (!at_max &&
@@ -5072,11 +5100,13 @@ check_convergence <- function(fit, control) {
              "located prior placed them, the fit began at zero, which ",
              "is rarely in the right region (see par_template())")
     } else ""
-    msgs <- c(msgs, paste0("Optimizer did not report convergence: ",
-                           fit$opt$message, nl_hint,
-                           if (is.null(fit$importance)) {
-                             conv_headroom_clause(room, control$grad_tol)
-                           }))
+    if (!gp_ok) {
+      msgs <- c(msgs, paste0("Optimizer did not report convergence: ",
+                             fit$opt$message, nl_hint,
+                             if (is.null(fit$importance)) {
+                               conv_headroom_clause(room, control$grad_tol)
+                             }))
+    }
   }
   if (!is.null(fit$importance)) {
     # An importance-corrected objective is a Monte Carlo estimate, and

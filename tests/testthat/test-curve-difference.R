@@ -390,9 +390,9 @@ test_that("a gp() difference at DIFFERENT positions carries the cross term", {
     pos <- fit$frame$linpreds[["y.mu"]]$gps[[1]]$positions[, 1]
     k <- function(a, b) exp(2 * th[1]) * exp(-outer(a, b, "-")^2 /
                                                 (2 * exp(2 * th[2])))
-    K <- k(pos, pos) + diag(exp(2 * th[1]) * 1e-6, length(pos))
+    K <- k(pos, pos) + diag(exp(2 * th[1]) * 1e-12, length(pos))
     kc <- function(a, b) k(a, b) - k(a, pos) %*% solve(K, k(pos, b))
-    nug <- exp(2 * th[1]) * 1e-6
+    nug <- exp(2 * th[1]) * 1e-12
     e11 <- diag(kc(A$x, A$x)) + nug
     e22 <- diag(kc(B$x, B$x)) + nug
     e12 <- diag(kc(A$x, B$x)) + nug * (A$x == B$x)
@@ -411,7 +411,8 @@ test_that("a gp() difference at DIFFERENT positions carries the cross term", {
   }
   # a shift of 1e-10: the smooth part of the residual is continuous and
   # all but cancels, and what is left is the nugget, white noise of
-  # 1e-6 sd^2 at each of the two positions that only ONE position shares
+  # 1e-12 sd^2 at each of the two positions that only ONE position shares,
+  # which is below the rounding of the standard error it joins
   same <- frm_curve(o$fit, newdata = o$A, contrast = o$B,
                     simultaneous = FALSE)
   tiny <- o$B
@@ -419,8 +420,8 @@ test_that("a gp() difference at DIFFERENT positions carries the cross term", {
   near <- frm_curve(o$fit, newdata = o$A, contrast = tiny,
                     simultaneous = FALSE)
   bk <- o$fit$frame$re_blocks[[1]]
-  nug <- exp(2 * o$fit$estimates$theta[bk$theta_idx][1]) * 1e-6
-  expect_lt(max(abs((near$.se^2 - same$.se^2) / (2 * nug) - 1)), 1e-3)
+  nug <- exp(2 * o$fit$estimates$theta[bk$theta_idx][1]) * 1e-12
+  expect_lt(max(abs(near$.se^2 - same$.se^2)), 1e-6 * max(same$.se^2) + 4 * nug)
 
   # The mirrored grid. On an exactly symmetric observed design, x and -x
   # have kriging variances that agree to 1.11e-16, and they are
@@ -440,8 +441,10 @@ test_that("a gp() difference at DIFFERENT positions carries the cross term", {
   mB <- data.frame(x = -gp_g, fac = factor("B", levels = levels(ds$fac)))
   lma <- frmtmb::frm_lp_basis(fs, newdata = mA, re_formula = NA)
   lmb <- frmtmb::frm_lp_basis(fs, newdata = mB, re_formula = NA)
+  # against the prior variance, since the residual there is small and each
+  # side's reading rounds at the kernel's condition
   expect_lt(max(abs(lma$extra_var - lmb$extra_var)),
-            1e-6 * max(lma$extra_var))
+            1e-8 * exp(2 * fs$estimates$theta[1L]))
   dm <- frm_curve(fs, newdata = mA, contrast = mB, simultaneous = FALSE)
   expect_lt(max(abs(dm$.se / hand(fs, mA, mB) - 1)), 1e-6)
   # and the residual's share is real: the standard error without it

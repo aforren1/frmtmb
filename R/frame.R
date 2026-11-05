@@ -3696,15 +3696,17 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             }
             Zg <- Matrix::sparseMatrix(i = rows, j = jpos, x = sb$mult,
                                        dims = c(nrow(Xc), npos))
+            gp_d2 <- lapply(seq_len(Dg), function(j) {
+              outer(pos[, j], pos[, j], "-")^2
+            })
             components[[length(components) + 1L]] <- list(
               lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
               covstruct = "gp", id = NULL,
               dim = npos, n_levels = 1L,
               levels = NULL, cnms = paste0(lab, ".", seq_len(npos)),
               bar = NULL, Zlocal = methods::as(Zg, "CsparseMatrix"),
-              aux_D2 = lapply(seq_len(Dg), function(j) {
-                outer(pos[, j], pos[, j], "-")^2
-              }),
+              aux_D2 = gp_d2,
+              gp_order = gp_farthest_first(list(aux_D2 = gp_d2)),
               gp_D = Dg, gp_iso = iso, gp_vars = vnames,
               # the exact form keeps data units inside; brms reports
               # its lengthscale on the scaled inputs
@@ -4222,7 +4224,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     npar_k <- cs_block_npar(cs_name, proto)
     # a block whose coefficients are its parameters mapped (esicar's,
     # centered) tells the frame that expand_b() must run
-    has_expand <- has_expand || isTRUE(cps[[1]]$expands)
+    has_expand <- has_expand || isTRUE(cps[[1]]$expands) ||
+      identical(cs_name, "gp")
     blk_i <- length(re_blocks) + 1L
     ofs <- 0L
     for (k in seq_along(gd)) {
@@ -4255,6 +4258,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # is absent is refused by its name (require_structure_packages())
       covstruct_package = cs_entry(cs_name)[["package"]],
       aux_omega = cps[[1]]$aux_omega,
+      gp_order = cps[[1]]$gp_order,
       gp_D = cps[[1]]$gp_D,
       gp_iso = cps[[1]]$gp_iso,
       gp_vars = cps[[1]]$gp_vars,

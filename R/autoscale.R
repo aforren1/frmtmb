@@ -511,8 +511,8 @@ autoscale_sdreport <- function(fit, jp = needs_jp(fit)) {
       hc <- if (length(at)) fresh()
     }
     H <- if (!is.null(hc) && is.null(hc$Hq) && identical(hc$at, at)) hc$H
-    sdr <- RTMB::sdreport(fit$obj, hessian.fixed = H,
-                          getJointPrecision = jp)
+    sdr <- gp_tape_scope(fit$frame, RTMB::sdreport(
+      fit$obj, hessian.fixed = H, getJointPrecision = jp))
     return(sdr_rescue(fit, sdr_unwhiten(fit, sdr_name_joint(sdr, fit$obj)),
                       H))
   }
@@ -527,8 +527,8 @@ autoscale_sdreport <- function(fit, jp = needs_jp(fit)) {
   # recognizes it there as the one the check kept
   Hn <- if (isTRUE(hc$exact) && identical(hc$Hq, Hq)) hc$H else
     Hq / outer(u, u)
-  sdr <- RTMB::sdreport(obj, par.fixed = fit$opt$par,
-                        hessian.fixed = Hn, getJointPrecision = jp)
+  sdr <- gp_tape_scope(fit$frame, RTMB::sdreport(
+    obj, par.fixed = fit$opt$par, hessian.fixed = Hn, getJointPrecision = jp))
   Vq <- try(solve(Hq), silent = TRUE)
   if (!inherits(Vq, "try-error")) {
     V <- Vq * outer(u, u)

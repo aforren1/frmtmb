@@ -209,7 +209,7 @@
 #' the field's kriging residual, one draw of the field shared by every
 #' unseen row, and its covariance enters `Sigma` the same way. The band
 #' therefore widens where the grid leaves the observed positions. The
-#' `1e-6` nugget frmtmb puts on the kernel's correlation is white noise
+#' `1e-12` nugget frmtmb puts on the kernel's correlation is white noise
 #' at each position, which has no derivative: [frm_curve_deriv()] and a
 #' peak's standard error leave it out.
 #'

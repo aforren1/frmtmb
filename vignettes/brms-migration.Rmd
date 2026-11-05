@@ -247,6 +247,16 @@ brms does.
   `cens()` response both draw the LATENT uncensored value, as brms
   does; `simulate(censored = TRUE)` applies the censoring mechanism
   instead.
+- The exact `gp(x)` is brms's model, with `sdgp * L * zgp` for the field. The
+  nugget is relative: `1e-12 * sdgp^2` on the kernel's diagonal, where brms
+  adds an absolute `1e-12`. At `sdgp` near 1 the two are one number. The model
+  does not depend on the units of `y`, and a fit depends on them only to the
+  optimizer's tolerance. brms's fit does depend on them: at `y * 1000` its
+  kernel does not factor at the estimates. `frmtmb` factors the kernel over a
+  farthest-first order of the distinct positions, where rounding moves the
+  field least, and brms factors it in order of first appearance, so the `b[i]`
+  columns of `frm_sample()` draws are not brms's `zgp[i]` columns. Read the
+  field through `ranef()` or the predictive methods.
 - `sample_prior = "only"` plus `posterior_predict()` is the same call
   on `frmtmb.sample::frm_sample()`, which samples the prior of the
   whole model as brms does. Without a sampler,

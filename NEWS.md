@@ -1,3 +1,114 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* The exact `gp()` is non-centered: `b` of the block is z, a standard normal,
+  brms's `zgp`, and the field is `sdgp * L(lscale) * z`, with `L` the Cholesky
+  factor of the kernel plus a nugget of `1e-12` on the correlation. The field
+  was centered at a nugget of `1e-6`, whose white noise of variance
+  `1e-6 * sdgp^2` came off `sigma^2`, or moved `sdgp` and the length scale when
+  positions repeat, `sigma` is known or the family has none. Every fit that
+  relied on it moves. On a curve `x^2` over x from 0 to 10 with `sigma` 0.3,
+  `frm()` read `sigma` 6e-5 and now reads 0.35, the marginal's maximum. On
+  `sin(2 * x)` with noise 1e-3 it read `sigma` 1.3e-7 and now reads 1.1e-3, 1.8
+  nats higher. At a known `se(3e-4)` it was 29 nats short. On `exp(0.8 * x)`
+  with `sigma` 0.3 the fit was 72 nats short and now reaches the maximum, to
+  0.0005 and 0.0015 nats on two seeds, where the objective rounds at 1e-3, with
+  a warning that says so.
+* The nugget is relative to `sdgp`. So the model of `y * c` is the model of `y`
+  scaled, and a fit of it is the fit of `y` scaled to the optimizer's tolerance:
+  on 5 designs at noise 1e-3 and above, `c` from 1e-3 to 1e6, the log-likelihood
+  within 3e-7 nats, `sigma` within 3e-5, `sdgp` within 3e-4 and standard errors
+  at new positions within 4e-5. At noise 1e-4, within 3e-4 nats, 4e-3 in `sdgp`
+  and 3e-4 in the length scale. The same holds for `x * c`. brms's nugget is an
+  absolute `1e-12`: at `y * 1000` its kernel does not factor at the estimates
+  and its chains do not mix (Rhat 3.77), and at `y / 1000` it floors `sigma`. At
+  `sdgp` near 1 the two are one number.
+* `fit$estimates$b`, `fit$obj`, the joint precision and `start = list(b = )`
+  read z in an exact `gp()` block, over a farthest-first order of the positions.
+  `ranef()`, `coef()` and `getME(fit, "b")` still read the field. Read the field
+  off those. The kernel is factored in that order because rounding moves the
+  field least there: at 15 positions 6e-11, against 2e-5 over sorted positions.
+  A fit reads the same in either order, and a chain at true `sigma` 1e-3 mixes
+  better in this one.
+* An exact `gp()` starts where the model's marginal, which integrates the field
+  out, reads its maximum. The fit stays on the z tape: only where the descent
+  begins changes. On a gaussian response with a constant `sigma` that is the
+  model's own marginal, read from a coarse grid over the length scale and the
+  noise, from the best cell of each of 4 length scales and the best 3 cells
+  overall, on the distinct rows of the random design. Another family, a
+  non-identity link, `sigma ~`, `ar()`, `mi()`, `me()`, `mo()` or several
+  responses read the same marginal of the response on its link's scale, for
+  `sdgp` and the length scale. A `theta` in `start` replaces this, and a `beta`
+  or `betad` replaces only itself.
+* What that reaches, on rows no test had seen. On a curve with a trend and a
+  wiggle, `2 * sin(3 * x) + x`, n 80, noise 1e-3, a descent from the middle of
+  the range stopped 417 nats short at `sigma` 1.19 with no warning; 0.78.0
+  reached it there and stopped short elsewhere. Gaussian, on 384 rows of 16
+  fresh curves: 5 short by more than 1e-3 nats, worst 9.4, conv 0 and no
+  warning, where 0.78.0 read 57 short of 192, worst 613. `0 + gp(x)`, `start =
+  list(beta = )`, `mi()`, `me()` and `mo()` read 0 short on their row. Negative
+  binomial, Gamma, lognormal, student, `sigma ~ x`, a log link, `ar()` and two
+  responses read 0 of 48 short, against 32 of 48 on 0.78.0, worst 272.
+* What it does not reach. Low-count Poisson read 3 of 6 short, worst 1.8, and
+  bernoulli 2 of 6, worst 1.4, conv 0 and no warning. 0.78.0 reads 3 and 2 of 6
+  there, worst 2.6 and 1.4, not always on the same rows: the field's own
+  information is low. A nonlinear body takes the scan, and stops 98.5 nats
+  short on a row 0.78.0 stops 98.5 short on as well. No start is certain: a
+  marginal can have more than one maximum.
+* `frm_curve_deriv()` on a fit with an exact `gp()` takes a default step of
+  `5e-4` of the grid's range at order 2, where it was `1e-4`. At the smaller
+  nugget a second difference meets the rounding of the kriging row: at `1e-4` a
+  standard error read up to 20 percent off.
+
+## Limits
+
+* `sigma` near `1e-6 * sdgp`, where a nugget of `1e-12` reaches the noise, is
+  the new limit, three orders below the old one. There `sigma` can read low. On
+  200 rows the fit's `sigma` was under half the true value on 92. A new warning
+  of class `frmtmb_gp_nugget` names this: it fired on all 92, on every row of
+  `sigma` under `1e-6 * sdgp`, and on none above `3e-6 * sdgp`. With `se()`, or
+  where positions repeat, `sdgp` and the length scale can read low. On a
+  non-gaussian family it did not fire on 18 rows, up to log mean 16 and 1e7
+  trials.
+* Below about `1e-4 * sdgp` nlminb also stops at false convergence, more often
+  now since it starts at the maximum. `fit$opt$convergence` and `diagnose()`
+  keep the code. The warning stays quiet only when a Newton step gains nothing
+  and the stop reads the marginal's own maximum to `grad_tol`, which only the
+  warm start of a gaussian field can say: on 144 rows it quieted 81 of 96, of
+  which 3 were short, worst 0.81, at the marginal's own second maximum. On 160
+  rows with a strong trend it quieted 37 of 66, of which 2 were short, worst
+  1.44. Every other stop still warns.
+* On noise-free `sin(2 * x)`, 60 rows, the fit is 0.003 nats short of the
+  marginal's maximum, with its warnings. The fitted means at observed positions
+  hold, and at new positions they are 2.6e-7 off. Standard errors at new
+  positions read 1.1 to 2.4 times the plug-in standard error at the maximum.
+
+## Costs
+
+* A gaussian fit with an exact `gp()` takes longer than the centered one did.
+  From `y ~ gp(x)` on 60, 200 and 500 distinct positions, and on 1000 rows at
+  500 positions, one at a time on an unloaded machine, `frm()` took 0.10 to
+  0.11, 1.8 to 2.1, 26 and 29 to 31 seconds, where it took 0.05 to 0.06, 0.6 to
+  0.7, 6.8 to 7.1 and 6.9 to 7.0: about 2, 3, 3.7 and 4.2 times. About 40
+  percent of that at 500 positions is the start, which saves the descent; the
+  rest is the tape's build, inner solve, Hessian and standard-error check. The
+  inner Hessian is `I + sd^2 L' W L`, dense in the positions, and TMB's tape
+  reads it column by column, so the gradient grows faster than the value. Peak
+  memory went down, from 1.1 to 0.72 GB at 500 positions.
+* On a fit with an exact `gp()`, a standard error's row under its noise floor is
+  flat only if it reads no curvature along its own parameter at two steps, and
+  the Hessian's steps for coefficients are in y's unit. An `(Intercept)` at `y
+  * 1000` read flat and took every fitted standard error with it. Other fits
+  keep their Hessian and their verdicts bit for bit.
+
+## New features
+
+* `gp_nugget_message()`, in the sampling API: the new warning's text, or `NULL`.
+* `gp_tape_scope()` and `gp_tape_order()`, in the sampling API: the tape
+  settings and the parameter order a frame with an exact `gp()` needs while its
+  tape is built and read.
+
 # frmtmb 0.78.0
 
 The main changes:

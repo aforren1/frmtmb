@@ -1178,6 +1178,21 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   fixed"; `dev/reviews/2026-10-14-illse2.md`, item 6 of the re-check.
 - Status: not reported.
 
+### TMB-5. `tmbad.sparse_hessian_compress` gives a wrong gradient with an inner parameter ahead of the field
+
+- Seen: TMB 1.9.25, 2026-11-03 (`dev/review-ncgp-tmbcpp.R`, a plain C++ template, no
+  RTMB, no frmtmb; seed 20261102).
+- Repro: `mu`, then `b`, both random, the field a Cholesky factor times `b`, over
+  sorted positions. `TMB::config(tmbad.sparse_hessian_compress = 1, DLL = )`.
+- Expected: the gradient of the Laplace objective, in the length scale 0.0717, as
+  compress 0 and a central difference read. Actual: 0.182, with the value right to
+  every digit. Under RTMB 0.232. The error falls with the order of the positions and
+  does not go: 1.6e-1 sorted, 8e-8 farthest-first.
+- Workaround: `b` first in the parameter list (`gp_tape_order()`), 2e-9 in every arm.
+  `tests/testthat/test-gp-noncentered.R` pins it on a sorted hand tape.
+- Record: `dev/reviews/2026-11-03-ncgp.md`, "TMB's defect"; `dev/ncgp-findings.md`.
+- Status: not reported. The user decides.
+
 ## tmbstan
 
 ### tmbstan-1. tmbstan 1.2.0 built against StanHeaders 2.39 samples a standard normal

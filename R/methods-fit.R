@@ -1936,6 +1936,8 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
       S <- if (bk[["covstruct"]] == "rr" ||
                  (block_expands(bk) && is.null(cond))) {
         matrix(NA_real_, nrow(M), ncol(M))
+      } else if (bk[["covstruct"]] == "gp") {
+        t(matrix(gp_field_condsd(object, bk), nrow = bk[["dim"]]))
       } else if (block_expands(bk)) {
         t(matrix(cond(cvr[bk[["b_idx"]]], bk), nrow = bk[["dim"]]))
       } else {

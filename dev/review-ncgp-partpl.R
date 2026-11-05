@@ -1,0 +1,6 @@
+source("C:/Users/adf44/source/r/frmtmb-wt-ncgp/dev/review-ncgp-lib.R")
+for (a in commandArgs(TRUE)[1]) rev_libs(a)
+set.seed(1); d <- data.frame(x = runif(30, 0, 6)); d$y <- sin(d$x) + rnorm(30, sd = .2)
+f <- suppressWarnings(frm(y ~ gp(x), d))
+cat("names estimates:", names(f$estimates), "\n"); cat("names par_template(fit):", names(par_template(f)), "\n"); cat("names template pre-fit:", names(par_template(y ~ gp(x), data = d)), "\n")
+print(par_template(f))

@@ -42,10 +42,16 @@ fdc_count <- function(expr) {
 # truncation is about 1e-9 and its rounding about eps / 1e-7 = 2e-9, so
 # it is the accurate route, and a bound of 1e-7 sits fifty times above
 # both while staying far below any defect the tests pin
-fdc_plain <- function(fit, nd, re_formula, b_idx = smooth_b_idx(fit)) {
+fdc_plain <- function(fit, nd, re_formula, b_idx = smooth_b_idx(fit),
+                      eps = 1e-7) {
   f <- function(x) fitted_point(x, nd, re_formula)
-  fit_fd_se(fit, f, eps = 1e-7, b_idx = b_idx)
+  fit_fd_se(fit, f, eps = eps, b_idx = b_idx)
 }
+
+# A kriging row holds Ks K^-1, about 1e4 at a kernel condition of 1e13, so a
+# step of 1e-7 past the positions reads its rounding: 1e-12 over the step. At
+# 1e-5 the truncation is about 1e-10
+fdc_krig_eps <- 1e-5
 fdc_tol <- 1e-7
 
 test_that("a gp() block off its positions costs one pair, not one each", {
@@ -95,7 +101,7 @@ test_that("the chain rule gives the per-coefficient derivative", {
   bi <- sort(unique(c(smooth_b_idx(fg), re_governed_b(fg))))
   # the plain route has no kriging term, so compare at the coefficient
   # part: Est.Error^2 less (dP/deta)^2 * extra_var is that part
-  refg <- fdc_plain(fg, ndg, NULL, bi)
+  refg <- fdc_plain(fg, ndg, NULL, bi, eps = fdc_krig_eps)
   ev <- frm_lp_basis(fg, newdata = ndg)$extra_var
   eta <- as.numeric(frm_linpred(fg, newdata = ndg, type = "link"))
   fx <- fixef(fg)
@@ -111,9 +117,9 @@ test_that("Est.Error carries the kriging variance past the positions", {
   o <- fdc_fit()
   # past the data the gp()'s conditional variance is most of the field's
   # own, and a category probability moves with it through eta
-  nd <- data.frame(x = c(2.6, 3.2))
+  nd <- data.frame(x = c(2.6, 4.5))
   fv <- fitted(o$fit, newdata = nd, re_formula = NA)
-  plain <- fdc_plain(o$fit, nd, NA)
+  plain <- fdc_plain(o$fit, nd, NA, eps = fdc_krig_eps)
   ev <- frm_lp_basis(o$fit, newdata = nd, re_formula = NA)$extra_var
   expect_true(all(ev > 0))
   # cumulative logit: P(Y = k) = F(tau_k - eta) - F(tau_{k-1} - eta)
@@ -129,5 +135,6 @@ test_that("Est.Error carries the kriging variance past the positions", {
   expect_lt(max(abs(fv[, "Est.Error", ] / want - 1)), 1e-5)
   # the share is not small here, so leaving it out is visible
   expect_true(all(fv[, "Est.Error", ] > plain))
-  expect_true(all(fv[2L, "Est.Error", ] > 1.05 * plain[2L, ]))
+  # P(Y = 2) sits at its maximum over eta there, so it does not move with it
+  expect_true(all(fv[2L, "Est.Error", c(1L, 3L)] > 1.05 * plain[2L, c(1L, 3L)]))
 })

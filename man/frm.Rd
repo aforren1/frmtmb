@@ -87,6 +87,19 @@ it and pass it back. Its section "The default starting values"
 tells how the defaults are set; the entries you do not name in
 \code{start} keep those defaults.
 
+An exact \code{gp()} on a gaussian response with a constant \code{sigma} starts at
+the maximum of the model's marginal, read from a coarse grid. Another
+family, a non-identity link, \verb{sigma ~}, \code{ar()}, \code{mi()}, \code{me()} or \code{mo()}
+starts at that marginal of the response on its link's scale, for \code{sdgp} and
+the length scale. A nonlinear body, a mixture and \code{sigma ~ gp()} start at
+the best of a few length scales read from the objective. A \code{theta} here
+replaces all of this, and a \code{beta} or \code{betad} replaces only itself.
+
+None of this can be certain. A marginal can have more than one maximum. On
+384 rows of 16 curves no test had seen, the fit stopped more than 0.001
+short of the maximum on 5, the worst 9.4, with no warning. A fit from other
+\code{start} values is how to check one that matters.
+
 A component is read by NAME when its vector has names, so
 \code{start = list(beta = c("(Intercept)" = 5000))} moves that one
 coefficient and leaves the rest at their defaults; parentheses may

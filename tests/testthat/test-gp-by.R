@@ -17,7 +17,7 @@ gpby_data <- function(n = 60, seed = 5) {
 }
 
 # The marginal covariance of y under independent exact GPs, sub-GP j on
-# rows `rows[[j]]` multiplied by `mult[[j]]`, with frmtmb's nugget (1e-6
+# rows `rows[[j]]` multiplied by `mult[[j]]`, with frmtmb's nugget (1e-12
 # on the correlation) and one latent value per distinct position.
 gpby_ref_cov <- function(x, sub, sd, ell, sigma) {
   n <- length(x)
@@ -28,7 +28,7 @@ gpby_ref_cov <- function(x, sub, sd, ell, sigma) {
     Z <- matrix(0, n, length(pos))
     Z[cbind(r, match(x[r], pos))] <- sub[[j]]$mult
     K <- sd[j]^2 * (exp(-outer(pos, pos, "-")^2 / (2 * ell[j]^2)) +
-                      diag(1e-6, length(pos)))
+                      diag(1e-12, length(pos)))
     S <- S + Z %*% K %*% t(Z)
   }
   S
@@ -228,10 +228,13 @@ test_that("prediction reads each row's own level, and refuses a new one", {
   e <- gpby_est(fit)
   xa <- sort(unique(d$x[d$f == "a"]))
   Ka <- e$sd[1]^2 * (exp(-outer(xa, xa, "-")^2 / (2 * e$ell[1]^2)) +
-                       diag(1e-6, length(xa)))
+                       diag(1e-12, length(xa)))
   ks <- e$sd[1]^2 * exp(-(2.55 - xa)^2 / (2 * e$ell[1]^2))
+  # b is z: the field is R' z over the block's order, so the weights K^-1 ks
+  # meet it as R^-T ks in that order
   ba <- fit$estimates$b[bks[[1]]$b_idx]
-  mu_a <- e$mu + sum(solve(Ka, ks) * ba)
+  pa <- bks[[1]]$gp_order
+  mu_a <- e$mu + sum(backsolve(chol(Ka[pa, pa]), ks[pa], transpose = TRUE) * ba)
   expect_lt(abs(lb$eta[1] - mu_a), 1e-8 * abs(mu_a))
 
   expect_error(frm_linpred(fit, newdata = data.frame(x = 1, f = "d")),

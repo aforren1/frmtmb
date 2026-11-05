@@ -1,3 +1,26 @@
+# frmtmb.sample (development version)
+
+## Breaking changes
+
+* An exact `gp()` is non-centered in core, as brms's `zgp`, at a nugget of
+  `1e-12 * sdgp^2`, so `frm_sample()` samples the tape `frm()` fits, with the
+  sampler's priors added, and has nothing to transform. The block no longer has
+  a factor for `reparameterize =`, and that argument does not reach it: an
+  exact field is non-centered with or without it. The `b[i]` columns of its
+  draws are z, over a farthest-first order of the positions, where they were
+  the field. `ranef()` and every predictive method read the field through
+  `expand_b()`, as before.
+* `frm_sample(fit)` starts at random where the fit's noise has reached the
+  nugget of an exact `gp()`, and says so. Chains started at that mode stay
+  pinned: at true `sigma` 1e-6, n 15, a median `sigma` of 1.83e-8 and Rhat 2.25.
+  These chains do not converge at this noise either: `sigma` read 24 and 394
+  times the truth on two seeds at n 15. `laplace = TRUE` is the route here.
+  `init = "last.par.best"` starts at the mode. At ordinary noise the mode stays
+  the start.
+* `frm_sample(laplace = TRUE)` on an exact `gp()` takes 3.5 times 0.78.0's wall
+  clock at 300 positions, 570 s against 165 s, from the dense gradient. Memory
+  holds, 1.91 GB against 1.92 GB.
+
 # frmtmb.sample 0.25.0
 
 Needs frmtmb 0.78.0. Its `set_prior()` takes the classes `meanme`,

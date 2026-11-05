@@ -125,7 +125,7 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
   curve_check_var(nd, var)
   curve_check_contrast_var(nd, ct, var)
   x <- as.numeric(nd[[var]])
-  e <- curve_eps(eps, x, order)
+  e <- curve_eps(eps, x, order, curve_has_exact_gp(sp$fit))
 
   # One perturbation pass over the stacked grid: the design at the three
   # stencil positions costs the same number of predict() calls as the
@@ -292,11 +292,26 @@ curve_check_var <- function(nd, var) {
   invisible(NULL)
 }
 
+#' Whether a fit has an exact `gp()` block.
+#'
+#' @noRd
+curve_has_exact_gp <- function(fit) {
+  any(vapply(fit$frame[["re_blocks"]] %||% list(), function(bk) {
+    identical(bk[["covstruct"]], "gp")
+  }, NA))
+}
+
 #' The measured default step: a fraction of the covariate's own range,
 #' per order. See the note at the top of this file for the sweep.
 #'
+#' A second difference through an exact `gp()` meets the rounding of its
+#' kriging row, about 1e-10 at a kernel condition of 1e12, so its step is
+#' longer: at 1e-4 of the range the standard error read 20 percent off on one
+#' design of three, at 5e-4 a few parts in 1000, with the value 1e-4 of itself
+#' against the kernel's own derivative (dev/ncgp-eps.R).
+#'
 #' @noRd
-curve_eps <- function(eps, x, order) {
+curve_eps <- function(eps, x, order, exact_gp = FALSE) {
   if (!is.null(eps)) {
     if (!is.numeric(eps) || length(eps) != 1L || !is.finite(eps) ||
         eps <= 0) {
@@ -307,5 +322,5 @@ curve_eps <- function(eps, x, order) {
   }
   r <- diff(range(x))
   if (!is.finite(r) || r <= 0) r <- max(abs(x), 1)
-  r * if (order == 1L) 1e-6 else 1e-4
+  r * if (order == 1L) 1e-6 else if (exact_gp) 5e-4 else 1e-4
 }

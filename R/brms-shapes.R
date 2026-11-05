@@ -706,11 +706,20 @@ fit_fd_se <- function(fit, f, eps = 1e-5, b_idx = NULL, b_batch = NULL,
     # an output that moves along a lost direction has no standard error;
     # one warning, unless the directions are only variance components at
     # their boundary, which the fit's boundary message named
-    bad <- jc_nonest(jc, J, seq_len(p))
+    # the J of a lost direction holds an exact gp()'s field, as
+    # gp_null_at_field() says, and the columns above hold its z
+    Jn <- J
+    th_p <- which(map$comp == "theta")
+    for (bk in fit$frame[["re_blocks"]] %||% list()) {
+      if (identical(bk[["covstruct"]], "gp") && length(th_p)) {
+        Jn[, th_p[bk[["theta_idx"]]]] <- 0
+      }
+    }
+    bad <- jc_nonest(jc, Jn, seq_len(p))
     se[bad] <- NaN
     warn <- bad
     if (any(bad) && any(jc$boundary)) {
-      warn <- bad & jc_nonest(jc_drop_boundary(jc), J, seq_len(p))
+      warn <- bad & jc_nonest(jc_drop_boundary(jc), Jn, seq_len(p))
     }
     se_pred_warn(warn)
   }

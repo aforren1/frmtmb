@@ -171,8 +171,18 @@ outer_fd_steps <- function(frame, pn, u = 1) {
     if (length(rms) != length(pos) || !all(is.finite(rms))) next
     s[pos] <- pmax(s[pos], rms)
   }
-  # in the coordinates par / u a column's scale is its own times u
-  1e-3 / pmax(1, s * rep_len(u, np))
+  # in the coordinates par / u a column's scale is its own times u. An exact
+  # gp() steps in the response's unit as well: at y * 1e6 and noise 1e-4 a step
+  # of 1e-3 in mu reads rounding, 2 percent in a standard error. Every other
+  # frame keeps its Hessian bit for bit.
+  ru <- 1
+  if (any(vapply(frame[["re_blocks"]] %||% list(), function(bk) {
+    identical(bk[["covstruct"]], "gp")
+  }, NA)) && !(length(u) == 1L && u == 1)) {
+    ru <- tryCatch(predictor_par_units_resp(frame, pn, predictor_units(frame)),
+                   error = function(e) 1)
+  }
+  1e-3 / pmax(1, s * rep_len(u, np) / ru)
 }
 
 #' stats::optimHess() with its default controls, written out so that the
@@ -724,7 +734,15 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
     # would empty sigma's row of 400
     floor_i <- se_noise_mult * apply(Eu, 1L, max)
     if (!exact) floor_i <- pmax(floor_i, se_empty_row)
-    why[f[apply(Hu, 1L, max) <= floor_i]] <- "flat"
+    emp <- f[apply(Hu, 1L, max) <= floor_i]
+    # the case is a dense field's noisy gradient; every other frame keeps its
+    # verdicts, among them a peak that is flat off its own rows
+    if (!exact && any(vapply(fit$frame[["re_blocks"]] %||% list(), function(bk) {
+      identical(bk[["covstruct"]], "gp")
+    }, NA))) {
+      emp <- emp[!vapply(emp, se_row_curved, NA, fit = fit, p = p, u = u)]
+    }
+    why[emp] <- "flat"
   }
   # a zero diagonal beside a row that is not empty: some combination
   # with another parameter curves downward
@@ -2283,6 +2301,34 @@ se_at_edge <- function(fit, name, dir) {
   f0 <- tryCatch(obj$fn(p), error = function(e) NA_real_)
   f1 <- tryCatch(obj$fn(q), error = function(e) NA_real_)
   is.finite(f0) && is.finite(f1) && abs(f1 - f0) <= se_edge_tol
+}
+
+#' Is a row under its noise floor curved all the same, measured along its own
+#' parameter at two steps, each a thousandth of its unit and more?
+#'
+#' The Hessian's steps are in absolute predictor units, so that a design at unit
+#' scale keeps its Hessian bit for bit, and at y * 1000 and noise 0.1 they read
+#' the `lscale` gradient's rounding: the floor is the row's largest asymmetry,
+#' one noisy partner sets it, and the `(Intercept)` row, curvature 0.6 at two
+#' steps within 1e-4, read flat and took every fitted standard error
+#' (dev/ncgp-findings.md). A row that is noise does not read one number twice.
+#'
+#' @noRd
+se_row_curved <- function(j, fit, p, u) {
+  obj <- fit$obj
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  h <- 1e-3 * u[j]
+  d <- function(s) {
+    q <- p
+    q[j] <- p[j] + s * h
+    up <- drop(obj$gr(q))[j]
+    q[j] <- p[j] - s * h
+    (up - drop(obj$gr(q))[j]) / (2 * s * h)
+  }
+  d1 <- tryCatch(d(1), error = function(e) NA_real_)
+  d2 <- tryCatch(d(4), error = function(e) NA_real_)
+  isTRUE(d1 > 0 && d2 > 0 && abs(d1 / d2 - 1) <= 0.1 && d1 * u[j]^2 > se_empty_row)
 }
 
 #' The rounding allowed in se_at_edge(): a Laplace objective's inner

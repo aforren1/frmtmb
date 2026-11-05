@@ -1,0 +1,15 @@
+source("C:/Users/adf44/source/r/frmtmb-wt-ncgp/dev/review-ncgp-lib.R")
+rev_libs("lane")
+set.seed(1); n <- 40
+d <- data.frame(x=runif(n,0,6), z=rnorm(n), g=factor(sample(letters[1:5],n,TRUE)), f=factor(sample(c("a","b"),n,TRUE)), s=0.1)
+d$y <- sin(d$x)+rnorm(n,sd=.2)
+fit <- suppressWarnings(frm(y | se(s, sigma = TRUE) ~ z + gp(x, by = f) + (1|g), d))
+fr <- fit$frame
+print(names(fr))
+print(names(fr$lps %||% fr$lp))
+str(fr$linpreds[[1]] %||% NULL, max.level=1)
+str(fr$re_blocks[[1]], max.level=1, give.attr=FALSE)
+print(vapply(fr$re_blocks, function(k) paste(k$covstruct, k$dim, k$n_levels), ""))
+str(fr$re_blocks[[2]]$components[[1]], max.level=1, give.attr=FALSE)
+print(fr$aterms %||% "noat")
+str(fr$aterm_data %||% NULL, max.level=1)

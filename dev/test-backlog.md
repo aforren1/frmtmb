@@ -4383,6 +4383,17 @@ parity gap and saved 0.76.0 draws) stand.
   0.76.0 survey note on `sar()`. `dev/mointerop-findings.md`, "Defects
   found, not fixed", 3.
 
+## Filed by the exact-gp round (2026-11-03)
+
+- The SE check's outer Hessian on a gaussian exact field could come from the marginal's
+  tape: 0.87 s against 11.3 s at 500 positions, the same SEs to every printed digit, about 2
+  times the base's cost overall against 3 now (`dev/review-ncgp-r2-prof.R`). It touches the
+  SE check's tiers, so it is not built.
+- `avg_slopes()`'s standard error on a gaussian exact field reads 1e-8 to 1e-6 where
+  `frm_curve_deriv()` reads 0.1 (`dev/review-ncgp-readers-show2.R`), and NA on
+  `gr = FALSE`, anisotropic and `cmc = FALSE`. Wrong on 0.78.0 too (3e-7 to 4e-6);
+  the Poisson row is right on both. Not fixed.
+
 ## Filed at the 0.78.0 release (2026-10-29)
 
 Three lanes off ac4906bd (frmtmb 0.77.0 plus one test fix), merged onto

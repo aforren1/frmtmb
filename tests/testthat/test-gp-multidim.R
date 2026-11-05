@@ -44,7 +44,7 @@ test_that("2-D exact gp() matches direct GP marginal ML", {
   nll <- function(p) {
     Kp <- exp(2 * p[2]) * (exp(-rp$Dm1 / (2 * exp(2 * p[3])) -
                                 rp$Dm2 / (2 * exp(2 * p[4]))) +
-                             diag(1e-6, np))
+                             diag(1e-12, np))
     S <- rp$Zi %*% Kp %*% t(rp$Zi) + exp(2 * p[5]) * diag(n)
     r <- dg$y - p[1]
     0.5 * (determinant(S)$modulus + sum(r * solve(S, r)) +
@@ -62,7 +62,7 @@ test_that("2-D exact gp() matches direct GP marginal ML", {
   fi <- frm(bf(y ~ gp(x1, x2, iso = TRUE)) + gaussian(), data = dg)
   nlli <- function(p) {
     Kp <- exp(2 * p[2]) * (exp(-(rp$Dm1 + rp$Dm2) / (2 * exp(2 * p[3]))) +
-                             diag(1e-6, np))
+                             diag(1e-12, np))
     S <- rp$Zi %*% Kp %*% t(rp$Zi) + exp(2 * p[4]) * diag(n)
     r <- dg$y - p[1]
     0.5 * (determinant(S)$modulus + sum(r * solve(S, r)) +
@@ -112,7 +112,7 @@ test_that("exact gp() kriging matches the closed form", {
   th <- est$theta[bk$theta_idx]
   sd2 <- exp(2 * th[1])
   rho <- exp(th[2])
-  Kfit <- sd2 * (exp(-Dm^2 / (2 * rho^2)) + diag(1e-6, length(pos)))
+  Kfit <- sd2 * (exp(-Dm^2 / (2 * rho^2)) + diag(1e-12, length(pos)))
   bhat <- est$b[bk$b_idx]
 
   # grid of unseen positions (data is on a 0.1 grid; offsets miss it)
@@ -121,20 +121,24 @@ test_that("exact gp() kriging matches the closed form", {
   nd <- data.frame(x = xs)
   pk <- frm_linpred(fg, newdata = nd, se.fit = TRUE)
 
-  # conditional mean K* K^-1 b_hat plus the fixed-effect part
+  # conditional mean K* K^-1 f_hat plus the fixed-effect part; b is z and
+  # the field is R' z, so the near-singular solve cancels on paper
   Kst <- sd2 * exp(-outer(xs, pos, "-")^2 / (2 * rho^2))
-  Xr <- t(solve(Kfit, t(Kst)))
-  mu_hand <- est$beta[1] + drop(Xr %*% bhat)
+  # the factor of the correlation, as the fit takes it: the near-null pivots
+  # round differently through a matrix scaled by sd2
+  po <- fg$frame$re_blocks[[1L]]$gp_order
+  Rfit <- chol((exp(-Dm^2 / (2 * rho^2)) + diag(1e-12, length(pos)))[po, po])
+  Pk <- sqrt(sd2) * t(backsolve(Rfit, t(Kst[, po, drop = FALSE] / sd2),
+                                transpose = TRUE))
+  mu_hand <- est$beta[1] + drop(Pk %*% bhat)
   expect_lt(max(abs(pk$fit - mu_hand)), 1e-8)
 
   # variance decomposition: delta-method part over (beta, b) plus the
   # GP conditional variance diag(K** - K* K^-1 K*')
-  jc <- frmtmb:::get_joint_cov(fg)
-  cp <- c(which(jc$names == "beta")[1], which(jc$names == "b")[bk$b_idx])
-  A <- cbind(1, Xr)
-  V <- jc$V[cp, cp]
-  v_delta <- rowSums((A %*% V) * A)
-  ev_hand <- sd2 * (1 + 1e-6) - rowSums(Xr * Kst)
+  lb <- frm_lp_basis(fg, newdata = nd)
+  A <- as.matrix(lb$A)
+  v_delta <- rowSums((A %*% lb$V) * A)
+  ev_hand <- sd2 * (1 + 1e-12) - rowSums(Pk^2)
   expect_lt(max(abs(pk$se.fit^2 - (v_delta + ev_hand))), 1e-8)
 
   # the GP conditional variance is strictly positive at every unseen

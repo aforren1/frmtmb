@@ -330,8 +330,9 @@ cluster_scores_at <- function(fit, cl) {
   tpl[["clw"]] <- rep(1, length(gs))
   ri <- fit$obj$env$random
   random <- if (length(ri)) unique(names(fit$obj$env$par)[ri])
-  obj <- RTMB::MakeADFun(build_objective(frame), tpl, random = random,
-                         map = frame[["map"]], silent = TRUE)
+  obj <- gp_tape_scope(frame, RTMB::MakeADFun(
+    build_objective(frame), gp_tape_order(frame, tpl), random = random,
+    map = frame[["map"]], silent = TRUE))
   keep <- names(obj$par) != "clw"
   if (!identical(names(obj$par)[keep], names(fit$opt$par))) {
     frm_stop("the cluster-weighted objective did not reproduce the ",

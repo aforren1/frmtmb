@@ -44,6 +44,18 @@
 #' prior-augmented objective is this closure plus
 #' `neg_log_prior_fn()`'s.
 #'
+#' `gp_tape_scope(frame, expr)` evaluates `expr`, the call that builds a
+#' tape of such a closure, with the tape settings a frame with an exact
+#' `gp()` block needs: the field's inner Hessian is dense, and without them
+#' its tape passes 13 GB at 500 positions. They change no value. Its parameter
+#' list goes through `gp_tape_order(frame, pars)`, which puts `b` first: the
+#' settings give a wrong gradient otherwise. With `hessian = FALSE`,
+#' `gp_tape_scope()` leaves out the inner Hessian, for a tape that never reads
+#' it.
+#'
+#' `gp_nugget_message(fit)` is the warning of a fit whose noise has reached an
+#' exact `gp()`'s nugget, or `NULL`.
+#'
 #' `row_lpdf(fam, y, yobs, dpars, aterms, extra)` is the per-row
 #' log-density composition the objective itself runs, with `cens()` and
 #' `trunc()` folded in; it runs on numeric dpar values as readily as on
@@ -468,6 +480,9 @@
 # rejects a multi-line @aliases outright where roxygen2 only warns.
 #' @aliases frmtmb-sampling-api
 #' @aliases build_objective
+#' @aliases gp_tape_scope
+#' @aliases gp_tape_order
+#' @aliases gp_nugget_message
 #' @aliases row_lpdf
 #' @aliases with_cs_offsets
 #' @aliases cs_offsets_add
@@ -587,7 +602,9 @@
 #' @aliases ce_sim_one
 #' @aliases pp_check_resp
 #' @aliases check_weights_unbounded
-#' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
+#' @rawNamespace export(build_objective, gp_tape_scope, gp_tape_order,
+#'   gp_nugget_message, row_lpdf,
+#'   with_cs_offsets,
 #'   cs_offsets_add,
 #'   us_chol_cor, expand_b, aterms_for_newdata, has_trunc, as_priorlist,
 #'   check_prior_slots, resolve_prior_input, neg_log_prior_fn,

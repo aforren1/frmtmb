@@ -3,6 +3,9 @@
 \name{frmtmb-sampling-api}
 \alias{frmtmb-sampling-api}
 \alias{build_objective}
+\alias{gp_tape_scope}
+\alias{gp_tape_order}
+\alias{gp_nugget_message}
 \alias{row_lpdf}
 \alias{with_cs_offsets}
 \alias{cs_offsets_add}
@@ -166,6 +169,18 @@ These are the terms brms keeps outside
 plus \code{neg_log_prior_fn()}'s is the prior of the whole model. A
 prior-augmented objective is this closure plus
 \code{neg_log_prior_fn()}'s.
+
+\code{gp_tape_scope(frame, expr)} evaluates \code{expr}, the call that builds a
+tape of such a closure, with the tape settings a frame with an exact
+\code{gp()} block needs: the field's inner Hessian is dense, and without them
+its tape passes 13 GB at 500 positions. They change no value. Its parameter
+list goes through \code{gp_tape_order(frame, pars)}, which puts \code{b} first: the
+settings give a wrong gradient otherwise. With \code{hessian = FALSE},
+\code{gp_tape_scope()} leaves out the inner Hessian, for a tape that never reads
+it.
+
+\code{gp_nugget_message(fit)} is the warning of a fit whose noise has reached an
+exact \code{gp()}'s nugget, or \code{NULL}.
 
 \code{row_lpdf(fam, y, yobs, dpars, aterms, extra)} is the per-row
 log-density composition the objective itself runs, with \code{cens()} and

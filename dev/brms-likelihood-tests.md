@@ -802,7 +802,13 @@ still an error that names the parameter.
   itself, so its map is the identity, and the intrinsic one (icar)
   declares `zcar = rcar / sdcar` and so carries `Nloc * log(sdcar)`.
 
-### Divergence: the exact gp() nugget
+### Closed in the 2026-10-29 round: the exact gp() nugget
+
+The field is non-centered in `frm()` at a relative nugget of 1e-12
+(`dev/ncgp-findings.md`), so row 10a reads brms's own program and is no
+longer a divergence. The text below is the record of the centered field.
+
+### Divergence through 0.78.0: the exact gp() nugget
 
 `gp(x)` without `k` is not the same joint density in the two packages,
 and no parameter map can make it one.
