@@ -185,8 +185,9 @@ smoothing and kernel parameters are estimated as variance components.
 the default, shares one lengthscale and `iso = FALSE` gives one per
 dimension, and `by = f` fits one GP per level of a factor, with its
 own standard deviation and lengthscale, or multiplies the GP by a
-numeric `by`. The exact form predicts at new
-positions by kriging; the Hilbert-space form (`k =`) interpolates
+numeric `by`. The exact form has a small nugget that can reach the noise on
+data with a large range against it; `frm()` warns then (`?"frmtmb-gp"`). It
+predicts at new positions by kriging; the Hilbert-space form (`k =`) interpolates
 through its basis, capped at `k^D <= 1000` columns. The Hilbert-space
 form uses brms's input convention: the coordinates are divided by their
 largest pairwise distance, so the boundary factor `c =` (1.25 by

@@ -93,6 +93,8 @@ res$weak_evidence <- res$agree & (
   (top == "L4" & route == "posterior") |
     res$feature_a == "REML" | res$feature_b == "REML")
 
+`%|na|%` <- function(x, y) ifelse(is.na(x), y, x)
+
 wilson <- function(x, n, z = stats::qnorm(0.975)) {
   if (n == 0) return(c(NA, NA, NA))
   p <- x / n
@@ -294,6 +296,16 @@ say("'agree' is equivalent, refusal correct, or a compat row whose ",
     "behavior agrees with brms. Cannot-measure pairs stay in the ",
     "denominator except in the 'measured only' column.")
 say("")
+if (!is.null(res$l1_by_decision) && any(nzchar(res$l1_by_decision %|na|% ""))) {
+  say("The exact gp() pairs read L1 twice: on brms's own program, which is ",
+      "the level, and on that program with its one nugget line rewritten to ",
+      "frmtmb's, which attributes the gap and scores nothing:")
+  say("")
+  for (i in which(nzchar(res$l1_by_decision %|na|% ""))) {
+    say("- ", res$id[i], " (", res$verdict[i], "): ", res$l1_by_decision[i])
+  }
+  say("")
+}
 say("Strongest level reached, unique pairs (draws):")
 say("")
 tl <- table(factor(top, c("L1+L2", "L1", "L2", "L3", "L4", "none")))

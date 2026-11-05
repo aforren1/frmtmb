@@ -1695,6 +1695,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       # explains every lost parameter but a bound-held one (se_report())
       fit$cache$se_explained <- "nl_flat"
     }
+    gp_msg <- gp_nugget_message(fit)
+    if (!is.null(gp_msg)) {
+      frm_warning(gp_msg, call. = FALSE, class = "frmtmb_gp_nugget")
+    }
   }
   if (se) {
     if (vb) t0 <- vb_now()

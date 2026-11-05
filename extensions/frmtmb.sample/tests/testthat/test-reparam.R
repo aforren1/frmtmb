@@ -906,3 +906,290 @@ test_that("an exact gp() field non-centers as brms's sdgp * L zgp", {
     .Machine$double.eps * abs(obj_n$fn(obj_n$par)) / 5e-6
   expect_lt(abs(g[k] - fd), 10 * fd_err)
 })
+
+## ---- an exact gp() field at the sampler's nugget ----------------------
+
+gp_low_noise_data <- function(noise) {
+  set.seed(20261102)
+  n <- 30
+  x <- round(stats::runif(n, 0, 6), 3)
+  data.frame(x = x, y = sin(2 * x) + noise * stats::rnorm(n))
+}
+
+test_that("the non-centered exact gp() carries a nugget of 1e-12, relative", {
+  skip_sampler()
+  # frm() keeps 1e-6 because its centered field does not converge reliably
+  # below it, and the non-centered field has no such limit. At 1e-6 the sampled
+  # field took its variance from sigma, as frm() does: the median sigma read
+  # 0.18 of brms's at true sigma 1e-3, in 2 chains of 1500 on 40 rows, 1996 s
+  # (dev/reviews/2026-11-02-gpgap.md, M3).
+  d <- gp_low_noise_data(1e-3)
+  fit <- suppressWarnings(frm(bf(y ~ gp(x)), family = gaussian(), data = d))
+  # frm() itself is left where it was
+  bk0 <- fit$frame$re_blocks[[1L]]
+  expect_null(bk0$gp_nugget)
+  ds <- suppressWarnings(frm_sample(fit, chains = 1, iter = 40, refresh = 0,
+                                    seed = 19))
+  bk <- ds$fit$frame$re_blocks[[1L]]
+  expect_identical(bk$gp_nugget, 1e-12)
+  # the draws krige through it: at 1e-12 it still predicts at new positions
+  ep <- posterior_epred(ds, newdata = data.frame(x = c(1.23456, 5.4321)))
+  expect_false(anyNA(ep))
+  th <- fit$estimates$theta[bk$theta_idx]
+  v <- frmtmb:::cs_entry("gp")$vcov(th, bk)
+  v0 <- frmtmb:::cs_entry("gp")$vcov(th, bk0)
+  sd2 <- exp(2 * th[[1L]])
+  expect_equal(diag(v), rep(sd2 * (1 + 1e-12), bk$dim),
+               tolerance = 1e-14, ignore_attr = TRUE)
+  expect_equal(diag(v0), rep(sd2 * (1 + 1e-6), bk$dim),
+               tolerance = 1e-14, ignore_attr = TRUE)
+
+  # What the run's tape maximizes is the model at that nugget, not frm()'s:
+  # the closed form, whose covariance sigma conditions, reads each one. A floor
+  # at 1e-6 would lose a quarter of the one-parameter 95 percent boundary at
+  # least, and the fit's tape keeps it.
+  fr <- ds$fit$frame
+  fr$ncp_blocks <- 1L
+  tp <- fr$par_template
+  tp$b[] <- 0
+  tape <- RTMB::MakeADFun(frmtmb::build_objective(fr), tp, random = "b",
+                          map = fr$map, silent = TRUE)
+  op <- suppressWarnings(stats::nlminb(
+    tape$par, tape$fn, tape$gr,
+    control = list(iter.max = 800, eval.max = 1200)))
+  u <- sort(unique(d$x))
+  j <- match(d$x, u)
+  nll <- function(p, nu) {
+    s2 <- exp(2 * p[2])
+    k <- s2 * (exp(-outer(u, u, "-")^2 / (2 * exp(2 * p[3]))) +
+                 diag(nu, length(u)))
+    w <- k[j, j]
+    diag(w) <- diag(w) + exp(2 * p[4])
+    r <- chol(w)
+    z <- backsolve(r, d$y - p[1], transpose = TRUE)
+    0.5 * sum(z^2) + sum(log(diag(r))) + 0.5 * length(z) * log(2 * pi)
+  }
+  p0 <- c(mean(d$y), th[[1L]], th[[2L]], log(1e-3))
+  at_new <- stats::nlminb(p0, nll, nu = 1e-12)$objective
+  at_old <- stats::nlminb(p0, nll, nu = 1e-6)$objective
+  q <- stats::qchisq(0.95, 1) / 8
+  expect_gt(at_old - at_new, q)
+  expect_lt(abs(op$objective - at_new), q)
+  expect_gt(abs(op$objective - at_old), q)
+})
+
+test_that("the sampler's starting z comes from the fit's own nugget", {
+  skip_sampler()
+  # through the smaller nugget the mode's field has a z the size of the
+  # near-null directions, which is no place to start a chain
+  d <- gp_low_noise_data(0.3)
+  fit <- frm(bf(y ~ gp(x)), family = gaussian(), data = d)
+  fs <- gp_sample_nugget(fit, 1L)
+  bk <- fs$frame$re_blocks[[1L]]
+  z <- ncp_start_pars(fs, 1L)$b[bk$b_idx]
+  expect_lt(sum(z^2), 3 * bk$dim)
+  # and it rebuilds the fit's field through the fit's nugget, in the factor's
+  # order
+  th <- fit$estimates$theta[bk$theta_idx]
+  bk1 <- bk
+  bk1$gp_nugget <- NULL
+  b <- as.numeric(frmtmb::ncp_scale_b(bk1, z, th))
+  b0 <- as.numeric(fit$estimates$b[bk$b_idx])
+  expect_lt(max(abs(b - b0)), 1e-6 * max(abs(b0)))
+})
+
+test_that("a kernel past the reach of LAPACK at 1e-12 still factors", {
+  skip_sampler()
+  # a draw the factor on the tape took must not lose a finished chain
+  fit <- frm(bf(y ~ gp(x)), family = gaussian(), data = gp_low_noise_data(0.3))
+  fs <- gp_sample_nugget(fit, 1L)
+  bk <- fs$frame$re_blocks[[1L]]
+  # a length scale far above the range of x leaves a kernel of one rank
+  th <- c(0, log(1e4))
+  z <- rep(1, bk$dim)
+  b <- ncp_scale_b(bk, z, th)
+  expect_length(b, bk$dim)
+  expect_false(anyNA(b))
+  # the field is the constant the kernel allows, near sd * the first z's scale
+  expect_lt(diff(range(b)), 1e-2 * abs(mean(b)))
+})
+
+
+test_that("laplace = TRUE reads the exact gp() through its factor too", {
+  skip_sampler()
+  # the route that mixes at low noise: the integral is exact for a gaussian
+  # response. It read frm()'s nugget as well, and sdgp 1.49 where brms reads
+  # 2.17 at true sigma 1e-3 on 15 rows (dev/gpgap-findings.md)
+  d <- gp_low_noise_data(1e-3)
+  ds <- suppressWarnings(suppressMessages(
+    frm_sample(bf(y ~ gp(x)), family = gaussian(), data = d, laplace = TRUE,
+               chains = 1, iter = 60, refresh = 0, seed = 19)))
+  bk <- ds$fit$frame$re_blocks[[1L]]
+  expect_identical(bk$gp_nugget, 1e-12)
+  expect_identical(ds$reparam$blocks, 1L)
+  # no field in the draws to map back, and every outer parameter finite
+  expect_true(draws_is_laplace(ds))
+  m <- as.matrix(ds$draws)
+  expect_false(any(startsWith(colnames(m), "b[")))
+  expect_false(anyNA(m))
+  # another block stays centered on this route
+  d$g <- factor(rep(1:5, length.out = nrow(d)))
+  d$y <- 0.3 + stats::rnorm(5)[as.integer(d$g)] + stats::rnorm(nrow(d))
+  dr <- suppressWarnings(suppressMessages(
+    frm_sample(bf(y ~ 1 + (1 | g)), family = gaussian(), data = d,
+               laplace = TRUE, chains = 1, iter = 60, refresh = 0, seed = 19)))
+  expect_null(dr$reparam)
+})
+
+
+test_that("the factor is taken in a farthest-first order of the positions", {
+  skip_sampler()
+  # the sort was what kept the drawn field from mixing: rounding in a factor
+  # over sorted positions moves the field by 1.7e-5 at n 15, against 6.1e-11 in
+  # this
+  # order, and at noise 1e-3 that is a gradient error of 34 on a gradient of 100
+  blk <- list(aux_D2 = list(outer(0:4, 0:4, "-")^2))
+  p <- gp_farthest_first(blk)
+  # the medoid, then an end, then the other, then what is left
+  expect_identical(p[1:3], c(3L, 1L, 5L))
+  expect_identical(sort(p), 1:5)
+  # rows at one position take their turn at the end
+  x <- c(0, 0, 2, 2, 1)
+  tied <- gp_farthest_first(list(aux_D2 = list(outer(x, x, "-")^2)))
+  expect_identical(sort(tied), 1:5)
+  # every dimension counts
+  a <- c(0, 0, 1)
+  b <- c(0, 5, 0)
+  two <- gp_farthest_first(list(aux_D2 = list(outer(a, a, "-")^2,
+                                              outer(b, b, "-")^2)))
+  expect_identical(two[1:2], c(1L, 2L))
+
+  d <- gp_low_noise_data(0.3)
+  fit <- frm(bf(y ~ gp(x)), family = gaussian(), data = d)
+  fs <- gp_sample_nugget(fit, 1L)
+  bk <- fs$frame$re_blocks[[1L]]
+  ord <- bk$gp_order
+  expect_identical(sort(ord), seq_len(bk$dim))
+  # frm()'s own block keeps none, and its factor stays a triangle
+  expect_null(fit$frame$re_blocks[[1L]]$gp_order)
+  th <- fit$estimates$theta[bk$theta_idx]
+  L <- frmtmb:::ncp_block_chol(bk, th)
+  V <- frmtmb:::cs_entry("gp")$vcov(th, bk)
+  sd2 <- exp(2 * th[[1L]])
+  # L L' is the kernel at its own nugget, in the block's order, up to the
+  # rounding the factor is taken with
+  expect_lt(max(abs(tcrossprod(L) - unname(as.matrix(V)))),
+            1e-13 * sd2 * bk$dim)
+  # a row-permuted triangle, with its triangle in the factor's order
+  lp <- L[ord, ]
+  expect_lt(max(abs(lp[upper.tri(lp)])), 1e-12 * sqrt(sd2))
+  # the map and its inverse
+  z <- stats::rnorm(bk$dim)
+  bv <- frmtmb::ncp_scale_b(bk, z, th)
+  expect_lt(max(abs(frmtmb::ncp_unscale_b(bk, bv, th) - z)), 1e-3 * max(abs(z)))
+  # the identity with the centered objective: log |L| is a determinant now, not
+  # the sum of a diagonal, at a nugget the centered density can still read
+  fr1 <- fs$frame
+  fr1$re_blocks[[1L]]$gp_nugget <- 1e-6
+  fr2 <- fr1
+  fr2$ncp_blocks <- 1L
+  f_c <- frmtmb::build_objective(fr1)
+  f_n <- frmtmb::build_objective(fr2)
+  L1 <- frmtmb:::ncp_block_chol(fr1$re_blocks[[1L]], th)
+  p <- fit$estimates
+  pz <- p
+  pz$b <- as.numeric(solve(L1, p$b))
+  jac <- as.numeric(determinant(L1, logarithm = TRUE)$modulus)
+  expect_equal(f_c(p) - f_n(pz), jac, tolerance = 1e-8 * abs(jac))
+  # the tape reads what the numeric route reads
+  tp <- RTMB::MakeADFun(frmtmb::build_objective(fr2), pz, silent = TRUE)
+  expect_equal(tp$fn(tp$par), f_n(pz), tolerance = 1e-10 * abs(f_n(pz)))
+})
+
+test_that("each kind of exact block carries its own order", {
+  skip_sampler()
+  set.seed(20261103)
+  n <- 40
+  d <- data.frame(x = round(stats::runif(n, 0, 6), 3),
+                  z = round(stats::runif(n, 0, 6), 3),
+                  f = factor(sample(c("a", "b"), n, TRUE)),
+                  t = sample(seq(0, 6, by = 0.5), n, TRUE))
+  d$y <- sin(2 * d$x) + 0.5 * cos(d$z) + 0.3 * stats::rnorm(n)
+  d$yt <- sin(d$t) + 0.3 * stats::rnorm(n)
+  specs <- list(bf(y ~ gp(x) + gp(z)), bf(y ~ gp(x, by = f)),
+                bf(y ~ gp(x, z, iso = FALSE)),
+                # gr = FALSE keeps one value per row, so rows tie in the kernel
+                bf(yt ~ gp(t, gr = FALSE)))
+  for (sp in specs) {
+    fit <- suppressWarnings(frm(sp, family = gaussian(), data = d))
+    ib <- which(vapply(fit$frame$re_blocks, function(b) {
+      identical(b$covstruct, "gp")
+    }, NA))
+    fs <- gp_sample_nugget(fit, ib)
+    for (i in ib) {
+      bk <- fs$frame$re_blocks[[i]]
+      expect_identical(sort(bk$gp_order), seq_len(bk$dim))
+      th <- fit$estimates$theta[bk$theta_idx]
+      expect_false(anyNA(frmtmb::ncp_scale_b(bk, rep(1, bk$dim), th)))
+    }
+  }
+  # the draws' names and the field's order do not move: a field in sorted order,
+  # which reads at the observed rows as frm()'s does
+  dd <- d[, c("x", "y")]
+  ds <- suppressWarnings(suppressMessages(
+    frm_sample(bf(y ~ gp(x)), family = gaussian(), data = dd, chains = 1,
+               iter = 200, refresh = 0, seed = 19)))
+  m <- as.matrix(ds$draws)
+  bk <- ds$fit$frame$re_blocks[[1L]]
+  expect_identical(grep("^b[[]", colnames(m), value = TRUE),
+                   paste0("b[", seq_len(bk$dim), "]"))
+  fit <- suppressWarnings(frm(bf(y ~ gp(x)), family = gaussian(), data = dd))
+  expect_gt(stats::cor(colMeans(m[, startsWith(colnames(m), "b[")]),
+                       as.numeric(fit$estimates$b)), 0.9)
+  at <- posterior_epred(ds, newdata = dd[1:3, "x", drop = FALSE])
+  expect_lt(max(abs(at - posterior_epred(ds)[, 1:3])), 1e-8)
+})
+
+test_that("a fit whose nugget the run moves starts at random, and says so", {
+  skip_sampler()
+  # from frm()'s collapsed mode the chains stayed there: sigma 6.9e-8 against
+  # 1.03e-3, step size 1e-15, 1580 divergent (review of 2026-11-02, F2)
+  d <- gp_low_noise_data(1e-3)
+  fit <- suppressWarnings(frm(bf(y ~ gp(x)), family = gaussian(), data = d))
+  s0 <- as.numeric(stats::sigma(fit))
+  expect_lt(s0, 1e-5)
+  said <- character()
+  ds <- withCallingHandlers(
+    suppressWarnings(frm_sample(fit, chains = 1, iter = 300, refresh = 0,
+                                seed = 19)),
+    message = function(m) {
+      said <<- c(said, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    })
+  expect_true(any(grepl("chains start at random", said, fixed = TRUE)))
+  expect_gt(stats::median(ds$draws[, "sigma"]), 1e2 * s0)
+  # asked for, the mode is what it gets
+  said <- character()
+  dm <- withCallingHandlers(
+    suppressWarnings(frm_sample(fit, init = "last.par.best", chains = 1,
+                                iter = 20, refresh = 0, seed = 19)),
+    message = function(m) {
+      said <<- c(said, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    })
+  expect_false(any(grepl("chains start at random", said, fixed = TRUE)))
+  # no exact gp(), nothing moves: the mode stays the default
+  said <- character()
+  dd <- gp_low_noise_data(0.3)
+  dd$g <- factor(rep(1:5, length.out = nrow(dd)))
+  f2 <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd)
+  ms <- withCallingHandlers(
+    suppressWarnings(frm_sample(f2, chains = 1, iter = 20, refresh = 0,
+                                seed = 19)),
+    message = function(m) {
+      said <<- c(said, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    })
+  expect_false(any(grepl("chains start at random", said, fixed = TRUE)))
+})
+

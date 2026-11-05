@@ -254,6 +254,17 @@ brms does.
   parameter vector per simulation and returns it alongside the
   responses. `sample_prior = "yes"` and `prior_draws()` are in
   frmtmb.sample too.
+- The exact `gp(x)` is brms's model apart from its nugget. `frm()` adds
+  `1e-6 * sdgp^2` to the kernel's diagonal, and brms adds an absolute `1e-12`,
+  because `frm()`'s centered field usually does not converge at a smaller one.
+  At ordinary noise the two models have one maximum. When the field's range is
+  large against the noise they do not, and `frm()` warns with class
+  `frmtmb_gp_nugget`: an estimated `sigma` reads low, or, where positions
+  repeat or `sigma` is known, `sdgp` reads low. It is not only noise-free data:
+  `y ~ gp(x)` on a curve `x^2` over x from 0 to 10 with `sigma` 0.3 reads `sigma`
+  1e-4 where brms reads 0.34. `frm_sample()` non-centers the field and adds
+  `1e-12 * sdgp^2`, which is relative because brms's absolute line fails on y
+  in other units. See `?"frmtmb-gp"`.
 - `mo()` monotonic effects, `mi()` one-step imputation of continuous
   predictors, `me(x, sdx)` noise-free predictors and `mi(sdx)`
   measurement error, `cs()` (or brms's other name for it, `cse()`)

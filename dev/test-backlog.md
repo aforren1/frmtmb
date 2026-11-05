@@ -4458,7 +4458,30 @@ a repro script, seed and brms comparison; none is fixed in 0.78.0.
   1e-12) is unexplained. `dev/equiv-gp-gap.R` cannot attribute it in
   double precision (92 of 196 correlation eigenvalues below 1e-6). A
   candidate in the instrument's translator or in the model; the four
-  pairs are scored cannot measure.
+  pairs are scored cannot measure. CLOSED in the round of 2026-10-29: the
+  translator read the positions in the wrong order
+  (`dev/gpgap-findings.md`). Left open: non-centering `frm()`'s exact gp() at a
+  relative 1e-12, a round of its own for the user to decide; frm() warns until
+  then (class `frmtmb_gp_nugget`).
+- **frm_sample()'s drawn exact field at low noise needs long chains.** Filed by the same
+  round. With the factor in farthest-first order it mixes as brms's does, not better: at
+  true sigma 1e-3, 15 rows, 4 chains of 12000, Rhat on sigma 1.025 and on sdgp 1.069 in
+  3474 s (brms: 1.031 and 1.154 in 3189 s); at 40 rows, 4 chains of 3000, 1.072 and 1.144
+  in 3550 s. Neither reaches 1.01. Over sorted positions it read 2.46 after 14347 s; the
+  order was the cause (`dev/gpgap-findings.md`, section 10). `laplace = TRUE` reads the
+  target at Rhat 1.001 for the outer parameters and refuses the field's readers. A sampler
+  that keeps the field and mixes at this noise is open.
+- **`gp(x, k = )` with too small a k says nothing.** Filed by the same round. On
+  `sin(8 * x)` over 0 to 6 at noise 1e-3, k = 30 has a top basis frequency of 6.5,
+  below the signal, so the fit reads sigma 720 times high with convergence 0. It is
+  the approximation and not the optimizer: from the scales of k = 60 the k = 30
+  tape returns to the same maximum (`dev/gpgap-kstart.R`). A check of the fit's
+  length scale against the top frequency would make it loud; brms has none.
+- **An exact gp() field does not name its positions.** Filed by the same round.
+  `frm_sample()`'s `b[i]` and the `ranef()` levels `gp(x).1` hold the field in
+  sorted order, and neither name carries the position. `?"frmtmb-gp"` says so. The
+  fix touches the block's `cnms`, which every reader of the labels shares, so it
+  is not this round's.
 - **The 53 compat-row proposals** of the survey, NOT applied:
   `dev/equiv-data/compat-proposals.tsv` (id, pair, current status,
   proposal, reason; 14 from sampled pairs, 39 from the nl x family

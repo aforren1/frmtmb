@@ -349,12 +349,34 @@ eq_measure <- function(key, row) {
       rec$l1_grad_ok <- grad_ok
       rec$l1_pts_ok <- pts_ok
       rec$l1_ok <- val_ok && grad_ok && pts_ok
-      if (!rec$l1_ok && !is.null(spec$l1_decision)) {
-        # the two programs differ by a recorded design choice (the exact
-        # gp() nugget), so L1 is kept as a number and the verdict is
-        # read from the level the choice does not touch
-        rec$l1_by_decision <- spec$l1_decision
-      } else {
+      # An edited program that matches shows frmtmb equals the edit, which
+      # attributes a gap and does not agree with brms: 2.5 defines L1 on
+      # brms's own program. So L1 here is brms's own line, and the
+      # rewritten line only says what the gap is.
+      if (!is.null(v$const_brms)) {
+        own <- v$const_brms - cst
+        rec$l1_by_decision <- sprintf(paste0(
+          "brms's own line reads %.4g (tol %.2g); its nugget line rewritten ",
+          "to frmtmb's reads %.3g, then %s at the two points, gradient %.2g; ",
+          "the maxima differ by %s against the L4 tolerance %.2g%s"),
+          own, tol, v$at$const - cst,
+          paste(sprintf("%.3g", pts - cst), collapse = ", "), v$at$grad,
+          if (is.null(v$max_gap)) "unread" else sprintf("%.2g", v$max_gap),
+          1e-4 * max(1, abs(v$at$ours)),
+          if (!is.null(v$max_gap) &&
+                abs(v$max_gap) < 1e-4 * max(1, abs(v$at$ours))) {
+            ", so at this noise they coincide"
+          } else {
+            ""
+          })
+        if (rec$l1_ok && abs(own) >= tol) {
+          rec$l1_decided <- TRUE
+          rec$l1_const <- v$const_brms
+          rec$l1_ok <- FALSE
+          rec$l1_extra_const <- NULL
+        }
+      }
+      if (!isTRUE(rec$l1_decided)) {
         level <- c(level, "L1")
         ok_all <- ok_all && rec$l1_ok
       }
@@ -454,6 +476,17 @@ eq_measure <- function(key, row) {
     }
   }
   rec$level <- paste(level, collapse = "+")
+  decided <- if (isTRUE(rec$l1_decided)) {
+    paste0("frmtmb's exact gp() nugget, 1e-6 on the correlation, is not ",
+           "brms's line, 1e-12 on the covariance (decided 2026-10-06, reason ",
+           "in NEWS): ", rec$l1_by_decision)
+  }
+  if (!length(level) && !is.null(decided)) {
+    rec$verdict <- "divergence by decision"
+    rec$agree <- FALSE
+    rec$reason <- decided
+    return(rec)
+  }
   if (!length(level)) {
     rec$verdict <- "cannot measure"
     rec$reason <- paste("no level completed:",
@@ -481,8 +514,14 @@ eq_measure <- function(key, row) {
     rec$proposal <- if (ok_all) "works" else "broken"
   } else {
     rec$verdict <- if (ok_all) "equivalent" else "defect"
-    rec$reason <- if (ok_all) "every level agrees" else
+    rec$reason <- if (ok_all && !is.null(decided)) {
+      paste0("L4 agrees against brms's posterior, weak; L1 is not scored. ",
+             decided)
+    } else if (ok_all) {
+      "every level agrees"
+    } else {
       "a level disagrees; see the metrics"
+    }
   }
   rec
 }
@@ -540,7 +579,7 @@ eq_flatten <- function(rec, row) {
     draws = row$draws, weight = row$weight,
     verdict = rec$verdict %||% NA, level = rec$level %||% "",
     agree = rec$agree %||% NA,
-    reason = eq_clip(rec$reason %||% ""),
+    reason = eq_clip(rec$reason %||% "", 700),
     proposal = rec$proposal %||% "",
     frm_ok = rec$frm_ok %||% NA, brms_ok = rec$brms_ok %||% NA,
     frm_error = eq_clip(rec$frm_error %||% ""),
@@ -560,7 +599,7 @@ eq_flatten <- function(rec, row) {
     l4_route = rec$l4_route %||% (if (!is.null(rec$l4)) "posterior" else ""),
     l4_control = paste(signif(rec$l4_control %||% NA, 3), collapse = ","),
     l1_without = rec$l1_without %||% "",
-    l1_by_decision = eq_clip(rec$l1_by_decision %||% "", 120),
+    l1_by_decision = eq_clip(rec$l1_by_decision %||% "", 400),
     method_reached = if (is.null(rec$spec$method)) NA else
       isTRUE(rec$method_reached),
     l4_error = eq_clip(rec$l4_error %||% ""),

@@ -135,7 +135,10 @@ the truth, and a fixed seed per pair.
   ours` equals the stated constant (0, or `lgamma(J)` for brms's
   Dirichlet(1) on a mo() simplex) to `1e-6 * max(1, |ours|)` at all
   three points, and the gradient at the estimate (the inner block, for
-  a joint) is below `1e-3`, the suite's tolerances. Under a prior,
+  a joint) is below `1e-3`, the suite's tolerances. An edited copy of
+  brms's program never scores as L1: the exact gp() pairs also read their
+  program with its one nugget line rewritten to frmtmb's, and that reading
+  attributes the gap (`dev/gpgap-findings.md`). Under a prior,
   frm()'s MAP carries the log-Jacobian of the map from each
   prior-carrying parameter to its internal one (NEWS 0.52.0 and 0.53.0
   for the dpar classes, 0.68.0 for sdgp and lscale, the ordered map for
@@ -203,9 +206,11 @@ The decision standard, one for every pair: a frmtmb refusal or
 divergence is "by decision" only when NEWS, SPEC.md,
 `dev/core-boundary.md` or the brms-suite ledger gives a REASON for it.
 A compat note that states the refusal does not count, and neither does
-a NEWS line that states a limit without its reason. Under it, one
-divergence stands (p002) and every other frmtmb refusal of a model
-brms compiles is a defect; section 9 lists what the standard changed.
+a NEWS line that states a limit without its reason. Under it, p002 stood
+as the one divergence of the survey, and every other frmtmb refusal of a
+model brms compiles is a defect; section 9 lists what the standard
+changed. The exact gp() pairs p022, p023, p094 and p109 joined p002 in the
+round of 2026-10-29, when NEWS gained the reason for the nugget.
 
 "agree" is equivalent, refusal correct, or a compat row whose behavior
 agrees with brms (both refuse, or frmtmb fits a refused row and
@@ -274,8 +279,9 @@ Reading the rates:
 
 - The headline is the reach-weighted agree rate with every pair in the
   denominator. Most cannot-measure pairs are frmtmb's own covariance
-  structures, `ps()` and the exact gp() pairs; they are not evidence of
-  a defect. The "measured only" line drops them.
+  structures and `ps()`; they are not evidence of a defect. The "measured
+  only" line drops them. (Through 0.78.0 the exact gp() pairs were here
+  too; see section 4.)
 - The sensitivity row counts the weak-evidence agreements (2.5) as not
   agree. It is the lower reading to quote if the L4 fitted-mean route
   is not trusted.
@@ -397,17 +403,17 @@ Not defects, recorded for the reader:
   NEWS 0.49.0 extends class rescor to lkj(). The L1 constant moves
   0.40/0.42/0.38 at the three points even with Stan's Jacobian for
   Lrescor added.
-- The exact gp() pairs (p022, p023, p094, p109) are cannot measure. The
-  L1 joint differs from brms's by 94 to 1127 nats, and the gap is
-  unexplained: matching frmtmb's nugget to brms's size removes about 11
-  of 94 nats on p094 (the review: -83.81 at 1e-9, -83.74 at 1e-12), and
-  `dev/equiv-gp-gap.R` cannot attribute the rest in double precision
-  (with the field standardized through brms's own kernel the constant
-  is 911.2 against a nugget-only prediction of 1013.5, and 92 of the 196
-  correlation eigenvalues lie below 1e-6). Filed for the next round as a
-  candidate in the translator or the model. p136 (an exact gp() in an
-  nl parameter, about 40 positions) reads its L1 gap the same way and is
-  scored at L4 only, so it is in the weak-evidence row.
+- The exact gp() pairs (p022, p023, p094, p109) were recorded as cannot
+  measure, with an L1 joint 94 to 1127 nats from brms's and the gap
+  called unexplained. WITHDRAWN (`dev/gpgap-findings.md`): the gap was
+  the translator, which read z in frmtmb's sorted order of the positions
+  where brms keeps first appearance. In brms's order the review's two
+  unexplained numbers close: the 911.2 against 1013.5 reads 1013.5087
+  against 1013.5087, and the reviewer's -83.8 was the order, not the
+  nugget. What is left is the one decided line, the nugget, so p022, p023,
+  p094 and p109 are divergences by decision, with their reason in NEWS, and
+  p136 stays equivalent at L4 only, weak. The adjudication rows and the
+  generated blocks above still read as at 0.78.0 until the record is rerun.
 - The nl x family rule (section 5): the table refuses nl for every
   family but gaussian, and the rule is enforced only for the multi-mu
   families. The sweep's counts are in the summary block; its honored
@@ -544,8 +550,9 @@ the rate, not a regression gate.
   the spelling; it does not run brms's density.
 - The translator gaps the survey met and did not close: mv mixtures
   (theta_<resp>), gev xi (tmp_xi), the univariate Ymi, mo() outside mu
-  (simo_<dpar>), cs() in a mixture, t2() under mvbf, and the exact gp()
-  gap. Five extensions were added in dev/equiv-lib.R and each was
+  (simo_<dpar>), cs() in a mixture, and t2() under mvbf. (The exact gp()
+  gap was in this list until the round of 2026-10-29 closed it: the
+  translator read the positions in the wrong order.) Five extensions were added in dev/equiv-lib.R and each was
   checked by a pair that became an L1 identity: mm() group names,
   mmc() coefficient names, gr(cov = A) (z through Lcov), per-category
   blocks of a categorical or multinomial fit, and a mixture's simplex

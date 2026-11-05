@@ -1106,11 +1106,25 @@ ncp_priored_theta <- function(entries) {
 #'
 #' `laplace = TRUE` integrates the random effects out, so there is no
 #' funnel left to fix and the transform would only cost inner Newton
-#' steps: that route stays centered whatever was asked for.
+#' steps: that route stays centered whatever was asked for. An exact gp()
+#' is the exception, for its nugget and not for a funnel: only the factor lets
+#' it hold brms's size, which the centered inner solve cannot
+#' (`gp_sampler_nugget`). `check_laplace()` compares against frm()'s fit and
+#' keeps frm()'s nugget (`diagnostic`).
 #'
 #' @noRd
-ncp_plan <- function(fit, reparameterize, laplace, entries = NULL) {
+ncp_plan <- function(fit, reparameterize, laplace, entries = NULL,
+                     diagnostic = FALSE) {
   blocks <- fit$frame[["re_blocks"]] %||% list()
+  if (isTRUE(laplace) && !isTRUE(diagnostic) && length(blocks)) {
+    gp <- which(vapply(blocks, function(bk) {
+      identical(bk[["covstruct"]], "gp")
+    }, TRUE))
+    return(list(idx = gp, centered = character(0),
+                labels = vapply(blocks[gp], function(bk) {
+                  paste0(bk[["term_label"]], " [", bk[["covstruct"]], "]")
+                }, "")))
+  }
   if (!isTRUE(reparameterize) || !length(blocks) || laplace) {
     return(list(idx = integer(0), centered = character(0),
                 labels = character(0)))
@@ -1179,6 +1193,55 @@ announce_ncp <- function(plan) {
   invisible(NULL)
 }
 
+# The nugget on the correlation of a non-centered exact gp(). frm() keeps 1e-6
+# because its centered field does not factor reliably below it, and a nugget
+# of 1e-6 floors sigma at about 1e-3 * sdgp (dev/gpgap-findings.md). The
+# non-centered field has no such limit, so the sampler reads brms's size. It
+# is relative where brms's line is absolute, because brms's fails on y in
+# other units (at y times 1000: Rhat 3.77, 267 divergent; review of
+# 2026-11-02, M7).
+gp_sampler_nugget <- 1e-12
+
+#' A farthest-first order of an exact gp() block's positions: the medoid, then
+#' at each step the position farthest from those taken. Over sorted positions
+#' the factor's pivots shrink from the second on, and rounding moves the field
+#' by 1.7e-5 at n 15, against 6.1e-11 in this order (first appearance, brms's,
+#' gives 1.9e-8). The kernel and the field do not change, and the order is
+#' fixed, so z keeps one meaning along a chain. Ties (rows at one position,
+#' under `gr = FALSE`) take their turn at the end.
+#'
+#' @noRd
+gp_farthest_first <- function(blk) {
+  d2 <- Reduce(`+`, blk[["aux_D2"]])
+  m <- nrow(d2)
+  p <- integer(m)
+  p[1L] <- which.min(rowSums(d2))
+  gap <- d2[, p[1L]]
+  gap[p[1L]] <- -1
+  for (k in seq_len(m - 1L) + 1L) {
+    p[k] <- which.max(gap)
+    gap <- pmin(gap, d2[, p[k]])
+    gap[p[seq_len(k)]] <- -1
+  }
+  p
+}
+
+#' The fit a run samples and keeps: its non-centered exact gp() blocks carry
+#' the sampler's nugget and factor order, so the tape, the draws' field and the
+#' kriging read one model. Centered blocks keep frm()'s.
+#'
+#' @noRd
+gp_sample_nugget <- function(fit, idx) {
+  for (i in idx) {
+    bk <- fit$frame[["re_blocks"]][[i]]
+    if (identical(bk[["covstruct"]], "gp")) {
+      fit$frame[["re_blocks"]][[i]][["gp_nugget"]] <- gp_sampler_nugget
+      fit$frame[["re_blocks"]][[i]][["gp_order"]] <- gp_farthest_first(bk)
+    }
+  }
+  fit
+}
+
 #' The sampling objective with the planned blocks reparameterized, and
 #' the prior terms (if any) added the way prior_augmented_obj() adds
 #' them. The frame copy carrying `ncp_blocks` never leaves this
@@ -1224,6 +1287,11 @@ ncp_start_pars <- function(fit, idx) {
   bv <- pars[["b"]]
   for (i in idx) {
     bk <- fit$frame[["re_blocks"]][[i]]
+    # the mode's b came from frm()'s nugget; through the sampler's smaller
+    # one its z would be the size of the near-null directions (a sum of
+    # squares of 1464 where the fit's own factor gives 7 on the equivalence
+    # survey's p023)
+    bk[["gp_nugget"]] <- NULL
     bv[bk[["b_idx"]]] <- ncp_unscale_b(bk,
                                        bv[bk[["b_idx"]]], th[bk[["theta_idx"]]])
   }
@@ -2852,9 +2920,13 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' A `k =` Hilbert-space `gp()` block non-centers too, since its
 #' factor is diagonal and the defaults prior its sd and its length
 #' scales (brms's classes `"sdgp"` and `"lscale"`), and so does an exact
-#' `gp()` field, as brms's `sdgp * L zgp`: its factor is the Cholesky
-#' factor of the kernel over the field's distinct positions, taken on the
-#' tape at a cost of `n^3 / 3` per gradient for `n` positions.
+#' `gp()` field, as brms's `sdgp * L zgp`, at a nugget of `1e-12 * sdgp^2`
+#' where brms's is an absolute `1e-12` (`?frmtmb::"frmtmb-gp"`): its factor is
+#' the Cholesky factor of the kernel over the field's distinct positions, in a
+#' farthest-first order of them, taken on the tape at a cost of `n^3 / 3` per
+#' gradient for `n` positions. The field `b[i]` keeps its sorted order; only z,
+#' which the `stanfit` holds, has that order's basis, so it is not brms's `zgp`
+#' coordinate by coordinate (brms's order is first appearance).
 #' `rr()` is already non-centered by
 #' construction, since its own coefficients are the standard normal
 #' factors. What stays centered is a run whose variance parameters carry
@@ -2904,7 +2976,10 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' done harm.
 #'
 #' `laplace = TRUE` integrates the random effects out, which removes the
-#' funnel by itself, so that route ignores `reparameterize` entirely.
+#' funnel by itself, so that route ignores `reparameterize`. It still holds an
+#' exact `gp()` block by its factor, for the nugget above. At low noise this is
+#' the route that mixes: the integral is exact for a gaussian response, and the
+#' drawn field needs far longer.
 #'
 #' The ML fit is untouched either way. The Laplace approximation
 #' integrates `b` out, and that integral is invariant under a linear
@@ -3307,7 +3382,9 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   Rhat to retain power against multimodality (the standard objection
 #'   to identical mode starts). `"random"` requests Stan's own
 #'   overdispersed initialization, and is the default from a formula,
-#'   where there is no mode to start at.
+#'   where there is no mode to start at, and for a fit with an exact `gp()`,
+#'   which this run reads at another nugget, so the fit's mode is not a mode of
+#'   this model: at low noise chains started there stay pinned.
 #' @param init_jitter Per-chain perturbation sd for the default init;
 #'   `0` starts every chain exactly at the mode. With `seed` given (in
 #'   `...`), the jitter is drawn from that seed rather than from the
@@ -3617,6 +3694,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   }
   mo_sample_check_const(fit)
   # no mode to anchor on when the model was never optimized
+  init_asked <- !is.null(init)
   init <- init %||% if (from_formula) "random" else "last.par.best"
   pr_lower <- c()
   pr_upper <- c()
@@ -3726,8 +3804,23 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                   call. = FALSE)
     }
   }
-  ncp <- ncp_plan(fit, reparameterize, laplace, ri$entries)
+  ncp <- ncp_plan(fit, reparameterize, laplace, ri$entries,
+                  diagnostic = isTRUE(.diagnostic))
   announce_ncp(ncp)
+  fit <- gp_sample_nugget(fit, ncp$idx)
+  # frm()'s mode is not a mode of this model: at low noise its sigma has
+  # collapsed against its own nugget, and chains started there stay pinned, at
+  # step size 1e-15 and a median sigma 1.5e4 times low
+  moved <- any(vapply(fit$frame[["re_blocks"]][ncp$idx], function(bk) {
+    !is.null(bk[["gp_nugget"]])
+  }, TRUE))
+  if (moved && !init_asked && !from_formula) {
+    init <- "random"
+    frm_message("frm_sample(): chains start at random, not at the mode of the ",
+                "fit: this run reads an exact gp() at a smaller nugget than ",
+                "frm()'s, so that mode is not one of its model. Pass ",
+                "init = \"last.par.best\" to start there.")
+  }
   # every prior-carrying route rebuilds from build_objective(), the
   # BARE likelihood, and adds the resolved entries once; fit$obj is
   # sampled untouched only when nothing has to be added to it. Under
@@ -3950,7 +4043,10 @@ sample_finish <- function(a, fit, recipe, chart = NULL, gev = NULL) {
   m <- chart_draws_back(m, fit, chart, laplace)
   if (!is.null(gev)) m <- gev_draws_to_xi(m, gev$obj, fit, gev$terms, laplace)
   if (isTRUE(recipe$mo_soft)) m <- mo_draws_to_chart(m, fit, laplace)
-  if (length(recipe$ncp_idx)) m <- ncp_backtransform(m, fit, recipe$ncp_idx)
+  # Laplace draws hold no z to map back
+  if (length(recipe$ncp_idx) && !isTRUE(recipe$laplace)) {
+    m <- ncp_backtransform(m, fit, recipe$ncp_idx)
+  }
   # brms reports an unmodeled distributional parameter as the parameter
   # itself: the `sigma` column holds sigma, not log sigma
   draws_to_natural(m, fit)

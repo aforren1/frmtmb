@@ -210,21 +210,27 @@ eq_mo_const <- function(J = 3, terms = 1) terms * lgamma(J)
 # dev/core-boundary.md or the brms-suite ledger gives a reason for it; a
 # compat note that states the refusal is not enough. No sampled refusal
 # met that standard, so no spec carries a `decision`.
-eq_decision_gp <- paste(
-  "exact gp(): the L1 gap is recorded, not scored; it is unexplained",
-  "(matching the nugget removes about 11 of 94 nats on p094, review",
-  "2026-10-28; dev/equiv-gp-gap.R cannot attribute the rest in double",
-  "precision)")
-# An exact gp() over 200 distinct positions has a kernel with many
-# eigenvalues below frmtmb's nugget, and the L1 joint differs from brms's
-# by tens to a thousand nats. The nugget explains only part of it
-# (review 2026-10-28, finding 3), so L1 is recorded and not scored. The
-# verdict comes from L4 where a flat-prior posterior converges in budget;
-# where it did not (Rhat above 2, or past 2400 s) the pair records L1
-# alone and is cannot measure.
+#
+# The exact gp() differs from brms's by one decided line: frmtmb's nugget
+# is 1e-6 on the correlation, brms's is 1e-12 on the covariance (the
+# user's decision of 2026-10-06, its reason in NEWS). L1 reads brms's own
+# program and fails there by the nugget, -0.03 to -5 nats, one z through two
+# factors. The same program with that line rewritten separates the line from
+# the rest; it attributes the gap and does not score as L1, so these pairs
+# are divergences by decision (dev/gpgap-findings.md). Where a flat-prior
+# posterior converges in budget (p136) the verdict is L4, weak; where it did
+# not (Rhat above 2, or past 2400 s) the pair records L1 alone.
+eq_gp_frm_nugget <- function(code) {
+  new <- gsub("cov[n, n] += 1e-12;", "cov[n, n] += 1e-6 * square(sdgp);",
+              code, fixed = TRUE)
+  if (identical(new, code)) {
+    stop("brms's exact gp() program no longer has the nugget line it had")
+  }
+  new
+}
 eq_gp <- function(spec, sample = TRUE) {
   spec$l4 <- sample
-  spec$l1_decision <- eq_decision_gp
+  spec$l1_code <- eq_gp_frm_nugget
   spec
 }
 

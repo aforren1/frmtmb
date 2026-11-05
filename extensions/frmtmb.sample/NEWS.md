@@ -1,3 +1,48 @@
+# frmtmb.sample (development version)
+
+* BREAKING: `frm_sample()` samples a non-centered exact `gp()` at a nugget of
+  `1e-12 * sdgp^2`, where it read frm()'s `1e-6 * sdgp^2`. That nugget's
+  variance came off `sigma^2`, so at true sigma 1e-3 on 40 rows the median
+  sigma read 0.18 of brms's, with no warning. frm() keeps 1e-6 because its
+  centered field does not converge reliably below it, and that reason does
+  not apply to a non-centered chain. It differs from brms's absolute 1e-12 by
+  being relative, on purpose: brms's line does not factor on y times 1000
+  (Rhat 3.77, 267 divergent transitions). `frm_sample(laplace = TRUE)` holds
+  the block by its factor for the same reason. At true sigma 1e-3, 40 rows,
+  it reads sigma 8.7e-4, 1.07e-3, 1.37e-3 (Rhat 1.001), against 2.3e-5,
+  3.0e-4, 8.7e-4 at the old nugget and 8.7e-4, 1.07e-3, 1.36e-3 for brms's
+  model with the field integrated out. It serves the outer parameters only:
+  it refuses `posterior_epred()`, `posterior_linpred()`,
+  `posterior_predict()`, `fitted()`, `predict()`, `log_lik()`, `loo()` and
+  `conditional_effects()`. Holding the field by its factor makes that route's
+  clock grow with the positions: 1.6, 3.6 and 3.2 times the centered route's
+  wall clock at 40, 100 and 200 positions. The drawn route is the one for the
+  field and for predictions, and at low noise it needs long chains. At true
+  sigma 1e-3, 15 rows, 4 chains of 12000 read sigma 5.9e-4, 1.05e-3, 2.3e-3
+  (Rhat 1.025, sdgp Rhat 1.07, 58 minutes), and brms's read 5.2e-4, 1.03e-3,
+  2.4e-3 (1.031, 1.15, 53 minutes, 20000 iterations). At 40 rows, 4 chains of
+  3000 read 8.8e-4, 1.10e-3, 1.40e-3 (Rhat 1.07, sdgp Rhat 1.14, 59 minutes).
+  Neither reaches Rhat 1.01 at those lengths. On y times 1000 with `sdgp`
+  near 1200, `frm_sample()` draws read sigma 106 of a true 100 (Rhat 1.002),
+  where brms reads 260 (Rhat above 10). At ordinary noise on five fields, the
+  same z through the sampler's factor and brms's own program differs by 0.002
+  to 0.09 nats. A centered block (`reparameterize = FALSE`) keeps 1e-6, and
+  so does `check_laplace()`. `?frmtmb::"frmtmb-gp"` states this.
+
+* The non-centered exact `gp()` takes its factor in a farthest-first order of
+  the positions, where it took sorted order. Over sorted positions rounding
+  in the factor moved the field by 1.7e-5 at 15 rows, against 6.1e-11 in this
+  order, and at sigma 1e-3 that is a gradient error near 34 on a gradient
+  near 100. The field `b[i]` keeps its sorted order. Only z, which the
+  `stanfit` holds, has the new basis; it was never brms's `zgp` coordinate by
+  coordinate, since brms's order is first appearance.
+
+* BREAKING: `frm_sample(fit)` on a fit with an exact `gp()` starts at random,
+  and says so, because the fit's mode is not a mode of this run's model. From
+  a collapsed `frm()` fit the chains stayed there: sigma 6.9e-8 against
+  1.03e-3, step size 1e-15. `init = "last.par.best"` still starts at the
+  mode.
+
 # frmtmb.sample 0.25.0
 
 Needs frmtmb 0.78.0. Its `set_prior()` takes the classes `meanme`,

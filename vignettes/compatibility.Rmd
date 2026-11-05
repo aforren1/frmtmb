@@ -316,7 +316,9 @@ note_table("special", "mode")
 
 The specials `mi()`, `gp()`, and `cs()` share a name with a covariance
 structure. The registry writes the predictor forms as `mi_pred()`,
-`gp_pred()`, and `cs_pred()` to keep them apart.
+`gp_pred()`, and `cs_pred()` to keep them apart. A row that marks the exact
+`gp()` as working means its model apart from the nugget, which `?"frmtmb-gp"`
+states.
 
 ## Formula grammar
 

@@ -108,6 +108,11 @@ eq_l1 <- function(spec, bform, family, data, fit, prior, joint,
   args <- eq_brms_args(spec, data, prior)
   code <- do.call(brms::make_stancode,
                   c(list(bform, family = family), args))
+  # a recorded decision that is one line of brms's program (the exact
+  # gp() nugget): the program with that line rewritten attributes the gap,
+  # and the program as brms wrote it is the L1 reading (eq_measure())
+  code_brms <- code
+  if (is.function(spec$l1_code)) code <- spec$l1_code(code)
   sdat <- suppressMessages(do.call(brms::make_standata,
                                    c(list(bform, family = family), args)))
   rtab <- do.call(brms_ranef_table,
@@ -180,8 +185,58 @@ eq_l1 <- function(spec, bform, family, data, fit, prior, joint,
       }
     }
   }
+  const_brms <- NULL
+  if (!identical(code, code_brms)) {
+    sf0 <- suppressMessages(rstan::sampling(brms_stan_model(code_brms),
+                                            data = sdat, chains = 0))
+    p0 <- stan_pars_from_fit(fit, sdat, code_brms, rtab)
+    const_brms <- at$const - at$lp + rstan::log_prob(
+      sf0, rstan::unconstrain_pars(sf0, p0), adjust_transform = FALSE,
+      gradient = FALSE)
+  }
   list(at = at, extra = extra, code = code, sdat = sdat, sf = sf,
-       rtab = rtab)
+       rtab = rtab, const_brms = const_brms,
+       max_gap = if (!is.null(const_brms)) eq_gp_brms_max_gap(fit))
+}
+
+# How far frmtmb's maximum sits from the maximum of the model at brms's own
+# nugget line: one bare tape, no prior, non-centered, b = L z, which is what
+# lets that line be factored at all, at each nugget. brms's program is not
+# maximized for this, because its optimizer does not integrate the field.
+eq_gp_brms_max_gap <- function(fit) {
+  frn <- fit$frame
+  frn$ncp_blocks <- which(vapply(frn$re_blocks, function(b) {
+    identical(b$covstruct, "gp")
+  }, NA))
+  ns <- asNamespace("frmtmb")
+  orig <- get("gp_corr", envir = ns)
+  put <- function(val) {
+    unlockBinding("gp_corr", ns)
+    assign("gp_corr", val, envir = ns)
+    lockBinding("gp_corr", ns)
+  }
+  on.exit(put(orig))
+  bare <- function() {
+    fn <- frmtmb::build_objective(frn)
+    tpl <- frn$par_template
+    tpl$b[] <- 0
+    o <- RTMB::MakeADFun(fn, tpl, random = "b", map = frn$map, silent = TRUE)
+    op <- suppressWarnings(stats::nlminb(
+      o$par, o$fn, o$gr, control = list(iter.max = 800, eval.max = 1200)))
+    op$objective
+  }
+  tryCatch({
+    at_frm <- bare()
+    put(function(theta, blk) {
+      Q <- 0
+      for (j in seq_along(blk[["aux_D2"]])) {
+        rho <- if (isTRUE(blk[["gp_iso"]])) exp(theta[2]) else exp(theta[1 + j])
+        Q <- Q + blk[["aux_D2"]][[j]] / (2 * rho^2)
+      }
+      exp(-Q) + diag(1, nrow(Q)) * (1e-12 * exp(-2 * theta[1]))
+    })
+    at_frm - bare()
+  }, error = function(e) NULL)
 }
 
 # The two away points: frm() run with an optimizer that converges and

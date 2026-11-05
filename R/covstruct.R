@@ -1240,13 +1240,97 @@ kron_prec_parts <- function(Q, d) {
 # the nugget (gp_nugget) keeps the notoriously ill-conditioned SE kernel
 # Cholesky-factorizable as the range grows (standard GP practice)
 #' The exact gp()'s nugget, on the CORRELATION: white noise of
-#' `gp_nugget * sd^2` at each position, part of the fitted model. One
-#' constant, read by the density, the kriging and the sampler's draw of
-#' the field, so a change to it changes all three together; brms's
-#' Stan program uses 1e-12 absolute (dev/brms-likelihood-tests.md).
+#' `gp_nugget * sd^2` at each position, part of the fitted model. The
+#' density, the kriging and the sampler's draw of the field read it through
+#' `gp_block_nugget()`, so they cannot disagree; brms's Stan program uses
+#' 1e-12 absolute (dev/brms-likelihood-tests.md).
 #'
 #' @noRd
 gp_nugget <- 1e-6
+
+#' The nugget one block carries. `frm()`'s centered field needs
+#' `gp_nugget`. `frm_sample()`'s non-centered field does not, and sets the
+#' block's `gp_nugget` on its own copy of the fit.
+#'
+#' @noRd
+gp_block_nugget <- function(blk) blk[["gp_nugget"]] %||% gp_nugget
+
+#' What the data say about an exact gp() field, position by position: the
+#' likelihood's curvature in each latent value, the inverse of the noise that
+#' position's rows carry about it.
+#'
+#' Read off the tape as the joint Hessian's diagonal less the block's own
+#' prior, so every route gives it the same way: a known `se()`, `sigma` on any
+#' predictor or offset, repeated rows, a family's own information (`mu` for a
+#' Poisson on the log link, `n p (1 - p)` for a binomial on the logit), a
+#' mixture's responsibilities, a nonlinear body's gradient. A negative value
+#' (a Student t outlier, a mixture component) adds no information here.
+#'
+#' @noRd
+gp_position_info <- function(fit, bk) {
+  env <- fit$obj$env
+  par <- env$last.par.best
+  ri <- which(names(par)[env$random] == "b")[bk[["b_idx"]]]
+  H <- Matrix::diag(env$spHess(par, random = TRUE))[ri]
+  th <- fit$estimates[["theta"]][bk[["theta_idx"]]]
+  V <- cs_entry("gp")$vcov(th, bk)
+  pmax(H - diag(chol2inv(chol(V))), 0)
+}
+
+#' The warning for a fit whose exact gp() nugget reaches the data.
+#'
+#' The nugget is white noise on the field, one draw per position, and the
+#' likelihood cannot tell it from the noise at that position. `r`, the nugget's
+#' variance over a position's working noise, is the relative bias that noise
+#' takes on: with one row per position and an estimated `sigma`,
+#' `sigma_frm^2 = sigma_brms^2 - gp_nugget * sdgp^2`, so `log sigma` moves by
+#' `r / 2` against a standard error of about `1 / sqrt(2 m)` over `m` positions.
+#' So the rule is `r` against `sqrt(2 / m)`, one standard error, at its 90th
+#' percentile: a quarter of the positions at low noise moves the fit, where the
+#' median does not see them, and one low-noise row does not. On the calibration
+#' of dev/gpgap-findings.md it fires on 150 of the 152 rows that move, and 5 of
+#' the 128 that do not, 4 of them within 0.11 of a standard error.
+#'
+#' A diagnostic of a finished fit, so nothing here may lose that fit: any
+#' failure to read the tape skips the check.
+#'
+#' @return The message, or `NULL`.
+#' @noRd
+gp_nugget_message <- function(fit) {
+  fr <- fit$frame
+  bks <- Filter(function(b) identical(b[["covstruct"]], "gp"),
+                fr[["re_blocks"]])
+  if (!length(bks)) return(NULL)
+  tryCatch(suppressWarnings({
+    hits <- character()
+    for (bk in bks) {
+      info <- gp_position_info(fit, bk)
+      th <- fit$estimates[["theta"]][bk[["theta_idx"]]]
+      nv <- gp_block_nugget(bk) * exp(2 * th[[1L]])
+      r <- stats::quantile(nv * info, 0.9, names = FALSE)
+      if (isTRUE(r >= sqrt(2 / length(info)))) {
+        hits <- c(hits, sprintf(
+          "%s (nugget variance %.3g, %.2g of the noise at a position)",
+          bk[["group_name"]] %||% bk[["term_label"]], nv, r))
+      }
+    }
+    if (length(hits)) {
+      paste0("The nugget of the exact gp() term ",
+             paste(hits, collapse = ", "),
+             " is not small against the noise at a position, so the fit is ",
+             "not brms's. Where each position has one row, an estimated sigma ",
+             "reads low. Where positions repeat, or sigma is known, or the ",
+             "family has none, sdgp and the length scale read low. ",
+             "frmtmb.sample's frm_sample() has a far smaller nugget: with ",
+             "laplace = TRUE it reads sigma, sdgp and the length scale and ",
+             "refuses posterior_epred() and the other readers of the field; ",
+             "drawn, it reads the field and needs long chains at this noise. ",
+             "gp(..., k = ) has none, but k must be large enough for the ",
+             "field: too small a k can read sigma far too high with no ",
+             "warning, so compare several k. See ?`frmtmb-gp`.")
+    }
+  }), error = function(e) NULL)
+}
 
 #' Number of `theta` entries for an exact gp block: one `log sd` plus one
 #' lengthscale, shared when `iso` and one per input dimension otherwise.
@@ -1270,7 +1354,7 @@ gp_corr <- function(theta, blk) {
     rho <- if (isTRUE(blk[["gp_iso"]])) exp(theta[2]) else exp(theta[1 + j])
     Q <- Q + blk[["aux_D2"]][[j]] / (2 * rho^2)
   }
-  exp(-Q) + diag(gp_nugget, nrow(blk[["aux_D2"]][[1]]))
+  exp(-Q) + diag(gp_block_nugget(blk), nrow(blk[["aux_D2"]][[1]]))
 }
 
 #' The rows confint_varcorr() reports for a gp() or hsgp() block: the
@@ -1309,7 +1393,7 @@ gp_cross_cov <- function(theta, blk, Xnew, pos) {
     Q <- Q + dj^2 / (2 * rho^2)
     same <- same * (dj == 0)
   }
-  exp(2 * theta[1]) * (exp(-Q) + gp_nugget * same)
+  exp(2 * theta[1]) * (exp(-Q) + gp_block_nugget(blk) * same)
 }
 
 covstruct_core[["gp"]] <- list(
@@ -1761,7 +1845,10 @@ block_cor_prior <- function(bk) {
 #                        factor is diagonal (length `blk$dim`, recycled
 #                        over the levels, level-major like `b`), or
 #   chol_L(theta, blk)   the per-level lower-triangular `L` with
-#                        `L L' = Sigma`, the within-level covariance,
+#                        `L L' = Sigma`, the within-level covariance
+#                        (an exact gp() with a block `gp_order` returns
+#                        a row-permuted triangle: its factor is taken in
+#                        that order, and `b` stays in the block's own),
 #
 # plus, for a structure whose LEVELS are correlated, the fixed
 # across-level factor
@@ -1918,7 +2005,36 @@ covstruct_core[["gr_cov"]]$chol_A <- function(blk) {
 # of 2000 transitions at the maximum tree depth, R-hat 1.52, bulk ESS
 # 7; dev/moparity-log/gp-cmp.txt, dev/moparity-findings.md, item 7).
 covstruct_core[["gp"]]$chol_L <- function(theta, blk) {
-  t(chol(gp_corr(theta, blk))) * exp(theta[1])
+  K <- gp_corr(theta, blk)
+  # At a nugget of 1e-12 the order of the positions decides how much
+  # rounding reaches the field: 1.7e-5 sorted, 6e-11 farthest-first, at n
+  # 15 against 300 bits (dev/gpgap-findings.md, section 10). At noise 1e-3
+  # that is a gradient error of 34 on a gradient of 100, which the sampler
+  # cannot mix through. `b` stays sorted; only z's basis moves.
+  p <- blk[["gp_order"]]
+  if (!is.null(p)) K <- K[p, p, drop = FALSE]
+  L <- t(if (is.numeric(K)) gp_chol_num(K) else chol(K))
+  if (!is.null(p)) L <- L[order(p), , drop = FALSE]
+  L * exp(theta[1])
+}
+
+#' A numeric kernel's Cholesky factor when rounding may leave it just short
+#' of positive definite. At a nugget of 1e-12 a draw the tape's factor
+#' accepted can fail in LAPACK, and that must not lose a finished chain, or
+#' stop a prediction: the jitter it takes is the smallest that factors, at
+#' most `gp_nugget`, and is far below what these fields can resolve.
+#'
+#' @noRd
+gp_chol_num <- function(K) {
+  R <- tryCatch(chol(K), error = function(e) NULL)
+  jit <- 1e-12
+  while (is.null(R) && jit <= gp_nugget) {
+    Kj <- K
+    diag(Kj) <- diag(Kj) + jit
+    R <- tryCatch(chol(Kj), error = function(e) NULL)
+    jit <- jit * 10
+  }
+  if (is.null(R)) chol(K) else R
 }
 # WHICH BLOCKS ARE NON-CENTERED, and why it is not all of them.
 #

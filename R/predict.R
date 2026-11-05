@@ -824,10 +824,16 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
         # sampler's draw (gp_krig_factor()) then share one arithmetic,
         # and a pivot at a small variance does not divide one formula's
         # rounding by another's
-        R <- tryCatch(chol(K), error = function(e) NULL)
+        # in the block's factor order, whose rounding the sampler's field
+        # was built with at its nugget
+        ord <- bk[["gp_order"]]
+        R <- tryCatch(gp_chol_num(if (is.null(ord)) K else K[ord, ord]),
+                      error = function(e) NULL)
         if (!is.null(R)) {
-          P <- t(backsolve(R, t(Ks), transpose = TRUE))
+          Kso <- if (is.null(ord)) Ks else Ks[, ord, drop = FALSE]
+          P <- t(backsolve(R, t(Kso), transpose = TRUE))
           Xw <- t(backsolve(R, t(P)))
+          if (!is.null(ord)) Xw[, ord] <- Xw
           rs <- rowSums(P^2)
         } else {
           # rounding left K semi-definite, which a solve still takes
@@ -846,7 +852,8 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
         extra_var <- numeric(nn)
         # the clamp absorbs roundoff at a position that kriges to
         # nearly an observed one
-        extra_var[nw] <- w[nw]^2 * (sd2 * pmax((1 + gp_nugget) - rs, 0))
+        extra_var[nw] <- w[nw]^2 * (sd2 * pmax((1 + gp_block_nugget(bk)) -
+                                                 rs, 0))
       }
     }
     # A posterior draw evaluated here is one draw of the field: brms
@@ -2843,7 +2850,8 @@ gp_krig_cov <- function(krig) {
   }
   # written by index, because `diag<-` is a closure that copies S whole
   # (dev/ciharden-krigmem.R counts the n x n allocations)
-  S[cbind(seq_len(n), seq_len(n))] <- sd2 * pmax((1 + gp_nugget) -
+  nug <- gp_block_nugget(krig$bk)
+  S[cbind(seq_len(n), seq_len(n))] <- sd2 * pmax((1 + nug) -
                                                    krig$rs[u], 0)
   if (n < length(idx)) S <- S[idx, idx, drop = FALSE]
   if (scaled) {
@@ -2957,8 +2965,8 @@ extra_cov_assemble <- function(blocks, n, dg = NULL) {
 #' Drawn once per DISTINCT position and copied, so two rows at one
 #' position carry one value exactly, then multiplied by each row's `by`
 #' value. The law is the smooth conditional covariance plus the nugget,
-#' `gp_nugget * sd^2`, as white noise per distinct position, which is
-#' how the fit's latent values carry it.
+#' `gp_block_nugget() * sd^2`, as white noise per distinct position, which
+#' is how the fit's latent values carry it.
 #'
 #' A sampler calls this once per posterior draw, and a dense factor of
 #' the smooth part cost an `n x n` kernel and an `n^3` Cholesky per draw
@@ -3011,7 +3019,10 @@ gp_krig_factor <- function(krig) {
     # is slower than the whole kernel and one LAPACK factor
     # (dev/rel068-krig-rank.R measures both regimes), so
     # a high-rank grid takes the dense route
-    if (k >= n / 4) return(gp_krig_factor_dense(Xu, P, Qr, rho2, d0, key, u))
+    if (k >= n / 4) {
+      return(gp_krig_factor_dense(Xu, P, Qr, rho2, d0, key, u,
+                                  gp_block_nugget(krig$bk)))
+    }
     k <- k + 1L
     if (k > ncol(L)) L <- cbind(L, matrix(0, n, min(n, 2L * ncol(L)) -
                                             ncol(L)))
@@ -3030,7 +3041,7 @@ gp_krig_factor <- function(krig) {
     d <- pmax(d - col^2, 0)
     d[j] <- 0
   }
-  list(L = L[, seq_len(k), drop = FALSE], white = gp_nugget + d,
+  list(L = L[, seq_len(k), drop = FALSE], white = gp_block_nugget(krig$bk) + d,
        idx = match(key, key[u]))
 }
 
@@ -3042,7 +3053,7 @@ gp_krig_factor <- function(krig) {
 #' `L L' + diag(white)` is the same law.
 #'
 #' @noRd
-gp_krig_factor_dense <- function(Xu, P, Qr, rho2, d, key, u) {
+gp_krig_factor_dense <- function(Xu, P, Qr, rho2, d, key, u, nugget) {
   E <- 0
   for (a in seq_len(ncol(Xu))) {
     E <- E + outer(Xu[, a], Xu[, a], "-")^2 / rho2[a]
@@ -3054,7 +3065,7 @@ gp_krig_factor_dense <- function(Xu, P, Qr, rho2, d, key, u) {
   R <- suppressWarnings(chol(C, pivot = TRUE, tol = gp_krig_tol))
   r <- attr(R, "rank")
   L <- t(R[seq_len(r), order(attr(R, "pivot")), drop = FALSE])
-  list(L = L, white = gp_nugget + pmax(d - rowSums(L^2), 0),
+  list(L = L, white = nugget + pmax(d - rowSums(L^2), 0),
        idx = match(key, key[u]))
 }
 

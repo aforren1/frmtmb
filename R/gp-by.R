@@ -1,3 +1,74 @@
+#' Exact Gaussian processes and their nugget
+#'
+#' @description
+#' `gp(x)` in a formula fits an exact Gaussian process, and `gp(x, k = )` its
+#' Hilbert-space approximation, with the arguments of [brms::gp()]. This page
+#' states where the exact form is not brms's model.
+#'
+#' @section The nugget:
+#' A squared exponential kernel is near singular, so a nugget on its diagonal
+#' keeps it factorable. `frm()` adds `1e-6 * sdgp^2`, `frm_sample()` in
+#' frmtmb.sample adds `1e-12 * sdgp^2` when it non-centers the field, and brms
+#' adds an absolute `1e-12`. `frm()`'s centered field usually does not converge
+#' below 1e-6. A relative nugget also does not depend on the units of y. brms's
+#' does: at y times 1000 its kernel does not factor at frm()'s estimates (its
+#' run reads Rhat 3.77), and at y times 1e-3 its nugget floors `sigma`.
+#'
+#' At ordinary noise the two models have one maximum: brms's model, read at
+#' frm()'s maximum, loses at most 3e-9 nats on three designs of 200 rows.
+#' `frm()` and brms differ when the nugget reaches the noise at a position:
+#'
+#' * With one row per position and an estimated `sigma`, the nugget's variance
+#'   comes off `sigma^2`: `sigma_frm^2 = sigma_brms^2 - 1e-6 * sdgp^2`. Below
+#'   `sigma = 1e-3 * sdgp` the fit collapses to a `sigma` near 0, and `sdgp`
+#'   moves too.
+#' * Where positions repeat, or `sigma` is known through `se()`, or the family
+#'   has no `sigma` (a Poisson at a large mean, a binomial at very many trials),
+#'   `sdgp` and the length scale read low. A binomial at 1e7 trials reads `sdgp`
+#'   0.73 for 2.87; at 1e5 the two differ by about what another seed does.
+#'
+#' It depends on the range of the field against the noise, not on the size of
+#' the noise. `y ~ gp(x)` with x on 0 to 10, y a curve `x^2` and a true `sigma`
+#' of 0.3 reads `sigma` 1e-4 where brms reads 0.34.
+#'
+#' @section The warning:
+#' `frm()` warns with class `frmtmb_gp_nugget`, on top of `frmtmb_warning`, when
+#' the 90th percentile over the positions of the nugget's variance over the
+#' noise at a position reaches `sqrt(2 / m)` for `m` positions, which is about
+#' one standard error of `sigma`. The noise at a position is read from the
+#' likelihood's curvature, so the rule is the same for every family and route.
+#' `frm()` does not check an `importance =` or `integrate =` fit. `frm_sample()`
+#' draws with its own nugget and gives no such warning.
+#'
+#' @section What to do about it:
+#' `frm_sample()` reads the model at its smaller nugget, on two routes.
+#' `laplace = TRUE` integrates the field out, and it mixes fast at low noise,
+#' for the outer parameters only (`sigma`, `sdgp`, the length scales): it refuses
+#' `posterior_epred()`, `posterior_linpred()`, `posterior_predict()`,
+#' `fitted()`, `predict()`, `log_lik()`, `loo()` and `conditional_effects()`.
+#' The drawn route, the default, is the one for the field and for predictions,
+#' and at low noise it needs long chains (at sigma 1e-3 and 15 rows, Rhat 1.03
+#' on `sigma` after an hour).
+#' `gp(x, k = )` has no nugget and reaches brms's numbers when `k` is large
+#' enough for the field. Too small a `k` is a different failure, with no
+#' warning and with `convergence` 0: `sin(8 * x)` on 0 to 6 with noise 1e-3 at
+#' `k = 30` has a basis that stops
+#' at frequency 6.5, so it reads `sigma` 720 times high; `k = 60` reads it.
+#' Compare several `k`. A smooth trend written as fixed effects also lowers what
+#' the field has to carry.
+#'
+#' @section The order of the field:
+#' `frm_sample()`'s `b[i]` columns and the levels of `ranef()` of an exact
+#' term hold the field at the sorted distinct positions, where brms keeps first
+#' appearance. They are not in the order of the rows of the data. Read a field
+#' at the data through `posterior_epred()` or `frm_linpred()`, which are right
+#' row by row.
+#'
+#' @name frmtmb-gp
+#' @aliases frmtmb_gp_nugget
+#' @seealso [frm()], [frmtmb_control()], `vignette("brms-migration")`
+NULL
+
 # brms's gp(..., by = ), read from brms 2.23.0 (R/formula-gp.R and
 # brms:::data_gp()).
 #

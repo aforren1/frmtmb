@@ -103,7 +103,9 @@ warmup short; the jitter keeps the chains overdispersed enough for
 Rhat to retain power against multimodality (the standard objection
 to identical mode starts). \code{"random"} requests Stan's own
 overdispersed initialization, and is the default from a formula,
-where there is no mode to start at.}
+where there is no mode to start at, and for a fit with an exact \code{gp()},
+which this run reads at another nugget, so the fit's mode is not a mode of
+this model: at low noise chains started there stay pinned.}
 
 \item{init_jitter}{Per-chain perturbation sd for the default init;
 \code{0} starts every chain exactly at the mode. With \code{seed} given (in
@@ -278,9 +280,13 @@ and the CORRELATED blocks \code{(x | g)}, \code{cs()}, \code{ar1()} and \code{he
 A \verb{k =} Hilbert-space \code{gp()} block non-centers too, since its
 factor is diagonal and the defaults prior its sd and its length
 scales (brms's classes \code{"sdgp"} and \code{"lscale"}), and so does an exact
-\code{gp()} field, as brms's \verb{sdgp * L zgp}: its factor is the Cholesky
-factor of the kernel over the field's distinct positions, taken on the
-tape at a cost of \code{n^3 / 3} per gradient for \code{n} positions.
+\code{gp()} field, as brms's \verb{sdgp * L zgp}, at a nugget of \code{1e-12 * sdgp^2}
+where brms's is an absolute \code{1e-12} (\code{?frmtmb::"frmtmb-gp"}): its factor is
+the Cholesky factor of the kernel over the field's distinct positions, in a
+farthest-first order of them, taken on the tape at a cost of \code{n^3 / 3} per
+gradient for \code{n} positions. The field \code{b[i]} keeps its sorted order; only z,
+which the \code{stanfit} holds, has that order's basis, so it is not brms's \code{zgp}
+coordinate by coordinate (brms's order is first appearance).
 \code{rr()} is already non-centered by
 construction, since its own coefficients are the standard normal
 factors. What stays centered is a run whose variance parameters carry
@@ -331,7 +337,10 @@ and the blocks it declines to touch are the ones where it would have
 done harm.
 
 \code{laplace = TRUE} integrates the random effects out, which removes the
-funnel by itself, so that route ignores \code{reparameterize} entirely.
+funnel by itself, so that route ignores \code{reparameterize}. It still holds an
+exact \code{gp()} block by its factor, for the nugget above. At low noise this is
+the route that mixes: the integral is exact for a gaussian response, and the
+drawn field needs far longer.
 
 The ML fit is untouched either way. The Laplace approximation
 integrates \code{b} out, and that integral is invariant under a linear

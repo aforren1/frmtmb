@@ -73,6 +73,12 @@ matching message text:\tabular{ll}{
 }
 
 
+A few have one more class that says what happened, in front of these. For
+example, \code{\link[=frm]{frm()}} warns with class \code{frmtmb_gp_nugget} when an exact \code{gp()}
+term's nugget reaches the noise in the data (see \code{\link{frmtmb-gp}}), and
+tells a boundary fit with class \code{frmtmb_boundary_fit} (see
+\code{\link[=frmtmb_control]{frmtmb_control()}}).
+
 A condition that an extension package raises has one more class in
 front, made from the package name with each dot changed to an
 underscore. For example, an error from frmtmb.eam has the class

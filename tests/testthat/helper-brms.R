@@ -723,8 +723,9 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
             # per sub-GP. The HSGP form rescales its inputs the same way
             # brms does and needs no correction.
             byfac <- !is.null(sdat[[paste0("Igp_", gsfx, i, "_1")]])
-            r <- r / sdat[[paste0("dmax_", gsfx, i,
-                                  if (byfac) paste0("_", j))]]
+            # brms ships no dmax under scale = FALSE: nothing was divided
+            dm <- sdat[[paste0("dmax_", gsfx, i, if (byfac) paste0("_", j))]]
+            if (!is.null(dm)) r <- r / dm
           }
           r
         }, numeric(dgp)))
@@ -736,23 +737,29 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       # diagonal of spectral densities and this reduces to f / sd.
       #
       # For the EXACT form the two kernels are not the same matrix: see
-      # the nugget divergence in dev/brms-likelihood-tests.md. Nothing
-      # here can repair that, and the exact spelling is asserted
-      # structurally instead of being run through the identity.
+      # the nugget divergence in dev/brms-likelihood-tests.md. A z read
+      # through frmtmb's factor rebuilds, in brms's program, a field a
+      # nugget's width from frmtmb's.
       # zgp_<i>_<j> is sub-GP j of a gp(by = ) term
       ip <- brms_idx_parts(nm, "zgp")
       bks <- brms_gp_term(fit, ip$dpar, ip$idx[[1]])
       bk <- bks[[if (length(ip$idx) > 1L) ip$idx[[2]] else 1L]]
       kb <- brms_block_cov(fit, bk)
+      fv <- brms_block_b(fit, bk)
       # the HSGP covariance is diagonal: its square root is elementwise,
       # which stays defined where a spectral density underflows a
       # Cholesky factorization's pivot tolerance
       lmat <- if (identical(bk[["covstruct"]], "hsgp")) {
         diag(sqrt(diag(kb)), nrow(kb))
       } else {
+        # L z in brms's program is position by position, so z must come
+        # from the factor in brms's order of the positions
+        io <- brms_gp_order(sdat, nm)
+        kb <- kb[io, io, drop = FALSE]
+        fv <- fv[io]
         t(chol(kb))
       }
-      v <- solve(lmat, brms_block_b(fit, bk))
+      v <- solve(lmat, fv)
       out[[nm]] <- array(as.numeric(v), length(v))
       jac <- jac + sum(log(diag(lmat)))
     } else if (nm %in% c("ar", "ma", "cosy", "Lcortime")) {
@@ -1110,6 +1117,21 @@ brms_gp_block <- function(fit, dpar, i) {
          "read them with brms_gp_term()")
   }
   bks[[1L]]
+}
+
+# Where brms's latent positions sit in frmtmb's. Under gr = TRUE frmtmb
+# sorts a term's distinct positions (R/frame.R) and brms keeps them in
+# order of first appearance (brms:::.data_gp), so the i-th value of
+# brms's vector is frmtmb's value number brms_gp_order()[i]. brms's
+# inputs are frmtmb's divided by one positive number, which keeps the
+# sort. Under gr = FALSE brms has no Jgp_ and both hold one value per
+# row, in row order.
+brms_gp_order <- function(sdat, zname) {
+  xb <- sdat[[sub("^zgp_", "Xgp_", zname)]]
+  if (is.null(sdat[[sub("^zgp_", "Jgp_", zname)]])) {
+    return(seq_len(NROW(xb)))
+  }
+  order(do.call(order, as.data.frame(as.matrix(xb))))
 }
 
 # One GP TERM's frmtmb blocks, in sub-GP order. A gp(by = f) term is one

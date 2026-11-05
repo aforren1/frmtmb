@@ -44,6 +44,14 @@
 #' prior-augmented objective is this closure plus
 #' `neg_log_prior_fn()`'s.
 #'
+#' A non-centered exact `gp()` block also takes `gp_nugget` on the block,
+#' `frame$re_blocks[[i]]$gp_nugget`: its nugget on the correlation, in place
+#' of the 1e-6 `frm()`'s centered field needs, and `gp_order`, a permutation
+#' of its positions in which to take the factor. Set them on the fit the
+#' draws keep as well, because the kriging reads them from there. The factor
+#' `L` is then a row-permuted triangle: `b` keeps its order, and z has the
+#' basis of that order.
+#'
 #' `row_lpdf(fam, y, yobs, dpars, aterms, extra)` is the per-row
 #' log-density composition the objective itself runs, with `cens()` and
 #' `trunc()` folded in; it runs on numeric dpar values as readily as on

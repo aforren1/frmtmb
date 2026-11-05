@@ -167,6 +167,14 @@ plus \code{neg_log_prior_fn()}'s is the prior of the whole model. A
 prior-augmented objective is this closure plus
 \code{neg_log_prior_fn()}'s.
 
+A non-centered exact \code{gp()} block also takes \code{gp_nugget} on the block,
+\code{frame$re_blocks[[i]]$gp_nugget}: its nugget on the correlation, in place
+of the 1e-6 \code{frm()}'s centered field needs, and \code{gp_order}, a permutation
+of its positions in which to take the factor. Set them on the fit the
+draws keep as well, because the kriging reads them from there. The factor
+\code{L} is then a row-permuted triangle: \code{b} keeps its order, and z has the
+basis of that order.
+
 \code{row_lpdf(fam, y, yobs, dpars, aterms, extra)} is the per-row
 log-density composition the objective itself runs, with \code{cens()} and
 \code{trunc()} folded in; it runs on numeric dpar values as readily as on

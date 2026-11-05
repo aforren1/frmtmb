@@ -6,7 +6,10 @@
 # OWN kernel, z = L_frm^-1 f, and brms rebuilds the field through ITS
 # kernel, L_brms z. On a kernel with eigenvalues near both nuggets the
 # rebuilt field is not f, so the likelihood term moves too. This script
-# reads the pair three ways at frmtmb's estimate:
+# reads the pair three ways at frmtmb's estimate, in brms's order of the
+# positions (brms_gp_order(); before the 2026-11 correction it read them
+# in frmtmb's sorted order, which made B - C about -102 nats on p094;
+# dev/gpgap-findings.md):
 #   A  the instrument's L1 constant (z through L_frm);
 #   B  the constant with z taken through brms's kernel, z = L_brms^-1 f,
 #      and the map's Jacobian log|L_brms|, so brms rebuilds f exactly;
@@ -16,7 +19,7 @@
 # the field and the model is otherwise the same function. Writes nothing.
 args <- commandArgs(trailingOnly = TRUE)
 key <- if (length(args)) args[1] else "lognormal x gp"
-.libPaths(c("C:/Users/adf44/source/r/rellib-r15",
+.libPaths(c("C:/Users/adf44/source/r/rellib-r16",
             "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
 Sys.setenv(FRMTMB_STAN_CACHE = normalizePath("dev/stan-cache", winslash = "/"),
            R_MAKEVARS_USER = "C:/Users/adf44/Documents/.R/Makevars.win")
@@ -52,15 +55,16 @@ local(envir = E, {
 
   dp <- if (grepl("mvbf", spec$bf)) "y1_mu" else "mu"
   bk <- brms_gp_block(fit, dp, 1)
-  kf <- brms_block_cov(fit, bk)
-  fv <- as.numeric(brms_block_b(fit, bk))
+  zn <- grep("^zgp_", names(pars), value = TRUE)
+  io <- brms_gp_order(sdat, zn)
+  kf <- brms_block_cov(fit, bk)[io, io]
+  fv <- as.numeric(brms_block_b(fit, bk))[io]
   th <- fit$estimates$theta[bk$theta_idx]
   sdgp <- exp(th[[1]])
   kb <- kf
   diag(kb) <- diag(kb) - frmtmb:::gp_nugget * sdgp^2 + 1e-12
   lf <- t(chol(kf))
   lb <- t(chol(kb))
-  zn <- grep("^zgp_", names(pars), value = TRUE)
   p2 <- pars
   p2[[zn]] <- array(as.numeric(solve(lb, fv)), length(fv))
   logJ2 <- attr(pars, "logJ") - sum(log(diag(lf))) + sum(log(diag(lb)))

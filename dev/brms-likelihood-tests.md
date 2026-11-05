@@ -827,7 +827,9 @@ against brms -1826.6), and a quadratic-form contribution of -213.11
 The marginal likelihood barely moves, which is why the two fits agree
 and the two joint densities do not: the nugget enters the marginal
 covariance as `Z (K + 1e-6 sdgp^2 I) Z' + sigma^2 I`, where it is 1e-5
-of `sigma^2` on this design. Measured by refitting with `gp_corr()`
+of `sigma^2` on this design (this holds on this design, not in general: see
+the note of the round of 2026-10-29 at the end of this section). Measured by
+refitting with `gp_corr()`
 replaced in the installed namespace, on the row's design and on a
 long-length-scale design built to be hostile (`2 sin(x/5) + 0.3x`,
 fitted length-scale 12.2, 75 of 80 eigenvalues below 1e-6), moving the
@@ -835,7 +837,7 @@ nugget from 1e-6 to 1e-12 shifts `sdgp` by 0.22 and 3.60 percent, the
 length-scale by 0.25 and 1.86 percent, `sigma` in the fourth decimal,
 and the log-likelihood by less than 6e-4 nats against the 1.92 nats of a
 one-parameter 95 percent confidence boundary. The nugget does not
-measurably bias the fit.
+measurably bias the fit on these two designs, whose `sigma` is about 0.3.
 
 Which side is right: brms's, for the density both packages advertise. A
 squared exponential kernel is what both document, and a relative nugget
@@ -860,6 +862,22 @@ in the generated program, asserts frmtmb's by comparing the two kernels
 entry by entry, and measures the gap, so it fails loudly if either
 package changes its mind. The Hilbert-space spelling, `gp(x, k = 10)`,
 has no nugget on either side and passes checks A, B and C exactly.
+
+The user decided on 2026-10-06 to keep 1e-6 for `frm()`
+(`dev/gpby-findings.md`, "Nugget decision"). Later measurements, in
+`dev/gpgap-findings.md` and `dev/reviews/2026-11-02-gpgap.md`:
+
+- This row's data are sorted, which hid that the translator read z in
+  frmtmb's sorted order of positions where brms keeps first appearance.
+  `test-brms-lik-gp-exact.R` covers unsorted positions, through brms's
+  program with its nugget line rewritten to frmtmb's.
+- The nugget does bias the fit once its variance reaches the noise at a
+  position. That holds on every route (an estimated or known `sigma`, a family's
+  own information, repeated positions), and it depends on the range of the field
+  against the noise. `frm()` warns from about one standard error of `sigma`.
+- "Match brms's constant" is not an option at any route: brms's absolute 1e-12
+  fails on y times 1000, in brms and in a non-centered tape. `frm_sample()`
+  moved to a relative 1e-12. A later `frm()` route would have to be relative too.
 
 ### Finding: the two GP forms carry different INTERNAL length-scales
 

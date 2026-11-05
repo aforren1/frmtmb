@@ -1,3 +1,58 @@
+# frmtmb (development version)
+
+* **The exact `gp()` of `frm()` differs from brms by its nugget, by
+  decision.** `frm()` adds `1e-6 * sdgp^2` to the kernel's diagonal, and brms
+  adds an absolute 1e-12. The reason: `frm()` holds the field centered, and
+  at a smaller nugget that fit usually does not converge. Over 180 fits, 1e-6
+  converges on all, 1e-8 warns on 6 of 45, and 1e-12 converges on almost
+  none; on five designs of 45 to 197 positions, a relative 1e-9 stops at
+  false convergence on 4 and 1e-12 on all 5. A relative nugget also does not
+  depend on the units of y, and brms's does (below). Nothing else in the two
+  models differs: with brms's nugget line rewritten to frmtmb's, brms's Stan
+  program at frmtmb's estimates equals frmtmb's joint density to 1e-8 nats on
+  15 spellings (several families, `iso`, `by`, `cmc`, `gr`, `scale`, `sigma ~
+  gp()`, two terms, a nonlinear parameter, `mvbf()`) and on five fields of 45
+  to 197 positions. brms's own line reads -0.03 to -5.1 nats on those five,
+  one z through two factors, and at their noise (sigma 0.29 to 0.5) the two
+  maxima coincide to 2.2e-5 nats. A gap of 94 to 1127 nats read earlier on
+  these fields was the test harness's: frmtmb sorts a term's positions, brms
+  keeps their first appearance, and the translator did not reorder them.
+  `?"frmtmb-gp"` states the divergence.
+
+* **`frm()` warns when an exact `gp()` term's nugget reaches the noise in the
+  data**, with class `frmtmb_gp_nugget`. The nugget is one draw per position,
+  and the fit cannot tell it from the noise at that position. This depends on
+  the range of the field against the noise, so it is not only noise-free
+  data: `y ~ gp(x)`, x on 0 to 10, y `x^2` plus noise of sd 0.3, reads
+  `sigma` 1e-4 where brms reads 0.34, and `exp(0.8 * x)` is 68 to 76 nats
+  below brms's maximum. With one row per position, an estimated `sigma` reads
+  low (`sigma_frm^2 = sigma_brms^2 - 1e-6 * sdgp^2`), and below `sigma = 1e-3
+  * sdgp` the fit collapses. Where positions repeat, or `sigma` is known
+  through `se()`, or the family has none (a Poisson at a large mean, a
+  binomial at very many trials, as at 1e7 trials, not 1e5), `sdgp` and the
+  length scale read low. The warning compares the nugget's variance with the
+  noise at each position, read from the likelihood's curvature, so it covers
+  all of these with one rule: the 90th percentile of the ratio against
+  `sqrt(2 / m)` for `m` positions, about one standard error of `sigma`. On
+  281 fits against the same model non-centered at brms's nugget, it fires on
+  150 of the 152 that moved by 1 standard error or 0.5 nats, and on 5 of the
+  128 that did not. It does not read `importance =` or `integrate =` fits.
+
+* `gp(x, k = )` has no nugget, but it is not a remedy by itself: `k` must be
+  large enough for the field. On `sin(8 * x)` over 0 to 6 at noise 1e-3, `k =
+  30` stops at frequency 6.5, reads `sigma` 720 times high and reports
+  convergence, with no warning; `k = 60` reads brms's `sigma`.
+
+* `frm_sample()` now reads a non-centered exact `gp()` at `1e-12 * sdgp^2`,
+  in a farthest-first order of its positions, through the block's own
+  `gp_nugget` and `gp_order`, which `build_objective()` and the kriging
+  honor. See frmtmb.sample's NEWS and the new help topic `?"frmtmb-gp"`.
+
+* brms's absolute nugget has its own floor, and it depends on the units of y.
+  At y times 1000 its kernel does not factor at the estimates, and its run
+  reads Rhat 3.77 with 267 divergent transitions. At y times 1e-3 it floors
+  `sigma`.
+
 # frmtmb 0.78.0
 
 The main changes:
