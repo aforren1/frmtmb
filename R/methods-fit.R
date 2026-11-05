@@ -340,7 +340,7 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
          # R-side residual correlation, on the natural scale with the
          # same delta-method interval confint_varcorr() reports
          autocor = local({
-           tr <- autocor_trans_rows(object)
+           tr <- ac_report_rows(object)
            if (is.null(tr)) NULL else {
              z <- stats::qnorm(0.975)
              m <- cbind(
@@ -567,7 +567,7 @@ summary_spec_frame <- function(object, prob) {
 #'
 #' @noRd
 summary_cor_pars_frame <- function(object, prob) {
-  tr <- autocor_trans_rows(object)
+  tr <- ac_report_rows(object)
   if (is.null(tr)) return(summary_empty_block(prob))
   summary_nat_frame(tr, prob, tr$term)
 }
@@ -1494,7 +1494,8 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   cvec <- coef_b(object)
   out <- list()
   for (bk in by_merged_blocks(object$frame[["re_blocks"]])) {
-    if (bk[["covstruct"]] == "smooth") next
+    # brms's latent residuals are autocorrelation terms, not group-level ones
+    if (bk[["covstruct"]] %in% c("smooth", "latres")) next
     bmat <- t(matrix(cvec[bk[["c_idx"]]], nrow = bk[["dim"]]))
     for (cp in bk[["components"]]) {
       lp <- object$frame[["linpreds"]][[cp$lp_key]]
@@ -1886,6 +1887,10 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   out <- list()
   # a gr(g, by = f) term is one entry over all levels of g, as in brms
   blocks <- by_merged_blocks(object$frame[["re_blocks"]])
+  # brms's latent residuals are autocorrelation terms, not group-level ones
+  blocks <- Filter(function(bk) {
+    !identical(bk[["covstruct"]], "latres")
+  }, blocks)
   if (!is.null(groups)) {
     # brms's `groups`: the grouping factors to keep; a name that is none
     # of them keeps nothing, and brms returns the empty list

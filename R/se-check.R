@@ -1959,9 +1959,12 @@ se_report <- function(fit, lost, act) {
   # unpenalized part, which mgcv reports in silence and which most GAM
   # fits end with; only a block over grouping levels is lme4's singular
   # fit, the same split check_re_structure() makes
-  said <- bnd & se_par_grouped(fit, names(lost))
+  said <- bnd & se_par_grouped(fit, names(lost)) &
+    !latres_limit_par(fit, names(lost))
   if (any(said)) se_boundary_act(act, se_boundary_message(fit, lost[said]))
-  if (any(!bnd)) re_check_act(act, se_lost_message(fit, lost[!bnd]))
+  if (any(!bnd)) {
+    re_check_act(act, latres_par_text(fit, se_lost_message(fit, lost[!bnd])))
+  }
   invisible(NULL)
 }
 

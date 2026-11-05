@@ -218,7 +218,7 @@ test_that("fcor() is refused where brms refuses it, and where M is not
   fe(frm(bf(y ~ x + fcor(V), nu ~ x), family = student(), data = d,
          data2 = list(V = V)), "constant nu")
   fe(frm(bf(y ~ x, sigma ~ fcor(V)), data = d, data2 = list(V = V)),
-     "can only be written on 'mu'")
+     "can only be specified on 'mu'")
   fe(frm(y ~ x + fcor(V) + cosy(gr = g), data = d, data2 = list(V = V)),
      "residual correlation terms")
   fe(frm(y ~ x * fcor(V), data = d, data2 = list(V = V)),

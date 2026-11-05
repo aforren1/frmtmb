@@ -2661,7 +2661,8 @@ fam_hurdle_poisson <- function(link = "log", link_hu = "logit") {
     type = "discrete",
     post = list(
       mean_fn = function(dpars, aterms) {
-        (1 - dpars[["hu"]]) * dpars[["mu"]] / (1 - exp(-dpars[["mu"]]))
+        # -expm1(): 1 - exp(-mu) is 0 at a mu of 1e-17, and the mean there is 1
+        (1 - dpars[["hu"]]) * dpars[["mu"]] / -expm1(-dpars[["mu"]])
       }
     ),
     # The generative process the family's name states: clear the hurdle

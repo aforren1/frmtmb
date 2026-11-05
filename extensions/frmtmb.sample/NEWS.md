@@ -1,3 +1,24 @@
+# frmtmb.sample (development version)
+
+* `frm_sample()` samples core's latent residuals: `ar()`, `ma()`, `arma()`,
+  `cosy()` and `unstr()` on a family with no residual `y - mu`. Its defaults are
+  brms's: `student_t(3, 0, <scale>)` on `sderr`, flat on `ar` and `ma` over (-1,
+  1) and on `cosy` over (0, 1), and `lkj(1)` on `cortime`. On a poisson `ar(cov
+  = TRUE)` with 150 rows, the posterior means of the intercept, slope, `ar[1]`
+  and `sderr` read 0.797, 0.478, 0.456 and 0.692 against brms's 0.796, 0.476,
+  0.459 and 0.690. `variables()` lists `ar[1]` and `sderr`. The latents are the
+  columns `latent_state[k]`, where brms has `zerr[n]` and `err[n]`. These are
+  the chain's own states: `ma()`, `arma()` and `cosy()` have one extra state per
+  group, so there are 72 of them for 60 rows in 12 groups, and they are not
+  `err` on a chain with `sderr` other than 1.
+* `frm_sample()` fits the forms of a latent residual that `frm()` refuses:
+  `cov = FALSE` after the inverse link, and a mean less than 2 marginal sds of the
+  latent from the edge of an identity or inverse link.
+* `posterior_epred()`, `log_lik()` and `posterior_predict()` read each draw's
+  latents on the fitted rows, and `posterior_predict()` and `posterior_epred()`
+  draw new latents on new rows under `cov = TRUE`. Under `cov = FALSE` new rows
+  are refused in brms's words.
+
 # frmtmb.sample 0.25.0
 
 Needs frmtmb 0.78.0. Its `set_prior()` takes the classes `meanme`,

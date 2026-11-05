@@ -94,6 +94,10 @@
 \alias{autocor_bound_chart}
 \alias{autocor_row_loglik}
 \alias{arma_cond_resp}
+\alias{frame_ac_terms}
+\alias{latres_new_spec}
+\alias{latres_shifted}
+\alias{autocor_cond_strip_latent}
 \alias{arma_cond_dpars}
 \alias{arma_cond_fill_dpars}
 \alias{arma_cond_fill_epred}
@@ -215,6 +219,17 @@ density of each row given the other rows of its group, one value per
 row (\link{frmtmb-autocor}, "The pointwise log-density"). The values do
 not sum to the log-likelihood. On a maximum-likelihood fit it is the
 value at the estimates.
+
+\code{frame_ac_terms(frame)} lists a frame's autocorrelation terms by
+response: the residual terms of \code{frame$autocor}, and each latent residual
+(\link{frmtmb-autocor}) with \code{theta_idx} into \code{theta} past its log \code{sderr}.
+\code{latres_new_spec(fit, rspec, newdata)} builds what a draw of the latent
+residuals of \code{newdata}'s rows needs, once per call, or \code{NULL} for a response
+with no such term, and refuses new rows under \code{cov = FALSE} in brms's words.
+\code{latres_shifted(fit, lat, resp)} gives the fit back with one draw of them
+in the predictor of \code{mu}. \code{autocor_cond_strip_latent(fit)} marks a fit whose
+predictions read a grid: its latent residuals are not read there, as brms's
+\code{incl_autocor = FALSE} drops them.
 
 \code{arma_cond_resp(fit)} names the responses carrying brms's default
 \code{cov = FALSE} form of \code{ar()}, \code{ma()} or \code{arma()}, and

@@ -630,7 +630,7 @@ ce_dots <- function(dots) {
 #' @noRd
 ce_group_vars <- function(x) {
   bks <- Filter(function(bk) {
-    !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")
+    !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "latres")
   }, x$frame[["re_blocks"]] %||% list())
   g <- vapply(bks, function(bk) bk[["group_name"]] %||% "", "")
   g <- unique(unlist(strsplit(g, ":", fixed = TRUE)))

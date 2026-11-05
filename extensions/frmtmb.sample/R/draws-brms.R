@@ -178,8 +178,8 @@ draws_cov_cols <- function(fit, have = character(0)) {
   ev <- tryCatch(hyp_env_vals(fit, vo$vals, vo$comp),
                  error = function(e) NULL)
   if (is.null(ev)) return(none)
-  pat <- paste0("^(sd_|cor_|sds_|rescor__|cortime__|sdme_|corme_|",
-                "ar[[]|ma[[]|cosy$)")
+  pat <- paste0("^(sd_|cor_|sds_|rescor__|cortime_|sdme_|corme_|",
+                "(ar|ma)(_[^[]+)?[[]|cosy(_.+)?$|sderr(_.+)?$)")
   # a registry term names its own parameters; core lists them, so this
   # package keeps no list of those names
   nm <- setdiff(union(grep(pat, names(ev), value = TRUE),

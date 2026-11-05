@@ -635,6 +635,17 @@ brms_r_labels <- function(fit) {
   n_b <- length(fit$frame[["par_template"]][["b"]])
   lab <- paste0("b[", seq_len(n_b), "]")
   for (bk in fit$frame[["re_blocks"]]) {
+    # one latent per row and, under ma(), arma() and cosy(), one per group: the
+    # chain's own states, which are not err, and `b[k]` in brms is a slope
+    if (identical(bk[["covstruct"]], "latres")) {
+      k <- seq_along(bk[["b_idx"]])
+      # one block per response, under the suffix sderr carries
+      rs <- if (length(fit$spec$responses) > 1L) {
+        paste0("_", brms_stan_name(bk[["aux"]][["ac"]][["resp"]]))
+      }
+      lab[bk[["b_idx"]]] <- paste0("latent_state", rs, "[", k, "]")
+      next
+    }
     if (!brms_block_has_r(bk)) next
     D <- bk[["dim"]]
     g <- brms_group_name(bk)

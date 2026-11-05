@@ -863,6 +863,28 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   found by `gh search issues` on `rescor`, 2026-10-28.
 - Status: not reported.
 
+### brms-45. Under `cov = FALSE` on a family with no residual, the methods leave out the AR part of the model
+
+- Seen: 2.23.0, 2026-11-02 (`dev/latres-brms45.R`, data seed 167, log
+  `dev/latres-out/brms45.log`; lane latres, `dev/latres-findings.md`).
+- Repro: `count ~ x + ar(t, g)`, family `poisson()`, 150 rows, at one parameter
+  point held by Stan's Fixed_param algorithm. `sum(log_lik(fit)) + log N(zerr)`
+  reads -400.185140 and `log_prob` -399.897154, a gap of 0.288 nats. The same
+  sum under `ar(t, g, cov = TRUE)` is within 5.7e-14 of `log_prob`.
+- Expected: `posterior_epred()` and `log_lik()` read the mean of the Stan
+  program. Actual: they read `eta + err`, and the program's mean is
+  `eta + err + Err[n, 1:Kar] * ar`.
+- Cause: `predictor_ac()` in `predictor.R` adds `prep$ac$err` and takes no other
+  branch, while `stan_ac()` writes the AR sum into the model block alone.
+- Workaround: frmtmb's methods read the model, so they differ from brms's on
+  this form (`?frmtmb-autocor`, section Latent residuals).
+- A larger point: at `ar` 0.6, `sderr` 0.5 the review's reading
+  (`dev/review-latres-brms45.R`) is -6.78 nats on poisson and -113.48 on Gamma
+  log, with means apart by up to factors of 1.62 and 5.18. Decision of
+  2026-11-02: frmtmb keeps its reading, stated in `NEWS.md` and the help. Nothing
+  is posted upstream.
+- Status: not reported.
+
 ## RTMB
 
 ### RTMB-1. `pbeta()`, `pbinom()` and `pnbinom()` have non-finite third derivatives

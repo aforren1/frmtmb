@@ -502,16 +502,14 @@ test_that("a non-consecutive whole-number time grid warns", {
 
 # ------------------------------------------------------------------ guards
 
-test_that("only gaussian and student are accepted", {
+test_that("gaussian and student get the joint density, others a latent", {
   d <- ac_sim(seed = 2, G = 8, K = 4)
   d$cnt <- stats::rpois(nrow(d), 3)
-  expect_error(
-    frm(bf(cnt ~ x + ar(week, subj, cov = TRUE)) + poisson(), data = d),
-    "needs a family with real residuals")
-  # the refusal names the random-effect spelling of the same idea
-  expect_error(
-    frm(bf(cnt ~ x + ar(week, subj, cov = TRUE)) + poisson(), data = d),
-    "ar1\\(")
+  # brms's latent residual, which test-latres.R covers
+  fr <- frm(bf(cnt ~ x + ar(week, subj, cov = TRUE)) + poisson(), data = d,
+            dry_run = "frame")
+  expect_length(fr$autocor, 0L)
+  expect_length(frame_latres(fr), 1L)
   expect_s3_class(
     frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + student(), data = d,
         dry_run = "frame"), "frmtmb_frame")
@@ -557,7 +555,7 @@ test_that("structural combinations are refused", {
   expect_error(
     frm(bf(y ~ x, sigma ~ x + ar(week, subj, cov = TRUE)) + gaussian(),
         data = d),
-    "can only be written on 'mu'")
+    "can only be specified on 'mu'")
   expect_error(
     frm(bf(y ~ x + ar(week, subj, cov = TRUE) + cosy(week, subj)) +
           gaussian(), data = d),
@@ -569,7 +567,7 @@ test_that("structural combinations are refused", {
   expect_error(
     frm(bf(y ~ x + ar(week, subj, cov = TRUE)) +
           mixture(gaussian, gaussian), data = d),
-    "mixture component")
+    "a component of a mixture")
   expect_error(
     frm(bf(y ~ a * x + ar(week, subj, cov = TRUE), a ~ 1, nl = TRUE) +
           gaussian(), data = d),

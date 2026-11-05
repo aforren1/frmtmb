@@ -1018,6 +1018,7 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # under, which it resolves after this unfitted object exists
   if (!identical(dry_run, "objective")) {
     check_weights_unbounded(spec, frame, prior, exact = isTRUE(quadrature))
+    latres_refuse_laplace(spec, frame)
   }
 
   fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
@@ -1507,6 +1508,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # profile = TRUE, and a shim without it misaligns every bound
   bounds <- resolve_bounds(list(frame = frame, REML = REML,
                                 control = control), lower, upper)
+  bounds$upper <- latres_disp_upper(
+    frame, spec, bounds$upper,
+    outer_par_map(list(frame = frame, REML = REML, control = control)))
   # a badly scaled coefficient has a badly scaled gradient too: judge
   # (and steer) the optimizer in per-parameter natural units
   par_units <- if (!is.null(ascale)) {
@@ -1717,8 +1721,12 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # knot-span coverage of any ps() block. Both need the finished object,
   # which is why neither can live in family_finalize() or in the frame.
   fit_end_checks(fit)
+  latres_refuse_margin(fit)
+  latres_disp_report(fit)
+  latres_laplace_report(fit)
   if (check_se) {
     se_check(fit, control)
+    latres_limit_report(fit, control)
   }
   if (vb) {
     vb_stage("done", t_fit,

@@ -736,9 +736,9 @@ chart_mode_warning <- function(fit, chart) {
   if (!length(chart)) return(invisible(NULL))
   ap <- autocor_flat_priors(fit)
   multi <- length(fit$spec$responses) > 1L
-  th <- fit$estimates[["thetaac"]]
+  ests <- fit$estimates
   for (tm in chart) {
-    est <- tm$to_natural(th[tm$idx])
+    est <- tm$to_natural(ests[[tm$comp]][tm$idx])
     if (est > tm$L && est < tm$U) next
     dflt <- ap$class == tm$class & ap$resp == tm$resp & !is.na(ap$lb) &
       ap$lb == tm$L
@@ -1123,7 +1123,8 @@ ncp_plan <- function(fit, reparameterize, laplace, entries = NULL) {
   # an rr() block's own coefficients ARE standard normal factors, so it
   # is non-centered already and has nothing to report
   done <- vapply(blocks, function(bk) {
-    identical(bk[["covstruct"]], "rr")
+    # so is a latent residual's chain, in unit-scale coordinates
+    bk[["covstruct"]] %in% c("rr", "latres")
   }, TRUE)
   lab <- vapply(blocks, function(bk) {
     paste0(bk[["term_label"]], " [", bk[["covstruct"]], "]")
@@ -1647,6 +1648,7 @@ default_sd_prefixes <- function(fit, gp = FALSE) {
   out <- list()
   for (bk in fit$frame[["re_blocks"]]) {
     if (!length(block_sd_idx(bk))) next
+    if (identical(bk[["covstruct"]], "latres")) next
     if (xor(gp, bk[["covstruct"]] %in% c("gp", "hsgp"))) next
     for (cp in bk[["components"]] %||% list()) {
       lp <- fit$frame[["linpreds"]][[cp[["lp_key"]] %||% ""]]
@@ -2051,10 +2053,16 @@ default_priors_for <- function(fit, flat = FALSE) {
     add(p)
   }
   # and on an unstr() residual correlation, class cortime, per response
-  for (r in names(fit$frame[["autocor"]] %||% list())) {
-    ac <- fit$frame[["autocor"]][[r]]
+  for (r in names(frame_ac_terms(fit$frame))) {
+    ac <- frame_ac_terms(fit$frame)[[r]]
     if (identical(ac[["struct"]], "unstr") && isTRUE(ac[["d"]] >= 2L)) {
       add(set_prior("lkj(1)", class = "cortime", resp = if (multi) r else ""))
+    }
+    # brms's def_scale_prior on the SD of a latent residual, as on any
+    # standard deviation of the response
+    if (isTRUE(ac[["latent"]])) {
+      add(set_prior(st(0, scales[[r]]$scale), class = "sderr",
+                    resp = if (multi) r else ""))
     }
   }
   # brms's prior_Xme(): (flat) on meanme and on sdme > 0, and lkj(1) on

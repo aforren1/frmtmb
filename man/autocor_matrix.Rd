@@ -29,6 +29,10 @@ For \code{fcor()} and a term
 another package registers (frmtmb.spatial's \code{sar()}), it is the
 residual covariance divided by \code{sigma^2}, over the fitted rows: \code{M}
 for \code{fcor()}, \eqn{((I - \rho W)'(I - \rho W))^{-1}} for \code{sar()}.
+On a family with no residual it is the correlation of the latent
+residuals (\link{frmtmb-autocor}, "Latent residuals"), at the lag of each pair
+of positions in a group. Under \code{cov = FALSE} there the latents are a moving
+average of independent ones, so it is 0 beyond lag \code{p}.
 }
 \examples{
 set.seed(1)

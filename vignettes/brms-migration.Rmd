@@ -567,18 +567,33 @@ a prior on `sigma` and the coefficients of a `sigma ~ x` model compare
 with brms's directly. Pearson residuals divide by the marginal SD,
 `sigma / sqrt(1 - phi^2)` for an AR(1).
 
-**Only `gaussian()` and `student()`.** These are the two families brms
-gives a real residual covariance. brms accepts the same spelling for
-poisson, binomial and the rest, but fits a latent Gaussian AR process
-added to the linear predictor instead - which is a random effect, and
-is spelled as one here:
+**Other families get brms's latent residual.** `gaussian()` and
+`student()` are the two families with a residual covariance. On poisson,
+binomial and the rest, brms and frmtmb add a latent residual to the
+linear predictor, with its own SD, `sderr`. frmtmb integrates the latents
+by the Laplace approximation:
 
 ```{r, eval = FALSE}
-# brms, poisson: a latent AR process on the linear predictor
-brm(cnt ~ x + ar(week, subj), data = d, family = poisson())
-# frmtmb: the same idea as a random effect over the time factor
-frm(bf(cnt ~ x + ar1(factor(week) + 0 | subj)) + poisson(), data = d)
+# brms
+brm(cnt ~ x + ar(week, subj, cov = TRUE), data = d, family = poisson())
+# frmtmb
+frm(bf(cnt ~ x + ar(week, subj, cov = TRUE)), family = poisson(), data = d)
 ```
+
+`?frmtmb-autocor`, section Latent residuals, has the model. brms's refusals
+hold here too: `cov = TRUE` is of order one on these families, and
+`cov = FALSE` has no MA part.
+
+The Laplace approximation of this model is not always good. On binary and
+ordinal responses, on a binomial with at most 3 trials, on counts with a mean
+below 1 and on a family whose dispersion trades off against the latent,
+`frm()` warns, because `sderr` and `ar` are biased: `sderr` reads 0.39 against
+an exact 1.10 on bernoulli and 0.26 against 0.65 on `beta_binomial()`. `frm()`
+refuses `cov = FALSE` on `Gamma()` or `Beta()`, where no number from the fit says
+whether it reads true, and a mean less than 2 marginal sds of the latent from
+the edge of an identity or inverse link. `frm_sample()` fits all of these and
+agrees with brms. `?frmtmb-autocor`, section Where the Laplace approximation
+fails, has the tables.
 
 **Higher orders are allowed, and gaps are honored.** brms limits
 `cov = TRUE` to order one; `ar(p = 3)` and `arma(p = 2, q = 1)` work

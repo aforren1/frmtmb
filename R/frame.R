@@ -2514,6 +2514,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   blocks <- list()   # per response: the structured family's data block
   autocor <- list()  # per response: R-side residual correlation block
   n_thetaac <- 0L
+  latent_terms <- list()
   index_vals <- list()   # per index() response: its rows' index values
   mf_all <- mf
   n_all <- n
@@ -2951,27 +2952,41 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                           resp$resp_name, n)
     if (!is.null(resp$autocor)) {
       ac <- check_autocor_response(resp, spec, av, y[[resp$resp_name]])
-      ac <- if (autocor_is_seam(ac)) {
-        autocor_seam_block(
-          ac, resp$resp_name,
-          autocor_seam_rows(ac, nrow(data), mf_uncut %||% mf, uni_rows,
-                            sub_rows, n),
-          nrow(data), local({
-            env_ <- resp$formula_env
-            function(expr, what) {
-              lookup_structural(expr, data2, data, env_, what)
-            }
-          }))
+      if (isTRUE(ac[["latent"]])) {
+        # brms's latent residual on a family with no residual: a field of
+        # the mu predictor, built in the component loop below, and not a
+        # term that replaces the response's density
+        ac[["on_response"]] <- latres_on_response(resp$family, av)
+        ac[["mu_range"]] <- latres_mu_range(resp$family,
+                                            ac[["on_response"]])
+        ac[["block_label"]] <- if (length(spec$responses) > 1L) {
+          paste0(resp$resp_name, " ", ac[["label"]])
+        } else ac[["label"]]
+        latent_terms[[resp$resp_name]] <- autocor_block(
+          ac, resp$resp_name, mf, resp$formula_env, n)
       } else {
-        autocor_block(ac, resp$resp_name, mf, resp$formula_env, n)
+        ac <- if (autocor_is_seam(ac)) {
+          autocor_seam_block(
+            ac, resp$resp_name,
+            autocor_seam_rows(ac, nrow(data), mf_uncut %||% mf, uni_rows,
+                              sub_rows, n),
+            nrow(data), local({
+              env_ <- resp$formula_env
+              function(expr, what) {
+                lookup_structural(expr, data2, data, env_, what)
+              }
+            }))
+        } else {
+          autocor_block(ac, resp$resp_name, mf, resp$formula_env, n)
+        }
+        ac[["theta_idx"]] <- n_thetaac + seq_len(ac[["npar"]])
+        ac[["block_label"]] <- if (length(spec$responses) > 1L) {
+          paste0(resp$resp_name, " ", ac[["label"]])
+        } else ac[["label"]]
+        ac[["student"]] <- identical(resp$family[["family"]], "student")
+        n_thetaac <- n_thetaac + ac[["npar"]]
+        autocor[[resp$resp_name]] <- ac
       }
-      ac[["theta_idx"]] <- n_thetaac + seq_len(ac[["npar"]])
-      ac[["block_label"]] <- if (length(spec$responses) > 1L) {
-        paste0(resp$resp_name, " ", ac[["label"]])
-      } else ac[["label"]]
-      ac[["student"]] <- identical(resp$family[["family"]], "student")
-      n_thetaac <- n_thetaac + ac[["npar"]]
-      autocor[[resp$resp_name]] <- ac
     }
     # the prior table skips the response check (check_response = FALSE),
     # except on an ordinal family, whose threshold rows are counted from
@@ -3798,6 +3813,28 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         comp_ids <- c(comp_ids, length(components))
       }
 
+      # brms's latent residual: one coefficient per row, whatever the
+      # latents behind them, so the design is the identity on the rows and
+      # the block's expansion is where the term's structure lives
+      lat_t <- latent_terms[[resp$resp_name]]
+      if (!is.null(lat_t) && identical(dp[["name"]], "mu")) {
+        n_lat <- nrow(mf)
+        components[[length(components) + 1L]] <- list(
+          lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
+          covstruct = "latres", id = NULL,
+          dim = 1L, n_levels = n_lat,
+          levels = as.character(seq_len(n_lat)), cnms = "(Intercept)",
+          bar = call("|", 1, lat_t[["gr_expr"]] %||% as.name("(rows)")),
+          Zlocal = methods::as(Matrix::sparseMatrix(
+            i = seq_len(n_lat), j = seq_len(n_lat), x = 1,
+            dims = c(n_lat, n_lat)), "CsparseMatrix"),
+          aux = lat_t[["aux"]], expands = TRUE,
+          group_name = paste(lat_t[["gr_vars"]], collapse = ":"),
+          label = paste0(dp_prefix, lat_t[["label"]])
+        )
+        comp_ids <- c(comp_ids, length(components))
+      }
+
       # Monotonic terms: one scale coefficient in beta (a zero column in
       # the stored X keeps the bookkeeping - names, idx, vcov - while
       # the objective and the numeric prediction paths supply the
@@ -4216,6 +4253,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
       has_rr <- TRUE
       nb_k <- rank_k * n_levels
+    } else if (cs_name == "latres") {
+      # a chain with a state before each group's first row has more
+      # latents than rows
+      nb_k <- cps[[1]]$aux[["m"]]
     } else {
       nb_k <- D * n_levels
     }

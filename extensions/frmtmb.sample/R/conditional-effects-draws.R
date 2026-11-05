@@ -57,6 +57,9 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   check_flag(robust, "robust")
   check_count(resolution, "resolution", min = 1L)
   if (!is.null(ndraws)) check_count(ndraws, "ndraws", min = 1L)
+  # a latent residual's rows are its fitted rows, which a grid does not have,
+  # and brms's incl_autocor = FALSE drops the term here
+  x$fit <- autocor_cond_strip_latent(x$fit)
   check_named_list(conditions, "conditions", "conditions = list(z = 0)")
   check_named_list(int_conditions, "int_conditions",
                    "int_conditions = list(z = c(-1, 0, 1))")

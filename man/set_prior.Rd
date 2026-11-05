@@ -154,7 +154,8 @@ its one slot, as in brms, which has no class \code{"theta"}: a standard
 deviation (\code{"sd"}, \code{"sdgp"}), a \code{gp()} length scale (\code{"lscale"}),
 a correlation an LKJ density fits (\code{"cor"}), a residual
 correlation (\code{"rescor"}, \code{"ar"}, \code{"ma"}, \code{"cosy"}, \code{"cortime"},
-frmtmb.spatial's \code{"lagsar"}). Its internal row is not listed, and a
+frmtmb.spatial's \code{"lagsar"}), the SD of a latent residual
+(\code{"sderr"}). Its internal row is not listed, and a
 class \code{"theta"} prior on it is refused with the class to use.
 \item a DISTRIBUTIONAL parameter's own name (\code{"sigma"}, \code{"shape"},
 \code{"phi"}, \code{"zi"}, \code{"nu"}, ...): a density on that parameter ITSELF,
@@ -352,6 +353,12 @@ coefficient-specific one applies.
 }
 
 \section{Residual correlation}{
+
+On a family with no residual \code{y - mu} these terms are brms's latent
+residuals (\link{frmtmb-autocor}), and class \code{"sderr"} is the standard
+deviation of the latents, written and carried as class \code{"sd"} is. Their
+coefficients take the classes below, on brms's intervals: (-1, 1) on \code{ar}
+and \code{ma}, each entry on its own under \code{cov = FALSE}, and (0, 1) on \code{cosy}.
 
 frmtmb holds an \code{ar()}, \code{ma()}, \code{arma()}, \code{cosy()} or \code{unstr()}
 residual block in one unconstrained vector, chosen so the optimizer

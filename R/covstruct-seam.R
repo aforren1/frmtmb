@@ -26,7 +26,7 @@
 #'
 #' @noRd
 covstruct_reserved_names <- function() {
-  unique(c(brms_whole_term_specials, "mo", "mi", "me", "gr", "mm",
+  unique(c(brms_whole_term_specials, "latres", "mo", "mi", "me", "gr", "mm",
            "mmc", "propto", "rr", "us_t", "diag_t", "smooth",
            core_aterms,
            unlist(brms_vocabulary, use.names = FALSE),

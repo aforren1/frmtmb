@@ -982,6 +982,23 @@ predict_new_level_spec <- function(object, rspec, newdata, re_formula,
                                    allow_new_levels,
                                    sample_new_levels = "gaussian",
                                    pick = list()) {
+  # brms draws a new latent residual for new rows, whatever re_formula
+  # and allow_new_levels say: it is not a group-level term
+  lat <- latres_new_spec(object, rspec, newdata)
+  out <- predict_new_group_spec(object, rspec, newdata, re_formula,
+                                allow_new_levels, sample_new_levels, pick)
+  if (is.null(lat)) return(out)
+  if (is.null(out)) out <- list()
+  attr(out, "latres") <- lat
+  out
+}
+
+#' `predict_new_level_spec()` for the group-level terms.
+#'
+#' @noRd
+predict_new_group_spec <- function(object, rspec, newdata, re_formula,
+                                   allow_new_levels, sample_new_levels,
+                                   pick) {
   if (!isTRUE(allow_new_levels) || is.null(newdata)) return(NULL)
   use_re <- re_form_keeps(re_formula)
   if (!use_re) return(NULL)
@@ -1124,6 +1141,10 @@ predict_new_level_draw <- function(fs, spec) {
     }
     out[[dnm]] <- o
   }
+  lat <- attr(spec, "latres")
+  if (!is.null(lat)) {
+    out[["mu"]] <- (out[["mu"]] %||% 0) + latres_new_draw(fs, lat)
+  }
   out
 }
 
@@ -1254,6 +1275,8 @@ predict_par_drawer <- function(object, propagate_error, ndraws) {
   # all ndraws draws at once, column s for replicate s: the caller's
   # stream is consumed by the same amount whatever the rows are
   D <- v0 + crossprod(L, matrix(stats::rnorm(p * ndraws), p, ndraws))
+  held <- latres_held_pos(object, map)
+  if (length(held)) D[held, ] <- v0[held]
   out <- function(s) fit_set_outer(object, D[, s], map)
   # the group-effect draw conditions on this replicate's parameters, so
   # it needs how far they moved (predict_b_drawer())
@@ -1672,7 +1695,7 @@ fd_eta_chain <- function(fit, newdata, resp, allow_new_levels, use_re,
 smooth_b_idx <- function(fit) {
   ids <- integer(0)
   for (bk in fit$frame[["re_blocks"]]) {
-    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")) {
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "latres")) {
       ids <- c(ids, bk[["b_idx"]])
     }
   }
@@ -1703,7 +1726,7 @@ re_governed_b <- function(fit) {
   ids <- integer(0)
   for (i in seq_along(blocks)) {
     bk <- blocks[[i]]
-    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")) {
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "latres")) {
       if (i %in% gs) ids <- c(ids, bk[["b_idx"]])
       next
     }

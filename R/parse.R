@@ -2388,15 +2388,14 @@ pull_autocor <- function(dpars, resp_name) {
     ats <- dpars[[nm]]$acterms %||% list()
     if (!length(ats)) next
     if (!identical(nm, "mu")) {
-      frm_stop("Residual correlation terms can only be written on 'mu'; ",
-               ats[[1L]]$label, " appears in the formula for '", nm,
-               "'. The term changes the residual density of the response, ",
-               "not a linear predictor",
+      frm_stop("Explicit covariance terms can only be specified on 'mu'. ",
+               "brms refuses the same call: ", ats[[1L]]$label,
+               " appears in the formula for '", nm, "'",
                if (grepl("^mu[0-9]", nm)) {
-                 paste0(". '", nm, "' is a mixture component, and a mixture ",
-                        "likelihood has no single residual to correlate; ",
-                        "an ar1()/toep() random effect over the time factor ",
-                        "is the available alternative there")
+                 paste0(", a component of a mixture, or a category of a ",
+                        "multi-category family, which has no single mu. An ",
+                        "ar1()/toep() random effect over the time factor is ",
+                        "the available alternative there")
                } else "", call. = FALSE)
     }
     found <- c(found, ats)

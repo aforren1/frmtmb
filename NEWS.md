@@ -1,3 +1,111 @@
+# frmtmb (development version)
+
+* **BREAKING.** `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` on a family
+  with no residual `y - mu` are no longer refused. They fit brms 2.23.0's
+  latent residual: one latent per row on the linear predictor of `mu`, with a
+  new parameter `sderr` and prior class `"sderr"`. The joint density at the
+  conditional modes is an identity with brms's `log_prob` at three parameter
+  points, within 4e-10, on poisson, negbinomial, zero-inflated and hurdle
+  poisson, bernoulli, binomial, Gamma, lognormal, beta and cumulative, and the
+  Laplace value is within 2e-7 of one computed from brms's own program.
+  frmtmb integrates the latents by Laplace on sparse coordinates: at 2000 rows
+  in one series, the inner Hessian of `ar(cov = TRUE)` stores about 4000
+  entries, where brms's coordinates would store 2 million.
+* `ar()` with `cov = FALSE` on these families is brms's moving average of
+  independent latents, with each coefficient in (-1, 1). Its sum enters on the
+  link scale where brms has a built-in density on that scale, and after the
+  inverse link elsewhere, as in brms's program. A mean outside the family's
+  support has a `NaN` density, as Stan rejects it.
+* `frm()` warns, with class `frmtmb_latres_laplace`, where the Laplace
+  approximation of a latent residual is biased: binary or ordinal rows, at most
+  3 trials, a mean share of the latent below 0.18, or a family with an estimated
+  dispersion that trades off against the latent. On bernoulli, 20 groups of 10,
+  `sderr` reads 0.39 and `ar` 0.77 where the exact maximum likelihood is 1.10 and
+  truth is 0.60. On `beta_binomial()` it reads 0.26 against 0.65, on
+  `zero_one_inflated_beta()` 0.28 against 0.59, on `Beta()` at phi 4 0.26 against
+  0.42, and on negbinomial it is low by 8 to 15 percent with coverage of log
+  `sderr` down to 0.66. The fit otherwise reports code 0. Poisson is fine down
+  to a mean of 1, and lognormal does not warn: there the log density is quadratic
+  in the predictor, and Laplace is exact. The condition has no units. The warning
+  is about the estimates, so `check_se` does not reach it, and
+  `suppressWarnings(expr, classes = "frmtmb_latres_laplace")` silences it.
+  `frm_sample()` samples the same model and agrees with brms. `?frmtmb-autocor`
+  has the table.
+* **BREAKING** for a call that fit in the previous development build. `frm()`
+  refuses `cov = FALSE` where the AR part adds after the inverse link (Gamma,
+  Beta, Weibull, exponential, inverse Gaussian, `beta_binomial()`,
+  `zero_one_inflated_beta()`, any non-canonical link, a `cens()` or `trunc()`
+  response), and `frm_sample()` fits it. A latent can carry the mean out of its
+  range, and no number from the fit says whether Laplace reads the likelihood: on
+  benign designs 54 of 120 fits read true, with Beta at phi 50 reading true at a
+  margin of 6.6 and Gamma with a log link at 23.6 reading `ar` -0.86 for 0.47. At
+  low signal, `beta_binomial()` at 10 trials stops at a nonzero code on 20 of 20
+  with a gap of 9.0 nats, and `zero_one_inflated_beta()` reads `sderr` 0.28 for
+  0.38 with code 0. One Gamma fit reported a log likelihood of +3.39e18, and brms's
+  own chains struggle on these forms, with up to 3507 of 4000 divergent.
+* On a link that does not hold the mean (identity, inverse, `1/mu^2`), under
+  `cov = TRUE`, `frm()` refuses after the fit if the mean stands less than 2
+  marginal sds of the latent from the link's edge. There 14 of 150 fits read true
+  against the exact marginal, some inner starts read `NaN` and coverage of log
+  `sderr` is near 0. From 2 up there is no `NaN`, and 0.56 of 530 fits read true, in
+  line with links that hold the mean. `Gamma()` at shape 50 reads `sderr` 0.309
+  against an exact 0.312, and `poisson("identity")` at a mean of 50 reads 3.79
+  against 3.73.
+* A dispersion the rows do not ask for no longer reaches an unbounded objective
+  beside a latent residual, where a log likelihood read +6.5e17 on
+  `beta_binomial()`, +1.9e30 on `Beta()` and +4.1e7 on `zero_one_inflated_beta()`.
+  A constant dispersion is held at a log of 15, and a dispersion with a predictor
+  reads `NaN` above a log of 25. A fit at the box warns with class
+  `frmtmb_latres_dispersion`, naming the term.
+* `frm()` refuses `mi()` on the response beside a latent residual: the imputed
+  values and the latents would share one inner problem, which no measurement has
+  read. `frm_sample()` is not refused by this check.
+* `frm()` refuses `ar()`, `ma()`, `arma()` and `cosy()` under `cov = TRUE` if
+  every group has one row, where brms builds the model. The correlation is not
+  seen in the data, and only its product with `sderr` enters.
+* `frm()` refuses `asym_laplace()` with a latent residual, where brms builds the
+  model. The density has a kink in its mean, so the Laplace approximation has no
+  maximum. `frm_sample()` samples the model.
+* A fit at a limit of a latent residual says so: a message of class
+  `frmtmb_boundary_fit` that names the limit, `NA` in place of a standard error of
+  0 in `summary()` and `confint_varcorr()`, a row in `diagnose()`, and brms's names
+  in place of `theta_k`. A limit is read from the fit's numbers: `ar[1]` at 0.9992
+  on 2000 rows is well determined and reports its standard error. At `ar[1] = 1`
+  with `sderr = 0` the message says the data read as `cosy()` or `(1 | group)`; at
+  `ar[1] = -1` it says one size per group, alternating by row.
+* `predict()` holds `sderr` and the term's coefficients at their estimates when
+  it draws the parameters of a latent residual. A draw of `log(sderr)` with a
+  standard error of 10 multiplied the latents by `exp(30)`, which gave 3.7e304
+  on a poisson fit whose largest count is 10.
+* brms's refusals hold on these families, in brms's words: `cov = TRUE` above
+  order one, an MA part under `cov = FALSE`, `fcor()` and a nonlinear `mu`. A
+  term on a multi-category family or a mixture says "Explicit covariance terms
+  can only be specified on 'mu'".
+* The methods read the latent residual as brms reads `err`: `fitted()`,
+  `frm_linpred()`, `residuals()`, `predict()` and `simulate()` on the fitted
+  rows, under `re_formula = NA` too. On new rows under `cov = TRUE`, `predict()`
+  and `simulate()` draw new latents; under `cov = FALSE`, new rows are refused
+  in brms's words. `fitted()` on new rows is the mean over the latent at each
+  row's marginal sd, as brms's `posterior_epred()` is, and `marginaleffects`
+  reads the same mean. `frm_linpred()` on new rows stays at a latent of 0.
+  `conditional_effects()` and `emmeans()` drop the term, as brms's do.
+* Above 3000 rows `fitted()`, `residuals()` and `frm_linpred(se.fit = TRUE)` with
+  `newdata = NULL` on
+  a latent residual give `NA` for the standard error, with a message of class
+  `frmtmb_latres_se_skipped`, because it would solve the joint precision as a
+  dense matrix: 6 to 12 s at 2000 rows, 80 s at 4000, 984 s at 8000.
+  `options(frmtmb.latres_se_rows = )` moves the limit.
+* **A decision, not a defect.** Under `cov = FALSE` frmtmb's `fitted()`,
+  `log_lik()` and row densities follow the model, where brms 2.23.0's
+  `posterior_epred()` and `log_lik()` leave out the AR sum of its own Stan
+  program. Summed over the rows, brms's `log_lik()` misses its `log_prob` by
+  -6.78 nats on poisson and -113.48 on Gamma with a log link, at `ar` 0.6 and
+  `sderr` 0.5, and the means differ by up to factors of 1.62 and 5.18. frmtmb's
+  row densities add up to `log_prob`, so the two packages differ on this form.
+* `default_prior()`, `prior_summary()`, `variables()`, `summary()` and
+  `confint_varcorr()` carry brms's names and bounds on these terms: `ar[1]`,
+  `ma[1]`, `cosy`, `cortime__<t1>__<t2>` and `sderr`.
+
 # frmtmb 0.78.0
 
 The main changes:

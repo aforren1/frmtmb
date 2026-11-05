@@ -138,7 +138,7 @@ sim_re_plan <- function(fit, re_formula) {
 sim_group_block_ids <- function(fit) {
   blocks <- fit$frame[["re_blocks"]]
   which(!vapply(blocks, function(bk) {
-    bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")
+    bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "latres")
   }, NA))
 }
 

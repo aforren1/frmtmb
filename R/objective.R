@@ -689,6 +689,15 @@ build_objective <- function(frame) {
     if (autocor_is_seam(ac)) ac_block_entry(ac)
   })
 
+  # the latent residuals that act on mu after the inverse link: brms's AR
+  # part there, and the support of a mean they can push out of it
+  lat_post <- Filter(function(bk) {
+    isTRUE(bk[["aux"]][["on_response"]]) ||
+      !is.null(bk[["aux"]][["mu_range"]])
+  }, frame_latres(frame))
+
+  lat_disp <- latres_disp_dpars(frame, spec)
+
   extra_names <- frame[["extra_names"]] %||% character(0)
   me_fr <- frame[["me"]]
 
@@ -876,6 +885,24 @@ build_objective <- function(frame) {
       # the link-scale value no longer describes mu, and a density
       # reading it through the public accessors would miss the shift
       dparv[[r]][[".eta_mu"]] <- NULL
+    }
+
+    for (r in names(lat_post)) {
+      bk <- lat_post[[r]]
+      a <- bk[["aux"]]
+      mu_r <- dparv[[r]]$mu
+      if (isTRUE(a[["on_response"]])) {
+        # the link-scale value no longer describes mu
+        mu_r <- mu_r + latres_shift(bfull[bk[["b_idx"]]], bk,
+                                    pars[["theta"]][bk[["theta_idx"]]])
+        dparv[[r]][[".eta_mu"]] <- NULL
+      }
+      dparv[[r]]$mu <- latres_guard(mu_r, a)
+    }
+    for (r in names(lat_disp)) {
+      for (d in lat_disp[[r]]) {
+        dparv[[r]][[d]] <- latres_disp_guard(dparv[[r]][[d]])
+      }
     }
 
     if (rescor) {

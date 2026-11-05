@@ -755,6 +755,11 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       v <- solve(lmat, brms_block_b(fit, bk))
       out[[nm]] <- array(as.numeric(v), length(v))
       jac <- jac + sum(log(diag(lmat)))
+    } else if (!is.null(brms_latres_of(fit, nm))) {
+      # a latent residual term: a field of frmtmb's `b`, with brms's names
+      lr <- brms_latres_pars(fit, brms_latres_of(fit, nm), nm)
+      out[[nm]] <- lr$value
+      jac <- jac + lr$logJ
     } else if (nm %in% c("ar", "ma", "cosy", "Lcortime")) {
       # Residual autocorrelation. frmtmb keeps these on unconstrained
       # scales in `thetaac` and has one internal function that puts them
@@ -839,9 +844,104 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
 #   rcar, zcar  a CAR field, on its own scale for the proper form and
 #               standardized for the intrinsic one
 #   zme_<i>     the standardized latent values of the me() terms
+#   zerr        the standardized latent residuals of an autocor term
 brms_inner_pat <- paste0(
   "^(z_\\d+|zs_\\d+_\\d+|zgp_([A-Za-z0-9]+_)*\\d+(_\\d+)?|Ymi_.+|",
-  "Yl_.+|rcar|zcar|zme_\\d+)$")
+  "Yl_.+|rcar|zcar|zme_\\d+|zerr(_.+)?)$")
+
+# The latent residual block a Stan parameter belongs to, or NULL: `ar`,
+# `ma`, `cosy`, `Lcortime`, `sderr` and `zerr`, with brms's response suffix
+# in a multivariate model. A model with no such block keeps the rule for
+# frmtmb's natural residual terms.
+brms_latres_of <- function(fit, nm) {
+  if (!grepl("^(ar|ma|cosy|Lcortime|sderr|zerr)(_.+)?$", nm)) return(NULL)
+  lrs <- frame_latres(fit$frame)
+  if (!length(lrs)) return(NULL)
+  if (length(lrs) == 1L && !grepl("_", nm)) return(lrs[[1L]])
+  lrs[[sub("^[^_]+_", "", nm)]]
+}
+
+# brms's Cholesky factor of a group of `k` rows, from its own definitions
+# (fun_cholesky_cor_ar1.stan, _ma1, _arma1, _cosy), not from frmtmb's chain,
+# so that the map to zerr states the model it is checked against.
+brms_latres_chol <- function(a, th, k, J = NULL) {
+  cf <- latres_coefs(th, a)
+  C <- switch(a$kind,
+    ar1 = cf$ar^abs(outer(seq_len(k), seq_len(k), "-")) / (1 - cf$ar^2),
+    ma1 = {
+      m <- diag(1 + cf$ma^2, k)
+      m[abs(row(m) - col(m)) == 1L] <- cf$ma
+      m
+    },
+    arma1 = {
+      g1 <- (1 + cf$ar * cf$ma) * (cf$ar + cf$ma)
+      lag <- abs(outer(seq_len(k), seq_len(k), "-"))
+      m <- g1 * cf$ar^pmax(lag - 1, 0)
+      diag(m) <- 1 + cf$ma^2 + 2 * cf$ar * cf$ma
+      m / (1 - cf$ar^2)
+    },
+    cosy = {
+      m <- matrix(cf$rho, k, k)
+      diag(m) <- 1
+      m
+    },
+    unstr = us_chol_cor(th, a$d)[J, J, drop = FALSE])
+  t(chol(C))
+}
+
+# One Stan parameter of a latent residual, and the part of the map's
+# log-Jacobian it carries, which for this block is the whole of
+#
+#   log N(zerr) - log p(b)
+#
+# at the conditional mode. `b` has `m` entries and `zerr` `n`. With `Q` the
+# precision of `b`, Sylvester's identity says the two Laplace values agree
+# when
+#
+#   joint_stan = joint_frm + (m - n) / 2 log(2 pi) - 1/2 log|Q|,
+#
+# and at the mode `b` is the point of least prior energy with the same err, so
+# the quadratic forms agree too. log|Q| is `log(1 - phi^2)` per group for a
+# stationary chain and 0 for iid latents.
+brms_latres_pars <- function(fit, bk, nm) {
+  a <- bk$aux
+  theta <- fit$estimates[["theta"]][bk$theta_idx]
+  th <- theta[-1L]
+  stem <- sub("_.*$", "", nm)
+  if (identical(stem, "sderr")) {
+    return(list(value = exp(theta[1L]), logJ = 0))
+  }
+  if (stem %in% c("ar", "ma", "cosy")) {
+    nat <- latres_natural_coefs(th, a)
+    v <- unname(nat[startsWith(names(nat), stem)])
+    return(list(value = if (identical(stem, "cosy")) v else array(v, length(v)),
+                logJ = 0))
+  }
+  if (identical(stem, "Lcortime")) {
+    return(list(value = as.matrix(us_chol_L(th, a$d)), logJ = 0))
+  }
+  b <- fit$estimates[["b"]][bk$b_idx]
+  if (identical(a$kind, "condar")) {
+    return(list(value = array(b, length(b)), logJ = 0))
+  }
+  # err / sderr in row order, then zerr in brms's sorted order, which is
+  # the frame's only when the rows come sorted by group and time; the data
+  # of every identity in the suite do
+  s <- latres_expand(b, bk, c(0, th))
+  n <- a$n
+  G <- a$G
+  z <- numeric(n)
+  for (rows in split(seq_len(n), a$group)) {
+    rows <- rows[order(a$tidx[rows])]
+    L <- brms_latres_chol(a, th, length(rows), a$tidx[rows])
+    z[rows] <- forwardsolve(L, s[rows])
+  }
+  m <- length(b)
+  logQ <- if (a$kind %in% c("ar1", "arma1")) {
+    -G * log(1 + th[1L]^2)
+  } else 0
+  list(value = z, logJ = (m - n) / 2 * log(2 * pi) - logQ / 2)
+}
 
 # Which entries of the unconstrained vector those blocks occupy, found
 # by perturbing them and diffing, so it needs no knowledge of the

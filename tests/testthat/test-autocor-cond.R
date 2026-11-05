@@ -179,10 +179,9 @@ test_that("families without a residual are refused in brms's words", {
                "Please set cov = TRUE when modeling MA structures")
   expect_error(frm(cnt ~ x + arma(week, subj), data = d, family = poisson()),
                "Please set cov = TRUE when modeling MA structures")
-  # brms fits latent residuals for an AR term here; that is refused by
-  # name, with the random-effect spelling of a latent AR process
-  expect_error(frm(cnt ~ x + ar(week, subj), data = d, family = poisson()),
-               "LATENT residuals.*ar1[(]factor[(]week[)]")
+  # brms fits latent residuals for an AR term here, and so does frm()
+  expect_length(frame_latres(frm(cnt ~ x + ar(week, subj), data = d,
+                                 family = poisson(), dry_run = "frame")), 1L)
   d$s <- 0.3
   expect_error(frm(y | se(s) ~ x + ar(week, subj), data = d,
                    family = gaussian()),

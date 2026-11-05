@@ -93,6 +93,17 @@
 #' not sum to the log-likelihood. On a maximum-likelihood fit it is the
 #' value at the estimates.
 #'
+#' `frame_ac_terms(frame)` lists a frame's autocorrelation terms by
+#' response: the residual terms of `frame$autocor`, and each latent residual
+#' ([frmtmb-autocor]) with `theta_idx` into `theta` past its log `sderr`.
+#' `latres_new_spec(fit, rspec, newdata)` builds what a draw of the latent
+#' residuals of `newdata`'s rows needs, once per call, or `NULL` for a response
+#' with no such term, and refuses new rows under `cov = FALSE` in brms's words.
+#' `latres_shifted(fit, lat, resp)` gives the fit back with one draw of them
+#' in the predictor of `mu`. `autocor_cond_strip_latent(fit)` marks a fit whose
+#' predictions read a grid: its latent residuals are not read there, as brms's
+#' `incl_autocor = FALSE` drops them.
+#'
 #' `arma_cond_resp(fit)` names the responses carrying brms's default
 #' `cov = FALSE` form of `ar()`, `ma()` or `arma()`, and
 #' `arma_cond_dpars(fit, dpv)` gives the whole `eval_dpars()` list back
@@ -559,6 +570,10 @@
 #' @aliases autocor_bound_chart
 #' @aliases autocor_row_loglik
 #' @aliases arma_cond_resp
+#' @aliases frame_ac_terms
+#' @aliases latres_new_spec
+#' @aliases latres_shifted
+#' @aliases autocor_cond_strip_latent
 #' @aliases arma_cond_dpars
 #' @aliases arma_cond_fill_dpars
 #' @aliases arma_cond_fill_epred
@@ -623,6 +638,8 @@
 #'   autocor_bound_chart,
 #'   autocor_row_loglik,
 #'   arma_cond_resp, arma_cond_dpars, arma_cond_fill_dpars,
+#'   frame_ac_terms, latres_new_spec, latres_shifted,
+#'   autocor_cond_strip_latent,
 #'   arma_cond_fill_epred, response_codes_newdata, subset_resp_check,
 #'   subset_newdata, mo_simplex, mo_coords, mo_chart_frame, mo_frame_terms,
 #'   simplex_frame_terms,

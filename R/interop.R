@@ -933,10 +933,18 @@ get_predict.frmtmb_fit <- function(model, newdata, type = "response",
   dots <- list(...)
   me_refuse_dots(names(dots))
   dpar <- dots[["dpar"]] %||% dots[["nlpar"]]
+  latres_refuse_newdata(model, newdata)
   p <- frm_linpred(model, newdata = newdata, type = type,
                    dpar = dpar, resp = dots[["resp"]],
                    re_formula = dots[["re_formula"]],
                    allow_new_levels = isTRUE(dots[["allow_new_levels"]]))
+  # brms's predictions() read posterior_epred(), which is the mean over a new
+  # row's latent, as fitted() is
+  if (type == "response") {
+    p <- latres_fitted_mean(model, newdata, dots[["re_formula"]],
+                            dots[["resp"]], dpar,
+                            isTRUE(dots[["allow_new_levels"]]), p)
+  }
   # marginaleffects pads new data with a row for each level of a factor
   # and marks those rows with a negative rowid, which it drops again by
   # that rowid. Numbering the rows afresh kept them: predictions() with
@@ -1829,9 +1837,10 @@ frmtmb_getME_vocab <- c("X", "Z", "Zt", "beta", "fixef", "b", "theta",
 #'
 #' @noRd
 getME_group_blocks <- function(object) {
-  Filter(function(bk) !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp") &&
-           !is.null(bk[["components"]][[1L]]$bar),
-         object$frame[["re_blocks"]])
+  Filter(function(bk) {
+    !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "latres") &&
+      !is.null(bk[["components"]][[1L]]$bar)
+  }, object$frame[["re_blocks"]])
 }
 
 #' Labels for the random-effect coefficient vector, which is also the

@@ -173,11 +173,8 @@
 #'     row as one step later. The covariance form counts levels instead
 #'     (see below).
 #'   \item Families: `gaussian()` and `student()`, the two families brms
-#'     gives a residual `y - mu`. A predicted `nu ~ ...` works. For other
-#'     families brms refuses an MA part ("Please set cov = TRUE when
-#'     modeling MA structures for this family") and fits latent residuals
-#'     for an AR part; both are refused here, and the refusal names the
-#'     random-effect spelling of a latent autoregressive process. With a
+#'     gives a residual `y - mu`. A predicted `nu ~ ...` works. Every other
+#'     family has the model of "Latent residuals" instead. With a
 #'     non-identity link the term is added to `mu` on the response
 #'     scale, after the inverse link, as brms's Stan code adds it.
 #'   \item It combines with `weights()`, `cens()`, `trunc()`, `mi()` on
@@ -252,16 +249,12 @@
 #' the fitted rows.
 #'
 #' @section Families:
-#' This section and the two after it describe the covariance form.
-#' `gaussian()` and `student()` only - the two families with a real
-#' residual, and exactly the two brms treats this way (`student()` gets
+#' This section and the two after it describe the covariance form on
+#' `gaussian()` and `student()`, the two families with a residual
+#' `y - mu`, and exactly the two brms treats this way. `student()` gets
 #' the multivariate-t analog, with one `nu` per group, so a predicted
-#' `nu ~ ...` is refused). brms accepts the same spelling for other
-#' families but fits a different model there: a latent Gaussian AR
-#' process added to the linear predictor. That model has a spelling of
-#' its own here - a random effect over the time factor, `+
-#' ar1(factor(week) + 0 | subj)`, or `toep()` / `us()` for a freer lag
-#' structure - and the refusal names it.
+#' `nu ~ ...` is refused. Every other family has the model of "Latent
+#' residuals".
 #'
 #' @section Time points, gaps and ragged groups:
 #' The lag between two rows is the distance between their positions in
@@ -293,6 +286,178 @@
 #' likelihood is a Laplace approximation over the modes with the
 #' correlated residual density inside, which reproduces
 #' `nlme::lme(random = ~ 1 | subj, correlation = corAR1())`.
+#'
+#' @section Latent residuals:
+#' On a family with no residual `y - mu`, these terms add a latent residual
+#' to the linear predictor of `mu`, one per row, as brms 2.23.0 does:
+#' \deqn{\eta_i = \dots + err_i.}
+#' `sderr` is the standard deviation of the latent residuals, with brms's
+#' prior class `"sderr"`. The terms give `err` its law:
+#' \describe{
+#'   \item{`ar()`, `ma()`, `arma()` with `cov = TRUE`}{Order one only. Each
+#'     group is one draw of the stationary process, and `sderr` is the sd of
+#'     its innovations, as `sigma` is on `gaussian()`. brms refuses a higher
+#'     order, and so does [frm()].}
+#'   \item{`ar()` with `cov = FALSE`}{Any order. The latents `z` are
+#'     independent, and \eqn{err_i = sderr (z_i + \sum_j ar_j z_{i-j})}{err_i
+#'     = sderr (z_i + sum_j ar_j z_(i-j))}. Each `ar[j]` is in (-1, 1). This is
+#'     a moving average of the latents, by brms's own program. On a family
+#'     whose density brms writes on the response scale (`Gamma()`, `Beta()`, a
+#'     non-canonical link, a `cens()` or `trunc()` response), brms adds the sum
+#'     to `mu` after the inverse link, and only `frm_sample()` fits it; see
+#'     "Where the Laplace approximation fails". `ma()` and `arma()` are refused,
+#'     in brms's words, because AR and MA structures cannot be distinguished on
+#'     one vector of latents.}
+#'   \item{`cosy()`, `unstr()`}{`sderr` is the marginal sd. `cosy` is in
+#'     (0, 1), as brms bounds it. `unstr()` reads the time levels of each
+#'     row.}
+#' }
+#' `fcor()` and `sar()` are refused, in brms's words, and so are the
+#' multi-category families and the mixtures, where the term would not sit on
+#' `mu`, and a nonlinear `mu`. A nonlinear `shape` or `zi` beside a linear `mu`
+#' fits, as brms builds it. The lag counts rows of a group, as in brms, and not
+#' time levels as under the covariance form on `gaussian()`. If every group has
+#' one row, [frm()] refuses the term: brms builds it, but the correlation is not
+#' seen in the data, so its chains walk a ridge.
+#'
+#' The latents are integrated by the Laplace approximation, on sparse
+#' coordinates that leave the approximation unchanged, so a long series costs
+#' a banded inner Hessian and not a dense one. They are not random effects
+#' of a group: [ranef()] and [VarCorr()] do not list them, and `re_formula =
+#' NA` keeps them, as brms keeps `err`. [summary()] and [confint_varcorr()]
+#' report `sderr` and the coefficients, and [variables()] names them as brms
+#' does. Under `frm_sample()` the draws of the latents are named
+#' `latent_state[k]`. These are the chain's own states and not `err`: `ma()`,
+#' `arma()` and `cosy()` have one extra state per group, so 60 rows in 12 groups
+#' have 72 states.
+#'
+#' After the fit, [fitted()], [frm_linpred()], [residuals()], [predict()] and
+#' [simulate()] read the conditional mode of `err` on the fitted rows. On new
+#' rows, under `cov = TRUE`:
+#' \itemize{
+#'   \item [predict()] and [simulate()] draw new latents per group of the new
+#'     data, as brms does, at the estimates of `sderr` and the coefficients.
+#'   \item [fitted()] is the mean over the latent, as brms's
+#'     `posterior_epred()` is, by Gauss-Hermite quadrature at each row's
+#'     marginal sd. With a log link and a marginal sd of 1.15 this is 1.95 times
+#'     the value at `err = 0`. `marginaleffects` reads the same mean. Its delta
+#'     method moves `beta` and holds `sderr` and the coefficients at their
+#'     estimates, so its standard error differs: 0.1886 against 0.1729 at one
+#'     poisson row, where the first is the delta method on `beta` alone.
+#'   \item [frm_linpred()] stays at `err = 0`, because it is the predictor.
+#' }
+#' Under `cov = FALSE` new rows are refused, in brms's words.
+#' [conditional_effects()] and `emmeans()` drop the term, as brms's do.
+#'
+#' A standard error of a fitted row solves the whole joint precision as a dense
+#' matrix: 6 to 12 s at 2000 rows, 80 s at 4000, 984 s at 8000. Above 3000 rows
+#' [fitted()], [residuals()] and `frm_linpred(se.fit = TRUE)` with `newdata =
+#' NULL` give `NA` for it with a message of class `frmtmb_latres_se_skipped`.
+#' `options(frmtmb.latres_se_rows = )` moves the limit. Rows in `newdata`,
+#' [frm_curve()] and [conditional_effects()] read `beta` and the term's
+#' parameters alone, and keep their standard errors.
+#'
+#' A coefficient near an end of its range, or an `sderr` near 0 against the
+#' response's scale, is at a limit only if the fit's numbers say that end is not
+#' determined: the standard error of log `sderr` is above 1, or the row's own is
+#' not finite. `ar[1]` at 0.9992 on 2000 rows has a small standard error, and
+#' reports it. At a limit the fit says so with a message of class
+#' `frmtmb_boundary_fit`, [summary()] gives `NA` for `Est.Error` and the
+#' interval, and [diagnose()] lists the limit. At `ar[1] = 1` with `sderr = 0`
+#' the data read as `cosy()` or `(1 | group)`, and only the marginal sd is
+#' known. At `ar[1] = -1` they read as one size per group whose sign alternates
+#' by row, which `(1 | group)` does not fit. When `ar[1]` and `ma[1]` cancel,
+#' the data show no correlation and neither coefficient is known.
+#'
+#' One decision that differs from brms 2.23.0, under `cov = FALSE` only: brms's
+#' `posterior_epred()`, `log_lik()` and `predict()` read `err` and leave out the
+#' AR sum of its own Stan program, so their row densities do not add up to the
+#' model. Summed over the rows, brms's `log_lik()` misses the program's
+#' `log_prob` by -6.78 nats on poisson and -113.48 on Gamma(log). The methods
+#' here read the model, whose row densities add up to `log_prob`. At `ar` 0.6
+#' and `sderr` 0.5, the two means differ by up to a factor of 1.62 on poisson
+#' and 5.18 on Gamma(log).
+#'
+#' @section Where the Laplace approximation fails:
+#' The inner problem of a latent residual reads what one row tells its latent.
+#' The share of a row is \eqn{d v / (1 + d v)}{d v / (1 + d v)}, with `d` the
+#' curvature of the row's log density in its linear predictor and `v` the
+#' latent's variance. It has no units. Where it is small, or where a dispersion
+#' trades off against the latent, the approximation is biased. Median over 40
+#' data sets, against the exact maximum likelihood estimate by forward
+#' recursion:
+#'
+#' | Design | Share | `sderr` | Exact | Warns |
+#' |---|---|---|---|---|
+#' | bernoulli, 20 groups of 10 | 0.11 | 0.46 | 1.71 | yes |
+#' | cumulative, 5 categories | 0.13 | 0.43 | 0.73 | yes |
+#' | poisson, mean about 0.25 | 0.11 | 0.55 | 0.33 | yes |
+#' | binomial, 3 trials | 0.34 | 0.67 | 0.81 | yes |
+#' | `Beta()`, phi 4 | 0.18 | 0.26 | 0.42 | yes |
+#' | `beta_binomial()`, 10 trials, phi 10 | 0.16 | 0.26 | 0.65 | yes |
+#' | `zero_one_inflated_beta()`, phi 10 | 0.24 | 0.28 | 0.59 | yes |
+#' | negbinomial, mean 1, shape 2 | 0.19 | 0.46 | 0.57 | yes |
+#' | negbinomial, mean 5, shape 2 | 0.28 | 0.43 | 0.55 | yes |
+#' | `Gamma(link = "log")`, shape 5, `sderr` 0.05 | 0.12 | 0.12 | 0.05 | yes |
+#' | binomial, 5 trials | 0.49 | 0.74 | 0.80 | no |
+#' | poisson, mean about 1, `sderr` 0.5 | 0.25 | 0.47 | 0.44 | no |
+#' | negbinomial, mean 20, shape 4 | 0.48 | 0.47 | 0.52 | no |
+#' | `Gamma()`, shape 50 | 0.66 | 0.31 | 0.31 | no |
+#' | `poisson("identity")`, mean 50 | 0.27 | 3.79 | 3.73 | no |
+#' | lognormal, sigma 2, where Laplace is exact | 0.28 | 0.95 | 0.95 | no |
+#'
+#' [frm()] warns, with class `frmtmb_latres_laplace`, unless the row's log
+#' density is quadratic in the predictor, where Laplace is exact, when:
+#' \itemize{
+#'   \item the rows are binary or ordinal, or the median row has at most 3
+#'     trials;
+#'   \item the mean share is below 0.18;
+#'   \item the family has an estimated dispersion, and the mean share is below
+#'     0.3, or the mean curvature on a link with no units is below 2.5.
+#' }
+#' The warning is about the estimates, so `check_se` does not reach it.
+#' `suppressWarnings(expr, classes = "frmtmb_latres_laplace")` silences it.
+#' `frm_sample()` samples the same model and agrees with brms.
+#'
+#' [frm()] refuses `cov = FALSE` after the inverse link before the fit, with its
+#' reason: no number from a fit says whether it reads true. `frm_sample()`
+#' samples it. On benign designs, 25 groups of 6, 20 data sets each:
+#'
+#' | `ar()` on | Margin | `sderr` | Exact | `ar[1]` | Exact | Read true |
+#' |---|---|---|---|---|---|---|
+#' | `Gamma("log")`, mean 20 | 23.6 | 0.41 | 0.50 | -0.86 | 0.47 | 2 |
+#' | `inverse.gaussian("log")` | 33.7 | 0.28 | 0.40 | -0.55 | 0.52 | 3 |
+#' | `weibull()` | 27.4 | 0.35 | 0.40 | -1.00 | -0.04 | 6 |
+#' | `exponential()` | 52.2 | 0.29 | 0.25 | -0.55 | 0.37 | 13 |
+#' | `poisson("sqrt")`, mean 49 | 72.5 | 0.50 | 0.50 | -0.34 | 0.40 | 14 |
+#' | `Beta()`, phi 50 | 6.6 | 0.11 | 0.12 | 0.49 | 0.48 | 16 |
+#'
+#' `beta_binomial()` at 10 trials and phi 10 stops at a nonzero code on 20 of
+#' 20, with a gap of 9.0 nats to the exact value, and `zero_one_inflated_beta()`
+#' at phi 10 reads `sderr` 0.28 for 0.38 with code 0.
+#'
+#' On a link that does not hold the mean under `cov = TRUE` (identity, inverse,
+#' `1/mu^2`), the margin is the smallest distance of `eta` from the link's edge,
+#' in marginal sds of the latent. [frm()] refuses after the fit below a margin
+#' of 2. On 680 fits against the exact marginal:
+#'
+#' | Margin | Fits | Read true | Coverage of log `sderr` | A start reads NaN |
+#' |---|---|---|---|---|
+#' | below 1 | 62 | 0.00 | 0.00 | 0.89 |
+#' | 1 to 2 | 88 | 0.16 | 0.13 | 0.09 |
+#' | 2 to 3 | 82 | 0.50 | 0.61 | 0 |
+#' | 3 to 5 | 182 | 0.62 | 0.81 | 0 |
+#' | 5 and above | 266 | 0.55 | 0.98 | 0 |
+#'
+#' A dispersion the rows do not ask for can run off beside a latent per row, and
+#' past a log of about 25 the objective is rounding: logLik read +6.5e17 on
+#' `beta_binomial()`. A constant dispersion is held at a log of 15, where the
+#' value agrees with the fit without the box to 1e-3, and a dispersion with a
+#' predictor reads `NaN` above 25. A fit at the box warns with class
+#' `frmtmb_latres_dispersion`.
+#'
+#' [frm()] also refuses `mi()` on the response beside a latent residual, whose
+#' approximation has not been measured.
 #'
 #' @section Where the parameters appear:
 #' On the internal (unconstrained) scale they are the `thetaac_*` rows
@@ -388,6 +553,11 @@
 #' # a random intercept alongside the correlated residual is allowed
 #' frm(bf(y ~ x + (1 | subj) + ar(week, subj, cov = TRUE)) + gaussian(),
 #'     data = d)
+#'
+#' # a family with no residual: brms's latent residual, with its SD sderr
+#' d$cnt <- rpois(150, exp(0.5 + 0.3 * d$x + e))
+#' summary(frm(bf(cnt ~ x + ar(week, subj, cov = TRUE)), family = poisson(),
+#'             data = d))
 #' @family autocorrelation
 NULL
 
@@ -921,36 +1091,7 @@ autocor_types <- function(ac) {
 #' @noRd
 check_autocor_cond <- function(resp, av, yv) {
   ac <- resp$autocor
-  fam <- resp$family[["family"]]
   fn <- ac[["fn"]]
-  re_hint <- paste0(
-    "ar1(factor(",
-    if (is.null(ac[["time_expr"]])) "time" else deparse1(ac[["time_expr"]]),
-    ") + 0 | ",
-    if (is.null(ac[["gr_expr"]])) "group" else deparse1(ac[["gr_expr"]]),
-    "), or toep()/us() for a freer lag structure")
-  if (!fam %in% c("gaussian", "student")) {
-    if (ac[["q"]] > 0L) {
-      frm_stop(fn, "(): the moving-average part of cov = FALSE regresses ",
-               "each row on earlier residuals y - mu, so it needs a family ",
-               "with real residuals, gaussian() or student(); '", fam,
-               "' has none. brms refuses the same call: \"Please set cov = ",
-               "TRUE when modeling MA structures for this family\". Its ",
-               "cov = TRUE model for this family is a latent gaussian ",
-               "process added to the linear predictor, which is spelled ",
-               "here as a random effect over the time factor: replace ",
-               ac[["label"]], " with ", re_hint, call. = FALSE)
-    }
-    frm_stop(fn, "(): with cov = FALSE and family '", fam, "', brms fits ",
-             "LATENT residuals (one iid gaussian effect per row, with its ",
-             "own sd, added to the linear predictor together with ",
-             "ar-weighted copies of the earlier rows' effects), not a ",
-             "regression on observed residuals, because '", fam,
-             "' has no residual y - mu. That model is not implemented. A ",
-             "latent autoregressive process is spelled here as a random ",
-             "effect over the time factor: replace ", ac[["label"]],
-             " with ", re_hint, call. = FALSE)
-  }
   if (is.matrix(yv)) {
     frm_stop(fn, "(): cov = FALSE regresses each row on its own ",
              "residual, so the response must be a numeric vector",
@@ -984,27 +1125,16 @@ check_autocor_cond <- function(resp, av, yv) {
 #' @noRd
 check_autocor_response <- function(resp, spec, av, yv) {
   ac <- resp$autocor
+  if (autocor_is_latent_on(ac, resp$family)) {
+    return(check_autocor_latent(resp, ac))
+  }
   if (autocor_is_cond(ac)) return(check_autocor_cond(resp, av, yv))
   fam <- resp$family[["family"]]
-  if (!fam %in% c("gaussian", "student") && autocor_is_seam(ac)) {
-    frm_stop(ac[["fn"]], "(): a residual correlation needs a family with ",
-             "real residuals, so gaussian() or student(); '", fam, "' has ",
-             "none. brms refuses the same call (\"", toupper(ac[["fn"]]),
-             " terms are not implemented for this family\")", call. = FALSE)
-  }
   if (!fam %in% c("gaussian", "student")) {
-    frm_stop(ac[["fn"]], "(): a residual correlation needs a family with real ",
-             "residuals, so gaussian() or student(); '", fam, "' has none. ",
-             "brms accepts the same call for other families but fits a ",
-             "different model there - a latent gaussian AR process added to ",
-             "the linear predictor - which is spelled as a random effect ",
-             "here: replace ", ac[["label"]], " with ar1(factor(",
-             if (is.null(ac[["time_expr"]])) "time" else
-               deparse1(ac[["time_expr"]]),
-             ") + 0 | ",
-             if (is.null(ac[["gr_expr"]])) "group" else
-               deparse1(ac[["gr_expr"]]),
-             "), or toep()/us() for a freer lag structure", call. = FALSE)
+    frm_stop(ac[["fn"]], "(): ", toupper(ac[["fn"]]), " terms are not ",
+             "implemented for this family. brms refuses the same call: the ",
+             "term is a residual covariance, and '", fam, "' has no residual",
+             call. = FALSE)
   }
   if (is.matrix(yv)) {
     frm_stop(ac[["fn"]], "(): the response must be a numeric vector",
@@ -1191,7 +1321,8 @@ autocor_block <- function(ac, resp, mf, env, n) {
              call. = FALSE)
   }
   # cov = FALSE builds no matrix at all, so the cap does not apply to it
-  if (!autocor_is_cond(ac) && ac[["d"]] > autocor_max_dim) {
+  if (!autocor_is_cond(ac) && !autocor_block_sparse(ac) &&
+        ac[["d"]] > autocor_max_dim) {
     frm_stop(fn, "(): ", ac[["d"]], " time points would build a dense ",
              ac[["d"]], " x ", ac[["d"]],
              " residual covariance on every gradient ",
@@ -1225,6 +1356,11 @@ autocor_block <- function(ac, resp, mf, env, n) {
              } else {
                "Aggregate the repeated rows, or add the replicate to the grouping variable."
              }, call. = FALSE)
+  }
+  # a latent residual counts lags in rows of the group, as brms does, and
+  # builds no matrix over the time levels
+  if (isTRUE(ac[["latent"]])) {
+    return(latres_block(ac, resp, gidx, ti, n, ac[["on_response"]]))
   }
   # cov = FALSE counts lags in ROWS, as brms does, so a gap in the time
   # levels is not a gap in the lag and the warning below would be false
@@ -1328,19 +1464,26 @@ autocor_cond_positions <- function(gidx, tidx, n, p) {
   list(pos_rows = pos_rows, lag_idx = lag_idx, len = len)
 }
 
+#' Refuse a lag no group is long enough for: its coefficient would not enter
+#' the likelihood.
+#'
+#' @noRd
+autocor_check_lag <- function(fn, longest, kmax) {
+  if (longest > kmax) return(invisible(NULL))
+  frm_stop(fn, "(): the longest group has ", longest,
+           " row(s), so a lag of ", kmax, " never reaches an earlier ",
+           "row and its coefficient does not enter the likelihood. ",
+           "Lower the order, or check the grouping variable",
+           call. = FALSE)
+}
+
 #' The `cov = FALSE` block: positions instead of patterns.
 #'
 #' @noRd
 autocor_cond_block <- function(ac, resp, gidx, tidx, n) {
   ps <- autocor_cond_positions(gidx, tidx, n, ac[["p"]])
   kmax <- max(ac[["p"]], ac[["q"]])
-  if (max(ps$len) <= kmax) {
-    frm_stop(ac[["fn"]], "(): the longest group has ", max(ps$len),
-             " row(s), so a lag of ", kmax, " never reaches an earlier ",
-             "row and its coefficient does not enter the likelihood. ",
-             "Lower the order, or check the grouping variable",
-             call. = FALSE)
-  }
+  autocor_check_lag(ac[["fn"]], max(ps$len), kmax)
   ac[["pos_rows"]] <- ps$pos_rows
   ac[["lag_idx"]] <- ps$lag_idx
   ac[["patterns"]] <- list()
@@ -1673,6 +1816,11 @@ arma_cond_fill_epred <- function(fit, rspec, newdata, re_formula,
 #'
 #' @noRd
 autocor_cond_dpars <- function(fit, resp, dp) {
+  lat <- frame_latres(fit$frame)[[resp]]
+  if (isTRUE(lat[["aux"]][["on_response"]])) {
+    dp[["mu"]] <- as.numeric(dp[["mu"]]) + latres_shift_of(fit, lat)
+    return(dp)
+  }
   ac <- fit$frame[["autocor"]][[resp]]
   if (!autocor_is_cond(ac)) return(dp)
   dp[["mu"]] <- autocor_cond_mu(fit, ac, dp[["mu"]], mi_values(fit, resp))
@@ -1711,8 +1859,11 @@ autocor_mean_dpars <- function(fit, resp, dp) {
 #' @noRd
 arma_cond_resp <- function(fit) {
   acs <- fit$frame[["autocor"]] %||% list()
-  if (!length(acs)) return(character(0))
-  names(acs)[vapply(acs, autocor_is_cond, TRUE)]
+  # a latent term whose AR part joins mu after the inverse link is shifted
+  # by the same readers, and has no other reason to appear here
+  lats <- Filter(function(bk) isTRUE(bk[["aux"]][["on_response"]]),
+                 frame_latres(fit$frame))
+  c(character(0), names(acs)[vapply(acs, autocor_is_cond, TRUE)], names(lats))
 }
 
 #' Every response's dpar values with the `cov = FALSE` ARMA shift of
@@ -1821,6 +1972,7 @@ linpred_arma_cond <- function(object, lp, rspec, ac, newdata, type, use_re,
 #'
 #' @noRd
 autocor_cond_strip <- function(fit) {
+  fit <- autocor_cond_strip_latent(fit)
   acs <- fit$frame[["autocor"]]
   if (!length(acs)) return(fit)
   # brms's incl_autocor = FALSE drops every autocorrelation term, so a
@@ -1849,6 +2001,10 @@ autocor_cond_strip <- function(fit) {
 #' another package registers (frmtmb.spatial's `sar()`), it is the
 #' residual covariance divided by `sigma^2`, over the fitted rows: `M`
 #' for `fcor()`, \eqn{((I - \rho W)'(I - \rho W))^{-1}} for `sar()`.
+#' On a family with no residual it is the correlation of the latent
+#' residuals ([frmtmb-autocor], "Latent residuals"), at the lag of each pair
+#' of positions in a group. Under `cov = FALSE` there the latents are a moving
+#' average of independent ones, so it is 0 beyond lag `p`.
 #'
 #' @param fit A `frmtmb_fit`.
 #' @param resp Response name, for a multivariate fit.
@@ -1870,7 +2026,7 @@ autocor_cond_strip <- function(fit) {
 #' autocor_matrix(fit)
 #' @export
 autocor_matrix <- function(fit, resp = NULL) {
-  acs <- fit$frame[["autocor"]]
+  acs <- frame_ac_terms(fit$frame)
   if (!length(acs)) return(NULL)
   require_fit_packages(fit)
   ac <- if (is.null(resp)) acs[[1L]] else acs[[resp]]
@@ -1878,7 +2034,7 @@ autocor_matrix <- function(fit, resp = NULL) {
     frm_stop("autocor_matrix(): no residual correlation term for response '",
              resp, "'", call. = FALSE)
   }
-  if (autocor_is_cond(ac)) {
+  if (autocor_is_cond(ac) && !isTRUE(ac[["latent"]])) {
     frm_stop("autocor_matrix(): ", ac[["label"]], " is the cov = FALSE ",
              "form, a regression of each row on the earlier residuals of ",
              "its group. It conditions on each group's first rows and ",
@@ -1887,7 +2043,23 @@ autocor_matrix <- function(fit, resp = NULL) {
              "cov = TRUE for the marginal correlation matrix",
              call. = FALSE)
   }
-  R <- autocor_cor(fit$estimates[["thetaac"]][ac[["theta_idx"]]], ac)
+  th <- fit$estimates[[ac_comp(ac)]][ac[["theta_idx"]]]
+  # a latent cosy reads its own chart, on (0, 1)
+  R <- if (isTRUE(ac[["latent"]]) && identical(ac[["struct"]], "cosy")) {
+    rho <- latres_coefs(th, list(kind = "cosy"))$rho
+    diag(1 - rho, ac[["d"]]) + rho
+  } else if (autocor_is_cond(ac)) {
+    # a moving average of independent latents, by lag
+    cf <- c(1, latres_coefs(th, list(kind = "condar"))$ar)
+    acv <- vapply(0:(ac[["d"]] - 1L), function(k) {
+      if (k >= length(cf)) return(0)
+      sum(cf[seq_len(length(cf) - k)] * cf[(k + 1L):length(cf)])
+    }, 0)
+    matrix(acv[abs(outer(seq_len(ac[["d"]]), seq_len(ac[["d"]]), "-")) + 1L],
+           ac[["d"]], ac[["d"]]) / acv[1L]
+  } else {
+    autocor_cor(th, ac)
+  }
   R <- as.matrix(R)
   dimnames(R) <- list(ac[["time_levels"]], ac[["time_levels"]])
   R

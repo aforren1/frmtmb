@@ -935,8 +935,10 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
   # summary in frmtmb's development version, and what one draw
   # contributes here is the expected response at its parameters
   rn <- resp %||% names(object$fit$spec$responses)[1L]
+  # brms draws new latent residuals for new rows, once per posterior draw
+  lat <- latres_new_spec(object$fit, object$fit$spec$responses[[rn]], newdata)
   at <- function(r, fill = NA_real_, rf = re_form) {
-    sh <- draws_fit_at(object, r, idx, fill)
+    sh <- latres_shifted(draws_fit_at(object, r, idx, fill), lat, rn)
     # brms fills a cov = FALSE response that newdata leaves NA with a
     # draw at this draw's parameters, so the epred draws carry that
     # spread; NULL when nothing needs filling
@@ -1060,8 +1062,12 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
   # distribution (posterior_epred()'s quantity), not the mu predictor
   # this promises.
   dpar <- dpar %||% draws_default_dpar(object$fit, resp)
+  # brms draws new latent residuals for new rows, once per posterior draw
+  rn_lat <- resp %||% names(object$fit$spec$responses)[1L]
+  lat <- latres_new_spec(object$fit, object$fit$spec$responses[[rn_lat]],
+                         newdata)
   at <- function(r, fill = NA_real_, rf = re_form) {
-    f <- draws_fit_at(object, r, idx, fill)
+    f <- latres_shifted(draws_fit_at(object, r, idx, fill), lat, rn_lat)
     if (incl) {
       return(ord_thres_linpred(f, newdata = newdata, resp = resp,
                                re_formula = rf))
@@ -1398,8 +1404,9 @@ draws_pp_setup <- function(object, fit, resp, newdata, re_form, rows, idx) {
   dp_at <- function(sh, rf = re_form, ev = NULL) {
     cs_offsets_add(sh, resp, newdata, dpars_at(sh, rf, ev))
   }
+  lat <- latres_new_spec(object$fit, rspec, newdata)
   idx_at <- function(r, fill, rf = re_form) {
-    sh <- draws_fit_at(object, r, idx, fill)
+    sh <- latres_shifted(draws_fit_at(object, r, idx, fill), lat, resp)
     list(sh = sh, dp = dp_at(sh, rf))
   }
   at_na <- function(fill) idx_at(rows[1L], fill, NA)$dp

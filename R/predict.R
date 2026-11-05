@@ -655,7 +655,7 @@ fill_new_group_vars <- function(fit, lp, newdata, allow_new_levels, env) {
   key <- linpred_key(lp[["resp"]], lp[["dpar"]])
   need <- character(0)
   for (bk in fit$frame[["re_blocks"]]) {
-    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp") ||
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "latres") ||
           cs_levels_complete(bk)) {
       next
     }
@@ -927,7 +927,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
 
   re_parts <- list()
   for (bk in fit$frame[["re_blocks"]]) {
-    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")) next
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "latres")) next
     for (comp in bk[["components"]]) {
       if (comp$lp_key != linpred_key(lp[["resp"]], lp[["dpar"]])) next
       if (!is.null(comp$mm)) {
@@ -1371,7 +1371,20 @@ rr_jacobians <- function(fit) {
       # component for esicar). The same predicate expand_b() branches
       # on, so the Jacobian cannot describe a different expansion than
       # the one it differentiates.
-      pj <- cs_entry(bk[["covstruct"]])[["expand"]][["jacobian"]](bk)
+      ex <- cs_entry(bk[["covstruct"]])[["expand"]]
+      if (isTRUE(ex[["uses_theta"]])) {
+        pj <- ex[["jacobian"]](bk, est[["theta"]][bk[["theta_idx"]]])
+        for (j in bk[["theta_idx"]]) {
+          h <- 1e-6 * max(1, abs(est[["theta"]][j]))
+          tp <- est[["theta"]]; tp[j] <- tp[j] + h
+          tn <- est[["theta"]]; tn[j] <- tn[j] - h
+          dvec <- (expand_b(frame, est[["b"]], tp) -
+                     expand_b(frame, est[["b"]], tn)) / (2 * h)
+          th_cols[[length(th_cols) + 1L]] <- list(j = j, dvec = dvec)
+        }
+      } else {
+        pj <- ex[["jacobian"]](bk)
+      }
       ii <- c(ii, bk[["c_idx"]][pj$i])
       jj <- c(jj, bk[["b_idx"]][pj$j])
       xx <- c(xx, pj$x)
@@ -2134,6 +2147,7 @@ frm_linpred <- function(object, newdata = NULL,
                         se.fit = FALSE, allow_new_levels = FALSE, ...) {
   require_structure_packages(object)
   autocor_check_dpar(object, dpar)
+  latres_refuse_newdata(object, newdata)
   # A warning here was not enough: `predict(fit, re_form = NA)` warned
   # and then returned the CONDITIONAL prediction, and a warning in a
   # loop or under suppressWarnings() is a wrong number with no record.
@@ -2153,6 +2167,12 @@ frm_linpred <- function(object, newdata = NULL,
   }
   check_re_form(re_formula)
   type <- frm_match_arg(type)
+  if (se.fit && latres_skip_se(object, newdata)) {
+    v <- frm_linpred(object, newdata = newdata, type = type, dpar = dpar,
+                     resp = resp, re_formula = re_formula,
+                     allow_new_levels = allow_new_levels)
+    return(list(fit = v, se.fit = v * NA_real_))
+  }
   # the structure gate below asks whether the caller set re_formula at
   # all, which the resolution would hide by turning a partial formula
   # into NULL on a reduced design
@@ -2366,6 +2386,22 @@ frm_linpred <- function(object, newdata = NULL,
     return(if (is.null(newdata)) napred(object, out) else out)
   }
 
+  # a latent term's AR part that joins mu after the inverse link: the
+  # model's mean, and the link of it on the link scale
+  lat_c <- frame_latres(object$frame)[[rspec$resp_name]]
+  if (isTRUE(lat_c[["aux"]][["on_response"]]) && identical(dpar, "mu") &&
+        is.null(newdata)) {
+    val_of <- function(fit) {
+      ed <- lp_eta_design(fit, lp, NULL, use_re, FALSE)
+      m <- lp[["link"]]$linkinv(ed[["eta"]]) + latres_shift_of(fit, lat_c)
+      if (type == "response") m else lp[["link"]]$linkfun(m)
+    }
+    v <- val_of(object)
+    if (!se.fit) return(napred(object, v))
+    return(list(fit = napred(object, v),
+                se.fit = napred(object, autocor_cond_fd_se(object, val_of,
+                                                           use_re))))
+  }
   # brms's cov = FALSE ARMA is part of mu itself: the one-step mean
   ac_c <- object$frame[["autocor"]][[rspec$resp_name]]
   if (autocor_is_cond(ac_c) && identical(dpar, "mu")) {
@@ -2473,7 +2509,7 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
   sm_parts <- list()
   nonest <- FALSE
   sm_ids <- which(vapply(object$frame[["re_blocks"]], function(bk) {
-    bk[["covstruct"]] %in% c("smooth", "gp", "hsgp") &&
+    bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "latres") &&
       any(vapply(bk[["components"]], function(cp) cp$lp_key == key, TRUE))
   }, TRUE))
   # EVERY smooth block is kept at population level, including one whose
@@ -3406,6 +3442,7 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
                               sample_new_levels = NULL) {
   require_structure_packages(object)
   autocor_check_dpar(object, dpar)
+  latres_refuse_newdata(object, newdata)
   frm_check_dots(..., .unsupported = fitted_no_draws)
   scale <- frm_match_arg(scale)
   fitted_refuse_draws_args("fitted()", ndraws, draw_ids, sort, summary,
@@ -3630,6 +3667,11 @@ fitted_point <- function(object, newdata = NULL, re_formula = NULL,
   if (scale == "linear" && (is.null(dpar) || identical(dpar, "mu"))) {
     out <- ord_linear_per_threshold(object, out, newdata, resp)
   }
+  if (!is.null(newdata) && scale == "response" &&
+        (is.null(dpar) || identical(dpar, "mu"))) {
+    out <- latres_fitted_mean(object, newdata, re_formula, resp, dpar,
+                              allow_new_levels, out)
+  }
   out
 }
 
@@ -3793,6 +3835,18 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
   # the handler below muffles what fitted_point() already said, which
   # would include a waiting SE check's report
   se_flush_deferred(object)
+  if (latres_skip_se(object, newdata)) {
+    return(if (is.matrix(est)) est * NA_real_ else rep(NA_real_, length(est)))
+  }
+  # the mean over a new row's latent has no design row, so it is differenced
+  if (!is.null(newdata) && !is.matrix(est) && scale == "response" &&
+        length(frame_latres(object$frame)) &&
+        !isTRUE(object$frame[["latres_off"]])) {
+    return(as.vector(fit_fd_se(object, function(fit) {
+      fitted_point(fit, newdata, re_formula, scale, resp, dpar,
+                   allow_new_levels)
+    })))
+  }
   if (is.matrix(est)) {
     f <- function(fit) {
       fitted_point(fit, newdata, re_formula, scale, resp, dpar,
@@ -5634,6 +5688,13 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
     if (is.null(newdata)) {
       dp <- with_cs_offsets(object, rspec, eval_dpars(object, b = b_use))
       dp <- dp[[rspec$resp_name]]
+      if (rspec$resp_name %in% arma_cond_resp(object) &&
+            is.null(object$frame[["autocor"]][[rspec$resp_name]])) {
+        # a latent term's post-link part reads the replicate's own latents
+        fb <- object
+        fb$estimates[["b"]] <- b_use
+        dp <- autocor_cond_dpars(fb, rspec$resp_name, dp)
+      }
       # a Student-t rescor model keeps its one nu on one response, and
       # the marginal of any of them is a t with that nu
       if (!is.null(resp)) dp <- with_shared_nu(object, resp, dp)

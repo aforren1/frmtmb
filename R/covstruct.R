@@ -1590,7 +1590,11 @@ expand_b <- function(frame, b, theta) {
       cvec[bk[["c_idx"]]] <- as.vector(L %*% Fm)
     } else if (block_expands(bk)) {
       ex <- cs_entry(bk[["covstruct"]])[["expand"]]
-      cvec[bk[["c_idx"]]] <- ex[["apply"]](b[bk[["b_idx"]]], bk)
+      cvec[bk[["c_idx"]]] <- if (isTRUE(ex[["uses_theta"]])) {
+        ex[["apply"]](b[bk[["b_idx"]]], bk, theta[bk[["theta_idx"]]])
+      } else {
+        ex[["apply"]](b[bk[["b_idx"]]], bk)
+      }
     } else {
       cvec[bk[["c_idx"]]] <- b[bk[["b_idx"]]]
     }
@@ -2078,6 +2082,29 @@ covstruct_core[["gr_prec"]]$draw <- function(theta, blk) {
   as.vector(Matrix::solve(U, stats::rnorm(length(blk[["b_idx"]]))))
 }
 
+# The registry entry. It has no term slot and no formula spelling: the frame
+# builds the block from an autocorrelation term. `levels_coupled` because the
+# latents of one group are correlated and a new row has no law of its own, so
+# prediction on new data, the sandwich and importance all treat the block as
+# one unit.
+covstruct_core[["latres"]] <- list(
+  npar = function(blk) 1L + blk[["aux"]][["ac"]][["npar"]],
+  start = function(blk) c(log(0.5), numeric(blk[["aux"]][["ac"]][["npar"]])),
+  sd_idx = function(blk) 1L,
+  nll = latres_lpdf,
+  vcov = function(theta, blk) {
+    matrix(exp(2 * theta[1L]), 1L, 1L, dimnames = list("sderr", "sderr"))
+  },
+  natural = latres_natural,
+  draw = latres_draw,
+  levels_coupled = TRUE,
+  expand = list(
+    apply = latres_expand,
+    uses_theta = TRUE,
+    jacobian = latres_jacobian
+  )
+)
+
 # ------------------------------------------------------------ the registry
 #
 # The built-in entries above are the registry's first state; a package
@@ -2098,7 +2125,7 @@ covstruct_core[["gr_prec"]]$draw <- function(theta, blk) {
 for (nm_ in names(covstruct_core)) {
   covstruct_core[[nm_]][["full_rank"]] <- nm_ %in% c(
     "us", "diag", "homdiag", "cs", "homcs", "ar1", "hetar1", "ou", "toep",
-    "homtoep", "exp", "gau", "mat", "us_t", "diag_t")
+    "homtoep", "exp", "gau", "mat", "us_t", "diag_t", "latres")
 }
 rm(nm_)
 
@@ -2113,7 +2140,11 @@ cs_entries <- function() frmtmb_covstruct_registry$reg
 #' The names of every registered structure.
 #'
 #' @noRd
-cs_names <- function() names(frmtmb_covstruct_registry$reg)
+cs_names <- function() {
+  # brms's latent residual is an entry for its readers and no structure a
+  # formula, a compat row or a parser vocabulary can name
+  setdiff(names(frmtmb_covstruct_registry$reg), "latres")
+}
 
 #' One structure's entry. A name nothing registered is refused here,
 #' and when an extension supplies the structure the refusal names it: a

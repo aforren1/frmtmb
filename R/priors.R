@@ -100,7 +100,8 @@
 #'   deviation (`"sd"`, `"sdgp"`), a `gp()` length scale (`"lscale"`),
 #'   a correlation an LKJ density fits (`"cor"`), a residual
 #'   correlation (`"rescor"`, `"ar"`, `"ma"`, `"cosy"`, `"cortime"`,
-#'   frmtmb.spatial's `"lagsar"`). Its internal row is not listed, and a
+#'   frmtmb.spatial's `"lagsar"`), the SD of a latent residual
+#'   (`"sderr"`). Its internal row is not listed, and a
 #'   class `"theta"` prior on it is refused with the class to use.
 #' - a DISTRIBUTIONAL parameter's own name (`"sigma"`, `"shape"`,
 #'   `"phi"`, `"zi"`, `"nu"`, ...): a density on that parameter ITSELF,
@@ -289,6 +290,12 @@
 #' coefficient-specific one applies.
 #'
 #' @section Residual correlation:
+#' On a family with no residual `y - mu` these terms are brms's latent
+#' residuals ([frmtmb-autocor]), and class `"sderr"` is the standard
+#' deviation of the latents, written and carried as class `"sd"` is. Their
+#' coefficients take the classes below, on brms's intervals: (-1, 1) on `ar`
+#' and `ma`, each entry on its own under `cov = FALSE`, and (0, 1) on `cosy`.
+#'
 #' frmtmb holds an `ar()`, `ma()`, `arma()`, `cosy()` or `unstr()`
 #' residual block in one unconstrained vector, chosen so the optimizer
 #' cannot step outside the stationary and invertible region. A prior is
@@ -878,7 +885,8 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
 frmtmb_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale", "cor",
                           "theta", "ar", "ma", "cosy", "cortime", "rescor",
                           "delta", "simo", "sbhaz", "lncor",
-                          "meanme", "sdme", "corme")
+                          "meanme", "sdme", "corme",
+                          "sderr")
 
 #' Refuse a class name that is neither frmtmb's own nor usable as a
 #' distributional parameter's name.
@@ -1282,7 +1290,8 @@ unhonored_coef_refusal <- function(cls, coef, group = "") {
 brms_direct_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale",
                                "cor", "ar", "ma", "cosy", "cortime",
                                "rescor", "delta", "simo", "sbhaz", "lncor",
-                               "meanme", "sdme", "corme")
+                               "meanme", "sdme", "corme",
+                               "sderr")
 
 #' Why a brms class cannot be carried over, or `NULL` when it can.
 #'
@@ -2440,6 +2449,8 @@ prior_table <- function(spec, frame, route) {
   cor_rows <- list()
   gp_rows <- list()
   for (bk in frame[["re_blocks"]]) {
+    # a latent residual's rows come with the autocorrelation terms, below
+    if (identical(bk[["covstruct"]], "latres")) next
     key <- list(group = bk[["group_name"]], nlpar = block_nlpar(spec, frame,
                                                                 bk),
                 dpar = block_dpar(spec, frame, bk),
@@ -2509,14 +2520,16 @@ prior_table <- function(spec, frame, route) {
   }
   # the R-side residual structures, under the class names brms shows for
   # them. `resp` narrows a class to one response, as it does above
-  for (rs in names(frame[["autocor"]] %||% list())) {
-    ac <- frame[["autocor"]][[rs]]
+  for (rs in names(frame_ac_terms(frame))) {
+    ac <- frame_ac_terms(frame)[[rs]]
     resp_lab <- if (multi) rs else ""
     for (cl in names(autocor_prior_classes)) {
       if (!length(autocor_class_idx(ac, cl))) next
       bd <- autocor_class_bounds(ac, cl, route)
       add(cl, resp = resp_lab, lb = bd[[1L]], ub = bd[[2L]])
     }
+    # brms's SD of the latent residuals, one per response
+    if (isTRUE(ac[["latent"]])) add("sderr", resp = resp_lab, lb = 0)
     # a registry term's bounded parameters (sar()'s lagsar), under
     # their natural names and on their interval, as brms lists them
     for (pr in autocor_seam_bounded(ac)) {
@@ -2948,6 +2961,7 @@ block_col_coefs <- function(bk) {
 #'
 #' @noRd
 block_written_label <- function(bk) {
+  if (identical(bk[["covstruct"]], "latres")) return(bk[["term_label"]])
   wt <- unique(unlist(lapply(bk[["components"]] %||% list(), function(cp) {
     cp[["written_text"]]
   })))
@@ -3020,8 +3034,11 @@ sd_prefix_hint <- function(spec, frame) {
   sp <- unique(do.call(rbind, c(
     list(data.frame(resp = character(0), dpar = character(0),
                     nlpar = character(0))),
-    # a gp() term's sd is class "sdgp", which the caller names
-    lapply(Filter(function(bk) !bk[["covstruct"]] %in% c("gp", "hsgp"),
+    # a gp() term's sd is class "sdgp", which the caller names, and a
+    # latent residual's is class "sderr"
+    lapply(Filter(function(bk) {
+      !bk[["covstruct"]] %in% c("gp", "hsgp", "latres")
+    },
                   frame[["re_blocks"]]), function(bk) {
       block_sd_prefix(spec, frame, bk)[, c("resp", "dpar", "nlpar")]
     }))))
@@ -3436,6 +3453,12 @@ cov_class_coefs <- function(spec, frame) {
   for (bk in frame[["re_blocks"]]) {
     ti <- bk[["theta_idx"]]
     if (!length(ti)) next
+    if (identical(bk[["covstruct"]], "latres")) {
+      # its coefficients are `autocor_class_coefs()`'s, under brms's classes
+      add("theta", ti[1L], nm_th[ti[1L]], "sderr",
+          pre = list(resp = if (multi) bk[["aux"]][["ac"]][["resp"]] else ""))
+      next
+    }
     if (bk[["covstruct"]] %in% c("gp", "hsgp")) {
       # the positions resolve_gp_class() reaches: the sd first, then one
       # length scale per sub-GP
@@ -3825,8 +3848,38 @@ resolve_priorlist <- function(fit, pl) {
     invisible(NULL)
   }
 
+  # brms's class "sderr": the log sd in a latent residual block's theta,
+  # with the log-Jacobian class "sd" takes
+  resolve_sderr <- function(s) {
+    lrs <- frame_latres(frame)
+    hit <- FALSE
+    for (rs in names(lrs)) {
+      if (nzchar(s$resp %||% "") && !identical(rs, s$resp)) next
+      hit <- TRUE
+      i <- lrs[[rs]][["theta_idx"]][1L]
+      key <- nm_of("theta", i)
+      if (!is.null(s$dist)) {
+        claim("theta", i)
+        assigned[[key]] <<- list(comp = "theta", idx = i, dist = s$dist,
+                                 scale = "sd", lb = s$lb, ub = s$ub)
+      } else if (!is.null(assigned[[key]])) {
+        assigned[[key]] <<- entry_bounds(assigned[[key]], s)
+      }
+      nm_theta <- paste0("theta_", i)
+      if (!is.na(s$lb)) lower[nm_theta] <<- if (s$lb > 0) log(s$lb) else -Inf
+      if (!is.na(s$ub)) upper[nm_theta] <<- log(s$ub)
+    }
+    if (!hit) {
+      frm_stop("No latent residual matches ", spec_target(s), ". brms's ",
+               "class \"sderr\" is the SD of the latent residuals of an ",
+               "autocorrelation term on a family with no residual y - mu",
+               call. = FALSE)
+    }
+    invisible(NULL)
+  }
+
   resolve_ac_class <- function(s) {
-    acs <- frame[["autocor"]] %||% list()
+    acs <- frame_ac_terms(frame)
     hit <- FALSE
     for (rs in names(acs)) {
       ac <- acs[[rs]]
@@ -3836,7 +3889,8 @@ resolve_priorlist <- function(fit, pl) {
       hit <- TRUE
       idx <- ac[["theta_idx"]][within]
       tr <- autocor_trans(ac, s$class)
-      nms <- par_template_names(frame[["par_template"]][["thetaac"]], "thetaac")
+      cmp_ac <- ac_comp(ac)
+      nms <- par_template_names(frame[["par_template"]][[cmp_ac]], cmp_ac)
       if (!is.null(s$dist)) {
         dst <- if (identical(s$class, "cortime")) {
           lkj_dist(s$dist$eta, list(kind = "chol", d = ac[["d"]]),
@@ -3844,9 +3898,9 @@ resolve_priorlist <- function(fit, pl) {
         } else {
           trans_dist(s$dist, tr)
         }
-        claim("thetaac", idx)
-        assigned[[nm_of("thetaac", idx)]] <<-
-          list(comp = "thetaac", idx = idx, dist = dst,
+        claim(cmp_ac, idx)
+        assigned[[nm_of(cmp_ac, idx)]] <<-
+          list(comp = cmp_ac, idx = idx, dist = dst,
                scale = "internal", lb = NA, ub = NA)
       }
       # set_prior() has already refused lb/ub on the matrix-valued
@@ -3854,7 +3908,7 @@ resolve_priorlist <- function(fit, pl) {
       if (!is.na(s$lb) || !is.na(s$ub)) {
         # a box on unconstrained coefficients IS a box on the internal
         # ones, so only the transformed maps are limited to order one
-        if (length(idx) > 1L && !identical(tr$map, "identity")) {
+        if (length(idx) > 1L && !tr$map %in% c("identity", "box")) {
           frm_stop("class = \"", s$class, "\" takes no lb/ub at order ",
                    length(idx), ": coefficient ", s$class,
                    "[1] is a function of every one of this block's ",
@@ -4379,8 +4433,9 @@ resolve_priorlist <- function(fit, pl) {
       }, TRUE))
       hit <- FALSE
       for (bk in if (exact) frame[["re_blocks"]]) {
-        # a gp() term's sd is brms's class "sdgp", not "sd"
-        if (bk[["covstruct"]] %in% c("gp", "hsgp")) next
+        # a gp() term's sd is brms's class "sdgp", not "sd", and a latent
+        # residual's is class "sderr"
+        if (bk[["covstruct"]] %in% c("gp", "hsgp", "latres")) next
         sd_i <- cs_entry(bk[["covstruct"]])$sd_idx(bk)
         sd_i <- sd_i[sd_spec_reach(fit$spec, frame, bk, s)$reach]
         for (k in sd_i) {
@@ -4491,9 +4546,7 @@ resolve_priorlist <- function(fit, pl) {
         }
       }
       own <- autocor_class_coefs(frame)
-      hit <- if (identical(cmp, "thetaac")) {
-        intersect(nms[tgt$idx], own$coef)
-      } else character(0)
+      hit <- intersect(nms[tgt$idx], own$coef)
       if (length(hit)) {
         k <- match(hit[1L], own$coef)
         frm_stop("class = \"theta\", coef = \"", hit[1L], "\" is the ",
@@ -4520,6 +4573,8 @@ resolve_priorlist <- function(fit, pl) {
       }
     } else if (s$class %in% names(autocor_prior_classes)) {
       resolve_ac_class(s)
+    } else if (s$class == "sderr") {
+      resolve_sderr(s)
     } else if (s$class == "rescor") {
       resolve_rescor(s)
     } else if (s$class == "lncor") {
@@ -5622,15 +5677,15 @@ autocor_class_idx <- function(ac, cls) {
 autocor_class_coefs <- function(frame) {
   out <- data.frame(coef = character(0), class = character(0),
                     resp = character(0), stringsAsFactors = FALSE)
-  for (rs in names(frame[["autocor"]] %||% list())) {
-    ac <- frame[["autocor"]][[rs]]
+  for (rs in names(frame_ac_terms(frame))) {
+    ac <- frame_ac_terms(frame)[[rs]]
     cls <- c(names(autocor_prior_classes),
              vapply(autocor_seam_bounded(ac), `[[`, "", "name"))
     for (cl in cls) {
       within <- autocor_class_idx(ac, cl)
       if (!length(within)) next
       out <- rbind(out, data.frame(
-        coef = paste0("thetaac_", ac[["theta_idx"]][within]), class = cl,
+        coef = paste0(ac_comp(ac), "_", ac[["theta_idx"]][within]), class = cl,
         resp = rs, stringsAsFactors = FALSE))
     }
   }
@@ -5655,6 +5710,12 @@ autocor_class_bounds <- function(ac, cls, route = "fit") {
     hit <- Filter(function(pr) identical(pr$name, cls),
                   autocor_seam_bounded(ac))
     return(if (length(hit)) c(hit[[1L]]$lower, hit[[1L]]$upper) else none)
+  }
+  # brms bounds a latent residual's coefficients as it bounds a covariance
+  # form's, entrywise under cov = FALSE too, and its cosy on [0, 1], which is
+  # all a shared latent can reach on either route
+  if (isTRUE(ac[["latent"]])) {
+    return(switch(cls, cosy = c(0, 1), cortime = none, c(-1, 1)))
   }
   if (autocor_is_cond(ac) || identical(cls, "cortime")) return(none)
   if (identical(cls, "cosy")) {
@@ -5698,9 +5759,9 @@ autocor_flat_priors <- function(fit) {
   # a registry term's bounds live in its package, which a saved fit
   # may come back without; refused there with the package to load
   if (length(fit$frame[["autocor"]])) require_fit_packages(fit)
-  for (rs in names(fit$frame[["autocor"]] %||% list())) {
-    ac <- fit$frame[["autocor"]][[rs]]
-    if (autocor_is_cond(ac)) next
+  for (rs in names(frame_ac_terms(fit$frame))) {
+    ac <- frame_ac_terms(fit$frame)[[rs]]
+    if (autocor_is_cond(ac) && !isTRUE(ac[["latent"]])) next
     cls <- c(setdiff(names(autocor_prior_classes), "cortime"),
              vapply(autocor_seam_bounded(ac), `[[`, "", "name"))
     for (cl in cls) {
@@ -5754,8 +5815,8 @@ autocor_bound_chart <- function(fit, lower, upper) {
   get_b <- function(b, nm, fill) if (nm %in% names(b)) b[[nm]] else fill
   out <- list()
   if (length(fit$frame[["autocor"]])) require_fit_packages(fit)
-  for (rs in names(fit$frame[["autocor"]] %||% list())) {
-    ac <- fit$frame[["autocor"]][[rs]]
+  for (rs in names(frame_ac_terms(fit$frame))) {
+    ac <- frame_ac_terms(fit$frame)[[rs]]
     cls <- c(setdiff(names(autocor_prior_classes), "cortime"),
              vapply(autocor_seam_bounded(ac), `[[`, "", "name"))
     for (cl in cls) {
@@ -5763,11 +5824,11 @@ autocor_bound_chart <- function(fit, lower, upper) {
       if (length(within) != 1L) next
       tr <- autocor_trans(ac, cl)
       if (is.null(tr) || identical(tr$map, "identity")) next
-      nm <- paste0("thetaac_", ac[["theta_idx"]][within])
+      nm <- paste0(ac_comp(ac), "_", ac[["theta_idx"]][within])
       lo <- get_b(lower, nm, -Inf)
       hi <- get_b(upper, nm, Inf)
       if (!is.finite(lo) && !is.finite(hi)) next
-      img <- unname(switch(tr$map, bounded = c(tr$lo, tr$hi),
+      img <- unname(switch(tr$map, bounded = , box = c(tr$lo, tr$hi),
                            cosy = c(-tr$a, 1), c(-1, 1)))
       L <- if (is.finite(lo)) as.numeric(ac_trans_value(lo, tr)) else img[1L]
       U <- if (is.finite(hi)) as.numeric(ac_trans_value(hi, tr)) else img[2L]
@@ -5781,7 +5842,7 @@ autocor_bound_chart <- function(fit, lower, upper) {
       L <- snap(unname(L))
       U <- snap(unname(U))
       out[[length(out) + 1L]] <- ac_chart_term(
-        nm, cl, rs, ac[["theta_idx"]][within], L, U, tr)
+        nm, cl, rs, ac[["theta_idx"]][within], L, U, tr, ac_comp(ac))
     }
   }
   out
@@ -5790,10 +5851,10 @@ autocor_bound_chart <- function(fit, lower, upper) {
 #' One term of `autocor_bound_chart()`.
 #'
 #' @noRd
-ac_chart_term <- function(nm, cl, rs, idx, L, U, tr) {
+ac_chart_term <- function(nm, cl, rs, idx, L, U, tr, comp = "thetaac") {
   # natural -> internal, the inverse of ac_trans_value() for a scalar map
   inv <- function(r) {
-    if (identical(tr$map, "bounded")) {
+    if (tr$map %in% c("bounded", "box")) {
       q <- (r - tr$lo) / (tr$hi - tr$lo)
       return(log(q) - log(1 - q))
     }
@@ -5804,7 +5865,7 @@ ac_chart_term <- function(nm, cl, rs, idx, L, U, tr) {
     r / sqrt(1 - r * r)
   }
   list(
-    comp = "thetaac", idx = idx, name = nm, class = cl, resp = rs,
+    comp = comp, idx = idx, name = nm, class = cl, resp = rs,
     L = L, U = U,
     to_internal = function(v) inv(L + (U - L) / (1 + exp(-v))),
     # d internal / d v = (d natural / d v) / (d natural / d internal)
@@ -5821,7 +5882,7 @@ ac_chart_term <- function(nm, cl, rs, idx, L, U, tr) {
     },
     to_natural = function(th) as.numeric(ac_trans_value(th, tr)),
     # the ends of the map's own image, which a bound narrows
-    image = unname(switch(tr$map, bounded = c(tr$lo, tr$hi),
+    image = unname(switch(tr$map, bounded = , box = c(tr$lo, tr$hi),
                           cosy = c(-tr$a, 1), c(-1, 1))))
 }
 
@@ -5833,6 +5894,12 @@ ac_chart_term <- function(nm, cl, rs, idx, L, U, tr) {
 #'
 #' @noRd
 autocor_trans <- function(ac, cls) {
+  if (isTRUE(ac[["latent"]])) {
+    if (identical(cls, "cortime")) return(NULL)
+    if (identical(cls, "cosy")) return(list(map = "box", lo = 0, hi = 1))
+    if (autocor_is_cond(ac)) return(list(map = "box", lo = -1, hi = 1))
+    return(list(map = "levinson"))
+  }
   if (autocor_is_seam(ac)) {
     hit <- Filter(function(pr) identical(pr$name, cls),
                   autocor_seam_bounded(ac))[[1L]]
@@ -5863,6 +5930,7 @@ trans_dist <- function(inner, trans) {
 #' @noRd
 ac_trans_value <- function(th, tr) {
   if (identical(tr$map, "identity")) return(th)
+  if (identical(tr$map, "box")) return(tr$lo + (tr$hi - tr$lo) / (1 + exp(-th)))
   if (identical(tr$map, "bounded")) {
     return(tr$lo + (tr$hi - tr$lo) / (1 + exp(-th[1])))
   }
@@ -5888,6 +5956,10 @@ ac_trans_value <- function(th, tr) {
 #' @noRd
 ac_trans_logjac <- function(th, tr) {
   if (identical(tr$map, "identity")) return(0)
+  if (identical(tr$map, "box")) {
+    s <- 1 / (1 + exp(-th))
+    return(sum(log(tr$hi - tr$lo) + log(s) + log(1 - s)))
+  }
   if (identical(tr$map, "bounded")) {
     # d rho / d theta = (hi - lo) p (1 - p), the same form as cosy's
     s <- 1 / (1 + exp(-th[1]))
@@ -5923,8 +5995,8 @@ ac_trans_logjac <- function(th, tr) {
 #' @noRd
 ac_bound_theta <- function(v, tr, ac, cls, what) {
   if (identical(tr$map, "identity")) return(v)
-  ends <- switch(tr$map, bounded = c(tr$lo, tr$hi), cosy = c(-tr$a, 1),
-                 c(-1, 1))
+  ends <- switch(tr$map, bounded = , box = c(tr$lo, tr$hi),
+                 cosy = c(-tr$a, 1), c(-1, 1))
   # an end is computed (1 / an eigenvalue for sar()) and carries a few
   # ulps, so a bound typed at it, ub = 1 for a row-standardized W, is
   # that end within the snap autocor_bound_chart() applies
@@ -5933,7 +6005,7 @@ ac_bound_theta <- function(v, tr, ac, cls, what) {
   }
   if (identical(what, "lb") && at_end(ends[1L])) return(-Inf)
   if (identical(what, "ub") && at_end(ends[2L])) return(Inf)
-  if (identical(tr$map, "bounded")) {
+  if (tr$map %in% c("bounded", "box")) {
     if (v <= tr$lo || v >= tr$hi) {
       frm_stop("class = \"", cls, "\" ", what, " = ", v, " is outside ",
                "the interval of ", ac[["label"]], ", (",

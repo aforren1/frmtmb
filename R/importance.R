@@ -61,7 +61,7 @@ imp_covstructs <- c("us", "diag", "homdiag", "cs", "homcs", "toep",
 #'
 #' @noRd
 imp_crosslevel <- function() {
-  ents <- cs_entries()
+  ents <- cs_entries()[cs_names()]
   c("equalto", names(ents)[vapply(ents, function(e) {
     isTRUE(e[["levels_coupled"]])
   }, TRUE)])
@@ -82,6 +82,12 @@ check_importance_scope <- function(spec, frame, template, REML, quadrature,
              "random intercept at a time; the importance correction ",
              "reweights the Laplace Gaussian and takes any block ",
              "dimension. Keep one", call. = FALSE)
+  }
+  if (length(frame_latres(frame))) {
+    frm_stop("`importance` cannot be combined with a latent residual: the ",
+             "correction draws one proposal per group of a grouping factor, ",
+             "and these latents are a chain with no such factor. Fit with ",
+             "importance = 0", call. = FALSE)
   }
   if (frame_has_mo_re(frame)) {
     frm_stop("`importance` cannot be combined with a group-level mo() ",
