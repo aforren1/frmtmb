@@ -215,15 +215,11 @@ whatever else has drawn random numbers.}
 the proposal at the current estimate and optimizes again, and the
 loop stops as soon as either the estimates move less than \code{1e-3}
 or the freshly anchored objective is stationary at them to
-\code{grad_tol}. Measured on this package's own designs that takes two
-to four rounds, with the move falling about tenfold each time, so
+\code{grad_tol}. Over 648 measured fits of six families that took one
+round in 398, two in 237, three in 12 and four in 1, so
 the default leaves one in hand; an unused round costs nothing, and
 each round actually taken costs one tape. A fit that uses every
-round warns, and the warning distinguishes two cases: moves that
-are still shrinking want a larger cap, while moves that are all
-the SAME size are a stalled iteration, whose reported shift is
-that step times the round count and grows with the cap instead of
-settling.}
+round warns.}
 
 \item{importance_ess}{Effective sample size, as a fraction of the
 draw count, below which \code{frm(importance =)} warns and names the
@@ -233,11 +229,10 @@ the top of the range: the probe design behind this correction (60
 groups of 8 Bernoulli rows, correlated slope) holds a worst group
 of \code{0.95} at 1000 draws, and a gaussian response, where the
 correction has nothing to correct, holds exactly \code{1} at any draw
-count. Displacing that probe's two log standard deviations by half
-a unit takes its worst group to \code{0.03}. The designs the warning is
-FOR sit between the two, and draws are what move them: a correlated
-slope in \code{mu} plus a \code{sigma} block over 12 groups of 10 rows holds
-a worst group of \code{0.17} at 500 draws and \code{0.40} at 2000.}
+count. The designs the warning is FOR sit below that, and draws
+are what move them: a correlated slope in \code{mu} plus a \code{sigma} block
+over 12 groups of 10 rows holds a worst group of \code{0.14} at 500 draws
+and \code{0.35} at 2000.}
 
 \item{mo_search}{After the fit, refit each \code{mo()} term whose simplex
 has a weight at 0 with its scale coefficient held at the other sign,

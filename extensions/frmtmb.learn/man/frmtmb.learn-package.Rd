@@ -97,48 +97,34 @@ dropping a trial changes every later trial's value store.
 
 What the correction is worth depends on the design rather than on the
 family. Measured on \code{\link[=bandit2arm_delta]{bandit2arm_delta()}}, 40 subjects, one scalar
-random intercept, six datasets per cell, truth \code{sd(alpha) = 0.5}
-(\code{dev/learn2-findings.md} has the per-dataset table):\tabular{llllll}{
+random intercept, six datasets per cell at 100 draws, truth
+\code{sd(alpha) = 0.5}:\tabular{llllll}{
    trials \tab datasets \tab Laplace \code{sd(alpha)} \tab corrected \tab mcse \tab min ESS per draw \cr
-   100 \tab 3 of 6 informative \tab 0.38 to 0.45 \tab 0.45 to 0.51 \tab 0.05 to 0.06 \tab 0.87 to 0.93 \cr
-   100 \tab 1 of 6 collapsed \tab 0.0004 \tab 0.0025 \tab 0.000 \tab 1.000 \cr
-   100 \tab 2 of 6 refused \tab  \tab  \tab  \tab  \cr
-   20 \tab 5 of 6 collapsed \tab 0.0001 \tab unchanged \tab 0.000 \tab 1.000 \cr
-   20 \tab 1 of 6 informative \tab 0.371 \tab 0.729 \tab 0.103 \tab 0.743 \cr
+   100 \tab 5 of 6 informative \tab 0.31 to 0.45 \tab 0.32 to 0.47 \tab 0.02 to 0.06 \tab 0.91 to 0.99 \cr
+   100 \tab 1 of 6 collapsed \tab 0.0004 \tab 0.0004 \tab 0.000 \tab 1.000 \cr
+   20 \tab 5 of 6 collapsed \tab 0.0001 \tab 0.0001 \tab 0.000 \tab 1.000 \cr
+   20 \tab 1 of 6 informative \tab 0.371 \tab 0.498 \tab 0.044 \tab 0.964 \cr
 }
 
-
-A COLLAPSED DATASET IS NOT A SHORT-SESSION PROBLEM. One of the six
-at 100 trials has it too, and reports the same spurious +1.822 as
-the five at 20 trials do. Check \code{VarCorr(fit)} on the Laplace
-fit at every trial count, not only short ones.
 \itemize{
-\item at 100 trials, on the three of six datasets whose variance
-component is identified, the correction moves it UP by 0.11 to
-0.18 log units and toward the truth, its Monte Carlo error is a
-third of the shift, and the effective sample sizes are near 1. It
-costs 30 to 80 seconds against 2 for the Laplace fit. Of the other
-three, two refused on the correction's own convergence guard and
-one had already collapsed.
-\item at 20 trials it is not usable, and the reason is worth knowing.
-Five of six Laplace fits have already collapsed \code{sd(alpha)} to
-1e-4, so there is nothing left to reweight; the correction then
-walks at its own step cap for every round and WARNS that it did
-not converge. A shift reported with \code{fit$importance$capped} true
-and every entry of \code{fit$importance$moves} equal is that step cap,
-not an estimate. The one 20-trial dataset with a real variance
-component overshoots, 0.37 to 0.73 against a truth of 0.5.
+\item at 100 trials the Laplace error in the variance component is small:
+the correction moves it up by 0.02 to 0.05 log units, and the
+effective sample sizes are near 1. It holds as the draws grow: one
+dataset reads 0.4170 under Laplace, and 0.4304, 0.4279 and 0.4272 at
+100, 400 and 1600 draws. It costs 16 to 26 seconds against 1.3 for the
+Laplace fit.
+\item at 20 trials the Laplace error is larger where there is a variance
+component to correct: 0.371 becomes 0.498 at 100 draws, 0.472 at 400
+and 0.469 at 1600. Five of six Laplace fits have collapsed
+\code{sd(alpha)} to 1e-4, and the correction agrees with them.
+\item A COLLAPSED DATASET IS NOT A SHORT-SESSION PROBLEM. One of the six at
+100 trials has it too. Check \code{VarCorr(fit)} at every trial count.
 }
 
-DO NOT FOLLOW THE WARNING'S ADVICE ON A CAPPED RUN. It says to raise
-\code{frmtmb_control(importance_rounds =)}, and on a collapsed variance
-component that makes the artifact bigger in exact proportion:
-measured on one 20-trial dataset, five rounds of a 0.3645 cap give a
-shift of 1.822 and ten rounds give 3.645, both exactly rounds times
-the cap. The number is not an estimate that more iterations would
-sharpen. Read \code{fit$importance$capped} and \verb{$moves} first, and if the
-moves are all equal, treat the correction as declining rather than
-answering.
+The correction used to freeze its proposal in place, which on
+these fits reported a shift of 0.11 to 0.18 log units at 100 trials,
+refused two of six, and on a collapsed component took the same step
+every round. \code{dev/learn2-findings.md} records those numbers.
 
 So check \code{VarCorr(fit)} on the Laplace fit before believing a
 correction, and read the warning if there is one.

@@ -1,3 +1,99 @@
+# frmtmb (development version)
+
+## Bug fixes
+
+* `frm(importance =)` no longer stops with "did not converge ... the
+  corrected negative log-likelihood ROSE" on the models it exists for.
+  It stopped on 162 of 648 fits over six families, three block shapes and
+  three group sizes at 64 to 2000 draws, and 204 of the others used every
+  round. Now all 648 fit, and none uses every round. The fit used to
+  freeze the proposal in place while the optimizer moved. A step in an
+  intercept then moved the integrand under draws that stayed put, and the
+  curvature the optimizer saw was a sample statistic: on a binomial
+  `y | trials(10) ~ x + (1 | g)` of 10 groups of 20, 5 to 70 over seeds at
+  200 draws, and negative at one, against an exact 34. Where it came out
+  too small, the rounds diverged, with effective sample sizes of 0.998.
+  The proposal's mode and variance now follow the optimizer to first order
+  around the anchor, in steps measured in units of the predictor, so a fit
+  does not read a column's center or scale. The standard normal draws stay
+  fixed, so the objective stays smooth, and at a given anchor each parameter
+  value has an unbiased estimate. On that model at 200 draws, one round gives
+  an intercept of 0.036581 and a log-likelihood of -418.1106 (Monte Carlo
+  standard error 0.0049), against quadrature's 0.036585 and -418.1121.
+  Laplace gives -418.1233. Over the 648 fits the median round count falls
+  from 4 to 1, and the time is about 40 percent less where the old fit took 3
+  to 5 rounds. The 162 fits that used to stop now run to the end. The median
+  error against the exact maximum falls from 0.0041 to 0.0002 in the fixed
+  effects and from 0.017 to 0.001 in the log standard deviations. Where both
+  take 2 rounds, a correlated block costs more per evaluation: on 5000
+  groups, a gradient up to 1.8 times at 3 coefficients and 1.25 times at 2, a
+  tape up to 2 times. A freeze at 40 fixed effects costs 3.6 to 5.6 times,
+  and a whole fit there up to 15 percent more.
+
+* BREAKING: a gaussian response fitted with `importance =` now returns
+  the exact optimum at any draw count, to about 1e-9 in log-likelihood.
+  It used to move away from it by up to 0.09.
+
+* BREAKING: the stop that said "ROSE" and blamed an unidentified
+  covariance is gone, because the cause was the frozen proposal: the
+  design it named now settles on the exact maximum. A fit that does come
+  out worse than the correction at the Laplace estimates now stops with a
+  message that gives the worst group's effective sample size and a larger
+  draw count at which the same fit settled with every group above
+  `importance_ess`, or names the counts it tried.
+  It tries up to four doublings, up to 8192 draws and 2e6 rows times draws,
+  because a tape holds about 1.1 KB per row and draw. So the stop costs more
+  than the fit: 15 times the fit and 3.3 GB at its worst, measured on 244 rows
+  from 512 draws. A larger count that cannot run becomes part of the message.
+
+* `confint(method = "profile")` on an `importance =` fit gets bounds
+  close to quadrature's on designs where it used to warn that the
+  proposal had stopped covering the integrand. On a scalar intercept
+  over 40 groups of 4 binary rows at 500 draws, the bounds on the log
+  standard deviation are -0.5115 and 0.7558, against quadrature's -0.5146
+  and 0.7576, with no warning.
+
+* BREAKING: the warning that a correction "moved by the same amount" in
+  every round is gone, with `importance_rounds`'s text about it. No fit reaches
+  it now: a collapsed variance component settles where the Laplace fit put it.
+
+* `frm(importance =)` starts its rounds from where the Laplace route ends.
+  It skipped the restart from a larger standard deviation, so a false collapse
+  of a variance component stayed: every weight is equal there, so nothing left
+  it. On an uncentered ordinal, `w = 5 z + 2000`, 15 of 40 fits stayed at a log
+  standard deviation of -6.7 to -130 and read 0.15 to 3.33 nats below the
+  Laplace fit.
+
+* `frm(importance =)` fits a response in large units. On `y x 1e6` a gaussian
+  fit stopped on 6 of 8 data sets with "Report this model", because the prior's
+  precision was read as a difference that rounded: 0.29 wrong at a standard
+  deviation of 1e7, and 0 at 1e8. It now reads the precision where the density
+  has moved by about one nat.
+
+* `frm(importance =)` honors a prior. It used to stop on any prior with
+  "could not reproduce this model's joint log-density ... Report this model",
+  though `frm_compat("importance", "prior")` said it works. The prior reads
+  the outer parameters only, so the objective adds it. Against
+  `quadrature = TRUE` with the same prior, on a binomial `(1 | g)`, the
+  objective agrees within its Monte Carlo error and the estimates within 0.05
+  of their standard errors.
+
+* A constant distributional parameter, as in `bf(y ~ x + (1 | g), nu = 5)`
+  with `importance =`, evaluated the wrong model on the path that reads
+  the weights. It read `nu` from `sigma`'s value, so the effective sample
+  sizes and the Monte Carlo standard error described that other model
+  (0.50 and 0.102 where the right values are 0.98 and 0.015). The fit's
+  own objective was right. The defect dates from `importance =` itself,
+  in 0.50.0.
+
+* The numbers that `vignette("reinforcement-learning")` and
+  `vignette("bayesian-cognitive-modeling")` quote for `importance =` are
+  measured again. They came from the frozen proposal. On Exams_2 the
+  Laplace error is 0.0002 nats, not 0.013, and direct numerical
+  integration confirms it. On the 40-subject learning model at 100
+  trials the correction moves `log sd(alpha)` by +0.12, not +0.36, and
+  all six datasets complete.
+
 # frmtmb 0.78.0
 
 The main changes:

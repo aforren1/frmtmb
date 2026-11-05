@@ -475,11 +475,11 @@ imp <- frm(fo, family = mixture(binomial, binomial), data = d,
 c(laplace = logLik(lap), importance = logLik(imp), imp$importance$mcse)
 ```
 
-On Exams_2 the Laplace log-likelihood is -44.095 and the corrected one
-is -44.109, with a Monte Carlo standard error of 0.0018. So the
-approximation is off by about 0.013 nats over fifteen subjects: small,
-but larger than the noise in the number that measures it, which is what
-makes it worth measuring rather than assuming.
+On Exams_2 the Laplace log-likelihood is -44.0955 and the corrected one
+is -44.0957, with a Monte Carlo standard error of 0.0007, and direct
+numerical integration at the same estimates gives -44.0956. So the
+approximation is off by about 0.0002 nats over fifteen subjects: it is
+good here, and now that is measured rather than assumed.
 
 Its scope is narrower than the caveat, and the refusals are by name:
 one response, one grouping factor, a family with a ROWWISE density, and

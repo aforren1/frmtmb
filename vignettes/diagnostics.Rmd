@@ -402,17 +402,27 @@ Read it like this.
 * Below `0.25` the fit warns and names the groups. That threshold is
   placed by measurement, not by taste. Ordinary designs sit far above
   it: 0.93 on the package's probe design, 0.97 on a scalar random
-  intercept, exactly 1.00 for a gaussian response, 0.64 here. A
-  proposal that has genuinely stopped working sits far below it: half a
-  log standard deviation of displacement drops the worst group to
-  0.009. In between, the threshold is meant to fire, and does. Forty
+  intercept, exactly 1.00 for a gaussian response, 0.63 here. Forty
   groups of three binary rows with a standard deviation of two report
-  anywhere from 0.08 to 0.62 depending on the sample, and the warning
-  is right to fire on the low half.
+  0.28 to 0.90, depending on the sample. A proposal that has stopped
+  working sits below it. On thirty groups of two binary rows with a
+  correlated slope, the worst group at 500 draws runs from 0.02 to 1
+  over ten data sets: the tail of a group's integrand can be wider than
+  the Gaussian's.
 * `mcse` is the Monte Carlo standard error of the corrected
-  log-likelihood, derived from those effective sample sizes. It is the
-  right scale for judging whether two corrected fits really differ.
-  Quadruple the draws to halve it.
+  log-likelihood, derived from those effective sample sizes. It is a
+  rough scale, because it can read high or low. It counts each draw as
+  independent, and the draws come in antithetic pairs. Over 40 seeds at
+  200 draws, a binomial model reads 0.0044 where the error's standard
+  deviation is 0.0017, so the number is too high. On a heavy-tailed or
+  nearly even weight it is too low by a factor of 1.2 to 2: a Student
+  response with `nu = 5`, 15 groups of 6 and 1000 draws has an error whose
+  standard deviation is 1.3 to 1.4 times the number, a nominal 95 percent
+  interval covers 0.86, and none of 100 fits warned.
+
+To judge whether two corrected fits really differ, do not rely on `mcse`
+alone. Refit with another `frmtmb_control(importance_seed =)`, or with
+twice the draws, and read how far the log-likelihood moves.
 
 If the warning fires, raise `importance`. The estimate stays unbiased
 either way; what degrades is precision, and the effective sample size
@@ -422,18 +432,26 @@ is what tells you so.
 
 The correction tapes `N` stacked copies of the likelihood, so time and
 memory grow linearly in the draw count. On a 480-row, two-dimensional
-block with 60 groups, the gradient costs about 0.28 ms per draw against
-2.5 ms for the Laplace gradient, and the tape holds roughly 320 bytes
-per row and draw. A thousand draws on that model is a few seconds and
-about 180 MB. Start at a few hundred draws, read the effective sample
+block with 60 groups, the gradient costs about 0.35 ms per draw against
+3.3 ms for the Laplace gradient. A thousand draws on that model is a
+few seconds. Start at a few hundred draws, read the effective sample
 sizes, and raise the count only if they ask for it.
 
-The fit proceeds in rounds. Each one freezes a proposal at the current
-estimate, optimizes, and refreezes; the loop stops when the estimates
-settle. `frmtmb_control()` holds the seed, the round cap and the
-effective-sample-size threshold. The seed makes the fit reproducible to
-the last bit, and the draws come from a private random stream, so a
-fit neither reads nor disturbs the session's random state.
+The fit proceeds in rounds. Each one anchors a proposal at the current
+estimate, optimizes, and anchors again at the result; the loop stops
+when the estimates settle, usually after one or two rounds. The
+standard normal draws stay fixed. While the optimizer moves, the
+proposal's mode and variance move with the parameters, to first order
+around the anchor, so the objective is smooth and its curvature is
+close to that of the exact integral. `frmtmb_control()` holds the seed,
+the round cap and the effective-sample-size threshold. The seed makes
+the fit reproducible to the last bit, and the draws come from a private
+random stream, so a fit neither reads nor disturbs the session's random
+state.
+
+If a draw count is too small for a model, the fit stops. The message
+gives the worst group's effective sample size and a larger count at
+which the same fit settled, or says that no larger count settled.
 
 ### Scope
 

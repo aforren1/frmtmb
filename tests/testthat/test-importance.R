@@ -209,7 +209,7 @@ test_that("the corrected objective's gradient matches numDeriv", {
 })
 
 # ---------------------------------------------------------------------
-# (f) THE ESS DIAGNOSTIC fires on a proposal frozen deliberately far
+# (f) THE ESS DIAGNOSTIC fires on a proposal read deliberately far
 # from the optimum and stays quiet at the optimum.
 # ---------------------------------------------------------------------
 test_that("the effective sample size diagnostic separates the two regimes", {
@@ -223,25 +223,38 @@ test_that("the effective sample size diagnostic separates the two regimes", {
   }
   at_opt <- ess_at(p$opt$par, p$opt$par)
   expect_gt(min(at_opt$ess), frmtmb:::imp_ess_floor)
-  # displace the proposal's WIDTHS by half a log standard deviation.
-  # The estimate stays unbiased, so what degrades is efficiency, and
-  # that is exactly what this diagnostic is for.
+  # the same draws read where they stop covering: three log standard
+  # deviations up, the worst group falls under the floor and the error the
+  # fit would report rises with it
   far <- p$opt$par
-  far[3:4] <- far[3:4] - 0.5
-  at_far <- ess_at(far, p$opt$par)
+  far[3:4] <- far[3:4] + 3
+  at_far <- ess_at(p$opt$par, far)
   expect_lt(min(at_far$ess), frmtmb:::imp_ess_floor)
   expect_gt(at_far$mcse, 5 * at_opt$mcse)
-  # and the warning names the groups
-  expect_warning(
-    frmtmb:::imp_ess_warning(at_far$ess, p$lay, 1000L,
-                             frmtmb:::imp_ess_floor),
-    "covers"
-  )
+  # a design that defeats the proposal for real: 30 groups of 2 null
+  # binary rows under a 2 x 2 covariance, whose group '20' has weights
+  # with a tail the Laplace Gaussian does not cover, at this data seed. The
+  # estimate stays unbiased, so what degrades is efficiency, and that is
+  # exactly what this diagnostic is for.
+  set.seed(5)
+  ng <- 30L
+  g <- factor(rep(seq_len(ng), each = 2L))
+  xu <- rnorm(2L * ng)
+  du <- data.frame(y = rbinom(2L * ng, 1, 0.4), x = xu, g = g)
+  allow_warnings(
+    bad <- frm(bf(y ~ x + (x | g)) + bernoulli(), data = du,
+               importance = 500L),
+    c("covers", "false convergence"), require = "covers")
+  ess_bad <- bad$importance$ess
+  expect_lt(min(ess_bad), frmtmb:::imp_ess_floor)
+  # the rest of the groups hold, so it is that group the warning names
+  expect_gt(stats::median(ess_bad), frmtmb:::imp_ess_floor)
   # by the GROUPING FACTOR and not by a term label: one proposal covers
   # a level's coefficients from every block over that factor, so there
   # is one effective sample size per level. This design has ONE block,
   # which is the case the rename also changed, so the pin belongs here.
-  msg <- tryCatch(frmtmb:::imp_ess_warning(at_far$ess, p$lay, 1000L,
+  lay_bad <- frmtmb:::imp_layout(bad$frame[["re_blocks"]])
+  msg <- tryCatch(frmtmb:::imp_ess_warning(ess_bad, lay_bad, 500L,
                                            frmtmb:::imp_ess_floor),
                   warning = conditionMessage)
   expect_match(msg, "groups of `g` poorly", fixed = TRUE)
@@ -428,14 +441,13 @@ test_that("the per-group pieces reproduce the joint density they sum", {
   expect_equal(as.numeric(Matrix::rowSums(p$gmap[["S"]])), rep(4, 100),
                tolerance = 1e-12)
 })
-
-# An unidentified covariance turns the fixed-point iteration into a
-# wander: the rounds chase each other out to a collapsed variance
-# component where every weight is trivially equal, so the effective
-# sample sizes at the END look perfect while the estimate is nonsense.
-# The invariant that catches it is that the correction must not make
-# the fit worse than the correction at the Laplace estimates.
-test_that("a diverging iteration refuses instead of reporting nonsense", {
+# Four binary rows per group, a 2 x 2 covariance, a Laplace fit that stops
+# at the correlation's boundary with a convergence code. This design used
+# to stop with "ROSE from" at 500 draws, and the message blamed an
+# unidentified covariance. The cause was the frozen proposal's noisy
+# curvature: with the proposal following theta, it settles on the exact
+# maximum.
+test_that("a weakly identified covariance settles on the exact value", {
   set.seed(11)
   ng <- 40L
   per <- 4L
@@ -446,19 +458,23 @@ test_that("a diverging iteration refuses instead of reporting nonsense", {
                               plogis(-0.5 + 0.8 * x + b[g, 1] +
                                        b[g, 2] * x)),
                    x = x, g = factor(g))
-  # four binary rows per group cannot identify a 2 x 2 covariance, and
-  # the Laplace fit says so itself
   fl <- suppressWarnings(frm(bf(y ~ x + (x | g)) + bernoulli(), data = dd))
   expect_gt(fl$opt$convergence, 0)
-  expect_error(
-    suppressWarnings(frm(bf(y ~ x + (x | g)) + bernoulli(), data = dd,
-                         importance = 500L)),
-    "ROSE from")
-  # and the correction AT the Laplace estimates is still sound: it is
-  # the iteration that fails, not the estimator
+  fi <- suppressWarnings(frm(bf(y ~ x + (x | g)) + bernoulli(), data = dd,
+                             importance = 500L))
+  expect_false(fi$importance$capped)
+  expect_gt(as.numeric(logLik(fi)), as.numeric(logLik(fl)))
   skip_if_not_installed("GLMMadaptive")
   ga <- suppressWarnings(
     GLMMadaptive::mixed_model(y ~ x, ~ x | g, dd, binomial(), nAGQ = 25))
+  expect_lt(abs(as.numeric(logLik(fi)) - as.numeric(logLik(ga))),
+            3 * fi$importance$mcse)
+  # the estimates too, on the scale of their own standard errors
+  se_b <- sqrt(diag(vcov(fi)))
+  b_fi <- fi$opt$par[names(fi$opt$par) == "beta"]
+  expect_lt(max(abs(b_fi - GLMMadaptive::fixef(ga)) / se_b[seq_along(b_fi)]),
+            0.1)
+  # and the correction AT the Laplace estimates is sound too
   p <- imp_parts(bf(y ~ x + (x | g)) + bernoulli(), dd)
   plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, p$opt$par, 500L, 1L)
   io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
@@ -471,13 +487,16 @@ test_that("a diverging iteration refuses instead of reporting nonsense", {
 })
 
 test_that("the rise tolerance separates drift from divergence", {
-  # the numbers the threshold was placed from
+  # the floor, and the Monte Carlo term over it
   expect_equal(frmtmb:::imp_worse_tol(0, 0), 0.1)
   expect_equal(frmtmb:::imp_worse_tol(0.2, 0.1), 0.6)
-  # the worst legitimate rise measured (gaussian optimizer drift) is
-  # inside it; the smallest divergence measured is outside
-  expect_lt(0.010, frmtmb:::imp_worse_tol(0, 0))
-  expect_gt(0.352, frmtmb:::imp_worse_tol(0, 0))
+  # what a settled fit's rise reads against it, on a binary design with room
+  # to rise. Over 648 measured fits the largest was 0.15 of the tolerance.
+  fit <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = imp_scalar_data(),
+             importance = 200L)
+  rise <- fit$opt$objective - fit$importance$start_value
+  tol <- frmtmb:::imp_worse_tol(fit$importance$mcse, fit$importance$mcse)
+  expect_lt(abs(rise) / tol, 1)
 })
 
 # A refit must not silently drop the correction. Every path that
@@ -551,10 +570,10 @@ test_that("every covariance structure importance refuses reads refused", {
 })
 
 # P2: confint(method = "profile") does not refit an importance fit, it
-# profiles the FROZEN tape, so a bound far from the estimate can come
+# profiles its own tape, so a bound far from the estimate can come
 # from a region the proposal no longer covers. It must not do that
 # silently.
-test_that("a profile bound in the degenerate regime warns", {
+test_that("a profile bound warns only where the weights fail", {
   set.seed(11)
   ng <- 40L
   per <- 4L
@@ -566,16 +585,26 @@ test_that("a profile bound in the degenerate regime warns", {
                    x = x, g = g)
   fi <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd,
             importance = 500L)
-  # the frozen proposal, rebuilt from the fit, reproduces the anchor
-  # the fit reported: same draws, same seed, same Gaussian
-  prop <- frmtmb:::imp_frozen_proposal(fi)
+  # the proposal, rebuilt from the fit, reproduces the anchor the fit
+  # reported: same draws, same seed, same Gaussian
+  prop <- frmtmb:::imp_fit_proposal(fi)
   expect_equal(min(frmtmb:::imp_ess_at(prop, fi$opt$par)$ess),
                fi$importance$ess_min, tolerance = 1e-10)
-  # the covariance parameter walks far enough to leave the proposal
-  expect_warning(confint(fi, parm = "theta_1", method = "profile"),
-                 "stopped covering the integrand")
-  # the fixed effect does not, on this design
+  # the covariance parameter walks to bounds where the proposal, which
+  # follows it, still covers: no warning, and the bounds are quadrature's
+  # within a hundredth of the interval. A frozen proposal warned here.
+  ci <- expect_silent(confint(fi, parm = "theta_1", method = "profile"))
+  qd <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd, quadrature = TRUE)
+  cq <- confint(qd, parm = "theta_1", method = "profile")
+  expect_lt(max(abs(ci[1, 1:2] - cq[1, 1:2])) / (cq[1, 2] - cq[1, 1]), 0.01)
   expect_silent(confint(fi, parm = "x", method = "profile"))
+  # a bound past where it covers does warn, and it names the parameter
+  i <- which(names(fi$opt$par) == "theta")
+  far <- fi$opt$par[[i]] + 3
+  expect_warning(frmtmb:::imp_profile_ess_warn(fi, prop, "theta_1", i, far),
+                 "stopped covering the integrand")
+  expect_silent(frmtmb:::imp_profile_ess_warn(fi, prop, "theta_1", i,
+                                              ci[1, 1:2]))
   # and a Laplace fit profiles with none of this machinery
   fl <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd)
   expect_silent(confint(fl, parm = "theta_1", method = "profile"))
@@ -937,13 +966,13 @@ test_that("(1 + x | g) plus a sigma block: gradient and coverage hold", {
 
   otpl <- frmtmb:::imp_template(p$tpl, "b")
   obj <- RTMB::MakeADFun(io$fn, otpl, silent = TRUE)
-  # The tolerance is set by numDeriv, not by the AD gradient: two
-  # numDeriv settings disagree with each other by 3.0e-04 at the
-  # optimum and 1.0e-02 away from it, which is larger than the gap
-  # being measured (relative 1.6e-06 and 6.9e-06).
+  # numDeriv's defaults carry 3.0e-04 of their own error here, measured
+  # against a central difference and a smaller Richardson step, which
+  # both agree with the AD gradient to 3e-05
   for (shift in c(0, 0.3)) {
     at <- p$opt$par + shift
-    nd <- numDeriv::grad(obj$fn, at)
+    nd <- numDeriv::grad(obj$fn, at,
+                         method.args = list(eps = 1e-5, d = 1e-3))
     expect_equal(as.numeric(obj$gr(at)), nd, tolerance = 1e-4)
   }
   ess <- frmtmb:::imp_ess(
@@ -1211,76 +1240,674 @@ imp_warnings <- function(expr) {
   })
   list(value = val, warnings = ws)
 }
-
-test_that("a stalled correction is not told to raise the round count", {
-  r <- imp_warnings(frm(bf(y ~ x + (1 | g)) + bernoulli(),
-                        data = imp_stall_data(), importance = 50L))
-  im <- r$value$importance
-  expect_true(im$capped)
-  expect_true(frmtmb:::imp_stalled(im$moves))
-  # the collapsed component is the cause, and it is what the message
-  # sends the reader to look at
-  expect_lt(sqrt(varcorr_matrices(r$value)[[1L]][1L, 1L]), 1e-4)
-
-  hit <- grep("importance correction", r$warnings, value = TRUE)
-  expect_length(hit, 1L)
-  expect_match(hit, "moved by the same amount", fixed = TRUE)
-  expect_match(hit, "not of the data", fixed = TRUE)
-  # the advice that is wrong here is gone: more rounds do not land this
-  # fit anywhere
-  expect_false(grepl("still moving", hit, fixed = TRUE))
-
-  # and the shift it reports IS the step times the round count, to a
-  # part in a thousand of itself. That is arithmetic, not an estimate.
-  expect_lt(abs(sum(im$moves) - im$rounds * im$moved) / sum(im$moves),
-            1e-3)
+test_that("a collapsed component settles where Laplace put it", {
+  # sd = 0 used to walk: the proposal stayed put, the step was a property
+  # of the draws, and the fit reported 0.909 per round for five rounds and
+  # a shift of 4.545. With the proposal following theta nothing moves.
+  dd <- imp_stall_data()
+  lap <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd)
+  fit <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd, importance = 50L)
+  im <- fit$importance
+  expect_false(im$capped)
+  se_b <- sqrt(diag(vcov(lap)))
+  b <- names(fit$opt$par) == "beta"
+  expect_lt(max(abs(fit$opt$par[b] - lap$opt$par[b]) / se_b[seq_len(sum(b))]),
+            0.01)
+  expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(lap))) /
+              abs(as.numeric(logLik(lap))), 1e-6)
 })
-
 test_that("a correction that is still shrinking still asks for rounds", {
   # the same design as the multi-block tests, stopped one round short:
-  # it lands at three rounds on its own, so a cap of two is genuinely
-  # short of rounds rather than stalled
+  # with a second round it lands, so a cap of one is genuinely short of
+  # rounds and not stalled
   r <- imp_warnings(frm(bf(y ~ x + (1 | g)) + bernoulli(),
                         data = imp_scalar_data(), importance = 200L,
-                        control = frmtmb_control(importance_rounds = 2L)))
+                        control = frmtmb_control(importance_rounds = 1L)))
   im <- r$value$importance
   expect_true(im$capped)
-  expect_false(frmtmb:::imp_stalled(im$moves))
-  # measured: 0.109 then 0.0106, a tenth of the first
-  expect_lt(im$moves[2L] / im$moves[1L], 0.5)
-
   hit <- grep("importance correction", r$warnings, value = TRUE)
   expect_length(hit, 1L)
   expect_match(hit, "still moving", fixed = TRUE)
-  expect_false(grepl("moved by the same amount", hit, fixed = TRUE))
+  # one more round is the right advice: without the cap the same fit lands
+  more <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = imp_scalar_data(),
+              importance = 200L)
+  expect_false(more$importance$capped)
 })
 
-test_that("imp_stalled() separates the two measured regimes", {
-  # the capped move vectors this package's own designs produce, kept as
-  # data rather than refitted: three converging (scalar Bernoulli and
-  # the 2x2 probe stopped short, and a wandering 20-group fit) and
-  # three stalled (12 groups at 50 draws, and two frmtmb.learn fits)
-  converging <- list(
-    c(0.109326438, 0.010590534),
-    c(0.0958364841, 0.0257134495, 0.0072451622),
-    c(0.3637685545, 0.2674934619, 0.2918042143, 0.2844988173, 0.2873984641))
-  stalled <- list(
-    c(0.9090782568, 0.9090729177, 0.9090783941, 0.9090782113, 0.9090729093),
-    c(0.3644537287, 0.3644636190, 0.3644559839, 0.3644573799, 0.3644548398),
-    c(0.3004727073, 0.3004744652, 0.3004240675, 0.3004749115, 0.3005011796))
-  for (m in converging) expect_false(frmtmb:::imp_stalled(m))
-  for (m in stalled) expect_true(frmtmb:::imp_stalled(m))
 
-  # the margin either way, as a ratio to the threshold rather than as a
-  # number: 32 times under it for the narrowest converging vector, 39
-  # times over it for the widest stalled one
-  spread <- function(m) (max(m) - min(m)) / mean(m)
-  expect_gt(min(vapply(converging, spread, 0)) / frmtmb:::imp_stall_tol, 10)
-  expect_lt(max(vapply(stalled, spread, 0)) / frmtmb:::imp_stall_tol, 0.1)
+# ---------------------------------------------------------------------
+# THE PROPOSAL FOLLOWS THE OPTIMIZER'S THETA.
+#
+# With a proposal frozen in place, the curvature of the objective along
+# an intercept is the group's conditional information times
+# (1 - mean z^2) plus the marginal curvature, a sample statistic far
+# larger than what it has to resolve. The re-anchored iteration then
+# diverged wherever that sample statistic came out small, however good
+# the weights were, and frm() stopped on the textbook models at 200 and
+# 512 draws.
+# ---------------------------------------------------------------------
+# The log of one group's integral over u ~ N(0, s^2), from the log integrand
+# of a scalar u. Centered on its peak, because integrate()'s default absolute
+# tolerance accepts anything on an integrand of size e^-40, and it reads about
+# 0.04 nats wrong two standard errors off the anchor of the textbook model.
+imp_log_integral <- function(logf, s) {
+  grid <- seq(-10 * s, 10 * s, length.out = 4001L)
+  v <- vapply(grid, logf, 0)
+  top <- max(v)
+  keep <- range(grid[v > top - 50])
+  val <- integrate(function(u) vapply(u, function(ui) exp(logf(ui) - top), 0),
+                   keep[[1L]], keep[[2L]], subdivisions = 500L,
+                   rel.tol = 1e-8, abs.tol = 0)$value
+  top + log(val)
+}
 
-  # one round is no evidence: a single move is trivially equal to
-  # itself, and a cap of one round is where raising the cap is right
-  expect_false(frmtmb:::imp_stalled(0.5))
-  expect_false(frmtmb:::imp_stalled(c(NA_real_, 0.5)))
-  expect_false(frmtmb:::imp_stalled(c(0, 0)))
+# 10 groups of 20, rows in group order: the models that stopped.
+imp_textbook_data <- function(seed) {
+  set.seed(seed)
+  n <- 200L
+  d <- data.frame(x = round(rnorm(n), 3), z = round(rnorm(n), 3),
+                  g = factor(sprintf("g%02d", sort(rep(1:10, length.out = n)))))
+  # the draws two more columns take from this stream in the survey that
+  # found the stop, so that these data are its data
+  sample(c("a", "b", "c"), n, TRUE)
+  sample(0:3, n, TRUE)
+  u <- rnorm(10L, 0, 0.5)
+  v <- rnorm(10L, 0, 0.3)
+  d$eta <- 0.3 + 0.5 * d$x - 0.3 * d$z + u[as.integer(d$g)] +
+    v[as.integer(d$g)] * d$x
+  d$ntr <- 10L
+  d
+}
+test_that("the textbook binomial settles at the draw counts users pick", {
+  d <- imp_textbook_data(124L)
+  d$y <- rbinom(nrow(d), 10L, plogis(d$eta))
+  f <- bf(y | trials(ntr) ~ x + (1 | g))
+  lap <- frm(f, family = binomial(), data = d)
+  qd <- frm(f, family = binomial(), data = d, quadrature = TRUE)
+  se_b <- sqrt(diag(vcov(qd)))
+  gap_lap <- abs(as.numeric(logLik(lap)) - as.numeric(logLik(qd)))
+  for (k in c(200L, 512L, 1000L)) {
+    fit <- frm(f, family = binomial(), data = d, importance = k)
+    im <- fit$importance
+    expect_false(im$capped)
+    # one round and one to confirm at most: nothing is left to iterate on
+    expect_lte(im$rounds, 2L)
+    # within its own reported error of the exact value, and nearer than
+    # Laplace, whose gap is 0.011
+    gap <- abs(as.numeric(logLik(fit)) - as.numeric(logLik(qd)))
+    expect_lt(gap, 3 * im$mcse)
+    expect_lt(gap, gap_lap)
+    # and the estimates, on the scale of their own standard errors
+    b <- fit$opt$par[names(fit$opt$par) == "beta"]
+    bq <- qd$opt$par[names(qd$opt$par) == "beta"]
+    expect_lt(max(abs(b - bq) / se_b[seq_along(b)]), 0.05)
+  }
+})
+test_that("a correlated slope at a boundary settles at the draw counts", {
+  d <- imp_textbook_data(69L)
+  d$y <- rpois(nrow(d), exp(d$eta))
+  f <- bf(y ~ x + (1 + x | g))
+  # At the correlation's limit the slope is a fixed multiple of the
+  # intercept's draw, so the exact marginal is one integral per group
+  exact_at <- function(fit) {
+    vc <- VarCorr(fit)$g
+    s1 <- vc$sd[1L, "Estimate"]
+    s2 <- vc$sd[2L, "Estimate"]
+    rho <- vc$cor[2L, "Estimate", 1L]
+    b <- fit$opt$par[names(fit$opt$par) == "beta"]
+    sum(vapply(split(seq_len(nrow(d)), d$g), function(r) {
+      imp_log_integral(function(ui) {
+        sum(dpois(d$y[r], exp(b[[1L]] + b[[2L]] * d$x[r] + ui +
+                                rho * s2 / s1 * ui * d$x[r]), log = TRUE)) +
+          dnorm(ui, 0, s1, log = TRUE)
+      }, s1)
+    }, 0))
+  }
+  lap <- frm(f, family = poisson(), data = d)
+  se_b <- sqrt(diag(vcov(lap)))
+  b_lap <- lap$opt$par[names(lap$opt$par) == "beta"]
+  for (k in c(200L, 512L)) {
+    fit <- frm(f, family = poisson(), data = d, importance = k)
+    im <- fit$importance
+    expect_false(im$capped)
+    expect_lt(abs(as.numeric(logLik(fit)) - exact_at(fit)), 3 * im$mcse)
+    # the old iteration walked the correlation's chart by thousands here,
+    # taking the fixed effects with it
+    b <- fit$opt$par[names(fit$opt$par) == "beta"]
+    expect_lt(max(abs(b - b_lap) / se_b[seq_along(b)]), 0.1)
+  }
+})
+test_that("the objective's curvature along an intercept is not a sample", {
+  d <- imp_textbook_data(124L)
+  d$y <- rbinom(nrow(d), 10L, plogis(d$eta))
+  p <- imp_parts(bf(y | trials(ntr) ~ x + (1 | g)) + binomial(), d)
+  at <- p$opt$par
+  otpl <- frmtmb:::imp_template(p$tpl, "b")
+  # Laplace is good to 1 part in 1000 here, so its curvature is the
+  # reference, by central difference of its exact gradient
+  h <- 1e-4 * max(1, abs(at[[1L]]))
+  e <- replace(numeric(length(at)), 1L, h)
+  exact <- (p$lap$gr(at + e) - p$lap$gr(at - e))[[1L]] / (2 * h)
+  # seed 1 gave 5 and seed 14 gave -3.4 against an exact 34 at 200 draws
+  for (s in c(1L, 14L)) {
+    plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, at, 200L, s)
+    io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
+    obj <- RTMB::MakeADFun(io$fn, otpl, silent = TRUE)
+    expect_lt(abs(obj$he(at)[1L, 1L] / exact - 1), 0.1)
+  }
+})
+test_that("a gaussian fit stays at the exact optimum at any draw count", {
+  # the fixed point of the iteration is the exact optimum because the
+  # gradient at the anchor is exact for every draw, when the proposal's
+  # curvature follows the dispersion
+  set.seed(1003L)
+  g <- factor(rep(1:30, each = 3L))
+  x <- round(rnorm(90L), 3)
+  a <- rnorm(30L)
+  b <- 0.3 * a + sqrt(1 - 0.3^2) * rnorm(30L)
+  d <- data.frame(y = 0.3 * x + 0.8 * a[g] + 0.4 * b[g] * x + 0.2 +
+                    rnorm(90L, 0, 0.5), x = x, g = g)
+  f <- bf(y ~ x + (1 + x | g))
+  lap <- frm(f, family = gaussian(), data = d)
+  se <- sqrt(diag(frmtmb:::sdr_of(lap)$cov.fixed))
+  for (k in c(16L, 64L, 200L)) {
+    fit <- frm(f, family = gaussian(), data = d, importance = k)
+    expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(lap))) /
+                abs(as.numeric(logLik(lap))), 1e-6)
+    expect_lt(max(abs(fit$opt$par - lap$opt$par) / se), 1e-2)
+  }
+})
+# The optimizer and the plan, wrapped so that a chosen draw count lands
+# somewhere worse than where it started. The guard cannot be reached on
+# demand any other way now that the iteration settles, and the wrapper
+# moves only the rounds' optimum, so all the arithmetic below it is real.
+imp_with_displaced_rounds <- function(below, code) {
+  real_plan <- frmtmb:::imp_plan
+  real_opt <- frmtmb:::optimize_obj
+  last_n <- 0L
+  testthat::with_mocked_bindings(
+    code,
+    imp_plan = function(lap_obj, frame, lay, par, n_draw, seed) {
+      last_n <<- n_draw
+      real_plan(lap_obj, frame, lay, par, n_draw, seed)
+    },
+    optimize_obj = function(obj, control, bounds = list(lower = -Inf,
+                                                        upper = Inf),
+                            par_units = NULL, verbose = 0L,
+                            start_par = obj$par, tally = NULL) {
+      o <- real_opt(obj, control, bounds, par_units, verbose, start_par, tally)
+      if (last_n > 0L && last_n < below) o$par[[1L]] <- o$par[[1L]] + 1
+      o
+    },
+    .package = "frmtmb")
+}
+test_that("too few draws are named with their ESS and the count that works", {
+  d <- imp_scalar_data()
+  f <- bf(y ~ x + (1 | g))
+  # the guard's condition is absent: the same wrapper, moving nothing
+  fit <- imp_with_displaced_rounds(0L, frm(f, family = bernoulli(), data = d,
+                                           importance = 16L))
+  expect_s3_class(fit, "frmtmb_fit")
+  msg <- tryCatch(imp_with_displaced_rounds(
+    64L, frm(f, family = bernoulli(), data = d, importance = 16L)),
+    error = conditionMessage)
+  expect_type(msg, "character")
+  expect_match(msg, "`importance = 16` did not settle", fixed = TRUE)
+  expect_match(msg, "effective sample size is 0", fixed = TRUE)
+  expect_match(msg, "settled at importance = 64", fixed = TRUE)
+  expect_match(msg, "Use importance = 64", fixed = TRUE)
+  expect_false(grepl("or more", msg, fixed = TRUE))
+  expect_false(grepl("ROSE", msg, fixed = TRUE))
+})
+test_that("a constant dpar's numeric path reads the model the tape reads", {
+  # the free betad entries used to be recycled over the entries a map
+  # fixes, so the offsets and the effective sample sizes read nu = sigma
+  set.seed(31L)
+  g <- factor(rep(1:15, each = 8L))
+  x <- rnorm(120L)
+  d <- data.frame(y = 0.3 + 0.5 * x + rnorm(15L, 0, 0.7)[g] +
+                    0.5 * rt(120L, 5L), x = x, g = g)
+  fit <- frm(bf(y ~ x + (1 | g), nu = 5), family = student(), data = d,
+             importance = 200L)
+  prop <- frmtmb:::imp_fit_proposal(fit)
+  pl <- frmtmb:::imp_par_list(prop$template, fit$opt$par, prop$map)
+  expect_equal(pl[["betad"]], fit$estimates[["betad"]])
+  a <- as.matrix(prop$io$amat(pl))
+  lme <- function(v) max(v) + log(mean(exp(v - max(v))))
+  num <- -sum(apply(a, 1L, lme)) -
+    sum(1 / 2 * log(2 * pi) + prop$plan$logdet_l)
+  expect_equal(num, fit$opt$objective, tolerance = 1e-8)
+  # the reported ESS describes the model: 0.50 when it read nu = sigma
+  expect_gt(fit$importance$ess_min, 0.9)
+})
+
+test_that("a negative likelihood curvature is cut off, a positive one kept", {
+  # the proposal adds a precision to this part, at any theta, so it has
+  # to stay positive semi-definite; a log-concave likelihood must keep the
+  # Laplace Hessian to the last bit
+  pos <- matrix(c(2, 0.5, 0.5, 1), 2L)
+  expect_identical(frmtmb:::imp_psd_part(pos), pos)
+  neg <- matrix(c(1, 2, 2, 1), 2L)
+  cut <- frmtmb:::imp_psd_part(neg)
+  ev <- eigen(cut, symmetric = TRUE, only.values = TRUE)$values
+  expect_equal(ev[[1L]], 3)
+  expect_lt(abs(ev[[2L]]) / ev[[1L]], 1e-12)
+})
+
+test_that("no count that works is not reported as one", {
+  d <- imp_scalar_data()
+  f <- bf(y ~ x + (1 | g))
+  msg <- tryCatch(imp_with_displaced_rounds(
+    1e9, frm(f, family = bernoulli(), data = d, importance = 8L)),
+    error = conditionMessage)
+  expect_match(msg, "at importance = 16, 32, 64, 128", fixed = TRUE)
+  expect_match(msg, "No count above 128 was tried", fixed = TRUE)
+  expect_false(grepl("settled at", msg, fixed = TRUE))
+  expect_false(grepl("remedy", msg, fixed = TRUE))
+  # at the top of its range it says so, by the rows it read
+  local({
+    testthat::local_mocked_bindings(imp_refuse_cells = 4000,
+                                    .package = "frmtmb")
+    msg <- tryCatch(imp_with_displaced_rounds(
+      1e9, frm(f, family = bernoulli(), data = d, importance = 8L)),
+      error = conditionMessage)
+    expect_match(msg,
+                 "on 400 rows it would tape more than 4e+03 rows times draws",
+                 fixed = TRUE)
+    expect_false(grepl("settled at", msg, fixed = TRUE))
+  })
+  # one doubling is all it read, and it claims no more than that
+  local({
+    testthat::local_mocked_bindings(imp_refuse_cells = 8000,
+                                    .package = "frmtmb")
+    msg <- tryCatch(imp_with_displaced_rounds(
+      1e9, frm(f, family = bernoulli(), data = d, importance = 8L)),
+      error = conditionMessage)
+    expect_match(msg, "at importance = 16 either", fixed = TRUE)
+    expect_false(grepl("remedy", msg, fixed = TRUE))
+  })
+})
+
+test_that("a capped run has not settled, and a refused count is not named", {
+  d <- imp_scalar_data()
+  f <- bf(y ~ x + (1 | g))
+  # above the wrapper's limit nothing rises, and a cap of one round keeps the
+  # fit from settling: the old test read that as a count that works
+  ctl <- frmtmb_control(importance_rounds = 1L)
+  msg <- tryCatch(imp_with_displaced_rounds(
+    64L, frm(f, family = bernoulli(), data = d, importance = 16L,
+             control = ctl)),
+    error = conditionMessage)
+  expect_type(msg, "character")
+  expect_false(grepl("settled at", msg, fixed = TRUE))
+  expect_false(grepl("Use importance", msg, fixed = TRUE))
+  expect_match(msg, "at importance = 32, 64, 128, 256 either", fixed = TRUE)
+})
+
+test_that("a slope near separation is never silent at few draws", {
+  # 20 groups of 4, binary rows a slope nearly separates. Such a fit walks, and
+  # where it lands is chaotic, so this asserts what must hold on either side: it
+  # stops with the refusal, or it is capped and warns.
+  set.seed(7L)
+  g <- factor(rep(1:20, each = 4L))
+  x <- rnorm(80L)
+  eta <- x + rnorm(20L, 0, 2)[g] + rnorm(80L, 0, 0.1)
+  d <- data.frame(y = as.integer(eta > 0),
+                  x = x, g = g)
+  ws <- character(0)
+  r <- tryCatch(withCallingHandlers(
+    frm(bf(y ~ x + (x | g)), family = bernoulli(), data = d, importance = 8L),
+    warning = function(w) {
+      ws <<- c(ws, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    }), error = conditionMessage)
+  if (is.character(r)) {
+    expect_match(r, "`importance = 8` did not settle", fixed = TRUE)
+  } else {
+    expect_true(r$importance$capped)
+    expect_true(any(grepl("still moving", ws, fixed = TRUE)))
+  }
+})
+
+test_that("an allocation failure in the ladder becomes the message", {
+  real_plan <- frmtmb:::imp_plan
+  real_opt <- frmtmb:::optimize_obj
+  first <- TRUE
+  d <- imp_scalar_data()
+  msg <- tryCatch(testthat::with_mocked_bindings(
+    frm(bf(y ~ x + (1 | g)), family = bernoulli(), data = d, importance = 16L),
+    imp_plan = function(lap_obj, frame, lay, par, n_draw, seed) {
+      if (n_draw > 32L) stop("std::bad_alloc", call. = FALSE)
+      real_plan(lap_obj, frame, lay, par, n_draw, seed)
+    },
+    optimize_obj = function(obj, control, bounds = list(lower = -Inf,
+                                                        upper = Inf),
+                            par_units = NULL, verbose = 0L,
+                            start_par = obj$par, tally = NULL) {
+      o <- real_opt(obj, control, bounds, par_units, verbose, start_par, tally)
+      if (!first) o$par[[1L]] <- o$par[[1L]] + 1
+      first <<- FALSE
+      o
+    },
+    .package = "frmtmb"), error = conditionMessage)
+  expect_match(msg, "importance = 64 could not run: std::bad_alloc",
+               fixed = TRUE)
+  expect_match(msg, "at importance = 32 either", fixed = TRUE)
+})
+
+# ---------------------------------------------------------------------
+# THE TAPE AGAINST AN EXACT VALUE, OFF THE ANCHOR
+# ---------------------------------------------------------------------
+
+test_that("the tape's curvature on a slope follows the moved mode", {
+  # A step in a log-link intercept moves the mode by minus that step, so the
+  # curvature at the moved mode stays put. Its partial derivative equals
+  # itself, and a proposal that takes the partial halves this entry.
+  set.seed(2102L)
+  g <- factor(rep(1:10, each = 20L))
+  x <- round(rnorm(200L), 3)
+  a <- rnorm(10L)
+  b <- 0.3 * a + sqrt(1 - 0.3^2) * rnorm(10L)
+  eta <- 0.8 * a[g] + (0.3 + 0.4 * b[g]) * x + 0.5
+  d <- data.frame(y = rpois(200L, exp(eta)),
+                  x = x, g = g)
+  p <- imp_parts(bf(y ~ x + (1 + x | g)) + poisson(), d)
+  at <- p$opt$par
+  h <- 1e-4
+  e <- replace(numeric(length(at)), 1L, h)
+  exact <- (p$lap$gr(at + e) - p$lap$gr(at - e))[[1L]] / (2 * h)
+  for (s in 1:3) {
+    plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, at, 200L, s)
+    io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
+    obj <- RTMB::MakeADFun(io$fn, frmtmb:::imp_template(p$tpl, "b"),
+                           silent = TRUE)
+    expect_lt(abs(obj$he(at)[1L, 1L] / exact - 1), 0.1)
+  }
+})
+
+test_that("the objective two standard errors off the anchor is the integral", {
+  # A wrong log-determinant is zero at the anchor and grows away from it, so
+  # the anchor cannot see it: this reads an integrate() at displaced theta.
+  d <- imp_textbook_data(124L)
+  d$y <- rbinom(nrow(d), 10L, plogis(d$eta))
+  p <- imp_parts(bf(y | trials(ntr) ~ x + (1 | g)) + binomial(), d)
+  anchor <- p$opt$par
+  lap <- frm(bf(y | trials(ntr) ~ x + (1 | g)), family = binomial(), data = d)
+  se <- sqrt(diag(frmtmb:::sdr_of(lap)$cov.fixed))
+  exact_nll <- function(par) {
+    s1 <- exp(par[[3L]])
+    -sum(vapply(split(seq_len(nrow(d)), d$g), function(r) {
+      imp_log_integral(function(ui) {
+        sum(dbinom(d$y[r], 10L, plogis(par[[1L]] + par[[2L]] * d$x[r] + ui),
+                   log = TRUE)) + dnorm(ui, 0, s1, log = TRUE)
+      }, s1)
+    }, 0))
+  }
+  plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, anchor, 200L, 1L)
+  io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
+  a0 <- as.matrix(io$amat(frmtmb:::imp_par_list(p$tpl, anchor)))
+  io$set_offset(apply(a0, 1L, max))
+  obj <- RTMB::MakeADFun(io$fn, frmtmb:::imp_template(p$tpl, "b"),
+                         silent = TRUE)
+  for (sgn in list(c(2, 2, 2), c(-2, 2, -2), c(0, 0, 2), c(0, 0, -2))) {
+    at <- anchor + sgn * se
+    mcse <- frmtmb:::imp_ess(
+      as.matrix(io$amat(frmtmb:::imp_par_list(p$tpl, at))),
+      plan[["n_draw"]])$mcse
+    expect_lt(abs(obj$fn(at) - exact_nll(at)), 4 * mcse)
+  }
+})
+
+test_that("a fit does not read a column's center or scale", {
+  # the same model on an affine map of its column: the slope's SE scales with
+  # it, and the log-likelihood and theta's SE do not move. A step in the
+  # coefficient's own units gave SE ratios of 1.47, capped rounds and refusals
+  # on a calendar year.
+  set.seed(7L)
+  g <- factor(rep(1:15, each = 10L))
+  z <- rnorm(150L)
+  y <- rpois(150L, exp(0.5 + 0.3 * z + rnorm(15L, 0, 0.8)[g]))
+  fit_on <- function(a, b) {
+    d <- data.frame(y = y, w = a * z + b, g = g)
+    allow_warnings(
+      f <- frm(bf(y ~ w + (1 | g)), family = poisson(), data = d,
+               importance = 200L),
+      "false convergence")
+    f
+  }
+  ref <- fit_on(1, 0)
+  se_ref <- sqrt(diag(frmtmb:::sdr_of(ref)$cov.fixed))
+  for (m in list(c(1, 2000), c(1000, 0), c(0.001, 0), c(100, 1e4))) {
+    f <- fit_on(m[[1L]], m[[2L]])
+    expect_false(f$importance$capped)
+    expect_lt(abs(as.numeric(logLik(f)) - as.numeric(logLik(ref))) /
+                ref$importance$mcse, 0.05)
+    se <- sqrt(diag(frmtmb:::sdr_of(f)$cov.fixed))
+    expect_lt(abs(se[[2L]] * m[[1L]] / se_ref[[2L]] - 1), 0.01)
+    expect_lt(abs(se[[3L]] / se_ref[[3L]] - 1), 0.01)
+    expect_lt(abs(f$opt$par[[2L]] * m[[1L]] - ref$opt$par[[2L]]) / se_ref[[2L]],
+              0.01)
+  }
+})
+
+test_that("a dispersion's column is read the same way", {
+  set.seed(9L)
+  g <- factor(rep(1:20, each = 8L))
+  z <- rnorm(160L)
+  w <- rnorm(160L)
+  y <- rnbinom(160L, mu = exp(1 + 0.3 * z + rnorm(20L, 0, 0.6)[g]),
+               size = exp(0.7 + 0.3 * w))
+  fit_on <- function(b) {
+    d <- data.frame(y = y, z = z, w = w + b, g = g)
+    frm(bf(y ~ z + (1 | g), shape ~ w), family = negbinomial(), data = d,
+        importance = 200L)
+  }
+  ref <- fit_on(0)
+  f <- fit_on(2000)
+  expect_false(f$importance$capped)
+  expect_lt(abs(as.numeric(logLik(f)) - as.numeric(logLik(ref))) /
+              ref$importance$mcse, 0.05)
+  se_ref <- sqrt(diag(frmtmb:::sdr_of(ref)$cov.fixed))
+  se <- sqrt(diag(frmtmb:::sdr_of(f)$cov.fixed))
+  j <- which(names(ref$opt$par) == "betad")[[2L]]
+  expect_lt(abs(se[[j]] / se_ref[[j]] - 1), 0.02)
+  # the fit read the column, not luck: its step is the column's
+  steps <- frmtmb:::imp_outer_steps(f$frame, f$opt$par)
+  expect_lt(steps[[j]] / frmtmb:::imp_cross_step, 1e-3)
+})
+
+test_that("a negative curvature of the likelihood is cut, on a real fit", {
+  # Student rows that disagree make the likelihood's curvature at the mode
+  # negative: the mode sits between them, where each density is convex. The
+  # proposal then rests on the prior's precision alone. abs() in place of the
+  # cut gives a narrower Gaussian at a group that needs a wider one.
+  set.seed(2L)
+  g <- factor(rep(1:15, each = 2L))
+  x <- rnorm(30L)
+  y <- 0.3 + 0.5 * x + rnorm(15L, 0, 0.7)[g] + 0.3 * rt(30L, 3L)
+  y[c(1L, 7L, 13L)] <- y[c(1L, 7L, 13L)] + 12
+  d <- data.frame(y = y, x = x, g = g)
+  p <- imp_parts(bf(y ~ x + (1 | g), nu = 2) + student(), d)
+  at <- p$opt$par
+  plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, at, 100L, 1L)
+  cut <- which(plan$hlik[1L, 1L, ] == 0)
+  expect_gt(length(cut), 0L)
+  # at a cut group the proposal's variance is the prior's
+  k <- cut[[1L]]
+  ii <- plan$idx[1L, k]
+  sdv <- exp(plan$logdet_l[[k]])
+  expect_equal(sdv^2 * plan$prec[1L, 1L], 1)
+  expect_equal(unname((plan$u[ii, 1L] - plan$uhat[ii]) / sdv),
+               unname(plan$z[ii, 1L]))
+})
+
+test_that("a prior enters the corrected objective", {
+  # It used to stop with \"Report this model\": the pin compared the joint
+  # density, with the prior, against pieces without it.
+  d <- imp_textbook_data(124L)
+  d$y <- rbinom(nrow(d), 10L, plogis(d$eta))
+  f <- bf(y | trials(ntr) ~ x + (1 | g))
+  for (pr in list(set_prior("normal(0, 1)", class = "b"),
+                  set_prior("exponential(1)", class = "sd"))) {
+    qd <- frm(f, family = binomial(), data = d, quadrature = TRUE, prior = pr)
+    fit <- frm(f, family = binomial(), data = d, importance = 200L, prior = pr)
+    expect_lt(abs(fit$opt$objective - qd$opt$objective),
+              3 * fit$importance$mcse)
+    se <- sqrt(diag(frmtmb:::sdr_of(qd)$cov.fixed))
+    expect_lt(max(abs(fit$opt$par - qd$opt$par) / se), 0.05)
+    # and it is a prior: without it the fit is another fit
+    plain <- frm(f, family = binomial(), data = d, importance = 200L)
+    expect_gt(max(abs(fit$opt$par - plain$opt$par) / se), 1e-3)
+  }
+  expect_identical(frm_compat("importance", "prior")$status, "works")
+})
+
+test_that("the rounds reach the exact optimum where Laplace is far from it", {
+  # Laplace puts the intercept at -8.9 and the exact optimum is -2.5, so one
+  # proposal anchored there is not enough: the first round lands 1.3 standard
+  # errors away, and the rounds after it come to 0.1.
+  set.seed(1003L)
+  g <- factor(rep(seq_len(40L), each = 3L))
+  x <- round(rnorm(120L), 3)
+  u <- rnorm(40L, 0, 4)
+  d <- data.frame(y = rbinom(120L, 1, plogis(-0.5 + 0.5 * x + u[g])), x = x,
+                  g = g)
+  f <- bf(y ~ x + (1 | g))
+  qd <- frm(f, family = bernoulli(), data = d, quadrature = TRUE)
+  se <- sqrt(diag(frmtmb:::sdr_of(qd)$cov.fixed))
+  allow_warnings(
+    fit <- frm(f, family = bernoulli(), data = d, importance = 200L),
+    c("covers", "still moving"))
+  expect_lt(max(abs(fit$opt$par - qd$opt$par) / se), 0.5)
+})
+
+test_that("a count whose worst group is below the floor is not named", {
+  # On a slope near separation, 128 draws passed at a worst group of 0.012 with
+  # an error of 1.87 nats, and 256 to 1024 capped. A floor no group clears
+  # stands in for that here: the same wrapper settles, and names nothing.
+  d <- imp_scalar_data()
+  f <- bf(y ~ x + (1 | g))
+  msg <- tryCatch(imp_with_displaced_rounds(
+    64L, frm(f, family = bernoulli(), data = d, importance = 16L,
+             control = frmtmb_control(importance_ess = 0.9999))),
+    error = conditionMessage)
+  expect_type(msg, "character")
+  expect_false(grepl("Use importance", msg, fixed = TRUE))
+  expect_false(grepl("settled at", msg, fixed = TRUE))
+  expect_match(msg, "above an effective sample size of 0.9999", fixed = TRUE)
+})
+
+# Ordinal rows on a column whose center the first threshold takes.
+imp_ord_data <- function(seed, m) {
+  set.seed(seed)
+  g <- factor(rep(seq_len(15L), each = 10L))
+  z <- rnorm(150L)
+  lat <- 0.7 * z + rnorm(15L, 0, 0.7)[g] + rlogis(150L)
+  data.frame(y = ordered(as.integer(cut(lat, c(-Inf, -1, 0.5, Inf)))),
+             w = 5 * z + m, g = g)
+}
+
+test_that("a threshold does not step by its own size", {
+  # at m = 1e4 the first threshold is about 1600. A step of its own size moved
+  # the predictor by 0.16 and read a slope SE of 4.56 times the centered fit,
+  # with no warning; at 3e4 the SE was NaN and the rounds capped.
+  f <- bf(y ~ w + (1 | g))
+  ref <- frm(f, family = cumulative(), data = imp_ord_data(5L, 0),
+             importance = 300L)
+  se_ref <- sqrt(diag(frmtmb:::sdr_of(ref)$cov.fixed))
+  j <- which(names(ref$opt$par) == "beta")
+  for (m in c(1e4, 3e4)) {
+    allow_warnings(
+      fit <- frm(f, family = cumulative(), data = imp_ord_data(5L, m),
+                 importance = 300L),
+      "false convergence")
+    expect_false(fit$importance$capped)
+    expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(ref))) /
+                ref$importance$mcse, 0.05)
+    se <- sqrt(diag(frmtmb:::sdr_of(fit)$cov.fixed))
+    expect_lt(abs(se[[j]] / se_ref[[j]] - 1), 0.01)
+    expect_lt(abs(fit$opt$par[[j]] - ref$opt$par[[j]]) / se_ref[[j]], 0.01)
+    # and no step reads a parameter's own size
+    steps <- frmtmb:::imp_outer_steps(fit$frame, fit$opt$par)
+    tau <- names(fit$opt$par) == "tau_raw"
+    expect_true(any(abs(fit$opt$par[tau]) > 100))
+    expect_true(all(steps[tau] == frmtmb:::imp_cross_step))
+  }
+})
+
+test_that("a sd far from one reads its own precision", {
+  # A precision read as a difference at a unit vector rounds once 1 / sd^2 nears
+  # the normalizer's eps: 0.29 wrong at sd 1e7, and 0 at 1e8. The pin then
+  # stopped
+  # with a request to report the model.
+  set.seed(3L)
+  g <- factor(rep(seq_len(15L), each = 10L))
+  z <- rnorm(150L)
+  u <- rnorm(15L, 0, 0.7)[g]
+  y0 <- 0.3 + 0.5 * z + u + rnorm(150L, 0, 0.5)
+  yt <- 0.3 + 0.5 * z + u + 0.5 * rt(150L, 5L)
+  ref <- frm(bf(y ~ z + (1 | g), nu = 4), family = student(),
+             data = data.frame(y = yt, z = z, g = g), importance = 200L)
+  for (k in c(1e6, 1e7)) {
+    d <- data.frame(y = y0 * k, z = z, g = g)
+    lap <- frm(bf(y ~ z + (1 | g)), family = gaussian(), data = d)
+    fit <- frm(bf(y ~ z + (1 | g)), family = gaussian(), data = d,
+               importance = 64L)
+    expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(lap))) /
+                abs(as.numeric(logLik(lap))), 1e-8)
+    d$y <- yt * k
+    st <- frm(bf(y ~ z + (1 | g), nu = 4), family = student(), data = d,
+              importance = 200L)
+    expect_lt(abs(as.numeric(logLik(st)) + 150 * log(k) -
+                    as.numeric(logLik(ref))),
+              3 * ref$importance$mcse)
+  }
+  # the reading itself, against the sd it was given
+  lay <- list(q = 1L, offset = 0L, blocks = lap$frame[["re_blocks"]])
+  for (th in log(c(1e-3, 1, 1e8))) {
+    tt <- frmtmb:::imp_prior_scales(lay, th)
+    tm <- frmtmb:::imp_prior_terms(lay, tt)(th)
+    expect_lt(abs(-2 * tm$diag[[1L]] * exp(2 * th) - 1), 1e-8)
+  }
+})
+
+test_that("the rounds start where the Laplace route ends", {
+  # A column's center makes a false collapse. The Laplace route leaves it, and a
+  # correction anchored there has every weight equal and nothing left to do: at
+  # data seed 8 the fit stayed at log sd -13.5, 0.79 nats below the centered
+  # fit.
+  f <- bf(y ~ w + (1 | g))
+  d <- imp_ord_data(8L, 2000)
+  ref <- frm(f, family = cumulative(), data = imp_ord_data(8L, 0),
+             importance = 200L)
+  allow_warnings(
+    fit <- frm(f, family = cumulative(), data = d, importance = 200L),
+    "false convergence")
+  th <- which(names(fit$opt$par) == "theta")
+  se <- sqrt(diag(frmtmb:::sdr_of(ref)$cov.fixed))
+  expect_lt(abs(fit$opt$par[[th]] - ref$opt$par[[th]]) / se[[th]], 0.05)
+  expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(ref))) /
+              ref$importance$mcse, 0.5)
+})
+
+test_that("a predictor in small response units steps in those units", {
+  # a step of 1e-4 is 100 of this response's scale. Without the unit, this fit
+  # stopped on 2 of 4 data seeds and read SE ratios to 1.007 on the others.
+  for (s in 3:4) {
+    set.seed(s)
+    g <- factor(rep(seq_len(15L), each = 10L))
+    z <- rnorm(150L)
+    y0 <- 0.3 + 0.5 * z + rnorm(15L, 0, 0.7)[g] + 0.5 * rt(150L, 5L)
+    f <- bf(y ~ z + (1 | g), nu = 4)
+    ref <- frm(f, family = student(), data = data.frame(y = y0, z = z, g = g),
+               importance = 200L)
+    fit <- frm(f, family = student(),
+               data = data.frame(y = y0 * 1e-6, z = z, g = g),
+               importance = 200L)
+    expect_lt(abs(as.numeric(logLik(fit)) + 150 * log(1e-6) -
+                    as.numeric(logLik(ref))), 3 * ref$importance$mcse)
+    se <- sqrt(diag(frmtmb:::sdr_of(fit)$cov.fixed))
+    se_ref <- sqrt(diag(frmtmb:::sdr_of(ref)$cov.fixed))
+    expect_lt(abs(se[[2L]] / 1e-6 / se_ref[[2L]] - 1), 0.001)
+  }
 })

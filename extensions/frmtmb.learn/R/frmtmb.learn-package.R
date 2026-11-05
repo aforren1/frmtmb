@@ -81,47 +81,33 @@
 #'
 #' What the correction is worth depends on the design rather than on the
 #' family. Measured on [bandit2arm_delta()], 40 subjects, one scalar
-#' random intercept, six datasets per cell, truth `sd(alpha) = 0.5`
-#' (`dev/learn2-findings.md` has the per-dataset table):
+#' random intercept, six datasets per cell at 100 draws, truth
+#' `sd(alpha) = 0.5`:
 #'
 #' | trials | datasets | Laplace `sd(alpha)` | corrected | mcse | min ESS per draw |
 #' |---|---|---|---|---|---|
-#' | 100 | 3 of 6 informative | 0.38 to 0.45 | 0.45 to 0.51 | 0.05 to 0.06 | 0.87 to 0.93 |
-#' | 100 | 1 of 6 collapsed | 0.0004 | 0.0025 | 0.000 | 1.000 |
-#' | 100 | 2 of 6 refused | | | | |
-#' | 20 | 5 of 6 collapsed | 0.0001 | unchanged | 0.000 | 1.000 |
-#' | 20 | 1 of 6 informative | 0.371 | 0.729 | 0.103 | 0.743 |
+#' | 100 | 5 of 6 informative | 0.31 to 0.45 | 0.32 to 0.47 | 0.02 to 0.06 | 0.91 to 0.99 |
+#' | 100 | 1 of 6 collapsed | 0.0004 | 0.0004 | 0.000 | 1.000 |
+#' | 20 | 5 of 6 collapsed | 0.0001 | 0.0001 | 0.000 | 1.000 |
+#' | 20 | 1 of 6 informative | 0.371 | 0.498 | 0.044 | 0.964 |
 #'
-#' A COLLAPSED DATASET IS NOT A SHORT-SESSION PROBLEM. One of the six
-#' at 100 trials has it too, and reports the same spurious +1.822 as
-#' the five at 20 trials do. Check `VarCorr(fit)` on the Laplace
-#' fit at every trial count, not only short ones.
+#' * at 100 trials the Laplace error in the variance component is small:
+#'   the correction moves it up by 0.02 to 0.05 log units, and the
+#'   effective sample sizes are near 1. It holds as the draws grow: one
+#'   dataset reads 0.4170 under Laplace, and 0.4304, 0.4279 and 0.4272 at
+#'   100, 400 and 1600 draws. It costs 16 to 26 seconds against 1.3 for the
+#'   Laplace fit.
+#' * at 20 trials the Laplace error is larger where there is a variance
+#'   component to correct: 0.371 becomes 0.498 at 100 draws, 0.472 at 400
+#'   and 0.469 at 1600. Five of six Laplace fits have collapsed
+#'   `sd(alpha)` to 1e-4, and the correction agrees with them.
+#' * A COLLAPSED DATASET IS NOT A SHORT-SESSION PROBLEM. One of the six at
+#'   100 trials has it too. Check `VarCorr(fit)` at every trial count.
 #'
-#' * at 100 trials, on the three of six datasets whose variance
-#'   component is identified, the correction moves it UP by 0.11 to
-#'   0.18 log units and toward the truth, its Monte Carlo error is a
-#'   third of the shift, and the effective sample sizes are near 1. It
-#'   costs 30 to 80 seconds against 2 for the Laplace fit. Of the other
-#'   three, two refused on the correction's own convergence guard and
-#'   one had already collapsed.
-#' * at 20 trials it is not usable, and the reason is worth knowing.
-#'   Five of six Laplace fits have already collapsed `sd(alpha)` to
-#'   1e-4, so there is nothing left to reweight; the correction then
-#'   walks at its own step cap for every round and WARNS that it did
-#'   not converge. A shift reported with `fit$importance$capped` true
-#'   and every entry of `fit$importance$moves` equal is that step cap,
-#'   not an estimate. The one 20-trial dataset with a real variance
-#'   component overshoots, 0.37 to 0.73 against a truth of 0.5.
-#'
-#' DO NOT FOLLOW THE WARNING'S ADVICE ON A CAPPED RUN. It says to raise
-#' `frmtmb_control(importance_rounds =)`, and on a collapsed variance
-#' component that makes the artifact bigger in exact proportion:
-#' measured on one 20-trial dataset, five rounds of a 0.3645 cap give a
-#' shift of 1.822 and ten rounds give 3.645, both exactly rounds times
-#' the cap. The number is not an estimate that more iterations would
-#' sharpen. Read `fit$importance$capped` and `$moves` first, and if the
-#' moves are all equal, treat the correction as declining rather than
-#' answering.
+#' The correction used to freeze its proposal in place, which on
+#' these fits reported a shift of 0.11 to 0.18 log units at 100 trials,
+#' refused two of six, and on a collapsed component took the same step
+#' every round. `dev/learn2-findings.md` records those numbers.
 #'
 #' So check `VarCorr(fit)` on the Laplace fit before believing a
 #' correction, and read the warning if there is one.

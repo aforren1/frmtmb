@@ -1553,7 +1553,7 @@ block_b_positionwise <- function(bk) {
 #' would evaluate an esicar block WITHOUT centering while its density
 #' still carried the constrained normalizer: two different models, no
 #' error, and only off the mode, which is exactly the regime
-#' `imp_frozen_proposal()` and `cluster_scores_at()` work in. The
+#' `imp_fit_proposal()` and `cluster_scores_at()` work in. The
 #' blocks cannot go stale the way a cached boolean can, because the
 #' same build sets `expands` and chooses the density.
 #'

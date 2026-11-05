@@ -1,5 +1,10 @@
 # frmtmb.learn, round two: factorization, RLDDM, and the two models left out
 
+> The importance numbers below are from the frozen proposal, which frmtmb
+> replaced in the round opened 2026-10-29. The shifts of 0.11 to 0.18 log
+> units, the refusals and the stalled steps are that proposal's, and
+> `dev/impsamp-findings.md`, section 9, has the numbers rerun.
+
 > **CORRECTION, 2026-09-08 (lane `wt-debts`, confirmed in review).**
 > There is no step cap. `optimize_obj()` bounds nothing: `nlminb` with
 > `step.max` at 0.05 against 100, and L-BFGS-B, all return the same

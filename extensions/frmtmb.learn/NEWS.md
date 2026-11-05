@@ -1,3 +1,12 @@
+# frmtmb.learn (development version)
+
+* The documented numbers for `frm(importance =)` are measured again on
+  frmtmb's corrected proposal. At 100 trials, the correction moves
+  `sd(alpha)` by 0.02 to 0.05 log units, not 0.11 to 0.18. No dataset is
+  refused, and a collapsed component no longer walks. Needs the frmtmb
+  that carries the fix, for these numbers. The package code is unchanged
+  but for the note on its `frm_compat()` row.
+
 # frmtmb.learn 0.7.3
 
 ## Other changes

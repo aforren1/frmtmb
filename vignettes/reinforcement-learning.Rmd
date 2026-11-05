@@ -374,9 +374,9 @@ c(laplace = VarCorr(fit)$id$sd[1, "Estimate"],
 fit_i$importance[c("draws", "mcse")]
 ```
 
-The chunk is left with `error = TRUE` on purpose. The correction can
-decline, and on this model it sometimes does; the next section is
-about when.
+The chunk is left with `error = TRUE` on purpose. The correction stops
+when a draw count is too small for a model, and its message names a
+count that works; the next section is about what the count buys.
 
 ## Short sessions, and what the correction says about them
 
@@ -413,60 +413,50 @@ with 40 levels is biased downward whether or not the integral is
 approximated; and the Laplace approximation is itself worse the fewer
 trials a subject has. The recovery table cannot separate them.
 `frm(importance = )` can, and now that this family declares its
-pieces, it can be asked. Six seeds per design, the same 40 subjects
-and the same truth, 100 draws:
+pieces, it can be asked. Six seeds per design (4201 to 4206), the same
+40 subjects and the same truth, 100 draws:
 
 | | 40 x 100 trials | 40 x 20 trials |
 |---|---|---|
-| replicates the correction completed | 4 of 6 | 5 of 6 |
-| mean shift, `alpha_(Intercept)` | -0.004 | +0.034 |
-| mean shift, `alpha_conditiontrt` | +0.010 | +0.014 |
-| mean shift, `beta_(Intercept)` | -0.002 | +0.048 |
-| mean shift, `log sd(alpha)` | +0.357 | +0.480 |
-| largest single shift, `log sd(alpha)` | 0.545 | 1.386 |
-| Monte Carlo standard error | 0.13 to 0.18 | 0.02 to 0.70 |
-| smallest effective sample size per draw | 0.53 | 0.03 |
+| replicates the correction completed | 6 of 6 | 6 of 6 |
+| mean shift, `alpha_(Intercept)` | -0.002 | -0.044 |
+| mean shift, `alpha_conditiontrt` | +0.007 | +0.027 |
+| mean shift, `beta_(Intercept)` | -0.001 | +0.049 |
+| mean shift, `log sd(alpha)` | +0.121 | +0.451 |
+| largest single shift, `log sd(alpha)` | 0.207 | 0.914 |
+| Monte Carlo standard error | 0.11 to 0.15 | 0.02 to 0.83 |
+| smallest effective sample size per draw | 0.69 | 0.03 |
 
 The fixed effects do not move. That is the recovery table's first
 reading confirmed by an independent route: their bias is not Laplace
 error, because removing the Laplace error leaves them where they were.
 
-The variance component moves up, a long way, and the diagnostics say
-how far to trust it. At 20 trials the correction is often not
-answering at all: one replicate in six does not complete, the largest
-shift is 1.39 on the log scale, and the effective sample size falls to
-three draws in a hundred.
+The variance component moves up, and the diagnostics say how far to
+trust it. At 100 trials the shift is about an eighth of a log unit, and it
+holds as the draws grow: seed 4201 reads -0.8703 under Laplace, and -0.7068,
+-0.7509 and -0.7464 at 100, 400 and 1600 draws. At 20 trials the shift is larger, and 100
+draws are few: on two of the six datasets the smallest effective sample
+size is below the warning's threshold, at 0.11 and 0.03, and those
+numbers need more draws before anyone reads them.
 
-One dataset, named so it can be checked, shows what that looks like.
-Take 40 subjects at 20 trials from
-`set.seed(4206); rl_simulate(rl_bandit_design(40, 20), seed = 4206)`.
-Its Laplace `log sd(alpha)` is -1.2024. At 100 draws the correction
-returns +0.1831, a standard deviation of 1.20 against a truth of 0.5,
-with a Monte Carlo standard error of 0.336 and a smallest effective
-sample size of 0.33 per draw. At 400 draws, with enough draws to see
-its own weights, it REFUSES, reporting that the corrected objective
-rose rather than fell and pointing at the `[ID]` block's two variance
-components and their correlation.
-
-That is one dataset and not a law. Other 20-trial datasets are fine:
-a reviewer running two seeds of this design got one that completed at
-400 draws and one whose 100-draw correction was already clean
-(shift 0.025, mcse 0.070, smallest effective sample size 0.90). The
-honest summary is the table above, where one replicate in six failed
-and the spread of shifts was an order of magnitude: at this design the
-correction is unreliable rather than uniformly broken, and a number it
-returns needs its own diagnostics read before it is believed.
+One dataset, named so it can be checked, shows what the draws buy. Take
+40 subjects at 20 trials from
+`rl_simulate(rl_bandit_design(40, 20), seed = 4206)`. Its Laplace
+`log sd(alpha)` is -1.2024. At 100 draws the correction returns -0.2879,
+a standard deviation of 0.75 against a truth of 0.5, with a Monte Carlo
+standard error of 0.162 and a smallest effective sample size of 0.63
+per draw. At 400 draws it returns -0.6501, a standard deviation of 0.52,
+with a Monte Carlo standard error of 0.036 and an effective sample size
+of 0.96.
 
 So the honest reading is not that the variance-component bias is
-Laplace error. It is that at 100 trials the correction runs and moves
-the variance component up by about a third of a log unit, the same
-order as the whole bias, so some real part of that bias is the
-approximation; and that at 20 trials the correction will not stand
-behind an answer at all, which is a second reason to treat a
-subject-level standard deviation from 20 binary trials as a lower
-bound rather than as an estimate. The operational advice is unchanged:
-report fixed effects from short sessions, and do not report a
-variance component from them.
+Laplace error. At 100 trials some small part of it is. At 20 trials the
+approximation's part is large and the correction can measure it if it
+gets enough draws, and that is a second reason to treat a subject-level
+standard deviation from 20 binary trials as a lower bound rather than
+as an estimate. The operational advice is unchanged: report fixed
+effects from short sessions, and do not report a variance component
+from them.
 
 ## Shape and cost
 

@@ -227,10 +227,28 @@
 #'   caveats worth knowing. The reported estimate is the optimum of the
 #'   previous round's proposal, so the covariance is a Hessian at a
 #'   point that is stationary only to `fit$importance$grad`. And
-#'   `confint(method = "profile")` walks the FROZEN proposal instead of
-#'   refitting, so it warns when a bound lands where the weights no
-#'   longer cover the integrand. The seed, the round cap and the
-#'   effective-sample-size threshold are [frmtmb_control()] settings.
+#'   `confint(method = "profile")` walks one tape instead of refitting:
+#'   its proposal follows the parameters to first order around the
+#'   estimate, so it warns when a bound lands where the weights no
+#'   longer cover the integrand.
+#'
+#'   The Monte Carlo standard error can read high or low. On a binomial
+#'   model at 200 draws it reads 0.0044 where the error's standard
+#'   deviation is 0.0017. On a Student response with `nu = 5`, 15 groups
+#'   of 6 and 1000 draws, the error's standard deviation is 1.3 to 1.4
+#'   times the number, a nominal 95 percent interval covers 0.86, and no
+#'   warning fires. To judge two corrected fits, refit with another
+#'   `importance_seed` or with twice the draws and read how far the
+#'   log-likelihood moves.
+#'
+#'   A count that is too small for the model stops the fit. The message
+#'   gives the worst group's effective sample size and either a larger
+#'   count at which the same fit settled or the counts it tried. That
+#'   search can take several times the fit: up to four doublings, to at
+#'   most 8192 draws and 2e6 rows times draws, measured at 15 times the
+#'   fit and 3.3 GB at its worst. The seed,
+#'   the round cap and the effective-sample-size threshold are
+#'   [frmtmb_control()] settings.
 #' @param dry_run `"spec"` returns the parsed intermediate representation
 #'   without touching `data`; `"frame"` returns the assembled design
 #'   matrices and parameter template without fitting; `"objective"`
@@ -1291,6 +1309,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       nll0 <- nll
       nlp <- neg_log_prior_fn(ri$entries)
       nll <- function(pars) nll0(pars) + nlp(pars)
+      # importance = rebuilds the data's part draw by draw, and adds this
+      attr(nll, "neg_log_prior") <- nlp
     }
     # The prior is the ONLY source of bounds now that frm() has no
     # lower/upper of its own. `lower`/`upper` still arrive from the
@@ -2247,15 +2267,11 @@ sdr_of <- function(fit) {
 #'   the proposal at the current estimate and optimizes again, and the
 #'   loop stops as soon as either the estimates move less than `1e-3`
 #'   or the freshly anchored objective is stationary at them to
-#'   `grad_tol`. Measured on this package's own designs that takes two
-#'   to four rounds, with the move falling about tenfold each time, so
+#'   `grad_tol`. Over 648 measured fits of six families that took one
+#'   round in 398, two in 237, three in 12 and four in 1, so
 #'   the default leaves one in hand; an unused round costs nothing, and
 #'   each round actually taken costs one tape. A fit that uses every
-#'   round warns, and the warning distinguishes two cases: moves that
-#'   are still shrinking want a larger cap, while moves that are all
-#'   the SAME size are a stalled iteration, whose reported shift is
-#'   that step times the round count and grows with the cap instead of
-#'   settling.
+#'   round warns.
 #' @param importance_ess Effective sample size, as a fraction of the
 #'   draw count, below which `frm(importance =)` warns and names the
 #'   groups. The default `0.25` separates two measured regimes rather
@@ -2264,11 +2280,10 @@ sdr_of <- function(fit) {
 #'   groups of 8 Bernoulli rows, correlated slope) holds a worst group
 #'   of `0.95` at 1000 draws, and a gaussian response, where the
 #'   correction has nothing to correct, holds exactly `1` at any draw
-#'   count. Displacing that probe's two log standard deviations by half
-#'   a unit takes its worst group to `0.03`. The designs the warning is
-#'   FOR sit between the two, and draws are what move them: a correlated
-#'   slope in `mu` plus a `sigma` block over 12 groups of 10 rows holds
-#'   a worst group of `0.17` at 500 draws and `0.40` at 2000.
+#'   count. The designs the warning is FOR sit below that, and draws
+#'   are what move them: a correlated slope in `mu` plus a `sigma` block
+#'   over 12 groups of 10 rows holds a worst group of `0.14` at 500 draws
+#'   and `0.35` at 2000.
 #' @param mo_search After the fit, refit each `mo()` term whose simplex
 #'   has a weight at 0 with its scale coefficient held at the other sign,
 #'   and keep the better fit (see "Monotonic effects" in [frm()]). Each
@@ -5089,35 +5104,15 @@ check_convergence <- function(fit, control) {
     # the Monte Carlo standard error; the gradient stays visible in
     # `fit$importance$grad`.
     if (isTRUE(fit$importance$capped)) {
-      # Two different fits reach `capped`, and only one of them wants
-      # more rounds. A stalled iteration takes the SAME step every
-      # round, so the shift it reports is that step times the round
-      # count and more rounds buy a proportionally larger wrong
-      # answer; telling that user to raise the cap is advice about a
-      # number that is not an estimate. imp_stalled() separates them.
-      msgs <- c(msgs, if (imp_stalled(fit$importance$moves)) {
-        paste0("The importance correction moved by the same amount, ",
-               format(fit$importance$moved, digits = 3), ", in every ",
-               "one of its ", fit$importance$rounds, " rounds, so it ",
-               "has not converged and its total shift is that step ",
-               "times the round count rather than an estimate. The ",
-               "step is a property of the draws and not of the data, ",
-               "so raising frmtmb_control(importance_rounds =) would ",
-               "only move the estimates proportionally further. A ",
-               "variance component the Laplace fit has already ",
-               "collapsed does this, because nothing is left to ",
-               "reweight: check VarCorr() before reading the ",
-               "corrected estimates")
-      } else {
-        paste0("The importance correction used all ",
-               fit$importance$rounds, " of its rounds and ",
-               "the estimates were still moving by ",
-               format(fit$importance$moved, digits = 3),
-               " at the last one. Raise ",
-               "frmtmb_control(importance_rounds =), or ",
-               "raise the draw count so each round lands ",
-               "in the same place")
-      })
+      msgs <- c(msgs, paste0(
+        "The importance correction used all ",
+        fit$importance$rounds, " of its rounds and ",
+        "the estimates were still moving by ",
+        format(fit$importance$moved, digits = 3),
+        " at the last one. Raise ",
+        "frmtmb_control(importance_rounds =), or ",
+        "raise the draw count so each round lands ",
+        "in the same place"))
     }
   } else if (is.null(sep) && is.finite(g) && g > control$grad_tol) {
     # (a separated fit's gradient and curvature are those of a run toward

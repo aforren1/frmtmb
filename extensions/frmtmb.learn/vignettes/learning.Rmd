@@ -194,22 +194,19 @@ lower bound, and read its interval rather than its point estimate.
 `frm(importance =)` is what separates Laplace error from the ordinary
 downward bias of a variance component estimated from binary data with
 few levels, and it now runs. Measured on this design, six datasets per
-cell: at 100 trials, where the Laplace fit has kept a real variance
-component, the correction moves `sd(alpha)` up by 0.11 to 0.18 log
-units and toward the truth, with a Monte Carlo standard error a third
-of that and effective sample sizes near 1. So part of the downward bias
-at 100 trials IS Laplace error, and it is a modest part.
+cell at 100 draws: at 100 trials, where the Laplace fit has kept a real
+variance component, the correction moves `sd(alpha)` up by 0.02 to 0.05
+log units, with effective sample sizes near 1. It holds as the draws grow:
+one dataset reads 0.4170 under Laplace, and 0.4304, 0.4279 and 0.4272 at
+100, 400 and 1600 draws. So at 100 trials the downward bias is not Laplace
+error.
 
-At 20 trials the correction has nothing to work with. Five of six
-Laplace fits have already collapsed `sd(alpha)` to 1e-4, and the
-correction then walks at its own step cap for every round while warning
-that it did not converge. A shift reported alongside that warning is
-the step cap rather than an estimate, so check `VarCorr(fit)` and
-read the warning before believing one. The warning advises raising
-`frmtmb_control(importance_rounds =)`, and on a collapsed component
-that makes the artifact bigger in exact proportion: five rounds of a
-0.3645 cap give 1.822 and ten give 3.645. `?frmtmb.learn` carries the
-per-dataset table.
+At 20 trials five of six Laplace fits have already collapsed `sd(alpha)`
+to 1e-4, and the correction agrees with them. On the sixth, which kept a
+real variance component, Laplace gives 0.371 and the correction 0.498 at
+100 draws, 0.472 at 400 and 0.469 at 1600, against a truth of 0.5. So
+check `VarCorr(fit)` before you read a variance component, at every
+trial count. `?frmtmb.learn` carries the table.
 
 ## The families
 

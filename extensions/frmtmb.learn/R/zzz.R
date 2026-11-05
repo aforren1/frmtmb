@@ -119,13 +119,11 @@ ln_common_rules <- function(r, nm, nominal = TRUE) {
            "the plain objective at the first freeze. MEASURED, and the ",
            "answer depends on the design rather than on the family: on ",
            "40 subjects by 100 trials the fixed effects move by less ",
-           "than 0.02 and the subject-level standard deviation moves up ",
-           "substantially where the Laplace fit had not collapsed it; ",
-           "on 20-trial data the correction still runs but the quantity ",
-           "it corrects is already gone. dev/learn2-findings.md carries ",
-           "the per-dataset table with its Monte Carlo error and its ",
-           "effective sample sizes, and vignette('learning') carries ",
-           "the summary."))
+           "than 0.01 and the subject-level standard deviation moves up ",
+           "by 0.02 to 0.05 log units where the Laplace fit had not ",
+           "collapsed it; on 20 trials the one dataset that kept it ",
+           "moves up by 0.24. dev/learn2-findings.md carries the history ",
+           "of these numbers, and vignette('learning') the summary."))
   r(nm, "quadrature", "refused",
     paste0("Refused by the protocol's conservative default, and a real ",
            "refusal rather than a missing slot. Gauss-Kronrod ",

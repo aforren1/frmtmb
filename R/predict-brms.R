@@ -1317,8 +1317,9 @@ predict_b_drawer <- function(object, re_formula, delta, ndraws,
   rn <- rownames(Q)
   if (is.null(Q) || !any(rn == "b")) {
     frm_warning("predict(): the fitted objective carries no random-effect ",
-                "block in its joint precision (quadrature = TRUE ",
-                "marginalizes it), so the group effects at the levels the ",
+                "block in its joint precision (quadrature = TRUE or ",
+                "importance = marginalizes it), so the group effects at the ",
+                "levels the ",
                 "fit saw are held at their modes and their uncertainty is ",
                 "NOT in the interval", call. = FALSE)
     return(NULL)

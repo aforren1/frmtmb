@@ -1187,7 +1187,7 @@ compat_hand_rules_tbl <- function() {
 
   ## importance ------------------------------------------------------
   r("importance", "group:importance_blocks", "conditional",
-    "Allowed for any number of such blocks, of any dimension, provided they all sit over ONE grouping factor and carry the same levels. This is the correction for a correlated random slope, which quadrature cannot marginalize at all, and for the several blocks distributional regression writes: (1 | g) in mu together with (1 | g) in sigma is two blocks over g, and a level's coefficients from both are drawn together from one joint proposal. Blocks over DIFFERENT grouping factors, crossed or nested, are refused by name: the marginal likelihood is then one integral over every factor at once and does not split into the per-group integrals the correction resamples.")
+    "Allowed for any number of such blocks, of any dimension, provided they all sit over ONE grouping factor and carry the same levels. This is the correction for a correlated random slope, which quadrature cannot marginalize at all, and for the several blocks distributional regression writes: (1 | g) in mu together with (1 | g) in sigma is two blocks over g, and a level's coefficients from both are drawn together from one joint proposal. Blocks over DIFFERENT grouping factors, crossed or nested, are refused by name: the marginal likelihood is then one integral over every factor at once and does not split into the per-group integrals the correction resamples. Measured on a correlated slope: 216 fits of six families settle at 64 to 2000 draws, and so does a Poisson slope whose correlation sits at its boundary (10 groups of 20).")
   r("importance", "group:importance_refused_blocks", "refused",
     "Refused by name at the scope check. The Student-t latents (us_t, diag_t) factorize over grouping levels but are not gaussian in a level's coefficients, and the correction recovers each level's prior density from the block density by reading off a precision matrix, which would silently return a gaussian approximation to a t density; measured, that alone moves the corrected log-likelihood by 0.355. rr holds its parameters in a lower-dimensional factor space than its Z columns, so the positions the proposal draws into are not the positions the objective reads. smooth, gp and hsgp are one field over all observations with no grouping factor, so there are no independent groups to give separate proposals to.")
   r("importance", "group:crosslevel_blocks", "refused",
@@ -1233,7 +1233,7 @@ compat_hand_rules_tbl <- function() {
     "Refused: a mixture supplies its own log-likelihood, which does not factorize over rows, so a group's rows have no separable integrand to resample.")
   r("importance", "bounds", "works", "Verified by a tiny fit.")
   r("importance", "prior", "works",
-    "Works, with the usual caveat: the objective then includes the prior terms, so the corrected log-likelihood is a penalized quantity.")
+    "Works: the objective adds the prior, which reads the outer parameters only, so the corrected log-likelihood is a penalized quantity. Measured against quadrature = TRUE with the same prior on a binomial (1 | g).")
   r("importance", "autoscale", "works",
     "Verified: the corrected log-likelihood is identical with and without autoscale, including with a predictor scaled by 1e6 so the pre-fit actually engages, and the correction survives it. The autoscale pre-fit itself deliberately runs as a plain Laplace fit: it only derives a scaling, and a corrected pre-fit would pay the whole cost twice for the same answer.")
   r("importance", "sparse_x", "works",
@@ -1241,6 +1241,8 @@ compat_hand_rules_tbl <- function() {
   r("importance", "mo()", "works",
     "Verified by a fit with a monotonic term on the corrected linear predictor; the correction is recorded and the effective sample sizes are unaffected.")
   r("importance", "group:ordinal", "untested", "")
+  r("binomial", "importance", "works",
+    "Measured on y | trials(10) ~ x + (1 | g), 10 groups of 20: it settles in one round at 200, 512 and 1000 draws, within its Monte Carlo error of quadrature's exact log-likelihood.")
 
   ## quadrature --------------------------------------------------------
   r("quadrature", "group:wide_blocks", "refused",

@@ -2556,10 +2556,10 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
 #' @noRd
 warn_modes_conditional_se <- function() {
   frm_warning("The fitted objective marginalizes the random effects ",
-              "(quadrature = TRUE), so its covariance carries no ",
-              "random-effect block: se.fit is conditional on the ",
+              "(quadrature = TRUE or importance =), so its covariance ",
+              "carries no random-effect block: se.fit is conditional on the ",
               "conditional modes and omits random-effect uncertainty. ",
-              "Refit with quadrature = FALSE for the full delta method",
+              "Refit with neither for the full delta method",
               call. = FALSE, class = "frmtmb_modes_conditional_se")
   invisible(NULL)
 }

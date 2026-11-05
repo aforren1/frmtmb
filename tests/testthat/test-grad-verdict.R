@@ -184,14 +184,15 @@ test_that("an importance-corrected fit gets no verdict at all", {
 # asserts the two opposite outcomes. Seeds and designs from
 # dev/gradcheck-rev-20-impclean.R.
 
-imp_clean <- function(seed, ng, per, nd) {
+imp_clean <- function(seed, ng, per, nd, grad_tol = 1e-3) {
   set.seed(seed)
   dd <- data.frame(g = factor(rep(seq_len(ng), per)))
   dd$x <- rnorm(nrow(dd))
   re <- rnorm(ng, 0, 0.5)
   dd$y <- rpois(nrow(dd), exp(0.3 + 0.5 * dd$x + re[dd$g]))
   f <- suppressWarnings(frm(bf(y ~ x + (1 | g)), family = poisson(),
-                            data = dd, importance = nd, se = TRUE))
+                            data = dd, importance = nd, se = TRUE,
+                            control = frmtmb_control(grad_tol = grad_tol)))
   list(fit = f, out = capture.output(suppressWarnings(diagnose(f))),
        d = suppressWarnings(diagnose(f, quiet = TRUE)))
 }
@@ -218,16 +219,12 @@ test_that("an importance fit under grad_tol still prints the clean line", {
 test_that("an importance fit over grad_tol does not print the clean line", {
   # the ABSENT case of the same guard, so it cannot pass by printing the
   # line unconditionally either
-  hit <- FALSE
-  for (s in list(list(9501, 25, 40, 2000L), list(9502, 30, 30, 4000L))) {
-    r <- imp_clean(s[[1L]], ng = s[[2L]], per = s[[3L]], nd = s[[4L]])
-    if (is.null(r$fit$importance)) next
-    if (r$d$max_grad <= r$fit$control$grad_tol) next
-    hit <- TRUE
-    expect_false(any(grepl("No convergence problems detected", r$out,
-                           fixed = TRUE)))
-  }
-  skip_if_not(hit, "no draw landed above grad_tol")
+  # A fit whose gradient comes out over the default tolerance is no longer
+  # something a draw count produces, so the tolerance is what moves.
+  r <- imp_clean(9501, ng = 25, per = 40, nd = 500L, grad_tol = 1e-9)
+  expect_gt(r$d$max_grad, r$fit$control$grad_tol)
+  expect_false(any(grepl("No convergence problems detected", r$out,
+                         fixed = TRUE)))
 })
 
 test_that("a bound whose gradient points INWARD is not excluded", {
