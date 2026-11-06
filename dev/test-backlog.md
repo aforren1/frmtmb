@@ -4675,6 +4675,18 @@ none is a regression of this release.
   `dev/upstream-bugs.md` against 1.2.0's NEWS.
 - `test-nl-family.R:93`, `hurdle_negbinomial`: large gradient warning, 0.00201 at
   `shape_(Intercept)`, on ubuntu release only. It does not fail the test.
+- **pkgcheck reports findings again.** Up to 0.78.0 it stopped in its own summary
+  step (`writeLines(md[1:(s_break - 1)])`) before it reported. From 0.79.0 it
+  reports. The `frmtmb-gp` page had no `@return` and no `@examples`; fixed after
+  0.79.1. Still open: `<<-`, 74 uses in 21 files under `R/`, most of them closures
+  that append to a list one row at a time. Replace them with a return value or an
+  environment the caller owns. pkgcheck stays red until this is fixed.
+- A core test must not skip on an extension. The skip gate fails it, and the gate
+  runs only after a check that passes, so 0.79.0's other failures hid
+  `test-nl-family.R:270` until 0.79.1.
+- test-coverage was cancelled at its 90-minute limit on 0.79.1 twice: apt read
+  Azure's Ubuntu mirror at 29 kB/s, so setup took 44 minutes, and "Measure
+  coverage" needs 74. Put the limit on that step, not the job.
 
 ## Filed at the 0.79.0 release (2026-11-04)
 

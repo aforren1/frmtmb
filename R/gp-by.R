@@ -57,9 +57,32 @@
 #' the data. Read a field at the data through `posterior_epred()` or
 #' `frm_linpred()`, which are right row by row.
 #'
+#' @return `gp()` is a formula term, not a free-standing function: `bf()`
+#'   reads it at parse time. Its estimates, `sdgp` and the length scales, are
+#'   in the Gaussian Process Hyperparameters section of [summary()]. This page
+#'   itself documents the term and returns nothing.
 #' @name frmtmb-gp
 #' @aliases frmtmb_gp_nugget
 #' @seealso [frm()], [frmtmb_control()], `vignette("brms-migration")`
+#' @examples
+#' set.seed(1)
+#' d <- data.frame(x = seq(0, 6, length.out = 25))
+#' d$y <- sin(d$x) + rnorm(25, 0, 0.3)
+#' fit <- frm(bf(y ~ gp(x)), data = d)
+#' summary(fit)
+#'
+#' # the field at the rows of the data, in their order
+#' head(fitted(fit))
+#'
+#' # noise far below the field reaches the nugget, and frm() says so
+#' d$y_low <- sin(d$x) + rnorm(25, 0, 1e-7)
+#' fit_low <- withCallingHandlers(
+#'   frm(bf(y_low ~ gp(x)), data = d),
+#'   frmtmb_gp_nugget = function(w) {
+#'     message("nugget warning: ", conditionMessage(w))
+#'     invokeRestart("muffleWarning")
+#'   }
+#' )
 NULL
 
 # brms's gp(..., by = ), read from brms 2.23.0 (R/formula-gp.R and

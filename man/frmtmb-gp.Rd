@@ -4,6 +4,12 @@
 \alias{frmtmb-gp}
 \alias{frmtmb_gp_nugget}
 \title{Exact Gaussian processes and their nugget}
+\value{
+\code{gp()} is a formula term, not a free-standing function: \code{bf()}
+reads it at parse time. Its estimates, \code{sdgp} and the length scales, are
+in the Gaussian Process Hyperparameters section of \code{\link[=summary]{summary()}}. This page
+itself documents the term and returns nothing.
+}
 \description{
 \code{gp(x)} in a formula fits an exact Gaussian process, and \code{gp(x, k = )} its
 Hilbert-space approximation, with the arguments of \code{\link[brms:gp]{brms::gp()}}. This page
@@ -70,6 +76,26 @@ the data. Read a field at the data through \code{posterior_epred()} or
 \code{frm_linpred()}, which are right row by row.
 }
 
+\examples{
+set.seed(1)
+d <- data.frame(x = seq(0, 6, length.out = 25))
+d$y <- sin(d$x) + rnorm(25, 0, 0.3)
+fit <- frm(bf(y ~ gp(x)), data = d)
+summary(fit)
+
+# the field at the rows of the data, in their order
+head(fitted(fit))
+
+# noise far below the field reaches the nugget, and frm() says so
+d$y_low <- sin(d$x) + rnorm(25, 0, 1e-7)
+fit_low <- withCallingHandlers(
+  frm(bf(y_low ~ gp(x)), data = d),
+  frmtmb_gp_nugget = function(w) {
+    message("nugget warning: ", conditionMessage(w))
+    invokeRestart("muffleWarning")
+  }
+)
+}
 \seealso{
 \code{\link[=frm]{frm()}}, \code{\link[=frmtmb_control]{frmtmb_control()}}, \code{vignette("brms-migration")}
 }
