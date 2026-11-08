@@ -1,0 +1,4 @@
+frmtmb tests/testthat/test-marginaleffects-re.R
+frmtmb tests/testthat/test-marginaleffects-args.R
+frmtmb tests/testthat/test-me-newdata.R
+frmtmb tests/testthat/test-compat.R

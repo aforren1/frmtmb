@@ -329,7 +329,11 @@ Under \code{cov = FALSE} new rows are refused, in brms's words.
 Past \code{getOption("frmtmb.latres_dense_rows", 20000L)} rows, a standard error
 that reads the whole joint covariance is refused, with its size in the
 message, because it is \verb{16 n^2} bytes: \code{\link[=frm_curve]{frm_curve()}}, \code{\link[=frm_lp_basis]{frm_lp_basis()}} and
-\code{\link[=conditional_effects]{conditional_effects()}} read it.
+\code{\link[=conditional_effects]{conditional_effects()}} read it. The same option bounds a wider block: on
+any fit with group-level effects, latent or not, a \verb{vcov =} that
+marginaleffects carries into those effects inverts the inner block, one row
+per effect, densely, and past the limit the effects are held at their
+estimates with a warning (\link{frmtmb-marginaleffects}).
 
 A standard error of a fitted row solves the whole joint precision as a dense
 matrix: 6 to 12 s at 2000 rows, 80 s at 4000, 984 s at 8000. Above 3000 rows

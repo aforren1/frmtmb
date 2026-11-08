@@ -1910,14 +1910,14 @@ compat_hand_rules_tbl <- function() {
     "In-sample, the latent modes. On new data each replicate draws the latent value from N(x, sdx), per row or per me(gr = ) level, as brms 2.23.0 does, under propagate_error = FALSE too. Two responses or two dpars read one latent value, a stated divergence: brms draws one per predictor against its own Stan program. New data must hold sdx. A row with no noisy value or SD reads NA with a warning, where brms reads NaN and warns.")
   r("me()", "marginaleffects", "conditional",
     "The default vcov gives the warning of class frmtmb_interop_se_part. The standard error of a level holds no variance of a new row's latent value, which is in no coefficient: every row reads as new, and get_vcov() gets no rows. A test of a coefficient is right, and so is a slope or contrast on an identity link. frm_linpred(se.fit = TRUE) and fitted() carry the variance; vcov = FALSE gives the estimates alone.")
-  r("kind:covstruct", "marginaleffects", "conditional",
-    "The default vcov gives the warning of class frmtmb_interop_se_part while re_formula keeps a group-level term. get_coef() holds the population-level and distributional coefficients alone, so the standard error of a level holds neither the group-level effects' uncertainty nor their covariance with the intercept. Under re_formula = NA it agrees with fitted(). frm_linpred(se.fit = TRUE) and fitted() carry them.")
-  r("s()", "marginaleffects", "conditional",
-    "The default vcov gives the warning of class frmtmb_interop_se_part. get_coef() holds no coefficient of the smooth, so the standard error of a level is too wide near the data and too narrow far from it. frm_linpred(se.fit = TRUE) and fitted() carry it.")
-  r("t2()", "marginaleffects", "conditional",
-    "The default vcov gives the warning of class frmtmb_interop_se_part. get_coef() holds no coefficient of the smooth, as for s(). frm_linpred(se.fit = TRUE) and fitted() carry it.")
+  r("kind:covstruct", "marginaleffects", "works",
+    "Verified against fitted(): get_coef() holds the group-level effects at their modes, and get_vcov() their joint covariance with the coefficients and the variance parameters, so the standard error of a level is fitted()'s Est.Error (crossed, nested, ||, mm(), |ID| across dpars, a zero-inflation dpar, mvbf, cumulative()), and an average, slope or contrast holds the same uncertainty. Under re_formula = NA they leave get_coef(), and hypotheses() on the fit itself, joint = TRUE among them, tests the coefficients alone. A grouping level the fit did not see, from predictions(), slopes() and comparisons() alike, and a fit with quadrature = TRUE or importance =, warn with class frmtmb_interop_se_part: no parameter holds that variance. A cluster sandwich (~ g) makes the outer part of the effects' variance robust; HC0 and HC1 are refused on a mixed fit.")
+  r("s()", "marginaleffects", "works",
+    "Verified against fitted(): get_coef() holds the smooth's coefficients at every re_formula, so the standard error of a level is fitted()'s Est.Error.")
+  r("t2()", "marginaleffects", "works",
+    "Verified against fitted(), as for s(): get_coef() holds the smooth's coefficients.")
   r("gp_pred()", "marginaleffects", "conditional",
-    "The default vcov gives the warning of class frmtmb_interop_se_part. get_coef() holds no coefficient of the field, so the standard error of a level is one value on every row. frm_linpred(se.fit = TRUE) and fitted() carry it.")
+    "get_coef() holds the field's coefficients, and for an exact gp() its sdgp and lscale, which the field sdgp L z reads, so the standard error of a level at or between the data is fitted()'s Est.Error. At a position the fit did not see, an exact gp() has a kriging variance that no parameter holds: get_predict() warns with class frmtmb_interop_se_part and counts the rows where it is more than 1e-4 of the field's variance. The delta method is far from brms there: an average slope on a gaussian field reads 0.031, where brms's posterior SD is 0.154.")
   r("me()", "simulate", "works",
     "Simulates the response at the latent modes, as for a random effect's conditional modes; the noisy variable itself is data and is not simulated. On new data each replicate draws the latent value from N(x, sdx), as predict() does.")
   r("me()", "residuals", "works",

@@ -355,7 +355,11 @@
 #' Past `getOption("frmtmb.latres_dense_rows", 20000L)` rows, a standard error
 #' that reads the whole joint covariance is refused, with its size in the
 #' message, because it is `16 n^2` bytes: [frm_curve()], [frm_lp_basis()] and
-#' [conditional_effects()] read it.
+#' [conditional_effects()] read it. The same option bounds a wider block: on
+#' any fit with group-level effects, latent or not, a `vcov =` that
+#' marginaleffects carries into those effects inverts the inner block, one row
+#' per effect, densely, and past the limit the effects are held at their
+#' estimates with a warning ([frmtmb-marginaleffects]).
 #'
 #' A standard error of a fitted row solves the whole joint precision as a dense
 #' matrix: 6 to 12 s at 2000 rows, 80 s at 4000, 984 s at 8000. Above 3000 rows

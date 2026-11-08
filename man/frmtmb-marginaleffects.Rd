@@ -30,8 +30,34 @@ A \code{mo()} term on one value is 0 on every row, so no prediction reads
 its coefficient, and that coefficient gets a variance of 0 in
 \code{get_vcov()}.
 
-A prediction that keeps the group-level effects is conditional on
-their estimated modes, as for lme4 and glmmTMB fits.
+On a fit with a group-level term, a smooth, \code{gp()} or \code{hsgp()},
+\code{get_coef()} then gives the group-level effects at their estimated
+modes, under the names \code{\link[=frm_lp_basis]{frm_lp_basis()}} gives them
+(\verb{b.<term>.<level>.<coef>}), and the covariance parameters that a
+field's coefficients read (\verb{theta.<name>}, as for an exact \code{gp()}, whose
+field is \verb{sdgp L z}). A prediction reads the modes, as \code{\link[=fitted]{fitted()}} does.
+Under \code{re_formula = NA} the group-level effects are not in
+\code{get_coef()}; the coefficients of a smooth stay, because \code{re_formula}
+does not drop a smooth. Inside \code{hypotheses()} called on the fit itself,
+a test of the model's own coefficients, \code{get_coef()} and \code{get_vcov()} give
+the population-level and distributional ones alone, as \code{hypotheses()}
+reads those of a \code{brmsfit}: \code{"b2 = 0"} names the same coefficient as
+before, and \code{joint = TRUE} tests those coefficients and no group-level
+effect. A function given as \code{hypothesis} is not such a test: it gets the
+model, and what it returns is differentiated with the group-level effects
+in, as the same call outside \code{hypotheses()} is. A latent residual's
+values are not in \code{get_coef()}, though under
+\code{cov = TRUE} a new row continues from them: there is one per fitted row,
+which would cost one prediction each, and the warning of class
+\code{frmtmb_interop_se_part} names the latent residual on such a fit.
+
+marginaleffects takes its Jacobian with one prediction per parameter,
+so the time grows with the number of levels. On a poisson \code{(1 + x | g)}
+fit with 40 rows per level, \code{avg_slopes()} took 0.30 s at 30 levels and
+16.3 s at 500 levels, where it took 0.03 s and 0.09 s with the
+group-level effects held fixed. \code{vcov = FALSE} gives the estimates alone,
+at the cost of a few predictions, and \code{re_formula = NA} drops the
+group-level effects from \code{get_coef()}.
 }
 
 \section{The vcov argument}{
@@ -49,7 +75,14 @@ parameter vector, as \code{vcov(fit, full = TRUE)} and
 such a matrix is refused there. If the matrix has no finite
 value in a row of \code{get_coef()}, as \code{vcov(fit, full = TRUE)} has
 for a parameter the fit does not determine, a warning names the
-row: every standard error is then \code{NaN}.}
+row: every standard error is then \code{NaN}. On a fit whose
+\code{get_coef()} holds group-level effects, a matrix over the outer
+vector is carried into them: their block is their covariance given
+the outer parameters plus the given matrix carried through the
+modes' derivative in those parameters, as the default carries the
+model's own. A matrix over the rows of \code{get_vcov(fit)} is read as
+given. A matrix over the coefficients alone holds the effects at
+their modes, with a warning of class \code{frmtmb_interop_se_part}.}
 \item{A function}{A function of the fit that returns one of these
 matrices.}
 \item{\code{"HC0"}}{The sandwich with each row as its own cluster
@@ -65,6 +98,14 @@ does not count a column it aliases. So \code{k} is the column count of
 \item{A one-sided formula, \code{~ g}}{The cluster sandwich over \code{g},
 \code{vcov_cluster(type = "CR1")}, with the factor \code{G / (G - 1)}.}
 }
+On a fit with a group-level term, \code{"HC0"} and \code{"HC1"} are refused
+(each row is its own cluster, which every grouping level crosses), so
+the sandwich there is a cluster formula over a grouping factor the
+effects nest in, \code{~ g}. It covers the outer parameters, and it is carried
+into the group-level effects as a matrix over the outer vector is: only
+the part of their variance that comes from the outer parameters becomes
+robust, and their conditional variance given those parameters stays
+model-based.
 The bread of these sandwiches is the inverse of the observed
 information. \code{sandwich::vcovHC()} and \code{vcovCL()} use the expected
 information of a glm. The two are equal for a gaussian model and for
@@ -96,34 +137,72 @@ errors, and \code{\link[=frm_bootstrap]{frm_bootstrap()}} is the route to a robu
 
 \section{What the standard error holds}{
 
-marginaleffects forms a standard error from the coefficients \code{get_coef()}
-holds, the population-level and distributional ones, by the delta method. It
-cannot carry a variance that is in no such coefficient. The default \code{vcov}
-gives the warning of class \code{frmtmb_interop_se_part} on a fit where that gap
-exists, because \code{get_vcov()} is not told which rows or which quantity it
-serves.
+marginaleffects forms a standard error from the parameters \code{get_coef()}
+holds, by the delta method. With the group-level effects and the field
+parameters among them, \code{get_vcov()} gives the joint covariance of the
+fixed effects, the variance parameters and the predicted effects, which is
+the covariance \code{\link[=fitted.frmtmb_fit]{fitted.frmtmb_fit()}} and \code{frm_linpred(se.fit = TRUE)}
+read. So the standard error of a level from \code{predictions()} is
+\code{fitted()}'s \code{Est.Error}, and an average, a slope or a contrast holds the
+same uncertainty. On 168 fits with \code{(1 | g)} or \code{(1 + x | g)} on four
+families, the standard errors of 2016 levels were within 1e-5 of
+\code{fitted()}'s, and those of \code{avg_predictions()}, \code{avg_slopes()} and
+\code{avg_comparisons()} were within 25 percent of the standard deviation of
+150 draws from the joint covariance on 164 of the fits. On the other 4,
+a contrast of a group-level covariate at 8 groups, the delta method
+itself is that far from the draws.
+
+Through 0.79.1 \code{get_coef()} held the population-level and distributional
+coefficients alone, and the standard error held the group-level effects
+and a smooth's coefficients fixed. On the same 168 fits,
+\code{avg_predictions()} was more than 25 percent too wide on 77 percent of
+them (median 2.03 times) and \code{avg_slopes()} on 52 percent (median 1.30
+times); on a \code{gp()} field every level read one value.
+
+What no parameter holds is left out, with a warning of class
+\code{frmtmb_interop_se_part} that names it:
 \itemize{
 \item A \code{me()} term. Every row reads as a new row, whose latent value brms draws
 from \code{N(x, sdx)}. The standard error of a level reads 0.07 where
 \code{\link[=frm_linpred]{frm_linpred()}} reads 1.11. A slope, a contrast or a test of a coefficient
-needs no such draw and is right: -0.491, standard error 0.0485.
-\item A smooth, \code{gp()} or \code{hsgp()} term. \code{get_coef()} holds no coefficient of the
-field. On a \code{gp()} the standard error is 0.31 on every row, where
-\code{\link[=frm_linpred]{frm_linpred()}} reads 0.087 to 0.695; on \code{s(x)} it reads 0.70, 0.12, 1.07,
-1.59 where \code{\link[=frm_linpred]{frm_linpred()}} reads 0.088, 0.068, 0.55, 1.32. It is too wide
-near the data and too narrow far from it.
-\item Group-level effects, with \code{re_formula} keeping them. The standard error
-holds neither their uncertainty nor their covariance with the intercept:
-0.209 where \code{\link[=fitted.frmtmb_fit]{fitted.frmtmb_fit()}} reads 0.104 on a gaussian \code{(1 | g)},
-1.435 where it reads 0.488 on a poisson one. Under \code{re_formula = NA} the
-two agree, and no warning comes.
+on an identity link needs no such draw and is right: -0.491, standard
+error 0.0485. \code{get_vcov()} warns.
+\item A latent residual (an autocorrelation term on a family with no residual).
+A new row's latent value is in no parameter, and the fitted latents it
+continues from under \code{cov = TRUE} are left out of \code{get_coef()} (see
+above). \code{get_vcov()} warns.
+\item A fit whose objective integrates the group-level effects out
+(\code{quadrature = TRUE} or \verb{importance =}). Its covariance has no rows for
+them, so they are held at their modes, as \code{fitted()} holds them, and says.
+\code{get_vcov()} warns.
+\item A grouping level the fit did not see (\code{allow_new_levels = TRUE}), and an
+exact \code{gp()} at a position the fit did not see. \code{fitted()} adds the
+block's variance and the field's kriging variance there. \code{get_predict()}
+warns once per call, from the first prediction of the Jacobian, which
+marginaleffects does not muffle, and counts the rows of each kind. A
+kriging variance below 1e-4 of the field's own variance is not counted;
+at the data and between data points it was below 1e-7 in the cases
+measured, and the level's standard error equals \code{fitted()}'s to 4
+digits there.
+\item A matrix passed as \code{vcov} that covers the coefficients alone (see
+above).
 }
 
-\code{frm_linpred(se.fit = TRUE)} and \code{\link[=fitted.frmtmb_fit]{fitted.frmtmb_fit()}} carry each of these.
 On the response scale of a \code{me()} fit, the estimate is the mean over the
 draw, as \code{\link[=fitted.frmtmb_fit]{fitted.frmtmb_fit()}} reads it. \code{vcov = FALSE} gives the estimates
-alone. A covariance matrix passed as \code{vcov} is read as you give it, and gives
-no warning.
+alone, with no standard error and no warning.
+
+marginaleffects' Jacobian is a finite difference; \code{fitted()} and
+\code{\link[=frm_lp_basis]{frm_lp_basis()}} differentiate exactly. Far from its data an exact \code{gp()}
+is strongly curved in its length scale, and the two part: on a
+\code{gp(x) + (1 | g)} fit with data on 0 to 6, the forward difference read
+0.9996, 1.0217, 1.0749, 1.0232 and 0.6265 times \code{fitted()}'s standard
+error at x = 7, 8, 9, 10 and 12, and \code{numderiv = "fdcenter"} read 1.0006,
+1.0081, 1.2061, 1.1244 and 0.6441, no closer. Read a level there from
+\code{fitted()}. A slope of an exact \code{gp()} at a small step \code{eps} reads the
+field's nugget, which grows as \code{1 / eps}: on one fit with \code{x} on 0 to 6
+its standard error was 0.0308 at the default step and at \code{eps = 1e-3},
+0.0328 at \code{1e-4} and 0.1124 at \code{1e-5}, for the same estimate.
 }
 
 \section{brms's prediction arguments}{
@@ -151,7 +230,11 @@ if (requireNamespace("marginaleffects", quietly = TRUE)) {
   d$y <- 1 + 0.5 * d$x + rnorm(12)[d$g] + rnorm(120)
   fit <- frm(y ~ x + (1 | g), data = d)
   nd <- data.frame(x = c(-1, 1), g = factor(1, levels = 1:12))
-  # population-level predictions (marginaleffects warns, see above)
+  # the standard error holds the group-level effects, as fitted() does
+  marginaleffects::predictions(fit, newdata = nd)
+  fitted(fit, newdata = nd)
+  # population-level predictions; marginaleffects warns that it does not
+  # know re_formula for this class, and passes it on
   suppressWarnings(marginaleffects::predictions(fit, newdata = nd,
                                                 re_formula = NA))
   # a cluster-robust covariance

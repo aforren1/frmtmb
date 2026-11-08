@@ -1,3 +1,61 @@
+# frmtmb (development version)
+
+* BREAKING: the standard errors of `marginaleffects` hold the group-level
+  effects on a fit with a group-level term, a smooth, `gp()` or `hsgp()`.
+  `get_coef()` gives the group-level effects at their modes after the
+  coefficients, under `frm_lp_basis()`'s names (`b.<term>.<level>.<coef>`),
+  and the `sdgp` and `lscale` of an exact `gp()`, whose field reads them.
+  `get_vcov()` gives their joint covariance with the coefficients and the
+  variance parameters, which `fitted()` reads. Before, the delta method
+  held them at their modes, silently wrong on most fits: on 168 fits with
+  `(1 | g)` or `(1 + x | g)` on four families, `avg_predictions()` was
+  more than 25 percent too wide on 77 percent of them (median 2.03 times)
+  and `avg_slopes()` on 52 percent (median 1.30 times), and the standard
+  error of a level was off on 67 percent. Now the standard errors of the
+  2016 levels are `fitted()`'s to within 1e-5, and the averages, slopes
+  and contrasts are within 25 percent of the draws on 164 of the 168
+  fits; on the other 4 the delta method itself is that far. On a poisson
+  `(1 | g)` row, 0.4875 where it was 1.4350.
+* `avg_slopes()` on an exact `gp()` field reads the field: 0.0308, where
+  it read about 3e-7 on a gaussian field. That is the delta method's
+  value, as `frm_lp_basis()` gives it; on the same data brms's posterior
+  SD of that average slope is 0.154, because the slope is flat in the
+  length scale near its estimate and steep two standard errors above it.
+  Far from its data an exact `gp()` is also where marginaleffects'
+  finite-difference Jacobian parts from `fitted()`'s exact one, by up to
+  21 percent at the points measured, with `numderiv = "fdcenter"` no
+  closer; read a level there from `fitted()`.
+* `re_formula = NA` takes the group-level effects out of `get_coef()`; a
+  smooth's coefficients stay. Inside `hypotheses()` on the fit itself,
+  `get_coef()` and `get_vcov()` give the coefficients alone, so
+  `"b2 = 0"` names the coefficient it named before and `joint = TRUE`
+  tests the coefficients and no group-level effect. A function given as
+  `hypothesis` gets the model and keeps the effects in:
+  `hypothesis = function(x) avg_predictions(x)` reads 0.143, as
+  `avg_predictions()` alone does, where holding them fixed read 1.774.
+* `vcov =` a covariance over the outer parameters, such as
+  `vcov(fit, full = TRUE)` or a cluster sandwich `~ g`, is carried into
+  the group-level effects, as the model's own is. Only the part of their
+  variance that comes from the outer parameters becomes robust; their
+  conditional variance stays model-based. `"HC0"` and `"HC1"` are refused
+  on a fit with a group-level term, as before. A matrix over the
+  coefficients alone holds the effects at their modes, with a warning of
+  class `frmtmb_interop_se_part`.
+* The warning of class `frmtmb_interop_se_part` names what no parameter
+  holds: the draw of a new row's `me()` value or latent residual (and,
+  under `cov = TRUE`, the fitted latent values it continues from), and the
+  group-level effects of a fit with `quadrature = TRUE` or `importance =`.
+  A test of a coefficient no longer gives it. `get_predict()` gives it
+  once per call, from `predictions()`, `slopes()` and `comparisons()`
+  alike, and under the default `vcov` or a covariance the user gives, for
+  rows at a grouping level the fit did not see and for an exact `gp()` at
+  a position the fit did not see, where the kriging variance is more than
+  1e-4 of the field's, and counts the rows of each kind.
+* The time of `marginaleffects` grows with the number of levels, one
+  prediction per parameter: `avg_slopes()` on a poisson `(1 + x | g)` fit
+  took 16.3 s at 500 levels of 40 rows, where it took 0.09 s with the
+  effects held fixed. `vcov = FALSE` and `re_formula = NA` avoid it.
+
 # frmtmb 0.79.1
 
 * `residuals(type = "osa")` on `beta_binomial()` always stops with a

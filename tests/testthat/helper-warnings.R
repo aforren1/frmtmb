@@ -13,8 +13,10 @@
 # evaluated lazily in the caller's frame, so `allow_warnings(fit <-
 # frm(...), ...)` assigns `fit` there.
 # The warning of class frmtmb_interop_se_part: marginaleffects on a fit with a
-# term get_coef() does not hold. A test whose point is something else allows it.
-mfx_se_part <- "standard errors from the population-level"
+# variance no parameter of get_coef() holds (a me() draw, a latent residual, a
+# fit that integrates its group-level effects out). A test whose point is
+# something else allows it.
+mfx_se_part <- "standard errors from the parameters get_coef() holds"
 
 allow_warnings <- function(expr, allowed, require = character()) {
   seen <- character()
