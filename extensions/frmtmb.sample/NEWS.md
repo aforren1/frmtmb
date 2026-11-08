@@ -1,3 +1,12 @@
+# frmtmb.sample (development version)
+
+* The package code does not use the global assignment operator `<<-`,
+  which rOpenSci's pkgcheck refuses. A closure that keeps state between
+  calls writes to an environment that it creates, and a condition
+  handler returns its value. The results do not change. The tmbstan
+  build check keeps its memo in `memo`, an environment in its enclosure,
+  and the test helper `with_tmbstan_hpp()` resets it there.
+
 # frmtmb.sample 0.26.0
 
 Needs frmtmb 0.79.0. The exact `gp()` field is non-centered in core, so the

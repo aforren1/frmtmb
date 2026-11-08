@@ -52,12 +52,13 @@ skip_sampler <- function() {
 #
 # The seam is `tmbstan_build_broken()` being a local() closure: its
 # enclosing environment is writable, a `system.file` bound there
-# shadows base's for the one call the detector makes, and the memo in
-# `cached` sits in the same place. Nothing is installed, .libPaths() is
-# untouched and the real tmbstan is not disturbed. Prepending a
-# synthesized library was tried first and does NOT work: once tmbstan
-# is loaded, which it is by the time these tests run, system.file()
-# resolves from the loaded namespace and ignores .libPaths().
+# shadows base's for the one call the detector makes, and the memo
+# environment `memo` sits in the same place. Nothing is installed,
+# .libPaths() is untouched and the real tmbstan is not disturbed.
+# Prepending a synthesized library was tried first and does NOT work:
+# once tmbstan is loaded, which it is by the time these tests run,
+# system.file() resolves from the loaded namespace and ignores
+# .libPaths().
 with_tmbstan_hpp <- function(broken, code) {
   env <- environment(frmtmb.sample:::tmbstan_build_broken)
   dir <- tempfile("tmbstan-hpp")
@@ -81,11 +82,11 @@ with_tmbstan_hpp <- function(broken, code) {
     if (exists("system.file", envir = env, inherits = FALSE)) {
       rm("system.file", envir = env)
     }
-    assign("cached", NULL, envir = env)
+    assign("cached", NULL, envir = env[["memo"]])
     unlink(dir, recursive = TRUE)
   }, add = TRUE)
   assign("system.file", function(...) path, envir = env)
-  assign("cached", NULL, envir = env)
+  assign("cached", NULL, envir = env[["memo"]])
   force(code)
 }
 

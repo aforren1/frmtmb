@@ -1,0 +1,7 @@
+frmtmb tests/testthat/test-optrap.R
+frmtmb tests/testthat/test-se-reparam.R
+frmtmb tests/testthat/test-autoscale.R
+frmtmb tests/testthat/test-mo-terms.R
+frmtmb tests/testthat/test-nl-family.R
+frmtmb tests/testthat/test-importance.R
+frmtmb tests/testthat/test-predfix.R

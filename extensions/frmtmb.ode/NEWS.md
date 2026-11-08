@@ -1,3 +1,10 @@
+# frmtmb.ode (development version)
+
+* The package code does not use the global assignment operator `<<-`,
+  which rOpenSci's pkgcheck refuses. The solver's warning handler keeps
+  the message in an environment that it creates. The results do not
+  change.
+
 # frmtmb.ode 0.7.2
 
 No change to the package's code. Needs frmtmb 0.68.0 for its tests.

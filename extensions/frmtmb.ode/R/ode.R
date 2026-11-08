@@ -1874,16 +1874,18 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
   # is left to propagate as well: during a fit it is the user's signal,
   # and there it is all we have.
   run_solve <- function(y, grid, pvals, fn) {
-    gave_up <- NULL
+    got <- new.env(parent = emptyenv())
+    got$gave_up <- NULL
     s <- withCallingHandlers(
       RTMBode::ode(y = y, times = grid, func = fn %||% func, parms = pvals,
                    method = method, atol = atol, rtol = rtol, ...),
       warning = function(w) {
         if (grepl(ode_giveup_pattern, conditionMessage(w))) {
-          gave_up <<- conditionMessage(w)
+          got$gave_up <- conditionMessage(w)
         }
       }
     )
+    gave_up <- got$gave_up
     # a solver that gives up can also return a short matrix; that must be
     # a failure, not a length error later
     if (nrow(s) != length(grid)) {

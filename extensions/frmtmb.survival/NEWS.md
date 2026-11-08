@@ -1,3 +1,10 @@
+# frmtmb.survival (development version)
+
+* The package code does not use the global assignment operator `<<-`,
+  which rOpenSci's pkgcheck refuses. `bhaz()`'s argument reader passes
+  the arguments it has read from one step to the next. The results do
+  not change.
+
 # frmtmb.survival 0.2.1
 
 ## Other changes

@@ -200,12 +200,13 @@ par_alias_index <- function(fit) {
   map <- outer_par_map(fit)
   th_pos <- which(map$comp == "theta")
   ac_pos <- which(map$comp == "thetaac")
-  nms <- character(0)
-  pos <- integer(0)
+  got <- new.env(parent = emptyenv())
+  got$nms <- character(0)
+  got$pos <- integer(0)
   add <- function(nm, p) {
-    if (nm %in% nms || is.na(p) || length(p) != 1L) return(invisible())
-    nms <<- c(nms, nm)
-    pos <<- c(pos, p)
+    if (nm %in% got$nms || is.na(p) || length(p) != 1L) return(invisible())
+    got$nms <- c(got$nms, nm)
+    got$pos <- c(got$pos, p)
   }
   for (bk in fit$frame[["re_blocks"]] %||% list()) {
     # the same blocks hyp_env_vals names, for the same reason
@@ -259,7 +260,7 @@ par_alias_index <- function(fit) {
     if (length(p) != 1L) next
     add(names(lncor_values(fit$estimates[[b$comp]], b$sx, b$prefix)), p)
   }
-  stats::setNames(pos, nms)
+  stats::setNames(got$pos, got$nms)
 }
 
 #' Bare nonlinear-parameter names, as positions in `outer_par_map()`.
@@ -681,9 +682,10 @@ varcorr_trans_rows <- function(fit) {
   }
   th_pos <- which(rownames(Vfull) == "theta")
   th <- fit$estimates[["theta"]]
-  rows <- list()
+  acc <- new.env(parent = emptyenv())
+  acc$rows <- list()
   add <- function(term, type, est_t, se_t, bk) {
-    rows[[length(rows) + 1L]] <<- data.frame(
+    acc$rows[[length(acc$rows) + 1L]] <- data.frame(
       block = bk[["term_label"]], term = term, type = type,
       est_t = est_t, se_t = se_t
     )
@@ -803,6 +805,7 @@ varcorr_trans_rows <- function(fit) {
       }
     }
   }
+  rows <- acc$rows
   acr <- autocor_trans_rows(fit)
   if (!length(rows) && is.null(acr)) return(NULL)
   out <- if (length(rows)) do.call(rbind, rows) else NULL
@@ -3173,14 +3176,15 @@ se_null_boundary <- function(fit, sdr) {
 #'
 #' @noRd
 hyp_env_vals <- function(fit, vals, comp) {
-  env <- list()
+  acc <- new.env(parent = emptyenv())
+  acc$vals <- list()
   put <- function(nm, val) {
-    if (!is.null(env[[nm]])) {
+    if (!is.null(acc$vals[[nm]])) {
       frm_stop("Internal error: two parameters of this model share the ",
                "name '", nm, "'. Please report it with the model formula",
                call. = FALSE)
     }
-    env[[nm]] <<- unname(val)
+    acc$vals[[nm]] <- unname(val)
     invisible(NULL)
   }
 
@@ -3286,7 +3290,7 @@ hyp_env_vals <- function(fit, vals, comp) {
   }
   lncor_put(fit, vals, comp, put)
   me_put_hyper(fit, vals, comp, put)
-  env
+  acc$vals
 }
 
 #' brms's names for an ordinal fit's thresholds and `cs()`

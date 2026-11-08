@@ -2636,32 +2636,33 @@ check_re_structure <- function(spec, frame, control) {
 #'
 #' @noRd
 nlminb_trial_fn <- function(fn, tally = NULL) {
-  n_eval <- 0L
-  n_mapped <- 0L
-  last_par <- NULL
-  last_val <- NA_real_
-  best_par <- NULL
-  best_val <- Inf
+  st <- new.env(parent = emptyenv())
+  st$n_eval <- 0L
+  st$n_mapped <- 0L
+  st$last_par <- NULL
+  st$last_val <- NA_real_
+  st$best_par <- NULL
+  st$best_val <- Inf
   list(
     fn = function(par) {
       v <- fn(par)
-      n_eval <<- n_eval + 1L
-      last_par <<- par
-      last_val <<- if (length(v) == 1L) as.numeric(v) else NA_real_
-      if (length(v) == 1L && is.finite(v) && v < best_val) {
-        best_val <<- as.numeric(v)
-        best_par <<- par
+      st$n_eval <- st$n_eval + 1L
+      st$last_par <- par
+      st$last_val <- if (length(v) == 1L) as.numeric(v) else NA_real_
+      if (length(v) == 1L && is.finite(v) && v < st$best_val) {
+        st$best_val <- as.numeric(v)
+        st$best_par <- par
       }
-      if (n_eval > 1L && length(v) == 1L && is.nan(v)) {
-        n_mapped <<- n_mapped + 1L
+      if (st$n_eval > 1L && length(v) == 1L && is.nan(v)) {
+        st$n_mapped <- st$n_mapped + 1L
         if (!is.null(tally)) tally$n <- tally$n + 1L
         return(Inf)
       }
       v
     },
-    count = function() n_mapped,
-    last = function() list(par = last_par, val = last_val),
-    best = function() list(par = best_par, val = best_val)
+    count = function() st$n_mapped,
+    last = function() list(par = st$last_par, val = st$last_val),
+    best = function() list(par = st$best_par, val = st$best_val)
   )
 }
 
@@ -3568,18 +3569,19 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
   # and every fit stopped 0.09 to 1.2 short (dev/illse-check.R). The
   # natural Hessian at the stop decides, by the rule the standard
   # errors use (hess_needs_reparam())
-  M <- NULL
-  decided <- is.null(frame)
+  rp <- new.env(parent = emptyenv())
+  rp$M <- NULL
+  rp$decided <- is.null(frame)
   v <- opt$objective
   saved <- obj_state_save(obj)
   moved <- FALSE
   steps <- 0L
-  Mi <- NULL
+  rp$Mi <- NULL
   hess_at <- function(p, g = NULL) {
-    if (!is.null(M)) {
-      h <- reparam_hessian_refined(obj, p, M)
+    if (!is.null(rp$M)) {
+      h <- reparam_hessian_refined(obj, p, rp$M)
       if (is.null(h) || !all(is.finite(h$H))) return(NULL)
-      Mi <<- h$M
+      rp$Mi <- h$M
       return(h$H)
     }
     H <- tryCatch(if (re) {
@@ -3589,9 +3591,9 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
     }, error = keep_missing(NULL))
     if (is.null(H) || !identical(dim(H), c(np, np))) return(NULL)
     fin <- all(is.finite(H))
-    if (!fin && (decided || is.null(frame))) return(NULL)
-    if (!decided) {
-      decided <<- TRUE
+    if (!fin && (rp$decided || is.null(frame))) return(NULL)
+    if (!rp$decided) {
+      rp$decided <- TRUE
       # a parameter with an empty row that a step cannot gain on, such
       # as a group sd at zero, is left where it is, and the steps are
       # taken over the others: its row alone kept a degree-8 fit with
@@ -3616,7 +3618,7 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
         out <- setdiff(seq_len(np), keep)
         if (!is.null(M0) && all(dim(M0) == np) &&
               !length(intersect(out, attr(M0, "pos")))) {
-          M <<- if (length(out)) reparam_cols(M0, keep) else M0
+          rp$M <- if (length(out)) reparam_cols(M0, keep) else M0
           return(hess_at(p))
         }
       }
@@ -3626,14 +3628,14 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
   }
   chol_at <- function(H) {
     if (is.null(H)) return(NULL)
-    Hs <- if (is.null(M)) H * outer(u, u) else H
+    Hs <- if (is.null(rp$M)) H * outer(u, u) else H
     tryCatch(chol((Hs + t(Hs)) / 2), error = keep_missing(NULL))
   }
   # one step from p with the Hessian Hc and its Cholesky factor R:
   # list(q, vq, model), or NULL when no step is taken
   polish_step <- function(Hc, R, g) {
     if (is.null(Hc)) return(NULL)
-    damped <- is.null(R) && !is.null(M)
+    damped <- is.null(R) && !is.null(rp$M)
     if (damped) {
       # Far from the maximum the Hessian in the design's coordinates can
       # be indefinite: on that y ~ x fit the slope's coordinate against
@@ -3648,11 +3650,11 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
     if (is.null(R)) return(NULL)
     # in natural units, where the Hessian is closest to unit diagonal,
     # or in the coordinates the Hessian was taken in
-    gs <- if (is.null(M)) g * u else drop(crossprod(Mi, g))
+    gs <- if (is.null(rp$M)) g * u else drop(crossprod(rp$Mi, g))
     hsolve <- function(v) backsolve(R, forwardsolve(t(R), v))
     st <- -drop(hsolve(gs))
     if (!all(is.finite(st))) return(NULL)
-    B <- if (is.null(M)) diag(u, np) else Mi
+    B <- if (is.null(rp$M)) diag(u, np) else rp$Mi
     q <- p + drop(B %*% st)
     # A step that leaves the box is taken again with the coordinates it
     # crosses held at their bounds: the Newton step of the quadratic
@@ -3694,7 +3696,7 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
     if (!is.finite(gain) || gain <= 1e-6) return(NULL)
     vq <- tryCatch(obj$fn(q), error = keep_missing(NA_real_))
     t <- 1
-    if (!is.null(M)) {
+    if (!is.null(rp$M)) {
       # in the design's coordinates a step from far off is shortened
       # until it gains a tenth of what the quadratic model predicts at
       # that fraction t of it: on the y ~ x fit the full second step
@@ -3754,7 +3756,7 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
     moved <- TRUE
     steps <- steps + 1L
     end_ok <- NA
-    stale <- !is.null(M) && isTRUE(st_try$model)
+    stale <- !is.null(rp$M) && isTRUE(st_try$model)
   }
   # the loop leaves end_ok NA when its last step was taken and the
   # Hessian there not yet read
@@ -3867,14 +3869,15 @@ mo_search <- function(obj, opt, frame, control, bounds, par_units = NULL,
   upper <- rep_len(bounds$upper, np)
   n_before <- if (is.null(tally)) 0L else tally$n
   best <- opt
-  runs <- 0L
+  tried <- new.env(parent = emptyenv())
+  tried$runs <- 0L
   # a gain below this is the same optimum reached twice
   better <- function(o) {
     !is.null(o) && all(is.finite(o$par)) && is.finite(o$objective) &&
       best$objective - o$objective > 1e-10 * max(1, abs(best$objective))
   }
   refit <- function(p, lo = lower, up = upper, ctl = control) {
-    runs <<- runs + 1L
+    tried$runs <- tried$runs + 1L
     tryCatch(optimize_obj(obj, ctl, list(lower = lo, upper = up),
                           par_units, start_par = p, tally = tally),
              error = function(e) NULL)
@@ -3974,9 +3977,9 @@ mo_search <- function(obj, opt, frame, control, bounds, par_units = NULL,
   # `opt` need not have ended at it, and the face probes above move
   # the objective's state (obj_settle())
   obj_settle(obj, opt, best, saved)
-  if (!runs) return(opt)
+  if (!tried$runs) return(opt)
   gain <- opt$objective - best$objective
-  best$mo_search <- c(runs = runs, gain = gain)
+  best$mo_search <- c(runs = tried$runs, gain = gain)
   # a search run replaces `opt`, whose escape record would go with it
   if (is.null(best$stationary_escape)) {
     best$stationary_escape <- opt$stationary_escape
@@ -3988,8 +3991,8 @@ mo_search <- function(obj, opt, frame, control, bounds, par_units = NULL,
   if (!is.null(tally)) best$evals <- tally$evals
   if (verbose) {
     vb_stage("mo() search", t0,
-             paste0(runs, " run", if (runs != 1L) "s", ", gain ",
-                    format(gain, digits = 3)))
+             paste0(tried$runs, " run", if (tried$runs != 1L) "s",
+                    ", gain ", format(gain, digits = 3)))
   }
   best
 }

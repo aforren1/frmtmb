@@ -28,7 +28,8 @@
 #' @noRd
 re_formula_bars <- function(re_formula) {
   rhs <- re_formula[[length(re_formula)]]
-  out <- list()
+  found <- new.env(parent = emptyenv())
+  found$bars <- list()
   walk <- function(e) {
     if (!is.call(e)) return(invisible(NULL))
     # deparse1, not as.character: a namespaced call's head is itself a
@@ -44,9 +45,8 @@ re_formula_bars <- function(re_formula) {
         lhs <- lhs[[2L]]
       }
       for (grp in re_expand_group(e[[3L]])) {
-        out[[length(out) + 1L]] <<- list(lhs = lhs, group = grp,
-                                         text = paste0("(", deparse1(e),
-                                                       ")"))
+        found$bars[[length(found$bars) + 1L]] <- list(
+          lhs = lhs, group = grp, text = paste0("(", deparse1(e), ")"))
       }
     } else if (op %in% c(cs_names(), "rr")) {
       # a covariance wrapper, diag(x | g), which brms does not have:
@@ -62,7 +62,7 @@ re_formula_bars <- function(re_formula) {
     invisible(NULL)
   }
   walk(rhs)
-  out
+  found$bars
 }
 
 #' `a/b` is `a` plus `a:b`; `gr(g, ...)` is `g`. Anything else is kept.

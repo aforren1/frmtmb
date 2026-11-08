@@ -440,18 +440,19 @@ autoscale_prefit_verdict <- function(pre, control, vb = 0L) {
 #' @noRd
 autoscale_choose <- function(run, control, template, vb = 0L) {
   capture <- function(expr) {
-    w <- list()
-    m <- list()
+    got <- new.env(parent = emptyenv())
+    got$w <- list()
+    got$m <- list()
     v <- withCallingHandlers(tryCatch(expr, error = function(e) e),
       warning = function(x) {
-        w[[length(w) + 1L]] <<- x
+        got$w[[length(got$w) + 1L]] <- x
         invokeRestart("muffleWarning")
       },
       message = function(x) {
-        m[[length(m) + 1L]] <<- x
+        got$m[[length(got$m) + 1L]] <- x
         invokeRestart("muffleMessage")
       })
-    list(value = v, warnings = w, messages = m,
+    list(value = v, warnings = got$w, messages = got$m,
          error = inherits(v, "error"))
   }
   plain <- capture(run(utils::modifyList(control, list(autoscale = FALSE)),

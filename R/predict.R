@@ -6989,8 +6989,8 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
   pm <- joint_pos_map(jc)
   est <- object$estimates
   parts <- list()          # per contributing dpar: eta_hat, A, coef_pos
-  build <- function(nm) {
-    if (!is.null(parts[[nm]])) return(invisible(NULL))
+  build <- function(nm, parts) {
+    if (!is.null(parts[[nm]])) return(parts)
     lpk <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, nm)]]
     if (is.null(lpk)) {
       frm_stop("frm_lp_basis(): the nonlinear body names '", nm,
@@ -6998,9 +6998,11 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
                rspec$resp_name, "'", call. = FALSE)
     }
     if (!is.null(lpk[["nl_body"]])) {
-      for (sub in c(lpk[["nl_pars"]], lpk[["nl_dpar_refs"]])) build(sub)
-      parts[[nm]] <<- list(lp = lpk, nl = TRUE)
-      return(invisible(NULL))
+      for (sub in c(lpk[["nl_pars"]], lpk[["nl_dpar_refs"]])) {
+        parts <- build(sub, parts)
+      }
+      parts[[nm]] <- list(lp = lpk, nl = TRUE)
+      return(parts)
     }
     edk <- lp_eta_design(object, lpk, newdata, use_re, FALSE)
     ex <- lp_extra_var_vec(object, edk, use_re)
@@ -7014,12 +7016,14 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
     has_rr <- isTRUE(object$frame[["has_rr"]])
     dak <- lp_delta_A(object, lpk, edk, newdata, use_re, jc, has_rr,
                       if (has_rr) rr_jacobians(object))
-    parts[[nm]] <<- list(lp = lpk, nl = FALSE, eta = unname(edk[["eta"]]),
-                         A = as.matrix(dak$A), pos = dak$coef_pos,
-                         nonest = edk[["nonest"]])
-    invisible(NULL)
+    parts[[nm]] <- list(lp = lpk, nl = FALSE, eta = unname(edk[["eta"]]),
+                        A = as.matrix(dak$A), pos = dak$coef_pos,
+                        nonest = edk[["nonest"]])
+    parts
   }
-  for (nm in c(lp[["nl_pars"]], lp[["nl_dpar_refs"]])) build(nm)
+  for (nm in c(lp[["nl_pars"]], lp[["nl_dpar_refs"]])) {
+    parts <- build(nm, parts)
+  }
 
   pos <- integer(0)
   for (p in parts) if (!isTRUE(p$nl)) pos <- c(pos, p$pos)

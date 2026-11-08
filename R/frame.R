@@ -1185,6 +1185,8 @@ grp_structural_ops <- c(":", "/", "*", "+", "%in%")
 #'
 #' @noRd
 resolve_group_calls <- function(bars, fr, env) {
+  acc <- new.env(parent = emptyenv())
+  acc$fr <- fr
   sub_call <- function(e) {
     if (!is.call(e)) return(e)
     if (as.character(e[[1L]])[1L] %in% grp_structural_ops) {
@@ -1192,9 +1194,9 @@ resolve_group_calls <- function(bars, fr, env) {
       return(e)
     }
     key <- deparse1(e)
-    if (!key %in% names(fr)) {
+    if (!key %in% names(acc$fr)) {
       # defensive: a call nested inside ':' need not be a frame variable
-      fr[[key]] <<- eval(e, fr, env)
+      acc$fr[[key]] <- eval(e, acc$fr, env)
     }
     as.name(key)
   }
@@ -1202,7 +1204,7 @@ resolve_group_calls <- function(bars, fr, env) {
     b[[3L]] <- sub_call(b[[3L]])
     b
   })
-  list(bars = bars, fr = fr)
+  list(bars = bars, fr = acc$fr)
 }
 
 #' The pooled level set of a multi-membership term.
@@ -1468,12 +1470,10 @@ lookup_structural <- function(expr, data2, data, env, what) {
     # the wrapper list separates "evaluated to NULL" from "failed"
     val <- tryCatch(
       list(v = eval(expr, data2, list2env(as.list(data), parent = env))),
-      error = function(e) {
-        e2 <<- e
-        NULL
-      }
+      error = function(e) list(err = e)
     )
-    if (!is.null(val)) return(val$v)
+    if (is.null(val[["err"]])) return(val[["v"]])
+    e2 <- val[["err"]]
   }
   tryCatch(eval(expr, data, env), error = function(e) {
     # the data2-mask attempt saw the widest scope, so when both paths
@@ -2739,19 +2739,24 @@ frame_raw_vars <- function(mf, data, rhs, env = NULL) {
   rn_mf <- attr(mf, "row.names")
   none <- structure(list(), class = "data.frame", row.names = rn_mf)
   if (is.null(rhs)) return(none)
-  off_only <- character(0)
-  other <- character(0)
+  seen <- new.env(parent = emptyenv())
+  seen$off_only <- character(0)
+  seen$other <- character(0)
   walk <- function(e, in_off) {
     if (is.name(e)) {
       nm <- as.character(e)
-      if (in_off) off_only <<- c(off_only, nm) else other <<- c(other, nm)
+      if (in_off) {
+        seen$off_only <- c(seen$off_only, nm)
+      } else {
+        seen$other <- c(seen$other, nm)
+      }
     } else if (is.call(e)) {
       off <- in_off || identical(e[[1L]], as.name("offset"))
       for (a in as.list(e)[-1L]) walk(a, off)
     }
   }
   walk(rhs, FALSE)
-  v <- setdiff(unique(other), names(mf))
+  v <- setdiff(unique(seen$other), names(mf))
   # model.frame() names the rows of a list, a tibble or a data.table
   # 1 to n, as rownames() reads those of the last two
   rn_data <- if (is.data.frame(data)) {
@@ -2931,14 +2936,16 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   # dpar of every response, and the aterm variables, so na.omit keeps rows
   # aligned. Responses go on the RHS of the frame formula (a multivariate
   # LHS is not a valid model.frame response) and are extracted by name.
-  rhs_comb <- NULL
+  rhs_acc <- new.env(parent = emptyenv())
+  rhs_acc$comb <- NULL
   # what each response adds, for subset()'s NA rule (R/subset.R)
-  rhs_resp <- list()
+  rhs_acc$resp <- list()
   add_part <- function(part) {
-    rhs_comb <<- if (is.null(rhs_comb)) part else call("+", rhs_comb, part)
-    rhs_resp[[cur_resp]] <<- if (is.null(rhs_resp[[cur_resp]])) {
+    rhs_acc$comb <- if (is.null(rhs_acc$comb)) part else
+      call("+", rhs_acc$comb, part)
+    rhs_acc$resp[[cur_resp]] <- if (is.null(rhs_acc$resp[[cur_resp]])) {
       part
-    } else call("+", rhs_resp[[cur_resp]], part)
+    } else call("+", rhs_acc$resp[[cur_resp]], part)
   }
   subset_check_spec(spec, na.action)
   for (resp in spec$responses) {
@@ -2983,6 +2990,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
     }
   }
+  rhs_comb <- rhs_acc$comb
+  rhs_resp <- rhs_acc$resp
   # Whether a family takes se() is a fact about the formula, and brms
   # refuses it from the formula alone, so a missing se() column must not
   # hide that refusal behind "not a column of data". Only then is it
@@ -3160,7 +3169,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     y[[resp$resp_name]] <- rc$y
     at_names <- setdiff(names(resp$aterms),
                         c("cens_y2", "se_sigma", "mi", row_aterms))
-    codes_new <- list()
+    codes_acc <- new.env(parent = emptyenv())
+    codes_acc$tab <- list()
     av <- stats::setNames(lapply(at_names, function(nm_at) {
       a <- resp$aterms[[nm_at]]
       v <- mf[[deparse1(a)]]
@@ -3209,10 +3219,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                  call. = FALSE)
       }
       if (aterm_level_coded(raw, reg_at)) {
-        codes_new[[nm_at]] <<- aterm_code_table(raw, v)
+        codes_acc$tab[[nm_at]] <- aterm_code_table(raw, v)
       }
       as.numeric(v)
     }), at_names)
+    codes_new <- codes_acc$tab
     if (length(codes_new) && is.null(resp[["aterm_codes"]])) {
       # newdata and refits are coded against these, as a bernoulli
       # response is against its bin_levels

@@ -755,11 +755,12 @@ nl_restart_round <- function(run, starts, floor, saddle_floor, from_flat) {
   best_ll <- floor
   best_held <- list()
   for (st in starts) {
-    h1 <- list()
+    h1 <- new.env(parent = emptyenv())
+    h1$w <- list()
     r <- tryCatch(
       withCallingHandlers(suppressMessages(run(st, FALSE)),
                           warning = function(w) {
-                            h1[[length(h1) + 1L]] <<- w
+                            h1$w[[length(h1$w) + 1L]] <- w
                             invokeRestart("muffleWarning")
                           }),
       error = function(e) NULL)
@@ -769,7 +770,7 @@ nl_restart_round <- function(run, starts, floor, saddle_floor, from_flat) {
     if (ll > best_ll + 1e-8 * max(1, abs(best_ll))) {
       best <- r
       best_ll <- ll
-      best_held <- h1
+      best_held <- h1$w
     }
     if (from_flat && same(ll, floor)) break
   }
@@ -795,17 +796,19 @@ nl_restart_round <- function(run, starts, floor, saddle_floor, from_flat) {
 #'
 #' @noRd
 nl_fit_off_saddle <- function(run, frame, start, prior) {
-  held <- list()
+  hq <- new.env(parent = emptyenv())
+  hq$w <- list()
   hold <- function(w) {
-    held[[length(held) + 1L]] <<- w
+    hq$w[[length(hq$w) + 1L]] <- w
     invokeRestart("muffleWarning")
   }
-  release <- function() for (w in held) warning(w)
+  release <- function() for (w in hq$w) warning(w)
   fit <- tryCatch(withCallingHandlers(run(start, TRUE), warning = hold),
                   error = function(e) {
                     release()
                     stop(e)
                   })
+  held <- hq$w
   # under a prior the curvature on the likelihood alone says nothing about
   # the mode, so a restart decides
   use_curv <- is.null(prior) || NROW(prior) == 0L

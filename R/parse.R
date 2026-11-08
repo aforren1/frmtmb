@@ -1181,6 +1181,8 @@ mo_term_entries <- function(tm, var_order) {
 #'
 #' @noRd
 mo_bar_rewrite <- function(tm, map) {
+  acc <- new.env(parent = emptyenv())
+  acc$map <- map
   rew <- function(e, in_lhs) {
     if (!is.call(e)) return(e)
     if (identical(e[[1L]], as.name("mo"))) {
@@ -1192,10 +1194,10 @@ mo_bar_rewrite <- function(tm, map) {
         stop_mo_one_variable()
       }
       key <- deparse1(e)
-      hit <- which(vapply(map, `[[`, "", "key") == key)
-      nm <- if (length(hit)) names(map)[hit[1L]] else {
-        nm <- paste0(".frm_mo", length(map) + 1L)
-        map[[nm]] <<- list(key = key, expr = e[[2L]])
+      hit <- which(vapply(acc$map, `[[`, "", "key") == key)
+      nm <- if (length(hit)) names(acc$map)[hit[1L]] else {
+        nm <- paste0(".frm_mo", length(acc$map) + 1L)
+        acc$map[[nm]] <- list(key = key, expr = e[[2L]])
         nm
       }
       return(as.name(nm))
@@ -1214,7 +1216,7 @@ mo_bar_rewrite <- function(tm, map) {
     e
   }
   term <- rew(tm, FALSE)
-  list(term = term, map = map)
+  list(term = term, map = acc$map)
 }
 
 # brms mm() arguments that describe something other than the membership
@@ -1589,10 +1591,11 @@ expand_double_verts <- function(form) {
   # the terms as written, for messages: one queue per diag() bar, in
   # the order the terms appear, because two spellings (or an explicit
   # diag()) can rewrite to the same bar. NA is a term written as diag()
-  written <- list()
+  queue <- new.env(parent = emptyenv())
+  queue$written <- list()
   push <- function(bar, text) {
     key <- deparse1(bar)
-    written[[key]] <<- c(written[[key]], text)
+    queue$written[[key]] <- c(queue$written[[key]], text)
   }
   id_no_cor <- list()
   for (tm in raw) {
@@ -1654,7 +1657,7 @@ expand_double_verts <- function(form) {
     push(call("|", lhs, rhs), orig)
   }
   reformulas::RHSForm(form) <- Reduce(function(a, b) call("+", a, b), out)
-  attr(form, "dblbar_written") <- written
+  attr(form, "dblbar_written") <- queue$written
   attr(form, "id_no_cor") <- id_no_cor
   form
 }
@@ -1913,7 +1916,9 @@ parse_linpred <- function(rhs_form, env) {
   # after the twin check, which compares terms as written, as brms does
   rhs_form <- expand_slash_groups(rhs_form)
   rhs_form <- expand_double_verts(rhs_form)
-  dblbar_written <- attr(rhs_form, "dblbar_written")
+  # rewritten by the closures below, so held where they can write it
+  track <- new.env(parent = emptyenv())
+  track$dblbar_written <- attr(rhs_form, "dblbar_written")
   attr(rhs_form, "dblbar_written") <- NULL
   id_no_cor <- attr(rhs_form, "id_no_cor")
   attr(rhs_form, "id_no_cor") <- NULL
@@ -2173,7 +2178,7 @@ parse_linpred <- function(rhs_form, env) {
   # (never bar terms, which were routed to splitForm above) to
   # .frm_<name> for splitForm alone: unsub_specials() undoes it right
   # after, so nothing evaluates the alias and no environment binds it.
-  protected <- FALSE
+  track$protected <- FALSE
   sub_specials <- function(e) {
     if (is.call(e)) {
       hd <- e[[1]]
@@ -2182,7 +2187,7 @@ parse_linpred <- function(rhs_form, env) {
         fn <- tryCatch(eval(hd, env), error = function(err) NULL)
         if (is.function(fn)) {
           e[[1]] <- as.name(paste0(".frm_", as.character(hd)))
-          protected <<- TRUE
+          track$protected <- TRUE
         }
       }
       if (length(e) > 1L) {
@@ -2213,7 +2218,7 @@ parse_linpred <- function(rhs_form, env) {
   # The aliases are for splitForm alone. Left in place they reached
   # model.matrix(), whose column `.frm_exp(x)` became the coefficient
   # `.frm_expx` where brms has `expx`.
-  if (protected) {
+  if (track$protected) {
     sf$fixedFormula <- unsub_specials(sf$fixedFormula, cs_specials)
     sf$reTrmFormulas <- lapply(sf$reTrmFormulas, unsub_specials,
                                cs_specials)
@@ -2231,9 +2236,9 @@ parse_linpred <- function(rhs_form, env) {
     # the next written text queued for this bar, consumed in order
     written_text <- NULL
     key <- deparse1(bar)
-    if (identical(cls, "diag") && length(dblbar_written[[key]])) {
-      written_text <- dblbar_written[[key]][1L]
-      dblbar_written[[key]] <<- dblbar_written[[key]][-1L]
+    if (identical(cls, "diag") && length(track$dblbar_written[[key]])) {
+      written_text <- track$dblbar_written[[key]][1L]
+      track$dblbar_written[[key]] <- track$dblbar_written[[key]][-1L]
       if (is.na(written_text)) written_text <- NULL
     }
     # brms |ID| syntax: (x | p | g) parses as ((x | p) | g); the middle
@@ -2649,7 +2654,8 @@ nl_cs_is_helper <- function(env) {
 #'
 #' @noRd
 rhs_split_ac <- function(rhs) {
-  ac <- list()
+  found <- new.env(parent = emptyenv())
+  found$terms <- list()
   walk <- function(e) {
     if (is.call(e) && identical(e[[1L]], as.name("+")) && length(e) == 3L) {
       l <- walk(e[[2L]])
@@ -2660,13 +2666,13 @@ rhs_split_ac <- function(rhs) {
     }
     if (is.call(e) && as.character(e[[1L]])[1L] %in% autocor_term_names() &&
           !("|" %in% all.names(e))) {
-      ac[[length(ac) + 1L]] <<- e
+      found$terms[[length(found$terms) + 1L]] <- e
       return(NULL)
     }
     e
   }
   rest <- walk(rhs)
-  list(ac = ac, rest = rest)
+  list(ac = found$terms, rest = rest)
 }
 
 #' One bf() -> one response entry of the spec.

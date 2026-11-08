@@ -604,11 +604,11 @@ me_newdata_extra <- function(fit, lp, newdata, env, nd_mult, n) {
   if (!length(lp[["me"]]) || isTRUE(fit[["me_no_extra"]])) return(list())
   terms <- fit$frame[["me"]]$terms
   est <- fit$estimates
-  obs <- list()
+  obs <- new.env(parent = emptyenv())
   x_of <- function(k) {
     key <- as.character(k)
     if (is.null(obs[[key]])) {
-      obs[[key]] <<- me_newdata_observed(terms[[k]], newdata, env)
+      obs[[key]] <- me_newdata_observed(terms[[k]], newdata, env)
     }
     obs[[key]]
   }
@@ -766,15 +766,17 @@ latres_row_sd <- function(fit, rn, dpar) {
 me_node_value <- function(fit, loads, what) {
   # a list: z has one value per row, and an environment's name holds 10000
   # bytes, which about 500 rows pass. A fit reads a few hundred nodes at most
-  memo <- list()
+  memo <- new.env(parent = emptyenv())
+  memo$nodes <- list()
   function(z, d = 0) {
-    for (m in memo) if (m$d == d && identical(m$z, z)) return(m$value)
+    for (m in memo$nodes) if (m$d == d && identical(m$z, z)) return(m$value)
     sh <- fit
     moved <- lapply(loads$by_key, function(g) g * z)
     moved[[loads$key]] <- moved[[loads$key]] + d
     sh[["eta_shift"]] <- list(by_key = moved)
     value <- what(sh)
-    memo[[length(memo) + 1L]] <<- list(z = z, d = d, value = value)
+    memo$nodes[[length(memo$nodes) + 1L]] <- list(z = z, d = d,
+                                                  value = value)
     value
   }
 }

@@ -208,9 +208,9 @@ frm_adopt_target <- function(gen, owners) {
 #' Install one active binding.
 #'
 #' A function of its own for two reasons. The loop variable is
-#' captured by value rather than by reference, and the memo lives in
-#' THIS closure rather than in a shared environment, so resolving a
-#' name costs no key to build and no environment to search. The memo
+#' captured by value rather than by reference, and the memo is an
+#' environment of THIS call rather than one shared by every binding, so
+#' resolving a name costs no key to build. The memo
 #' holds the owner's NAMESPACE ENVIRONMENT beside the function, and
 #' validating it is an environment identity test: a namespace that
 #' was unloaded and reloaded is a different environment, so a stale
@@ -224,8 +224,9 @@ frm_bind_generic <- function(ns, gen, owners, fallback) {
   force(fallback)
   single <- length(owners) == 1L
   one <- if (single) owners[[1L]] else NULL
-  memo_ns <- NULL
-  memo_fn <- NULL
+  memo <- new.env(parent = emptyenv())
+  memo$ns <- NULL
+  memo$fn <- NULL
   makeActiveBinding(gen, function() {
     own <- if (single) {
       if (isNamespaceLoaded(one)) one else NULL
@@ -237,17 +238,17 @@ frm_bind_generic <- function(ns, gen, owners, fallback) {
     # handler stack costs about 7 us here, and asNamespace()
     # cannot fail behind the isNamespaceLoaded() above
     ons <- asNamespace(own)
-    if (!identical(ons, memo_ns)) {
+    if (!identical(ons, memo$ns)) {
       g <- tryCatch(getExportedValue(own, gen),
                     error = function(e) NULL)
       # a name an owner exports need not be a GENERIC; if it is not,
       # frmtmb keeps its own or its method for its own class goes
       # unreachable with nothing said
       if (!frm_is_generic(g)) g <- NULL
-      memo_ns <<- ons
-      memo_fn <<- g
+      memo$ns <- ons
+      memo$fn <- g
     }
-    if (is.null(memo_fn)) fallback else memo_fn
+    if (is.null(memo$fn)) fallback else memo$fn
   }, ns)
   invisible(TRUE)
 }

@@ -188,12 +188,13 @@ is_na_re_form <- function(re_form) {
 #' @noRd
 draws_laplace_watch <- function(x, what, at_na = NULL) {
   if (!draws_is_laplace(x)) return(function(v) invisible(NULL))
-  first <- NULL
+  seen <- new.env(parent = emptyenv())
+  seen$first <- NULL
   function(v) {
     nf <- is.na(unlist(v, use.names = FALSE))
-    if (is.null(first)) {
-      first <<- nf
-    } else if (!identical(nf, first)) {
+    if (is.null(seen$first)) {
+      seen$first <- nf
+    } else if (!identical(nf, seen$first)) {
       draws_laplace_refuse(x, what, at_na)
     }
     invisible(NULL)
@@ -3828,16 +3829,14 @@ draws_refuse_new_levels <- function(object, newdata, dots, fn,
 #'
 #' @noRd
 draws_unseen_level <- function(fit, newdata, re_formula, anl) {
-  what <- NULL
   known <- tryCatch({
     frm_linpred(fit, newdata = newdata, re_formula = re_formula)
     TRUE
   }, frmtmb_new_levels = function(e) {
-    what <<- e[["what"]] %||% ""
-    FALSE
+    list(what = e[["what"]] %||% "")
   }, error = function(e) FALSE)
-  if (known) return(NULL)
-  if (!is.null(what)) return(what)
+  if (isTRUE(known)) return(NULL)
+  if (is.list(known)) return(known[["what"]])
   # core classes its every new-level refusal, including a newdata with
   # no grouping column; a term from elsewhere may refuse unclassed, and
   # under the flag the flagged build says whether that is what failed

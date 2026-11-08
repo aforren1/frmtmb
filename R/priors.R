@@ -1082,9 +1082,10 @@ as_priorlist <- function(x) {
   # table is edited as a whole, so stopping at the first bad row costs
   # one round trip per bad row: y ~ gp(x) carries both an `lscale` row
   # and an `sdgp` row, and naming only the first made it two edits.
-  bad <- character(0)
+  acc <- new.env(parent = emptyenv())
+  acc$bad <- character(0)
   refuse <- function(i, dist, cls, why) {
-    bad[[length(bad) + 1L]] <<-
+    acc$bad[[length(acc$bad) + 1L]] <-
       paste0("row ", i, " (",
              if (nzchar(dist)) dist else "bounds only",
              ", class = \"", cls, "\"): ", why)
@@ -1153,6 +1154,7 @@ as_priorlist <- function(x) {
     # second rule that could drift from the first
     out[[length(out) + 1L]] <- unclass(one)[[1L]]
   }
+  bad <- acc$bad
   if (length(bad)) {
     frm_stop("A brms prior table has ", length(bad),
              if (length(bad) == 1L) " row" else " rows",
@@ -1854,11 +1856,12 @@ priorlist_from_rows <- function(x, what) {
                 dpar = cell("dpar", i), nlpar = cell("nlpar", i),
                 lb = if (unset(lb)) NA else lb,
                 ub = if (unset(ub)) NA else ub),
-      error = function(e) {
-        bad[[length(bad) + 1L]] <<- paste0("row ", i, ": ",
-                                            conditionMessage(e))
-        NULL
-      })
+      error = function(e) e)
+    if (inherits(one, "error")) {
+      bad[[length(bad) + 1L]] <- paste0("row ", i, ": ",
+                                        conditionMessage(one))
+      one <- NULL
+    }
     if (!is.null(one)) out <- c(out, unclass(one))
   }
   if (length(bad)) {
@@ -2280,7 +2283,8 @@ prior_coef_match_brms <- function(bn, coef) {
 #' @noRd
 prior_table <- function(spec, frame, route) {
   multi <- length(spec$responses) > 1L
-  rows <- list()
+  acc <- new.env(parent = emptyenv())
+  acc$rows <- list()
   # The fit route reads no registry, deliberately. It once did, and a
   # loaded sampling package then changed the answer of a call that had
   # asked about frm(): same call, same fit, a different table depending
@@ -2315,7 +2319,7 @@ prior_table <- function(spec, frame, route) {
     }
     # brms's column order, so a table read by position lines up with
     # the one brms returns
-    rows[[length(rows) + 1L]] <<- data.frame(
+    acc$rows[[length(acc$rows) + 1L]] <- data.frame(
       prior = d %||% dflt %||% "(flat)", class = class, coef = coef,
       group = group,
       resp = resp, dpar = dpar, nlpar = nlpar, lb = lb,
@@ -2650,7 +2654,7 @@ prior_table <- function(spec, frame, route) {
   }
   for (nm in theta_rows) add("theta", coef = nm)
 
-  out <- unique(do.call(rbind, rows))
+  out <- unique(do.call(rbind, acc$rows))
   # brms's row order (.default_prior(): resp, dpar, nlpar, class, group,
   # coef, with R's order(), locale and all), so b comes before cor,
   # Intercept and sd; frmtmb's own class "theta", which brms does not
@@ -3534,9 +3538,10 @@ cov_class_coefs <- function(spec, frame) {
     if (!length(v)) character(0) else par_template_names(v, cmp)
   }
   nm_th <- th_nm("theta")
-  rows <- list()
+  acc <- new.env(parent = emptyenv())
+  acc$rows <- list()
   add <- function(cmp, i, name, cls, group = "", coef = "", pre = NULL) {
-    rows[[length(rows) + 1L]] <<- data.frame(
+    acc$rows[[length(acc$rows) + 1L]] <- data.frame(
       comp = cmp, idx = i, name = name, class = cls, group = group,
       coef = if (is.na(coef)) "" else coef,
       resp = pre[["resp"]] %||% "", dpar = pre[["dpar"]] %||% "",
@@ -3588,7 +3593,7 @@ cov_class_coefs <- function(spec, frame) {
   }
   nm_r <- th_nm("thetar")
   for (k in seq_along(nm_r)) add("thetar", k, nm_r[k], "rescor")
-  out <- do.call(rbind, rows)
+  out <- do.call(rbind, acc$rows)
   if (is.null(out)) {
     out <- data.frame(comp = character(0), idx = integer(0),
                       name = character(0), class = character(0),
@@ -3656,9 +3661,11 @@ cov_class_refusal <- function(row) {
 #' @noRd
 resolve_priorlist <- function(fit, pl) {
   frame <- fit$frame
-  assigned <- list()   # key "comp.idx" -> entry
-  lower <- c()
-  upper <- c()
+  # written by the class resolvers below as well as by the main loop
+  st <- new.env(parent = emptyenv())
+  st$assigned <- list()   # key "comp.idx" -> entry
+  st$lower <- c()
+  st$upper <- c()
   # a class "cor" entry covers SEVERAL theta positions at once, so the
   # key names them all; a one-position entry keys exactly as before
   nm_of <- function(comp, idx) paste0(comp, ".", paste(idx, collapse = ","))
@@ -3670,10 +3677,10 @@ resolve_priorlist <- function(fit, pl) {
   # across the two spellings, which are different classes and so keep
   # their written order.
   claim <- function(comp, idx) {
-    drop <- vapply(assigned, function(e) {
+    drop <- vapply(st$assigned, function(e) {
       identical(e$comp, comp) && length(intersect(e$idx, idx)) > 0L
     }, TRUE)
-    assigned <<- assigned[!drop]
+    st$assigned <- st$assigned[!drop]
   }
 
   nlpars <- model_nlpars(fit$spec)
@@ -3914,17 +3921,17 @@ resolve_priorlist <- function(fit, pl) {
         key <- nm_of("theta", i)
         if (!is.null(s$dist)) {
           claim("theta", i)
-          assigned[[key]] <<- list(comp = "theta", idx = i, dist = s$dist,
+          st$assigned[[key]] <- list(comp = "theta", idx = i, dist = s$dist,
                                    scale = "sd", shift = shift,
                                    lb = s$lb, ub = s$ub)
-        } else if (!is.null(assigned[[key]])) {
-          assigned[[key]] <<- entry_bounds(assigned[[key]], s)
+        } else if (!is.null(st$assigned[[key]])) {
+          st$assigned[[key]] <- entry_bounds(st$assigned[[key]], s)
         }
         nm_theta <- paste0("theta_", i)
         if (!is.na(s$lb)) {
-          lower[nm_theta] <<- if (s$lb > 0) log(s$lb) - shift else -Inf
+          st$lower[nm_theta] <- if (s$lb > 0) log(s$lb) - shift else -Inf
         }
-        if (!is.na(s$ub)) upper[nm_theta] <<- log(s$ub) - shift
+        if (!is.na(s$ub)) st$upper[nm_theta] <- log(s$ub) - shift
       }
     }
     if (!hit) {
@@ -3956,14 +3963,14 @@ resolve_priorlist <- function(fit, pl) {
       key <- nm_of("theta", i)
       if (!is.null(s$dist)) {
         claim("theta", i)
-        assigned[[key]] <<- list(comp = "theta", idx = i, dist = s$dist,
+        st$assigned[[key]] <- list(comp = "theta", idx = i, dist = s$dist,
                                  scale = "sd", lb = s$lb, ub = s$ub)
-      } else if (!is.null(assigned[[key]])) {
-        assigned[[key]] <<- entry_bounds(assigned[[key]], s)
+      } else if (!is.null(st$assigned[[key]])) {
+        st$assigned[[key]] <- entry_bounds(st$assigned[[key]], s)
       }
       nm_theta <- paste0("theta_", i)
-      if (!is.na(s$lb)) lower[nm_theta] <<- if (s$lb > 0) log(s$lb) else -Inf
-      if (!is.na(s$ub)) upper[nm_theta] <<- log(s$ub)
+      if (!is.na(s$lb)) st$lower[nm_theta] <- if (s$lb > 0) log(s$lb) else -Inf
+      if (!is.na(s$ub)) st$upper[nm_theta] <- log(s$ub)
     }
     if (!hit) {
       frm_stop("No latent residual matches ", spec_target(s), ". brms's ",
@@ -3995,7 +4002,7 @@ resolve_priorlist <- function(fit, pl) {
           trans_dist(s$dist, tr)
         }
         claim(cmp_ac, idx)
-        assigned[[nm_of(cmp_ac, idx)]] <<-
+        st$assigned[[nm_of(cmp_ac, idx)]] <-
           list(comp = cmp_ac, idx = idx, dist = dst,
                scale = "internal", lb = NA, ub = NA)
       }
@@ -4022,11 +4029,11 @@ resolve_priorlist <- function(fit, pl) {
         # lb and ub), and a specification of the slot replaces it whole
         if (!is.na(s$lb)) {
           b <- ac_bound_theta(s$lb, tr, ac, s$class, "lb")
-          if (is.finite(b)) lower[nms[idx]] <<- b
+          if (is.finite(b)) st$lower[nms[idx]] <- b
         }
         if (!is.na(s$ub)) {
           b <- ac_bound_theta(s$ub, tr, ac, s$class, "ub")
-          if (is.finite(b)) upper[nms[idx]] <<- b
+          if (is.finite(b)) st$upper[nms[idx]] <- b
         }
       }
     }
@@ -4069,7 +4076,7 @@ resolve_priorlist <- function(fit, pl) {
     idx <- seq_len(n_r)
     if (is.null(s$dist)) return(invisible(NULL))
     claim("thetar", idx)
-    assigned[[nm_of("thetar", idx)]] <<-
+    st$assigned[[nm_of("thetar", idx)]] <-
       list(comp = "thetar", idx = idx,
            dist = lkj_dist(s$dist$eta, list(kind = "chol",
                                             d = length(fit$spec$responses)),
@@ -4099,7 +4106,7 @@ resolve_priorlist <- function(fit, pl) {
       if (is.null(s$dist)) next
       idx <- seq_along(fit$frame[["par_template"]][[b$comp]])
       claim(b$comp, idx)
-      assigned[[nm_of(b$comp, idx)]] <<-
+      st$assigned[[nm_of(b$comp, idx)]] <-
         list(comp = b$comp, idx = idx,
              dist = lkj_dist(s$dist$eta,
                              list(kind = "chol", d = length(b$sx$pred)),
@@ -4348,7 +4355,7 @@ resolve_priorlist <- function(fit, pl) {
         if (is.null(s$dist)) next
         idx <- g$th_idx
         claim("thetame", idx)
-        assigned[[nm_of("thetame", idx)]] <<-
+        st$assigned[[nm_of("thetame", idx)]] <-
           list(comp = "thetame", idx = idx,
                dist = lkj_dist(s$dist$eta,
                                list(kind = "chol", d = length(g$K)),
@@ -4374,13 +4381,13 @@ resolve_priorlist <- function(fit, pl) {
     for (i in k) {
       key <- nm_of(comp, i)
       if (!is.null(s$dist)) {
-        assigned[[key]] <<- list(comp = comp, idx = i, dist = s$dist,
+        st$assigned[[key]] <- list(comp = comp, idx = i, dist = s$dist,
                                  scale = pm$scale, lb = s$lb, ub = s$ub)
-      } else if (!is.null(assigned[[key]])) {
-        assigned[[key]] <<- entry_bounds(assigned[[key]], s)
+      } else if (!is.null(st$assigned[[key]])) {
+        st$assigned[[key]] <- entry_bounds(st$assigned[[key]], s)
       }
-      if (!is.na(s$lb)) lower[nms[i]] <<- internal_bound(s$lb, pm, "lb")
-      if (!is.na(s$ub)) upper[nms[i]] <<- internal_bound(s$ub, pm, "ub")
+      if (!is.na(s$lb)) st$lower[nms[i]] <- internal_bound(s$lb, pm, "lb")
+      if (!is.na(s$ub)) st$upper[nms[i]] <- internal_bound(s$ub, pm, "ub")
     }
     invisible(NULL)
   }
@@ -4457,7 +4464,7 @@ resolve_priorlist <- function(fit, pl) {
             # class-wide one there and only there. The vector stays one
             # entry, so an ordered map's log-Jacobian enters once
             # (prior_logdens()), as Stan's `ordered` type adds it once
-            old <- assigned[[key]]
+            old <- st$assigned[[key]]
             dists <- if (is.null(old)) {
               rep(list(NULL), length(e$idx))
             } else if (identical(old$dist$kind, "vec")) {
@@ -4470,7 +4477,7 @@ resolve_priorlist <- function(fit, pl) {
           }
           e$coef_k <- NULL
           claim(e$comp, e$idx)
-          assigned[[key]] <- e
+          st$assigned[[key]] <- e
         }
       }
       if (!is.na(s$lb) || !is.na(s$ub)) {
@@ -4484,20 +4491,20 @@ resolve_priorlist <- function(fit, pl) {
         key <- nm_of(tg$comp, tg$idx)
         pm <- coef_placement(s, tg)
         if (!is.null(s$dist)) {
-          assigned[[key]] <- list(comp = tg$comp, idx = tg$idx,
+          st$assigned[[key]] <- list(comp = tg$comp, idx = tg$idx,
                                   dist = s$dist, scale = pm$scale,
                                   link = pm$link, offset = pm$offset,
                                   lb = s$lb, ub = s$ub)
-        } else if (!is.null(assigned[[key]])) {
-          assigned[[key]] <- entry_bounds(assigned[[key]], s)
+        } else if (!is.null(st$assigned[[key]])) {
+          st$assigned[[key]] <- entry_bounds(st$assigned[[key]], s)
         }
         # a bound belongs to the quantity the DENSITY is about, so a
         # `natural` placement has to carry it back through the link
         # before it can box an internal parameter. brms writes lb = 0 on
         # every dispersion default, and on a log-linked sigma that is
         # log(0) = -Inf, not a floor of 1 (see R3 of the punch re-check)
-        if (!is.na(s$lb)) lower[tg$name] <- internal_bound(s$lb, pm, "lb")
-        if (!is.na(s$ub)) upper[tg$name] <- internal_bound(s$ub, pm, "ub")
+        if (!is.na(s$lb)) st$lower[tg$name] <- internal_bound(s$lb, pm, "lb")
+        if (!is.na(s$ub)) st$upper[tg$name] <- internal_bound(s$ub, pm, "ub")
       }
     } else if (s$class %in% c("sd", "sds")) {
       is_sd <- identical(s$class, "sd")
@@ -4541,17 +4548,17 @@ resolve_priorlist <- function(fit, pl) {
           i <- bk[["theta_idx"]][k]
           key <- nm_of("theta", i)
           if (!is.null(s$dist)) {
-            assigned[[key]] <- list(comp = "theta", idx = i,
+            st$assigned[[key]] <- list(comp = "theta", idx = i,
                                     dist = s$dist, scale = "sd",
                                     lb = s$lb, ub = s$ub)
-          } else if (!is.null(assigned[[key]])) {
-            assigned[[key]] <- entry_bounds(assigned[[key]], s)
+          } else if (!is.null(st$assigned[[key]])) {
+            st$assigned[[key]] <- entry_bounds(st$assigned[[key]], s)
           }
           nm_theta <- paste0("theta_", i)
           if (!is.na(s$lb)) {
-            lower[nm_theta] <- if (s$lb > 0) log(s$lb) else -Inf
+            st$lower[nm_theta] <- if (s$lb > 0) log(s$lb) else -Inf
           }
-          if (!is.na(s$ub)) upper[nm_theta] <- log(s$ub)
+          if (!is.na(s$ub)) st$upper[nm_theta] <- log(s$ub)
         }
       }
       if (!hit && !is_sd) {
@@ -4593,7 +4600,7 @@ resolve_priorlist <- function(fit, pl) {
         if (is.null(s$dist)) next
         idx <- bk[["theta_idx"]][spec$idx]
         claim("theta", idx)
-        assigned[[nm_of("theta", idx)]] <-
+        st$assigned[[nm_of("theta", idx)]] <-
           list(comp = "theta", idx = idx,
                dist = lkj_dist(s$dist$eta, spec, flat = isTRUE(s$dist$flat)),
                scale = "internal",
@@ -4668,14 +4675,14 @@ resolve_priorlist <- function(fit, pl) {
         key <- nm_of(cmp, i)
         if (!is.null(s$dist)) {
           claim(cmp, i)
-          assigned[[key]] <-
+          st$assigned[[key]] <-
             list(comp = cmp, idx = i, dist = s$dist,
                  scale = "internal", lb = s$lb, ub = s$ub)
-        } else if (!is.null(assigned[[key]])) {
-          assigned[[key]] <- entry_bounds(assigned[[key]], s)
+        } else if (!is.null(st$assigned[[key]])) {
+          st$assigned[[key]] <- entry_bounds(st$assigned[[key]], s)
         }
-        if (!is.na(s$lb)) lower[nms[i]] <- s$lb
-        if (!is.na(s$ub)) upper[nms[i]] <- s$ub
+        if (!is.na(s$lb)) st$lower[nms[i]] <- s$lb
+        if (!is.na(s$ub)) st$upper[nms[i]] <- s$ub
       }
     } else if (s$class %in% names(autocor_prior_classes)) {
       resolve_ac_class(s)
@@ -4702,7 +4709,7 @@ resolve_priorlist <- function(fit, pl) {
         if (tm$D < 2L) next
         idx <- seq_len(tm$D - 1L)
         claim(tm$zeta, idx)
-        assigned[[nm_of(tm$zeta, idx)]] <-
+        st$assigned[[nm_of(tm$zeta, idx)]] <-
           list(comp = tm$zeta, idx = idx,
                dist = dirichlet_dist(s$dist$alpha, tm$D, tm$chart),
                scale = "internal", lb = NA, ub = NA)
@@ -4712,21 +4719,21 @@ resolve_priorlist <- function(fit, pl) {
         key <- nm_of(e$comp, e$idx)
         if (!is.null(s$dist)) {
           claim(e$comp, e$idx)
-          assigned[[key]] <- e
-        } else if (!is.null(assigned[[key]])) {
-          assigned[[key]] <- entry_bounds(assigned[[key]], s)
+          st$assigned[[key]] <- e
+        } else if (!is.null(st$assigned[[key]])) {
+          st$assigned[[key]] <- entry_bounds(st$assigned[[key]], s)
         }
         # a bound is on delta itself, carried through the log that an
         # ordered family holds it on
         nm_b <- par_template_names(frame[["par_template"]][[e$comp]],
                                    e$comp)[e$idx]
         pm <- list(scale = e$scale)
-        if (!is.na(s$lb)) lower[nm_b] <- internal_bound(s$lb, pm, "lb")
-        if (!is.na(s$ub)) upper[nm_b] <- internal_bound(s$ub, pm, "ub")
+        if (!is.na(s$lb)) st$lower[nm_b] <- internal_bound(s$lb, pm, "lb")
+        if (!is.na(s$ub)) st$upper[nm_b] <- internal_bound(s$ub, pm, "ub")
       }
     }
   }
-  list(entries = unname(assigned), lower = lower, upper = upper)
+  list(entries = unname(st$assigned), lower = st$lower, upper = st$upper)
 }
 
 #' The `mo()` simplexes a class `"simo"` specification names: brms's

@@ -2396,10 +2396,11 @@ VarCorr.frmtmb_fit <- function(x, sigma = 1, summary = TRUE,
   tab <- cbind(q0, se, outer(se, stats::qnorm(probs)) + q0)
   colnames(tab) <- stats_nm
   vals <- varcorr_values(x, pc$vals, pc$comp, lay)
-  pos <- 0L
+  cur <- new.env(parent = emptyenv())
+  cur$pos <- 0L
   take <- function(n) {
-    r <- tab[pos + seq_len(n), , drop = FALSE]
-    pos <<- pos + n
+    r <- tab[cur$pos + seq_len(n), , drop = FALSE]
+    cur$pos <- cur$pos + n
     r
   }
   rn_of <- function(key) {

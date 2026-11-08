@@ -103,7 +103,8 @@ frm_hazard_reads <- function(package) {
     }
     getNamespace(package)
   }
-  out <- character(0)
+  acc <- new.env(parent = emptyenv())
+  acc$out <- character(0)
   # An empty argument (`x[, 1]`) errors when TOUCHED rather than when
   # extracted, so every inspection of a call's parts is guarded.
   #
@@ -134,7 +135,7 @@ frm_hazard_reads <- function(package) {
   walk <- function(e, where) {
     if (identical(e[[1L]], quote(`$`)) && length(e) >= 3L &&
         isTRUE(lhs(e[[2L]]) %in% hazard_containers)) {
-      out[[length(out) + 1L]] <<- paste0(
+      acc$out[[length(acc$out) + 1L]] <- paste0(
         where, ": ", lhs(e[[2L]]), "$",
         paste(deparse(e[[3L]]), collapse = ""))
     }
@@ -155,5 +156,5 @@ frm_hazard_reads <- function(package) {
       if (tryCatch(is.call(d), error = function(err) FALSE)) walk(d, nm)
     }
   }
-  out
+  acc$out
 }

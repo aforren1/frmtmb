@@ -1,0 +1,5 @@
+frmtmb tests/testthat/test-mo-factor-re.R
+frmtmb tests/testthat/test-nl-family.R
+frmtmb tests/testthat/test-predfix.R
+frmtmb tests/testthat/test-grad-verdict.R
+frmtmb tests/testthat/test-latres.R

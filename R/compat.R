@@ -599,16 +599,17 @@ compat_near_feature <- function(bad, known) {
 #' @rdname frmtmb_register_compat
 #' @export
 compat_rule_builder <- function() {
-  rows <- list()
+  acc <- new.env(parent = emptyenv())
+  acc$rows <- list()
   list(
     r = function(a, b, status, note, override = FALSE) {
-      rows[[length(rows) + 1L]] <<- data.frame(
+      acc$rows[[length(acc$rows) + 1L]] <- data.frame(
         feature_a = a, feature_b = b, status = status, note = note,
         override = override, stringsAsFactors = FALSE)
       invisible(NULL)
     },
     rules = function() {
-      out <- do.call(rbind, rows)
+      out <- do.call(rbind, acc$rows)
       rownames(out) <- NULL
       out
     }
@@ -1063,9 +1064,10 @@ compat_note_wide_quadrature <- "Refused: quadrature marginalizes one scalar rand
 #' @noRd
 compat_hand_rules_tbl <- function() {
   if (!is.null(compat_hand_cache$tbl)) return(compat_hand_cache$tbl)
-  rows <- list()
+  acc <- new.env(parent = emptyenv())
+  acc$rows <- list()
   r <- function(a, b, status, note, override = FALSE) {
-    rows[[length(rows) + 1L]] <<- data.frame(
+    acc$rows[[length(acc$rows) + 1L]] <- data.frame(
       feature_a = a, feature_b = b, status = status, note = note,
       override = override, stringsAsFactors = FALSE)
     invisible(NULL)
@@ -2321,7 +2323,7 @@ compat_hand_rules_tbl <- function() {
   # would outrank each structure's own "<name> x *" condition and
   # replace it with an unconditional claim.
 
-  out <- do.call(rbind, rows)
+  out <- do.call(rbind, acc$rows)
   rownames(out) <- NULL
   compat_hand_cache$tbl <- out
   out

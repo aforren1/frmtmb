@@ -1,3 +1,13 @@
+# frmtmb (development version)
+
+* The package code does not use the global assignment operator `<<-`.
+  rOpenSci's pkgcheck fails a package that does. A closure that keeps
+  state between calls now writes to an environment that it creates, and
+  a function that collects results returns them. The results do not
+  change. The test `test-no-superassign.R` fails if `<<-` comes back
+  in core. It also fails if `<<-` comes back in an extension, but only
+  when the tests run from the source repository.
+
 # frmtmb 0.79.1
 
 * `residuals(type = "osa")` on `beta_binomial()` always stops with a

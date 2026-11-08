@@ -305,7 +305,8 @@ ps_env <- function(lp, pars, bvec, check = FALSE) {
 #'
 #' @noRd
 ps_extract <- function(body, dpar) {
-  terms <- list()
+  found <- new.env(parent = emptyenv())
+  found$terms <- list()
   walk <- function(e, inside) {
     if (!is.call(e)) return(e)
     fn <- e[[1L]]
@@ -316,8 +317,8 @@ ps_extract <- function(body, dpar) {
                  "would have to be rebuilt whenever its coefficients move",
                  call. = FALSE)
       }
-      pt <- ps_spec(e, length(terms) + 1L, dpar)
-      terms[[length(terms) + 1L]] <<- pt
+      pt <- ps_spec(e, length(found$terms) + 1L, dpar)
+      found$terms[[length(found$terms) + 1L]] <- pt
       return(as.call(list(as.name(pt[["fname"]]),
                           walk(pt[["expr"]], TRUE))))
     }
@@ -334,7 +335,7 @@ ps_extract <- function(body, dpar) {
     }
     e
   }
-  list(body = walk(body, FALSE), terms = terms)
+  list(body = walk(body, FALSE), terms = found$terms)
 }
 
 #' Validate one `ps()` call and turn it into a term specification.
