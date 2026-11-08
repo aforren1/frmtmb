@@ -870,6 +870,7 @@ se_reparam_asym <- 1e-3
 #'
 #' @noRd
 jc_rowvar <- function(jc, G, pos) {
+  if (jc_is_sparse(jc)) return(jcs_rowvar(jc$V, G, pos))
   if (is.null(jc$root)) {
     V <- jc$V[pos, pos, drop = FALSE]
     return(rowSums((G %*% V) * G))
@@ -887,6 +888,7 @@ jc_rowvar <- function(jc, G, pos) {
 #'
 #' @noRd
 jc_quad <- function(jc, G, pos) {
+  if (jc_is_sparse(jc)) return(jcs_quad(jc$V, G, pos))
   if (is.null(jc$root)) {
     return(G %*% jc$V[pos, pos, drop = FALSE] %*% t(G))
   }

@@ -1,3 +1,51 @@
+# frmtmb (development version)
+
+* BREAKING: on a latent residual (`ar()`, `ma()`, `arma()`, `cosy()` or
+  `unstr()` on a family with no residual), `fitted()`, `residuals()` and
+  `frm_linpred(se.fit = TRUE)` give standard errors for the fitted rows
+  at any number of rows. Above 3000 rows they were `NA`, with a message.
+  They now read the joint covariance through the sparse Cholesky factor
+  of the joint precision, and each row's variance through the selected
+  inverse of that factor. On one poisson series with
+  `ar(cov = TRUE)`, `fitted()` took 4.7 s at 2000 rows and 332 s at 8000
+  rows. It now takes 0.17 s and 0.42 s, and 1.7 s at 32000 rows. With
+  `hu ~ (1 | id)` on `hurdle_poisson()`, or `zi ~ (1 | id)` on
+  `zero_inflated_poisson()`, it takes 3.3 s at 32000 rows. The values
+  agree with the dense route to 1.3e-13, relative.
+
+* BREAKING: beside another group-level block, `fitted()` on new rows of
+  a latent residual keeps its standard errors above
+  `frmtmb.latres_dense_rows` rows. They were `NA`, with a message. A new
+  row reads the estimates and the levels of the other block, and no
+  latent.
+
+* A fit with a latent residual keeps no dense joint covariance after
+  `fitted()`. It keeps the sparse factor of its joint precision, which
+  grows with the rows. On one poisson series, a saved fit of 2000 rows
+  grew from 5.1 MB to 36.2 MB after `fitted()`, and now grows to 5.7 MB.
+  At 8000 rows it grew to 500 MB with both row limits moved; with the
+  default limits its standard errors were `NA` and it stayed at 9.6 MB.
+  It now grows to 12.3 MB, with every standard error given. Beside a
+  group-level block of 50 levels it grows from 11.6 MB to 15.7 MB at
+  8000 rows, and from 35.6 MB to 51.9 MB at 32000 rows.
+
+* `options(frmtmb.latres_dense_rows = )` now limits only a dense block
+  of the joint covariance of a latent residual that a function returns
+  or must form: `frm_joint_cov()`, `frm_lp_basis()` on the fitted rows,
+  and the standard errors of the category probabilities of an ordinal
+  family's fitted rows. `frm_curve()` and `conditional_effects()` on new
+  rows are not refused. `options(frmtmb.latres_se_rows = )` now applies
+  to those category probabilities and to the Laplace check alone. A fit
+  whose covariance of the estimates is held as a factor, which an
+  ill-conditioned design gives, keeps the dense joint covariance and
+  both limits as before.
+
+* `frm_lp_basis()` on a fit with a latent residual leaves out of
+  `coef_pos` every column that no row of `A` loads: a latent, a level
+  that the rows do not name, and a coefficient whose covariate is 0 on
+  every row. Such a column adds nothing to `A V A'`. A new row loads no
+  latent.
+
 # frmtmb 0.79.1
 
 * `residuals(type = "osa")` on `beta_binomial()` always stops with a

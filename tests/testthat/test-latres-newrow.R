@@ -168,11 +168,16 @@ test_that("the linear scale holds the latent's draw, as a me() row does", {
   expect_equal(unname(a[, "Est.Error"]), sqrt(se0^2 + sl^2), tolerance = 1e-8)
 })
 
-test_that("a standard error refused above the dense limit says so", {
+test_that("a standard error above the dense limit reads the sparse factor", {
   d <- lrn_data(7334, 0.3)
   f <- suppressWarnings(frm(y ~ x + (1 | s) + ar(time = t, gr = s, cov = TRUE),
                             data = d, family = poisson()))
   nd <- data.frame(t = 26, s = factor(c(1, 2)), x = c(0, 1))
+  # the references are the joint covariance formed densely from the joint
+  # precision (helper-latres-ref.R), not the sparse route; a new row's linear
+  # scale holds the latent's draw beside it
+  ref_new <- sqrt(latres_ref_se(f, nd)^2 + latres_row_sd(f, "y", NULL)^2)
+  ref_fit <- latres_ref_se(f)
   withr::local_options(frmtmb.latres_dense_rows = 10L, frmtmb.latres_se_rows = 5L)
   said <- 0L
   count <- function(m) {
@@ -181,11 +186,12 @@ test_that("a standard error refused above the dense limit says so", {
   }
   v <- withCallingHandlers(fitted(f, newdata = nd, scale = "linear"),
                            frmtmb_latres_se_skipped = count)
-  expect_gte(said, 1L)
-  expect_true(all(is.finite(v[, "Estimate"])))
-  said <- 0L
-  v <- withCallingHandlers(fitted(f), frmtmb_latres_se_skipped = count)
-  expect_gte(said, 1L)
+  eps <- sqrt(.Machine$double.eps)
+  expect_lt(latres_ref_ratio(v[, "Est.Error"], ref_new), eps)
+  w <- withCallingHandlers(fitted(f), frmtmb_latres_se_skipped = count)
+  # poisson's log link: d mu / d eta is mu
+  expect_lt(latres_ref_ratio(w[, "Est.Error"], w[, "Estimate"] * ref_fit), eps)
+  expect_identical(said, 0L)
 })
 
 test_that("new rows above the row limit beside another block read the joint covariance", {
@@ -193,11 +199,21 @@ test_that("new rows above the row limit beside another block read the joint cova
   fm <- y ~ x + (1 | s) + ar(time = t, gr = s, cov = TRUE)
   f <- suppressWarnings(frm(fm, data = d, family = poisson()))
   nd <- data.frame(t = 26, s = factor(c(1, 2)), x = c(0, 1))
-  a <- fitted(f, newdata = nd)
+  # the reference is the dense route on the same fit, with its sdreport kept
+  # and its joint covariance dropped, not the sparse route
+  a <- local({
+    fd <- f
+    fd$cache <- list2env(mget(setdiff(ls(f$cache), "Vjoint"), envir = f$cache),
+                         parent = emptyenv())
+    local_mocked_bindings(jcs_joint_cov = function(fit) NULL,
+                          .package = "frmtmb")
+    fitted(fd, newdata = nd)
+  })
   withr::with_options(list(frmtmb.latres_se_rows = 5L), {
     expect_equal(fitted(f, newdata = nd)[, "Est.Error"], a[, "Est.Error"], tolerance = 1e-8)
   })
-  # past the dense limit it reads NA and says so; a new fit, since the matrix is cached
+  # past the dense limit too: the new rows read the estimates and the levels
+  # of (1 | s) alone; a new fit, since the covariance is cached
   f2 <- suppressWarnings(frm(fm, data = d, family = poisson()))
   withr::local_options(frmtmb.latres_se_rows = 5L, frmtmb.latres_dense_rows = 10L)
   said <- 0L
@@ -206,8 +222,8 @@ test_that("new rows above the row limit beside another block read the joint cova
                              said <<- said + 1L
                              invokeRestart("muffleMessage")
                            })
-  expect_gte(said, 1L)
-  expect_true(all(is.na(v[, "Est.Error"])))
+  expect_identical(said, 0L)
+  expect_equal(v[, "Est.Error"], a[, "Est.Error"], tolerance = 1e-8)
   expect_true(all(is.finite(v[, "Estimate"])))
 })
 

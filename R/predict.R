@@ -6,13 +6,23 @@
 # block's components (one component per contributing linear predictor).
 
 #' Memoized joint covariance of all estimated parameters (fixed + random),
-#' with row/col component names. Cached in `fit$cache`.
+#' with row/col component names. Cached in `fit$cache`. On a fit with a
+#' latent residual it is held sparse (jcs_joint_cov()); where that route does
+#' not apply, `dense = FALSE` returns `NULL` instead of forming it dense.
 #'
 #' @noRd
-get_joint_cov <- function(fit) {
+get_joint_cov <- function(fit, dense = TRUE) {
   cache <- fit$cache
   if (!is.null(cache$Vjoint)) return(cache$Vjoint)
   if (length(frame_latres(fit$frame))) {
+    # a latent per row makes V (n + p)^2 dense; held sparse, a reader pays
+    # for the block it reads (R/joint-sparse.R)
+    sp <- jcs_joint_cov(fit)
+    if (!is.null(sp)) {
+      cache$Vjoint <- sp
+      return(cache$Vjoint)
+    }
+    if (!dense) return(NULL)
     m <- fit$frame[["n_obs"]]
     lim <- getOption("frmtmb.latres_dense_rows", 20000L)
     if (m > lim) {
@@ -165,6 +175,28 @@ joint_cov_repair <- function(fit, Q, sdr) {
   V[r, f] <- JV
   V[f, r] <- t(JV)
   V[f, f] <- Vf
+  meta <- joint_cov_repair_meta(fit, sdr, p, r, f)
+  # the factor of the covariance (se_reparam_cov()) carried into the
+  # group effects as the propagated part is: V = Vrest + root root'
+  root <- NULL
+  Vrest <- NULL
+  if (!is.null(Lf)) {
+    root <- matrix(0, p, ncol(Lf), dimnames = list(rownames(Q), NULL))
+    root[f, ] <- Lf
+    root[r, ] <- JL
+    Vrest <- matrix(0, p, p, dimnames = dimnames(V))
+    Vrest[r, r] <- Wrr
+  }
+  list(V = V, null = meta$null, flat = meta$flat, units = meta$units,
+       root = root, Vrest = Vrest, lost_pos = meta$lost_pos)
+}
+
+#' What joint_cov_repair() carries beside `V`, at joint positions: the lost
+#' directions, the flat subspace's scaling, the optimizer's units and the
+#' lost parameters. The sparse route (jcs_joint_cov()) reads the same.
+#'
+#' @noRd
+joint_cov_repair_meta <- function(fit, sdr, p, r, f) {
   null <- NULL
   if (NCOL(sdr$se_null)) {
     null <- matrix(0, p, NCOL(sdr$se_null))
@@ -185,19 +217,7 @@ joint_cov_repair <- function(fit, Q, sdr) {
       flat$dscale <- ds
     }
   }
-  # the factor of the covariance (se_reparam_cov()) carried into the
-  # group effects as the propagated part is: V = Vrest + root root'
-  root <- NULL
-  Vrest <- NULL
-  if (!is.null(Lf)) {
-    root <- matrix(0, p, ncol(Lf), dimnames = list(rownames(Q), NULL))
-    root[f, ] <- Lf
-    root[r, ] <- JL
-    Vrest <- matrix(0, p, p, dimnames = dimnames(V))
-    Vrest[r, r] <- Wrr
-  }
-  list(V = V, null = null, flat = flat, units = units, root = root,
-       Vrest = Vrest,
+  list(null = null, flat = flat, units = units,
        lost_pos = f[match(names(sdr$se_lost), outer_par_names(fit))])
 }
 
@@ -2626,8 +2646,11 @@ frm_linpred <- function(object, newdata = NULL,
   rrj <- if (has_rr) rr_jacobians(object)
   jc <- get_joint_cov(object)
   da <- lp_delta_A(object, lp, ed, newdata, use_re, jc, has_rr, rrj)
-  lb <- lp_basis_out(object, jc, ed[["eta"]], as.matrix(da$A), da$coef_pos,
-                     lp_extra_var_vec(object, ed, use_re), ed[["nonest"]])
+  # a design over every latent stays sparse: dense, it is n^2 numbers
+  lb <- lp_basis_out(object, jc, ed[["eta"]],
+                     if (jc_is_sparse(jc)) da$A else as.matrix(da$A),
+                     da$coef_pos, lp_extra_var_vec(object, ed, use_re),
+                     ed[["nonest"]])
   var_eta <- pmax(lb_rowvar(lb), 0) + lb$extra_var
   se_eta <- sqrt(var_eta)
   # the kept columns still have a finite variance, but it is not the
@@ -2778,6 +2801,10 @@ linpred_layers <- function(object, rspec, layers, newdata, re_formula, use_re,
   pick <- object[["layer_pick"]]
   take <- function(m) if (is.null(pick)) m else m[, pick]
   if (!se.fit) return(take(fit))
+  # the stacked design is dense over every latent of a latent residual
+  if (latres_skip_se(object, newdata, dense = TRUE)) {
+    return(list(fit = take(fit), se.fit = take(fit * NA_real_)))
+  }
   for (l in layers) {
     if (!is.null(l$lp[["nl_body"]])) {
       # the refusal the predictor gives when it is named
@@ -3662,8 +3689,15 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
   # one gradient row per observation over the union of coefficient
   # positions; predictors that share a coefficient (the b block) add
   pos_all <- unique(unlist(lapply(das, `[[`, "coef_pos")))
-  G <- matrix(0, n, length(pos_all))
-  for (dnm in dnames) {
+  # beside a latent residual the gradient spans every latent and is
+  # stacked sparse; the loop below fills the dense one
+  stacked <- jc_is_sparse(jc)
+  G <- if (stacked) {
+    jcs_stack_grad(das, grad, dnames, pos_all, n)
+  } else {
+    matrix(0, n, length(pos_all))
+  }
+  for (dnm in if (stacked) character(0) else dnames) {
     cp <- das[[dnm]]$coef_pos
     if (!length(cp)) next
     cols <- match(cp, pos_all)
@@ -4434,7 +4468,9 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
   # the handler below muffles what fitted_point() already said, which
   # would include a waiting SE check's report
   se_flush_deferred(object)
-  if (latres_skip_se(object, newdata)) {
+  # a category distribution is differenced over a dense block of every
+  # latent; one number per row reads the sparse joint covariance
+  if (latres_skip_se(object, newdata, dense = is.matrix(est))) {
     return(if (is.matrix(est)) est * NA_real_ else rep(NA_real_, length(est)))
   }
   # the mean over a new row's latent has no design row, so it is differenced
@@ -6621,6 +6657,10 @@ na_unpad <- function(fit, x) {
 #' The other elements (`null`, `units`) are internal.
 #' A fit with no random effects has no joint precision, and `V` is then
 #' the fixed-effect covariance `sdreport()$cov.fixed`; `names` says so.
+#' A fit with a latent residual memoizes the sparse factor of its joint
+#' precision instead, and `V` is formed from it here: about `8 p^2` bytes,
+#' and about four times that while it is formed, refused above
+#' `getOption("frmtmb.latres_dense_rows", 20000)` rows.
 #'
 #' A parameter whose standard error is lost has `NaN` in its row and
 #' column, as in [vcov()]. The rest of `V` propagates the uncertainty of
@@ -6649,6 +6689,8 @@ frm_joint_cov <- function(object) {
   require_fitted(object, "frm_joint_cov()")
   jc <- get_joint_cov(object)
   warn_cov_products(object, "frm_joint_cov()")
+  # the caller reads V whole, so a latent residual's is formed here
+  if (jc_is_sparse(jc)) jc$V <- as.matrix(jc$V)
   jc$labels <- joint_coef_labels(object, jc)
   # the internal covariance keeps finite rows for the parameters the
   # Hessian lost, for predictions that do not move along them; what a
@@ -6754,12 +6796,22 @@ b_coef_labels <- function(fit) {
 #'     covariance between rows of the variance in `extra_var`, whose
 #'     diagonal it is, exactly. A sparse [Matrix::Matrix()] when its
 #'     blocks cover little of the grid (all zero when nothing
-#'     contributes), a dense matrix otherwise. Beside a latent residual, `A` and
-#'     `V` are dense, about `16 n^2` bytes for `n` rows: 1 GB at 8000 rows.}
+#'     contributes), a dense matrix otherwise.}
 #' }
 #' `var(eta)` is `rowSums((A %*% V) * A) + extra_var`, and
 #' `frm_linpred(se.fit = TRUE)` is written that way. The covariance of
 #' the whole prediction is `A V A' + extra_cov`.
+#'
+#' Beside a latent residual (`ar()`, `ma()`, `arma()`, `cosy()` or `unstr()`
+#' on a family with no residual), `coef_pos` leaves out every column that no
+#' row of `A` loads: a latent, a level the rows do not name, a coefficient
+#' whose covariate is 0 on every row. Such a column adds nothing to `A V A'`.
+#' A new row loads no latent, so `A` and `V` stay small. The
+#' fitted rows load every latent, and there `A` and `V` are dense, about
+#' `16 n^2` bytes for `n` rows (1 GB at 8000 rows). A `V` of more than
+#' `getOption("frmtmb.latres_dense_rows", 20000)^2` numbers is refused.
+#' `frm_linpred(se.fit = TRUE)` reads the fitted rows from the sparse factor
+#' of the joint precision instead, at no such cost.
 #'
 #' Under a `cov = FALSE` autocorrelation term `eta` is the predictor without the
 #' term, as brms's `emmeans()` reads it (`incl_autocor = FALSE`), and
@@ -6880,8 +6932,8 @@ frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
   # dpar = "mu" the shared part
   layers <- if (is.null(dpar)) lp_layers(object, rspec)
   if (!is.null(layers)) {
-    return(lp_basis_layers(object, rspec, layers, newdata, use_re,
-                           allow_new_levels, extra_cov, jc))
+    return(lb_dense(lp_basis_layers(object, rspec, layers, newdata, use_re,
+                                    allow_new_levels, extra_cov, jc)))
   }
   dpar <- dpar %||% if ("mu" %in% names(rspec$dpars)) "mu" else
     rspec$primary_dpars[1]
@@ -6891,8 +6943,22 @@ frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
              resp, "'. Available: ",
              paste(names(rspec$dpars), collapse = ", "), call. = FALSE)
   }
-  lp_basis_layer(object, list(lp = lp, k = 1L), rspec, newdata, use_re,
-                 allow_new_levels, extra_cov, jc)
+  lb_dense(lp_basis_layer(object, list(lp = lp, k = 1L), rspec, newdata,
+                          use_re, allow_new_levels, extra_cov, jc))
+}
+
+#' An frm_lp_basis() result with `V` as a matrix, which is its contract:
+#' the fitted rows of a latent residual carry the sparse joint covariance
+#' instead (lp_basis_out()), and this forms the block, under the limit
+#' jcs_check_size() sets.
+#'
+#' @noRd
+lb_dense <- function(lb) {
+  if (is.null(lb$V_sparse)) return(lb)
+  lb$V <- lb$V_sparse[lb$coef_pos, lb$coef_pos, drop = FALSE]
+  lb$A <- as.matrix(lb$A)
+  lb$V_sparse <- NULL
+  lb
 }
 
 #' The variance sources that are not coefficient uncertainty, summed to
@@ -6919,14 +6985,29 @@ lp_extra_var_vec <- function(object, ed, use_re) {
 #' @noRd
 lp_basis_out <- function(object, jc, eta, A, coef_pos, extra_var, nonest) {
   lab <- joint_coef_labels(object, jc)
+  sparse <- NULL
+  if (jc_is_sparse(jc)) {
+    # beside a latent residual most columns are latents no row here loads
+    # (a new row loads none), and they add nothing to A V A'
+    keep <- jcs_loaded_cols(A)
+    A <- A[, keep, drop = FALSE]
+    coef_pos <- coef_pos[keep]
+    nr <- length(unique(stats::na.omit(match(coef_pos, jc$V[["r"]]))))
+    # the fitted rows load every latent: their variances come from the
+    # factor, and a dense block is formed only on request (frm_lp_basis())
+    if (nr > jcs_block_max) sparse <- jc$V else A <- as.matrix(A)
+  }
   out <- list(eta = eta, A = A, coef_pos = coef_pos,
-              V = jc$V[coef_pos, coef_pos, drop = FALSE],
+              V = if (is.null(sparse)) {
+                jc$V[coef_pos, coef_pos, drop = FALSE]
+              },
               coef_names = if (is.null(lab)) NULL else lab[coef_pos],
               extra_var = extra_var,
               nonest = nonest %||% rep(FALSE, length(eta)),
               # rows whose standard error the lost directions take
               # (jc_nonest())
               se_nonest = jc_nonest(jc, A, coef_pos))
+  if (!is.null(sparse)) out$V_sparse <- sparse
   if (!is.null(jc$root)) {
     # V = V_rest + V_root V_root' on a fit whose covariance is held as
     # a factor (se_reparam_cov()), which A V A' cannot be formed from
@@ -6945,6 +7026,9 @@ lp_basis_out <- function(object, jc, eta, A, coef_pos, extra_var, nonest) {
 #'
 #' @noRd
 lb_rowvar <- function(lb) {
+  if (!is.null(lb$V_sparse)) {
+    return(jcs_rowvar(lb$V_sparse, lb$A, lb$coef_pos))
+  }
   if (is.null(lb$V_root)) return(rowSums((lb$A %*% lb$V) * lb$A))
   rowSums((lb$A %*% lb$V_root)^2) + rowSums((lb$A %*% lb$V_rest) * lb$A)
 }

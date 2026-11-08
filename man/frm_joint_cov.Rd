@@ -29,6 +29,10 @@ product must be formed from them. They are \code{NULL} otherwise.
 The other elements (\code{null}, \code{units}) are internal.
 A fit with no random effects has no joint precision, and \code{V} is then
 the fixed-effect covariance \code{sdreport()$cov.fixed}; \code{names} says so.
+A fit with a latent residual memoizes the sparse factor of its joint
+precision instead, and \code{V} is formed from it here: about \verb{8 p^2} bytes,
+and about four times that while it is formed, refused above
+\code{getOption("frmtmb.latres_dense_rows", 20000)} rows.
 
 A parameter whose standard error is lost has \code{NaN} in its row and
 column, as in \code{\link[=vcov]{vcov()}}. The rest of \code{V} propagates the uncertainty of

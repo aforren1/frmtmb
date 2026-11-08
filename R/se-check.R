@@ -2982,7 +2982,10 @@ jc_nonest <- function(jc, G, pos) {
   n <- NROW(G)
   fl <- jc$flat
   if (is.null(N) || !NCOL(N) || !n || !length(pos)) return(rep(FALSE, n))
-  G <- as.matrix(G)
+  # a gradient over every latent of a latent residual stays sparse: dense,
+  # it is n^2 numbers (R/joint-sparse.R)
+  sp <- inherits(G, "sparseMatrix")
+  G <- if (sp) methods::as(G, "CsparseMatrix") else as.matrix(G)
   bad <- rep(FALSE, n)
   fc <- intersect(fl$cols %||% integer(0), seq_len(NCOL(N)))
   oc <- setdiff(seq_len(NCOL(N)), fc)
@@ -2994,9 +2997,16 @@ jc_nonest <- function(jc, G, pos) {
     }
     s[!is.finite(s) | !(s > 0)] <- 1
     Nq <- N[, oc, drop = FALSE] * s
-    Gq <- G / rep(s[pos], each = n)
-    num <- abs(Gq %*% Nq[pos, , drop = FALSE])
-    den <- outer(sqrt(rowSums(Gq^2)), sqrt(colSums(Nq^2)))
+    if (sp) {
+      Gq <- G %*% Matrix::Diagonal(x = 1 / s[pos])
+      num <- abs(as.matrix(Gq %*% Nq[pos, , drop = FALSE]))
+      gn <- sqrt(as.numeric(Matrix::rowSums(Gq^2)))
+    } else {
+      Gq <- G / rep(s[pos], each = n)
+      num <- abs(Gq %*% Nq[pos, , drop = FALSE])
+      gn <- sqrt(rowSums(Gq^2))
+    }
+    den <- outer(gn, sqrt(colSums(Nq^2)))
     bad <- rowSums(num > se_pred_tol * den, na.rm = TRUE) > 0
   }
   if (length(fc)) {
@@ -3005,7 +3015,7 @@ jc_nonest <- function(jc, G, pos) {
     r <- r[!is.na(j)]
     j <- j[!is.na(j)]
     if (length(r)) {
-      Gs <- G[, j, drop = FALSE] / rep(fl$scale[r], each = n)
+      Gs <- as.matrix(G[, j, drop = FALSE]) / rep(fl$scale[r], each = n)
       Bs <- N[r, fc, drop = FALSE] * fl$scale[r]
       num <- sqrt(rowSums((Gs %*% Bs)^2))
       bad <- bad | (num > fl$tol * sqrt(rowSums(Gs^2))) %in% TRUE

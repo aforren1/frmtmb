@@ -937,7 +937,7 @@ smooth_edf <- function(fit) {
   if (!is.null(sdr$cov_fixed_root)) {
     jc <- tryCatch(get_joint_cov(fit), error = keep_missing(NULL))
     bj <- if (!is.null(jc)) which(jc$names == "b")
-    if (length(bj) == length(b_pos)) dcr[b_pos] <- pmax(diag(jc$V)[bj], 0)
+    if (length(bj) == length(b_pos)) dcr[b_pos] <- pmax(jc_diag(jc, bj), 0)
   }
   th <- fit$estimates[["theta"]]
   out <- vapply(blocks, function(bk) {

@@ -1883,7 +1883,7 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
           (length(sdr$se_lost) || !is.null(sdr$cov_fixed_root))) {
       jc <- tryCatch(get_joint_cov(object), error = keep_missing(NULL))
       bj <- if (!is.null(jc)) which(jc$names == "b")
-      if (length(bj) == length(cvr)) cvr <- pmax(diag(jc$V)[bj], 0)
+      if (length(bj) == length(cvr)) cvr <- pmax(jc_diag(jc, bj), 0)
     }
   }
   out <- list()

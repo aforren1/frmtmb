@@ -4661,6 +4661,18 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-06
+
+- **A latent residual beside many levels on `hu` or `zi`: `fitted()` costs
+  about levels x rows.** The pairs (latent of `mu`, level of the gate) are
+  outside the pattern of the factor of `Q_rr`, and each level costs one
+  column of `W`. One poisson series, `ar(cov = TRUE)` on `mu`, 32000 rows:
+  3.5 s at 500 levels, 6.8 s at 4000, 24.1 s at 16000 (3.25 s at 50). Route
+  suggested by the review: add the pairs the rows load to `Q_rr` as
+  structural zeros before factoring, so they are in the pattern and the
+  selected inverse holds them. Record: `dev/latperf-findings.md`, "Fix
+  round".
+
 ## Filed at the 0.79.1 release (2026-11-05)
 
 - **`residuals(type = "osa")` on `binomial()` reads NaN with no warning.** 11 of

@@ -1137,11 +1137,15 @@ test_that("response_mean_gh() is one rule for a row's total latent variance", {
   expect_lt(got, 1.05 * sqrt(draw^2 + drop(crossprod(g, V %*% g))))
 })
 
-test_that("the SEs of many fitted rows are skipped, with a message", {
-  d <- lr_data(sd = 0.5)
+test_that("the SEs of many fitted rows are read from the sparse factor", {
+  # above 200 latents, so the fitted rows take the selected inverse and not
+  # a dense block of the inner covariance (jcs_block_max)
+  d <- lr_data(sd = 0.5, G = 30L, K = 8L)
   fit <- lr_fit("cnt", "ar(t, g, cov = TRUE)", poisson(), d)
-  # the default leaves a small fit its standard errors
-  expect_true(all(is.finite(fitted(fit)[, "Est.Error"])))
+  # the reference is the joint covariance formed densely from the joint
+  # precision (helper-latres-ref.R), not the sparse route
+  ref <- latres_ref_se(fit)
+  # above the row limit no dense block is formed, so nothing is skipped
   withr::local_options(frmtmb.latres_se_rows = 10L)
   said <- 0L
   count <- function(m) {
@@ -1149,18 +1153,17 @@ test_that("the SEs of many fitted rows are skipped, with a message", {
     invokeRestart("muffleMessage")
   }
   v <- withCallingHandlers(fitted(fit), frmtmb_latres_se_skipped = count)
-  expect_true(all(is.na(v[, "Est.Error"])))
+  eps <- sqrt(.Machine$double.eps)
+  # poisson's log link: d mu / d eta is mu
+  expect_lt(latres_ref_ratio(v[, "Est.Error"], v[, "Estimate"] * ref), eps)
   expect_true(all(is.finite(v[, "Estimate"])))
-  expect_gte(said, 1L)
-  said <- 0L
   l <- withCallingHandlers(frm_linpred(fit, se.fit = TRUE),
                            frmtmb_latres_se_skipped = count)
-  expect_true(all(is.na(l$se.fit)))
+  expect_lt(latres_ref_ratio(l$se.fit, ref), eps)
   expect_equal(l$fit, frm_linpred(fit))
-  expect_gte(said, 1L)
+  expect_identical(said, 0L)
   # rows of a grid read beta and theta alone, above the limit too
   nd <- data.frame(t = 1:5, g = factor(rep("new", 5L)), x = 0)
-  said <- 0L
   v <- withCallingHandlers(fitted(fit, newdata = nd),
                            frmtmb_latres_se_skipped = count)
   expect_true(all(is.finite(v[, "Est.Error"])))
@@ -1392,9 +1395,11 @@ test_that("a joint covariance past the limit is refused, by name", {
   fit <- lr_fit("y", "ar(t, g, cov = TRUE)", poisson(), d)
   withr::local_options(frmtmb.latres_dense_rows = 10L)
   nd <- d[1:5, ]
+  # what returns a dense block over every latent
   expect_error(frm_lp_basis(fit), "frmtmb.latres_dense_rows", fixed = TRUE)
-  expect_error(frm_curve(fit, newdata = nd), "frmtmb.latres_dense_rows",
-               fixed = TRUE)
+  expect_error(frm_joint_cov(fit), "frmtmb.latres_dense_rows", fixed = TRUE)
+  # new rows load no fitted latent, and read the estimates alone
+  expect_true(all(is.finite(frm_curve(fit, newdata = nd)$.se)))
   # what names no joint covariance still runs
   expect_true(all(is.finite(frm_linpred(fit, newdata = nd))))
   expect_true(all(is.finite(fitted(fit, newdata = nd)[, "Estimate"])))
