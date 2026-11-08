@@ -228,7 +228,7 @@ test_that("a discrete fit above 0 warns in its own class", {
   expect_warning(fit <- frm(y ~ 1, family = bad, data = d),
                  class = "frmtmb_discrete_loglik")
   expect_gt(as.numeric(logLik(fit)), 0)
-  # the correct mass, and the same value under a prior, which logLik() holds
+  # the correct mass
   expect_no_warning(frm(y ~ 1, family = poisson(), data = d))
   good <- frmtmb_family(
     "ok_cont", dpars = "mu", links = list(mu = "identity"),
@@ -244,10 +244,7 @@ test_that("a discrete fit above 0 warns in its own class", {
     list(REML = TRUE, prior = NULL, opt = list(objective = -5),
          frame = list(n_obs = 5L),
          spec = list(responses = list(list(family = list(type = "discrete")))))))
-  expect_silent(discrete_loglik_warning(
-    list(REML = FALSE, prior = data.frame(a = 1), opt = list(objective = -5),
-         frame = list(n_obs = 5L),
-         spec = list(responses = list(list(family = list(type = "discrete")))))))
+  # under a prior the check runs on logLik(): test-loglik-prior.R
   # a sum of near-zero log masses that passes 0 by its rounding
   expect_silent(discrete_loglik_warning(
     list(REML = FALSE, prior = NULL, opt = list(objective = -1e-12),

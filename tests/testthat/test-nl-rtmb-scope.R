@@ -423,11 +423,12 @@ test_that("a response-preparation model fits with no RTMB:: anywhere", {
   # the fitted probability is a probability on every row, and the two
   # numeric routes through the body agree with the taped one. The
   # likelihood-only closure is checked in the gaussian test above
-  # instead: a prior is a penalty on this objective, so here
-  # build_objective(frame) and logLik() differ by exactly that penalty.
+  # instead: a prior is a penalty on this objective, so here the tape
+  # is logLik_penalized(), and logLik() is the data part without it.
   fv <- fitted(fit)[, "Estimate"]
   expect_true(all(fv > 0 & fv < 1))
-  expect_equal(fit$obj$fn(fit$opt$par), -as.numeric(logLik(fit)),
+  expect_equal(fit$obj$fn(fit$opt$par),
+               -as.numeric(logLik_penalized(fit)),
                tolerance = 1e-9, ignore_attr = TRUE)
   expect_equal(unname(fv), unname(frm_linpred(fit, type = "response")),
                tolerance = 1e-12)

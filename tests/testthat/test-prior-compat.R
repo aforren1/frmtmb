@@ -333,7 +333,10 @@ test_that("the loss model takes the vignette's priors and they bind", {
               stats::dnorm(fixef_by_dpar(map)$omega[[1L]], 1, 2, log = TRUE),
               stats::dnorm(fixef_by_dpar(map)$theta[[1L]], 45, 10, log = TRUE))
   raw <- ml$obj$fn(map$opt$par)
-  expect_lt(abs((-as.numeric(logLik(map))) - (raw + nlp)), 1e-6)
+  expect_lt(abs((-as.numeric(logLik_penalized(map))) - (raw + nlp)) /
+              abs(raw), 1e-8)
+  # and logLik() is the likelihood alone at the same point
+  expect_lt(abs(-as.numeric(logLik(map)) - raw) / abs(raw), 1e-8)
 
   # prior_summary() names the parameter each density landed on
   # in brms's layout: several specifications print as a table

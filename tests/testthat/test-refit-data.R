@@ -375,13 +375,14 @@ test_that("update() takes the formula, family and control from the fit", {
 })
 
 test_that("drop1() and anova() refuse a fit whose prior adds a density", {
-  # logLik() of such a fit is log-likelihood plus log prior, so the
-  # difference is not a likelihood ratio and can be negative
+  # the estimates of such a fit do not maximize the log-likelihood, so
+  # the difference is not a likelihood ratio and can be negative
   d <- refit_data_case()
   pr <- set_prior("normal(0, 1)", class = "b")
   fp <- frm(bf(z ~ x + x3), data = d, prior = pr)
   expect_error(drop1(fp), "is not a likelihood ratio", fixed = TRUE)
-  expect_error(stats::step(fp, trace = 0), "is not a likelihood ratio",
+  # step() reads extractAIC() first, which refuses for its own reason
+  expect_error(stats::step(fp, trace = 0), "not a full degree of freedom",
                fixed = TRUE)
   f0 <- frm(bf(z ~ x), data = d)
   expect_error(anova(f0, fp), "model 2 has a prior", fixed = TRUE)

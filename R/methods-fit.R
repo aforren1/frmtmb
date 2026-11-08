@@ -274,6 +274,8 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
     rdf <- rv$df
   }
   ps <- par_est_se(object, vcov)
+  dens <- fit_prior_density(object)
+  pen <- if (dens) logLik_penalized(object)
   coefs <- list()
   for (lp in object$frame[["linpreds"]]) {
     if (lp_hidden_fixed(object, lp)) next
@@ -306,12 +308,21 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
          data_name = summary_data_name(object),
          group = names(ngrps(object) %||% list()),
          # the (MAP) marker says the fit was penalized by a prior, which
-         # is the one thing "ML" would otherwise hide
+         # is the one thing "ML" would otherwise hide; a prior of bounds
+         # alone penalizes nothing
          algorithm = paste0(if (object$REML) "REML" else "ML",
-                            if (!is.null(object$prior)) " (MAP)"),
+                            if (dens) " (MAP)"),
          prob = prob,
-         loglik = logLik(object), AIC = stats::AIC(object),
-         BIC = stats::BIC(object), REML = object$REML,
+         # under a prior with a density the criteria are refused, and
+         # the summary says what the fit maximized instead
+         loglik = tryCatch(logLik(object),
+                           frmtmb_loglik_inner_prior = function(e) NA_real_),
+         log_prior = if (dens) attr(pen, "log_prior"),
+         # what the fit maximized, printed where logLik() has no answer
+         loglik_penalized = if (dens) as.numeric(pen),
+         AIC = if (dens) NA_real_ else stats::AIC(object),
+         BIC = if (dens) NA_real_ else stats::BIC(object),
+         REML = object$REML,
          importance = object$importance,
          # brms's slots. `fixed` and `random` are what a ported script
          # indexes; the frmtmb slots below them are unchanged.
@@ -832,10 +843,25 @@ print.summary.frmtmb_fit <- function(x, ...) {
   }
   cat("   Data:", x$data_name,
       paste0("(Number of observations: ", x$nobs, ")"), "\n")
-  cat(" Method:", x$algorithm,
-      "  logLik:", format(as.numeric(x$loglik), digits = 6),
-      "  AIC:", format(x$AIC, digits = 6),
-      "  BIC:", format(x$BIC, digits = 6), "\n")
+  if (is.null(x$log_prior)) {
+    cat(" Method:", x$algorithm,
+        "  logLik:", format(as.numeric(x$loglik), digits = 6),
+        "  AIC:", format(x$AIC, digits = 6),
+        "  BIC:", format(x$BIC, digits = 6), "\n")
+  } else if (is.na(x$log_prior)) {
+    # the prior is inside the integral (REML with a prior on the fixed
+    # effects): no logLik() to print, and the reason instead of two NAs
+    cat(" Method:", x$algorithm,
+        "  logLik_penalized:", format(x$loglik_penalized, digits = 6), "\n",
+        "  logLik: none, as the prior on the fixed effects is inside the",
+        "REML integral\n")
+  } else {
+    # AIC and BIC are refused under a prior with a density; the log
+    # prior is what separates logLik from the maximized value
+    cat(" Method:", x$algorithm,
+        "  logLik:", format(as.numeric(x$loglik), digits = 6),
+        "  log prior:", format(x$log_prior, digits = 6), "\n")
+  }
   if (!is.null(x$importance)) {
     cat(imp_report_line(x$importance), "\n")
   }
@@ -1044,13 +1070,274 @@ frame_n_outer <- function(frame, object) {
   sum(lens[setdiff(names(lens), inner)]) - nfix
 }
 
+#' Log-likelihood and penalized log-likelihood of a fit
+#'
+#' `logLik()` gives the log-likelihood of the data at the estimates.
+#' `logLik_penalized()` gives the value that the optimizer maximized: the
+#' log-likelihood plus the log prior term. For a fit with no prior, or
+#' with a prior that only sets bounds, the two are equal.
+#'
+#' A prior (`frm(prior = )`) adds a log prior term to the objective, so
+#' the fit is a maximum a posteriori (MAP) fit. `logLik()` subtracts that
+#' term at the estimates from the maximized value. The result is the
+#' log-likelihood at the MAP estimates: the data part of the log density,
+#' which brms's `log_lik()` gives row by row. glmmTMB's `logLik()` with
+#' `priors =` gives the penalized value, which is `logLik_penalized()`
+#' here.
+#'
+#' @section The log prior term:
+#' The term, attribute `log_prior` of `logLik_penalized()`, is exactly
+#' what the optimizer adds. It is the sum of each prior's log density on
+#' the scale that the optimizer moves, so it includes the log-Jacobian
+#' of every map from that scale to the parameter the prior is about: the
+#' log of a standard deviation (`sd`, `sigma` and other positive
+#' parameters), a dpar's link, the chart of an autocorrelation
+#' coefficient, the increments of ordinal thresholds, the chart of a
+#' simplex (`simo` and other Dirichlet priors) and the Cholesky chart of
+#' an `lkj()` prior. A prior with a bound has no truncation normalizer:
+#' the bound is a box on the optimizer, not a change in the density.
+#'
+#' So the term is not brms's `lprior`. brms evaluates each density on the
+#' constrained scale with no Jacobian, which Stan adds to `lp__`
+#' separately, and divides a bounded prior by the probability inside its
+#' bounds. For `normal(0, 1)` on an `sd` at the value `s`, the term here
+#' is `dnorm(s, 0, 1, log = TRUE) + log(s)`; brms's `lprior` is
+#' `dnorm(s, 0, 1, log = TRUE) + log(2)`. Only the term here is what
+#' separates `logLik()` from `logLik_penalized()`.
+#'
+#' @section Random effects and REML:
+#' With random effects, the objective is an integral over them: the
+#' Laplace approximation, `quadrature = TRUE` or `importance =`. A prior
+#' on a parameter outside the integral (a fixed effect, a standard
+#' deviation, a correlation) is a constant in that integral, so the
+#' split is exact. Under `REML = TRUE` the fixed effects are inside the
+#' integral, so a prior on them (class `b`, `Intercept`, or an `nlpar`)
+#' does not separate from it. Then `logLik()` stops with an error, and
+#' `logLik_penalized()` still gives the maximized value.
+#'
+#' @section Information criteria:
+#' The MAP estimates do not maximize the log-likelihood, and a parameter
+#' that a prior shrinks is not a full degree of freedom. Thus, under a
+#' prior with a density, `logLik()` has `df = NA`, with the reason in
+#' attribute `df_why`. `AIC()`, `BIC()`, `extractAIC()` and so `step()`
+#' stop with an error when they dispatch on such a fit, as
+#' [anova()][anova.frmtmb_fit] and `drop1()` do. A call that reaches
+#' stats's own methods with the df of `logLik()`, such as
+#' `AIC(lm_fit, map_fit)`, `BIC(lm_fit, map_fit)` or
+#' `AIC(logLik(map_fit))`, gets `NA` for that fit. A package that counts
+#' the parameters itself is not covered: `insight::get_loglikelihood()`
+#' replaces the `NA` with its own count, so `performance` can still give
+#' an AIC for such a fit. Refit without the prior to compare models by
+#' AIC.
+#'
+#' A prior that only sets bounds (`set_prior("", class = "sd", lb =
+#' 0.1)`) adds no density, and these methods work. So does a `uniform()`
+#' prior on a parameter that the optimizer moves on its own scale (a
+#' coefficient of class `b` or `Intercept`, or an `nlpar`): its log
+#' density is a constant inside its bounds, so the estimates maximize the
+#' likelihood there, as under the bounds alone. A `uniform()` prior on a
+#' standard deviation, a dpar on its natural scale or a correlation is
+#' read through a log-Jacobian, which is not constant, so it is a
+#' density like any other.
+#'
+#' @param object A `frmtmb_fit`.
+#' @param ... For `AIC()` and `BIC()`, more fitted models, as in
+#'   [stats::AIC()]. Refused otherwise.
+#' @param k The penalty per parameter, as in [stats::AIC()].
+#' @return `logLik()`: an object of class `"logLik"` with attributes
+#'   `df`, `nobs` and `REML`, and `df_why` when `df` is `NA`.
+#'   `logLik_penalized()`: one number, with attribute `log_prior`, the
+#'   log prior term at the estimates (see "The log prior term"). That is
+#'   `0` with no prior, and `NA` when it does not separate from the
+#'   integral (see "Random effects and REML"). `AIC()` and `BIC()`: as in
+#'   [stats::AIC()].
+#' @seealso [anova.frmtmb_fit()] for likelihood-ratio tests between
+#'   maximum-likelihood fits.
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(60), g = factor(rep(1:12, 5)))
+#' dd$y <- 1 + 0.5 * dd$x + rnorm(12)[dd$g] + rnorm(60)
+#' fit <- frm(y ~ x + (1 | g), data = dd,
+#'            prior = set_prior("normal(0, 1)", class = "b"))
+#' # the log-likelihood at the MAP estimates
+#' logLik(fit)
+#' # the value the fit maximized, and the log prior it holds
+#' logLik_penalized(fit)
+#' # an information criterion needs the maximum-likelihood fit
+#' try(AIC(fit))
+#' AIC(frm(y ~ x + (1 | g), data = dd))
+#' @export
+logLik_penalized <- function(object, ...) UseMethod("logLik_penalized")
+
+#' @rdname logLik_penalized
+#' @export
+logLik_penalized.frmtmb_fit <- function(object, ...) {
+  frm_check_dots(...)
+  require_fitted(object, "logLik_penalized()")
+  mo_check_fit(object)
+  lp <- fit_log_prior(object)
+  structure(-object$opt$objective,
+            log_prior = if (is.null(attr(lp, "inner"))) as.vector(lp) else
+              NA_real_)
+}
+
+#' The components of the parameter list that a fit integrates out.
+#'
+#' A profiled `beta` is not here: TMB's `profile` maximizes it in the
+#' inner problem with no Laplace term, so a prior on it adds outside any
+#' integral.
+#'
+#' @noRd
+fit_integrated_comps <- function(fit) {
+  tpl <- fit$frame[["par_template"]]
+  c(intersect(c("b", "miss"), names(tpl)),
+    if (isTRUE(fit$REML)) "beta")
+}
+
+#' The resolved prior entries of a fit: the ones `fit_assembled()` built
+#' the objective's prior term from and kept on the fit, or, for a fit
+#' made without that slot, the prior resolved again against its frame.
+#' An empty list for no prior.
+#'
+#' @noRd
+fit_prior_entries <- function(fit) {
+  if ("resolved_prior" %in% names(fit)) {
+    return(fit[["resolved_prior"]] %||% list())
+  }
+  pr <- fit[["prior"]]
+  if (is.null(pr) || !length(pr)) return(list())
+  resolve_prior_input(list(frame = fit[["frame"]], spec = fit[["spec"]]),
+                      pr)$entries
+}
+
+#' Is a resolved prior entry's contribution to the objective a constant
+#' inside its support? A `uniform()` density read with no change of
+#' variables is; every other density, and a uniform one read through a
+#' log-Jacobian (an `sd`, a natural-scale dpar, ordinal thresholds, a
+#' `trans` chart), varies with the parameter and moves the estimate.
+#'
+#' @noRd
+prior_entry_constant <- function(e) {
+  identical(e[["dist"]][["kind"]], "uniform") &&
+    !isTRUE((e[["scale"]] %||% "") %in% c("sd", "natural", "ordthres"))
+}
+
+#' The log density of a fit's prior at its estimates: the term that the
+#' prior added to the maximized objective. `0` for no prior and for a
+#' prior that only sets bounds. `NA` with attribute `inner` (the
+#' integrated components it reads) where the prior reads a component the
+#' fit integrates: there the prior is inside the integral and no value
+#' separates from it.
+#'
+#' @noRd
+fit_log_prior <- function(fit) {
+  ent <- fit_prior_entries(fit)
+  if (!length(ent)) return(0)
+  # a centered Intercept's prior reads the coefficients its offset names
+  reads <- unique(unlist(lapply(ent, function(e) {
+    c(e[["comp"]], e[["offset"]][["comp"]])
+  })))
+  inner <- intersect(reads, fit_integrated_comps(fit))
+  if (length(inner)) return(structure(NA_real_, inner = inner))
+  -as.numeric(neg_log_prior_fn(ent)(fit[["estimates"]]))
+}
+
+#' Refuse `logLik()` where the prior sits inside the integral.
+#'
+#' @noRd
+loglik_inner_prior_refusal <- function(inner) {
+  words <- c(beta = paste("the fixed effects (class b, Intercept or an",
+                          "nlpar), which REML integrates"),
+             b = "the group-level effects",
+             miss = "the latent values of mi() and me()")
+  frm_stop("logLik() subtracts the log prior from the value this fit ",
+           "maximized, and here the two do not separate: the prior reads ",
+           paste(words[inner], collapse = " and "), ", so it is inside ",
+           "the integral the objective computes. logLik_penalized() gives ",
+           "the maximized value. For the log-likelihood, refit without ",
+           "that prior, or with REML = FALSE", call. = FALSE,
+           class = "frmtmb_loglik_inner_prior")
+}
+
+#' Does the maximized value differ from `logLik()`? Then a printout of
+#' the maximized value names it the penalized log-likelihood. A uniform
+#' prior counts: it adds a constant, which moves no estimate but does
+#' move the value.
+#'
+#' @noRd
+fit_penalized <- function(fit) {
+  lp <- fit_log_prior(fit)
+  !isTRUE(lp == 0)
+}
+
+#' The `df_why` of `logLik()` under a prior with a density.
+#'
+#' @noRd
+prior_df_why <- paste0(
+  "the fit has a prior that adds its log density to the objective ",
+  "(frm(prior = )), so its estimates maximize the log-likelihood plus the ",
+  "log prior, and a parameter that the prior shrinks is not a full degree ",
+  "of freedom. No information criterion or likelihood-ratio test reads ",
+  "this logLik(); refit without the prior, or use logLik_penalized() for ",
+  "the maximized value")
+
+#' Refuse an information criterion on fits whose objective holds a prior
+#' density. `fits` are the criterion's arguments, in order, so the
+#' message numbers the model as the call does.
+#'
+#' @noRd
+ic_prior_refusal <- function(what, fits) {
+  dens <- which(vapply(fits, function(f) {
+    inherits(f, "frmtmb_fit") && fit_prior_density(f)
+  }, NA))
+  if (!length(dens)) return(invisible(NULL))
+  which_fit <- if (length(fits) > 1L) {
+    paste0("model ", dens[1L], " has")
+  } else "this fit has"
+  frm_stop(what, " counts each parameter as one degree of freedom at the ",
+           "maximum of the log-likelihood, and ", which_fit, " a prior ",
+           "that adds its log density to the objective (frm(prior = )). ",
+           "Its estimates maximize the log-likelihood plus the log prior, ",
+           "not the log-likelihood, and a parameter that the prior shrinks ",
+           "is not a full degree of freedom. Refit without the prior to ",
+           "compare models by ", what, "; a prior that only sets bounds ",
+           "can stay. To compare the models under the prior, use loo() or ",
+           "bayes_factor() of frmtmb.sample", call. = FALSE,
+           class = "frmtmb_prior_ic")
+}
+
+#' @rdname logLik_penalized
+#' @export
+AIC.frmtmb_fit <- function(object, ..., k = 2) {
+  ic_prior_refusal("AIC()", list(object, ...))
+  NextMethod()
+}
+
+#' @rdname logLik_penalized
+#' @export
+BIC.frmtmb_fit <- function(object, ...) {
+  ic_prior_refusal("BIC()", list(object, ...))
+  NextMethod()
+}
+
+#' @rdname logLik_penalized
 #' @export
 logLik.frmtmb_fit <- function(object, ...) {
   frm_check_dots(...)
   require_fitted(object, "logLik() (and AIC(), BIC(), anova())")
   mo_check_fit(object)
+  lp <- fit_log_prior(object)
+  if (!is.null(attr(lp, "inner"))) {
+    loglik_inner_prior_refusal(attr(lp, "inner"))
+  }
   df <- loglik_df(object)
-  structure(-object$opt$objective,
+  # so that a criterion built from this df outside this package's own
+  # methods (AIC(lm_fit, map_fit), AIC(logLik(fit))) reads NA rather
+  # than a number; a package that counts df itself is not reached. The
+  # internal readers call loglik_df() itself
+  if (fit_prior_density(object)) df <- structure(NA_integer_,
+                                                 df_why = prior_df_why)
+  structure(-object$opt$objective - lp,
             df = as.vector(df),
             df_why = attr(df, "df_why"),
             # a row a missing response took out of the objective is no

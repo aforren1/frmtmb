@@ -63,20 +63,26 @@ fit_end_checks <- function(fit) {
 #' marks a density that lost its digits (`beta_binomial()` read +94208 at code
 #' 0 before its density was rewritten) or a custom family that dropped a
 #' constant. It is one-sided: a value below 0 can be just as wrong, so this does
-#' not vouch for a fit. Under a prior `logLik()` holds the log prior as well, and
-#' REML integrates over a flat prior, so neither is a mass there.
+#' not vouch for a fit. Under a prior the check reads `logLik()`, the
+#' maximized value less the log prior, which is a mass again. REML integrates
+#' over a flat prior, so its value is not a mass and is not checked.
 #'
 #' @noRd
 discrete_loglik_warning <- function(fit) {
-  if (isTRUE(fit$REML) || NROW(fit$prior) > 0L) return(invisible(NULL))
-  ll <- -fit$opt$objective
-  if (length(ll) != 1L || !is.finite(ll)) return(invisible(NULL))
-  # a sum of near-zero log masses can pass 0 by its rounding
-  if (ll <= 1e-8 * max(1, fit$frame[["n_obs"]])) return(invisible(NULL))
+  if (isTRUE(fit$REML)) return(invisible(NULL))
+  # the family first: it is free, and most fits stop here
   types <- vapply(fit$spec$responses, function(resp) {
     as.character(resp$family[["type"]] %||% "")[1L]
   }, "")
   if (!all(types == "discrete")) return(invisible(NULL))
+  lp <- fit_log_prior(fit)
+  # outside REML no prior reads an integrated component today; if one
+  # does, there is no mass to check
+  if (!is.null(attr(lp, "inner"))) return(invisible(NULL))
+  ll <- -fit$opt$objective - lp
+  if (length(ll) != 1L || !is.finite(ll)) return(invisible(NULL))
+  # a sum of near-zero log masses can pass 0 by its rounding
+  if (ll <= 1e-8 * max(1, fit$frame[["n_obs"]])) return(invisible(NULL))
   frm_warning(
     "The log-likelihood is ", format(ll, digits = 7), ", above 0, but every ",
     "response is discrete and a probability mass is at most 1. The density ",

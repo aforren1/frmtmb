@@ -76,6 +76,14 @@ covariance matrix either, and unlike D2 it stays valid when the
 coefficients are far from normal.}
 }
 
+Under a prior with a density (\code{frm(prior = )}), the likelihood rules
+(\code{"D3"}, and \code{"D2"} with \code{use = "likelihood"}) stop, as
+\code{\link[=anova.frmtmb_fit]{anova.frmtmb_fit()}} does. The Wald rules (\code{"D1"}, and \code{"D2"} with
+\code{use = "wald"}) still run: they are Wald tests at the MAP estimates,
+with the covariance of those estimates, consistent with the Wald
+intervals that \code{summary()} prints. Their nominal size is then not
+guaranteed, because the prior pulls the estimates toward its location.
+
 Pooled parameter values are the plain across-imputation means of the
 optimizer's own parameter vector, so variance components are pooled
 on the internal (log / Cholesky) scale, matching \verb{$pooled}. No model

@@ -1975,9 +1975,10 @@ lrt_pvalue <- function(chisq, ddf) {
 #'
 #' A fit whose prior adds a log density to the objective (a MAP fit,
 #' `frm(prior = )`) is refused, and so is `drop1()` on one. Its
-#' `logLik()` is the log-likelihood plus the log prior, so a difference
-#' of two holds prior densities at two different estimates. It is not a
-#' likelihood ratio, and it can be negative. A prior that only sets
+#' estimates maximize the log-likelihood plus the log prior, so its
+#' [logLik()][logLik_penalized] is the log-likelihood at a point that
+#' does not maximize it, and a difference of two is not a likelihood
+#' ratio. It can be negative. A prior that only sets
 #' bounds adds no density and is not refused. Refit without the prior
 #' for a likelihood-ratio test. To compare models under the prior, use
 #' `loo()` or `bayes_factor()` of frmtmb.sample.
@@ -2105,11 +2106,11 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
              call. = FALSE)
   }
   ll <- vapply(fits, function(f) as.numeric(logLik(f)), 0)
-  df <- vapply(fits, function(f) attr(logLik(f), "df"), 0L)
+  df <- vapply(fits, function(f) as.vector(loglik_df(f)), 0L)
   na_df <- which(is.na(df))
   if (length(na_df)) {
     frm_stop("anova(): model ", na_df[1L], " has no degrees of freedom ",
-             "to compare: ", attr(logLik(fits[[na_df[1L]]]), "df_why"),
+             "to compare: ", attr(loglik_df(fits[[na_df[1L]]]), "df_why"),
              call. = FALSE)
   }
   ord <- order(df)
@@ -2233,9 +2234,9 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
   }
 
   ll0 <- logLik(object)
-  df0 <- attr(ll0, "df")
+  df0 <- as.vector(loglik_df(object))
   if (is.na(df0)) {
-    frm_stop("drop1(): ", attr(ll0, "df_why"), call. = FALSE)
+    frm_stop("drop1(): ", attr(loglik_df(object), "df_why"), call. = FALSE)
   }
   aic0 <- -2 * as.numeric(ll0) + k * df0
   n_sc <- length(scope)
@@ -2276,16 +2277,17 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
     if (held) args$data <- refit_channel(rd, formula = nb, fit = object)
     fit_i <- do.call(frm, c(list(formula = nb), args), quote = TRUE)
     ll_i <- logLik(fit_i)
-    if (is.na(attr(ll_i, "df"))) {
+    df_i <- loglik_df(fit_i)
+    if (is.na(df_i)) {
       # a refit whose degrees of freedom are unknown gives no test, and
       # the row would otherwise be NA without a reason
       frm_stop("drop1(): the refit without ", scope[i], " has no degrees ",
                "of freedom to compare: ",
-               attr(ll_i, "df_why") %||% "logLik() gives none",
+               attr(df_i, "df_why") %||% "logLik() gives none",
                call. = FALSE)
     }
-    ddf[i] <- df0 - attr(ll_i, "df")
-    aic[i] <- -2 * as.numeric(ll_i) + k * attr(ll_i, "df")
+    ddf[i] <- df0 - as.vector(df_i)
+    aic[i] <- -2 * as.numeric(ll_i) + k * as.vector(df_i)
     lrt[i] <- 2 * (as.numeric(ll0) - as.numeric(ll_i))
   }
   tab <- data.frame(Df = c(NA, ddf), AIC = c(aic0, aic),

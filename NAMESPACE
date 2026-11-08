@@ -8,6 +8,8 @@ S3method("+",frmtmb_bform)
 S3method("+",frmtmb_priorlist)
 S3method("[",frmtmb_prior_rows)
 S3method("[[",ranef_frmtmb)
+S3method(AIC,frmtmb_fit)
+S3method(BIC,frmtmb_fit)
 S3method(LOO,frmtmb_fit)
 S3method(VarCorr,frmtmb_fit)
 S3method(VarCorr,frmtmb_multiple)
@@ -100,6 +102,8 @@ S3method(lme4::ngrps,frmtmb_fit)
 S3method(lme4::refit,frmtmb_fit)
 S3method(logLik,frmtmb_fit)
 S3method(logLik,frmtmb_multiple)
+S3method(logLik_penalized,frmtmb_fit)
+S3method(logLik_penalized,frmtmb_multiple)
 S3method(log_lik,frmtmb_fit)
 S3method(loo,frmtmb_fit)
 S3method(loo,frmtmb_multiple)
@@ -384,6 +388,7 @@ export(hypothesis)
 export(kfold)
 export(latent_probs)
 export(lf)
+export(logLik_penalized)
 export(log_lik)
 export(logistic_normal)
 export(lognormal)
@@ -477,6 +482,8 @@ importFrom(nlme,
   ranef
 )
 importFrom(stats,
+  AIC,
+  BIC,
   anova,
   coef,
   confint,

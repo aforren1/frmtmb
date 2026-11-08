@@ -1,3 +1,56 @@
+# frmtmb (development version)
+
+* BREAKING: under a prior with a density (`frm(prior = )`), `logLik()` is
+  the log-likelihood of the data at the estimates. It does not include the
+  log prior. The new `logLik_penalized()` gives the value that the fit
+  maximized, with the log prior, which `logLik()` gave before. brms's
+  `log_lik()` is the data part too; glmmTMB's `logLik()` with `priors =` is
+  the penalized value. For `y ~ x + (1 | g)` with a `normal(0, 100)` prior
+  on the slope, `logLik()` was 5.52 below the fit with no prior at the same
+  estimates. That is the log of the prior's normalizing constant. Now
+  `logLik()` is the objective of the fit with no prior at the MAP
+  estimates, to rounding. The split is exact for the Laplace
+  approximation, `quadrature = TRUE`, `importance =` and
+  `frmtmb_control(profile = TRUE)`, because a prior there reads only
+  parameters outside the integral. Under `REML = TRUE` a prior on the fixed
+  effects is inside the integral, so `logLik()` stops with a message there.
+  The log prior term is what the optimizer adds, with the log-Jacobian of
+  each change of scale and no truncation normalizer, so it is not brms's
+  `lprior`; `?logLik_penalized` says how they differ.
+* BREAKING: under a prior with a density, the estimates do not maximize
+  the log-likelihood, and a parameter that the prior shrinks is not a full
+  degree of freedom. So `logLik()` has `df = NA`, with the reason in
+  attribute `df_why`, and `AIC()`, `BIC()` and `extractAIC()`, and so
+  `step()`, stop with a message when they dispatch on such a fit, as
+  `anova()` and `drop1()` do. `AIC(m0, m1)` stops when either frmtmb fit
+  has such a prior. A call that reaches stats's own methods with the df of
+  `logLik()`, as `AIC(lm_fit, map_fit)`, `BIC(lm_fit, map_fit)` or
+  `AIC(logLik(map_fit))`, gets `NA` for that fit. A package that counts
+  the parameters itself is not covered: `insight::get_loglikelihood()`
+  replaces the `NA` with its own count, so `performance` can still give
+  an AIC for a fit with a prior. A prior that only sets
+  bounds adds no density, and these methods work; so does a `uniform()`
+  prior on a coefficient or an `nlpar`, whose log density is a constant
+  inside its bounds.
+* `summary()` of a fit with such a prior prints `logLik` and the log prior
+  in place of AIC and BIC. Under REML with a prior on the fixed effects it
+  prints the maximized value and says why there is no `logLik`. It marks
+  the method `(MAP)` only for a prior with a density, not for a prior of
+  bounds alone or a uniform one.
+* `anova()` of two `frm_multiple()` fits stops for the likelihood rules
+  (`"D3"`, and `"D2"` with `use = "likelihood"`) under a prior with a
+  density, for the reason `anova()` of two fits stops. The Wald rules
+  still work: they are Wald tests at the MAP, consistent with the Wald
+  intervals of `summary()`, and under a prior their nominal size is not
+  guaranteed.
+* The warning for a discrete log-likelihood above 0 now also checks a fit
+  with a prior.
+* `frm_allfit()` and the restarts of a nonlinear fit still compare the
+  value that each fit maximized, now through `logLik_penalized()`. Under a
+  prior, their printout names that value the penalized log-likelihood.
+* `logLik_penalized()` on a `frm_multiple()` result stops with a message,
+  as `logLik()` does.
+
 # frmtmb 0.79.1
 
 * `residuals(type = "osa")` on `beta_binomial()` always stops with a

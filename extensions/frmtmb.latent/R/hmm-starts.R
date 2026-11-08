@@ -305,7 +305,10 @@ hmm_starts_relist <- function(fit, v) {
 #'   that does not move with the machine's load), `$spread` and
 #'   `$spread_all` (`NA` when only one fit is in the set, since a
 #'   comparison that was never made is not a spread of zero), `$modes`,
-#'   `$mode_tol` (the one threshold above), and the counts.
+#'   `$mode_tol` (the one threshold above), and the counts. Each
+#'   `logLik` is the value the refit maximized,
+#'   [frmtmb::logLik_penalized()]: under a prior that holds the log
+#'   prior, and without one it is `logLik()`.
 #' @seealso [hmm()], [frmtmb::frm_allfit()], which varies the OPTIMIZER
 #'   from one fixed start and answers a different question.
 #' @examples
@@ -396,7 +399,7 @@ hmm_starts <- function(fit, n = 8L, jitter = 2, seed = NULL,
     set.seed(seed)
   }
 
-  ll0 <- as.numeric(stats::logLik(fit))
+  ll0 <- as.numeric(frmtmb::logLik_penalized(fit))
   # the ONE threshold, from the ONE reference, for the whole call
   mode_tol <- hmm_starts_tol(grad_tol, ll0)
   g0 <- max(abs(drop(fit[["obj"]][["gr"]](par))))
@@ -428,7 +431,7 @@ hmm_starts <- function(fit, n = 8L, jitter = 2, seed = NULL,
         stringsAsFactors = FALSE))
       next
     }
-    lli <- as.numeric(stats::logLik(f))
+    lli <- as.numeric(frmtmb::logLik_penalized(f))
     gi <- max(abs(drop(f[["obj"]][["gr"]](f[["opt"]][["par"]]))))
     rel <- gi / max(abs(lli), 1)
     conv <- is.finite(lli) && is.finite(rel) && rel <= grad_tol
@@ -439,7 +442,7 @@ hmm_starts <- function(fit, n = 8L, jitter = 2, seed = NULL,
       seconds = secs, fn_evals = evi[1L], gr_evals = evi[2L],
       stringsAsFactors = FALSE))
     if (keep) kept[[length(kept) + 1L]] <- f
-    bl <- as.numeric(stats::logLik(best))
+    bl <- as.numeric(frmtmb::logLik_penalized(best))
     if (conv && is.finite(lli) && lli > bl + mode_tol) {
       best <- f
       best_st <- st
@@ -534,7 +537,7 @@ print.frmtmb_hmm_starts <- function(x, digits = 10, ...) {
         ", reaching no optimum at all, and out of BOTH spreads\n",
         sep = "")
   }
-  bll <- as.numeric(stats::logLik(x[["best"]]))
+  bll <- as.numeric(frmtmb::logLik_penalized(x[["best"]]))
   cat("\n  best logLik    ", format(bll, digits = digits), "\n",
       sep = "")
   cat("  original       ", format(x[["original_logLik"]],

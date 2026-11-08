@@ -764,7 +764,9 @@ nl_restart_round <- function(run, starts, floor, saddle_floor, from_flat) {
                           }),
       error = function(e) NULL)
     if (is.null(r)) next
-    ll <- suppressWarnings(as.numeric(stats::logLik(r)))
+    # the restarts are judged on what they maximize, which under a prior
+    # holds the log prior
+    ll <- suppressWarnings(as.numeric(logLik_penalized(r)))
     if (!is.finite(ll)) next
     if (ll > best_ll + 1e-8 * max(1, abs(best_ll))) {
       best <- r
@@ -835,7 +837,11 @@ nl_fit_off_saddle <- function(run, frame, start, prior) {
     return(fit)
   }
   key <- function(b) linpred_key(b$lp[["resp"]], b$lp[["dpar"]] %||% "")
-  ll0 <- as.numeric(stats::logLik(fit))
+  ll0 <- as.numeric(logLik_penalized(fit))
+  # the values compared and printed below are what the fits maximized,
+  # which under a prior with a density is not logLik()
+  llw <- if (fit_penalized(fit)) "penalized log-likelihood" else
+    "log-likelihood"
   first <- bodies
   best <- NULL
   best_ll <- ll0
@@ -877,17 +883,17 @@ nl_fit_off_saddle <- function(run, frame, start, prior) {
     frm_message(
       if (length(nl_saddle_named(first, fit))) {
         paste0("The fit stopped where ", wd$noun, " ", wd$is, " constant ",
-               "across the rows, log-likelihood ", ll[1L], ", so frm() ")
+               "across the rows, ", llw, " ", ll[1L], ", so frm() ")
       } else {
         paste0("The fit of ", wd$noun, " from its default start ran along a ",
-               "flat direction to log-likelihood ", ll[1L], ", so frm() ")
+               "flat direction to ", llw, " ", ll[1L], ", so frm() ")
       },
       "restarted from moved coefficients and reached a higher point, ",
-      "log-likelihood ", ll[2L], ", optimizer return code ",
+      llw, " ", ll[2L], ", optimizer return code ",
       format(best$opt$convergence), ". Give `start` to choose your own")
     nl_local_message(frame, best, look$local)
     for (w in best_held) warning(w)
-    if (length(left)) nl_saddle_warning(frame, left, best_ll)
+    if (length(left)) nl_saddle_warning(frame, left, best_ll, llw)
     return(best)
   }
   if (!length(left)) {
@@ -896,7 +902,7 @@ nl_fit_off_saddle <- function(run, frame, start, prior) {
   }
   nl_local_message(frame, fit, look$local)
   release()
-  nl_saddle_warning(frame, left, ll0)
+  nl_saddle_warning(frame, left, ll0, llw)
   fit
 }
 
@@ -916,12 +922,12 @@ nl_saddle_named <- function(bodies, fit) {
 #' The warning on a fit that a moved start could not take off a constant body.
 #'
 #' @noRd
-nl_saddle_warning <- function(frame, bodies, ll) {
+nl_saddle_warning <- function(frame, bodies, ll, llw = "log-likelihood") {
   w <- nl_bodies_words(bodies)
   seen <- unique(unlist(lapply(bodies, function(b) b$seen)))
   frm_warning(
     "The fit stops where ", w$noun, " ", w$is, " constant across the rows, ",
-    "which is ", nl_model_words(frame, bodies), ": log-likelihood ",
+    "which is ", nl_model_words(frame, bodies), ": ", llw, " ",
     format(ll, digits = 7), ". Moved starts of ",
     paste0("'", seen, "'", collapse = ", "), " reached nothing higher, so the ",
     "data may simply have no effect there. A `start` in a region where the ",

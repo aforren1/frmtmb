@@ -133,9 +133,11 @@ silence it.}
 \item{prior}{Optional \code{\link[=set_prior]{set_prior()}} specification. This makes the
 fit MAP / regularized ML (glmmTMB's \verb{priors=} in spirit): useful
 for stabilizing singular variance components or separating
-binomials. The reported logLik/AIC then include the prior terms
-and are penalized quantities, and \code{anova()} comparisons across
-different priors are meaningless. A \code{brmsprior} object built by
+binomials. \code{logLik()} is then the log-likelihood at the MAP
+estimates, and \code{\link[=logLik_penalized]{logLik_penalized()}} the maximized value with the
+log prior. \code{AIC()}, \code{BIC()}, \code{anova()} and \code{drop1()} refuse a prior
+with a density, as its estimates do not maximize the likelihood.
+A \code{brmsprior} object built by
 brms's own \code{prior()} is translated row by row, so priors copied
 out of a brms script work whichever package's \code{prior()} was in
 scope. The argument takes brms's spelling, \code{prior}; the \code{priors}

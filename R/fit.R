@@ -119,9 +119,11 @@
 #' @param prior Optional [set_prior()] specification. This makes the
 #'   fit MAP / regularized ML (glmmTMB's `priors=` in spirit): useful
 #'   for stabilizing singular variance components or separating
-#'   binomials. The reported logLik/AIC then include the prior terms
-#'   and are penalized quantities, and `anova()` comparisons across
-#'   different priors are meaningless. A `brmsprior` object built by
+#'   binomials. `logLik()` is then the log-likelihood at the MAP
+#'   estimates, and [logLik_penalized()] the maximized value with the
+#'   log prior. `AIC()`, `BIC()`, `anova()` and `drop1()` refuse a prior
+#'   with a density, as its estimates do not maximize the likelihood.
+#'   A `brmsprior` object built by
 #'   brms's own `prior()` is translated row by row, so priors copied
 #'   out of a brms script work whichever package's `prior()` was in
 #'   scope. The argument takes brms's spelling, `prior`; the `priors`
@@ -1346,7 +1348,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   prior_entries <- NULL
   if (!is.null(prior)) {
     # MAP / regularized ML: the optimized objective includes the prior
-    # terms, so logLik/AIC are penalized quantities - documented
+    # terms; logLik() takes them off again (fit_log_prior())
     ri <- resolve_prior_input(list(frame = frame, spec = spec), prior)
     prior_entries <- ri$entries
     check_map_dirichlet(ri$entries)
@@ -1718,6 +1720,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   fit <- structure(
     list(spec = spec, frame = frame, obj = obj, opt = opt, sdr = NULL,
          REML = REML, estimates = est, prior = prior,
+         # the entries the objective's prior term was built from, so
+         # logLik() subtracts that very term without resolving again;
+         # not named prior_*, which `$prior` would partial-match
+         resolved_prior = prior_entries,
          bform = bform, call = cl, data = frame[["data_frame"]],
          data2 = data2,
          control = control, quadrature = isTRUE(quadrature),

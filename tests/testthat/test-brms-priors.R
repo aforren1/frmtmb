@@ -72,8 +72,9 @@ test_that("a brms get_prior() table applies what its rows say", {
   expect_s3_class(fit$prior, "frmtmb_priorlist")
   # one spec per live row, and every one of them resolves
   expect_identical(length(unclass(fit$prior)), sum(nzchar(gp$prior)))
-  # and the fit is penalized: the whole table is worth several nats
-  expect_gt(abs(as.numeric(logLik(fit)) -
+  # and the fit is penalized: the whole table is worth several nats of
+  # the maximized value (logLik() alone is the data part)
+  expect_gt(abs(as.numeric(logLik_penalized(fit)) -
                   as.numeric(logLik(frm(m, data = sleepstudy)))), 1)
 })
 

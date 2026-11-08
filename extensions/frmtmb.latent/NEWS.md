@@ -1,3 +1,11 @@
+# frmtmb.latent (development version)
+
+* `hmm_starts()` compares the refits on the value that each one maximized,
+  `frmtmb::logLik_penalized()`. Under a prior, frmtmb's `logLik()` no
+  longer holds the log prior, so a comparison on it would rank the modes
+  on a value that no refit maximized. Needs the frmtmb release that adds
+  `logLik_penalized()`.
+
 # frmtmb.latent 0.7.2
 
 Needs frmtmb 0.79.0. The package itself is unchanged, and one of its
