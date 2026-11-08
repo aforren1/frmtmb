@@ -1,3 +1,12 @@
+# frmtmb.sample (development version)
+
+* `posterior_epred()`, `posterior_linpred()` and `posterior_predict()` with
+  `allow_new_levels = TRUE` answer at a `me(gr = )` level the fit did not
+  see: each draw takes the level's latent value from `normal(x, sdx)`, as
+  brms does. Before, they refused it, where `fitted()` and brms answered. A
+  new level of a group-level term stays refused. Needs the frmtmb release
+  that carries this change.
+
 # frmtmb.sample 0.26.0
 
 Needs frmtmb 0.79.0. The exact `gp()` field is non-centered in core, so the

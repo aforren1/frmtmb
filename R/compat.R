@@ -1756,8 +1756,8 @@ compat_hand_rules_tbl <- function() {
     "Refused, as brms does: in an nlpar's formula in brms's words, in the body because brms writes cs() into the Stan program as a call to a function that does not exist, and its compile fails.")
   r("nl", "kind:method", "untested", "")
   r("nl", "fitted", "works", "")
-  r("nl", "predict", "conditional",
-    "Point predictions work. se.fit is not supported for the nonlinear predictor; request a nonlinear parameter with dpar instead.")
+  r("nl", "predict", "works",
+    "Point predictions and se.fit work: the delta method through the body's taped Jacobian, which fitted()'s Est.Error and conditional_effects() read too. A me() value or a gp() kriging variance that a nonlinear parameter reads enters at first order. Under allow_new_levels = TRUE, se.fit at a new level that a body reads is refused by class (frmtmb_nl_new_level); fitted() integrates over that level's effects.")
   r("nl", "cens()", "works", "Verified by a tiny fit.")
   r("nl", "ps()", "works",
     "The reason ps() exists: a penalized block whose VALUE the body consumes, so that a population curve can be warped per subject rather than added to a predictor. Verified against a plain-R port of the likelihood of D'Alessandro, Thoresen and Sorensen (2026) on brokenstick::smocc_200: the joint negative log density agrees to 9.4e-11 absolute (2.6e-14 relative) at the optimum and to 6.0e-10 at a perturbed parameter vector.")
@@ -1905,7 +1905,7 @@ compat_hand_rules_tbl <- function() {
   r("me()", "mixture", "untested",
     "A mixture fit with a me() term runs; nothing checks its estimates.")
   r("me()", "fitted", "works",
-    "In-sample, fitted() uses the latent modes (brms with save_pars(latent = TRUE)). On new data the estimate is the mean of the expected response over the N(x, sdx) draw brms makes there, by Gauss-Hermite on the response scale; Est.Error carries that draw's variance and the Q columns its quantiles. New data must hold sdx, as brms requires. A row with no noisy value or SD reads NA with a warning, where brms reads NaN and warns.")
+    "In-sample, fitted() uses the latent modes (brms with save_pars(latent = TRUE)). On new data the estimate is the mean of the expected response over the N(x, sdx) draw brms makes there, by Gauss-Hermite on the response scale; Est.Error carries that draw's variance and the Q columns its quantiles. Beside a latent residual or a new level's effects the mean is over every draw at once, each moving the predictors that read it. A lognormal whose sigma reads the draw has an infinite exact mean: the 11-node quadrature mean, with a warning of class frmtmb_mean_not_finite. New data must hold sdx, as brms requires. A row with no noisy value or SD reads NA with a warning, where brms reads NaN and warns.")
   r("me()", "predict", "works",
     "In-sample, the latent modes. On new data each replicate draws the latent value from N(x, sdx), per row or per me(gr = ) level, as brms 2.23.0 does, under propagate_error = FALSE too. Two responses or two dpars read one latent value, a stated divergence: brms draws one per predictor against its own Stan program. New data must hold sdx. A row with no noisy value or SD reads NA with a warning, where brms reads NaN and warns.")
   r("me()", "marginaleffects", "conditional",
@@ -2160,7 +2160,7 @@ compat_hand_rules_tbl <- function() {
     "Refused: fcor() has no latent residual on any family, so its one density is joint over all rows, and the tape holds no density of one observation given the previous ones. Use type = \"pearson\" or dharma_residuals().")
   r("group:autocor", "kind:method", "untested", "")
   r("group:autocor", "fitted", "conditional",
-    "On gaussian and student the mean structure is untouched: the term changes the residual density, not the linear predictor. On any other family fitted() carries the latent residual's conditional mode at each fitted row, under re_formula = NA too, as brms carries err. On new rows it is the mean over the latent at each row's marginal sd, as brms's posterior_epred() is, and frm_linpred() stays at a latent of 0. Above 3000 fitted rows, with newdata = NULL, the standard error of a row is NA, with a message, because it would solve the joint precision densely: options(frmtmb.latres_se_rows = ) moves the limit. Rows in newdata keep theirs.")
+    "On gaussian and student the mean structure is untouched: the term changes the residual density, not the linear predictor. On any other family fitted() carries the latent residual's conditional mode at each fitted row, under re_formula = NA too, as brms carries err. On new rows it is the mean over the latent at each row's marginal sd, as brms's posterior_epred() is, and frm_linpred() stays at a latent of 0. A me() value on another predictor is a second, independent draw, and the mean is over both. Above 3000 fitted rows, with newdata = NULL, the standard error of a row is NA, with a message, because it would solve the joint precision densely: options(frmtmb.latres_se_rows = ) moves the limit. Rows in newdata keep theirs.")
   r("group:autocor", "predict", "works",
     "Unchanged, newdata and se.fit included: se.fit is the uncertainty of the MEAN, which the residual correlation does not enter.")
   r("group:autocor", "residuals", "conditional",

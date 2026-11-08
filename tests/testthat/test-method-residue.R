@@ -317,11 +317,25 @@ test_that("the identity-mean se.fit path is untouched", {
   expect_equal(pr$se.fit, exp(pl$fit) * pl$se.fit)
 })
 
-test_that("se.fit still refuses a nonlinear predictor's response mean", {
+test_that("se.fit answers a nonlinear predictor's response mean", {
   set.seed(8)
   dn <- data.frame(x = runif(80, 0, 5))
   dn$y <- 3 * exp(-0.8 * dn$x) + rnorm(80, 0, 0.1)
   fit <- frm(bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE) +
                gaussian(), data = dn)
-  expect_error(frm_linpred(fit, se.fit = TRUE), "se.fit is not supported")
+  # the identity link: the response scale's se is the predictor's
+  pr <- frm_linpred(fit, type = "response", se.fit = TRUE)
+  pl <- frm_linpred(fit, type = "link", se.fit = TRUE)
+  expect_true(all(is.finite(pr$se.fit)) && all(pr$se.fit > 0))
+  expect_equal(pr$se.fit, pl$se.fit)
+  # a mean that is not mu reads the body's Jacobian as its design
+  dn$yp <- exp(log(3) - 0.8 * dn$x + rnorm(80, 0, 0.2))
+  fl <- frm(bf(yp ~ log(a) - b * x, a ~ 1, b ~ 1, nl = TRUE) +
+              lognormal(), data = dn, start = list(beta = c(3, 0.8)))
+  pm <- frm_linpred(fl, type = "response", se.fit = TRUE)
+  expect_true(all(is.finite(pm$se.fit)) && all(pm$se.fit > 0))
+  # log(a) - b * x is the linear yp ~ x, whose delta method is the same
+  pq <- frm_linpred(frm(bf(yp ~ x) + lognormal(), data = dn),
+                    type = "response", se.fit = TRUE)
+  expect_lt(max(abs(pm$se.fit / pq$se.fit - 1)), 1e-3)
 })

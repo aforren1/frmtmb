@@ -2543,21 +2543,35 @@ frm_linpred <- function(object, newdata = NULL,
   }
 
   if (!is.null(lp[["nl_body"]])) {
-    if (se.fit) {
+    is_cond <- autocor_is_cond(object$frame[["autocor"]][[rspec$resp_name]]) &&
+      identical(dpar, "mu")
+    if (se.fit && (is_cond || (type == "response" &&
+                                 !is.null(dpar_report_hook(rspec$family, dpar,
+                                                           rspec))))) {
       frm_stop("se.fit is not supported for the nonlinear predictor yet; ",
                "request the nonlinear parameters (dpar = '",
                rspec$nlpars[1], "', ...) instead", call. = FALSE)
     }
     # brms's cov = FALSE ARMA is part of mu itself, a body's too: below
-    if (!autocor_is_cond(object$frame[["autocor"]][[rspec$resp_name]]) ||
-          !identical(dpar, "mu")) {
+    if (!is_cond) {
       eta <- nl_body_value(object, lp, newdata, re_formula, allow_new_levels)
-      out <- if (type == "response") {
-        dpar_response_link(rspec, lp, dpar)$linkinv(eta)
-      } else {
-        eta
+      lk <- dpar_response_link(rspec, lp, dpar)
+      out <- if (type == "response") lk$linkinv(eta) else eta
+      if (!se.fit) return(if (is.null(newdata)) napred(object, out) else out)
+      # the delta method through the body's taped Jacobian, as
+      # conditional_effects() reads it; through 0.79.1 Est.Error was NA here
+      lb <- lp_basis_nl(object, lp, rspec, newdata, use_re, allow_new_levels,
+                        get_joint_cov(object))
+      se <- sqrt(pmax(lb_rowvar(lb), 0) + lb$extra_var)
+      if (any(lb$nonest)) se[lb$nonest] <- NA_real_
+      se[lb$se_nonest] <- NaN
+      se_pred_warn(lb$se_nonest)
+      if (type == "response") se <- se * abs(lk$mu_eta(eta))
+      if (is.null(newdata)) {
+        out <- napred(object, out)
+        se <- napred(object, se)
       }
-      return(if (is.null(newdata)) napred(object, out) else out)
+      return(list(fit = out, se.fit = se))
     }
   }
 
@@ -2817,7 +2831,16 @@ lp_basis_layer <- function(object, l, rspec, newdata, use_re, anl, extra_cov,
   lp <- l$lp
   if (!is.null(lp[["nl_body"]])) {
     out <- lp_basis_nl(object, lp, rspec, newdata, use_re, anl, jc)
-    # the nonlinear route refuses every source of extra variance
+    if (extra_cov && any(out$extra_var != 0)) {
+      # the body carries a row's own draw at first order, and no covariance
+      # of one draw across rows: a me(gr = ) level, a gp() position
+      frm_stop("frm_lp_basis(extra_cov = TRUE): the nonlinear body reads ",
+               "variance that is not coefficient uncertainty (an exact ",
+               "gp() kriging variance, or the draw of a new row's me() ",
+               "value). Its covariance across rows through a nonlinear ",
+               "body is not written; extra_cov = FALSE gives each row's ",
+               "variance", call. = FALSE)
+    }
     if (extra_cov) out$extra_cov <- Matrix::Diagonal(x = out$extra_var)
     return(out)
   }
@@ -3214,7 +3237,9 @@ lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
 #' @noRd
 lp_extra_var <- function(object, ed, use_re) {
   nl <- list()
-  if (use_re && length(ed[["re_parts"]])) {
+  # a mean over the new level's effects carries their variance itself
+  # (fitted_me_moments()), so the coefficient part leaves it out
+  if (use_re && length(ed[["re_parts"]]) && !isTRUE(object[["me_no_extra"]])) {
     th <- object$estimates[["theta"]]
     for (rp in ed[["re_parts"]]) {
       nas <- which(is.na(rp$j))
@@ -3628,9 +3653,17 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
   for (dnm in dnames) {
     lp <- object$frame[["linpreds"]][[linpred_key(rnm, dnm)]]
     if (!is.null(lp[["nl_body"]])) {
-      frm_stop("se.fit is not supported on the response scale for a ",
-               "nonlinear predictor yet; request the nonlinear parameters ",
-               "(dpar = '", rspec$nlpars[1], "', ...) instead", call. = FALSE)
+      # the body's taped Jacobian is its design, and what its parts read
+      # beside the coefficients enters as this predictor's own variance
+      lb <- lp_basis_nl(object, lp, rspec, newdata, use_re, allow_new_levels,
+                        jc)
+      eds[[dnm]] <- list(eta = lb$eta, n = length(lb$eta),
+                         nonest = lb$nonest)
+      das[[dnm]] <- list(A = lb$A, coef_pos = lb$coef_pos)
+      evs[[dnm]] <- list(new_levels = list(),
+                         gp = if (any(lb$extra_var != 0)) list(lb$extra_var))
+      dp[[dnm]] <- lp[["link"]]$linkinv(lb$eta)
+      next
     }
     ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
     eds[[dnm]] <- ed
@@ -3769,10 +3802,11 @@ napred <- function(fit, x) {
 #' carries no observation noise; [predict.frmtmb_fit()] is the
 #' predictive interval that does.
 #'
-#' A predictor whose standard error this package cannot produce, such
-#' as a nonlinear body or a structured likelihood, reports `NA` in
-#' `Est.Error` and in the `Q` columns rather than a number it does not
-#' have. The estimate is unaffected.
+#' A nonlinear body's `Est.Error` is the delta method through the body's
+#' taped Jacobian. A predictor whose standard error this package cannot
+#' produce, such as a structured likelihood, reports `NA` in `Est.Error`
+#' and in the `Q` columns rather than a number it does not have. The
+#' estimate is unaffected.
 #'
 #' The `Q` columns are the interval on the scale of the link, mapped through its
 #' inverse, so they stay in the support of the expected response, and they are
@@ -3793,6 +3827,55 @@ napred <- function(fit, x) {
 #'
 #' The product of two `me()` values on one row is read at first order: its mean is
 #' low by 7 percent at 0.8 and 0.6 on a log link.
+#'
+#' A `me()` value that a nonlinear parameter reads is one of the draws below:
+#' `fitted()` integrates the body over it. `frm_linpred(se.fit = TRUE)` and
+#' [frm_lp_basis()] read it through the body at first order.
+#'
+#' @section The draws of a new row:
+#' A new row can read three draws that are not coefficient uncertainty: a
+#' `me()` value, a latent residual, and with `allow_new_levels = TRUE` the
+#' effects of a grouping level the fit did not see. brms draws each of them,
+#' and its `posterior_epred()` averages over them; a new level is drawn as
+#' brms's `sample_new_levels = "gaussian"` draws it, not as its default
+#' `"uncertainty"`. The estimate here is that mean. On a log link that reads
+#' the mean, and on a lognormal's `mu`, it is the closed form: `exp(v / 2)`
+#' times the value at the draws' mean of 0, with `v` their variance on the
+#' link scale, so at a new level of `(1 | g)` at sd 1 it is 1.65 times the
+#' median. Elsewhere it is Gauss-Hermite quadrature over the draws. The
+#' draws are independent of each other, and each one moves every predictor
+#' that reads it, so a latent on `mu` beside a `me()` value on `hu` is read
+#' in two dimensions; a draw that moves no cell of what is read costs
+#' nothing. `sample_new_levels = "old_levels"` reads a level the fit saw and
+#' takes no mean. `scale = "linear"` stays at the effects' mean, with their
+#' variance in `Est.Error`.
+#'
+#' `Est.Error` is the draws' sd beside the coefficients'. At a new level it
+#' holds the block's estimated sd as known: the sd's own uncertainty is not
+#' in it, where brms's posterior carries it (0.90 of brms's on a poisson
+#' `(1 | g)` of 40 groups). With two or more directions the `Q` columns are
+#' the draw's quantiles along the direction in which the value moves most,
+#' widened to the whole variance, and covered 0.926 to 0.957 of the draws'
+#' own distribution on four hurdle rows. Past two directions the rule is
+#' checked against two fewer nodes, and a warning of class
+#' `frmtmb_draw_rule` gives the change when the sd moves by more than 2
+#' percent. Past four directions that move the value, the four that move it
+#' most are kept, with a warning of class `frmtmb_draw_dims`.
+#'
+#' One mean does not exist. A lognormal mean is `exp(mu + sigma^2 / 2)`, and
+#' when `sigma` reads a draw on its log link, the exact mean over the draw is
+#' infinite at any size of the draw, from its far tail. This holds for a
+#' lognormal component's `sigma<k>` of a mixture and for a nonlinear
+#' parameter that a body for `sigma` reads. The estimate and `Est.Error` are
+#' then the 11-node Gauss-Hermite mean and sd, which reach 5.19 sds of the
+#' draw as a sampler's draws do, with one warning per call of class
+#' `frmtmb_mean_not_finite` that gives the largest change 9 nodes make. On a
+#' `sigma ~ (1 | g)` at sd 0.27 this reads 2.0897 against 2.0897 from 4e6
+#' draws; at a draw sd of 0.4 on `sigma`, no mean of draws is stable, and
+#' neither is this; where a node overflows the row reads `NaN`. The `Q`
+#' columns are the draw's quantiles. Any other mean whose rule does not
+#' settle as it grows from 21 or 41 nodes is read the same way, with a
+#' warning of class `frmtmb_mean_unsettled`.
 #'
 #' At a row whose `mi()` value left the objective, a reader's fit reads the
 #' value's mean. Under a nonlinear link this is below brms's average: a median
@@ -4171,7 +4254,8 @@ prob_band_draw <- function(out, probs, mm, up) {
   # reads that, so each row reads the draw's own quantile, on 99 points of
   # equal weight; the logit carries the coefficients' share of the variance
   vals <- lapply(stats::qnorm(stats::ppoints(99L)), mm$val)
-  vr <- matrix(mm$var, dim(out)[1L], dim(out)[3L])
+  # several draws: the variance along the one the values are read on
+  vr <- matrix(mm$var1 %||% mm$var, dim(out)[1L], dim(out)[3L])
   for (k in seq_len(dim(out)[3L])) {
     V <- vapply(vals, function(v) as.matrix(v)[, k], numeric(dim(out)[1L]))
     V <- matrix(V, dim(out)[1L], length(vals))
@@ -4250,19 +4334,28 @@ fitted_point <- function(object, newdata = NULL, re_formula = NULL,
   out
 }
 
-#' A new row's expected response over its `me()` draw and that draw's variance
-#' of it, by Gauss-Hermite on the response scale (`response_mean_gh()`), or
-#' `NULL`
-#' when the fit has no such row. `plug` is the value at the observed `x`,
-#' `slope` is `dE / deta` over `dm / deta` there, which scales the coefficient
-#' part of the standard error, and `grad` is `dm / deta` itself, which puts the
-#' draw on a band's scale.
+#' A new row's expected response over its draws and those draws' variance of
+#' it, by Gauss-Hermite on the response scale over the directions of
+#' `me_row_loads()` (`me_gh_moments()`), or `NULL` when the fit has no such
+#' row. The draws are a `me()` value, a latent residual and the effects of a
+#' level the fit did not see. `plug` is the value at the observed `x`, `slope`
+#' is `dE / deta` over `dm / deta` there, which scales the coefficient part of
+#' the standard error, and `grad` is `dm / deta` itself, which puts the draw on
+#' a band's scale.
+#'
+#' With several directions, `val` is the value along one of them and `var1`
+#' its variance there (`me_band_dir()`): a band reads the draw's quantiles
+#' along it.
+#'
+#' A new level read at its effects' mean of 0 was the median: `fitted()` of a
+#' poisson `(1 | g)` at sd 1 read low by `exp(1 / 2)`, 1.649.
 #'
 #' @noRd
 fitted_me_moments <- function(object, newdata, re_formula, resp, dpar,
                               allow_new_levels, mean_only = FALSE) {
   if (is.null(newdata)) return(NULL)
-  if (is.null(object$frame[["me"]]) && !length(frame_latres(object$frame))) {
+  if (is.null(object$frame[["me"]]) && !length(frame_latres(object$frame)) &&
+        !(isTRUE(allow_new_levels) && length(object$frame[["re_blocks"]]))) {
     return(NULL)
   }
   resp <- resp_read(object, resp)
@@ -4276,34 +4369,85 @@ fitted_me_moments <- function(object, newdata, re_formula, resp, dpar,
   loads <- me_row_loads(rr$fit, rspec, newdata, re_form_keeps(rr$re_formula),
                         allow_new_levels, dpar)
   if (is.null(loads)) return(NULL)
-  lp <- object$frame[["linpreds"]][[loads$key]]
   what <- function(fit) {
     as.matrix(frm_linpred(fit, newdata = newdata, type = "response",
                           dpar = dpar, resp = resp, re_formula = re_formula,
                           allow_new_levels = allow_new_levels))
   }
   val <- me_node_value(object, loads, what)
-  # the integral runs in the latent's own units: an identity link on eta = 0, so
-  # the node each row sees is its dpars$mu, and the predictors move with it
-  sds <- sqrt(loads$s2)
-  node <- function(u) ifelse(sds > 0, u / sds, 0)
-  over <- function(fn) {
-    response_mean_gh(rep_len(0, length(sds)), loads$s2,
-                     list(links = list(mu = list(linkinv = identity))), list(),
-                     mean_fn = function(fam, dpars, aterms) {
-                       fn(node(dpars[["mu"]]))
-                     })
+  v0 <- val(0)
+  loads <- me_keep_dirs(loads, val, v0, rn)
+  val <- me_node_value(object, loads, what)
+  r <- length(loads$dirs)
+  if (me_log_linear(object, rspec, loads, dpar)) {
+    # exp(eta + u) over a normal u of variance s2 has the mean exp(s2 / 2)
+    # times the value at u = 0 and the second moment exp(2 s2) times its
+    # square, exactly, so no node is needed: 41 nodes and 82 for the slope
+    # cost 189 ms at three rows of a new level
+    s2 <- Reduce(`+`, lapply(loads$dirs, function(dj) dj[[loads$key]]^2))
+    m1 <- exp(log(v0) + s2 / 2)
+    if (mean_only) return(list(mean = drop(m1)))
+    return(list(mean = drop(m1), var = drop(m1^2 * expm1(s2)),
+                plug = drop(v0), slope = drop(exp(s2 / 2) + 0 * v0),
+                grad = drop(v0), s2 = loads$s2, val = val))
   }
-  m1 <- over(val)
-  if (mean_only) return(list(mean = drop(m1)))
-  m2 <- over(function(z) val(z)^2)
+  div <- me_mean_diverges(object, rspec, loads, dpar)
+  K <- if (div) me_gh_div else me_gh_size[r]
+  mo <- me_gh_moments(val, r, K, second = !mean_only)
+  if (!div && r <= 2L) {
+    # the net under the rule, row by row: a mean that does not settle as the
+    # rule grows, or is not finite where the value at the draws' mean is, is
+    # read as one that may diverge, on the rule of stated reach. A mean that
+    # converges settles as the rule grows; one whose far nodes explode grows
+    # with it. sin(a)^2 at a draw sd of pi moved by 1.2 percent between 19 and
+    # 21 nodes, and settles at 41; at 10 pi it does not settle
+    lo <- me_gh_moments(val, r, K - 2L, second = FALSE)$m1
+    ch <- me_row_change(lo, mo$m1, v0)
+    open <- ch > me_net_tol
+    if (any(open)) {
+      ch0 <- max(ch)
+      grown <- rep(FALSE, length(open))
+      for (Kb in K + c(10L, 20L)) {
+        mb <- me_gh_moments(val, r, Kb, second = !mean_only)
+        ch2 <- me_row_change(mb$m1, mo$m1, v0)
+        mo <- me_rows_take(mo, mb, open)
+        # a row that grew is not settling: its far nodes explode
+        grown <- grown | (open & ch2 >= ch)
+        open <- open & !grown & ch2 > me_net_tol
+        ch <- ch2
+        if (!any(open)) break
+      }
+      open <- open | grown
+      if (any(open)) {
+        div <- TRUE
+        m11 <- me_gh_moments(val, r, me_gh_div, second = !mean_only)
+        mo <- me_rows_take(mo, m11, open)
+        lo9 <- me_gh_moments(val, r, me_gh_div - 2L, second = FALSE)$m1
+        me_warn_unsettled(rn, ch0,
+                          max(c(0, me_row_change(lo9, m11$m1, v0)[open])))
+      }
+    }
+  } else if (div) {
+    me_warn_not_finite(rn, me_rule_change(val, r, K, mo$m1, v0))
+  }
+  if (mean_only) return(list(mean = drop(mo$m1)))
+  if (r >= 3L && !div) me_rule_check(val, r, K, mo, rn)
+  v <- pmax(mo$m2 - mo$m1^2, 0)
   h <- 1e-4
   grad <- (val(0, h) - val(0, -h)) / (2 * h)
-  gmean <- (over(function(z) val(z, h)) -
-              over(function(z) val(z, -h))) / (2 * h)
+  ks <- if (div) me_gh_div else me_gh_slope_size[r]
+  gmean <- (me_gh_moments(function(z) val(z, h), r, ks, second = FALSE)$m1 -
+              me_gh_moments(function(z) val(z, -h), r, ks, second = FALSE)$m1) /
+    (2 * h)
   slope <- ifelse(abs(grad) > 0, gmean / grad, 1)
-  list(mean = drop(m1), var = pmax(drop(m2 - m1^2), 0), plug = drop(val(0)),
-       slope = drop(slope), grad = drop(grad), s2 = loads$s2, val = val)
+  out <- list(mean = drop(mo$m1), var = drop(v), plug = drop(v0),
+              slope = drop(slope), grad = drop(grad), s2 = loads$s2, val = val)
+  if (r > 1L) {
+    b <- me_band_dir(val, r, if (div) me_gh_div else 41L)
+    out$val <- b$val
+    out$var1 <- drop(b$var)
+  }
+  out
 }
 
 #' The location predictors brms stacks into a third dimension when a
@@ -4498,6 +4642,24 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
     if (is.null(mm)) return(fd)
     return(sqrt(fd^2 + matrix(mm$var, nrow(fd), ncol(fd))))
   }
+  # a new row's draws on the response scale: their variance by the integral,
+  # and the coefficients' at the mean's own slope, not the observed value's.
+  # Read first: a new level that a body reads has a coefficient part, and
+  # no se.fit of the whole
+  if (!is.null(mm)) {
+    cf <- tryCatch(withCallingHandlers(frm_linpred(
+      me_coef_only(object), newdata = newdata, type = "response",
+      dpar = dpar, resp = resp, re_formula = re_formula,
+      allow_new_levels = allow_new_levels, se.fit = TRUE)$se.fit,
+      warning = function(w) {
+        if (!inherits(w, c("frmtmb_modes_conditional_se",
+                           "frmtmb_se_lost_prediction"))) {
+          invokeRestart("muffleWarning")
+        }
+      }),
+      error = keep_missing(NULL))
+    if (!is.null(cf)) return(sqrt((as.numeric(cf) * mm$slope)^2 + mm$var))
+  }
   # fitted_point() has already raised this call's warnings, so they are
   # muffled here, except the one only the standard error can raise: a
   # quadrature fit's Est.Error without the group-effect term, which the
@@ -4518,24 +4680,20 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
       if (inherits(e, "frmtmb_latres_dense")) {
         frm_message(conditionMessage(e), class = "frmtmb_latres_se_skipped")
       }
+      # an Est.Error of NA is said, not left silent
+      if (inherits(e, "frmtmb_nl_new_level")) {
+        frm_warning(conditionMessage(e), call. = FALSE,
+                    class = "frmtmb_nl_new_level")
+      }
       keep_missing(NULL)(e)
     })
   if (is.null(p)) return(NULL)
-  # a new row's me() draw on the response scale: its variance by the integral,
-  # and the coefficients' at the mean's own slope, not the observed value's
-  if (is.null(mm)) {
-    # a new row's latent is in brms's linear predictor, as a me() draw is here
-    sl <- if (!is.null(newdata) && scale == "linear") {
-      latres_row_sd(object, resp %||% names(object$spec$responses)[1L], dpar)
-    }
-    return(if (is.null(sl)) p$se.fit else sqrt(p$se.fit^2 + sl^2))
+  # a new row's latent is in brms's linear predictor, as a me() draw is here
+  sl <- if (is.null(mm) && !is.null(newdata) && scale == "linear") {
+    latres_row_sd(object, resp %||% names(object$spec$responses)[1L], dpar)
   }
-  cf <- tryCatch(suppressWarnings(frm_linpred(
-    me_coef_only(object), newdata = newdata, type = "response", dpar = dpar,
-    resp = resp, re_formula = re_formula, allow_new_levels = allow_new_levels,
-    se.fit = TRUE)$se.fit), error = keep_missing(NULL))
-  if (is.null(cf)) return(p$se.fit)
-  sqrt((as.numeric(cf) * mm$slope)^2 + mm$var)
+  if (!is.null(mm)) return(p$se.fit)
+  if (is.null(sl)) p$se.fit else sqrt(p$se.fit^2 + sl^2)
 }
 
 #' The draws-only arguments of `fitted()` and `residuals()`, refused
@@ -6980,11 +7138,28 @@ joint_pos_map <- function(jc) {
 #' @noRd
 lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
                         allow_new_levels, jc) {
-  if (isTRUE(allow_new_levels)) {
-    frm_stop("frm_lp_basis(): allow_new_levels = TRUE is refused for a ",
-             "nonlinear predictor. A new level contributes its block's ",
-             "marginal variance, and how that variance passes through a ",
-             "nonlinear body has not been measured", call. = FALSE)
+  # a mean over a new level's effects carries their variance itself
+  # (fitted_me_moments()), so the coefficient part may read such a row at
+  # the effects' mean; anywhere else a new level is refused below, by
+  # class, and a row of levels the fit saw answers under the flag
+  anl <- isTRUE(allow_new_levels) && isTRUE(object[["me_no_extra"]])
+  if (isTRUE(allow_new_levels) && !anl) {
+    return(withCallingHandlers(
+      lp_basis_nl(object, lp, rspec, newdata, use_re, FALSE, jc),
+      frmtmb_new_levels = function(e) {
+        frm_stop(structure(class = c("frmtmb_nl_new_level",
+                                     "frmtmb_new_levels", "error",
+                                     "condition"),
+                           list(message = paste0(
+                             e[["what"]] %||% conditionMessage(e), ", read ",
+                             "by a nonlinear body. A new level adds its ",
+                             "block's marginal variance, and how that ",
+                             "variance passes through a body is not ",
+                             "written, so allow_new_levels = TRUE has no ",
+                             "standard error there. fitted() takes the mean ",
+                             "over the level's effects"),
+                             call = NULL, what = e[["what"]])))
+      }))
   }
   pm <- joint_pos_map(jc)
   est <- object$estimates
@@ -7002,15 +7177,7 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
       parts[[nm]] <<- list(lp = lpk, nl = TRUE)
       return(invisible(NULL))
     }
-    edk <- lp_eta_design(object, lpk, newdata, use_re, FALSE)
-    ex <- lp_extra_var_vec(object, edk, use_re)
-    if (any(ex != 0)) {
-      frm_stop("frm_lp_basis(): the nonlinear body reaches '", nm,
-               "', which contributes variance that is not coefficient ",
-               "uncertainty (an exact gp() kriging variance, or the draw ",
-               "of a new row's me() value). Its chain rule through a ",
-               "nonlinear body has not been measured", call. = FALSE)
-    }
+    edk <- lp_eta_design(object, lpk, newdata, use_re, anl)
     has_rr <- isTRUE(object$frame[["has_rr"]])
     dak <- lp_delta_A(object, lpk, edk, newdata, use_re, jc, has_rr,
                       if (has_rr) rr_jacobians(object))
@@ -7038,6 +7205,19 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
              call. = FALSE)
   }
   chat <- vapply(pos, function(k) est[[pm$comp[k]]][pm$idx[k]], 0)
+  # a part with variance that is not coefficient uncertainty (a new row's
+  # me() draw, an exact gp()'s kriging) gets one shift of its own on the
+  # tape, every row moved by it: a body is evaluated row by row, so the
+  # column of d eta / d shift is each row's own derivative. One input per row
+  # made the Jacobian rows by rows, 488 MB at 4000 rows
+  ex <- nl_basis_extra(object, parts, newdata, use_re, anl)
+  sh_at <- list()
+  P <- length(chat)
+  for (nm in names(ex)) {
+    sh_at[[nm]] <- P + 1L
+    P <- P + 1L
+  }
+  c0 <- c(chat, numeric(P - length(chat)))
 
   dl <- lp_basis_nl_data(object, newdata)
   # the same statement predict(newdata = ) makes: this door evaluates
@@ -7081,6 +7261,7 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
           j <- match(p$pos[k], pos)
           e <- e + p$A[, k] * (cc[j] - chat[j])
         }
+        if (!is.null(sh_at[[nm]])) e <- e + cc[sh_at[[nm]]]
       }
       e
     }
@@ -7103,17 +7284,64 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
   # predict() warns about unchecked. Errors and incidental warnings are
   # swallowed: a diagnostic that fails must not take the basis with it.
   if (is.environment(span)) {
-    tryCatch(suppressWarnings(eta_fun(chat)), error = function(e) NULL)
+    tryCatch(suppressWarnings(eta_fun(c0)), error = function(e) NULL)
   }
-  tp <- RTMB::MakeTape(eta_fun, chat)
-  eta <- as.numeric(tp(chat))
-  A <- tp$jacobian(chat)
+  tp <- RTMB::MakeTape(eta_fun, c0)
+  eta <- as.numeric(tp(c0))
+  J <- tp$jacobian(c0)
+  A <- J[, seq_along(chat), drop = FALSE]
   ps_span_flush(span)
   nonest <- rep(FALSE, length(eta))
   for (p in parts) {
     if (!isTRUE(p$nl) && !is.null(p$nonest)) nonest <- nonest | p$nonest
   }
-  lp_basis_out(object, jc, eta, A, pos, numeric(length(eta)), nonest)
+  dd <- lapply(sh_at, function(i) J[, i])
+  lp_basis_out(object, jc, eta, A, pos, nl_extra_var(ex, dd, length(eta)),
+               nonest)
+}
+
+#' The variance that is not coefficient uncertainty on each linear part a
+#' body reads, kept by source: a new row's `me()` draws by call, so two parts
+#' that read one call carry one draw, and the kriging variance of an exact
+#' `gp()`. Only the parts with any are listed.
+#'
+#' @noRd
+nl_basis_extra <- function(object, parts, newdata, use_re, anl = FALSE) {
+  out <- list()
+  if (is.null(newdata)) return(out)
+  for (nm in names(parts)) {
+    p <- parts[[nm]]
+    if (isTRUE(p$nl)) next
+    ed <- lp_eta_design(object, p$lp, newdata, use_re, anl)
+    if (!any(lp_extra_var_vec(object, ed, use_re) != 0)) next
+    out[[nm]] <- list(n = ed[["n"]], me = ed[["me_parts"]],
+                      gp = lp_extra_var(object, ed, use_re)$gp)
+  }
+  out
+}
+
+#' The variance a body's parts pass to its `eta` at first order: each
+#' source's load on a part times `d eta / d eta_part`, summed over the parts
+#' one draw reaches before it is squared, as `predict_mean_se()` sums a
+#' `me()` call over the predictors of a mean.
+#'
+#' @noRd
+nl_extra_var <- function(ex, dd, n) {
+  v <- numeric(n)
+  by_call <- list()
+  for (nm in names(ex)) {
+    for (e in ex[[nm]]$me) {
+      if (is.na(e$k)) {
+        v <- v + (dd[[nm]] * e$g * e$sd)^2
+        next
+      }
+      key <- as.character(e$k)
+      by_call[[key]] <- (by_call[[key]] %||% 0) + dd[[nm]] * e$g * e$sd
+    }
+    for (gv in ex[[nm]]$gp) v <- v + dd[[nm]]^2 * gv
+  }
+  for (b in by_call) v <- v + b^2
+  v
 }
 
 #' The raw data columns each nonlinear body reads, at `newdata` or in

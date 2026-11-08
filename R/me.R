@@ -562,9 +562,15 @@ me_newdata_observed <- function(t, newdata, env) {
 #' A `me(gr = )` level the fit did not see, refused unless allowed, as brms's
 #' validate_newdata() refuses it. A missing level is a new one.
 #'
+#' `fit$me_new_levels` allows it alone: frmtmb.sample's draws take a new
+#' level's latent value from `normal(x, sdx)` per draw, as brms does, and
+#' refuse a group-level effect's new level, which they do not draw.
+#'
 #' @noRd
 me_check_new_levels <- function(fit, lp, newdata, allow_new_levels) {
-  if (isTRUE(allow_new_levels)) return(invisible(NULL))
+  if (isTRUE(allow_new_levels) || isTRUE(fit[["me_new_levels"]])) {
+    return(invisible(NULL))
+  }
   terms <- fit$frame[["me"]]$terms
   for (k in unique(unlist(lapply(lp[["me"]], `[[`, "terms")))) {
     t <- terms[[k]]
@@ -676,75 +682,175 @@ me_same_value <- function(v) {
   id
 }
 
-#' How one response's predictors load the latent of a new row's `me()` value,
-#' or `NULL` when no predictor reads one.
+#' How one response's predictors load the draws of a new row, or `NULL` when
+#' no predictor reads one.
 #'
-#' `lead` is the first predictor that reads one, `s2` its total variance per
-#' row, `by_key` each predictor's movement per unit of the latent. A second
-#' predictor moves by its regression on the lead, which is exact when one call
-#' carries both, as the shared latent has it.
+#' A new row reads three kinds of draw that are not coefficient uncertainty:
+#' a `me()` value, a latent residual on `mu`, and the effects of a grouping
+#' level the fit did not see (`allow_new_levels`), as brms draws each of them.
+#' All three move the predictors linearly and are normal, so per row they are
+#' one normal vector over the predictors they reach. Its covariance is
+#' factored per row with the lead predictor first (`chol_rows()`), so that
+#' `dirs[[1]]` alone moves the lead and each direction is an independent
+#' standard normal.
+#'
+#' `key` is the lead predictor, `s2` its variance per row, `dirs` each
+#' predictor's movement per unit of each direction. A `me()` call is one draw
+#' whichever predictors read it; two calls, a latent and a level's effects
+#' are independent draws. A block's effects reach every predictor that holds
+#' one of its components through the same draw. Through 0.79.1 a second
+#' predictor moved by its regression on the lead alone, which is exact only
+#' when one call carries both: on a `hurdle_poisson()` row with a latent the
+#' draw's sd read 0.733 against 0.925 (dev/readers-probe2.R).
 #'
 #' @noRd
 me_row_loads <- function(fit, rspec, newdata, use_re, anl, dpar = NULL) {
   if (is.null(newdata)) return(NULL)
   rn <- rspec$resp_name
+  fit[["me_no_extra"]] <- NULL
   sl <- latres_row_sd(fit, rn, dpar)
-  if (is.null(fit$frame[["me"]])) {
-    if (is.null(sl)) return(NULL)
-    key <- linpred_key(rn, "mu")
-    s <- rep_len(sl, nrow(newdata))
-    return(list(key = key, s2 = s^2, by_key = stats::setNames(list(s), key)))
-  }
   dps <- if (is.null(dpar)) names(rspec$dpars) else dpar
-  parts <- list()
+  # a body reads its nonlinear parameters' draws: conditional_effects() asks
+  # for mu alone, and its band missed a me() value in `a ~ me(x, sx)`
+  dps <- me_body_parts(fit, rn, dps)
+  n <- nrow(newdata)
+  # one entry per independent standard normal source: its load on each key
+  src <- list()
   for (d in dps) {
-    lp <- fit$frame[["linpreds"]][[linpred_key(rn, d)]]
-    if (is.null(lp) || !length(lp[["me"]])) next
-    mp <- lp_eta_design(fit, lp, newdata, use_re, anl)[["me_parts"]]
-    if (length(mp)) parts[[linpred_key(rn, d)]] <- mp
-  }
-  if (!length(parts)) {
-    if (is.null(sl)) return(NULL)
-    key <- linpred_key(rn, "mu")
-    s <- rep_len(sl, nrow(newdata))
-    return(list(key = key, s2 = s^2, by_key = stats::setNames(list(s), key)))
-  }
-  if (!is.null(sl) && !identical(names(parts)[1L], linpred_key(rn, "mu"))) {
-    # one node cannot read two independent draws, and the latent moves the mean
-    # by exp(s^2 / 2), where this me() value moves it by 0.1 percent
-    key <- linpred_key(rn, "mu")
-    s <- rep_len(sl, nrow(newdata))
-    return(list(key = key, s2 = s^2, by_key = stats::setNames(list(s), key)))
-  }
-  tot <- function(mp) Reduce(`+`, lapply(mp, function(e) (e$g * e$sd)^2))
-  lead <- parts[[1L]]
-  s2 <- tot(lead)
-  s <- sqrt(s2)
-  by_key <- list()
-  for (key in names(parts)) {
-    cv <- numeric(length(s2))
-    for (e in parts[[key]]) {
-      if (is.na(e$k)) next
-      for (l in lead) {
-        if (!is.na(l$k) && l$k == e$k) cv <- cv + e$g * l$g * e$sd * l$sd
+    key <- linpred_key(rn, d)
+    lp <- fit$frame[["linpreds"]][[key]]
+    if (is.null(lp) || !is.null(lp[["nl_body"]])) next
+    need_nl <- isTRUE(anl) && use_re && me_reads_groups(fit, key)
+    if (length(lp[["me"]]) || need_nl) {
+      ed <- lp_eta_design(fit, lp, newdata, use_re, anl)
+      for (e in ed[["me_parts"]]) {
+        id <- if (is.na(e$k)) paste0("rest\r", key) else paste0("me\r", e$k)
+        src <- me_src_add(src, id, key, e$g * e$sd, n)
+      }
+      if (need_nl) {
+        B <- extra_var_blocks(lp_extra_var(fit, ed, use_re)$new_levels,
+                              ed[["n"]])
+        for (bn in names(B)) {
+          L <- B[[bn]]$M %*% psd_root(B[[bn]]$S)
+          for (cc in seq_len(ncol(L))) {
+            if (any(L[, cc] != 0)) {
+              src <- me_src_add(src, paste0("re\r", bn, "\r", cc), key,
+                                L[, cc], n)
+            }
+          }
+        }
       }
     }
-    by_key[[key]] <- ifelse(s > 0, cv / s, 0)
-  }
-  # the part of the lead no one call carries moves it too
-  by_key[[names(parts)[1L]]] <- s
-  # a latent residual is independent of the me() draws and moves mu alone, so
-  # the lead's variance grows by it and the other predictors' share of the
-  # node falls
-  if (!is.null(sl) && identical(names(parts)[1L], linpred_key(rn, "mu"))) {
-    s_new <- sqrt(s2 + sl^2)
-    for (k in names(by_key)) {
-      by_key[[k]] <- ifelse(s_new > 0, by_key[[k]] * s / s_new, 0)
+    if (identical(d, "mu") && !is.null(sl)) {
+      src <- me_src_add(src, "latent", key, rep_len(sl, n), n)
     }
-    by_key[[names(parts)[1L]]] <- s_new
-    s2 <- s_new^2
   }
-  list(key = names(parts)[1L], s2 = s2, by_key = by_key)
+  if (!length(src)) return(NULL)
+  used <- unique(unlist(lapply(src, names), use.names = FALSE))
+  keys <- linpred_key(rn, dps)
+  keys <- keys[keys %in% used]
+  D <- length(keys)
+  # the per-row covariance over the keys, its lower triangle
+  C <- lapply(seq_len(D), function(i) lapply(seq_len(i), function(j) {
+    numeric(n)
+  }))
+  for (s in src) {
+    for (i in seq_len(D)) {
+      li <- s[[keys[i]]]
+      if (is.null(li)) next
+      for (j in seq_len(i)) {
+        lj <- s[[keys[j]]]
+        if (!is.null(lj)) C[[i]][[j]] <- C[[i]][[j]] + li * lj
+      }
+    }
+  }
+  L <- chol_rows(C, D)
+  dirs <- list()
+  for (j in seq_len(D)) {
+    col <- lapply(seq_len(D), function(i) {
+      if (i >= j) L[[i]][[j]] else numeric(n)
+    })
+    if (!any(vapply(col, function(v) any(v != 0), NA))) next
+    dirs[[length(dirs) + 1L]] <- stats::setNames(col, keys)
+  }
+  if (!length(dirs)) return(NULL)
+  list(key = keys[1L], s2 = C[[1L]][[1L]], dirs = dirs)
+}
+
+#' The dpars `dps` and every parameter a body among them reads, through
+#' nested bodies, in that order.
+#'
+#' @noRd
+me_body_parts <- function(fit, rn, dps) {
+  out <- character(0)
+  todo <- dps
+  while (length(todo)) {
+    d <- todo[1L]
+    todo <- todo[-1L]
+    if (d %in% out) next
+    out <- c(out, d)
+    lp <- fit$frame[["linpreds"]][[linpred_key(rn, d)]]
+    if (!is.null(lp[["nl_body"]])) {
+      todo <- c(todo, lp[["nl_pars"]], lp[["nl_dpar_refs"]])
+    }
+  }
+  out
+}
+
+#' One source's load `l` on predictor `key`, added to the list of sources.
+#'
+#' @noRd
+me_src_add <- function(src, id, key, l, n) {
+  if (is.null(src[[id]])) src[[id]] <- list()
+  src[[id]][[key]] <- (src[[id]][[key]] %||% numeric(n)) + l
+  src
+}
+
+#' Whether a predictor holds a group-level component whose new level has a
+#' marginal law: a smooth, `gp()`, `hsgp()` or latent block has none.
+#'
+#' @noRd
+me_reads_groups <- function(fit, key) {
+  for (bk in fit$frame[["re_blocks"]] %||% list()) {
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "latres")) next
+    for (cp in bk[["components"]]) {
+      if (identical(cp$lp_key, key)) return(TRUE)
+    }
+  }
+  FALSE
+}
+
+#' A root `R` of a covariance `S`, `R R' = S`, that holds where `S` is
+#' singular, as a correlation of 1 or an sd of 0 makes it.
+#'
+#' @noRd
+psd_root <- function(S) {
+  e <- eigen(as.matrix(S), symmetric = TRUE)
+  e$vectors %*% diag(sqrt(pmax(e$values, 0)), length(e$values))
+}
+
+#' The lower Cholesky factor of a covariance given per row, `C[[i]][[j]]` for
+#' `j <= i`. A pivot whose remaining variance is a rounding of what was there
+#' is 0, so a predictor that earlier directions carry whole opens none.
+#'
+#' @noRd
+chol_rows <- function(C, D) {
+  L <- lapply(seq_len(D), function(i) vector("list", i))
+  for (j in seq_len(D)) {
+    s <- C[[j]][[j]]
+    for (k in seq_len(j - 1L)) s <- s - L[[j]][[k]]^2
+    # one draw read by two predictors leaves the second a share of about
+    # 1e-16 of its variance here, which is no direction
+    ok <- C[[j]][[j]] > 0 & s > 1e-10 * C[[j]][[j]]
+    piv <- ifelse(ok, sqrt(pmax(s, 0)), 0)
+    L[[j]][[j]] <- piv
+    for (i in seq_len(D - j) + j) {
+      v <- C[[i]][[j]]
+      for (k in seq_len(j - 1L)) v <- v - L[[i]][[k]] * L[[j]][[k]]
+      L[[i]][[j]] <- ifelse(ok, v / ifelse(ok, piv, 1), 0)
+    }
+  }
+  L
 }
 
 #' The marginal sd a latent residual adds to `mu` of a new row, or `NULL` where
@@ -759,25 +865,370 @@ latres_row_sd <- function(fit, rn, dpar) {
                      bk[["aux"]])
 }
 
-#' The value of `fit` at a node of the latent: `what(fit)` with every predictor
-#' of `loads` moved. The nodes cost one prediction each, so they are kept.
+#' The value of `fit` at a point of the draws: `what(fit)` with every
+#' predictor of `loads` moved. `z` is a list with one entry per direction,
+#' each one number or one per row; a bare `z` is the first direction's.
+#' `d` moves the lead predictor on top.
 #'
 #' @noRd
 me_node_value <- function(fit, loads, what) {
-  # a list: z has one value per row, and an environment's name holds 10000
-  # bytes, which about 500 rows pass. A fit reads a few hundred nodes at most
-  memo <- list()
   function(z, d = 0) {
-    for (m in memo) if (m$d == d && identical(m$z, z)) return(m$value)
+    if (!is.list(z)) z <- list(z)
     sh <- fit
-    moved <- lapply(loads$by_key, function(g) g * z)
+    moved <- list()
+    for (j in seq_along(loads$dirs)) {
+      zj <- if (j <= length(z)) z[[j]] else 0
+      for (key in names(loads$dirs[[j]])) {
+        moved[[key]] <- (moved[[key]] %||% 0) + loads$dirs[[j]][[key]] * zj
+      }
+    }
     moved[[loads$key]] <- moved[[loads$key]] + d
     sh[["eta_shift"]] <- list(by_key = moved)
-    value <- what(sh)
-    memo[[length(memo) + 1L]] <<- list(z = z, d = d, value = value)
-    value
+    what(sh)
   }
 }
+
+# Gauss-Hermite nodes per direction of a new row's draws, by their number: a
+# node costs one prediction, about 1 ms, so a product grid keeps to a few
+# hundred. The slope's integral scales the coefficients' share alone and
+# takes fewer.
+me_gh_size <- c(41L, 21L, 11L, 7L)
+me_gh_slope_size <- c(41L, 9L, 5L, 3L)
+
+#' The mean and second moment of `val` over `r` independent standard normals,
+#' on a product Gauss-Hermite grid of `K` nodes each. A node whose value is
+#' not a finite number says nothing, and a cell that lost real weight reads
+#' `NaN`, as `response_mean_gh()` reads it.
+#'
+#' @noRd
+me_gh_moments <- function(val, r, K, second = TRUE) {
+  gh <- gh_std_normal(K)
+  idx <- as.matrix(expand.grid(rep(list(seq_len(K)), r)))
+  w <- apply(idx, 1L, function(i) prod(gh$w[i]))
+  # a product weight below 1e-16 of the largest moves no digit of the mean
+  keep <- w > 1e-16 * max(w)
+  idx <- idx[keep, , drop = FALSE]
+  w <- w[keep]
+  t1 <- 0
+  t2 <- 0
+  lost <- 0
+  for (k in seq_along(w)) {
+    v <- val(as.list(gh$x[idx[k, ]]))
+    bad <- !is.finite(v)
+    if (any(bad)) {
+      v[bad] <- 0
+      lost <- lost + w[k] * bad
+    }
+    t1 <- t1 + w[k] * v
+    if (second) t2 <- t2 + w[k] * v^2
+  }
+  m1 <- t1 / (1 - lost)
+  m2 <- t2 / (1 - lost)
+  m1[lost >= latres_gh_lost] <- NaN
+  m2[lost >= latres_gh_lost] <- NaN
+  list(m1 = m1, m2 = m2)
+}
+
+#' Whether the exact mean over a new row's draws is infinite, decided from
+#' the model and not from the numbers: a lognormal mean is
+#' `exp(mu + sigma^2 / 2)`, and a normal draw on `sigma`'s log link gives
+#' `E[exp(c exp(2 u))]`, which diverges at any sd of `u`. That holds for a
+#' lognormal component's `sigma<k>` of a mixture, and for a draw on a
+#' nonlinear parameter that a body for `sigma` reads: the first form of this
+#' rule missed both, and read 2.5e207 and 4.7e82 with no warning. Every other
+#' mean this reads is finite: a log-linear one is `exp(eta + v / 2)`.
+#'
+#' @noRd
+me_mean_diverges <- function(fit, rspec, loads, dpar) {
+  if (!is.null(dpar)) return(FALSE)
+  sig <- me_lognormal_sigmas(rspec$family)
+  if (!length(sig)) return(FALSE)
+  reach <- me_body_parts(fit, rspec$resp_name, sig)
+  moved <- unique(unlist(lapply(loads$dirs, names), use.names = FALSE))
+  any(vapply(moved, function(k) {
+    isTRUE(fit$frame[["linpreds"]][[k]][["dpar"]] %in% reach)
+  }, NA))
+}
+
+#' The `sigma` dpars of a family's lognormal parts: `sigma` of a lognormal,
+#' shifted or hurdle lognormal, and `sigma<k>` of a mixture whose component
+#' `k` is one, read off the family's name, `mixture(lognormal, gaussian)`.
+#'
+#' @noRd
+me_lognormal_sigmas <- function(fam) {
+  nm <- fam[["family"]] %||% ""
+  if (is.null(fam[["mix"]])) {
+    return(if (grepl("lognormal", nm, fixed = TRUE)) "sigma" else character())
+  }
+  inner <- sub("^[^(]*[(](.*)[)]$", "\\1", nm)
+  comps <- trimws(strsplit(inner, ",", fixed = TRUE)[[1L]])
+  k <- which(grepl("lognormal", comps, fixed = TRUE))
+  if (!length(k)) character() else paste0("sigma", k)
+}
+
+#' Whether the value read is a constant times `exp(eta)` of the one predictor
+#' the draws move, so that its mean over them is `exp(v / 2)` times the value
+#' at the observed values, `v` the draws' variance there, and its second
+#' moment `exp(2 v)` times the square: a log link whose inverse is the mean
+#' (poisson, negbinomial, a log-link Gamma), a lognormal's `mu`, or a dpar
+#' read on a log link. A truncated mean, a lag SAR term and a latent that
+#' joins after the link are not.
+#'
+#' @noRd
+me_log_linear <- function(fit, rspec, loads, dpar) {
+  moved <- unique(unlist(lapply(loads$dirs, names), use.names = FALSE))
+  if (length(moved) != 1L) return(FALSE)
+  rn <- rspec$resp_name
+  read <- dpar %||% "mu"
+  if (!identical(moved, linpred_key(rn, read))) return(FALSE)
+  lp <- fit$frame[["linpreds"]][[moved]]
+  if (is.null(lp) || !is.null(lp[["nl_body"]])) return(FALSE)
+  fam <- rspec$family
+  if (!is.null(dpar)) {
+    return(is.null(dpar_report_hook(fam, dpar, rspec)) &&
+             identical(dpar_response_link(rspec, lp, dpar)[["name"]], "log"))
+  }
+  if (has_trunc(rspec) || autocor_is_seam(fit$frame[["autocor"]][[rn]])) {
+    return(FALSE)
+  }
+  if (isTRUE(frame_latres(fit$frame)[[rn]][["aux"]][["on_response"]])) {
+    return(FALSE)
+  }
+  link <- lp[["link"]][["name"]] %||% ""
+  (mean_is_mu(fam) && identical(link, "log")) ||
+    (identical(fam[["family"]], "lognormal") && identical(link, "identity"))
+}
+
+# The steps me_keep_dirs() moves a direction by, in sds, irrational and
+# irrationally related, so no period of a bounded body meets all of them.
+me_keep_steps <- c(sqrt(2) / 2, (1 + sqrt(5)) / 2 / 1.3, sqrt(3))
+
+#' The draws that move what is read: a direction whose unit step changes no
+#' cell is left out, so it costs no nodes, and past `length(me_gh_size)`
+#' directions the ones that move it most are kept. Through the first round
+#' of this rule a mixture kept its first four by dpar order, two of which
+#' moved nothing: the mean read 1.3395 against 1.0736.
+#'
+#' @noRd
+me_keep_dirs <- function(loads, val, v0, rn) {
+  r <- length(loads$dirs)
+  if (r < 2L) return(loads)
+  # steps of sqrt(2) / 2, the golden ratio / 1.3 and sqrt(3) sds each way, no
+  # two of them rational multiples of each other: a rational step can land on
+  # a period, as sin(a)^2 at a = 0 with an sd of pi or 10 pi, where steps of
+  # 0.5, 1 and 1.7 all read sin(0)^2 and the draw, which doubles the mean,
+  # was dropped
+  infl <- vapply(seq_len(r), function(j) {
+    d <- 0
+    for (st in c(-1, 1) %o% me_keep_steps) {
+      z <- as.list(numeric(r))
+      z[[j]] <- st
+      e <- abs(as.matrix(val(z)) - v0) / pmax(abs(v0), .Machine$double.xmin)
+      e[!is.finite(e)] <- 0
+      d <- max(d, e)
+    }
+    d
+  }, 0)
+  keep <- which(infl > 1e-12)
+  if (!length(keep)) keep <- 1L
+  cap <- length(me_gh_size)
+  if (length(keep) > cap) {
+    frm_warning("A new row of '", rn, "' reads ", length(keep),
+                " independent draws that move its value, and the mean is ",
+                "integrated over the ", cap, " that move it most. The rest ",
+                "stay at 0 in the mean and in Est.Error",
+                call. = FALSE, class = "frmtmb_draw_dims")
+    keep <- sort(keep[order(-infl[keep])][seq_len(cap)])
+  }
+  loads$dirs <- loads$dirs[keep]
+  loads
+}
+
+#' The value over several directions of draws, read along one: per row, the
+#' direction in which the value moves most at the observed values, and the
+#' variance along it. A band is the draw's quantiles along it, widened to the
+#' whole variance; with one direction it is the draw itself.
+#'
+#' @noRd
+me_band_dir <- function(val, r, K = 41L) {
+  hz <- 1e-3
+  g <- lapply(seq_len(r), function(j) {
+    up <- as.list(numeric(r))
+    dn <- up
+    up[[j]] <- hz
+    dn[[j]] <- -hz
+    as.matrix((val(up) - val(dn)) / (2 * hz))
+  })
+  # a category display reads the direction of the category that moves most
+  nrm <- Reduce(`+`, lapply(g, function(x) x^2))
+  col <- max.col(nrm, ties.method = "first")
+  rows <- seq_len(nrow(nrm))
+  gc <- lapply(g, function(x) x[cbind(rows, col)])
+  len <- sqrt(Reduce(`+`, lapply(gc, function(x) x^2)))
+  a <- lapply(seq_len(r), function(j) {
+    ifelse(len > 0, gc[[j]] / ifelse(len > 0, len, 1), as.numeric(j == 1L))
+  })
+  val1 <- function(t, d = 0) {
+    if (is.list(t)) t <- t[[1L]]
+    val(lapply(a, function(aj) aj * t), d)
+  }
+  mo <- me_gh_moments(val1, 1L, K)
+  list(val = val1, var = pmax(mo$m2 - mo$m1^2, 0))
+}
+
+#' The warning that a new row's exact mean over its draws is infinite, said
+#' once per reader's call with the largest change two fewer nodes make.
+#'
+#' @noRd
+me_warn_not_finite <- function(rn, moved) {
+  if (me_said(paste("not_finite", rn))) return(invisible(NULL))
+  frm_warning("The exact expected response of '", rn, "' at a new row is ",
+              "infinite: a lognormal's mean exp(mu + sigma^2 / 2) over a ",
+              "normal draw on sigma (a me() value, a latent or a new level) ",
+              "diverges in the draw's far tail. Estimate and Est.Error are ",
+              "the ", me_gh_div, "-node Gauss-Hermite mean and sd, which ",
+              "reach ", format(max(gh_std_normal(me_gh_div)$x), digits = 3),
+              " sds of the draw, as a sampler's draws do. On the rows of ",
+              "this call ", me_gh_div - 2L, " nodes move that mean by at ",
+              "most ", format(moved, digits = 2), " of itself: where that is ",
+              "not small, no mean of draws is stable either, and it grows ",
+              "with their number. The Q columns are the draw's quantiles",
+              call. = FALSE, class = "frmtmb_mean_not_finite")
+}
+
+#' The warning of the net under the rule: a mean whose rule did not settle.
+#'
+#' @noRd
+me_warn_unsettled <- function(rn, before, after) {
+  if (me_said(paste("unsettled", rn))) return(invisible(NULL))
+  frm_warning("The expected response of '", rn, "' at a new row does not ",
+              "settle: two fewer Gauss-Hermite nodes move its mean by ",
+              format(before, digits = 2), " of itself, or it is not finite, ",
+              "so its exact mean over the row's draws may be infinite. ",
+              "Estimate and Est.Error are the ", me_gh_div, "-node mean and ",
+              "sd, which reach ",
+              format(max(gh_std_normal(me_gh_div)$x), digits = 3), " sds of ",
+              "the draw, as a sampler's draws do; ", me_gh_div - 2L,
+              " nodes move that by ", format(after, digits = 2), ". The Q ",
+              "columns are the draw's quantiles",
+              call. = FALSE,
+              class = c("frmtmb_mean_unsettled", "frmtmb_mean_not_finite"))
+}
+
+#' The largest relative change of a mean between `K` and `K - 2` nodes over
+#' the rows whose value at the draws' mean is finite; `Inf` where the mean
+#' there is not finite, or the smaller rule's is not.
+#'
+#' @noRd
+me_rule_change <- function(val, r, K, m1, v0) {
+  if (any(is.finite(as.matrix(v0)) & !is.finite(as.matrix(m1)))) return(Inf)
+  me_change(me_gh_moments(val, r, K - 2L, second = FALSE)$m1, m1, v0)
+}
+
+#' The largest relative change from `m1` to `m2` over the rows whose value at
+#' the draws' mean is finite; `Inf` where either is not finite there.
+#'
+#' @noRd
+me_change <- function(m2, m1, v0) {
+  ok <- is.finite(as.matrix(v0))
+  m1 <- as.matrix(m1)
+  m2 <- as.matrix(m2)
+  if (any(ok & !(is.finite(m1) & is.finite(m2)))) return(Inf)
+  ch <- abs(m2 / m1 - 1)[ok & m1 != 0]
+  max(c(0, ch))
+}
+
+#' The relative change from `m1` to `m2` per row, over the cells of the row:
+#' `Inf` where either is not finite while the value at the draws' mean is,
+#' 0 on a row whose value there is not finite.
+#'
+#' @noRd
+me_row_change <- function(m2, m1, v0) {
+  ok <- is.finite(as.matrix(v0))
+  m1 <- as.matrix(m1)
+  m2 <- as.matrix(m2)
+  ch <- abs(m2 / m1 - 1)
+  ch[m1 == 0 & m2 == 0] <- 0
+  ch[!(is.finite(m1) & is.finite(m2))] <- Inf
+  ch[!ok] <- 0
+  apply(ch, 1L, max)
+}
+
+#' The moments `mo` with the rows `rows` taken from `mb`.
+#'
+#' @noRd
+me_rows_take <- function(mo, mb, rows) {
+  for (nm in c("m1", "m2")) {
+    a <- as.matrix(mo[[nm]])
+    b <- as.matrix(mb[[nm]])
+    if (identical(dim(a), dim(b))) {
+      a[rows, ] <- b[rows, ]
+      mo[[nm]] <- a
+    }
+  }
+  mo
+}
+
+# The net's bound on me_rule_change(): a hurdle mean on 21 nodes at a link
+# sd of 3 settles to 1e-4, an exploding one by orders of magnitude.
+me_net_tol <- 1e-3
+
+#' Whether `key` was said already in the reader's call this runs under, and
+#' mark it said: the mark sits in the frame of the outermost function of
+#' this family of packages, as `me_warn_missing()` places it, so one call of
+#' `conditional_effects()` over several grids says it once.
+#'
+#' @noRd
+me_said <- function(key) {
+  top <- NULL
+  for (i in seq_len(sys.nframe())) {
+    ns <- topenv(environment(sys.function(i)))
+    if (isNamespace(ns) && startsWith(getNamespaceName(ns), "frmtmb")) {
+      top <- sys.frame(i)
+      break
+    }
+  }
+  if (is.null(top)) return(FALSE)
+  seen <- get0(".me_said", top, inherits = FALSE)
+  if (key %in% seen) return(TRUE)
+  assign(".me_said", c(seen, key), envir = top)
+  FALSE
+}
+
+# The rule for a mean whose exact value is infinite: 11 nodes reach 5.19
+# sds, about what 4000 to a million draws reach. The 41-node rule's outer
+# node, at 11.6 sds, adds about 1e16 on a lognormal with sigma ~ (1 | g) at
+# sd 0.27, where a mean of 4e6 draws reads 2.09.
+me_gh_div <- 11L
+
+#' The relative change of the mean and of the sd between the rule and the
+#' rule of two fewer nodes, the error estimate a wide draw needs past two
+#' directions: at three directions and a link sd of 3 the 11-node rule's sd
+#' is a third low.
+#'
+#' @noRd
+me_rule_check <- function(val, r, K, mo, rn) {
+  lo <- me_gh_moments(val, r, K - 2L)
+  sd_k <- sqrt(pmax(mo$m2 - mo$m1^2, 0))
+  sd_l <- sqrt(pmax(lo$m2 - lo$m1^2, 0))
+  dm <- abs(lo$m1 / mo$m1 - 1)
+  ds <- abs(sd_l / sd_k - 1)
+  dm[!is.finite(dm)] <- 0
+  ds[!is.finite(ds)] <- 0
+  if (max(dm) > me_rule_tol[1L] || max(ds) > me_rule_tol[2L]) {
+    frm_warning("The mean over a new row of '", rn, "' is integrated over ",
+                r, " directions of draws on ", K, " nodes each, and the ",
+                "rule does not settle: ", K - 2L, " nodes move the mean by ",
+                format(max(dm), digits = 2), " and the sd by ",
+                format(max(ds), digits = 2), " of themselves. Est.Error and ",
+                "the Q columns are less exact than that",
+                call. = FALSE, class = "frmtmb_draw_rule")
+  }
+  invisible(NULL)
+}
+
+# What me_rule_check() lets pass: a relative change of the mean, of the sd.
+me_rule_tol <- c(1e-3, 0.02)
 
 #' The value of a new row's mean at probability `p` of its `me()` draw and its
 #' coefficients: the mean at that quantile of the predictor. It is the draw's
@@ -794,6 +1245,14 @@ me_band_end <- function(mm, se_coef, p) {
   # read the term, up to 3.3 times too wide on me() in mu and zi
   # (dev/review-predread-r1-band.R)
   extra <- ifelse(mm$var > 0, as.numeric(se_coef)^2 / mm$var, 0)
+  if (!is.null(mm$var1)) {
+    # several draws read along one direction: the others' variance widens it
+    # as the coefficients' does
+    extra <- ifelse(mm$var1 > 0,
+                    (as.numeric(se_coef)^2 + mm$var - mm$var1) / mm$var1, 0)
+  }
+  # a mean the draws do not hold has no share to take: the draw's own quantile
+  extra[!is.finite(extra)] <- 0
   # the direction of the draw as a whole: mm$grad moves the first predictor
   # alone, and a zi that rises with the same term can turn the mean the other
   # way, which swapped the two ends

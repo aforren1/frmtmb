@@ -67,7 +67,13 @@ test_that("nl prediction and post-processing", {
   p <- frm_linpred(fit, newdata = nd)
   expect_equal(p[1], fixef_by_dpar(fit)$a[[1]], tolerance = 1e-8,
                ignore_attr = TRUE)
-  expect_error(frm_linpred(fit, se.fit = TRUE), "se.fit is not supported")
+  # the delta method through the body: its gradient in (a, b), by hand
+  ps <- frm_linpred(fit, newdata = nd, se.fit = TRUE)
+  ab <- fixef(fit)[, "Estimate"]
+  G <- cbind(exp(-ab[2] * nd$x), -ab[1] * nd$x * exp(-ab[2] * nd$x))
+  V <- vcov(fit)[1:2, 1:2]
+  expect_equal(unname(ps$se.fit), sqrt(rowSums((G %*% V) * G)),
+               tolerance = 1e-6)
   expect_length(residuals(fit)[, "Estimate"], n)
 })
 

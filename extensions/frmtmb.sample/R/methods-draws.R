@@ -949,8 +949,8 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
   # missing from every draw. See dev/shapes-findings.md.
   frm_check_dots(..., .allow = draws_new_level_args)
   re_form <- re_form_arg(re_formula, re.form, "posterior_epred()")
-  draws_refuse_new_levels(object, newdata, list(...), "posterior_epred()",
-                          re_form)
+  object <- draws_refuse_new_levels(object, newdata, list(...),
+                                    "posterior_epred()", re_form)
   draws_refuse_sort(sort, "posterior_epred()")
   if (draws_resp_stacks(object$fit, resp)) {
     # brms's multivariate layout: every response, one layer each
@@ -1051,8 +1051,8 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
   object <- draws_me_stores(object)
   resp <- draws_resp_read(object, resp)
   re_form <- re_form_arg(re_formula, re.form, "posterior_linpred()")
-  draws_refuse_new_levels(object, newdata, list(...), "posterior_linpred()",
-                          re_form)
+  object <- draws_refuse_new_levels(object, newdata, list(...),
+                                    "posterior_linpred()", re_form)
   draws_refuse_sort(sort, "posterior_linpred()")
   if (draws_resp_stacks(object$fit, resp)) {
     # brms's multivariate layout: every response, one layer each
@@ -1238,8 +1238,8 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   resp <- draws_resp_read(object, resp)
   frm_check_dots(..., .allow = draws_new_level_args)
   re_form <- re_form_arg(re_formula, re.form, "posterior_predict()")
-  draws_refuse_new_levels(object, newdata, list(...), "posterior_predict()",
-                          re_form)
+  object <- draws_refuse_new_levels(object, newdata, list(...),
+                                    "posterior_predict()", re_form)
   draws_refuse_sort(sort, "posterior_predict()")
   draws_refuse_ntrys_cores(ntrys, cores, "posterior_predict()")
   object <- draws_at_point_estimate(object, point_estimate,
@@ -3798,19 +3798,29 @@ draws_new_level_args <- c("allow_new_levels", "allow.new.levels",
 #' led from one refusal to another. `sample_new_levels` alone is the
 #' same call as no flag.
 #'
+#' Under the flag a `me(gr = )` level the fit did not see is not refused:
+#' each draw takes its latent value from `normal(x, sdx)`, as a row of an
+#' ungrouped `me()` term has it. The returned draws carry that mark, and
+#' a method that predicts reads them. Through frmtmb.sample 0.26.0 this
+#' was refused where `fitted()` and brms answered: 8.051 and 7.979 at one
+#' row, seed 7511.
+#'
 #' @noRd
 draws_refuse_new_levels <- function(object, newdata, dots, fn,
                                     re_formula = NULL) {
-  if (is.null(newdata)) return(invisible(NULL))
+  if (is.null(newdata)) return(invisible(object))
   # a wrapper hands its argument on unresolved, and lme4's spelling on
   # in the dots
   re_formula <- re_form_arg(
     re_formula, if ("re.form" %in% names(dots)) dots[["re.form"]] else
       arg_unset(), fn)
   anl <- isTRUE(dots[["allow_new_levels"]] %||% dots[["allow.new.levels"]])
+  # a me(gr = ) level the fit did not see is a latent value each draw takes
+  # from normal(x, sdx), as brms does; a group-level effect's stays refused
+  if (anl) object$fit[["me_new_levels"]] <- TRUE
   what <- draws_unseen_level(draws_base_fit(object), newdata, re_formula,
                              anl)
-  if (is.null(what)) return(invisible(NULL))
+  if (is.null(what)) return(invisible(object))
   frm_stop(fn, " on draws cannot predict a grouping level the fit did not ",
            "see", if (nzchar(what)) paste0(" (", what, ")"), ". brms draws ",
            "that level's effect from each posterior draw or resamples the ",

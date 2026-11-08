@@ -1,3 +1,71 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* BREAKING: `fitted()` with `allow_new_levels = TRUE` at a grouping level the
+  fit did not see is the mean of the expected response over that level's
+  effects, as brms's `posterior_epred(sample_new_levels = "gaussian")` is;
+  brms's default `"uncertainty"` is still refused. Before, it read the
+  effects at their mean of 0, which is the median: a poisson `(1 | g)` at
+  sd 1 read low by a factor of 1.647. On a log link that reads the mean the
+  value is the closed form `exp(v / 2)` times the median. `Est.Error` holds
+  the effects' spread, at the estimated sd, and the `Q` columns are their
+  quantiles. `sample_new_levels = "old_levels"` and `scale = "linear"` do
+  not change.
+
+* BREAKING: `conditional_effects()`'s `se__` is on the displayed scale, as
+  brms's MAD of its draws is. Before, it was on the link scale: a lognormal
+  mean read 0.027 where the response scale reads 0.045, and a poisson mean
+  0.045 where it reads 0.065. On a row with a new `me()` value, a latent or
+  a new level, `se__` and the band are `fitted()`'s. Elsewhere the band does
+  not change.
+
+* BREAKING: a new row that reads two independent draws, a latent residual on
+  `mu` beside a `me()` value on another predictor or two `me()` calls on
+  two predictors, is integrated over both. Before, the second predictor
+  moved by its regression on the first, and a `me()` value on another
+  predictor than `mu` beside a latent was not read. On a
+  `hurdle_poisson()` row, the draw's sd read 0.733 against 0.925, and the
+  mean 2.110 against 2.142.
+
+* BREAKING: a lognormal whose `sigma` reads a draw (`me()`, a latent or a
+  new level) has an infinite exact mean over it, from the draw's far tail;
+  so does a lognormal component's `sigma<k>` of a mixture, and a `sigma`
+  body that reads a nonlinear parameter with a draw. `fitted()` gives the
+  11-node Gauss-Hermite mean, which reaches 5.19 sds of the draw as a
+  sampler's draws do, with one warning per call of class
+  `frmtmb_mean_not_finite`. On `sigma ~ (1 | g)` at sd 0.27 it reads 2.0897,
+  as a mean of 4e6 draws does; 0.79.1 read the median, 2.0038. Past a draw
+  sd of about 0.3 on `sigma` no mean of draws is stable, and the warning
+  gives how far the rule moves. Before, it gave the value at a far node of
+  the rule: 1.7e162 at `sdx = 0.8`. Any other mean whose rule does not
+  settle as it grows is read the same way, with a warning of class
+  `frmtmb_mean_unsettled`.
+
+## Fixes
+
+* A nonlinear body has a standard error: `frm_linpred(se.fit = TRUE)`,
+  `fitted()`'s `Est.Error` and its `Q` columns read the delta method through
+  the body's taped Jacobian, and its memory grows with the rows, not their
+  square. Before, `Est.Error` was `NA` with no message. Under
+  `allow_new_levels = TRUE` a row of levels the fit saw answers, and a new
+  level that a body reads has no `se.fit`, refused with class
+  `frmtmb_nl_new_level`; `fitted()` integrates over that level's effects.
+
+* `conditional_effects()` on a body whose nonlinear parameter reads `me()`
+  answers, with the band and `se__` that `fitted()` reads on the row. Before,
+  it stopped.
+
+* `conditional_effects()`'s band for a category of a row with a `me()`
+  value is `fitted()`'s, the draw's own quantiles. Category 3 of a
+  `cumulative()` row at `sdx = 1.2` read 0.196 to 0.305; it now reads 0.090
+  to 0.254, and the draw's quantiles at the estimates are 0.098 to 0.247.
+
+* A draw that moves nothing `fitted()` reads, as a `me()` value on a
+  Gamma's `shape`, costs no quadrature nodes. Past four draws that move it,
+  the four that move it most are integrated, with a warning of class
+  `frmtmb_draw_dims`.
+
 # frmtmb 0.79.1
 
 * `residuals(type = "osa")` on `beta_binomial()` always stops with a

@@ -95,10 +95,18 @@ test_that("frm_lp_basis() gives a nonlinear body an exact Jacobian", {
   }
   expect_lt(worst, 1e-6)
 
-  # se.fit stays refused for a nonlinear predictor; this is the route
-  expect_error(frm_linpred(fit, se.fit = TRUE), "nonlinear predictor")
-  expect_error(frm_lp_basis(fit, newdata = nd, allow_new_levels = TRUE),
-               "allow_new_levels")
+  # se.fit of a nonlinear predictor is this basis's delta method
+  ps <- frm_linpred(fit, newdata = nd, re_formula = NA, se.fit = TRUE)
+  expect_equal(unname(ps$se.fit),
+               sqrt(rowSums((lb$A %*% lb$V) * lb$A) + lb$extra_var),
+               tolerance = 1e-10)
+  # the flag on rows of levels the fit saw changes nothing; a new level that
+  # the body reads is refused by class, with the reason
+  expect_equal(frm_lp_basis(fit, newdata = nd, allow_new_levels = TRUE)$A,
+               frm_lp_basis(fit, newdata = nd)$A)
+  expect_error(frm_lp_basis(fit, newdata = transform(nd, id = "new"),
+                            allow_new_levels = TRUE),
+               class = "frmtmb_nl_new_level")
 })
 
 test_that("frm_lp_basis() refuses arguments it cannot interpret", {
