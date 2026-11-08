@@ -127,7 +127,7 @@ brms_stan_model <- function(code) {
     }
   }
   mod <- rstan::stan_model(model_code = code, save_dso = TRUE)
-  saveRDS(mod, path)
+  stan_cache_write(mod, path)
   .brms_stan_models[[key]] <- mod
   mod
 }
@@ -1486,4 +1486,25 @@ brms_basis_map <- function(zb, zf, orthogonal = TRUE, tol = 1e-8) {
          "prior and the models differ")
   }
   amat
+}
+
+# Write a compiled program to the Stan cache under its final name only
+# once it is whole: saveRDS() to a temporary file in the same directory,
+# then rename. A run killed during a plain saveRDS() left a truncated
+# RDS under the final name, and CI now saves the cache of a job that
+# failed or timed out, so such a file would reach later runs. The
+# rename replaces an existing file on R 4.6 for Windows, but it can
+# still fail there while another process holds the target open; the
+# target is then a program another run wrote, so the copy in hand is
+# dropped. Only a rename that fails with no target is an error.
+stan_cache_write <- function(mod, path) {
+  tmp <- tempfile(paste0(basename(path), "-"), tmpdir = dirname(path),
+                  fileext = ".part")
+  on.exit(unlink(tmp), add = TRUE)
+  saveRDS(mod, tmp)
+  moved <- suppressWarnings(file.rename(tmp, path))
+  if (!moved && !file.exists(path)) {
+    stop("could not move ", tmp, " to ", path, call. = FALSE)
+  }
+  invisible(path)
 }

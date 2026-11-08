@@ -1,3 +1,28 @@
+# frmtmb (development version)
+
+* The test "new data are coded from the fitted minimum" compares a
+  prediction on 4 rows with a prediction on 4 rows. On Ubuntu 26.04 with
+  OpenBLAS 0.3.32, one value of a prediction on 3 rows was 1 ulp from the
+  same value on 4 rows, and the test failed. The 3-row prediction must now
+  agree to 64 ulps. A code from the minimum of the new data moves a value
+  by a full category, so the test still finds that defect.
+
+* The test "the nl body reaches the likelihood" fits the negative binomial
+  families and `student()` to data with a maximum inside the parameter
+  space. On Poisson or normal data, the shape or `nu` goes to infinity, so
+  the point where the optimizer stops, and its warning, changed with the
+  platform. A gradient warning on Ubuntu was not in the allowed list.
+
+* Continuous integration: the check for a skip on a missing Suggests
+  package runs also when the check or the coverage run fails, so one run
+  shows all failures. The weekly `ubuntu-next` workflow has this check
+  too, and has 150 minutes for its Stan tiers, which compile every
+  program from an empty cache. Its record of the numerical libraries
+  also tries to show the CPU, the OpenBLAS kernel and the OpenBLAS
+  package. The `brms-tiers` job has 180 minutes and its identity tier
+  120, because an empty cache and a slow package mirror together can
+  take more than 90.
+
 # frmtmb 0.79.1
 
 * `residuals(type = "osa")` on `beta_binomial()` always stops with a

@@ -4661,6 +4661,23 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed by lane ci, round of 2026-11-06
+
+- **`grad_headroom()` gives no usable headroom on three ordinal nl fits.**
+  In `test-nl-family.R`, the nl fits of `cumulative()`,
+  `hurdle_cumulative()` and `acat()` read a maximum gradient of 4.20e-4,
+  1.81e-4 and 1.41e-4 with headroom NA (wt-ci-lib, reference BLAS,
+  `dev/review-ci-nlhead.R`, log `dev/review-ci-nlhead.log`). The cause is
+  `b0`, which is not identified against the thresholds. With NA headroom
+  the gradient alone decides the warning, so each fit is a factor of 2.4,
+  5.5 or 7 from the `grad_tol` of 1e-3. On ubuntu, hurdle_negbinomial's
+  gradient moved by a factor of 4.1 (4.89e-4 here, 0.00201 there) and
+  warned. The "Large maximum absolute gradient" warning is not in the
+  file's allowed list, so on such a platform it would escape as a WARN
+  and fail nothing. The review's suggested fix is in `grad_headroom()`,
+  not in the test: measure the headroom off the exact alias. Not fixed
+  by lane ci (`dev/reviews/2026-11-06-ci.md`, minor 1).
+
 ## Filed at the 0.79.1 release (2026-11-05)
 
 - **`residuals(type = "osa")` on `binomial()` reads NaN with no warning.** 11 of

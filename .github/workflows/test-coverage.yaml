@@ -38,9 +38,11 @@ jobs:
     # Pinned 2026-10-06: ubuntu-latest becomes Ubuntu 26.04 between
     # 2026-10-19 and 2026-11-19. Move with ubuntu-next.yaml (see there).
     runs-on: ubuntu-24.04
-    # the suite runs in one covr session here; a wedged run should fail
-    # the job, not sit for GitHub's 6-hour default
-    timeout-minutes: 90
+    # The limit that catches a wedged covr session is on "Measure
+    # coverage". The job's is wide, because on 2026-11-05 apt read Azure's
+    # Ubuntu mirror at 29 kB/s and setup took 44 minutes, which cancelled
+    # two good runs under a 90-minute job limit
+    timeout-minutes: 150
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       NOT_CRAN: "true"
@@ -69,7 +71,10 @@ jobs:
                        value = TRUE)
           if (length(left)) stop("still installed: ", toString(left))
         shell: Rscript {0}
+      # 74 minutes at 0.79.0, and the suite grows each round
       - name: Measure coverage
+        id: measure
+        timeout-minutes: 105
         run: |
           cov <- covr::package_coverage(quiet = FALSE, clean = FALSE,
             install_path = file.path(normalizePath(Sys.getenv("RUNNER_TEMP"),
@@ -95,13 +100,18 @@ jobs:
       # to be absent: every Suggests package is installed above,
       # and a test that needs an extension skips with its own message,
       # which the gate does not read
+      # on a failed run too: the gate ran only after a pass, so 0.79.0's
+      # other failures hid a skip on an extension until 0.79.1
       - name: Fail on a skip from a broken or missing Suggests package
+        if: ${{ !cancelled() && steps.measure.outcome != 'skipped' }}
         run: bash .github/scripts/skip-gate.sh "${RUNNER_TEMP}/package"
         shell: bash
 
   extension-coverage:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    # wide for a slow mirror, as in the core job; the step limit below
+    # catches a wedged session
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
@@ -213,7 +223,10 @@ jobs:
           print(ip[startsWith(rownames(ip), "frmtmb"),
                    c("Version", "LibPath"), drop = FALSE])
         shell: Rscript {0}
+      # the slowest, frmtmb.learn, took 27 minutes for the whole job at 0.79.1
       - name: Measure coverage
+        id: measure
+        timeout-minutes: 60
         run: |
           pkg <- Sys.getenv("PKG")
           cov <- covr::package_coverage(
@@ -246,7 +259,10 @@ jobs:
       # After the upload, so a gated run still reports its coverage. A
       # skip on a broken or missing Suggests package passes covr; fail
       # it here (.github/scripts/skip-gate.sh has why)
+      # on a failed run too: the gate ran only after a pass, so 0.79.0's
+      # other failures hid a skip on an extension until 0.79.1
       - name: Fail on a skip from a broken or missing Suggests package
+        if: ${{ !cancelled() && steps.measure.outcome != 'skipped' }}
         env:
           ABSENT: ${{ matrix.absent }}
         run: bash .github/scripts/skip-gate.sh "${RUNNER_TEMP}/package" $ABSENT

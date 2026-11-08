@@ -55,7 +55,7 @@ mo_code_brms_draws <- function(d) {
   if (is.null(mod) && file.exists(path)) mod <- readRDS(path)
   if (is.null(mod)) {
     mod <- rstan::stan_model(model_code = code, save_dso = TRUE)
-    saveRDS(mod, path)
+    stan_cache_write(mod, path)
   }
   mo_code_models[[key]] <- mod
   # brms's own chains: rstan's ESS warnings only, by name
@@ -157,7 +157,7 @@ test_that("frm_sample() of a two-value mo() agrees with brms", {
   path <- file.path(dir, paste0(key, ".rds"))
   mod <- if (file.exists(path)) readRDS(path) else {
     mm <- rstan::stan_model(model_code = code, save_dso = TRUE)
-    saveRDS(mm, path)
+    stan_cache_write(mm, path)
     mm
   }
   sf <- allow_warnings(rstan::sampling(mod, data = sdat, chains = 2,

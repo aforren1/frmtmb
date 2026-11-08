@@ -23,7 +23,10 @@ nl_fam_data <- function(seed = 20261029, n = 300) {
 nl_fam_response <- function(f, z) {
   n <- z$n
   switch(f,
-    gaussian = , student = , skew_normal = , gen_extreme_value = z$eta + z$e1,
+    gaussian = , skew_normal = , gen_extreme_value = z$eta + z$e1,
+    # heavy tails, so that nu has an interior maximum, as for the
+    # negative binomials below
+    student = z$eta + stats::rt(n, df = 4),
     exgaussian = z$eta + z$e2 + z$e3,
     lognormal = , Gamma = , weibull = , exponential = , inverse.gaussian = ,
     frechet = z$pos,
@@ -33,11 +36,22 @@ nl_fam_response <- function(f, z) {
     zero_one_inflated_beta = ifelse(z$zero, rbinom(n, 1, 0.5),
                                     plogis(z$eta + z$e2)),
     tweedie = , hurdle_gamma = , hurdle_lognormal = ifelse(z$zero, 0, z$pos),
-    poisson = , negbinomial = , negbinomial2 = , nbinom1 = , geometric = ,
-    compois = , discrete_weibull = z$cnt,
-    zero_inflated_poisson = , zero_inflated_negbinomial =
-      ifelse(z$zero, 0L, z$cnt),
-    hurdle_poisson = , hurdle_negbinomial = ifelse(z$zero, 0L, z$cnt + 1L),
+    poisson = , geometric = , compois = , discrete_weibull = z$cnt,
+    # overdispersed counts: on Poisson counts the shape's maximum is at
+    # infinity, so where the fit stops, and which warning it gives, was
+    # the platform's rounding (a gradient warning on ubuntu only at
+    # 0.79.1). Drawn here, after the shared data, so that no other
+    # family's data move.
+    negbinomial = , negbinomial2 = , nbinom1 =
+      stats::rnbinom(n, size = 2, mu = exp(z$eta)),
+    zero_inflated_poisson = ifelse(z$zero, 0L, z$cnt),
+    # size 8: at size 2 the count's own zeros take the inflation, and
+    # the intercept-only fit sends zi to the boundary instead
+    zero_inflated_negbinomial =
+      ifelse(z$zero, 0L, stats::rnbinom(n, size = 8, mu = exp(z$eta))),
+    hurdle_poisson = ifelse(z$zero, 0L, z$cnt + 1L),
+    hurdle_negbinomial =
+      ifelse(z$zero, 0L, stats::rnbinom(n, size = 2, mu = exp(z$eta)) + 1L),
     binomial = , beta_binomial = rbinom(n, 10, z$prob),
     zero_inflated_binomial = , zero_inflated_beta_binomial =
       ifelse(z$zero, 0L, rbinom(n, 10, z$prob)),

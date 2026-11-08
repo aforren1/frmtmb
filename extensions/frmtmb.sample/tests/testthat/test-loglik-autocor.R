@@ -312,7 +312,7 @@ lla_stan_model <- local({
     mod <- if (file.exists(path)) try(readRDS(path), silent = TRUE)
     if (is.null(mod) || inherits(mod, "try-error")) {
       mod <- rstan::stan_model(model_code = code, save_dso = TRUE)
-      saveRDS(mod, path)
+      stan_cache_write(mod, path)
     }
     mods[[key]] <- mod
     mod
