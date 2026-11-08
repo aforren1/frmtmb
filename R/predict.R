@@ -5342,7 +5342,47 @@ residuals_unsupported <- c(
 #' `"osa"` gives one-step-ahead (conditional quantile) residuals via
 #' [TMB::oneStepPredict()]: standard-normal under a correctly specified
 #' model, valid under correlated observations where pearson residuals
-#' mislead.
+#' mislead. With no group-level term, a residual of the default
+#' route is the randomized quantile residual of the fitted
+#' distribution: `qnorm(F(y))` for a continuous response, and for a
+#' count `qnorm(u)` with `u` drawn uniformly on `[F(y - 1), F(y)]`. The
+#' uniforms are TMB's: `set.seed(123)` by default, so the same fit gives
+#' the same residuals and the session's random stream is left as it
+#' was; pass `seed =` (through `...`) for other draws, or `seed = NULL`
+#' for the session's stream. A residual is read in the tail its row lies
+#' in, so it holds far out on either side (about +-37 and beyond).
+#'
+#' With a group-level term, TMB integrates the random effects of each
+#' one-step predictive by the Laplace approximation, and that is
+#' approximate. Against the exact one-step predictive, by quadrature on
+#' 20 groups of 10 rows (three data sets per family), the median error
+#' was below 0.001 under `(1 | g)` on seven count families and 0.006 to
+#' 0.016 under a latent `ar()` on poisson and the zero-inflated and
+#' hurdle counts. The largest was 0.15 under `(1 | g)` and 0.13 under
+#' `ar()`. The error is largest on the first row of each group, whose
+#' predictive is an integral over the group effect's prior alone. Over
+#' many rows the residuals stay calibrated: their Kolmogorov-Smirnov
+#' p-value against N(0, 1) was within 0.13 of that of the exact
+#' residuals on each of 42 fits. Read a single residual near a cutoff
+#' with that error in mind.
+#'
+#' A case weight is a frequency, as `weights()` is in the likelihood
+#' (brms's reading): a row of weight `w` gets the residual of the last
+#' of `w` copies of it, given the other `w - 1`, and the later rows are
+#' conditioned on all `w` copies. A row of weight 0 is no part of the
+#' fitted likelihood and gets `NA`. A weight between 0 and 1 also gets
+#' `NA`, with a warning: there TMB reads the row's mass from the weighted
+#' density, `p^w`, so a count's randomization would be wrong. A residual that
+#' `oneStepPredict()` cannot form is `NaN` with a warning.
+#'
+#' The cost grows faster than the number of rows: TMB makes three
+#' evaluations of the whole objective per row, each with an inner
+#' optimization when there are random effects. The rows are handed to
+#' `oneStepPredict()` in blocks of about `sqrt(n)`, each conditioned on
+#' the rows before it, so that the objective carries the CDF of one block
+#' at a time. With `(1 | g)` and 2000 rows in 100 groups, poisson
+#' residuals took about a minute and negbinomial ones about two, on a
+#' loaded machine.
 #'
 #' On a `trunc()`ed response, `"response"` residuals are taken against
 #' the truncated mean `E[Y | lb <= Y <= ub]`. `"pearson"` divides by the
@@ -5442,13 +5482,21 @@ residuals_unsupported <- c(
 #'   and both are accepted), `"pearson"`, `"deviance"`, or `"osa"`.
 #'   brms's `residuals()` takes `newdata` in this position; this one
 #'   has always taken `type` there, so give `newdata` by name.
-#' @param osa_method Method for [TMB::oneStepPredict()]; defaults to
-#'   `"fullGaussian"` for gaussian models and `"oneStepGeneric"`
-#'   otherwise. A truncated, censored or ordinal response always uses
-#'   `"oneStepGeneric"` (a truncated gaussian is not gaussian) with the
-#'   integration domain and discrete support taken from the `trunc()`
-#'   bounds or the censoring window, which must then be the same for
-#'   every row.
+#' @param osa_method Method for [TMB::oneStepPredict()]. The default
+#'   is `"cdf"` for an uncensored core family with a CDF: each row is
+#'   read against its family's own CDF, inside its own `trunc()` window,
+#'   and a count is randomized over its own step of that CDF. An
+#'   untruncated, unweighted `gaussian()` defaults to `"fullGaussian"`,
+#'   which is exact for a gaussian response. A censored, ordinal or
+#'   CDF-less response uses `"oneStepGeneric"`, with the integration
+#'   domain and discrete support taken from the `trunc()` bounds or the
+#'   censoring window, which must then be the same for every row. On a
+#'   count, `"oneStepGeneric"` needs a finite `discreteSupport`, and the
+#'   gaussian methods are refused. `"fullGaussian"`, if asked for on a
+#'   weighted fit, reads a weight as a precision,
+#'   `(y - mu) sqrt(w) / sigma`, rather than as a frequency. A fit with
+#'   `quadrature = TRUE` is refused: its objective has integrated the
+#'   random effects already.
 #' @param ... For `type = "osa"`: passed to [TMB::oneStepPredict()],
 #'   and checked against that function's own formals. For every other
 #'   type: refused, naming the argument. The `residuals.brmsfit()`
@@ -5734,7 +5782,237 @@ osa_point_mass_families <- c(
   "zero_inflated_beta", "xbeta",
   "zero_inflated_asym_laplace", "zero_one_inflated_beta",
   "hurdle_poisson", "hurdle_negbinomial", "hurdle_gamma",
-  "hurdle_lognormal", "hurdle_cumulative")
+  "hurdle_lognormal", "hurdle_cumulative",
+  # no branch, but the same mass at zero, which the one-step integral of
+  # a density cannot see: NaN on 71 of 150 rows (dev/osa-findings.md)
+  "tweedie")
+
+#' Whether a family has a CDF the one-step `"cdf"` route can read: a
+#' `cdf_log` pair, or the probability-scale `lcdf` slot.
+#'
+#' @noRd
+osa_has_cdf <- function(fam) {
+  !is.null(fam[["cdf_log"]]) || !is.null(fam[["lcdf"]])
+}
+
+#' Whether the response reached the objective as the observation of
+#' `oneStepPredict(method = "cdf")`: an `osa` object whose data-term
+#' indicator has three columns, the density and the two tails.
+#'
+#' @noRd
+osa_is_cdf <- function(y) methods::is(y, "osa") && NCOL(y@keep) == 3L
+
+#' Both log tails of a family's CDF at `q` (data) for the one-step route,
+#' from `cdf_log` where the family declares it and from `lcdf` (a
+#' probability) and `lccdf` (a log) otherwise, as `sim_cdf_pair()` reads
+#' them, but on the tape; core's bernoulli in closed form
+#' (`osa_bernoulli_pair()`).
+#'
+#' @noRd
+osa_log_pair <- function(fam, q, dpv, av, extra, n) {
+  if (identical(fam[["family"]], "bernoulli") &&
+        identical(frm_family_package(fam), "frmtmb")) {
+    return(osa_bernoulli_pair(fam, q, dpv, n))
+  }
+  if (!is.null(fam[["cdf_log"]])) {
+    return(fam_log_pair(fam, q, dpv, av, extra, n))
+  }
+  Fp <- fam_lcdf(fam, q, dpv, av, extra)
+  lS <- if (has_lccdf(fam)) fam_lccdf(fam, q, dpv, av, extra) else log1p(-Fp)
+  list(lF = cdf_rows(log(Fp), n), lS = cdf_rows(lS, n))
+}
+
+#' A bernoulli response's two log tails in closed form, for the one-step
+#' tape: a 0 has `F = 1 - p` and `P(Y > 0) = p`, a 1 has `F = 1` and no
+#' upper tail. The family's `cdf_log` reads them through the incomplete
+#' beta at one trial, which is exact too and dearer on a tape TMB
+#' evaluates three times per row.
+#'
+#' @noRd
+osa_bernoulli_pair <- function(fam, q, dpv, n) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  pq <- dpar_complement(dpv, "mu", fam[["links"]][["mu"]])
+  lq <- cdf_rows(log(pq[["q"]]), n)
+  lp <- cdf_rows(log(pq[["p"]]), n)
+  q <- rep_len(q, n)
+  lF <- 0 * lq
+  lS <- 0 * lq
+  i0 <- which(q == 0)
+  i1 <- which(q != 0)
+  if (length(i0)) {
+    lF[i0] <- lq[i0]
+    lS[i0] <- lp[i0]
+  }
+  if (length(i1)) lS[i1] <- -Inf
+  list(lF = lF, lS = lS)
+}
+
+#' `log P(Y <= y)` and `log P(Y > y)` of each row, inside the `trunc()`
+#' window where there is one, floored at -1e4.
+#'
+#' The floor is not cosmetic. `oneStepPredict()` multiplies each tail by
+#' a data-term indicator that is a PARAMETER of its tape, and an
+#' indicator of 0 times a tail of `-Inf` (the survivor at a binomial's
+#' last count) is `NaN`, not 0. RTMB's own `dGenericOSA()` floors at
+#' `log(1e-300)`, which clamped a residual at about -37; this floor is
+#' past any residual a double can hold.
+#'
+#' @noRd
+osa_cdf_tails <- function(fam, y, dpv, av, extra) {
+  n <- length(y)
+  pair <- function(q) osa_log_pair(fam, q, dpv, av, extra, n)
+  py <- pair(y)
+  out <- list(lower = py[["lF"]], upper = py[["lS"]])
+  if (!is.null(av[["trunc_lb"]]) || !is.null(av[["trunc_ub"]])) {
+    te <- trunc_edges(fam, av, n)
+    if (!all(te$lo_abs & te$hi_abs)) {
+      # the window (lb', ub] the likelihood renormalizes on, split at y
+      none <- rep(FALSE, n)
+      rows <- seq_len(n)
+      plo <- pair(ifelse(te$lo_abs, y, te$lo))
+      phi <- pair(ifelse(te$hi_abs, y, te$hi))
+      lz <- log_window(plo, phi, te$lo_abs, te$hi_abs, rows)
+      out <- list(lower = log_window(plo, py, te$lo_abs, none, rows) - lz,
+                  upper = log_window(py, phi, none, te$hi_abs, rows) - lz)
+    }
+  }
+  floor_l <- rep(-1e4, n)
+  lapply(out, function(l) RTMB::logspace_add(cdf_rows(l, n), floor_l))
+}
+
+#' One response's contribution to the objective under
+#' `oneStepPredict(method = "cdf")`: the density where the first column
+#' of the data-term indicator is on, and `log F(y)` and `log S(y)` where
+#' the second and third are.
+#'
+#' Under this method the response is data, not a parameter of the tape,
+#' so the family's own density reads it as it does in a fit: a point
+#' mass that branches on `y == 0` and a density whose arithmetic needs a
+#' whole count both work.
+#'
+#' A case weight `w` is a frequency, as in the fit, whose likelihood is
+#' `w` copies of the row. The density term keeps `w`, because it is also
+#' how the row conditions the later ones on a group-level term, and each
+#' tail gets `w - 1` copies of the density beside it. TMB's row mass,
+#' `p / (F + S)` from the three terms, is then `p` and its CDF `F`: the
+#' residual of the last of the `w` copies, given the other `w - 1`. With
+#' the tails read alone, a weight of 2 differed from the duplicated row by
+#' up to 0.33 under `(1 | g)`, and with the weight on the tails too a
+#' count's step was `p^w` wide (dev/osa-findings.md).
+#'
+#' @noRd
+osa_cdf_loglik <- function(fam, yobs, yraw, dpv, av, extra, w) {
+  keep <- yobs@keep
+  n <- length(yraw)
+  ll <- row_lpdf(fam, yraw, yraw, dpv, av, extra)
+  # below a weight of 1 the tails carry no copy of the density: with
+  # w - 1 copies they were S(y | u) / p(y | u)^(1 - w), which a group
+  # effect's prior does not integrate (a row of weight 0 read NaN), and
+  # with none they are the CDF of a fresh copy of the row. A count's row
+  # mass still comes from the w ll term, p^w and not p, so such rows are
+  # NA (residual_values())
+  wl <- (pmax(w, 1) - 1) * ll + numeric(n)
+  # the rows whose tails TMB can switch on in this call: residual_values()
+  # steps through the rows in blocks, and a row outside the block has
+  # both tail indicators fixed at 0, so its tails would only cost
+  rows <- getOption("frmtmb.osa_tail_rows") %||% seq_len(n)
+  sub <- function(l) lapply(l, function(v) if (length(v) == n) v[rows] else v)
+  ct <- osa_cdf_tails(fam, yraw[rows], sub(dpv), sub(av), extra)
+  sum(keep[, 1] * w * ll) +
+    sum(keep[rows, 2] * (ct[["lower"]] + wl[rows]) +
+          keep[rows, 3] * (ct[["upper"]] + wl[rows]))
+}
+
+#' The blocks of rows `residual_values()` hands `oneStepPredict()` one at
+#' a time under `method = "cdf"`, or `NULL` for one call over every row.
+#'
+#' The tape carries a CDF pair for every row that can be switched on, and
+#' TMB evaluates the whole tape three times per row, so over every row the
+#' tails cost `n` times what the density costs; that made a poisson
+#' `(1 | g)` fit of 2000 rows take 34 minutes
+#' (dev/reviews/2026-11-06-osa.md, M3). A block of rows `a..b` is called
+#' with the rows before it as `conditional` and the rows after it switched
+#' off, which is the same one-step predictive, and its tape carries the
+#' tails of the block alone (`osa_cdf_loglik()`). Blocks of about
+#' `sqrt(n)` rows balance the tails against retaping the objective per
+#' block.
+#'
+#' @noRd
+osa_cdf_blocks <- function(n, args) {
+  if (!is.null(args[["subset"]]) || !is.null(args[["conditional"]])) {
+    return(NULL)
+  }
+  size <- max(getOption("frmtmb.osa_block", 0L), ceiling(sqrt(n)), 20L)
+  if (n <= size) return(NULL)
+  split(seq_len(n), ceiling(seq_len(n) / size))
+}
+
+#' The one-step residual from the log columns `oneStepPredict()` returns,
+#' read in the tail the row lies in.
+#'
+#' TMB forms `qnorm(Fx - U px)` on the probability scale, so a row whose
+#' upper tail is below about 1e-16 reads `Inf`: a poisson count of 60
+#' about a mean of 3, whose residual is 15.24, did, with a warning that
+#' blamed the CDF. Here `log Fx`, `log Sx` and `log px` come from `nll`,
+#' `nlcdf.lower` and `nlcdf.upper`, and a row with `Fx > 1/2` is read as
+#' `-qnorm(Sx + U px)` on the log scale. `U` is the row's uniform as TMB
+#' drew it, 0 for a continuous response.
+#'
+#' @noRd
+osa_tail_residual <- function(pred, U) {
+  l1pe <- function(d) ifelse(d > 0, d + log1p(exp(-d)), log1p(exp(d)))
+  lse <- function(a, b) {
+    m <- pmax(a, b)
+    ifelse(is.finite(m), m + log1p(exp(-abs(a - b))), m)
+  }
+  d <- pred[["nlcdf.lower"]] - pred[["nlcdf.upper"]]
+  lF <- -l1pe(d)
+  lS <- -l1pe(-d)
+  lp <- -lse(pred[["nll"]] - pred[["nlcdf.lower"]],
+             pred[["nll"]] - pred[["nlcdf.upper"]])
+  U <- rep_len(U, length(d))
+  lower <- !is.na(lF) & lF <= log(0.5)
+  # the row's mass is at most its own tail; a rounding past it is not one
+  ratio <- pmin(exp(lp - lF), 1)
+  r <- numeric(length(d))
+  # a log probability above 0 is no probability; it comes only from a row
+  # whose mass TMB could not read, a weight below 1, set NA afterwards
+  tl <- pmin(lF[lower] + log1p(-U[lower] * ratio[lower]), 0)
+  r[lower] <- stats::qnorm(tl, log.p = TRUE)
+  up <- !is.na(lF) & !lower
+  r[up] <- -stats::qnorm(pmin(lse(lS[up], log(U[up]) + lp[up]), 0),
+                         log.p = TRUE)
+  r[!is.finite(d)] <- NaN
+  r
+}
+
+#' The uniforms `oneStepPredict()` drew for a discrete response, drawn
+#' again: `set.seed(seed)` as it does, or, with `seed = NULL`, from the
+#' stream as it stood before the call (`rs0`). The global stream is left
+#' as `oneStepPredict()` left it. `NULL` when the draws cannot be
+#' replayed (no stream before the call).
+#'
+#' @noRd
+osa_uniforms <- function(n, seed, rs0) {
+  ge <- globalenv()
+  rs1 <- get0(".Random.seed", envir = ge, inherits = FALSE)
+  on.exit({
+    if (is.null(rs1)) {
+      if (exists(".Random.seed", envir = ge, inherits = FALSE)) {
+        rm(".Random.seed", envir = ge)
+      }
+    } else {
+      assign(".Random.seed", rs1, envir = ge)
+    }
+  })
+  if (!is.null(seed)) {
+    set.seed(seed)
+  } else {
+    if (is.null(rs0)) return(NULL)
+    assign(".Random.seed", rs0, envir = ge)
+  }
+  stats::runif(n)
+}
 
 #' @noRd
 residual_values <- function(object, type = c("response", "pearson",
@@ -5829,6 +6107,19 @@ residual_values <- function(object, type = c("response", "pearson",
     }
   }
   if (type == "osa") {
+    if (isTRUE(object$quadrature)) {
+      # oneStepPredict() integrates the random effects by TMB's Laplace
+      # approximation of the fit's objective, and this objective has
+      # integrated them already, inside the tape; TMB stopped on "Names
+      # to be 'integrate'd must be among the random parameters"
+      frm_stop("residuals(type = \"osa\") is not available for a fit with ",
+               "quadrature = TRUE: its objective integrates the random ",
+               "effects inside the tape, so it has no random effects left ",
+               "for oneStepPredict() to integrate one row at a time. Refit ",
+               "without quadrature for these residuals, or use ",
+               "dharma_residuals()", call. = FALSE,
+               class = "frmtmb_osa_quadrature")
+    }
     if (!is.null(object$frame[["mi_map"]][[rspec$resp_name]])) {
       # the missing rows are latent parameters, not data the one-step
       # tape registers; it died inside TMB on "'observation.name' must
@@ -5863,23 +6154,54 @@ residual_values <- function(object, type = c("response", "pearson",
                "dharma_residuals(), which uses simulate() and does draw ",
                "correlated residuals", call. = FALSE)
     }
-    if (fam[["family"]] %in% osa_point_mass_families) {
-      frm_stop("residuals(type = \"osa\") is not available for family '",
-               fam[["family"]], "': its density puts a point mass on an ",
-               "exact response value and branches on y == 0, and the ",
-               "one-step tape hands the density no value to compare. Use ",
-               "type = \"pearson\", or dharma_residuals(), which uses ",
-               "simulate()", call. = FALSE)
-    }
+    disc <- identical(fam[["type"]], "discrete")
+    ordinal <- identical(fam[["type"]], "ordinal")
     av0 <- object$frame[["aterm_values"]][[rspec$resp_name]]
     tb <- trunc_bounds(av0, object$frame[["n_obs"]])
-    cb <- osa_cens_domain(av0, object$frame[["y"]][[rspec$resp_name]],
-                          identical(fam[["type"]], "discrete"))
-    ordinal <- identical(fam[["type"]], "ordinal")
+    cb <- osa_cens_domain(av0, object$frame[["y"]][[rspec$resp_name]], disc)
+    # A core family with a CDF takes method "cdf": each row's one-step CDF
+    # is read off the family's own tails, the response stays data, and a
+    # discrete row is randomized over exactly its own mass. The other
+    # routes read the density alone. Under "oneStepGeneric" TMB
+    # integrated a spline through a profile of it: on a count that is the
+    # mass function's continuous extension, NaN past a binomial's trials
+    # and bernoulli residuals far off, and on a continuous family up to
+    # whole units off, NaN on a few rows of inverse.gaussian() and
+    # frechet(), and a crash on eight families whose density does not
+    # take the osa object (dev/osa-findings.md). gaussian() keeps
+    # "fullGaussian", which is exact and also handles a correlated
+    # response, unless it is truncated: oneStepGeneric there leaves each
+    # later row's normalizer in the objective with its density switched
+    # off, and with a group-level term its integral read NaN. A weighted
+    # gaussian takes "cdf" as well, so that a weight is a frequency there
+    # as on every other family and in brms; "fullGaussian" reads it as a
+    # precision. An extension's family keeps its own route, because an
+    # extension's `lcdf` need not be a CDF of the response alone (the
+    # Wiener first-passage families).
+    wv <- av0[["weights"]]
+    weighted <- !is.null(wv) && any(wv != 1)
+    cdf_default <- is.null(cb) && !ordinal && osa_has_cdf(fam) &&
+      identical(frm_family_package(fam), "frmtmb") &&
+      (!identical(fam[["family"]], "gaussian") || !is.null(tb) || weighted)
     method <- osa_method %||%
-      if (!is.null(tb) || !is.null(cb) || ordinal) "oneStepGeneric"
+      if (cdf_default) "cdf"
+      else if (!is.null(tb) || !is.null(cb) || ordinal) "oneStepGeneric"
       else if (identical(fam[["family"]], "gaussian")) "fullGaussian"
       else "oneStepGeneric"
+    if (fam[["family"]] %in% osa_point_mass_families &&
+          !(disc && identical(method, "cdf"))) {
+      frm_stop("residuals(type = \"osa\") is not available for family '",
+               fam[["family"]], "'", if (disc) " with this osa_method",
+               ": it puts a point mass on an exact response value, and ",
+               "this one-step route reads the density alone, which cannot ",
+               "see the mass.",
+               if (disc) {
+                 " The default osa_method = \"cdf\" reads the count as data"
+               } else {
+                 paste(" Use type = \"pearson\", or dharma_residuals(),",
+                       "which uses simulate()")
+               }, call. = FALSE)
+    }
     if (!is.null(cb) && !identical(method, "oneStepGeneric")) {
       # a censored row's contribution is a probability MASS, so its
       # observation drops out of the tape; every method that
@@ -5887,10 +6209,21 @@ residual_values <- function(object, type = c("response", "pearson",
       frm_stop("residuals(type = \"osa\") on a cens() fit needs ",
                "osa_method = \"oneStepGeneric\"", call. = FALSE)
     }
+    if (identical(method, "cdf") && (ordinal || !osa_has_cdf(fam))) {
+      # RTMB's own route would look for a p-function named after the
+      # density, which frmtmb's densities do not have
+      frm_stop("residuals(type = \"osa\", osa_method = \"cdf\") needs the ",
+               "family's CDF, and '", fam[["family"]], "' supplies none ",
+               "(frmtmb_family(cdf_log =) or lcdf =)", call. = FALSE,
+               package = frm_family_package(fam))
+    }
     args <- list(obj = object$obj, observation.name = ".frm_obs",
                  method = method, trace = FALSE, ...)
+    # every method is told whether the response is discrete, so that TMB
+    # refuses its gaussian methods on a count rather than reading the
+    # count as a continuous value
+    if (is.null(args[["discrete"]])) args$discrete <- disc || ordinal
     if (method == "oneStepGeneric") {
-      args$discrete <- identical(fam[["type"]], "discrete") || ordinal
       if (ordinal) {
         # the taped lpdf is a proper pmf on 1..K once the category is
         # selected arithmetically (see ord_cat_sel)
@@ -5910,7 +6243,9 @@ residual_values <- function(object, type = c("response", "pearson",
         if (length(lo) > 1L || length(hi) > 1L) {
           frm_stop("residuals(type = \"osa\") needs trunc() bounds that are ",
                    "the same for every observation; got row-varying bounds",
-                   call. = FALSE)
+                   if (osa_has_cdf(fam)) {
+                     ". osa_method = \"cdf\" takes them"
+                   }, call. = FALSE)
         }
       }
       if (!is.null(cb)) {
@@ -5934,18 +6269,111 @@ residual_values <- function(object, type = c("response", "pearson",
           # reproduces the analytic PIT
           args$splineApprox <- FALSE
         }
-      } else if (args$discrete && is.null(args[["range"]]) && !ordinal) {
-        args$range <- c(0, Inf)
+      }
+      if (args$discrete && is.null(args[["discreteSupport"]])) {
+        # without a support TMB integrates a spline through the profile
+        # of the mass function's continuous extension, which is NaN past
+        # a binomial's trials and approximate on every count
+        frm_stop("residuals(type = \"osa\", osa_method = ",
+                 "\"oneStepGeneric\") on a discrete response sums the mass ",
+                 "over `discreteSupport`, and none is known for this fit. ",
+                 "Pass discreteSupport = 0:K with K past the largest count ",
+                 "the model gives weight to",
+                 if (osa_has_cdf(fam)) {
+                   ", or use osa_method = \"cdf\", which needs none"
+                 }, call. = FALSE)
       }
     }
-    osa <- do.call(RTMB::oneStepPredict, args)
+    seed <- if ("seed" %in% names(args)) args[["seed"]] else 123
+    rs0 <- get0(".Random.seed", envir = globalenv(), inherits = FALSE)
+    blocks <- if (identical(method, "cdf")) {
+      osa_cdf_blocks(object$frame[["n_obs"]], args)
+    }
+    one_step <- function() {
+      if (is.null(blocks)) return(do.call(RTMB::oneStepPredict, args))
+      # every block draws its uniforms afresh; the residuals below take
+      # theirs from one draw over all rows (osa_uniforms())
+      do.call(rbind, lapply(blocks, function(ix) {
+        a <- args
+        a$subset <- ix
+        if (ix[1] > 1L) a$conditional <- seq_len(ix[1] - 1L)
+        op <- options(frmtmb.osa_tail_rows = ix)
+        on.exit(options(op))
+        do.call(RTMB::oneStepPredict, a)
+      }))
+    }
+    # on the rows of weight between 0 and 1, which are set NA below, TMB's
+    # own qnorm(Fx - U px) reads px above Fx and warns "NaNs produced"
+    fractional <- !is.null(wv) && any(wv > 0 & wv < 1)
+    one_step_quiet <- function() {
+      if (!fractional) return(one_step())
+      withCallingHandlers(one_step(), warning = function(w) {
+        if (identical(conditionMessage(w), "NaNs produced")) {
+          invokeRestart("muffleWarning")
+        }
+      })
+    }
+    osa <- tryCatch(one_step_quiet(), error = function(e) {
+      # without a CDF the density itself is handed the osa observation
+      # object, and a density that does arithmetic RTMB has no method for
+      # on it fails deep inside the tape with a message about S4 types
+      frm_stop("residuals(type = \"osa\", osa_method = \"", method, "\") ",
+               "failed in oneStepPredict(): ",
+               sub("[.]$", "", conditionMessage(e)),
+               if (!osa_has_cdf(fam)) {
+                 paste0(". The '", fam[["family"]], "' family supplies no ",
+                        "CDF, so this route hands its density the ",
+                        "observation as an `osa` object; a family that ",
+                        "declares frmtmb_family(cdf_log =) takes ",
+                        "osa_method = \"cdf\" instead")
+               }, call. = FALSE)
+    })
     r <- osa$residual
+    if (identical(method, "cdf") &&
+          all(c("nll", "nlcdf.lower", "nlcdf.upper") %in% names(osa))) {
+      U <- if (isTRUE(args$discrete)) {
+        osa_uniforms(nrow(osa), seed, rs0)
+      } else 0
+      if (!is.null(U)) r <- osa_tail_residual(osa, U)
+    }
+    # A row of weight 0 is no part of the fitted likelihood, so it has no
+    # fitted distribution to be read against. Below a weight of 1, TMB's
+    # row mass comes from the density term w ll, so it is the mean of
+    # p^w, not of p, and a count's randomization over it would be wrong;
+    # the tails, which carry no copy of the density there, are the CDF of
+    # a fresh copy of the row, so a continuous response's residual would
+    # be sound. Both are NA until a fresh-copy residual for continuous
+    # responses is decided on (dev/osa-findings.md)
+    if (!is.null(wv) && length(wv) == length(r)) {
+      r[wv < 1] <- NA_real_
+      frac <- sum(wv > 0 & wv < 1)
+      if (frac) {
+        frm_warning(frac, " rows have a weight between 0 and 1, and their ",
+                    "one-step-ahead residuals are NA: the residual of a ",
+                    "row of weight w is that of the last of w copies of it",
+                    call. = FALSE, class = "frmtmb_osa_weight")
+      }
+    }
+    bad <- sum(!is.finite(r) & !is.na(r) | is.nan(r))
+    if (bad) {
+      # oneStepPredict() returns NaN for a row whose one-step CDF it could
+      # not form and says nothing; a residual plot drops such rows
+      # silently
+      frm_warning(bad, " of ", length(r), " one-step-ahead residuals are ",
+                  "not finite: oneStepPredict(method = \"", method, "\") ",
+                  "could not form the one-step CDF on those rows",
+                  if (!identical(method, "cdf") && osa_has_cdf(fam) &&
+                        is.null(cb)) {
+                    ". osa_method = \"cdf\" reads it from the family's CDF"
+                  }, call. = FALSE, class = "frmtmb_osa_nonfinite")
+    }
     if (!is.null(cb)) {
       # censored rows carry no residual of their own; they enter only as
       # the conditioning event
       full <- rep(NA_real_, object$frame[["n_obs"]])
       full[cb$subset] <- r
       r <- full
+      if (!is.null(wv)) r[wv < 1] <- NA_real_
     }
     return(napred(object, r))
   }

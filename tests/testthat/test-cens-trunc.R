@@ -114,15 +114,15 @@ test_that("string interval censoring matches its numeric code", {
 
 test_that("cens/trunc validation", {
   dd <- data.frame(y = rpois(50, 3), x = rnorm(50), cen = 0)
-  # a discrete family is admitted on the CDF it supplies, so poisson
-  # and negbinomial fit and nbinom1, which carries none, is refused for
-  # that (brms has no nbinom1 to say otherwise)
+  # a discrete family is admitted on the CDF it supplies and its
+  # allow-list, so poisson and negbinomial fit and nbinom1, whose CDF
+  # only residuals(type = "osa") reads, is refused by its allow-list
   expect_s3_class(frm(bf(y | cens(cen) ~ x) + poisson(), data = dd),
                   "frmtmb_fit")
   expect_s3_class(frm(bf(y | cens(cen) ~ x) + negbinomial(), data = dd),
                   "frmtmb_fit")
   expect_error(frm(bf(y | cens(cen) ~ x) + nbinom1(), data = dd),
-               "family with a CDF")
+               "is not supported for this family")
   dd2 <- data.frame(y = rnorm(50), x = rnorm(50), cen = 3)
   expect_error(frm(bf(y | cens(cen) ~ x) + gaussian(), data = dd2),
                "codes")

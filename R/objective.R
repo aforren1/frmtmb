@@ -1015,6 +1015,13 @@ build_objective <- function(frame) {
         } else {
           y[[r]]
         }
+        if (osa_is_cdf(yobs)) {
+          # oneStepPredict(method = "cdf"), the route residuals() takes
+          # for a core family with a CDF (osa_cdf_loglik() in R/predict.R)
+          nll <- nll - osa_cdf_loglik(fam, yobs, y[[r]], dparv[[r]],
+                                      atv[[r]], extra_r[[r]], w)
+          next
+        }
         ll <- row_lpdf(fam, yobs, y[[r]], dparv[[r]], atv[[r]], extra_r[[r]])
         nll <- nll - sum(w * ll)
       }

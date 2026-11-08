@@ -487,7 +487,9 @@ test_that("trunc() fits, and the truncated means are brute-force sums", {
 test_that("a family brms refuses is refused, with the registry's reason", {
   d <- data.frame(y = rep(0:1, 20), x = stats::rnorm(40), cc = 0)
   expect_error(frm(y | cens(cc) ~ x, family = bernoulli(), data = d),
-               "need a family with a CDF")
+               # bernoulli() has a CDF, which residuals(type = "osa")
+               # reads, and does not take cens(), as in brms
+               "is not supported for this family")
   expect_equal(frm_compat("cens()", "bernoulli")$status, "refused")
   expect_match(frm_compat("trunc()", "xbeta")$note, "brms 2.23.0 refuses")
 })

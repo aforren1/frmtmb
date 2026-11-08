@@ -1,3 +1,91 @@
+# frmtmb (development version)
+
+* BREAKING: `residuals(type = "osa")` reads each row against its family's
+  own CDF (`osa_method = "cdf"`) on every core family that has one. Only
+  an untruncated, unweighted `gaussian()` keeps `"fullGaussian"`. With no
+  group-level term a residual is now the randomized quantile residual of
+  the fitted distribution: `qnorm(F(y))` for a continuous response, and
+  for a count `qnorm(u)` with `u` uniform on `[F(y - 1), F(y)]`. On one
+  design per family, the count families matched it to 1.2e-12 or better
+  and the continuous families to 3e-9 or better. The old default,
+  `oneStepGeneric`, integrated a spline through a profile of the density,
+  and the results were wrong with no warning:
+  - On counts, the profile read the mass function between the integers.
+    `binomial()` read NaN on 2 to 3 of 150 rows. `bernoulli()` residuals
+    sat near -3 to -4 with or without a group-level term (57 of 150 rows
+    outside their own step with none). Six other count families put 5 to
+    13 of 150 rows outside their own step, and `beta_binomial()` was
+    refused.
+  - `Gamma()` read up to 0.086 off, `Beta()` 0.69, `von_mises()` 4.45, and
+    `inverse.gaussian()` and `frechet()` read NaN on 3 rows and up to 7.3
+    off. `tweedie()` read NaN on 71 of 150 rows.
+  - `student()`, `exgaussian()`, `asym_laplace()`, `exponential()`,
+    `weibull()`, `lognormal()`, `shifted_lognormal()` and `huber()`
+    stopped with an error from inside RTMB. `huber()` has no CDF, and
+    it is now refused with the reason.
+
+  A residual is read in the tail its row lies in, so it holds to about
+  +-37 and beyond: a poisson count of 60 about a mean of 3 reads 15.24
+  where TMB's own formula read `Inf`.
+
+  With a group-level term, TMB integrates each row by the Laplace
+  approximation. Against the exact one-step predictive the median error
+  was below 0.001 under `(1 | g)` and 0.006 to 0.016 under a latent
+  `ar()` on poisson and the zero-inflated and hurdle counts. The largest
+  error was 0.15, on the first row of a group. Over many rows the
+  residuals stay calibrated against N(0, 1).
+
+* The uniforms of a count's residual are TMB's, `set.seed(123)` unless
+  `seed =` is passed, so the same fit gives the same residuals.
+
+* `residuals(type = "osa")` hands the rows to `oneStepPredict()` in
+  blocks of about `sqrt(n)`, so that the objective carries the CDF of one
+  block at a time. On `(1 | g)` fits of 500 and 2000 rows the residuals
+  took 0.05 to 0.31 of the old route's time on poisson, negbinomial and
+  bernoulli: 59 s against 303 s on a poisson fit of 2000 rows, which took
+  34 minutes with every row at once.
+
+* `residuals(type = "osa")` works on `beta_binomial()` and on the
+  zero-inflated and hurdle count families: `zero_inflated_poisson()`,
+  `zero_inflated_negbinomial()`, `zero_inflated_binomial()`,
+  `zero_inflated_beta_binomial()`, `hurdle_poisson()` and
+  `hurdle_negbinomial()`. The `"cdf"` route gives the density the count as
+  data, so a point mass at zero is read as it is in the fit.
+
+* `residuals(type = "osa")` on a `trunc()` count reads each row inside its
+  own window, so bounds that change from row to row work.
+
+* `residuals(type = "osa")` on a truncated `gaussian()` takes the `"cdf"`
+  route too. With a group-level term the old route left the later rows'
+  truncation terms in each row's integral, and on a test of 96 rows the
+  integral failed on every row, so the call stopped with "$ operator is
+  invalid for atomic vectors".
+
+* BREAKING: in `residuals(type = "osa")` a case weight is a frequency, as
+  in the likelihood and in brms: a row of weight `w` gets the residual of
+  the last of `w` copies, and later rows are conditioned on all `w`. A
+  weighted poisson fit with `(1 | g)` gave the residuals of the fit with
+  the rows written out to 8e-7. A weighted `gaussian()` now takes the
+  `"cdf"` route, where it used to read a weight as a precision; with
+  `(1 | g)` it was 0.0018 from the rows written out, which keep the exact
+  `"fullGaussian"`, and that is the Laplace error of the `"cdf"` route.
+  A row of weight 0 gets `NA`, and so does a row of weight between 0 and
+  1, with a warning.
+  Before, a weight reshaped a count's own distribution: at weights of 3,
+  42 of 150 poisson rows fell outside their own step.
+
+* BREAKING: `residuals(type = "osa", osa_method = "oneStepGeneric")` on a
+  count needs `discreteSupport`, the gaussian methods are refused on a
+  count, and `tweedie()` is refused by name. Before, the first read NaN
+  with no warning, the others gave a gaussian approximation of the count,
+  and `tweedie()` read NaN. A residual that `oneStepPredict()` cannot
+  form gives a warning. A fit with `quadrature = TRUE` is refused with
+  the reason: its objective has integrated the random effects already.
+
+* `bernoulli()` and `nbinom1()` supply a CDF (`cdf_log`). Neither takes
+  `cens()` or `trunc()`, which are still refused, now with "is not
+  supported for this family".
+
 # frmtmb 0.79.1
 
 * `residuals(type = "osa")` on `beta_binomial()` always stops with a

@@ -2067,15 +2067,24 @@ lgamma_count_shift <- function(a, s) {
 #' binomial's, but on data with no overdispersion the optimizer went to where
 #' it read -66752 at log phi 39 and +327680 at 45, code 0, against -548.982078.
 #' Each difference is formed here without the cancellation. `RTMB`'s `simref`
-#' response goes to `dbetabinom()`, which simulates it. The `osa` response is
-#' refused here: `dbetabinom()` refused it up to RTMBdist 1.1.0, and from 1.2.0
-#' it answers, with NaN on 21 of 150 rows and no warning.
+#' response goes to `dbetabinom()`, which simulates it.
+#'
+#' An `osa` response reaches here only under
+#' `residuals(type = "osa", osa_method = "oneStepGeneric")`, where the
+#' count is a parameter of the tape, so the shifts are formed by
+#' `lgamma_shift_diff()`, which takes one, and the data-term indicator is
+#' applied as `RTMB`'s own densities apply it. The default route,
+#' `"cdf"`, hands this function the count as data.
 #'
 #' @noRd
 beta_binomial_lpmf <- function(y, size, a, b, phi) {
-  if (inherits(y, "osa")) {
-    frm_stop("beta_binomial() does not support OSA residuals. ",
-             "Use another `type` of residuals()", call. = FALSE)
+  ov <- osa_unwrap(y)
+  if (!is.null(ov)) {
+    k <- ov$y
+    ll <- lgamma(size + 1) - lgamma(k + 1) - lgamma(size - k + 1) +
+      lgamma_shift_diff(a, k) + lgamma_shift_diff(b, size - k) -
+      lgamma_count_shift(phi, size)
+    return(ll * ov$keep)
   }
   if (inherits(y, "simref")) {
     return(RTMBdist::dbetabinom(y, size, a, b, log = TRUE))
@@ -2345,6 +2354,12 @@ fam_nbinom1 <- function(link = "log", link_phi = "log") {
       }
       RTMB::dnbinom_robust(y, lmu, lmu + dpar_log(dpars, "phi", lk_phi),
                            log = TRUE)
+    },
+    # the negative binomial of shape mu / phi; residuals(type = "osa")
+    # reads its one-step CDF from this
+    cdf_log = function(q, dpars, aterms) {
+      lmu <- robust_logmu(dpars, lk) %||% log(dpars[["mu"]])
+      nbinom_cdf_log(q, lmu, lmu - dpar_log(dpars, "phi", lk_phi))
     },
     valid_y = count_y("nbinom1"),
     init_dpars = list(
@@ -2881,6 +2896,11 @@ fam_bernoulli <- function(link = "logit") {
       lo <- robust_logit(dpars, lk)
       if (is.null(lo)) return(RTMB::dbinom(y, 1, dpars[["mu"]], log = TRUE))
       RTMB::dbinom_robust(y, 1, lo, log = TRUE)
+    },
+    # residuals(type = "osa") reads its one-step CDF from this; no addition
+    # term of this family reads it
+    cdf_log = function(q, dpars, aterms) {
+      binomial_cdf_log(q, 1, dpar_complement(dpars, "mu", lk))
     },
     valid_y = function(y, aterms) {
       if (!all(y %in% c(0, 1))) {
@@ -9554,13 +9574,23 @@ check_accepted_aterms <- function(resp, av) {
   have <- setdiff(unique(c(names(resp$aterms), names(av))), row_aterms)
   bad <- setdiff(unique(vapply(have, aterm_base, "")), ok)
   if (!length(bad)) return(invisible(NULL))
+  # cens() and trunc() reshape the likelihood when they are read, so
+  # "would change nothing" is not their story: a family with a CDF that
+  # leaves them out (bernoulli(), whose CDF only the one-step residuals
+  # read) does not support them
+  reshaping <- all(bad %in% c("cens", "trunc"))
   frm_stop(fam[["family"]], ": the addition term",
            if (length(bad) > 1L) "s " else " ",
            paste0("`", bad, "()`", collapse = ", "),
-           if (length(bad) > 1L) " are not ones" else " is not one",
-           " this family reads, so writing ",
-           if (length(bad) > 1L) "them" else "it",
-           " would change nothing about the fit. ",
+           if (reshaping) {
+             paste0(if (length(bad) > 1L) " are" else " is",
+                    " not supported for this family. ")
+           } else {
+             paste0(if (length(bad) > 1L) " are not ones" else " is not one",
+                    " this family reads, so writing ",
+                    if (length(bad) > 1L) "them" else "it",
+                    " would change nothing about the fit. ")
+           },
            if (length(ok)) {
              paste0("This family takes ",
                     paste0("`", ok, "()`", collapse = ", "), ".")

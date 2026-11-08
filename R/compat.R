@@ -1354,9 +1354,17 @@ compat_hand_rules_tbl <- function() {
       r(at, f, "refused", paste0(
         "Refused, as brms 2.23.0 refuses it: \"Argument '",
         sub("[(][)]$", "", at), "' is not supported for family '", f,
-        "'\". The family has no CDF."))
+        "'\". ", if (f == "bernoulli") {
+          "Its CDF is read by residuals(type = \"osa\") alone."
+        } else "The family has no CDF."))
     }
   }
+  # nbinom1() has a CDF, which residuals(type = "osa") reads, and takes
+  # weights() alone
+  r("cens()", "nbinom1", "refused",
+    "Refused by the family's list of addition terms, which holds weights() alone. brms has no nbinom1 family. Its CDF is read by residuals(type = \"osa\") alone.")
+  r("trunc()", "nbinom1", "refused",
+    "Refused by the family's list of addition terms, which holds weights() alone. brms has no nbinom1 family. Its CDF is read by residuals(type = \"osa\") alone.")
   # continuous families with a CDF and no truncated mean: brms has none
   for (f in c("skew_normal", "exgaussian", "shifted_lognormal",
               "asym_laplace", "von_mises", "beta", "zero_inflated_beta",
@@ -2037,15 +2045,29 @@ compat_hand_rules_tbl <- function() {
   r("simulate", "von_mises", "works",
     "Best and Fisher's rejection sampler, vectorized over per-row mu and kappa, so a distributional kappa simulates. RTMBdist::rvm() takes scalar parameters only and is not used.")
   r("residuals_osa", "kind:family", "conditional",
-    "One-step-ahead residuals need the family to register its observation through OBS().")
+    "A core family with a CDF takes osa_method = \"cdf\", except an untruncated, unweighted gaussian(), which takes fullGaussian: each row is read against its own fitted CDF, so with no group-level term the residual is the randomized quantile residual of the fit. With one, TMB integrates each row by the Laplace approximation, whose error is largest on the first row of each group: up to 0.15 under (1 | g) against the exact one-step predictive. A family without a CDF needs its observation registered through OBS() and a density that takes the osa object, and a discrete one without a CDF needs discreteSupport.")
   r("residuals_osa", "group:point_mass", "refused",
     "Refused by name: the density branches on y == 0 for its point mass, and oneStepPredict() hands it an observation object with no comparison operator. Through 0.63.0 each of these failed there with base R's own message. Use residuals(type = \"pearson\") or dharma_residuals().")
+  r("residuals_osa", "zero_inflated_poisson", "works",
+    "osa_method = \"cdf\" reads the count as data, point mass included, and randomizes over its own step of the fitted CDF.")
+  r("residuals_osa", "zero_inflated_negbinomial", "works",
+    "osa_method = \"cdf\" reads the count as data, point mass included, and randomizes over its own step of the fitted CDF.")
+  r("residuals_osa", "zero_inflated_binomial", "works",
+    "osa_method = \"cdf\" reads the count as data, point mass included, and randomizes over its own step of the fitted CDF.")
+  r("residuals_osa", "zero_inflated_beta_binomial", "works",
+    "osa_method = \"cdf\" reads the count as data, point mass included, and randomizes over its own step of the fitted CDF.")
+  r("residuals_osa", "hurdle_poisson", "works",
+    "osa_method = \"cdf\" reads the count as data, point mass included, and randomizes over its own step of the fitted CDF.")
+  r("residuals_osa", "hurdle_negbinomial", "works",
+    "osa_method = \"cdf\" reads the count as data, point mass included, and randomizes over its own step of the fitted CDF.")
+  r("residuals_osa", "tweedie", "refused",
+    "Refused by name: the mass at zero is invisible to the one-step integral of a density, and through 0.79.1 the generic route read NaN on 71 of 150 rows with no warning. Use dharma_residuals().")
   r("residuals_osa", "categorical", "refused",
     "Refused with residuals() as a whole: a one-step-ahead residual is a CDF value, and a nominal response has no CDF.")
   r("residuals", "categorical", "refused",
     "Refused: the categories carry no order, so no residual has a scale to live on. Compare fitted(fit), the n x K category probabilities, against the observed categories instead.")
-  r("residuals_osa", "von_mises", "refused",
-    "Refused upstream: RTMBdist::dvm() rejects the osa observation object, because a wrapped support has no one-step CDF on the line.")
+  r("residuals_osa", "von_mises", "works",
+    "osa_method = \"cdf\" reads the von Mises CDF on (-pi, pi]; it matches qnorm(F(y)) of the fitted distribution to 5e-14. Through 0.79.1 the generic route ran and was up to 4.45 off.")
   r("residuals_osa", "group:ordinal", "works",
     "oneStepGeneric over the discrete support 1..K; the result is a randomized quantile residual and matches the analytic one to 1e-13.")
   r("residuals_osa", "hurdle_cumulative", "refused",
@@ -2053,9 +2075,9 @@ compat_hand_rules_tbl <- function() {
   r("residuals_osa", "cens()", "conditional",
     "Censored rows return NA: what is observed there is an event, not a value, so it carries no one-step CDF. The uncensored rows get residuals conditional on the censoring events, which needs one censoring point per side (type-I censoring). Row-varying censoring points and interval censoring are refused, and so is a DISCRETE family: a left-censored count at k is Y <= k, so an uncensored row's support is [lo + 1, hi] rather than the [lo, hi] the one-step window is built on.")
   r("residuals_osa", "trunc()", "conditional",
-    "Supported for constant truncation bounds. Row-varying bounds are refused, because the one-step-ahead transform is not defined across changing support.")
+    "Each row is read inside its own window under the default osa_method = \"cdf\", so row-varying bounds work. Under oneStepGeneric (a family with no CDF) the bounds must be the same for every row, because TMB integrates over one domain.")
   r("residuals_osa", "weights()", "conditional",
-    "Runs, but the residuals ignore the case weights. Treat them as unweighted.")
+    "A weight is a frequency, as in the fitted likelihood: the residual of a row of weight w is that of the last of w copies of it, given the other w - 1, and later rows are conditioned on all w. A row of weight 0 is NA. Under osa_method = \"fullGaussian\", which a weighted gaussian() no longer takes by default, a weight is a precision, (y - mu) sqrt(w) / sigma.")
   r("residuals_osa", "kind:structure", "untested", "")
   r("emmeans", "kind:family", "conditional",
     "Takes brms's dpar =, nlpar =, resp =, epred = and re_formula = (see ?frmtmb-emmeans). A family with no mu needs dpar =. epred = TRUE needs one mean per row, so it is refused for the ordinal and categorical families.")
@@ -2155,7 +2177,7 @@ compat_hand_rules_tbl <- function() {
   r("group:autocor", "simulate", "works",
     "simulate() draws one correlated residual per group (a Cholesky factor of that group's correlation submatrix applied to standard normal, or scaled-t, innovations), so the draws carry the fitted autocorrelation. dharma_residuals() therefore works too. Since v0.36 the residual draw is part of the simulator contract rather than a branch inside simulate(), so posterior_predict() and frm_simulate() draw it as well; frm_simulate() needs thetaac in the internal newparams spelling.")
   r("group:autocor", "residuals_osa", "conditional",
-    "A latent residual's rows keep their own density, so \"osa\" answers on a family with no residual y - mu, and reads the exact one-step predictive on Gamma, poisson, negbinomial and binomial. Not on bernoulli, where every residual reads near -3.7 with or without the term, a defect of residuals(type = \"osa\") on this family that a plain (1 | g) has too. On gaussian and student it is refused: one-step-ahead residuals need the taped density of one observation given the previous ones, and the tape holds a joint density per group. Use type = \"pearson\", which divides by the marginal residual SD, or dharma_residuals().")
+    "A latent residual's rows keep their own density, so \"osa\" answers on a family with no residual y - mu, bernoulli included, through TMB's Laplace approximation of each one-step integral: against the exact predictive of a latent ar() the median error is 0.006 to 0.016 on poisson and the zero-inflated and hurdle counts, below 0.002 on the others, and the largest 0.13. On gaussian and student it is refused: one-step-ahead residuals need the taped density of one observation given the previous ones, and the tape holds a joint density per group. Use type = \"pearson\", which divides by the marginal residual SD, or dharma_residuals().")
   r("fcor()", "residuals_osa", "refused",
     "Refused: fcor() has no latent residual on any family, so its one density is joint over all rows, and the tape holds no density of one observation given the previous ones. Use type = \"pearson\" or dharma_residuals().")
   r("group:autocor", "kind:method", "untested", "")
