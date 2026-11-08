@@ -79,10 +79,17 @@
 #'
 #'   An exact `gp()` on a gaussian response with a constant `sigma` starts at
 #'   the maximum of the model's marginal, read from the best cell of six
-#'   length scales on a coarse grid. Another
-#'   family, a non-identity link, `sigma ~`, `ar()`, `mi()`, `me()` or `mo()`
+#'   length scales on a coarse grid. Beside `ar()` in brms's default form
+#'   (`cov = FALSE`, any order, a free `sigma`, no `se()` or `weights()`) that
+#'   marginal holds the `ar` coefficients too, so they start at its maximum.
+#'   On step-shaped data the `ar` coefficient there is often at or just above
+#'   1, as brms's unconstrained `cov = FALSE` likelihood allows. Another
+#'   family, a non-identity link, `sigma ~`, `ma()`, `arma()`,
+#'   `ar(cov = TRUE)`, `mi()`, `me()` or `mo()`
 #'   starts at that marginal of the response on its link's scale, for `sdgp` and
-#'   the length scale. A nonlinear body, a mixture and `sigma ~ gp()` start at
+#'   the length scale. Where that marginal has a second maximum at another
+#'   length scale, the fit also starts there and keeps the better of the
+#'   two. A nonlinear body, a mixture and `sigma ~ gp()` start at
 #'   the best of a few length scales read from the objective. A `theta` here
 #'   replaces all of this, and a `beta` or `betad` replaces only itself.
 #'
@@ -1642,6 +1649,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                  }
                  stop(e)
                }))
+    opt <- gp_second_descent(obj, opt, ctl_opt, bounds, par_units,
+                             verbose = vb, tally = tally)
   } else {
     qf <- quad_fit(nll, template, random, frame[["map"]], integrate, lap_obj,
                    ctl_opt, bounds, par_units, frame, vb)

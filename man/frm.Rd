@@ -89,10 +89,17 @@ tells how the defaults are set; the entries you do not name in
 
 An exact \code{gp()} on a gaussian response with a constant \code{sigma} starts at
 the maximum of the model's marginal, read from the best cell of six
-length scales on a coarse grid. Another
-family, a non-identity link, \verb{sigma ~}, \code{ar()}, \code{mi()}, \code{me()} or \code{mo()}
+length scales on a coarse grid. Beside \code{ar()} in brms's default form
+(\code{cov = FALSE}, any order, a free \code{sigma}, no \code{se()} or \code{weights()}) that
+marginal holds the \code{ar} coefficients too, so they start at its maximum.
+On step-shaped data the \code{ar} coefficient there is often at or just above
+1, as brms's unconstrained \code{cov = FALSE} likelihood allows. Another
+family, a non-identity link, \verb{sigma ~}, \code{ma()}, \code{arma()},
+\code{ar(cov = TRUE)}, \code{mi()}, \code{me()} or \code{mo()}
 starts at that marginal of the response on its link's scale, for \code{sdgp} and
-the length scale. A nonlinear body, a mixture and \code{sigma ~ gp()} start at
+the length scale. Where that marginal has a second maximum at another
+length scale, the fit also starts there and keeps the better of the
+two. A nonlinear body, a mixture and \code{sigma ~ gp()} start at
 the best of a few length scales read from the objective. A \code{theta} here
 replaces all of this, and a \code{beta} or \code{betad} replaces only itself.
 

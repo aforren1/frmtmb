@@ -1,3 +1,65 @@
+# frmtmb (development version)
+
+* An exact `gp()` beside `ar()` on a gaussian response now starts at the
+  maximum of the model's own marginal. That marginal includes the `ar`
+  coefficients. Before, the start read a marginal of the response alone.
+
+  brms's default `ar()` (`cov = FALSE`) moves the mean of each row by the
+  earlier residuals of its group. So the field integrates out in closed
+  form beside it. This holds for `ar()` of any order, with or without
+  `gr`, and with a free `sigma` and no `se()` or `weights()`. The start
+  is used only where the objective reads the marginal's value at the
+  marginal's maximum, to `1e-6`.
+
+  On a step-shaped field, n 160, the fit stopped 25.9 nats short with
+  convergence code 0 and no warning. Five more such rows stopped 0.43 to
+  26.8 nats short. Now all six reach the best value that other starts
+  found, and two read above it.
+
+* On step-shaped data beside `ar()`, the maximum now usually has an `ar`
+  coefficient at or just above 1: a unit root takes the step, and the
+  field is smaller. On the step row above it is 1.008, with sdgp 0.32
+  against 0.75. This is the likelihood of brms's `cov = FALSE` form,
+  whose `ar` is unconstrained in brms too.
+
+* The time of a fit beside `ar()` changes. In one process, against the
+  former start: 0.52 times at 500 positions, where the fit also read 7.8
+  nats higher; 1.2 to 1.3 times at 300 positions; on panels, with rows
+  of many series on shared positions, 1.5 to 1.7 times on 1000 rows of 40
+  positions and 2.2 to 2.9 times on 600 rows of 50 positions, under 1
+  second in each.
+
+* Off the gaussian, where the start's marginal of the response has a
+  second maximum at another length scale, `frm()` also starts from it
+  and keeps the better fit. This was read on the 150 rows of bernoulli,
+  Poisson, binomial, negative binomial, Gamma, lognormal, student,
+  `sigma ~` and `ar()` fits on which the last release named its limits.
+  Before, 13 stopped short by more than 1e-3 nats, worst 25.9. Now 5 do,
+  worst 11, and no row is lower.
+
+  The second start ran on 40 of those fits and took 13 percent of the
+  time of all 150. On 72 rows of smooth curves it ran on 25 and took 15
+  percent. A single fit where it runs and loses takes up to about 2.2
+  times as long: 14.5 s against 8.4 s on a Poisson fit of 240 rows, and
+  32.9 s against 15.2 s on a bernoulli fit of 240 rows.
+
+* A constant `sigma` (`bf(y ~ gp(x), sigma = 0.3)`) is a known noise in
+  the start of an exact `gp()`. Before, the marginal read no noise at
+  all: at the fit's optimum it stood 1.6e12 from the objective, and its
+  maximum was both the start and the value the convergence check reads.
+  Beside `ar()` a constant `sigma` takes the working start.
+
+## Limits
+
+* The limit the last release named beside `ar()` on a step-shaped field
+  is closed. The one on `student()` there is not: 11 and 6.07 nats short
+  on two rows. The Student-t density is not log-concave in the field, so
+  the inner solve can find more than one mode, and the log-likelihood at
+  one point depends on where that solve starts: 207.37 from one inner
+  start and 204.77 from another. A second start does not fix that. Two
+  more rows stay short, 1.59 on Poisson and 1.45 on `sigma ~ z`, as
+  they were.
+
 # frmtmb 0.79.1
 
 * `residuals(type = "osa")` on `beta_binomial()` always stops with a
