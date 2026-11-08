@@ -205,7 +205,7 @@ variable at the value it is held at, then \code{cond__} (the condition
 label, always present), \code{effect1__} and, for a two-variable effect,
 \code{effect2__} (the moderator as a display label: rounded to two
 decimals, levels descending), then \code{estimate__}, \code{se__} (on the
-scale the band is symmetric on), \code{lower__} and \code{upper__}. Printing
+displayed scale, as in brms), \code{lower__} and \code{upper__}. Printing
 it draws the plots. A polytomous fit adds a \code{cats__} column, one
 block of rows per response category, and keys the effect
 \code{"x:cats__"}.
@@ -364,11 +364,12 @@ delta method has no other shape to offer, and the bootstrap draws
 the same way so that the two bands stay comparable. It is the right
 variance around a heavier-tailed truth, not the right quantile.
 
-What \code{se__} means follows the band: the Wald standard error (link
-scale, or the probability scale on the ordinal display) for \code{"wald"}
-and \code{"profile"} - the profile changes the endpoints, not the standard
-error - and the standard deviation of the bootstrap draws, on the
-displayed scale, for \code{"boot"}.
+\code{se__} is on the displayed scale, as brms's MAD of its draws is. For
+\code{"wald"} and \code{"profile"} it is the delta-method standard error of the
+displayed value: the profile changes the endpoints, not the standard
+error. For \code{"boot"} it is the standard deviation of the bootstrap
+draws. The Wald band is symmetric on the link scale, so \code{se__} is not
+its half width.
 
 The three bands answer the same question and need not give the same
 interval. Wald and bootstrap agree in the middle of a grid, and the

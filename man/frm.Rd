@@ -89,12 +89,23 @@ tells how the defaults are set; the entries you do not name in
 
 An exact \code{gp()} on a gaussian response with a constant \code{sigma} starts at
 the maximum of the model's marginal, read from the best cell of six
-length scales on a coarse grid. Another
-family, a non-identity link, \verb{sigma ~}, \code{ar()}, \code{mi()}, \code{me()} or \code{mo()}
+length scales on a coarse grid. Beside \code{ar()} in brms's default form
+(\code{cov = FALSE}, any order, a free \code{sigma}, no \code{se()} or \code{weights()}) that
+marginal holds the \code{ar} coefficients too, so they start at its maximum.
+On step-shaped data the \code{ar} coefficient there is often at or just above
+1, as brms's unconstrained \code{cov = FALSE} likelihood allows. Another
+family, a non-identity link, \verb{sigma ~}, \code{ma()}, \code{arma()},
+\code{ar(cov = TRUE)}, \code{mi()}, \code{me()} or \code{mo()}
 starts at that marginal of the response on its link's scale, for \code{sdgp} and
-the length scale. A nonlinear body, a mixture and \code{sigma ~ gp()} start at
-the best of a few length scales read from the objective. A \code{theta} here
-replaces all of this, and a \code{beta} or \code{betad} replaces only itself.
+the length scale. Where that marginal has a second maximum at another
+length scale, the fit also starts there and keeps the better of the
+two. A field in a parameter of a nonlinear body starts at the
+marginal of the body made linear at its start, and the fit also
+descends from the best of a few length scales and keeps the better; a
+\code{start} of your own turns the first off. A mixture and \code{sigma ~ gp()}
+start at the best of a few length scales read from the objective. A
+\code{theta} here replaces all of this, and a \code{beta} or \code{betad} replaces
+only itself.
 
 None of this can be certain. A marginal can have more than one maximum. On
 744 rows of curves no test had seen, the fit stopped more than 0.001
@@ -110,9 +121,16 @@ names is positional and must be full length. Naming some entries
 of one vector and not others is refused.
 
 A nonlinear body can have more than one maximum, and nothing in a fit
-marks a second one. A \code{start} with other signs, or a located prior, can
-show it, and \code{\link[=frm_allfit]{frm_allfit()}} cannot, as it starts every optimizer from one
-point.}
+marks a second one. From the default start, \code{frm()} also fits from each
+sign pattern of the body's coefficients and returns the highest point
+(see "The default starting values" in \code{\link[=par_template]{par_template()}}). A \code{start}, or
+\code{options(frmtmb.nl_sign_probe = FALSE)}, skips that; a located prior
+places the start and does not skip it. The point a pattern reaches can
+itself be a second maximum: the fit then converges with no warning and
+is still below the highest one, as on 1 of 89 such fits measured (1.84
+short, where the default start alone stopped 2.29 short with a warning).
+A \code{start} elsewhere, or a located prior, can show a higher maximum;
+\code{\link[=frm_allfit]{frm_allfit()}} cannot, as it starts every optimizer from one point.}
 
 \item{control}{A list from \code{\link[=frmtmb_control]{frmtmb_control()}}.}
 
@@ -133,9 +151,11 @@ silence it.}
 \item{prior}{Optional \code{\link[=set_prior]{set_prior()}} specification. This makes the
 fit MAP / regularized ML (glmmTMB's \verb{priors=} in spirit): useful
 for stabilizing singular variance components or separating
-binomials. The reported logLik/AIC then include the prior terms
-and are penalized quantities, and \code{anova()} comparisons across
-different priors are meaningless. A \code{brmsprior} object built by
+binomials. \code{logLik()} is then the log-likelihood at the MAP
+estimates, and \code{\link[=logLik_penalized]{logLik_penalized()}} the maximized value with the
+log prior. \code{AIC()}, \code{BIC()}, \code{anova()} and \code{drop1()} refuse a prior
+with a density, as its estimates do not maximize the likelihood.
+A \code{brmsprior} object built by
 brms's own \code{prior()} is translated row by row, so priors copied
 out of a brms script work whichever package's \code{prior()} was in
 scope. The argument takes brms's spelling, \code{prior}; the \code{priors}
@@ -204,12 +224,35 @@ set by the prior alone, so a weak prior gives very wide intervals.}
 adaptive Gauss-Kronrod quadrature instead of the Laplace
 approximation (the \code{glmer(nAGQ = k)} analogue; matches it in
 tests). Worth it for Bernoulli responses with small clusters,
-where Laplace biases variance components. Scalar random-intercept
-models only, and not with \code{mi()}, \code{trunc()}, \code{REML = TRUE}, or
-\code{frmtmb_control(profile = TRUE)}. A row may read one block only:
-nested blocks, \code{(1 | ga/gb)}, crossed blocks, \code{(1 | g) + (1 | h)},
-and \code{(1 | g)} in both \code{mu} and \code{sigma} are refused, as lme4
-refuses \code{nAGQ > 1} for more than one term. The blocks of a by-split
+where Laplace biases variance components. Scalar random effects
+only (one coefficient per level of a block), and not with \code{mi()},
+\code{trunc()}, \code{REML = TRUE}, or \code{frmtmb_control(profile = TRUE)}. A
+row may read two blocks when one is nested in the other, as in
+\code{(1 | ga/gb)}. Such a model is integrated as an iterated integral
+by Gauss-Hermite rules, \code{frmtmb_control(quad_nodes = )} nodes per
+level, centered and scaled by the Laplace fit and re-anchored at
+the estimate. That route needs exactly two blocks on the same
+predictors, one response, Gaussian blocks and per-row densities,
+and its memory is limited by \code{frmtmb_control(quad_max_gb = )}. Its
+accuracy depends on the design: against independent references the
+log-likelihood error at the default nodes was 9e-11 to 7e-6 on
+seven designs with standard deviations near 1, and 5e-4 to 6e-4
+with an inner standard deviation near 3 or an outer one of 3; on a
+near-separable response it was 1.7e-2, where the rule did not settle
+and the fit warned. More nodes do not always help on the hard
+designs. The Laplace error on the same designs was 0.07 to 1.4. A
+fit whose rule does not settle warns (class
+\code{frmtmb_quad_unsettled}) and gives the rule's own error at the
+estimate, the log-likelihood at the fit's nodes against 21 x 21 (or
+10 more per level); on such a design more nodes are not a sure
+remedy, since the error need not fall as they rise. Profile and
+root-search
+intervals and \code{ranef(condVar = TRUE)} are refused on a nested fit
+(class \code{frmtmb_quad_nested_unsupported}); Wald and bootstrap
+intervals work. Crossed blocks, \code{(1 | g) + (1 | h)}, are refused,
+because their integral does not factor into one-dimensional ones;
+so are \code{(1 | g)} in both \code{mu} and \code{sigma}, where the rule converges
+slowly, and three or more blocks on a row. The blocks of a by-split
 \code{gr(g, by = f)} each read rows of their own and are allowed. A
 plain Laplace fit runs first and the quadrature tape is built at
 its optimum: the

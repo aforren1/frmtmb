@@ -1,3 +1,650 @@
+# frmtmb 0.80.0
+
+## Fitting
+
+* BREAKING: `frm(quadrature = TRUE)` integrates two nested random-effect
+  blocks, such as `(1 | school/class)`. Before, frmtmb refused a model in
+  which a row reads more than one block. The new route integrates the
+  inner block inside each level of the outer block with Gauss-Hermite
+  rules that the Laplace fit centers and scales, and re-anchors the
+  rules at the estimate. Against independent references the
+  log-likelihood error at the default nodes was 9e-11 to 7e-6 on seven
+  designs with standard deviations near 1, and 5e-4 to 6e-4 with an
+  inner standard deviation near 3 or an outer one of 3; on a
+  near-separable response it was 1.7e-2, and the fit warned that its
+  rule did not settle. The Laplace error on the same designs was 0.07
+  to 1.4. More nodes do not always reduce the error on the hard designs.
+* A nested fit whose rules do not settle at the estimate warns with
+  class `frmtmb_quad_unsettled`. Profile and root-search intervals
+  (`confint(method = "profile")`, `"uniroot"`, `profile()`,
+  `hypothesis(method = "profile")`, `conditional_effects(band =
+  "profile")`) and `ranef(condVar = TRUE)` stop on a nested fit with
+  class `frmtmb_quad_nested_unsupported`; Wald and bootstrap intervals
+  work.
+* frmtmb still refuses crossed blocks, `(1 | g) + (1 | h)`, and says that
+  their integral does not factor. It also refuses three or more blocks,
+  and two blocks on different predictors, such as `(1 | g)` in `mu` and
+  in `sigma`, each with its reason. `(1 + x || g)` is one block of two
+  coefficients and is refused; the message says to write it as
+  `(1 | g) + (0 + x | g)`, which the nested route integrates.
+* New `frmtmb_control(quad_nodes = )` sets the nodes per level of the
+  nested route (default 11 outer, 15 inner). New
+  `frmtmb_control(quad_max_gb = )` (default 4) limits its memory: the
+  fit predicts the memory from small probe tapes and measured costs per
+  family, and stops before the Laplace warm start when the prediction
+  is above the limit.
+
+* BREAKING: a covariate far from zero against its spread fits the same
+  model as the covariate centered. With `y ~ (x + 1e6) + (1 | g)` and an
+  sd of 1, the optimizer stopped at its start with code 0. On poisson
+  and Gamma the slope was 6 to 10 standard errors off and the fit 20 to
+  47 log-likelihood units short, on 5 of 5 data sets each, with no
+  warning on 6 of the 10. Bernoulli was 0.9 to 2.6 standard errors off
+  from `x + 1e5`, and a gaussian fit without a group term 12 standard
+  errors off at `x + 1e6`. The optimizer now steps in coordinates in
+  which each ill-conditioned fixed design has orthogonal columns, the
+  ones the standard errors already used. A design with a condition
+  number below 1e3 keeps its fit. On a grid of offsets from 1e3 to 1e8,
+  four families, with and without `(1 | g)` and 5 data sets each, all
+  240 fits give the slope, its standard error and the log-likelihood of
+  the centered fit. At `x + 1e8`, 11 of the 40 fits warn of "false
+  convergence (8)" at the maximum; none below that warns. The same
+  holds for:
+  - a `cumulative()` fit, which was up to 3.6 standard errors off with
+    no warning at `5 x + 1e6`;
+  - a shifted column in `sigma`'s formula, in a `zi` formula, in an
+    nlpar's formula, beside `s()`, `offset()`, `weights()` or a factor,
+    and its interaction with a factor;
+  - a nonlinear body linear in a shifted column, `b0 + b1 * x`, which
+    was 7.6 to 9.9 standard errors off, one of two with no warning;
+  - a prior with `lb` or `ub` on class `b`, which kept the old fit,
+    6.3 to 9.4 standard errors off, 4 of 5 with no warning. A bound on
+    the intercept of such a design, or one that centering does not
+    condition, keeps the old fit and warns (class `frmtmb_ill_design`);
+  - `profile()` and `confint(method = "profile")` or `"uniroot"` on a
+    shifted coefficient, which were `NA` with an unclassed warning;
+  - `frm_allfit()`'s bobyqa and NLopt fits.
+
+  On two raw polynomials with `(1 | g)` whose group sd the optimizer ran
+  to zero, the fit now reaches lme4's maximum at an sd near 0.005, 1e-4
+  higher.
+
+* BREAKING: the frame drops a fixed-effect column by two tests on the
+  design with its columns scaled to the same size. A column whose QR
+  leaves less than 1e-11 of its norm, with every column but the
+  intercept centered, is aliased and is dropped with the message "rank
+  deficient". It was 1e-7 on the unscaled, uncentered design, as in
+  `lm()` and lme4, which dropped the slope of `x + 1e7` with an sd of 1,
+  and products and powers of shifted columns (`w1:w2`, `I(w^2)`) from
+  an offset of 1e4: the fit was 0.43 to 50 log-likelihood units below
+  the model asked for, with a message only. Such columns are now kept,
+  as brms keeps them. Then, in their order, the columns that the
+  optimizer cannot fit (a centered condition number above 1e10, or
+  columns dependent to 1e-11 without centering) are dropped with a
+  warning of class `frmtmb_design_capped`: the data identify them, so
+  the model fitted is not the one written. Products and powers of
+  columns shifted by 1e6 meet this warning. A raw polynomial far from zero,
+  `poly(x, 8, raw = TRUE)` on [1000, 1010], keeps 5 columns with finite
+  standard errors. A near alias that the old test dropped and the new
+  one keeps, such as `x2 = x1 + 1e-9 * noise`, now has standard errors
+  near 1e8, as `glm()` gives. An exact alias is dropped as before.
+
+* `frmtmb_control(autoscale = TRUE)` on a column far from zero warned of
+  "false convergence (8)" at the maximum. From `x + 1e3` such a fit is
+  now silent, and its standard errors are those of the centered fit.
+
+* BREAKING: a nonlinear fit from its default start also fits from each
+  sign pattern of the body's coefficients and returns the highest point.
+  When that point is higher than the first fit by more than 0.01, a
+  message of class `frmtmb_nl_multistart` says so. Before, a default fit
+  could stop at a lower maximum at return code 0 with no warning:
+  `b1 * (1 - exp(-b2 * x))` under `gaussian()` stopped at its linear
+  limit, 69 to 75 below the maximum on 5 of 5 data sets, and a
+  `bernoulli()` `b1 * exp(b2 * x)` stopped at the other sign of `b2`.
+  - The patterns vary each coefficient that the body does not read as an
+    added term, so `a + b * x` is not affected. With four such
+    coefficients or fewer, every pattern runs; with more, every pattern
+    of the four that move the body most. The order of the terms does not
+    change the result.
+  - A coefficient that moves the body far more or less than 1 per unit
+    starts at the body's scale: `b2` in `b1 * exp(b2 * x)` with `x` in
+    the thousands starts near 1e-3.
+  - On 450 fits (9 families, 5 bodies, 2 slopes, 5 seeds), 16 stopped
+    more than 1e-4 short of the best of 8 random starts, 11 of them with
+    no warning; now 0 do. On 335 other fits (15 bodies, 6 families, 5
+    seeds), 97 were short, 38 with no warning; now 11 are, 5 with no
+    warning. They are Michaelis-Menten bodies under `bernoulli()` and
+    `binomial()`, a power law under `cumulative()`, a four-parameter
+    logistic under `bernoulli()` 2.8e-4 short, and fits that warn.
+    On these 785 fits none is lower than before.
+  - The point a pattern reaches can itself be a second maximum. The fit
+    then converges with no warning and is still short: on 1 of the 87
+    fits that the patterns raised, 1.84 short, where the default start
+    alone stopped 2.29 short with a warning. A `start` elsewhere can show
+    it.
+  - The cost is 1.2 to 2.7 times the fit time with two or three such
+    coefficients, and 3.5 times with four, on fits of 300 rows. On fits
+    of 20000 rows it is 1.5 to 2.8 times with two or three, 5.4 times
+    with four, and 47 times with five, where the fit gained 15906
+    log-likelihood units.
+  - Give `start`, or set `options(frmtmb.nl_sign_probe = FALSE)`, to
+    skip it. A located prior does not skip it.
+
+* BREAKING: a nonlinear coefficient that the body reads as an added term
+  is stepped in the units by which it moves the body, where these units
+  are 16 or more times from 1. The curvature of a normal, Student t or
+  logistic prior on it is added; under another prior with a curved
+  density, such as a gamma or lognormal prior, it keeps its old steps.
+  `a * x` with `x` near `1e-20` now reaches the maximum of `y ~ 0 + x`;
+  before, it stopped at its start, -299.33 against -272.50, at return
+  code 0. `a + b * x` with `y` near `1e6` now reaches the maximum of
+  `y ~ x`; before, it stopped at -3045.62 against -1658.76. In the sign
+  patterns' runs and the refit of their winner, a coefficient inside a
+  curve is stepped in its start size where that is 16 or more times from
+  1, and keeps its old steps under a prior. `b1 * (1 - exp(-b2 * x))` and
+  `b1 * exp(b2 * x)` with `x` near 1e-6 now fit as with `x` near 1 on 40
+  of 40 data sets.
+
+* When the refit from the best sign pattern does not stop where that
+  pattern's run stopped, and raises no warning of its own, frm() warns
+  with class `frmtmb_nl_multistart_unsettled`.
+
+* BREAKING: an exact `gp()` in a parameter of a nonlinear body, such as
+  `bf(y ~ a + b * z, a ~ gp(x), b ~ 1, nl = TRUE)`, starts at the maximum
+  of the marginal of the body made linear at its start. Before, the field
+  had no warm start. `frm()` also descends from the old start and keeps
+  the better fit, so no fit reads lower than before. On 192 test fits of
+  12 bodies, `frm()` stopped short on 56, by up to 290 nats, with return
+  code 0 and no warning. Now 8 stop short, by up to 36.5 nats, also with no
+  warning, and none reads below its old value. 5 of the 8 are low-count
+  Poisson fits, where the linear spelling `y ~ z + gp(x)` stops at the
+  same value (see the Limits of 0.79.0). On a gaussian body additive in
+  the field's parameter (`a + b * z`, `a + b * z^2`, `a ~ gp(x) + (1 | g)`,
+  `a ~ gp(x, by = f)`) no fit stops short, which closes the gap of a
+  nonlinear body that the Limits of 0.79.0 name, 98.5 nats on a trend
+  plus a wiggle. With a `start` of your own the field starts as before.
+  These fits take about 2 to 2.2 times as long.
+
+* BREAKING: `frm()` now leaves a ridge that the restart from a saddle did
+  not reach, on a model with two or more nonlinear bodies. The restart
+  moved only the body that was constant; when the restarted fit still
+  warns that it may not have converged, `frm()` now also moves the other
+  bodies. `nlf(mu ~ b1 * exp(b2 * x))` beside
+  `nlf(disc ~ exp(d1 * d2 * z))` under `cumulative()` stopped at the
+  linear limit of `exp()`, at log-likelihood -377.03 with return code 1,
+  where a start reaches -371.54. On 30 such fits, 20 stopped short by up
+  to 5.3 nats, each with a warning. Now none does. These fits take about
+  1.4 times as long. A model with one body does not change.
+
+* BREAKING: `frm()` fits `mi()` on the response beside a latent residual
+  when no other density reads the missing values. Before, it refused this
+  model with a reason that is false for it. Those rows leave the
+  objective, and the latent residual of such a row has no observation. On
+  lognormal the log-likelihood is the exact marginal of the observed rows
+  to 1e-8. `frm()` still refuses the model when another response reads
+  the missing values (`bf(w ~ mi(y))`).
+
+* BREAKING: an exact `gp()` beside `ar()` on a gaussian response now
+  starts at the maximum of the model's own marginal. That marginal
+  includes the `ar` coefficients. Before, the start read a marginal of the
+  response alone.
+
+  brms's default `ar()` (`cov = FALSE`) moves the mean of each row by the
+  earlier residuals of its group. So the field integrates out in closed
+  form beside it. This holds for `ar()` of any order, with or without
+  `gr`, and with a free `sigma` and no `se()` or `weights()`. The start
+  is used only where the objective reads the marginal's value at the
+  marginal's maximum, to `1e-6`.
+
+  On a step-shaped field, n 160, the fit stopped 25.9 nats short with
+  convergence code 0 and no warning. Five more such rows stopped 0.43 to
+  26.8 nats short. Now all six reach the best value that other starts
+  found, and two read above it.
+
+* On step-shaped data beside `ar()`, the maximum now usually has an `ar`
+  coefficient at or just above 1: a unit root takes the step, and the
+  field is smaller. On the step row above it is 1.008, with sdgp 0.32
+  against 0.75. This is the likelihood of brms's `cov = FALSE` form,
+  whose `ar` is unconstrained in brms too.
+
+* The time of a fit beside `ar()` changes. In one process, against the
+  former start: 0.52 times at 500 positions, where the fit also read 7.8
+  nats higher; 1.2 to 1.3 times at 300 positions; on panels, with rows
+  of many series on shared positions, 1.5 to 1.7 times on 1000 rows of 40
+  positions and 2 to 5 times on 600 rows of 50 positions, under about 2
+  seconds in each.
+
+* BREAKING: off the gaussian, where the start's marginal of the response
+  has a second maximum at another length scale, `frm()` also starts from it
+  and keeps the better fit. This was read on the 150 rows of bernoulli,
+  Poisson, binomial, negative binomial, Gamma, lognormal, student,
+  `sigma ~` and `ar()` fits on which the last release named its limits.
+  Before, 13 stopped short by more than 1e-3 nats, worst 25.9. Now 5 do,
+  worst 11, and no row is lower.
+
+  The second start ran on 40 of those fits and took 13 percent of the
+  time of all 150. On 72 rows of smooth curves it ran on 25 and took 15
+  percent. A single fit where it runs and loses takes up to about 2.2
+  times as long: 14.5 s against 8.4 s on a Poisson fit of 240 rows, and
+  32.9 s against 15.2 s on a bernoulli fit of 240 rows.
+
+* A constant `sigma` (`bf(y ~ gp(x), sigma = 0.3)`) is a known noise in
+  the start of an exact `gp()`. Before, the marginal read no noise at
+  all: at the fit's optimum it stood 1.6e12 from the objective, and its
+  maximum was both the start and the value the convergence check reads.
+  Beside `ar()` a constant `sigma` takes the working start.
+
+* The convergence warnings of a fit have their own classes, before
+  `frmtmb_warning`: `frmtmb_conv_code` ("Optimizer did not report
+  convergence"), `frmtmb_conv_gradient` ("Large maximum absolute
+  gradient") and `frmtmb_conv_gradient_nonfinite` ("The gradient at the
+  reported optimum is not finite"). The messages do not change. Code that
+  reads `class(w)[1]` sees the new class; `inherits(w, "frmtmb_warning")`
+  is still true.
+
+## Log-likelihood and priors
+
+* BREAKING: under a prior with a density (`frm(prior = )`), `logLik()` is
+  the log-likelihood of the data at the estimates. It does not include the
+  log prior. The new `logLik_penalized()` gives the value that the fit
+  maximized, with the log prior, which `logLik()` gave before. brms's
+  `log_lik()` is the data part too; glmmTMB's `logLik()` with `priors =` is
+  the penalized value. For `y ~ x + (1 | g)` with a `normal(0, 100)` prior
+  on the slope, `logLik()` was 5.52 below the fit with no prior at the same
+  estimates. That is the log of the prior's normalizing constant. Now
+  `logLik()` is the objective of the fit with no prior at the MAP
+  estimates, to rounding. The split is exact for the Laplace
+  approximation, `quadrature = TRUE`, `importance =` and
+  `frmtmb_control(profile = TRUE)`, because a prior there reads only
+  parameters outside the integral. Under `REML = TRUE` a prior on the fixed
+  effects is inside the integral, so `logLik()` stops with a message there.
+  The log prior term is what the optimizer adds, with the log-Jacobian of
+  each change of scale and no truncation normalizer, so it is not brms's
+  `lprior`; `?logLik_penalized` says how they differ.
+* BREAKING: under a prior with a density, the estimates do not maximize
+  the log-likelihood, and a parameter that the prior shrinks is not a full
+  degree of freedom. So `logLik()` has `df = NA`, with the reason in
+  attribute `df_why`, and `AIC()`, `BIC()` and `extractAIC()`, and so
+  `step()`, stop with a message when they dispatch on such a fit, as
+  `anova()` and `drop1()` do. `AIC(m0, m1)` stops when either frmtmb fit
+  has such a prior. A call that reaches stats's own methods with the df of
+  `logLik()`, as `AIC(lm_fit, map_fit)`, `BIC(lm_fit, map_fit)` or
+  `AIC(logLik(map_fit))`, gets `NA` for that fit. A package that counts
+  the parameters itself is not covered: `insight::get_loglikelihood()`
+  replaces the `NA` with its own count, so `performance` can still give
+  an AIC for a fit with a prior. A prior that only sets
+  bounds adds no density, and these methods work; so does a `uniform()`
+  prior on a coefficient or an `nlpar`, whose log density is a constant
+  inside its bounds.
+* `summary()` of a fit with such a prior prints `logLik` and the log prior
+  in place of AIC and BIC. Under REML with a prior on the fixed effects it
+  prints the maximized value and says why there is no `logLik`. It marks
+  the method `(MAP)` only for a prior with a density, not for a prior of
+  bounds alone or a uniform one.
+* `anova()` of two `frm_multiple()` fits stops for the likelihood rules
+  (`"D3"`, and `"D2"` with `use = "likelihood"`) under a prior with a
+  density, for the reason `anova()` of two fits stops. The Wald rules
+  still work: they are Wald tests at the MAP, consistent with the Wald
+  intervals of `summary()`, and under a prior their nominal size is not
+  guaranteed.
+* The warning for a discrete log-likelihood above 0 now also checks a fit
+  with a prior.
+* `frm_allfit()` and the restarts of a nonlinear fit still compare the
+  value that each fit maximized, now through `logLik_penalized()`. Under a
+  prior, their printout names that value the penalized log-likelihood.
+* `logLik_penalized()` on a `frm_multiple()` result stops with a message,
+  as `logLik()` does.
+
+## Predictions and their standard errors
+
+* BREAKING: `fitted()` with `allow_new_levels = TRUE` at a grouping level the
+  fit did not see is the mean of the expected response over that level's
+  effects, as brms's `posterior_epred(sample_new_levels = "gaussian")` is;
+  brms's default `"uncertainty"` is still refused. Before, it read the
+  effects at their mean of 0, which is the median: a poisson `(1 | g)` at
+  sd 1 read low by a factor of 1.647. On a log link that reads the mean the
+  value is the closed form `exp(v / 2)` times the median. `Est.Error` holds
+  the effects' spread, at the estimated sd, and the `Q` columns are their
+  quantiles. `sample_new_levels = "old_levels"` and `scale = "linear"` do
+  not change.
+
+* BREAKING: `conditional_effects()`'s `se__` is on the displayed scale, as
+  brms's MAD of its draws is. Before, it was on the link scale: a lognormal
+  mean read 0.027 where the response scale reads 0.045, and a poisson mean
+  0.045 where it reads 0.065. On a row with a new `me()` value, a latent or
+  a new level, `se__` and the band are `fitted()`'s. Elsewhere the band does
+  not change.
+
+* BREAKING: a new row that reads two independent draws, a latent residual on
+  `mu` beside a `me()` value on another predictor or two `me()` calls on
+  two predictors, is integrated over both. Before, the second predictor
+  moved by its regression on the first, and a `me()` value on another
+  predictor than `mu` beside a latent was not read. On a
+  `hurdle_poisson()` row, the draw's sd read 0.733 against 0.925, and the
+  mean 2.110 against 2.142.
+
+* BREAKING: a lognormal whose `sigma` reads a draw (`me()`, a latent or a
+  new level) has an infinite exact mean over it, from the draw's far tail;
+  so does a lognormal component's `sigma<k>` of a mixture, and a `sigma`
+  body that reads a nonlinear parameter with a draw. `fitted()` gives the
+  11-node Gauss-Hermite mean, which reaches 5.19 sds of the draw as a
+  sampler's draws do, with one warning per call of class
+  `frmtmb_mean_not_finite`. On `sigma ~ (1 | g)` at sd 0.27 it reads 2.0897,
+  as a mean of 4e6 draws does; 0.79.1 read the median, 2.0038. Past a draw
+  sd of about 0.3 on `sigma` no mean of draws is stable, and the warning
+  gives how far the rule moves. Before, it gave the value at a far node of
+  the rule: 1.7e162 at `sdx = 0.8`. Any other mean whose rule does not
+  settle as it grows is read the same way, with a warning of class
+  `frmtmb_mean_unsettled`.
+
+* A nonlinear body has a standard error: `frm_linpred(se.fit = TRUE)`,
+  `fitted()`'s `Est.Error` and its `Q` columns read the delta method through
+  the body's taped Jacobian, and its memory grows with the rows, not their
+  square. Before, `Est.Error` was `NA` with no message. Under
+  `allow_new_levels = TRUE` a row of levels the fit saw answers, and a new
+  level that a body reads has no `se.fit`, refused with class
+  `frmtmb_nl_new_level`; `fitted()` integrates over that level's effects.
+
+* `conditional_effects()` on a body whose nonlinear parameter reads `me()`
+  answers, with the band and `se__` that `fitted()` reads on the row. Before,
+  it stopped.
+
+* BREAKING: `conditional_effects()`'s band for a category of a row with a
+  `me()` value is `fitted()`'s, the draw's own quantiles. Category 3 of a
+  `cumulative()` row at `sdx = 1.2` read 0.196 to 0.305; it now reads 0.090
+  to 0.254, and the draw's quantiles at the estimates are 0.098 to 0.247.
+
+* A draw that moves nothing `fitted()` reads, as a `me()` value on a
+  Gamma's `shape`, costs no quadrature nodes. Past four draws that move it,
+  the four that move it most are integrated, with a warning of class
+  `frmtmb_draw_dims`.
+
+* BREAKING: on a latent residual (`ar()`, `ma()`, `arma()`, `cosy()` or
+  `unstr()` on a family with no residual), `fitted()`, `residuals()` and
+  `frm_linpred(se.fit = TRUE)` give standard errors for the fitted rows
+  at any number of rows. Above 3000 rows they were `NA`, with a message.
+  They now read the joint covariance through the sparse Cholesky factor
+  of the joint precision, and each row's variance through the selected
+  inverse of that factor. On one poisson series with
+  `ar(cov = TRUE)`, `fitted()` took 4.7 s at 2000 rows and 332 s at 8000
+  rows. It now takes 0.17 s and 0.42 s, and 1.7 s at 32000 rows. With
+  `hu ~ (1 | id)` on `hurdle_poisson()`, or `zi ~ (1 | id)` on
+  `zero_inflated_poisson()`, it takes 3.3 s at 32000 rows. The values
+  agree with the dense route to 1.3e-13, relative.
+
+* BREAKING: beside another group-level block, `fitted()` on new rows of
+  a latent residual keeps its standard errors above
+  `frmtmb.latres_dense_rows` rows. They were `NA`, with a message. A new
+  row reads the estimates and the levels of the other block, and no
+  latent.
+
+* A fit with a latent residual keeps no dense joint covariance after
+  `fitted()`. It keeps the sparse factor of its joint precision, which
+  grows with the rows. On one poisson series, a saved fit of 2000 rows
+  grew from 5.1 MB to 36.2 MB after `fitted()`, and now grows to 5.7 MB.
+  At 8000 rows it grew to 500 MB with both row limits moved; with the
+  default limits its standard errors were `NA` and it stayed at 9.6 MB.
+  It now grows to 12.3 MB, with every standard error given. Beside a
+  group-level block of 50 levels it grows from 11.6 MB to 15.7 MB at
+  8000 rows, and from 35.6 MB to 51.9 MB at 32000 rows.
+
+* `options(frmtmb.latres_dense_rows = )` now limits only a dense block
+  of the joint covariance of a latent residual that a function returns
+  or must form: `frm_joint_cov()`, `frm_lp_basis()` on the fitted rows,
+  and the standard errors of the category probabilities of an ordinal
+  family's fitted rows. `frm_curve()` and `conditional_effects()` on new
+  rows are not refused. `options(frmtmb.latres_se_rows = )` now applies
+  to those category probabilities and to the Laplace check alone. A fit
+  whose covariance of the estimates is held as a factor, which an
+  ill-conditioned design gives, keeps the dense joint covariance and
+  both limits as before.
+
+* `frm_lp_basis()` on a fit with a latent residual leaves out of
+  `coef_pos` every column that no row of `A` loads: a latent, a level
+  that the rows do not name, and a coefficient whose covariate is 0 on
+  every row. Such a column adds nothing to `A V A'`. A new row loads no
+  latent.
+
+* BREAKING: the standard errors of `marginaleffects` hold the group-level
+  effects on a fit with a group-level term, a smooth, `gp()` or `hsgp()`.
+  `get_coef()` gives the group-level effects at their modes after the
+  coefficients, under `frm_lp_basis()`'s names (`b.<term>.<level>.<coef>`),
+  and the `sdgp` and `lscale` of an exact `gp()`, whose field reads them.
+  `get_vcov()` gives their joint covariance with the coefficients and the
+  variance parameters, which `fitted()` reads. Before, the delta method
+  held them at their modes, silently wrong on most fits: on 168 fits with
+  `(1 | g)` or `(1 + x | g)` on four families, `avg_predictions()` was
+  more than 25 percent too wide on 77 percent of them (median 2.03 times)
+  and `avg_slopes()` on 52 percent (median 1.30 times), and the standard
+  error of a level was off on 67 percent. Now the standard errors of the
+  2016 levels are `fitted()`'s to within 1e-5, and the averages, slopes
+  and contrasts are within 25 percent of the draws on 164 of the 168
+  fits; on the other 4 the delta method itself is that far. On a poisson
+  `(1 | g)` row, 0.4875 where it was 1.4350.
+* `avg_slopes()` on an exact `gp()` field reads the field: 0.0308, where
+  it read about 3e-7 on a gaussian field. That is the delta method's
+  value, as `frm_lp_basis()` gives it; on the same data brms's posterior
+  SD of that average slope is 0.154, because the slope is flat in the
+  length scale near its estimate and steep two standard errors above it.
+  Far from its data an exact `gp()` is also where marginaleffects'
+  finite-difference Jacobian parts from `fitted()`'s exact one, by up to
+  21 percent at the points measured, with `numderiv = "fdcenter"` no
+  closer; read a level there from `fitted()`.
+* `re_formula = NA` takes the group-level effects out of `get_coef()`; a
+  smooth's coefficients stay. Inside `hypotheses()` on the fit itself,
+  `get_coef()` and `get_vcov()` give the coefficients alone, so
+  `"b2 = 0"` names the coefficient it named before and `joint = TRUE`
+  tests the coefficients and no group-level effect. A function given as
+  `hypothesis` gets the model and keeps the effects in:
+  `hypothesis = function(x) avg_predictions(x)` reads 0.143, as
+  `avg_predictions()` alone does, where holding them fixed read 1.774.
+* `vcov =` a covariance over the outer parameters, such as
+  `vcov(fit, full = TRUE)` or a cluster sandwich `~ g`, is carried into
+  the group-level effects, as the model's own is. Only the part of their
+  variance that comes from the outer parameters becomes robust; their
+  conditional variance stays model-based. `"HC0"` and `"HC1"` are refused
+  on a fit with a group-level term, as before. A matrix over the
+  coefficients alone holds the effects at their modes, with a warning of
+  class `frmtmb_interop_se_part`.
+* The warning of class `frmtmb_interop_se_part` names what no parameter
+  holds: the draw of a new row's `me()` value or latent residual (and,
+  under `cov = TRUE`, the fitted latent values it continues from), and the
+  group-level effects of a fit with `quadrature = TRUE` or `importance =`.
+  A test of a coefficient no longer gives it. `get_predict()` gives it
+  once per call, from `predictions()`, `slopes()` and `comparisons()`
+  alike, and under the default `vcov` or a covariance the user gives, for
+  rows at a grouping level the fit did not see and for an exact `gp()` at
+  a position the fit did not see, where the kriging variance is more than
+  1e-4 of the field's, and counts the rows of each kind.
+* The time of `marginaleffects` grows with the number of levels, one
+  prediction per parameter: `avg_slopes()` on a poisson `(1 + x | g)` fit
+  took 16.3 s at 500 levels of 40 rows, where it took 0.09 s with the
+  effects held fixed. `vcov = FALSE` and `re_formula = NA` avoid it.
+
+## Residuals
+
+* BREAKING: `residuals(type = "osa")` reads each row against its family's
+  own CDF (`osa_method = "cdf"`) on every core family that has one. Only
+  an untruncated, unweighted `gaussian()` keeps `"fullGaussian"`. With no
+  group-level term a residual is now the randomized quantile residual of
+  the fitted distribution: `qnorm(F(y))` for a continuous response, and
+  for a count `qnorm(u)` with `u` uniform on `[F(y - 1), F(y)]`. On one
+  design per family, the count families matched it to 1.2e-12 or better
+  and the continuous families to 3e-9 or better. The old default,
+  `oneStepGeneric`, integrated a spline through a profile of the density,
+  and the results were wrong with no warning:
+  - On counts, the profile read the mass function between the integers.
+    `binomial()` read NaN on 2 to 3 of 150 rows. `bernoulli()` residuals
+    sat near -3 to -4 with or without a group-level term (57 of 150 rows
+    outside their own step with none). Six other count families put 5 to
+    13 of 150 rows outside their own step, and `beta_binomial()` was
+    refused.
+  - `Gamma()` read up to 0.086 off, `Beta()` 0.69, `von_mises()` 4.45, and
+    `inverse.gaussian()` and `frechet()` read NaN on 3 rows and up to 7.3
+    off. `tweedie()` read NaN on 71 of 150 rows.
+  - `student()`, `exgaussian()`, `asym_laplace()`, `exponential()`,
+    `weibull()`, `lognormal()`, `shifted_lognormal()` and `huber()`
+    stopped with an error from inside RTMB. `huber()` has no CDF, and
+    it is now refused with the reason.
+
+  A residual is read in the tail its row lies in, so it holds to about
+  +-37 and beyond: a poisson count of 60 about a mean of 3 reads 15.24
+  where TMB's own formula read `Inf`.
+
+  With a group-level term, TMB integrates each row by the Laplace
+  approximation. Against the exact one-step predictive the median error
+  was below 0.001 under `(1 | g)` and 0.006 to 0.016 under a latent
+  `ar()` on poisson and the zero-inflated and hurdle counts. The largest
+  error was 0.15, on the first row of a group. Over many rows the
+  residuals stay calibrated against N(0, 1).
+
+* The uniforms of a count's residual are TMB's, `set.seed(123)` unless
+  `seed =` is passed, so the same fit gives the same residuals.
+
+* `residuals(type = "osa")` hands the rows to `oneStepPredict()` in
+  blocks of about `sqrt(n)`, so that the objective carries the CDF of one
+  block at a time. On `(1 | g)` fits of 500 and 2000 rows the residuals
+  took 0.05 to 0.31 of the old route's time on poisson, negbinomial and
+  bernoulli: 59 s against 303 s on a poisson fit of 2000 rows, which took
+  34 minutes with every row at once.
+
+* `residuals(type = "osa")` works on `beta_binomial()` and on the
+  zero-inflated and hurdle count families: `zero_inflated_poisson()`,
+  `zero_inflated_negbinomial()`, `zero_inflated_binomial()`,
+  `zero_inflated_beta_binomial()`, `hurdle_poisson()` and
+  `hurdle_negbinomial()`. The `"cdf"` route gives the density the count as
+  data, so a point mass at zero is read as it is in the fit.
+
+* `residuals(type = "osa")` on a `trunc()` count reads each row inside its
+  own window, so bounds that change from row to row work.
+
+* `residuals(type = "osa")` on a truncated `gaussian()` takes the `"cdf"`
+  route too. With a group-level term the old route left the later rows'
+  truncation terms in each row's integral, and on a test of 96 rows the
+  integral failed on every row, so the call stopped with "$ operator is
+  invalid for atomic vectors".
+
+* BREAKING: in `residuals(type = "osa")` a case weight is a frequency, as
+  in the likelihood and in brms: a row of weight `w` gets the residual of
+  the last of `w` copies, and later rows are conditioned on all `w`. A
+  weighted poisson fit with `(1 | g)` gave the residuals of the fit with
+  the rows written out to 8e-7. A weighted `gaussian()` now takes the
+  `"cdf"` route, where it used to read a weight as a precision; with
+  `(1 | g)` it was 0.0018 from the rows written out, which keep the exact
+  `"fullGaussian"`, and that is the Laplace error of the `"cdf"` route.
+  A row of weight 0 gets `NA`, and so does a row of weight between 0 and
+  1, with a warning.
+  Before, a weight reshaped a count's own distribution: at weights of 3,
+  42 of 150 poisson rows fell outside their own step.
+
+* BREAKING: `residuals(type = "osa", osa_method = "oneStepGeneric")` on a
+  count needs `discreteSupport`, the gaussian methods are refused on a
+  count, and `tweedie()` is refused by name. Before, the first read NaN
+  with no warning, the others gave a gaussian approximation of the count,
+  and `tweedie()` read NaN. A residual that `oneStepPredict()` cannot
+  form gives a warning. A fit with `quadrature = TRUE` is refused with
+  the reason: its objective has integrated the random effects already.
+
+* `bernoulli()` and `nbinom1()` supply a CDF (`cdf_log`). Neither takes
+  `cens()` or `trunc()`, which are still refused, now with "is not
+  supported for this family".
+
+## Performance
+
+* The standard errors of an exact `gp()` fit of a gaussian response come
+  from the gradient of the model's marginal, where that is the objective
+  and its covariance is well conditioned. The gradient of the fit's own
+  objective solves for the field each time. At 500 positions `frm()` and
+  `summary()` together took 34.2 s against 53.0 s, and the Hessian alone
+  2.1 s against 37.2 s; over three runs at 500 positions and at 2000 rows
+  the Hessian's time fell by a factor of 14 to 18. At 100 positions the
+  factor is 3.5, and the fit as a whole does not change measurably. On
+  377 test fits the standard errors moved by at most 2.2e-8 of their
+  value, and no standard error changed between a number and `NaN`. Where
+  the noise is small against the field, the marginal loses digits, so
+  these fits keep the old route.
+
+## Package code and continuous integration
+
+* The package code does not use the global assignment operator `<<-`.
+  rOpenSci's pkgcheck fails a package that does. A closure that keeps
+  state between calls now writes to an environment that it creates, and
+  a function that collects results returns them. The results do not
+  change. The test `test-no-superassign.R` fails if `<<-` comes back
+  in core. It also fails if `<<-` comes back in an extension, but only
+  when the tests run from the source repository.
+
+* The test "new data are coded from the fitted minimum" compares a
+  prediction on 4 rows with a prediction on 4 rows. On Ubuntu 26.04 with
+  OpenBLAS 0.3.32, one value of a prediction on 3 rows was 1 ulp from the
+  same value on 4 rows, and the test failed. The 3-row prediction must now
+  agree to 64 ulps. A code from the minimum of the new data moves a value
+  by a full category, so the test still finds that defect.
+
+* The test "the nl body reaches the likelihood" fits the negative binomial
+  families and `student()` to data with a maximum inside the parameter
+  space. On Poisson or normal data, the shape or `nu` goes to infinity, so
+  the point where the optimizer stops, and its warning, changed with the
+  platform. A gradient warning on Ubuntu was not in the allowed list.
+
+* Continuous integration: the check for a skip on a missing Suggests
+  package runs also when the check or the coverage run fails, so one run
+  shows all failures. The weekly `ubuntu-next` workflow has this check
+  too, and has 150 minutes for its Stan tiers, which compile every
+  program from an empty cache. Its record of the numerical libraries
+  also tries to show the CPU, the OpenBLAS kernel and the OpenBLAS
+  package. The `brms-tiers` job has 180 minutes and its identity tier
+  120, because an empty cache and a slow package mirror together can
+  take more than 90.
+
+## Limits
+
+* The limit the last release named beside `ar()` on a step-shaped field
+  is closed. The one on `student()` there is not: 11 and 6.07 nats short
+  on two rows. The Student-t density is not log-concave in the field, so
+  the inner solve can find more than one mode, and the log-likelihood at
+  one point depends on where that solve starts: 207.37 from one inner
+  start and 204.77 from another. A second start does not fix that. Two
+  more rows stay short, 1.59 on Poisson and 1.45 on `sigma ~ z`, as
+  they were.
+
+* A body that multiplies the field's parameter is reached only in part.
+  `a * exp(b * z)` with `a ~ gp(x)` stops 36.5 nats short on 1 of 12 test
+  fits, and `a * exp(b * z)` with `b ~ gp(x)` 5.2 nats on 1 of 12, with
+  return code 0 and no warning, as before. A `start` for `theta` is how
+  to check such a fit.
+
+* A column far from zero against its spread still costs these fits,
+  each with a warning. Beside a `mo()` term the fit reaches the
+  maximum, but its curvature is not usable and its standard errors are
+  NaN. A category-specific `cs()` term on it, or a random slope on it,
+  `(1 + x | g)`, stops short of the maximum. Center the column.
+* Under an ordinal family, whose thresholds take the intercept's place,
+  products and powers of columns shifted by 1e6 (`w1 * w2`,
+  `w1 + I(w1^2)`) stop 8.6 to 28.6 log-likelihood units short of the
+  model on the centered columns, each fit with a convergence warning.
+  Center the columns.
+* `quadrature = TRUE` and `importance =` run their own objectives in
+  natural coordinates: on bernoulli `x + 1e6` a quadrature fit was
+  1.2e-5 short with no warning, and importance fits warned "false
+  convergence (8)" at the maximum.
+* A nonlinear body that a bound holds runs in natural coordinates, with
+  no warning.
+* A nonlinear body that is curved in a shifted covariate,
+  `b0 * exp(b1 * (z + m))`, still stops short from `m = 100`, by up to
+  39.5 log-likelihood units and 8.7 standard errors, each fit with
+  "false convergence (8)" and a gradient warning.
+* A nonlinear body with an alias inside it, such as
+  `b0 + b1 * x + (b2 + b3) * t`, has a singular Jacobian and gets no
+  second descent: on a shifted `x` two of three fits stopped 20 and 36
+  log-likelihood units short, with a gradient warning only.
+
+* The rounds of nested quadrature also run in natural coordinates. On
+  a bernoulli `(1 | school/class)` fit with `x + 1e4` or `x + 1e6`, the
+  fit was 0.0007 to 0.039 below the centered fit and its slope up to
+  0.06 standard errors off, with a warning that the rule did not
+  settle and one of false convergence. Center the column.
+
 # frmtmb 0.79.1
 
 * `residuals(type = "osa")` on `beta_binomial()` always stops with a

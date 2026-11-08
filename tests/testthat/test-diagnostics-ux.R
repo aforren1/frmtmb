@@ -447,6 +447,9 @@ flat_peak_data <- function(n_id = 10, seed = 5) {
 }
 
 test_that("diagnose() names the flat directions instead of every parameter", {
+  # the fixture is a default fit stopped where the bump is zero; the sign
+  # probe leaves that point (test-nl-start.R), so it is held off here
+  withr::local_options(frmtmb.nl_sign_probe = FALSE)
   d <- flat_peak_data()
   # `pk` starts at 0 while w runs from 1 to 45: the bump is numerically
   # zero everywhere, so it never had a gradient to follow
@@ -571,6 +574,9 @@ test_that("a flat direction with no nonlinear term is named without a nonlinear 
 })
 
 test_that("the nonlinear explanation still fires on a nonlinear fit", {
+  # the fixture is a default fit stopped where the bump is zero; the sign
+  # probe leaves that point (test-nl-start.R), so it is held off here
+  withr::local_options(frmtmb.nl_sign_probe = FALSE)
   d <- flat_peak_data()
   wn <- character()
   fit <- withCallingHandlers(frm(
@@ -591,6 +597,9 @@ test_that("the nonlinear explanation still fires on a nonlinear fit", {
 
 test_that("a theta in the flat set says which block's standard deviation it is",
           {
+  # the fixture is a default fit stopped where the bump is zero; the sign
+  # probe leaves that point (test-nl-start.R), so it is held off here
+  withr::local_options(frmtmb.nl_sign_probe = FALSE)
   d <- flat_peak_data()
   # pk carries the random effect here, so its group sd goes flat with it
   fit <- suppressWarnings(frm(

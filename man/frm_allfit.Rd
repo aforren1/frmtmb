@@ -51,6 +51,8 @@ best is marked as having stopped elsewhere, so a success code at a
 worse optimum does not read as agreement. One that reaches the best
 while reporting a failure code agrees, with its code shown: started
 at the optimum, \code{optim}'s line search can fail there (code 52).
+Under a prior with a density, the table compares the value each
+optimizer maximizes, \code{\link[=logLik_penalized]{logLik_penalized()}}.
 }
 \examples{
 set.seed(6)

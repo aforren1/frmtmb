@@ -228,7 +228,7 @@ test_that("a discrete fit above 0 warns in its own class", {
   expect_warning(fit <- frm(y ~ 1, family = bad, data = d),
                  class = "frmtmb_discrete_loglik")
   expect_gt(as.numeric(logLik(fit)), 0)
-  # the correct mass, and the same value under a prior, which logLik() holds
+  # the correct mass
   expect_no_warning(frm(y ~ 1, family = poisson(), data = d))
   good <- frmtmb_family(
     "ok_cont", dpars = "mu", links = list(mu = "identity"),
@@ -244,10 +244,7 @@ test_that("a discrete fit above 0 warns in its own class", {
     list(REML = TRUE, prior = NULL, opt = list(objective = -5),
          frame = list(n_obs = 5L),
          spec = list(responses = list(list(family = list(type = "discrete")))))))
-  expect_silent(discrete_loglik_warning(
-    list(REML = FALSE, prior = data.frame(a = 1), opt = list(objective = -5),
-         frame = list(n_obs = 5L),
-         spec = list(responses = list(list(family = list(type = "discrete")))))))
+  # under a prior the check runs on logLik(): test-loglik-prior.R
   # a sum of near-zero log masses that passes 0 by its rounding
   expect_silent(discrete_loglik_warning(
     list(REML = FALSE, prior = NULL, opt = list(objective = -1e-12),
@@ -255,7 +252,7 @@ test_that("a discrete fit above 0 warns in its own class", {
          spec = list(responses = list(list(family = list(type = "discrete")))))))
 })
 
-test_that("simulate() and the OSA refusal keep their routes", {
+test_that("simulate() and the OSA residuals keep their routes", {
   d <- bb_data(9)
   fit <- frm(bf(y | trials(ntr) ~ x), family = beta_binomial(), data = d)
   sims <- simulate(fit, nsim = 2, seed = 1)
@@ -265,10 +262,30 @@ test_that("simulate() and the OSA refusal keep their routes", {
   mu <- rep(10 * plogis(fit$estimates$beta[[1L]] +
                           fit$estimates$beta[[2L]] * d$x), 2L)
   expect_lt(abs(mean(v - mu)) / (sd(v - mu) / sqrt(length(v))), 5)
-  expect_error(beta_binomial_lpmf(structure(1, class = "osa"), 2, 1, 1, 2),
-               "does not support OSA", fixed = TRUE)
-  # RTMBdist 1.2.0's own route reads NaN with no warning, so the refusal must
-  # hold on the real route and not depend on the installed RTMBdist
-  expect_error(residuals(fit, type = "osa"), "does not support OSA",
-               fixed = TRUE)
+  # PIN: refused on 0.79.1. These binomial data take phi far out, where
+  # raw lgamma() of the shapes cancels (RTMBdist-5), so each residual is
+  # checked against its own step of the fitted CDF, summed here from the
+  # mass in lbeta(), under the default route ("cdf") and under
+  # oneStepGeneric, where the count is a parameter of the tape
+  dp <- lapply(frmtmb:::eval_dpars(fit)[[1L]], as.numeric)
+  a <- dp$mu * dp$phi
+  b <- (1 - dp$mu) * dp$phi
+  cdf <- function(q) {
+    vapply(seq_along(q), function(i) {
+      if (q[i] < 0) return(0)
+      j <- 0:q[i]
+      sum(exp(lchoose(10, j) + lbeta(j + a[i], 10 - j + b[i]) -
+                lbeta(a[i], b[i])))
+    }, 0)
+  }
+  qlo <- stats::qnorm(cdf(d$y - 1))
+  qhi <- stats::qnorm(pmin(cdf(d$y), 1))
+  wid <- qhi - qlo
+  wid[!is.finite(wid)] <- 1
+  for (m in list(list(), list(osa_method = "oneStepGeneric",
+                              discreteSupport = 0:10))) {
+    r <- do.call(residuals, c(list(fit, type = "osa"), m))[, "Estimate"]
+    expect_true(all(is.finite(r)))
+    expect_identical(sum(r < qlo - 1e-8 * wid | r > qhi + 1e-8 * wid), 0L)
+  }
 })

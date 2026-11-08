@@ -127,8 +127,9 @@ prior_plan <- function(fit, tab, cn, mix_theta = FALSE) {
   ct <- brms_coef_table(fit)
   multi <- length(fit$spec$responses) > 1L
   blocks <- fit$frame[["re_blocks"]]
-  out <- list()
-  add <- function(s) out[[length(out) + 1L]] <<- s
+  acc <- new.env(parent = emptyenv())
+  acc$out <- list()
+  add <- function(s) acc$out[[length(acc$out) + 1L]] <- s
   intercepts <- character(0)
   # the smooth blocks, each with brms's sds_ base name: the draws carry
   # them in block order, one base per smooth term
@@ -375,6 +376,7 @@ prior_plan <- function(fit, tab, cn, mix_theta = FALSE) {
     }
   }
   for (s in me_prior_stmts(fit, tab)) add(s)
+  out <- acc$out
   attr(out, "intercepts") <- unique(intercepts)
   out
 }

@@ -49,3 +49,24 @@ col_span_proj <- function(M) {
 expect_span_equal <- function(x, y, tol = 1e-8) {
   testthat::expect_lt(max(abs(col_span_proj(x) - col_span_proj(y))), tol)
 }
+
+# Write a compiled program to the Stan cache under its final name only
+# once it is whole: saveRDS() to a temporary file in the same directory,
+# then rename. A run killed during a plain saveRDS() left a truncated
+# RDS under the final name, and CI now saves the cache of a job that
+# failed or timed out, so such a file would reach later runs. The
+# rename replaces an existing file on R 4.6 for Windows, but it can
+# still fail there while another process holds the target open; the
+# target is then a program another run wrote, so the copy in hand is
+# dropped. Only a rename that fails with no target is an error.
+stan_cache_write <- function(mod, path) {
+  tmp <- tempfile(paste0(basename(path), "-"), tmpdir = dirname(path),
+                  fileext = ".part")
+  on.exit(unlink(tmp), add = TRUE)
+  saveRDS(mod, tmp)
+  moved <- suppressWarnings(file.rename(tmp, path))
+  if (!moved && !file.exists(path)) {
+    stop("could not move ", tmp, " to ", path, call. = FALSE)
+  }
+  invisible(path)
+}

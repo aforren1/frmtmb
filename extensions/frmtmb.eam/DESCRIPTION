@@ -60,5 +60,5 @@ Suggests:
     WienR
 VignetteBuilder: knitr
 Config/testthat/edition: 3
-Config/roxygen2/version: 8.1.0
+Config/roxygen2/version: 8.1.1
 Config/Needs/website: pkgdown

@@ -46,17 +46,40 @@
 #'
 #' Returns `M` (`np x np`) with attribute `pos`, the positions its
 #' blocks cover, and `lin_pos`, those of identity-link gaussian designs
-#' (reparam_lin_lp()), or `NULL` when no design gets a block.
+#' (reparam_lin_lp()), or `NULL` when no design gets a block. Attribute
+#' `inv` is `M`'s inverse, block by block from each block's factor
+#' (design_whitener()), or NULL where a block has none: `M` carries the
+#' design's condition number, and solve() refuses it once that nears
+#' 1 / epsilon (`x + 1e8` with sd 1, opt_basis()). Attribute `blocks`
+#' lists each block: its positions, its kind (`"nl"`, `"ord"` or
+#' `"design"`) and its predictor's key.
+#'
+#' `min_kappa` is the condition number from which a design gets a block
+#' (design_whitener()); the standard errors take theirs from 1e4, the
+#' optimizer from `opt_basis_kappa`. With `mo`, a design with `mo()`
+#' terms gets a block over its other columns: a `mo()` column is a zero
+#' placeholder that its simplex fills, and the other columns are a
+#' fixed design like any. Without it the optimizer stopped 7.4
+#' standard errors off on `y ~ (x + 1e6) + mo(o) + (1 | g)` (review of
+#' lane bigx, major 1). The standard errors keep `mo = FALSE`: their
+#' finite differences on such a design (outer_fd_steps()) are not scaled
+#' to its columns, so a block would not help them.
 #'
 #' @noRd
 reparam_basis <- function(frame, pn,
                           cells = getOption("frmtmb.unit_ls_cells", 5e6),
-                          est = NULL, drop = integer(0)) {
+                          est = NULL, drop = integer(0),
+                          min_kappa = sqrt(se_reparam_kappa), mo = FALSE) {
   np <- length(pn)
   M <- diag(1, np)
+  Mi <- diag(1, np)
   covered <- integer(0)
   lin <- integer(0)
-  for (lp in if (!is.null(est)) frame[["linpreds"]]) {
+  blocks <- list()
+  keys <- names(frame[["linpreds"]]) %||%
+    as.character(seq_along(frame[["linpreds"]]))
+  for (li in seq_along(if (!is.null(est)) frame[["linpreds"]])) {
+    lp <- frame[["linpreds"]][[li]]
     if (is.null(lp[["nl_body"]])) next
     jb <- tryCatch(reparam_nl_jacobian(frame, lp, pn, est),
                    error = keep_missing(NULL))
@@ -64,21 +87,33 @@ reparam_basis <- function(frame, pn,
     kc <- !jb$pos %in% drop
     jb <- list(J = jb$J[, kc, drop = FALSE], pos = jb$pos[kc])
     if (length(jb$pos) < 2L) next
-    Tb <- tryCatch(design_whitener(jb$J, cells), error = keep_missing(NULL))
+    Tb <- tryCatch(design_whitener(jb$J, cells, min_kappa),
+                   error = keep_missing(NULL))
     if (is.null(Tb)) next
     M[jb$pos, jb$pos] <- Tb
+    if (!is.null(Mi)) Mi[jb$pos, jb$pos] <- attr(Tb, "inv")
     covered <- c(covered, jb$pos)
+    blocks[[length(blocks) + 1L]] <- list(pos = jb$pos, kind = "nl",
+                                          key = keys[li])
   }
-  for (lp in frame[["linpreds"]] %||% list()) {
+  for (li in seq_along(frame[["linpreds"]])) {
+    lp <- frame[["linpreds"]][[li]]
+    has_mo <- length(lp[["mo"]] %||% list()) > 0L
     if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]]) ||
-          length(lp[["mo"]] %||% list()) ||
-          !lp[["par"]] %in% c("beta", "betad")) {
+          (has_mo && !mo) || !lp[["par"]] %in% c("beta", "betad")) {
       next
     }
     X <- lp[["X"]]
     if (!design_ok(X)) next
     pos <- outer_index_of(lp, pn, frame)
     if (length(pos) != ncol(X) || length(intersect(pos, covered))) next
+    if (has_mo) {
+      mc <- vapply(lp[["mo"]], function(m) as.integer(m[["col"]]), 0L)
+      keep <- setdiff(seq_len(ncol(X)), mc)
+      X <- as.matrix(X)[, keep, drop = FALSE]
+      pos <- pos[keep]
+      if (!length(pos)) next
+    }
     if (any(pos %in% drop)) {
       X <- as.matrix(X)[, !pos %in% drop, drop = FALSE]
       pos <- pos[!pos %in% drop]
@@ -92,7 +127,8 @@ reparam_basis <- function(frame, pn,
     sh <- ord_shift(frame, lp, pn)
     if (!is.null(sh) && length(intersect(sh$pos, drop))) next
     if (!is.null(sh)) {
-      Ta <- tryCatch(design_whitener(cbind(-1, as.matrix(X)), cells),
+      Ta <- tryCatch(design_whitener(cbind(-1, as.matrix(X)), cells,
+                                     min_kappa),
                      error = keep_missing(NULL))
       if (is.null(Ta)) next
       tp <- sh$pos
@@ -105,18 +141,29 @@ reparam_basis <- function(frame, pn,
       rest <- setdiff(seq_along(tp), j0)
       B[cbind(rest, k + seq_along(rest))] <- 1
       M[blk, blk] <- B
+      # no factor of B's own; solve() holds where B is not too
+      # ill-conditioned, and otherwise there is no inverse to give
+      Bi <- tryCatch(solve(B), error = keep_missing(NULL))
+      if (is.null(Bi)) Mi <- NULL else if (!is.null(Mi)) Mi[blk, blk] <- Bi
       covered <- c(covered, blk)
+      blocks[[length(blocks) + 1L]] <- list(pos = blk, kind = "ord",
+                                            key = keys[li])
       next
     }
     if (ncol(X) < 2L) next
-    Tb <- tryCatch(design_whitener(X, cells), error = keep_missing(NULL))
+    Tb <- tryCatch(design_whitener(X, cells, min_kappa),
+                   error = keep_missing(NULL))
     if (is.null(Tb)) next
     M[pos, pos] <- Tb
+    if (!is.null(Mi)) Mi[pos, pos] <- attr(Tb, "inv")
     if (reparam_lin_lp(frame, lp)) lin <- c(lin, pos)
     covered <- c(covered, pos)
+    blocks[[length(blocks) + 1L]] <- list(pos = pos, kind = "design",
+                                          key = keys[li])
   }
   if (length(covered)) {
-    structure(M, pos = sort(unique(covered)), lin_pos = sort(lin))
+    structure(M, pos = sort(unique(covered)), lin_pos = sort(lin), inv = Mi,
+              blocks = blocks)
   }
 }
 
@@ -230,11 +277,13 @@ ord_shift <- function(frame, lp, pn) {
 
 #' `T` with `X T` orthogonal, of unit root mean square per column, from
 #' the QR of the column-scaled design; NULL when the QR is rank
-#' deficient, the design's condition number is below the square root of
-#' `se_reparam_kappa` (it is not ill-conditioned), or `T` is not finite.
+#' deficient, the design's condition number is below `min_kappa` (by
+#' default the square root of `se_reparam_kappa`: it is not
+#' ill-conditioned), or `T` is not finite. The rank test is the frame's
+#' (design_rank_qr()), so a design the frame keeps is of full rank here.
 #'
 #' @noRd
-design_whitener <- function(X, cells) {
+design_whitener <- function(X, cells, min_kappa = sqrt(se_reparam_kappa)) {
   p <- ncol(X)
   n <- nrow(X)
   m <- max(2L * p, floor(cells / p))
@@ -244,7 +293,7 @@ design_whitener <- function(X, cells) {
   if (!all(is.finite(Xk))) return(NULL)
   s <- sqrt(colSums(Xk^2) / nrow(Xk))
   if (!all(s > 0)) return(NULL)
-  q <- base::qr(Xk / rep(s, each = nrow(Xk)))
+  q <- base::qr(Xk / rep(s, each = nrow(Xk)), tol = design_alias_tol)
   if (q$rank < p) return(NULL)
   R <- qr.R(q)
   # A design that is not itself ill-conditioned keeps its coordinates:
@@ -253,7 +302,7 @@ design_whitener <- function(X, cells) {
   # the nonlinear alias a_k + b of test-se-tier.R (a ~ 0 + f, a design
   # with condition number 1) measured just above se_reparam_floor in
   # such coordinates and kept SEs on a flat ridge
-  if (1 / rcond(R, triangular = TRUE) < sqrt(se_reparam_kappa)) {
+  if (1 / rcond(R, triangular = TRUE) < min_kappa) {
     return(NULL)
   }
   # X[, piv] / s[piv] = Q R, so X T = Q sqrt(rows) with T[piv, ] = R^-1
@@ -870,6 +919,7 @@ se_reparam_asym <- 1e-3
 #'
 #' @noRd
 jc_rowvar <- function(jc, G, pos) {
+  if (jc_is_sparse(jc)) return(jcs_rowvar(jc$V, G, pos))
   if (is.null(jc$root)) {
     V <- jc$V[pos, pos, drop = FALSE]
     return(rowSums((G %*% V) * G))
@@ -887,6 +937,7 @@ jc_rowvar <- function(jc, G, pos) {
 #'
 #' @noRd
 jc_quad <- function(jc, G, pos) {
+  if (jc_is_sparse(jc)) return(jcs_quad(jc$V, G, pos))
   if (is.null(jc$root)) {
     return(G %*% jc$V[pos, pos, drop = FALSE] %*% t(G))
   }

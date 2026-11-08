@@ -31,13 +31,18 @@
 #' @noRd
 nat_slots <- function(frame, fitlike) {
   tpl <- frame[["par_template"]]
-  slots <- list()
-  dup <- character(0)
-  legacy <- character(0)
+  acc <- new.env(parent = emptyenv())
+  acc$slots <- list()
+  acc$dup <- character(0)
+  acc$legacy <- character(0)
   put <- function(nm, s, old = character(0)) {
-    if (nm %in% names(slots)) dup <<- c(dup, nm) else slots[[nm]] <<- s
+    if (nm %in% names(acc$slots)) {
+      acc$dup <- c(acc$dup, nm)
+    } else {
+      acc$slots[[nm]] <- s
+    }
     old <- setdiff(old, nm)
-    legacy[old] <<- nm
+    acc$legacy[old] <- nm
   }
 
   tab <- brms_coef_table(fitlike)
@@ -107,9 +112,11 @@ nat_slots <- function(frame, fitlike) {
       }
     }
   }
+  slots <- acc$slots
+  legacy <- acc$legacy
   # a legacy spelling that is also somebody's brms name is not legacy
   legacy <- legacy[!names(legacy) %in% names(slots)]
-  structure(slots, ambiguous = unique(dup), legacy = legacy)
+  structure(slots, ambiguous = unique(acc$dup), legacy = legacy)
 }
 
 #' The brms name of the coefficient slot at (`comp`, `idx`), or `NULL`.

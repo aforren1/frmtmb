@@ -239,7 +239,10 @@ test_that("a Newton step needs a positive definite Hessian", {
 
 test_that("a caller's optimizer tolerance leaves the fit where it stopped", {
   # optim's own names count as nlminb's do (the review of lane optrap,
-  # r4); the design is the one newton_polish() steps on by default
+  # r4); the design is the one newton_polish() steps on in the natural
+  # coordinates, which the optimizer no longer stops short in by default
+  # (opt_basis())
+  withr::local_options(frmtmb.opt_basis = FALSE)
   set.seed(6001)
   d <- data.frame(x = runif(200, 1, 2))
   d$y <- sin(3 * d$x) + rnorm(200, 0, 0.2)
@@ -287,7 +290,11 @@ test_that("Newton steps on an ill-conditioned design reach the maximum", {
   # the fits stayed 0.674 and 1.73 below the maximum (dev/optrap-c3-b5.R,
   # filed at 0.70.0). Since lane illse they are taken in the design's
   # coordinates, where the Hessian factors (reparam_basis()), and reach
-  # the maximum of the same likelihood with poly(x, 8)
+  # the maximum of the same likelihood with poly(x, 8). Since lane bigx
+  # the optimizer itself steps in those coordinates and leaves the steps
+  # nothing to do (opt_basis()); the natural coordinates are asked for
+  # here so that the steps are still what is tested
+  withr::local_options(frmtmb.opt_basis = FALSE)
   for (s in c(4, 5)) {
     set.seed(s)
     d <- data.frame(x = stats::runif(200, 1, 2), g = factor(rep(1:20, 10)),
@@ -317,7 +324,8 @@ test_that("a Newton step the quadratic model overrates is still taken", {
   # term: the first step gains 0.2 of its prediction (log sigma is not a
   # quadratic direction) and the later ones 1.00 to 1.06; a gate of a
   # quarter refused the first and left the fit 1.16 short in silence
-  # (dev/optrap-c3-trace17.R)
+  # (dev/optrap-c3-trace17.R). In the natural coordinates, as above
+  withr::local_options(frmtmb.opt_basis = FALSE)
   set.seed(7017)
   d <- data.frame(x = runif(200, 1, 2), g = factor(rep(1:20, 10)))
   d$y <- sin(3 * d$x) + rnorm(20, 0, 0.3)[d$g] + rnorm(200, 0, 0.2)

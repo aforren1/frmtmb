@@ -26,7 +26,12 @@ exempt <- list(
     # until it is the one returned, and raises them with their own classes
     'R/par-template.R | nl_fit_off_saddle | warning(w)',
     'R/par-template.R | nl_fit_off_saddle | warning(w)',
-    'R/par-template.R | nl_fit_off_saddle | stop(e)'),
+    'R/par-template.R | nl_fit_off_saddle | stop(e)',
+    # and for the sign probe after it, which holds what that fit said
+    # until it knows which fit it returns
+    'R/par-template.R | nl_fit_probed | warning(cnd)',
+    'R/par-template.R | nl_fit_probed | message(cnd)',
+    'R/par-template.R | nl_fit_probed | stop(e)'),
   frmtmb.coupling = character(0),
   frmtmb.eam = character(0),
   frmtmb.latent = character(0),

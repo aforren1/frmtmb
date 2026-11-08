@@ -232,8 +232,17 @@ test_that("new data are coded from the fitted minimum", {
   expect_identical(p1, p0)
   expect_true(all(is.finite(p1[, "Est.Error"])))
   # a subset of the categories keeps its codes: brms codes new data
-  # from the fitted data's minimum, not from their own
-  expect_identical(fitted(f1, newdata = data.frame(k = 2:4)), p1[2:4, ])
+  # from the fitted data's minimum, not from their own. The identity
+  # keeps p1's four rows, because a row's rounding can follow the
+  # number of rows: on ubuntu-26.04 (OpenBLAS 0.3.32) k = 4 came out one
+  # ulp apart between 3 rows and 4. A code from the new data's own
+  # minimum moves a row by a whole category, so a few ulps still catch
+  # it in the 3-row case.
+  expect_identical(fitted(f1, newdata = data.frame(k = c(2L, 2:4)))[2:4, ],
+                   p1[2:4, ])
+  p3 <- fitted(f1, newdata = data.frame(k = 2:4))
+  expect_lt(max(abs(p3 - p1[2:4, ]) / abs(p1[2:4, ])),
+            64 * .Machine$double.eps)
   # brms refuses a value outside the fitted range (validate_newdata())
   expect_error(fitted(f1, newdata = data.frame(k = 0L)),
                "outside the fitted range 1..4")

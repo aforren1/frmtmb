@@ -1100,10 +1100,11 @@ sparse_mm <- function(tt, mf, contrasts.arg = NULL) {
 }
 
 #' Cheap rank screen for a sparse design: |diag(R)| of the sparse QR
-#' collapses on aliased columns. The threshold is 100x looser than dense
-#' qr()'s 1e-7 default, so anything the dense path would drop gets
-#' flagged; a flagged design is re-checked densely, which decides the
-#' exact drop set (identical to the dense path by construction).
+#' collapses on aliased columns. The threshold is 1e6 times looser than
+#' the dense test's `design_alias_tol`, so anything the dense path would
+#' drop gets flagged; a flagged design is re-checked densely, which
+#' decides the exact drop set (identical to the dense path by
+#' construction).
 #'
 #' @noRd
 sparse_maybe_deficient <- function(X) {
@@ -1113,6 +1114,183 @@ sparse_maybe_deficient <- function(X) {
   )
   is.null(d) || !all(is.finite(d)) || min(d) <= 0 ||
     min(d) < 1e-5 * max(d)
+}
+
+#' The tolerance of every rank test on a fixed design: the frame's drop
+#' of aliased columns, se_design_null(), design_whitener() and
+#' lp_design_kappa(). A column is aliased when the QR leaves less than
+#' this fraction of its norm, as in glm.fit().
+#'
+#' lm() and lme4 use 1e-7, which also drops a column that is far from
+#' zero against its spread: `x + 1e7` with sd 1 leaves 1e-7 of its norm
+#' once the intercept is taken out, so the frame dropped the slope, an
+#' identified one, and fitted `y ~ 1` with a message: on 72 of 80 data
+#' sets at offsets of 1e7 and 1e8 (poisson, bernoulli, gaussian and
+#' Gamma, with and without `(1 | g)`), 0.43 to 50 log-likelihood units
+#' below the model asked for (dev/bigx-findings.md). brms drops no
+#' column. An exact alias leaves rounding, near 1e-16 of the norm, and
+#' is dropped at either tolerance.
+#'
+#' @noRd
+design_alias_tol <- 1e-11
+
+#' The QR of a fixed design with its columns scaled to unit root mean
+#' square, at `design_alias_tol`: the rank test of the frame's drop and
+#' of se_design_null(), the one design_whitener() runs on its rows.
+#'
+#' On the unscaled design the two tests disagreed. On `poly(x, 5, raw =
+#' TRUE)` with x on [1000, 1010] the unscaled QR kept 6 columns where
+#' the scaled one found 5 (condition numbers 3e14 to 3.5e16), so the
+#' frame kept a column that design_whitener() then refused, no basis
+#' engaged, and every standard error but one was NaN on 12 of 12 fits of
+#' degree 5 to 8 (dev/reviews/2026-11-06-bigx.md, major 2). Scaling
+#' changes nothing for an exact alias, and keeps `x + 1e8` with sd 1,
+#' whose scaled column leaves 1e-8 of its norm.
+#'
+#' @noRd
+design_rank_qr <- function(X) {
+  X <- as.matrix(X)
+  s <- sqrt(colSums(X^2) / max(1L, nrow(X)))
+  s[!is.finite(s) | !(s > 0)] <- 1
+  base::qr(X / rep(s, each = nrow(X)), tol = design_alias_tol)
+}
+
+#' The largest condition number, at unit root mean square columns, of a
+#' fixed design the frame keeps whole (design_kappa_keep()).
+#'
+#' A rank test alone kept designs no fit could use. `poly(x, k, raw =
+#' TRUE)` with x on [1000, 1010], degree 5 to 8, seeds 501 to 503: at
+#' any tolerance of the scaled test from 1e-11 to 1e-9, 8 of 12 fits
+#' kept designs with condition numbers of 4.7e13 to 2.8e16 and stopped at
+#' "false convergence (8)" with every standard error NaN; the designs
+#' kept at 4.6e8 to 3.7e11 reached glm()'s maximum on the same columns
+#' to 1.6e-5 with finite standard errors (dev/bigx-poltol.R). A shifted
+#' column `x + m` with sd 1 has a condition number near 2 m, and fitted
+#' the centered model at 1e8 and 1e9 (the same script). At 1e10, eps
+#' times the bound is 2e-6, and the bound leaves a factor of 10 to
+#' design_whitener()'s rank test at 1e-11, so a design the frame keeps
+#' gets its basis.
+#'
+#' @noRd
+design_kappa_max <- 1e10
+
+#' A fixed design with every column but the intercept centered, as
+#' opt_center() centers it (the design itself where no column is the
+#' intercept and the columns do not span the constant; where they span
+#' it, as `0 + f` does, every column outside that span is centered). A
+#' column whose centered root mean square is at most
+#' `design_alias_tol` of its own is constant to rounding, and is set to
+#' exactly zero: centering leaves a constant column's rounding, which
+#' the scaled QR would otherwise blow up to a full column.
+#'
+#' @noRd
+design_center <- function(X) {
+  ic <- match("(Intercept)", colnames(X))
+  stay <- rep(FALSE, ncol(X))
+  if (is.na(ic)) {
+    # no intercept column, but columns that span the constant (`0 + f`):
+    # a multiple of the constant taken from a column outside that span
+    # leaves the column space as it was, and a column far from zero is as
+    # collinear with the constant there as beside an intercept (release
+    # review of 0.80.0, item 2)
+    one <- rep(1, nrow(X))
+    q <- qr(X, tol = design_alias_tol)
+    if (!(sqrt(sum(qr.resid(q, one)^2)) <= 1e-8 * sqrt(nrow(X)))) return(X)
+    g <- qr.coef(q, one)
+    stay <- !is.na(g) & abs(g) > 1e-8
+  } else {
+    stay[ic] <- TRUE
+  }
+  m <- colMeans(X)
+  m[stay] <- 0
+  Xc <- X - rep(m, each = nrow(X))
+  raw <- sqrt(colSums(X^2))
+  cen <- sqrt(colSums(Xc^2))
+  flat <- !stay & !(cen > design_alias_tol * raw)
+  Xc[, flat] <- 0
+  Xc
+}
+
+#' The columns of a fixed design that the frame keeps, and why the rest
+#' go. Aliased (attribute `aliased`): the columns the rank test drops on
+#' the centered design (design_center(), design_rank_qr()), which an
+#' exact alias, a constant column among them, fails after centering as
+#' before. Capped (attribute `capped`): of the rest, in their order, each
+#' column that would leave a design the optimizer's basis cannot fit,
+#' because its centered condition number at unit scale is above
+#' `design_kappa_max` or because the design itself, uncentered, is rank
+#' deficient at `design_alias_tol` at unit scale, where
+#' design_whitener() refuses it. The earlier of two such columns is kept,
+#' as lm() keeps the earlier of two aliased columns.
+#'
+#' The rank test is centered because a column's distance from zero does
+#' not make it aliased. Uncentered it dropped `w1:w2` of `y ~ w1 * w2`
+#' and `I(w1^2)` of `y ~ w1 + I(w1^2)` at an offset of 1e6 (and at 1e5
+#' under the first spelling of the bound), 32 to 47 log-likelihood units
+#' below the model asked for, with a message that called the design rank
+#' deficient where the data identify both columns (review of lane bigx,
+#' short checks). A raw polynomial on [1000, 1010] is ill-conditioned
+#' centered too, and is still capped.
+#'
+#' @noRd
+design_kappa_keep <- function(X) {
+  cn <- colnames(X)
+  Xc <- design_center(X)
+  q <- design_rank_qr(Xc)
+  kept <- sort(q$pivot[seq_len(q$rank)])
+  aliased <- cn[setdiff(seq_along(cn), kept)]
+  out <- function(keep) {
+    structure(cn[keep], aliased = aliased,
+              capped = cn[setdiff(kept, keep)])
+  }
+  if (length(kept) < 2L) return(out(kept))
+  fits <- function(cols) {
+    if (design_rank_qr(X[, cols, drop = FALSE])$rank < length(cols)) {
+      return(FALSE)
+    }
+    qc <- design_rank_qr(Xc[, cols, drop = FALSE])
+    qc$rank == length(cols) &&
+      1 / base::rcond(qr.R(qc), triangular = TRUE) <= design_kappa_max
+  }
+  if (fits(kept)) return(out(kept))
+  keep <- kept[1L]
+  for (j in kept[-1L]) {
+    if (fits(c(keep, j))) keep <- c(keep, j)
+  }
+  out(keep)
+}
+
+#' The warning of a fixed design whose columns the frame dropped although
+#' the data identify them (design_kappa_keep(), `capped`): the fitted
+#' model is not the one written. Class `frmtmb_design_capped`.
+#'
+#' @noRd
+design_cap_warn <- function(lp_key, capped) {
+  frm_warning(
+    "The fixed design of '", lp_key, "' identifies column(s) ",
+    paste(capped, collapse = ", "), ", but they are dropped: at unit ",
+    "scale its condition number is above ", format(design_kappa_max),
+    " even with its columns centered, or its columns are dependent to ",
+    format(design_alias_tol), " without centering, and the optimizer ",
+    "cannot fit such a design. The model fitted is not the one written. ",
+    "Rescale or center the variables, or use poly() for powers, to keep ",
+    "them",
+    call. = FALSE, class = "frmtmb_design_capped")
+}
+
+#' `k` directions along which a fixed design with full rank but too
+#' large a condition number is nearly flat, for the estimability test of
+#' prediction: the right singular vectors of its smallest singular values
+#' at unit root mean square columns, mapped back to the columns' own
+#' units and normalized.
+#'
+#' @noRd
+design_near_null <- function(X, k) {
+  s <- sqrt(colSums(X^2) / max(1L, nrow(X)))
+  s[!is.finite(s) | !(s > 0)] <- 1
+  v <- svd(X / rep(s, each = nrow(X)), nu = 0L)$v
+  N <- v[, ncol(v) - seq_len(k) + 1L, drop = FALSE] / s
+  N / rep(sqrt(colSums(N^2)), each = nrow(N))
 }
 
 #' A random-effect bar whose left-hand side has no intercept, with one
@@ -1185,6 +1363,8 @@ grp_structural_ops <- c(":", "/", "*", "+", "%in%")
 #'
 #' @noRd
 resolve_group_calls <- function(bars, fr, env) {
+  acc <- new.env(parent = emptyenv())
+  acc$fr <- fr
   sub_call <- function(e) {
     if (!is.call(e)) return(e)
     if (as.character(e[[1L]])[1L] %in% grp_structural_ops) {
@@ -1192,9 +1372,9 @@ resolve_group_calls <- function(bars, fr, env) {
       return(e)
     }
     key <- deparse1(e)
-    if (!key %in% names(fr)) {
+    if (!key %in% names(acc$fr)) {
       # defensive: a call nested inside ':' need not be a frame variable
-      fr[[key]] <<- eval(e, fr, env)
+      acc$fr[[key]] <- eval(e, acc$fr, env)
     }
     as.name(key)
   }
@@ -1202,7 +1382,7 @@ resolve_group_calls <- function(bars, fr, env) {
     b[[3L]] <- sub_call(b[[3L]])
     b
   })
-  list(bars = bars, fr = fr)
+  list(bars = bars, fr = acc$fr)
 }
 
 #' The pooled level set of a multi-membership term.
@@ -1468,12 +1648,10 @@ lookup_structural <- function(expr, data2, data, env, what) {
     # the wrapper list separates "evaluated to NULL" from "failed"
     val <- tryCatch(
       list(v = eval(expr, data2, list2env(as.list(data), parent = env))),
-      error = function(e) {
-        e2 <<- e
-        NULL
-      }
+      error = function(e) list(err = e)
     )
-    if (!is.null(val)) return(val$v)
+    if (is.null(val[["err"]])) return(val[["v"]])
+    e2 <- val[["err"]]
   }
   tryCatch(eval(expr, data, env), error = function(e) {
     # the data2-mask attempt saw the widest scope, so when both paths
@@ -2739,19 +2917,24 @@ frame_raw_vars <- function(mf, data, rhs, env = NULL) {
   rn_mf <- attr(mf, "row.names")
   none <- structure(list(), class = "data.frame", row.names = rn_mf)
   if (is.null(rhs)) return(none)
-  off_only <- character(0)
-  other <- character(0)
+  seen <- new.env(parent = emptyenv())
+  seen$off_only <- character(0)
+  seen$other <- character(0)
   walk <- function(e, in_off) {
     if (is.name(e)) {
       nm <- as.character(e)
-      if (in_off) off_only <<- c(off_only, nm) else other <<- c(other, nm)
+      if (in_off) {
+        seen$off_only <- c(seen$off_only, nm)
+      } else {
+        seen$other <- c(seen$other, nm)
+      }
     } else if (is.call(e)) {
       off <- in_off || identical(e[[1L]], as.name("offset"))
       for (a in as.list(e)[-1L]) walk(a, off)
     }
   }
   walk(rhs, FALSE)
-  v <- setdiff(unique(other), names(mf))
+  v <- setdiff(unique(seen$other), names(mf))
   # model.frame() names the rows of a list, a tibble or a data.table
   # 1 to n, as rownames() reads those of the last two
   rn_data <- if (is.data.frame(data)) {
@@ -2931,14 +3114,16 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   # dpar of every response, and the aterm variables, so na.omit keeps rows
   # aligned. Responses go on the RHS of the frame formula (a multivariate
   # LHS is not a valid model.frame response) and are extracted by name.
-  rhs_comb <- NULL
+  rhs_acc <- new.env(parent = emptyenv())
+  rhs_acc$comb <- NULL
   # what each response adds, for subset()'s NA rule (R/subset.R)
-  rhs_resp <- list()
+  rhs_acc$resp <- list()
   add_part <- function(part) {
-    rhs_comb <<- if (is.null(rhs_comb)) part else call("+", rhs_comb, part)
-    rhs_resp[[cur_resp]] <<- if (is.null(rhs_resp[[cur_resp]])) {
+    rhs_acc$comb <- if (is.null(rhs_acc$comb)) part else
+      call("+", rhs_acc$comb, part)
+    rhs_acc$resp[[cur_resp]] <- if (is.null(rhs_acc$resp[[cur_resp]])) {
       part
-    } else call("+", rhs_resp[[cur_resp]], part)
+    } else call("+", rhs_acc$resp[[cur_resp]], part)
   }
   subset_check_spec(spec, na.action)
   for (resp in spec$responses) {
@@ -2983,6 +3168,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
     }
   }
+  rhs_comb <- rhs_acc$comb
+  rhs_resp <- rhs_acc$resp
   # Whether a family takes se() is a fact about the formula, and brms
   # refuses it from the formula alone, so a missing se() column must not
   # hide that refusal behind "not a column of data". Only then is it
@@ -3160,7 +3347,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     y[[resp$resp_name]] <- rc$y
     at_names <- setdiff(names(resp$aterms),
                         c("cens_y2", "se_sigma", "mi", row_aterms))
-    codes_new <- list()
+    codes_acc <- new.env(parent = emptyenv())
+    codes_acc$tab <- list()
     av <- stats::setNames(lapply(at_names, function(nm_at) {
       a <- resp$aterms[[nm_at]]
       v <- mf[[deparse1(a)]]
@@ -3209,10 +3397,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                  call. = FALSE)
       }
       if (aterm_level_coded(raw, reg_at)) {
-        codes_new[[nm_at]] <<- aterm_code_table(raw, v)
+        codes_acc$tab[[nm_at]] <- aterm_code_table(raw, v)
       }
       as.numeric(v)
     }), at_names)
+    codes_new <- codes_acc$tab
     if (length(codes_new) && is.null(resp[["aterm_codes"]])) {
       # newdata and refits are coded against these, as a bernoulli
       # response is against its bin_levels
@@ -3864,10 +4053,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       if (!is.null(dp[["rsv_intercept"]])) {
         X <- rsv_intercept_order(X, dp[["rsv_intercept"]])
       }
-      # rank-deficient designs: drop aliased columns like lm() (lme4#144).
-      # Sparse X densifies a copy only when the cheap screen flags a
-      # possible deficiency, so the dropped-column set never differs
-      # from the dense path.
+      # rank-deficient designs: drop aliased columns (lme4#144), at
+      # glm()'s tolerance (design_alias_tol). Sparse X densifies a copy
+      # only when the cheap screen flags a possible deficiency, so the
+      # dropped-column set never differs from the dense path.
       alias_null <- NULL
       dropped_colnames <- NULL
       if (ncol(X) > 1L) {
@@ -3876,21 +4065,34 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
               else NULL
         if (!is.null(Xq)) {
           Xq <- as.matrix(Xq)
-          qrX <- qr(Xq)
-          if (qrX$rank < ncol(X)) {
-            dropped <- colnames(X)[qrX$pivot[(qrX$rank + 1L):ncol(X)]]
-            frm_message("Fixed-effect design of '", lp_key,
-                        "' is rank deficient; dropping column(s): ",
-                        paste(dropped, collapse = ", "))
+          kept <- design_kappa_keep(Xq)
+          capped <- attr(kept, "capped")
+          aliased <- attr(kept, "aliased")
+          kept <- as.character(kept)
+          if (length(kept) < ncol(X)) {
+            dropped <- setdiff(colnames(X), kept)
+            if (length(aliased)) {
+              frm_message("Fixed-effect design of '", lp_key,
+                          "' is rank deficient; dropping column(s): ",
+                          paste(aliased, collapse = ", "))
+            }
+            if (length(capped)) design_cap_warn(lp_key, capped)
             # Directions the data could not identify: null(X) is the
             # orthogonal complement of the row space, so the trailing
             # columns of the complete Q of t(X) span it. Frozen here so
             # prediction can refuse rows that load on them. [lme4#303]
-            alias_null <- qr.Q(qr(t(Xq)), complete = TRUE)[
-              , (qrX$rank + 1L):ncol(Xq), drop = FALSE]
+            # A column dropped for the condition number leaves no exact
+            # null space; its directions are the scaled design's smallest
+            # right singular vectors (design_kappa_keep())
+            alias_null <- if (!length(capped)) {
+              qr.Q(qr(t(Xq)), complete = TRUE)[
+                , (length(kept) + 1L):ncol(Xq), drop = FALSE]
+            } else {
+              design_near_null(Xq, ncol(Xq) - length(kept))
+            }
             rownames(alias_null) <- colnames(X)
             dropped_colnames <- dropped
-            X <- X[, setdiff(colnames(X), dropped), drop = FALSE]
+            X <- X[, kept, drop = FALSE]
           }
         }
       }

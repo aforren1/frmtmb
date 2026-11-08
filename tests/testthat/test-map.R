@@ -14,7 +14,10 @@ test_that("MAP priors shrink estimates and penalize the objective", {
   # penalized objective identity at the MAP solution
   nlp <- -stats::dnorm(fixef_by_dpar(map)$mu[["x"]], 0, 0.1, log = TRUE)
   raw_nll <- ml$obj$fn(map$opt$par)
-  expect_lt(abs((-as.numeric(logLik(map))) - (raw_nll + nlp)), 1e-6)
+  expect_lt(abs((-as.numeric(logLik_penalized(map))) - (raw_nll + nlp)) /
+              abs(raw_nll), 1e-8)
+  # and logLik() is the data part alone
+  expect_lt(abs(-as.numeric(logLik(map)) - raw_nll) / abs(raw_nll), 1e-8)
   expect_output(print(map), "MAP")
 
   # near-flat priors reproduce ML

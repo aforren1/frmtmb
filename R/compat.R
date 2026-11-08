@@ -599,16 +599,17 @@ compat_near_feature <- function(bad, known) {
 #' @rdname frmtmb_register_compat
 #' @export
 compat_rule_builder <- function() {
-  rows <- list()
+  acc <- new.env(parent = emptyenv())
+  acc$rows <- list()
   list(
     r = function(a, b, status, note, override = FALSE) {
-      rows[[length(rows) + 1L]] <<- data.frame(
+      acc$rows[[length(acc$rows) + 1L]] <- data.frame(
         feature_a = a, feature_b = b, status = status, note = note,
         override = override, stringsAsFactors = FALSE)
       invisible(NULL)
     },
     rules = function() {
-      out <- do.call(rbind, rows)
+      out <- do.call(rbind, acc$rows)
       rownames(out) <- NULL
       out
     }
@@ -1063,9 +1064,10 @@ compat_note_wide_quadrature <- "Refused: quadrature marginalizes one scalar rand
 #' @noRd
 compat_hand_rules_tbl <- function() {
   if (!is.null(compat_hand_cache$tbl)) return(compat_hand_cache$tbl)
-  rows <- list()
+  acc <- new.env(parent = emptyenv())
+  acc$rows <- list()
   r <- function(a, b, status, note, override = FALSE) {
-    rows[[length(rows) + 1L]] <<- data.frame(
+    acc$rows[[length(acc$rows) + 1L]] <- data.frame(
       feature_a = a, feature_b = b, status = status, note = note,
       override = override, stringsAsFactors = FALSE)
     invisible(NULL)
@@ -1173,7 +1175,7 @@ compat_hand_rules_tbl <- function() {
   r("REML", "bounds", "refused",
     "Refused: under REML the fixed effects leave the outer parameter vector, so bounds naming them are rejected as unknown parameters.")
   r("REML", "prior", "conditional",
-    "Priors on fixed effects are accepted under REML while bounds on the same parameters are refused. The two surfaces are inconsistent. Priors on variance parameters behave as expected.")
+    "Priors on fixed effects are accepted under REML while bounds on the same parameters are refused. The two surfaces are inconsistent. Such a prior is inside the integral REML computes over the fixed effects, so logLik() refuses it and logLik_penalized() gives the maximized value. Priors on variance parameters behave as expected, and logLik() subtracts them exactly.")
   r("REML", "hypothesis_profile", "refused",
     "Refused: profile likelihood tests need an ML fit.")
   # Every model structure carries its own REML rule below, so a
@@ -1240,7 +1242,7 @@ compat_hand_rules_tbl <- function() {
     "Refused: a mixture supplies its own log-likelihood, which does not factorize over rows, so a group's rows have no separable integrand to resample.")
   r("importance", "bounds", "works", "Verified by a tiny fit.")
   r("importance", "prior", "works",
-    "Works: the objective adds the prior, which reads the outer parameters only, so the corrected log-likelihood is a penalized quantity. Measured against quadrature = TRUE with the same prior on a binomial (1 | g).")
+    "Works: the objective adds the prior, which reads the outer parameters only, so logLik_penalized() is the corrected log-likelihood plus the log prior and logLik() subtracts the log prior exactly. Measured against quadrature = TRUE with the same prior on a binomial (1 | g).")
   r("importance", "autoscale", "works",
     "Verified: the corrected log-likelihood is identical with and without autoscale, including with a predictor scaled by 1e6 so the pre-fit actually engages, and the correction survives it. The autoscale pre-fit itself deliberately runs as a plain Laplace fit: it only derives a scaling, and a corrected pre-fit would pay the whole cost twice for the same answer.")
   r("importance", "sparse_x", "works",
@@ -1255,7 +1257,7 @@ compat_hand_rules_tbl <- function() {
   r("quadrature", "group:wide_blocks", "refused",
     compat_note_wide_quadrature)
   r("quadrature", "group:quadrature_blocks", "conditional",
-    "Allowed only when the block is one-dimensional, that is a scalar random intercept, and each row reads one block. Correlated slopes are refused. Nested blocks, (1 | ga/gb), crossed blocks and (1 | g) in both mu and sigma are refused, as lme4 refuses nAGQ > 1 for more than one term: one Gauss-Kronrod pass over every effect integrated the outer ga effects and left the ga:gb effects to the Laplace approximation, so the log-likelihood equaled the Laplace one and summary() failed. A by-split gr(g, by = f), whose blocks read rows of their own, and mvbf() with one block per response are allowed.")
+    "Allowed only when the block is one-dimensional, that is a scalar random intercept or slope. Correlated slopes are refused. A row may read two blocks when one is nested in the other, (1 | ga/gb), on the same predictors: the inner block is integrated inside each outer level by Gauss-Hermite rules (frmtmb_control(quad_nodes = ), default 11 outer and 15 inner nodes) centered and scaled by the Laplace fit, under a memory limit (frmtmb_control(quad_max_gb = )). Verified against an independent reference: 7e-6 in the log-likelihood on 72 weighted Bernoulli rows (Laplace 0.85), falling as the nodes rise. Crossed blocks are refused, because their integral does not factor; so are three or more blocks, and (1 | g) in both mu and sigma, where the rule converges slowly. A by-split gr(g, by = f), whose blocks read rows of their own, and mvbf() with one block per response are integrated by the one-block rule.")
   r("quadrature", "group:post_fit", "works",
     "The marginalized objective carries no conditional modes, so they are recovered from the inner solve of the Laplace objective at the quadrature optimum. Verified: they match glmer(nAGQ = 25)'s modes to 1e-4, and ranef(), fitted(), predict() and residuals() are NA-free.")
   r("quadrature", "mi()", "conditional",
@@ -1354,9 +1356,17 @@ compat_hand_rules_tbl <- function() {
       r(at, f, "refused", paste0(
         "Refused, as brms 2.23.0 refuses it: \"Argument '",
         sub("[(][)]$", "", at), "' is not supported for family '", f,
-        "'\". The family has no CDF."))
+        "'\". ", if (f == "bernoulli") {
+          "Its CDF is read by residuals(type = \"osa\") alone."
+        } else "The family has no CDF."))
     }
   }
+  # nbinom1() has a CDF, which residuals(type = "osa") reads, and takes
+  # weights() alone
+  r("cens()", "nbinom1", "refused",
+    "Refused by the family's list of addition terms, which holds weights() alone. brms has no nbinom1 family. Its CDF is read by residuals(type = \"osa\") alone.")
+  r("trunc()", "nbinom1", "refused",
+    "Refused by the family's list of addition terms, which holds weights() alone. brms has no nbinom1 family. Its CDF is read by residuals(type = \"osa\") alone.")
   # continuous families with a CDF and no truncated mean: brms has none
   for (f in c("skew_normal", "exgaussian", "shifted_lognormal",
               "asym_laplace", "von_mises", "beta", "zero_inflated_beta",
@@ -1756,8 +1766,8 @@ compat_hand_rules_tbl <- function() {
     "Refused, as brms does: in an nlpar's formula in brms's words, in the body because brms writes cs() into the Stan program as a call to a function that does not exist, and its compile fails.")
   r("nl", "kind:method", "untested", "")
   r("nl", "fitted", "works", "")
-  r("nl", "predict", "conditional",
-    "Point predictions work. se.fit is not supported for the nonlinear predictor; request a nonlinear parameter with dpar instead.")
+  r("nl", "predict", "works",
+    "Point predictions and se.fit work: the delta method through the body's taped Jacobian, which fitted()'s Est.Error and conditional_effects() read too. A me() value or a gp() kriging variance that a nonlinear parameter reads enters at first order. Under allow_new_levels = TRUE, se.fit at a new level that a body reads is refused by class (frmtmb_nl_new_level); fitted() integrates over that level's effects.")
   r("nl", "cens()", "works", "Verified by a tiny fit.")
   r("nl", "ps()", "works",
     "The reason ps() exists: a penalized block whose VALUE the body consumes, so that a population curve can be warped per subject rather than added to a predictor. Verified against a plain-R port of the likelihood of D'Alessandro, Thoresen and Sorensen (2026) on brokenstick::smocc_200: the joint negative log density agrees to 9.4e-11 absolute (2.6e-14 relative) at the optimum and to 6.0e-10 at a perturbed parameter vector.")
@@ -1905,19 +1915,19 @@ compat_hand_rules_tbl <- function() {
   r("me()", "mixture", "untested",
     "A mixture fit with a me() term runs; nothing checks its estimates.")
   r("me()", "fitted", "works",
-    "In-sample, fitted() uses the latent modes (brms with save_pars(latent = TRUE)). On new data the estimate is the mean of the expected response over the N(x, sdx) draw brms makes there, by Gauss-Hermite on the response scale; Est.Error carries that draw's variance and the Q columns its quantiles. New data must hold sdx, as brms requires. A row with no noisy value or SD reads NA with a warning, where brms reads NaN and warns.")
+    "In-sample, fitted() uses the latent modes (brms with save_pars(latent = TRUE)). On new data the estimate is the mean of the expected response over the N(x, sdx) draw brms makes there, by Gauss-Hermite on the response scale; Est.Error carries that draw's variance and the Q columns its quantiles. Beside a latent residual or a new level's effects the mean is over every draw at once, each moving the predictors that read it. A lognormal whose sigma reads the draw has an infinite exact mean: the 11-node quadrature mean, with a warning of class frmtmb_mean_not_finite. New data must hold sdx, as brms requires. A row with no noisy value or SD reads NA with a warning, where brms reads NaN and warns.")
   r("me()", "predict", "works",
     "In-sample, the latent modes. On new data each replicate draws the latent value from N(x, sdx), per row or per me(gr = ) level, as brms 2.23.0 does, under propagate_error = FALSE too. Two responses or two dpars read one latent value, a stated divergence: brms draws one per predictor against its own Stan program. New data must hold sdx. A row with no noisy value or SD reads NA with a warning, where brms reads NaN and warns.")
   r("me()", "marginaleffects", "conditional",
     "The default vcov gives the warning of class frmtmb_interop_se_part. The standard error of a level holds no variance of a new row's latent value, which is in no coefficient: every row reads as new, and get_vcov() gets no rows. A test of a coefficient is right, and so is a slope or contrast on an identity link. frm_linpred(se.fit = TRUE) and fitted() carry the variance; vcov = FALSE gives the estimates alone.")
-  r("kind:covstruct", "marginaleffects", "conditional",
-    "The default vcov gives the warning of class frmtmb_interop_se_part while re_formula keeps a group-level term. get_coef() holds the population-level and distributional coefficients alone, so the standard error of a level holds neither the group-level effects' uncertainty nor their covariance with the intercept. Under re_formula = NA it agrees with fitted(). frm_linpred(se.fit = TRUE) and fitted() carry them.")
-  r("s()", "marginaleffects", "conditional",
-    "The default vcov gives the warning of class frmtmb_interop_se_part. get_coef() holds no coefficient of the smooth, so the standard error of a level is too wide near the data and too narrow far from it. frm_linpred(se.fit = TRUE) and fitted() carry it.")
-  r("t2()", "marginaleffects", "conditional",
-    "The default vcov gives the warning of class frmtmb_interop_se_part. get_coef() holds no coefficient of the smooth, as for s(). frm_linpred(se.fit = TRUE) and fitted() carry it.")
+  r("kind:covstruct", "marginaleffects", "works",
+    "Verified against fitted(): get_coef() holds the group-level effects at their modes, and get_vcov() their joint covariance with the coefficients and the variance parameters, so the standard error of a level is fitted()'s Est.Error (crossed, nested, ||, mm(), |ID| across dpars, a zero-inflation dpar, mvbf, cumulative()), and an average, slope or contrast holds the same uncertainty. Under re_formula = NA they leave get_coef(), and hypotheses() on the fit itself, joint = TRUE among them, tests the coefficients alone. A grouping level the fit did not see, from predictions(), slopes() and comparisons() alike, and a fit with quadrature = TRUE or importance =, warn with class frmtmb_interop_se_part: no parameter holds that variance. A cluster sandwich (~ g) makes the outer part of the effects' variance robust; HC0 and HC1 are refused on a mixed fit.")
+  r("s()", "marginaleffects", "works",
+    "Verified against fitted(): get_coef() holds the smooth's coefficients at every re_formula, so the standard error of a level is fitted()'s Est.Error.")
+  r("t2()", "marginaleffects", "works",
+    "Verified against fitted(), as for s(): get_coef() holds the smooth's coefficients.")
   r("gp_pred()", "marginaleffects", "conditional",
-    "The default vcov gives the warning of class frmtmb_interop_se_part. get_coef() holds no coefficient of the field, so the standard error of a level is one value on every row. frm_linpred(se.fit = TRUE) and fitted() carry it.")
+    "get_coef() holds the field's coefficients, and for an exact gp() its sdgp and lscale, which the field sdgp L z reads, so the standard error of a level at or between the data is fitted()'s Est.Error. At a position the fit did not see, an exact gp() has a kriging variance that no parameter holds: get_predict() warns with class frmtmb_interop_se_part and counts the rows where it is more than 1e-4 of the field's variance. The delta method is far from brms there: an average slope on a gaussian field reads 0.031, where brms's posterior SD is 0.154.")
   r("me()", "simulate", "works",
     "Simulates the response at the latent modes, as for a random effect's conditional modes; the noisy variable itself is data and is not simulated. On new data each replicate draws the latent value from N(x, sdx), as predict() does.")
   r("me()", "residuals", "works",
@@ -2037,15 +2047,29 @@ compat_hand_rules_tbl <- function() {
   r("simulate", "von_mises", "works",
     "Best and Fisher's rejection sampler, vectorized over per-row mu and kappa, so a distributional kappa simulates. RTMBdist::rvm() takes scalar parameters only and is not used.")
   r("residuals_osa", "kind:family", "conditional",
-    "One-step-ahead residuals need the family to register its observation through OBS().")
+    "A core family with a CDF takes osa_method = \"cdf\", except an untruncated, unweighted gaussian(), which takes fullGaussian: each row is read against its own fitted CDF, so with no group-level term the residual is the randomized quantile residual of the fit. With one, TMB integrates each row by the Laplace approximation, whose error is largest on the first row of each group: up to 0.15 under (1 | g) against the exact one-step predictive. A family without a CDF needs its observation registered through OBS() and a density that takes the osa object, and a discrete one without a CDF needs discreteSupport.")
   r("residuals_osa", "group:point_mass", "refused",
     "Refused by name: the density branches on y == 0 for its point mass, and oneStepPredict() hands it an observation object with no comparison operator. Through 0.63.0 each of these failed there with base R's own message. Use residuals(type = \"pearson\") or dharma_residuals().")
+  r("residuals_osa", "zero_inflated_poisson", "works",
+    "osa_method = \"cdf\" reads the count as data, point mass included, and randomizes over its own step of the fitted CDF.")
+  r("residuals_osa", "zero_inflated_negbinomial", "works",
+    "osa_method = \"cdf\" reads the count as data, point mass included, and randomizes over its own step of the fitted CDF.")
+  r("residuals_osa", "zero_inflated_binomial", "works",
+    "osa_method = \"cdf\" reads the count as data, point mass included, and randomizes over its own step of the fitted CDF.")
+  r("residuals_osa", "zero_inflated_beta_binomial", "works",
+    "osa_method = \"cdf\" reads the count as data, point mass included, and randomizes over its own step of the fitted CDF.")
+  r("residuals_osa", "hurdle_poisson", "works",
+    "osa_method = \"cdf\" reads the count as data, point mass included, and randomizes over its own step of the fitted CDF.")
+  r("residuals_osa", "hurdle_negbinomial", "works",
+    "osa_method = \"cdf\" reads the count as data, point mass included, and randomizes over its own step of the fitted CDF.")
+  r("residuals_osa", "tweedie", "refused",
+    "Refused by name: the mass at zero is invisible to the one-step integral of a density, and through 0.79.1 the generic route read NaN on 71 of 150 rows with no warning. Use dharma_residuals().")
   r("residuals_osa", "categorical", "refused",
     "Refused with residuals() as a whole: a one-step-ahead residual is a CDF value, and a nominal response has no CDF.")
   r("residuals", "categorical", "refused",
     "Refused: the categories carry no order, so no residual has a scale to live on. Compare fitted(fit), the n x K category probabilities, against the observed categories instead.")
-  r("residuals_osa", "von_mises", "refused",
-    "Refused upstream: RTMBdist::dvm() rejects the osa observation object, because a wrapped support has no one-step CDF on the line.")
+  r("residuals_osa", "von_mises", "works",
+    "osa_method = \"cdf\" reads the von Mises CDF on (-pi, pi]; it matches qnorm(F(y)) of the fitted distribution to 5e-14. Through 0.79.1 the generic route ran and was up to 4.45 off.")
   r("residuals_osa", "group:ordinal", "works",
     "oneStepGeneric over the discrete support 1..K; the result is a randomized quantile residual and matches the analytic one to 1e-13.")
   r("residuals_osa", "hurdle_cumulative", "refused",
@@ -2053,9 +2077,9 @@ compat_hand_rules_tbl <- function() {
   r("residuals_osa", "cens()", "conditional",
     "Censored rows return NA: what is observed there is an event, not a value, so it carries no one-step CDF. The uncensored rows get residuals conditional on the censoring events, which needs one censoring point per side (type-I censoring). Row-varying censoring points and interval censoring are refused, and so is a DISCRETE family: a left-censored count at k is Y <= k, so an uncensored row's support is [lo + 1, hi] rather than the [lo, hi] the one-step window is built on.")
   r("residuals_osa", "trunc()", "conditional",
-    "Supported for constant truncation bounds. Row-varying bounds are refused, because the one-step-ahead transform is not defined across changing support.")
+    "Each row is read inside its own window under the default osa_method = \"cdf\", so row-varying bounds work. Under oneStepGeneric (a family with no CDF) the bounds must be the same for every row, because TMB integrates over one domain.")
   r("residuals_osa", "weights()", "conditional",
-    "Runs, but the residuals ignore the case weights. Treat them as unweighted.")
+    "A weight is a frequency, as in the fitted likelihood: the residual of a row of weight w is that of the last of w copies of it, given the other w - 1, and later rows are conditioned on all w. A row of weight 0 is NA. Under osa_method = \"fullGaussian\", which a weighted gaussian() no longer takes by default, a weight is a precision, (y - mu) sqrt(w) / sigma.")
   r("residuals_osa", "kind:structure", "untested", "")
   r("emmeans", "kind:family", "conditional",
     "Takes brms's dpar =, nlpar =, resp =, epred = and re_formula = (see ?frmtmb-emmeans). A family with no mu needs dpar =. epred = TRUE needs one mean per row, so it is refused for the ordinal and categorical families.")
@@ -2128,7 +2152,7 @@ compat_hand_rules_tbl <- function() {
   r("group:autocor", "student", "conditional",
     "The multivariate-t has one shape parameter per group, so nu must be constant; a predicted nu ~ ... is refused. The density is brms's multi_student_t with scale matrix D R D, verified against mvtnorm::dmvt exactly.")
   r("group:autocor", "kind:aterm", "conditional",
-    "On a family with no residual y - mu (brms's latent residual) the density stays per row and weights(), cens() and trunc() act on their rows, as in brms; se() is refused as brms refuses it, and mi() on the response is refused because no measurement reads a latent response beside a latent residual. On gaussian and student they are refused: the group's density is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, a truncation bound to renormalize, or a known standard error to add to. brms refuses weights(), cens() and trunc() here with 'Invalid addition arguments for this model'.")
+    "On a family with no residual y - mu (brms's latent residual) the density stays per row and weights(), cens() and trunc() act on their rows, as in brms; se() is refused as brms refuses it, and mi() on the response is refused where another density reads its missing values, because no measurement reads a latent response beside a latent residual; a missing value no density reads leaves the objective, and the fit is then exact on lognormal. On gaussian and student they are refused: the group's density is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, a truncation bound to renormalize, or a known standard error to add to. brms refuses weights(), cens() and trunc() here with 'Invalid addition arguments for this model'.")
   r("group:autocor", "rescor", "refused",
     "Refused: both describe the residual covariance - one across time, one across responses - and the joint structure is their Kronecker product, which is not implemented. brms refuses the same pair.")
   r("group:autocor", "mixture", "refused",
@@ -2155,12 +2179,12 @@ compat_hand_rules_tbl <- function() {
   r("group:autocor", "simulate", "works",
     "simulate() draws one correlated residual per group (a Cholesky factor of that group's correlation submatrix applied to standard normal, or scaled-t, innovations), so the draws carry the fitted autocorrelation. dharma_residuals() therefore works too. Since v0.36 the residual draw is part of the simulator contract rather than a branch inside simulate(), so posterior_predict() and frm_simulate() draw it as well; frm_simulate() needs thetaac in the internal newparams spelling.")
   r("group:autocor", "residuals_osa", "conditional",
-    "A latent residual's rows keep their own density, so \"osa\" answers on a family with no residual y - mu, and reads the exact one-step predictive on Gamma, poisson, negbinomial and binomial. Not on bernoulli, where every residual reads near -3.7 with or without the term, a defect of residuals(type = \"osa\") on this family that a plain (1 | g) has too. On gaussian and student it is refused: one-step-ahead residuals need the taped density of one observation given the previous ones, and the tape holds a joint density per group. Use type = \"pearson\", which divides by the marginal residual SD, or dharma_residuals().")
+    "A latent residual's rows keep their own density, so \"osa\" answers on a family with no residual y - mu, bernoulli included, through TMB's Laplace approximation of each one-step integral: against the exact predictive of a latent ar() the median error is 0.006 to 0.016 on poisson and the zero-inflated and hurdle counts, below 0.002 on the others, and the largest 0.13. On gaussian and student it is refused: one-step-ahead residuals need the taped density of one observation given the previous ones, and the tape holds a joint density per group. Use type = \"pearson\", which divides by the marginal residual SD, or dharma_residuals().")
   r("fcor()", "residuals_osa", "refused",
     "Refused: fcor() has no latent residual on any family, so its one density is joint over all rows, and the tape holds no density of one observation given the previous ones. Use type = \"pearson\" or dharma_residuals().")
   r("group:autocor", "kind:method", "untested", "")
   r("group:autocor", "fitted", "conditional",
-    "On gaussian and student the mean structure is untouched: the term changes the residual density, not the linear predictor. On any other family fitted() carries the latent residual's conditional mode at each fitted row, under re_formula = NA too, as brms carries err. On new rows it is the mean over the latent at each row's marginal sd, as brms's posterior_epred() is, and frm_linpred() stays at a latent of 0. Above 3000 fitted rows, with newdata = NULL, the standard error of a row is NA, with a message, because it would solve the joint precision densely: options(frmtmb.latres_se_rows = ) moves the limit. Rows in newdata keep theirs.")
+    "On gaussian and student the mean structure is untouched: the term changes the residual density, not the linear predictor. On any other family fitted() carries the latent residual's conditional mode at each fitted row, under re_formula = NA too, as brms carries err. On new rows it is the mean over the latent at each row's marginal sd, as brms's posterior_epred() is, and frm_linpred() stays at a latent of 0. A me() value on another predictor is a second, independent draw, and the mean is over both. Above 3000 fitted rows, with newdata = NULL, the standard error of a row is NA, with a message, because it would solve the joint precision densely: options(frmtmb.latres_se_rows = ) moves the limit. Rows in newdata keep theirs.")
   r("group:autocor", "predict", "works",
     "Unchanged, newdata and se.fit included: se.fit is the uncertainty of the MEAN, which the residual correlation does not enter.")
   r("group:autocor", "residuals", "conditional",
@@ -2179,7 +2203,7 @@ compat_hand_rules_tbl <- function() {
   # they outrank the group rows exactly where the two answers differ.
   for (nm in c("ar()", "ma()", "arma()")) {
     r(nm, "kind:aterm", "conditional",
-      "On gaussian and student, under cov = FALSE, weights(), cens(), trunc() and mi() work: the term shifts mu and the density stays per row, so each addition term acts on its row as it does without the term, and under mi() the residual is taken against the observed-or-imputed response (brms's Yl). brms 2.23.0 generates the same Stan code for each; verified against its model block to 1e-15 (dev/arcov-validate.R). Under cov = TRUE all of them are refused, because the group's density is joint. On any other family, the term is a latent residual under both forms: weights(), trials(), rate(), thres(), subset(), cens() and trunc() act on their rows, with cens() and trunc() making cov = FALSE the post-link form that frm_sample() alone fits; se() is refused as brms refuses it; mi() on the response is refused, since no measurement reads a latent response beside a latent residual.")
+      "On gaussian and student, under cov = FALSE, weights(), cens(), trunc() and mi() work: the term shifts mu and the density stays per row, so each addition term acts on its row as it does without the term, and under mi() the residual is taken against the observed-or-imputed response (brms's Yl). brms 2.23.0 generates the same Stan code for each; verified against its model block to 1e-15 (dev/arcov-validate.R). Under cov = TRUE all of them are refused, because the group's density is joint. On any other family, the term is a latent residual under both forms: weights(), trials(), rate(), thres(), subset(), cens() and trunc() act on their rows, with cens() and trunc() making cov = FALSE the post-link form that frm_sample() alone fits; se() is refused as brms refuses it; mi() on the response is refused where another density reads its missing values, since no measurement reads a latent response beside a latent residual; a missing value no density reads leaves the objective.")
     r(nm, "se()", "refused",
       "Refused under both forms. brms refuses se() with cov = FALSE ('Please set cov = TRUE in ARMA structures when including known standard errors'). Under cov = TRUE brms 2.23.0 fits it, adding se^2 to the diagonal of each group's covariance (normal_time_hom_se_lpdf() and its relatives); frmtmb refuses it there, a parity gap.")
     r(nm, "student", "conditional",
@@ -2321,7 +2345,7 @@ compat_hand_rules_tbl <- function() {
   # would outrank each structure's own "<name> x *" condition and
   # replace it with an unconditional claim.
 
-  out <- do.call(rbind, rows)
+  out <- do.call(rbind, acc$rows)
   rownames(out) <- NULL
   compat_hand_cache$tbl <- out
   out

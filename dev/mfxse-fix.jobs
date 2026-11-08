@@ -1,0 +1,17 @@
+frmtmb tests/testthat/test-arg-refusal.R
+frmtmb tests/testthat/test-autocor-sigma.R
+frmtmb tests/testthat/test-brms-shapes-punch.R
+frmtmb tests/testthat/test-compat.R
+frmtmb tests/testthat/test-famgaps.R
+frmtmb tests/testthat/test-latres-newrow.R
+frmtmb tests/testthat/test-latres.R
+frmtmb tests/testthat/test-linpred-layers.R
+frmtmb tests/testthat/test-marginaleffects-args.R
+frmtmb tests/testthat/test-marginaleffects-re.R
+frmtmb tests/testthat/test-me-newdata.R
+frmtmb tests/testthat/test-mo-coding.R
+frmtmb tests/testthat/test-ordinal-fitted.R
+frmtmb tests/testthat/test-resp-read.R
+frmtmb tests/testthat/test-review-v29.R
+frmtmb tests/testthat/test-se-reparam.R
+frmtmb tests/testthat/test-v07.R

@@ -121,8 +121,10 @@ deviance.frmtmb_fit <- function(object, ...) {
 #' @export
 extractAIC.frmtmb_fit <- function(fit, scale = 0, k = 2, ...) {
   frm_check_dots(...)
+  # step() reads this before it calls drop1()
+  ic_prior_refusal("extractAIC()", list(fit))
   ll <- logLik(fit)
-  edf <- attr(ll, "df")
+  edf <- as.vector(loglik_df(fit))
   c(edf, -2 * as.numeric(ll) + k * edf)
 }
 

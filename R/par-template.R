@@ -103,12 +103,36 @@ new_par_template <- function(tpl, frame, fitted) {
 #' message names a constant body that is a local maximum along its coefficients.
 #'
 #' A body can also have more than one true maximum, and a default start finds
-#' one of them. `b1 * exp(b2 * x)` under [bernoulli()] on one data set reads
-#' -193.4967 from the default start and -189.999 from a positive `b1`. Nothing
-#' in the first fit marks it, so [frm()] does not tell you. A `start` with
-#' another sign of `b1`, or a located prior, can show it. [frm_allfit()] cannot,
-#' as its optimizers
-#' start from one point and agree on the first maximum.
+#' one of them. Nothing in that fit marks it. So from the default start
+#' [frm()] also fits from each sign pattern of the coefficients that the body
+#' does not read as an added term, and returns the highest point. With four
+#' such coefficients or fewer that is every pattern; with more, every
+#' pattern of the four the body moves most by, so the order of the terms
+#' does not change the answer. A coefficient inside a curve starts where it
+#' moves the curve's argument by about 3 (`b2` near 1e-3 in
+#' `b1 * exp(b2 * x)` with `x` in the thousands), and one the body is linear
+#' in where it moves the body by about two of the response's units, each
+#' only where that is far from 1, else at 1. A message (class
+#' `frmtmb_nl_multistart`) says so when that point is higher than the first
+#' fit by more than 0.01. `b1 * exp(b2 * x)` under [bernoulli()] on one data
+#' set reads -193.4967 from the default start alone and -189.999 with the
+#' patterns. This makes a fit 1.2 to 2.8 times as slow with two or three such
+#' coefficients, 3.5 to 5.4 times with four, and up to 47 times with five. A
+#' `start`, or `options(frmtmb.nl_sign_probe = FALSE)`, skips it; a located
+#' prior does not. The patterns are not a proof: a `start` elsewhere, or a
+#' located prior, can still show a higher maximum. [frm_allfit()] cannot, as
+#' its optimizers start from one point.
+#'
+#' A nonlinear coefficient that the body reads as an added term (`a` and `b`
+#' of `a + b * x`) is stepped in the units by which it moves the body, where
+#' these are 16 or more times from 1: `a * x` with `x` near `1e-20` reaches
+#' the maximum of `y ~ 0 + x`. The curvature of a normal, Student t or
+#' logistic prior on it is added; under another prior with a curved density,
+#' such as a gamma or lognormal prior, it keeps its old steps. In the sign
+#' patterns' runs and the refit of their winner, a coefficient inside a curve
+#' is stepped in its start size where that is 16 or more times from 1 and no
+#' prior reaches it, so `b2` of `b1 * (1 - exp(-b2 * x))` fits alike with `x`
+#' near 1 and near 1e-6.
 #'
 #' @section Two vocabularies, one model:
 #' This is the flat internal parameterization. [get_prior()] describes
@@ -735,6 +759,20 @@ nl_flat_warning <- function(held) {
   }, NA))
 }
 
+#' Do these held warnings say the stop may not be the maximum: the optimizer's
+#' code, a gradient left at the stop, or a gradient that is not finite there
+#' (check_convergence())? By class, so a reworded message cannot turn the
+#' ridge pass off. "Hessian is not positive definite" is a standard-error
+#' verdict and is left out.
+#'
+#' @noRd
+nl_stop_warning <- function(held) {
+  any(vapply(held, function(w) {
+    inherits(w, c("frmtmb_conv_code", "frmtmb_conv_gradient",
+                  "frmtmb_conv_gradient_nonfinite"))
+  }, NA))
+}
+
 #' The restarts of one round: the highest fit above `floor`, with its held
 #' warnings, or `NULL` in `best`.
 #'
@@ -755,21 +793,24 @@ nl_restart_round <- function(run, starts, floor, saddle_floor, from_flat) {
   best_ll <- floor
   best_held <- list()
   for (st in starts) {
-    h1 <- list()
+    h1 <- new.env(parent = emptyenv())
+    h1$w <- list()
     r <- tryCatch(
       withCallingHandlers(suppressMessages(run(st, FALSE)),
                           warning = function(w) {
-                            h1[[length(h1) + 1L]] <<- w
+                            h1$w[[length(h1$w) + 1L]] <- w
                             invokeRestart("muffleWarning")
                           }),
       error = function(e) NULL)
     if (is.null(r)) next
-    ll <- suppressWarnings(as.numeric(stats::logLik(r)))
+    # the restarts are judged on what they maximize, which under a prior
+    # holds the log prior
+    ll <- suppressWarnings(as.numeric(logLik_penalized(r)))
     if (!is.finite(ll)) next
     if (ll > best_ll + 1e-8 * max(1, abs(best_ll))) {
       best <- r
       best_ll <- ll
-      best_held <- h1
+      best_held <- h1$w
     }
     if (from_flat && same(ll, floor)) break
   }
@@ -795,17 +836,19 @@ nl_restart_round <- function(run, starts, floor, saddle_floor, from_flat) {
 #'
 #' @noRd
 nl_fit_off_saddle <- function(run, frame, start, prior) {
-  held <- list()
+  hq <- new.env(parent = emptyenv())
+  hq$w <- list()
   hold <- function(w) {
-    held[[length(held) + 1L]] <<- w
+    hq$w[[length(hq$w) + 1L]] <- w
     invokeRestart("muffleWarning")
   }
-  release <- function() for (w in held) warning(w)
+  release <- function() for (w in hq$w) warning(w)
   fit <- tryCatch(withCallingHandlers(run(start, TRUE), warning = hold),
                   error = function(e) {
                     release()
                     stop(e)
                   })
+  held <- hq$w
   # under a prior the curvature on the likelihood alone says nothing about
   # the mode, so a restart decides
   use_curv <- is.null(prior) || NROW(prior) == 0L
@@ -835,7 +878,11 @@ nl_fit_off_saddle <- function(run, frame, start, prior) {
     return(fit)
   }
   key <- function(b) linpred_key(b$lp[["resp"]], b$lp[["dpar"]] %||% "")
-  ll0 <- as.numeric(stats::logLik(fit))
+  ll0 <- as.numeric(logLik_penalized(fit))
+  # the values compared and printed below are what the fits maximized,
+  # which under a prior with a density is not logLik()
+  llw <- if (fit_penalized(fit)) "penalized log-likelihood" else
+    "log-likelihood"
   first <- bodies
   best <- NULL
   best_ll <- ll0
@@ -844,9 +891,11 @@ nl_fit_off_saddle <- function(run, frame, start, prior) {
   # on a flat direction the first body's patterns move them all and settle it
   todo <- if (on_saddle) seq_along(bodies) else 1L
   pass_first <- TRUE
+  ridge <- FALSE
   repeat {
     for (k in todo) {
-      starts <- nl_saddle_starts(frame, bodies, start, k, best)
+      starts <- nl_saddle_starts(frame, bodies, start, k,
+                                 if (ridge) NULL else best)
       # the first body's base pattern has already moved this one
       if (pass_first && k > 1L) starts <- starts[-1L]
       res <- nl_restart_round(run, starts, best_ll,
@@ -859,12 +908,28 @@ nl_fit_off_saddle <- function(run, frame, start, prior) {
       best_ll <- res$ll
       best_held <- res$held
     }
+    ridge <- FALSE
     if (is.null(best)) break
     look <- nl_saddle_find(best, use_curvature = use_curv)
     left <- look$saddle
     fresh <- Filter(function(b) {
       !key(b) %in% vapply(bodies, key, "")
     }, left)
+    # a kept restart that still warns can have a body it did not move on a
+    # ridge: `b1 * exp(b2 * x)` beside a saddle on `disc` ran to the linear
+    # limit from its zeros, -377.03 at code 1 against -371.54 from a move
+    # (dev/fitedge-findings.md, item 2). Every body moves then, since the kept
+    # ones sit where the ridge left them: disc at d2 = 1499. Only a warning
+    # that the stop is not the maximum asks for it: a product body always holds
+    # "Standard errors are not available", and on two gaussian responses with
+    # four bodies the pass cost 1.5 times for nothing
+    # (dev/reviews/2026-11-06-fitedge.md, m2)
+    if (!length(fresh) && nl_stop_warning(best_held)) {
+      fresh <- Filter(function(b) {
+        !key(b) %in% vapply(bodies, key, "")
+      }, nl_all_bodies(frame))
+      ridge <- length(fresh) > 0L
+    }
     if (!length(fresh)) break
     todo <- length(bodies) + seq_along(fresh)
     bodies <- c(bodies, fresh)
@@ -877,17 +942,18 @@ nl_fit_off_saddle <- function(run, frame, start, prior) {
     frm_message(
       if (length(nl_saddle_named(first, fit))) {
         paste0("The fit stopped where ", wd$noun, " ", wd$is, " constant ",
-               "across the rows, log-likelihood ", ll[1L], ", so frm() ")
+               "across the rows, ", llw, " ", ll[1L], ", so frm() ")
       } else {
         paste0("The fit of ", wd$noun, " from its default start ran along a ",
-               "flat direction to log-likelihood ", ll[1L], ", so frm() ")
+               "flat direction to ", llw, " ", ll[1L], ", so frm() ")
       },
       "restarted from moved coefficients and reached a higher point, ",
-      "log-likelihood ", ll[2L], ", optimizer return code ",
-      format(best$opt$convergence), ". Give `start` to choose your own")
+      llw, " ", ll[2L], ", optimizer return code ",
+      format(best$opt$convergence), ". Give `start` to choose your own",
+      class = "frmtmb_nl_restart")
     nl_local_message(frame, best, look$local)
     for (w in best_held) warning(w)
-    if (length(left)) nl_saddle_warning(frame, left, best_ll)
+    if (length(left)) nl_saddle_warning(frame, left, best_ll, llw)
     return(best)
   }
   if (!length(left)) {
@@ -896,8 +962,23 @@ nl_fit_off_saddle <- function(run, frame, start, prior) {
   }
   nl_local_message(frame, fit, look$local)
   release()
-  nl_saddle_warning(frame, left, ll0)
+  nl_saddle_warning(frame, left, ll0, llw)
   fit
+}
+
+#' Every body with coefficients, in nl_saddle_find()'s form.
+#'
+#' @noRd
+nl_all_bodies <- function(frame) {
+  out <- list()
+  for (lp in frame[["linpreds"]]) {
+    if (is.null(lp[["nl_body"]])) next
+    bc <- nl_body_coefs(frame, lp)
+    if (length(bc$coefs)) {
+      out[[length(out) + 1L]] <- list(lp = lp, coefs = bc$coefs, seen = bc$seen)
+    }
+  }
+  out
 }
 
 #' Which of `bodies` are constant at `fit`'s estimates: a restart's message
@@ -916,12 +997,12 @@ nl_saddle_named <- function(bodies, fit) {
 #' The warning on a fit that a moved start could not take off a constant body.
 #'
 #' @noRd
-nl_saddle_warning <- function(frame, bodies, ll) {
+nl_saddle_warning <- function(frame, bodies, ll, llw = "log-likelihood") {
   w <- nl_bodies_words(bodies)
   seen <- unique(unlist(lapply(bodies, function(b) b$seen)))
   frm_warning(
     "The fit stops where ", w$noun, " ", w$is, " constant across the rows, ",
-    "which is ", nl_model_words(frame, bodies), ": log-likelihood ",
+    "which is ", nl_model_words(frame, bodies), ": ", llw, " ",
     format(ll, digits = 7), ". Moved starts of ",
     paste0("'", seen, "'", collapse = ", "), " reached nothing higher, so the ",
     "data may simply have no effect there. A `start` in a region where the ",
@@ -946,6 +1027,578 @@ nl_local_message <- function(frame, fit, bodies) {
     "test for a higher one",
     class = "frmtmb_nl_local")
   invisible(NULL)
+}
+
+#' The natural unit of each nonlinear coefficient, aligned with
+#' `par_names` (`names(obj$par)`), or `NULL` when every unit is 1.
+#'
+#' A linear coefficient is stepped in the response's unit over its
+#' column's spread (predictor_par_units()). A body has no columns, so the
+#' spread is read from the body itself: the root mean square over the
+#' rows of the body's derivative in the coefficient, at the start `tpl`.
+#' Without it `a * x` with x about 1e-20 stopped at its start, 26.8 below
+#' `y ~ 0 + x`, at code 0 with no warning, because the gradient was 1e-18.
+#' The response's unit enters on the same terms as for a linear `mu`
+#' (predictor_unit_input()), with the response's own spread, as a body
+#' has no design to take out.
+#'
+#' Only a coefficient the body reads as an added term (nl_body_additive(),
+#' `a` and `b` of `a + b * x`, `a` of `a * x`) gets a unit, because only
+#' there is the derivative at the start the derivative everywhere. A unit
+#' is a power of two, and one within a factor of 16 of 1 is not applied,
+#' so a body whose derivatives are of order 1 keeps its path exactly. A
+#' position `have` already scales (autoscale_units(), smooth_fx_units())
+#' keeps that.
+#'
+#' A prior on the coefficient adds its curvature (nl_prior_precision()) to
+#' the likelihood's, per row: the unit is `1 / sqrt(r^2 / resp_u^2 + p / n)`
+#' for derivative spread `r`, prior precision `p` and `n` rows, which is
+#' `resp_u / r` with no prior. Read from the likelihood alone, the unit of
+#' `a` in `a * x` with x about 1e-20 under `normal(0, 1e-3)` was 1.5e20, the
+#' prior's curvature dominated the optimizer's coordinates by about 1e40,
+#' and 15 of 63 prior rows stopped at code 1 below 0.79.1
+#' (dev/reviews/2026-11-06-nlstart.md, blocker 1).
+#'
+#' @noRd
+nl_par_units <- function(frame, tpl, par_names, have = NULL,
+                         prior_entries = NULL, curve = FALSE) {
+  unit <- lapply(frame[["par_template"]], function(v) rep(NA_real_, length(v)))
+  hit <- FALSE
+  for (lp in frame[["linpreds"]]) {
+    if (is.null(lp[["nl_body"]])) next
+    coefs <- nl_body_coefs(frame, lp)$coefs
+    if (!length(coefs)) next
+    resp_u <- nl_resp_unit(frame, lp)
+    body_at <- function(t) {
+      tryCatch(suppressWarnings(nl_body_at(frame, lp, t)),
+               error = function(e) NULL)
+    }
+    # only a coefficient the body reads as an added term has one derivative
+    # everywhere; elsewhere the start's derivative is local, and a unit read
+    # from it sent an ODE rate's late-phase shift to 9.1 against log(2),
+    # where the late phase is 0 and flat (frmtmb.ode's test-ode-tv.R)
+    added <- nl_body_additive(frame, lp, tpl, coefs)
+    k <- 0L
+    for (par in names(coefs)) {
+      for (at in coefs[[par]]) {
+        k <- k + 1L
+        if (!added[k]) next
+        h <- 1e-4 * max(1, abs(tpl[[par]][at]))
+        up <- tpl
+        dn <- tpl
+        up[[par]][at] <- up[[par]][at] + h
+        dn[[par]][at] <- dn[[par]][at] - h
+        e1 <- body_at(up)
+        e0 <- body_at(dn)
+        if (is.null(e1) || is.null(e0) || length(e1) != length(e0)) next
+        r <- sqrt(mean(((e1 - e0) / (2 * h))^2))
+        if (!is.finite(r) || r <= 0) next
+        p <- nl_prior_precision(prior_entries, par, at)
+        if (is.na(p)) next
+        u <- 2^round(log2(1 / sqrt(r^2 / resp_u^2 + p / length(e1))))
+        # an order of magnitude is the failure this cures; a factor of 2
+        # only changes the path, and on a body with more than one maximum
+        # that can change which one it reaches
+        if (!is.finite(u) || u <= 0 || abs(log2(u)) < 4) next
+        # a coefficient two bodies read is stepped for the one it moves most
+        unit[[par]][at] <- min(unit[[par]][at], u, na.rm = TRUE)
+        hit <- TRUE
+      }
+    }
+    # in the refit of a probe's winner (`curve`), a coefficient inside a
+    # curve is stepped in the size the probe started it at
+    # (nl_probe_scale()): with x about 1e-6, b2 near 1e6 stepped in absolute
+    # units left 17 of 40 fits 0.67 to 58.6 below the same model at x about
+    # 1 (short check 2, R3). Not on a first fit: there the size is read away
+    # from the start, and frmtmb.ode's test-ode-tv.R (lk's late shift ran to
+    # a flat phase) and test-open-issues.R's nlme check (xmid, a gradient of
+    # 59380) failed with it. A prior on it leaves it unscaled
+    if (!curve) next
+    probed <- list()
+    k <- 0L
+    for (par in names(coefs)) {
+      for (at in coefs[[par]]) {
+        k <- k + 1L
+        if (added[k]) next
+        if (!identical(nl_prior_precision(prior_entries, par, at), 0)) next
+        probed[[length(probed) + 1L]] <- list(par = par, at = at)
+      }
+    }
+    if (!length(probed)) next
+    sc <- nl_probe_scale(frame, lp, tpl, probed)
+    for (i in seq_along(probed)) {
+      u <- sc["mag", i]
+      if (sc["curve", i] != 1 || is.na(u)) next
+      q <- probed[[i]]
+      unit[[q$par]][q$at] <- min(unit[[q$par]][q$at], u, na.rm = TRUE)
+      hit <- TRUE
+    }
+  }
+  if (!hit) return(NULL)
+  out <- numeric(0)
+  for (cp in unique(par_names)) {
+    u <- unit[[cp]]
+    if (cp == "betad" && length(frame[["betad_fixed_idx"]])) {
+      u <- u[-frame[["betad_fixed_idx"]]]
+    }
+    out <- c(out, u)
+  }
+  if (length(out) != length(par_names)) return(NULL)
+  out[is.na(out)] <- 1
+  if (length(have) == length(out)) out[have != 1] <- 1
+  if (all(out == 1)) return(NULL)
+  out
+}
+
+#' The response's unit for a body, on the terms predictor_units() sets for
+#' a linear `mu`: the sd of the response on `mu`'s scale for an
+#' identity-link location-scale family, else 1.
+#'
+#' @noRd
+nl_resp_unit <- function(frame, lp) {
+  plain <- lp
+  plain[["nl_body"]] <- NULL
+  inp <- tryCatch(predictor_unit_input(frame, plain),
+                  error = function(e) NULL)
+  if (is.null(inp)) return(1)
+  s <- stats::sd(inp$z[inp$ok])
+  if (is.finite(s) && s > 0) s else 1
+}
+
+#' The curvature at its centre of the log prior density on template
+#' position `at` of component `par`, summed over the prior entries that
+#' reach it on the internal scale: `1 / s^2` for a normal, `(df + 1) /
+#' (df s^2)` for a Student t and `1 / (2 s^2)` for a logistic of scale `s`,
+#' and 0 for an exponential, a uniform or a flat prior, whose log density
+#' has no curvature. 0 where no prior reaches it.
+#'
+#' `NA` where any other prior reaches it (gamma, lognormal, beta, ...), or
+#' one on another scale: its curvature depends on where it is read, and the
+#' caller then gives no unit. Read as 0, a `gamma(2, 1000)` or
+#' `lognormal(0, 0.001)` prior on `a` in `a * x` with x about 1e-20 left the
+#' likelihood's unit of 1.5e20, and 8 rows stopped at code 1 below 0.79.1, by
+#' up to 992 (dev/reviews/2026-11-06-nlstart.md, short check, R1).
+#'
+#' @noRd
+nl_prior_precision <- function(prior_entries, par, at) {
+  p <- 0
+  for (e in prior_entries %||% list()) {
+    if (!identical(e$comp, par) || !at %in% e$idx) next
+    if (!identical(e$scale %||% "internal", "internal")) return(NA_real_)
+    d <- e$dist
+    kind <- d$kind %||% ""
+    if (kind %in% c("exponential", "uniform", "flat")) next
+    if (!kind %in% c("normal", "t", "logistic")) return(NA_real_)
+    s <- d$scale
+    if (!is.numeric(s) || length(s) != 1L || !is.finite(s) || s <= 0) {
+      return(NA_real_)
+    }
+    if (kind == "t" && !(is.numeric(d$df) && isTRUE(d$df > 0))) {
+      return(NA_real_)
+    }
+    p <- p + switch(kind,
+                    normal = 1 / s^2,
+                    t = (d$df + 1) / (d$df * s^2),
+                    logistic = 1 / (2 * s^2))
+  }
+  p
+}
+
+#' Which coefficients a body reads as an added term, `a` or `b3 * z`: the
+#' body's derivative in the coefficient is the same at two points with
+#' every coefficient nonzero and different, so that `b1` of `b1 * exp(b2 *
+#' x)`, linear alone but scaled by `b2`, is not one. The sign a start gives
+#' such a term cannot decide which maximum a fit reaches. A logical vector
+#' over `coefs` in its order; a body that will not evaluate answers `FALSE`
+#' throughout.
+#'
+#' @noRd
+nl_body_additive <- function(frame, lp, tpl, coefs) {
+  n <- sum(lengths(coefs))
+  base <- tpl
+  for (par in names(coefs)) base[[par]][coefs[[par]]] <- 0.5
+  pts <- list(base, nl_moved_tpl(base, coefs, 0.3))
+  at_body <- function(t) {
+    v <- tryCatch(suppressWarnings(nl_body_at(frame, lp, t)),
+                  error = function(e) NULL)
+    if (is.null(v) || !all(is.finite(v))) NULL else v
+  }
+  out <- logical(0)
+  for (par in names(coefs)) {
+    for (at in coefs[[par]]) {
+      d <- lapply(pts, function(t) {
+        up <- t
+        dn <- t
+        up[[par]][at] <- up[[par]][at] + 1e-3
+        dn[[par]][at] <- dn[[par]][at] - 1e-3
+        e1 <- at_body(up)
+        e0 <- at_body(dn)
+        if (is.null(e1) || is.null(e0)) NULL else (e1 - e0) / 2e-3
+      })
+      if (is.null(d[[1L]]) || is.null(d[[2L]])) return(rep(FALSE, n))
+      out <- c(out, max(abs(d[[2L]] - d[[1L]])) <=
+                 1e-6 * max(abs(d[[1L]]), 1e-300))
+    }
+  }
+  out
+}
+
+#' The sign patterns frm() starts a nonlinear body's coefficients from:
+#' every one of the coefficients at positions `lead` (at most four), the
+#' others positive. With four coefficients or fewer that is every pattern,
+#' and the result does not depend on their order. A cap of four patterns
+#' picked by position gave one model two answers by the order of its terms
+#' (bernoulli, two saturating terms: -163.5320 and -162.0191,
+#' dev/reviews/2026-11-06-nlstart.md, major 1); nl_sign_probe() picks
+#' `lead` by what the body does, not by position.
+#'
+#' @noRd
+nl_sign_patterns <- function(k, lead = seq_len(min(k, 4L))) {
+  m <- length(lead)
+  lapply(seq_len(2^m), function(i) {
+    s <- rep(1, k)
+    s[lead] <- ifelse(bitwAnd(i - 1L, 2^(seq_len(m) - 1L)) > 0, -1, 1)
+    s
+  })
+}
+
+#' Each probed coefficient's start size and its ranking key, from the body.
+#' `mag` is a power of two where it is 16 or more times from 1, else `NA`,
+#' and the caller keeps 1 over the column's half range. `key` is the root
+#' mean square of the body's derivative in the coefficient, `-Inf` where it
+#' does not evaluate. Both are set by the body and the data alone, with every
+#' coefficient sized at once, so neither the order of the terms nor the
+#' names change them.
+#'
+#' Two kinds of coefficient need two sizes. One the body reads inside a
+#' curve (`b2` of `b1 * exp(b2 * x)`) is sized so that the curve's argument
+#' moves by 3 on the row it moves most: 3 over the largest absolute
+#' derivative where it is 0 and the other probed coefficients are 1. On `x`
+#' in 0 to 3000 that is about 1e-3; at 1 the body overflowed and every
+#' pattern failed, 12.8 to 33.0 short on 5 of 5 seeds
+#' (dev/reviews/2026-11-06-nlstart.md, major 2). One the body is linear in
+#' (`b1`) is then sized so that it moves the body by two of the response's
+#' units on the average row, read with the curve's coefficients at their
+#' own sizes. Read with them at 1, `b1 * (1 - exp(-b2 * x))` with x about
+#' 1e-4 gave `b1` the size of `b2`, 32768, and the fit stayed 74 to 86 short
+#' on 5 of 5 gaussian seeds (short check, R2). Sizing both kinds alike, a
+#' pass that takes each size from the others' does not settle: `b1 b2`
+#' moves the body as one product, so the two sizes trade places.
+#'
+#' @noRd
+nl_probe_scale <- function(frame, lp, tpl, probed) {
+  resp_u <- nl_resp_unit(frame, lp)
+  n <- length(probed)
+  body_with <- function(vals, q = NULL, h = NULL) {
+    t <- tpl
+    for (i in seq_len(n)) t[[probed[[i]]$par]][probed[[i]]$at] <- vals[i]
+    if (!is.null(q)) t[[probed[[q]]$par]][probed[[q]]$at] <- h
+    v <- tryCatch(suppressWarnings(nl_body_at(frame, lp, t)),
+                  error = function(e) NULL)
+    if (is.null(v) || !all(is.finite(v))) NULL else v
+  }
+  deriv <- function(vals, q) {
+    e1 <- body_with(vals, q, 1e-6)
+    e0 <- body_with(vals, q, -1e-6)
+    if (is.null(e1) || is.null(e0) || length(e1) != length(e0)) return(NULL)
+    (e1 - e0) / 2e-6
+  }
+  # the 16-fold zone is read before rounding: rounded first, a location
+  # inside a logistic curve sized 12 became 16 and started at +-16, and 5 of
+  # 5 gamma fits of the review's logistic stayed 9.7 to 23.4 short, silent
+  zone <- function(m) {
+    if (!is.finite(m) || m <= 0 || abs(log2(m)) < 4) return(NA_real_)
+    2^round(log2(m))
+  }
+  ones <- rep(1, n)
+  d1 <- lapply(seq_len(n), function(q) deriv(ones, q))
+  key <- vapply(d1, function(d) {
+    r <- if (is.null(d)) NA_real_ else sqrt(mean(d^2))
+    if (is.finite(r) && r > 0) r else -Inf
+  }, 0)
+  curve <- vapply(d1, function(d) {
+    if (is.null(d)) return(NA_real_)
+    zone(3 / max(abs(d)))
+  }, 0)
+  s1 <- ifelse(is.na(curve), 1, curve)
+  # linear in the coefficient: its second difference is 0 at the sizes
+  linear <- vapply(seq_len(n), function(q) {
+    e <- lapply(c(0, 1, 2), function(k) body_with(s1, q, k * s1[q]))
+    if (any(vapply(e, is.null, NA))) return(FALSE)
+    d1q <- max(abs(e[[2L]] - e[[1L]]))
+    d1q > 0 &&
+      max(abs(e[[3L]] - 2 * e[[2L]] + e[[1L]])) <= 1e-6 * d1q
+  }, NA)
+  mag <- ifelse(linear, NA_real_, curve)
+  st <- ifelse(is.na(mag), 1, mag)
+  for (q in which(linear)) {
+    d <- deriv(st, q)
+    r <- if (is.null(d)) NA_real_ else sqrt(mean(d^2))
+    if (!is.finite(r) || r <= 0) next
+    mag[q] <- zone(2 * resp_u / r)
+    key[q] <- r
+  }
+  rbind(mag = mag, key = key, curve = as.numeric(!linear))
+}
+
+#' Optimize a fitted nonlinear model again from every sign pattern of its
+#' bodies' coefficients, on the fit's own objective, and return a full fit
+#' from the best point when that is higher than `fit`; else `NULL`.
+#'
+#' A body that is not affine in its coefficients can have more than one
+#' maximum, and a fit from the default start reaches the one its path
+#' finds. On 450 nonlinear rows (9 families, 5 bodies, 2 slopes, 5 seeds;
+#' dev/nlstart-scan.R) 16 defaults were short of the best of 8 random
+#' starts by 0.43 to 74.8, 11 of them with no warning: `b1 * (1 - exp(-b2
+#' * x))` under gaussian ran to its linear limit (b1 near 5e4), 70 below
+#' the maximum at b1 and b2 both negative, which no restart of
+#' nl_fit_off_saddle() tries; a bernoulli `b1 * exp(b2 * x)` stopped at
+#' the other sign of b2. Nothing in such a fit marks it, so the only test
+#' is to look. The patterns vary the coefficients a body does not read as
+#' an added term (nl_body_additive()), all of them up to four, else the four
+#' with the largest derivative (nl_sign_patterns()). Each coefficient starts
+#' at the size nl_probe_scale() reads from the body, or else at 1 over its
+#' column's half range, the rest of the model where the fit started. Each
+#' pattern runs the optimizer on the tape the fit already has, so it costs
+#' an optimization and no tape or standard error. Only a winner by more
+#' than nl_probe_gain() is fitted again from its point, by `run()`.
+#'
+#' Not run where a coefficient is outside the outer vector (a map, a
+#' profiled or whitened `beta`), under quadrature or importance
+#' sampling, with a custom optimizer or one asked to stop early
+#' (optctrl_stops_earlier()), when every coefficient is an added term
+#' (`a + b * x`, whose only maxima are the family's), or under
+#' `options(frmtmb.nl_sign_probe = FALSE)`.
+#'
+#' @noRd
+nl_sign_probe <- function(run, frame, fit) {
+  obj <- fit$obj
+  ctl <- fit$control
+  if (!isTRUE(getOption("frmtmb.nl_sign_probe", TRUE)) ||
+        is.null(obj) || is.null(fit$opt) || !is.finite(fit$opt$objective) ||
+        isTRUE(fit$quadrature) || !is.null(fit$importance) ||
+        !is.null(fit$beta_whiten) || isTRUE(ctl$profile) ||
+        is.function(ctl$optimizer) ||
+        !identical(ctl$optimizer %||% "nlminb", "nlminb") ||
+        optctrl_stops_earlier(ctl$optCtrl)) {
+    return(NULL)
+  }
+  pn <- names(obj$par)
+  nl_named <- unique(unlist(lapply(frame[["spec"]]$responses,
+                                   function(r) r$nlpars %||% character(0))))
+  if (any(unique(pn) %in% nl_named)) return(NULL)
+  est <- fit$estimates
+  lps <- frame[["linpreds"]]
+  at_obj <- integer(0)
+  width <- numeric(0)
+  mag_b <- numeric(0)
+  key <- numeric(0)
+  val <- numeric(0)
+  nm <- character(0)
+  for (lp in lps) {
+    if (is.null(lp[["nl_body"]])) next
+    bc <- nl_body_coefs(frame, lp)
+    if (!length(bc$coefs)) next
+    added <- nl_body_additive(frame, lp, est, bc$coefs)
+    probed <- list()
+    k <- 0L
+    for (par in names(bc$coefs)) {
+      pos <- which(pn == par)
+      if (length(pos) != length(frame[["par_template"]][[par]])) return(NULL)
+      for (at in bc$coefs[[par]]) {
+        k <- k + 1L
+        if (!added[k]) probed[[length(probed) + 1L]] <- list(par = par,
+                                                             at = at,
+                                                             j = pos[at])
+      }
+    }
+    if (!length(probed)) next
+    sc <- nl_probe_scale(frame, lp, est, probed)
+    for (i in seq_along(probed)) {
+      q <- probed[[i]]
+      hit <- match(q$j, at_obj)
+      # a coefficient two bodies read starts at the smaller size
+      if (!is.na(hit)) {
+        two <- c(mag_b[hit], sc["mag", i])
+        mag_b[hit] <- if (all(is.na(two))) NA_real_ else min(two, na.rm = TRUE)
+        key[hit] <- max(key[hit], sc["key", i])
+        next
+      }
+      w <- 1
+      for (qq in lps) {
+        col <- match(q$at, qq[["idx"]])
+        if (!identical(qq[["par"]], q$par) || is.na(col) ||
+              !is.null(qq[["nl_body"]])) next
+        r <- diff(range(as.matrix(qq[["X"]])[, col]))
+        if (is.finite(r) && r > 0) w <- max(1, r / 2)
+        break
+      }
+      at_obj <- c(at_obj, q$j)
+      width <- c(width, w)
+      mag_b <- c(mag_b, sc["mag", i])
+      key <- c(key, sc["key", i])
+      val <- c(val, est[[q$par]][q$at])
+      nm <- c(nm, paste(q$par, par_template_names(
+        frame[["par_template"]][[q$par]], q$par)[q$at]))
+    }
+  }
+  if (!length(at_obj)) return(NULL)
+  pu <- fit$par_units
+  u <- if (length(pu) == length(pn)) pu[at_obj] else rep(1, length(at_obj))
+  mag <- ifelse(is.na(mag_b), u / width, mag_b)
+  # with more than four, the four the body moves most by; a tie (terms that
+  # read one covariate alike) goes by the fitted values and then the name,
+  # not by the order of the formula, which changed 8 of 36 fits by up to
+  # 0.147 when the terms were reversed (short check, minor)
+  lead <- utils::head(order(-key, -mag, -abs(val), -val, nm), 4L)
+  pats <- nl_sign_patterns(length(at_obj), lead)
+  # the runs step a curve's coefficient in its start size, as the winner's
+  # refit does (nl_par_units(curve = TRUE)); the ratio of the two calls is
+  # that factor alone, everything the fit already scales staying as it was
+  pe <- if (!is.null(fit$prior) && NROW(fit$prior)) {
+    tryCatch(resolve_prior_input(list(frame = frame, spec = fit$spec),
+                                 fit$prior)$entries,
+             error = function(e) NULL)
+  }
+  cu <- nl_par_units(frame, est, pn, pu, pe, curve = TRUE) %||% 1
+  c0 <- nl_par_units(frame, est, pn, pu, pe, curve = FALSE) %||% 1
+  pu_run <- if (all(cu / c0 == 1)) pu else (pu %||% 1) * (cu / c0)
+  bounds <- fit_outer_box(fit)
+  saved <- obj_state_save(obj)
+  # a basis from nl_basis_descent() whitens the body's Jacobian at the
+  # first fit's stop; a pattern starts at other signs, where it does not
+  # hold, and with it no pattern won on rows the probe exists for
+  # (dev/rel080-nlrows.R). The runs step in the design's coordinates.
+  ob_fit <- obj$env$.frmtmb_opt_basis
+  if (isTRUE(ob_fit$nl)) {
+    obj$env$.frmtmb_opt_basis <- opt_basis(frame, obj, ctl$optimizer)
+  }
+  best <- fit$opt
+  for (s in pats) {
+    p <- obj$par
+    p[at_obj] <- s * mag
+    p <- pmin(pmax(p, bounds$lower), bounds$upper)
+    o <- tryCatch(suppressWarnings(optimize_obj(obj, ctl, bounds, pu_run,
+                                                start_par = p)),
+                  error = function(e) NULL)
+    if (!is.null(o) && is.finite(o$objective) &&
+          o$objective < best$objective) {
+      best <- o
+    }
+  }
+  obj$env$.frmtmb_opt_basis <- ob_fit
+  obj_settle(obj, fit$opt, fit$opt, saved)
+  gain <- fit$opt$objective - best$objective
+  if (!(gain > nl_probe_gain(fit$opt$objective))) return(NULL)
+  st <- list()
+  for (cp in unique(pn)) {
+    v <- est[[cp]]
+    pos <- seq_along(v)
+    if (cp == "betad" && length(frame[["betad_fixed_idx"]])) {
+      pos <- setdiff(pos, frame[["betad_fixed_idx"]])
+    }
+    v[pos] <- unname(best$par[pn == cp])
+    st[[cp]] <- unname(v)
+  }
+  # read by fit_assembled(): step the curves' coefficients as the run did
+  attr(st, "frmtmb_nl_probe") <- TRUE
+  held <- new.env(parent = emptyenv())
+  held$w <- list()
+  r <- tryCatch(
+    withCallingHandlers(suppressMessages(run(st, FALSE)),
+                        warning = function(w) {
+                          held$w[[length(held$w) + 1L]] <- w
+                          invokeRestart("muffleWarning")
+                        }),
+    error = function(e) NULL)
+  if (is.null(r)) return(NULL)
+  ll0 <- as.numeric(logLik_penalized(fit))
+  ll1 <- suppressWarnings(as.numeric(logLik_penalized(r)))
+  if (!is.finite(ll1) || !(ll1 - ll0 > nl_probe_gain(ll0))) {
+    return(NULL)
+  }
+  # did the refit settle where the pattern's run stopped, at code 0? A refit
+  # that warns says so itself; one that is silent and did not settle is
+  # told by nl_fit_probed(), so that a fit never comes back quieter than it
+  # is (short check 2, R3)
+  settled <- length(held$w) > 0L ||
+    (identical(as.integer(r$opt$convergence), 0L) &&
+       is.finite(r$opt$objective) &&
+       r$opt$objective <= best$objective + nl_probe_gain(best$objective))
+  list(fit = r, held = held$w, ll0 = ll0, ll1 = ll1, n = length(pats),
+       settled = settled, ll_tape = -best$objective)
+}
+
+#' The gain a probe's point needs over the first fit before frm() refits
+#' from it and says so: 0.01 log-likelihood units, or 1e-9 of the value
+#' when that is larger. On the 450 rows of dev/nlstart-scan.R every gain
+#' was 0.43 or more; on the review's 335 fresh rows three were 9.6e-4 to
+#' 2.0e-3, each a slide along a ridge to the linear limit that left the fit
+#' 3.0 to 11.2 short, which a refit and a message do not change.
+#'
+#' @noRd
+nl_probe_gain <- function(v) max(1e-2, 1e-9 * abs(v))
+
+#' `frm()`'s fit of a model with a nonlinear body: nl_fit_off_saddle(),
+#' then, from the default start only, nl_sign_probe(). What the first
+#' says is held, and said only if its fit is the one returned; a message
+#' about where the fit started stays true either way and is kept.
+#'
+#' @noRd
+nl_fit_probed <- function(run, frame, start, prior) {
+  held <- new.env(parent = emptyenv())
+  held$c <- list()
+  keep <- function(cnd) {
+    held$c[[length(held$c) + 1L]] <- cnd
+    if (inherits(cnd, "warning")) invokeRestart("muffleWarning")
+    invokeRestart("muffleMessage")
+  }
+  say <- function(cnds) {
+    for (cnd in cnds) {
+      if (inherits(cnd, "warning")) warning(cnd) else message(cnd)
+    }
+  }
+  fit <- tryCatch(
+    withCallingHandlers(nl_fit_off_saddle(run, frame, start, prior),
+                        warning = keep, message = keep),
+    error = function(e) {
+      say(held$c)
+      stop(e)
+    })
+  pr <- if (is.null(start)) nl_sign_probe(run, frame, fit)
+  if (is.null(pr)) {
+    say(held$c)
+    return(fit)
+  }
+  # what the first fit's stop was, or a restart it kept, is no longer the
+  # answer
+  say(Filter(function(cnd) {
+    !inherits(cnd, c("warning", "frmtmb_nl_local", "frmtmb_nl_restart"))
+  }, held$c))
+  ll <- nl_ll_pair(pr$ll0, pr$ll1)
+  # the values are what the fits maximized, which under a prior with a
+  # density is not logLik()
+  llw <- if (fit_penalized(pr$fit)) "penalized log-likelihood" else
+    "log-likelihood"
+  frm_message(
+    "The fit of the nonlinear model from its default start reached ",
+    llw, " ", ll[1L], ". Of ", pr$n, " starts with the signs of the ",
+    "body's coefficients varied, the best reached ", llw, " ", ll[2L],
+    ", optimizer return code ", format(pr$fit$opt$convergence), ", and frm() ",
+    "returns that fit. Give `start` to choose your own",
+    class = "frmtmb_nl_multistart")
+  say(pr$held)
+  if (!pr$settled) {
+    lt <- nl_ll_pair(pr$ll_tape, pr$ll1)
+    frm_warning(
+      "The refit from the best start pattern did not settle where that ",
+      "pattern's run stopped: it ended at ", llw, " ", lt[2L],
+      ", optimizer return code ", format(pr$fit$opt$convergence),
+      ", against ", lt[1L], " on the first fit's objective. The fit may ",
+      "not be at a maximum; a `start` near the estimates can test it",
+      call. = FALSE, class = "frmtmb_nl_multistart_unsettled")
+  }
+  pr$fit
 }
 
 #' Move a body the link cannot evaluate at its start to the response mean.

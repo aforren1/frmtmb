@@ -1,0 +1,6 @@
+frmtmb tests/testthat/test-compat-extensions.R
+frmtmb tests/testthat/test-compat-register.R
+frmtmb tests/testthat/test-compat.R
+frmtmb tests/testthat/test-prior-compat.R
+frmtmb tests/testthat/test-loglik-prior.R
+frmtmb tests/testthat/test-map.R

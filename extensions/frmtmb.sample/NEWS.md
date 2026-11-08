@@ -1,3 +1,18 @@
+# frmtmb.sample 0.27.0
+
+* `posterior_epred()`, `posterior_linpred()` and `posterior_predict()` with
+  `allow_new_levels = TRUE` answer at a `me(gr = )` level the fit did not
+  see: each draw takes the level's latent value from `normal(x, sdx)`, as
+  brms does. Before, they refused it, where `fitted()` and brms answered. A
+  new level of a group-level term stays refused. Needs frmtmb 0.80.0.
+
+* The package code does not use the global assignment operator `<<-`,
+  which rOpenSci's pkgcheck refuses. A closure that keeps state between
+  calls writes to an environment that it creates, and a condition
+  handler returns its value. The results do not change. The tmbstan
+  build check keeps its memo in `memo`, an environment in its enclosure,
+  and the test helper `with_tmbstan_hpp()` resets it there.
+
 # frmtmb.sample 0.26.0
 
 Needs frmtmb 0.79.0. The exact `gp()` field is non-centered in core, so the

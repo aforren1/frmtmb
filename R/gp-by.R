@@ -323,16 +323,17 @@ gp_theta_labels <- function(fit, v) {
 #' @noRd
 gp_brms_natural <- function(fit) {
   blocks <- fit$frame[["re_blocks"]]
-  out <- list(names = character(0), theta_pos = integer(0),
-              linkinv = list(), linkfun = list())
+  acc <- new.env(parent = emptyenv())
+  acc$out <- list(names = character(0), theta_pos = integer(0),
+                  linkinv = list(), linkfun = list())
   add <- function(nm, pos, div) {
-    out$names <<- c(out$names, nm)
-    out$theta_pos <<- c(out$theta_pos, pos)
-    out$linkinv[[length(out$linkinv) + 1L]] <<- local({
+    acc$out$names <- c(acc$out$names, nm)
+    acc$out$theta_pos <- c(acc$out$theta_pos, pos)
+    acc$out$linkinv[[length(acc$out$linkinv) + 1L]] <- local({
       d <- div
       function(x) exp(x) / d
     })
-    out$linkfun[[length(out$linkfun) + 1L]] <<- local({
+    acc$out$linkfun[[length(acc$out$linkfun) + 1L]] <- local({
       d <- div
       function(x) log(x * d)
     })
@@ -347,5 +348,5 @@ gp_brms_natural <- function(fit) {
       }
     }
   }
-  out
+  acc$out
 }

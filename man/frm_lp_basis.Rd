@@ -54,12 +54,22 @@ rank-deficient design could not identify.}
 covariance between rows of the variance in \code{extra_var}, whose
 diagonal it is, exactly. A sparse \code{\link[Matrix:Matrix]{Matrix::Matrix()}} when its
 blocks cover little of the grid (all zero when nothing
-contributes), a dense matrix otherwise. Beside a latent residual, \code{A} and
-\code{V} are dense, about \verb{16 n^2} bytes for \code{n} rows: 1 GB at 8000 rows.}
+contributes), a dense matrix otherwise.}
 }
 \code{var(eta)} is \code{rowSums((A \%*\% V) * A) + extra_var}, and
 \code{frm_linpred(se.fit = TRUE)} is written that way. The covariance of
 the whole prediction is \verb{A V A' + extra_cov}.
+
+Beside a latent residual (\code{ar()}, \code{ma()}, \code{arma()}, \code{cosy()} or \code{unstr()}
+on a family with no residual), \code{coef_pos} leaves out every column that no
+row of \code{A} loads: a latent, a level the rows do not name, a coefficient
+whose covariate is 0 on every row. Such a column adds nothing to \verb{A V A'}.
+A new row loads no latent, so \code{A} and \code{V} stay small. The
+fitted rows load every latent, and there \code{A} and \code{V} are dense, about
+\verb{16 n^2} bytes for \code{n} rows (1 GB at 8000 rows). A \code{V} of more than
+\code{getOption("frmtmb.latres_dense_rows", 20000)^2} numbers is refused.
+\code{frm_linpred(se.fit = TRUE)} reads the fitted rows from the sparse factor
+of the joint precision instead, at no such cost.
 
 Under a \code{cov = FALSE} autocorrelation term \code{eta} is the predictor without the
 term, as brms's \code{emmeans()} reads it (\code{incl_autocor = FALSE}), and

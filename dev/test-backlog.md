@@ -4661,6 +4661,199 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed at the 0.80.0 release (2026-11-06)
+
+Gathered from the lanes' own sections of the round of 2026-11-06,
+then the reviews' items left for later. Lane records:
+`dev/<lane>-findings.md`, reviews `dev/reviews/2026-11-06-<lane>.md`.
+
+### From lane ci
+
+- **`grad_headroom()` gives no usable headroom on three ordinal nl fits.**
+  In `test-nl-family.R`, the nl fits of `cumulative()`,
+  `hurdle_cumulative()` and `acat()` read a maximum gradient of 4.20e-4,
+  1.81e-4 and 1.41e-4 with headroom NA (wt-ci-lib, reference BLAS,
+  `dev/review-ci-nlhead.R`, log `dev/review-ci-nlhead.log`). The cause is
+  `b0`, which is not identified against the thresholds. With NA headroom
+  the gradient alone decides the warning, so each fit is a factor of 2.4,
+  5.5 or 7 from the `grad_tol` of 1e-3. On ubuntu, hurdle_negbinomial's
+  gradient moved by a factor of 4.1 (4.89e-4 here, 0.00201 there) and
+  warned. The "Large maximum absolute gradient" warning is not in the
+  file's allowed list, so on such a platform it would escape as a WARN
+  and fail nothing. The review's suggested fix is in `grad_headroom()`,
+  not in the test: measure the headroom off the exact alias. Not fixed
+  by lane ci (`dev/reviews/2026-11-06-ci.md`, minor 1).
+
+### From lane latperf
+
+- **A latent residual beside many levels on `hu` or `zi`: `fitted()` costs
+  about levels x rows.** The pairs (latent of `mu`, level of the gate) are
+  outside the pattern of the factor of `Q_rr`, and each level costs one
+  column of `W`. One poisson series, `ar(cov = TRUE)` on `mu`, 32000 rows:
+  3.5 s at 500 levels, 6.8 s at 4000, 24.1 s at 16000 (3.25 s at 50). Route
+  suggested by the review: add the pairs the rows load to `Q_rr` as
+  structural zeros before factoring, so they are in the pattern and the
+  selected inverse holds them. Record: `dev/latperf-findings.md`, "Fix
+  round".
+
+### From lane fitedge
+
+- **An exact `gp()` in a body multiplicative in the field's parameter stops
+  short with no warning.** `a * exp(b * z)` with `a ~ gp(x)`: 12 fresh rows,
+  4 short on 0.79.1 and 3 on the lane, worst -44.10 on both (E wig n 120
+  seed 1: 29.30 against 73.40), conv 0, no warning. The logistic body
+  `a / (1 + exp(-b * (z - c)))`: 2 of 12 short, worst -14.72, both builds.
+  `a * exp(b * z)` with `b ~ gp(x)`: 1 of 12, -5.24. The body start
+  (`gp_body_start()`) linearizes at the template's zeros, where the field's
+  scale `J_a` is not the fit's. Designs: `dev/review-fitedge-designs.R`,
+  `set.seed(52000 + 100 seed + n + 10 design + curve)`.
+- **`frmtmb_latres_laplace` is decided by rounding.** On 3 of 21 pairs of an
+  unread `mi()` response and its weight-0 spelling, it fires on one spelling
+  and not the other, every estimate equal to 7 digits (lognormal `ar(t, g)`
+  seed 1, Gamma `ma(cov = TRUE)` seed 3, weibull `ar(cov = TRUE)` seed 3;
+  `dev/review-fitedge-mi.R`, `set.seed(73000 + seed)`).
+- **`frmtmb_latres_laplace` fires on lognormal, where Laplace is exact.**
+  `y | mi() ~ x + ar(t, g, cov = TRUE)` and its weight-0 spelling, seeds
+  40401, 40403, 40405 (`dev/fitedge-mi-latres.R`): "no curvature to read its
+  first-order correction" and "moves log(sderr) or ar[1] by 0.4". The
+  correction differences `h3`, `h4` that are 0 in exact arithmetic, against a
+  covariance near singular where sigma and sderr trade off.
+- **skew_normal with three bodies (mu, sigma, alpha) stops 68 to 86 nats
+  short on 3 of 16 rows**, with a false-convergence warning, on 0.79.1 and the
+  lane alike; 2 more are 1.2 nats short with only a standard-error warning
+  (`dev/review-fitedge-nl.R tri`, `gen(seed * 100 + 7, slope)`, seeds 1 to 4,
+  slopes +-0.6).
+
+### From lane nlstart
+
+- **`y ~ x` at y about 1e6 with a `normal(0, 1000)` prior on the slope
+  takes the lower of two posterior modes**: -2932.63 against -2462.96 for
+  the body spelling `a + b * x` with the same priors, on seeds 6201 to
+  6203 and on both rellib-r18 and the lane's build. Not fixed: the linear
+  spelling has no restart. `dev/reviews/2026-11-06-nlstart.md`, "Filed,
+  not this lane's"; `dev/review-nlstart-prior.R`, rows `apbx 1e6 1000`.
+- **Profile intervals at x near 1e-20 are `NA`** on the linear and body
+  spellings and on both builds (same review).
+
+### From lane bigx
+
+- **A bound on class `Intercept` holds the natural intercept; brms and
+  frmtmb's own priors read the centered one.** Present on 0.79.1 and on
+  the lane build. `x = z + 10`, `set_prior(..., class = "Intercept", lb =
+  3)`: frmtmb holds the natural intercept at 3.0000 and the slope falls
+  to 0.1985 from lm()'s 0.4100. brms 2.23.0 declares `real<lower=3>
+  Intercept; // temporary intercept for centered predictors`, where the
+  bound binds nothing; a normal prior on `Intercept` is on the centered
+  intercept in frmtmb too, so the prior and its bound read different
+  parameters (dev/reviews/2026-11-06-bigx.md, short check, B1,
+  `dev/review-bigx-fx-brms.log`). A brms parity defect. Fixing it also
+  removes the case in which a bounded intercept keeps an ill-conditioned
+  design in natural coordinates (`opt_coords()`, warning class
+  `frmtmb_ill_design`): with `lb = -1e7`, which binds neither intercept,
+  poisson `y ~ (x + 1e6) + (1 | g)` is still 6.3 to 7.6 standard errors
+  off and 19.6 to 30.9 short, now warned. Not fixed in this round.
+- **"False convergence (8)" at the maximum: a classed message, not a
+  warning, where the fit is known to be at it.** The review of lane
+  bigx (dev/reviews/2026-11-06-bigx.md, confirmation) recommends: when
+  nlminb stops at code 8, warn only unless the Hessian is usable, every
+  standard error is finite and the Newton gain from the stop is below
+  1e-5; then give a message of its own class (for example
+  `frmtmb_converged_at_max`), and keep the warning whenever the
+  curvature is unusable. Its battery (products and powers of shifted
+  columns at 1e4 to 1e6, seeds 41 to 45; `y ~ w` at 1e7 to 1e9,
+  gaussian and poisson, seeds 901 to 910; the raw polynomials): 29 of
+  90 fits stopped at code 8, all at the maximum (4.3e-8 below to 2.3e-5
+  above the centered fit), none with another warning, Newton gains
+  from 2.0e-9 to 9.9e-6. A bound of 1e-6 would still warn on at least 3
+  correct fits; 1e-5 on none. Every short stop in that review's
+  batteries carried a gradient or Newton warning, not the code-8 text
+  alone. A separate change: it touches every code-8 fit (19 core test
+  files name "false convergence"), and needs a battery with a short
+  code-8 stop to show the gain test still catches it.
+
+### From the reviews, filed at the release
+
+- **NIT. `design_center()` centers `0 + w1 * w2` at offsets of 1e5 and
+  1e6**, a design that does not span the constant, because its absolute
+  tolerance (1e-8 per row on the raw columns) counts the constant as in
+  that span. The rank decision and the fit are right on all 6 fits
+  (seeds 1 to 3, against `lm()`; release review of 0.80.0, short check).
+- **MINOR. A nonlinear fit that ends on a ridge to a linear limit can read
+  finite standard errors in the body's Jacobian basis, and then nothing
+  says it is not a maximum.** binomial `Vm * xp / (K + xp)` (review of
+  lane nlstart, fresh row mm 22) slid from K 9.8e7 to 1.1e8 and lost the
+  standard-error warning (release review of 0.80.0, item 1). The refit of
+  a saddle restart does the same: bernoulli `sig4` seed 55 of the review's
+  fresh2 rows reads -189.696351, 2.8e-4 below the best start, silent, where
+  0.79.1 warned of its gradient (release review, short check). 0.80.0 keeps
+  the second descent off the refit of a sign probe's winner; a ridge test
+  that does not go through the standard errors would close the rest.
+- **MINOR. Products and powers of columns shifted by 1e6 under an ordinal
+  family stop 8.6 to 28.6 short, with warnings** (release review of
+  0.80.0, item 2): the thresholds take the intercept's place, so the
+  centered rank test and the capped warning do not reach the design.
+- **NIT. `nl_local_message()` reads `stats::logLik()`**, which stops under
+  REML with a prior on the fixed effects. It is unreachable under any
+  prior (release review of 0.80.0, item 9).
+- **UPSTREAM, for the user. Ask TMB upstream to export `solveSubset()`
+  and a tape-size accessor (`info()`); user will raise it later.** 0.80.0
+  keeps both reads: `solveSubset()` through `get0()` with a correct
+  fallback (latent residuals' selected inverse), `info()` through
+  `getFromNamespace()` (nested quadrature's memory guard). Nothing is
+  posted.
+- **MINOR. A binding `uniform(0, 0.2)` on a slope with no `lb`/`ub` fails
+  with "NA/NaN gradient evaluation"**, on 0.79.1 and on 0.80.0 alike.
+  With `lb = 0, ub = 0.2` the fit holds the slope at 0.2. brms would want
+  the bounds; frmtmb could set them from the uniform's support
+  (dev/reviews/2026-11-06-loglik.md, short check, item 2;
+  `dev/review-loglik-unifbase.R`).
+- **MINOR. A switch in `frmtmb_control()` for the nonlinear sign probe.**
+  0.80.0 has `options(frmtmb.nl_sign_probe = FALSE)` only; a control entry
+  would travel with the fit (nlstart decision, brief of the 0.80.0
+  release).
+- **MINOR, cost. `pbeta()` may be cheaper than the summed CDF** for the
+  binomial and negative binomial OSA residuals on the tape. Default OSA on
+  a 2000-row poisson `(1 | g)` fit took 41.9 s (dev/reviews/2026-11-06-osa.md,
+  short check, item 2).
+- **MINOR. Fractional weights on a continuous response give `NA`.** The
+  one-step CDF of a fresh copy of the row is defined there (`U = 0`) and
+  could be returned; for a count `NA` stays right (osa review, item 8).
+- **MINOR. Nested quadrature: an unsettled fit can carry a
+  log-likelihood error of a few 1e-2** (1.7e-2 near separation, 6.2e-2 on
+  70 of 72 ones). The lane then made the warning give the rule's own
+  error (0.043 on the near-separable design, against 1.7e-2 measured),
+  calibrated binomial, lognormal, von_mises and beta_binomial (predicted
+  over measured memory 1.22 to 1.61 over 20 families) and refused
+  `profile(fit)` with no `parm` by class, after the short check
+  (dev/nestquad-findings.md, "Fix round 2"; not reviewed). What remains:
+  the error itself (dev/reviews/2026-11-06-nestquad.md, remaining items).
+- **MINOR. `fitted()` under a draw on a periodic body:** `y ~ sin(a)^2 + c`
+  at `a = 0` with a draw sd of `10 pi` read 0.509 against 1.009, silent,
+  on the reviewed build (dev/reviews/2026-11-06-readers.md, confirmation).
+  The lane then stepped at irrational multiples (unreviewed); on 0.80.0
+  the row reads 0.8826 under `frmtmb_mean_unsettled`. The rule cannot
+  integrate `cos(20 pi z)`. Q1 of that review
+  stays for the user: the 11-node value under `frmtmb_mean_not_finite`
+  reads 222685 on a lognormal mixture at link sd 0.555, where
+  brms-style draws read about 2.5.
+- **MINOR. A probe win can return a quieter lower maximum:** bernoulli
+  Michaelis-Menten seed 55, 1.84 short at code 0, silent, where 0.79.1
+  was 2.29 short with 2 warnings; NEWS says so
+  (dev/reviews/2026-11-06-nlstart.md, third short check, MINOR 1).
+- **QUESTION. A user `vcov =` over the coefficients alone holds the
+  group-level effects fixed, with a warning** (decided for 0.80.0). The
+  alternative is to carry it through `J` with the model's own
+  variance-parameter block (dev/reviews/2026-11-06-mfxse.md, m3).
+- **QUESTION. Pooled D1 under a prior** runs as a Wald test at the MAP; its
+  nominal size is not guaranteed (statistic 1.125 against 2.084 without
+  the prior, seed 702). Kept with a caveat for 0.80.0
+  (dev/reviews/2026-11-06-loglik.md, short check, remaining).
+- **MINOR, CI. stan-next has a 150-minute job limit with a 120-minute
+  step limit**, so a wedged identity tier after a slow setup cancels the
+  job and skips the gp and methods tiers (dev/reviews/2026-11-06-ci.md,
+  fix round, MINOR 1). A cold identity tier that hits its limit saves no
+  compiles (same review, NIT).
+
 ## Filed at the 0.79.1 release (2026-11-05)
 
 - **`residuals(type = "osa")` on `binomial()` reads NaN with no warning.** 11 of

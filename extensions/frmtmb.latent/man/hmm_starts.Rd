@@ -43,7 +43,10 @@ row per start: \code{logLik}, \code{grad_rel}, \code{status}, \code{seconds}, an
 that does not move with the machine's load), \verb{$spread} and
 \verb{$spread_all} (\code{NA} when only one fit is in the set, since a
 comparison that was never made is not a spread of zero), \verb{$modes},
-\verb{$mode_tol} (the one threshold above), and the counts.
+\verb{$mode_tol} (the one threshold above), and the counts. Each
+\code{logLik} is the value the refit maximized,
+\code{\link[frmtmb:logLik_penalized]{frmtmb::logLik_penalized()}}: under a prior that holds the log
+prior, and without one it is \code{logLik()}.
 }
 \description{
 A hidden Markov likelihood has more than one mode, and no convergence

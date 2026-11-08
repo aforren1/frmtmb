@@ -1,6 +1,6 @@
 Package: frmtmb
 Title: Formula-Based Regression Models via 'RTMB'
-Version: 0.79.1
+Version: 0.80.0
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),
@@ -83,5 +83,5 @@ Suggests:
     withr
 VignetteBuilder: knitr
 Config/testthat/edition: 3
-Config/roxygen2/version: 8.1.0
+Config/roxygen2/version: 8.1.1
 Config/Needs/website: pkgdown

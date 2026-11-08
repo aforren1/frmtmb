@@ -106,6 +106,7 @@ reference:
   - plot.frmtmb_fit
   - pp_check.frmtmb_fit
   - anova.frmtmb_fit
+  - logLik_penalized
   - anova.frmtmb_multiple
   - drop1.frmtmb_fit
   - as_draws

@@ -29,16 +29,23 @@ gp_marginal_gate <- function(frame) {
   resp <- spec$responses[[1L]]
   fam <- resp$family
   if (!identical(fam[["family"]], "gaussian")) return(NULL)
-  if (length(resp$nlpars) || length(frame[["autocor"]]) ||
+  ar <- gp_marginal_ar(frame)
+  if (length(resp$nlpars) || isFALSE(ar) ||
         length(frame[["me"]]$terms) || length(frame[["extra_names"]])) {
     return(NULL)
   }
   fixed <- length(frame[["betad_fixed_idx"]]) > 0L
   if (length(setdiff(names(frame[["map"]]), if (fixed) "betad"))) return(NULL)
   tpl <- frame[["par_template"]]
-  if (!all(names(tpl) %in% c("beta", "betad", "b", "theta"))) return(NULL)
+  if (!all(names(tpl) %in% c("beta", "betad", "b", "theta",
+                             if (!is.null(ar)) "thetaac"))) {
+    return(NULL)
+  }
   aterms <- frame[["aterm_values"]][[1L]]
   if (!all(names(aterms) %in% c("se", "se_sigma", "weights"))) return(NULL)
+  # the AR transform below mixes rows, so a row's own se or weight would
+  # no longer sit on its own diagonal entry
+  if (!is.null(ar) && length(aterms)) return(NULL)
   ok <- vapply(frame[["re_blocks"]], function(bk) {
     bk[["covstruct"]] %in% gp_marginal_blocks
   }, NA)
@@ -55,6 +62,7 @@ gp_marginal_gate <- function(frame) {
   p <- length(mu[["idx"]])
   if (p != NCOL(mu[["X"]]) || p != length(tpl[["beta"]])) return(NULL)
   has_sigma <- FALSE
+  sigc <- NULL
   if (length(sg) && !fixed) {
     sg <- sg[[1L]]
     if (NCOL(sg[["X"]]) != 1L || length(tpl[["betad"]]) != 1L ||
@@ -62,8 +70,45 @@ gp_marginal_gate <- function(frame) {
       return(NULL)
     }
     has_sigma <- TRUE
+  } else if (length(sg)) {
+    # a constant sigma is a known noise. Read as none, the marginal at
+    # sigma = 0.3 stood 1.6e12 from the objective, and its maximum was
+    # the start and the convergence proof (dev/arstep-findings.md)
+    sigc <- as.numeric(sg[[1L]][["constant"]])
+    if (!is.null(aterms[["se"]]) && !isTRUE(aterms[["se_sigma"]])) {
+      sigc <- NULL
+    } else if (!length(sigc) || !all(is.finite(sigc) & sigc > 0)) {
+      return(NULL)
+    }
   }
-  list(mu = mu, has_sigma = has_sigma, aterms = aterms)
+  # the AR marginal reads a free sigma only
+  if (!is.null(ar) && !has_sigma) return(NULL)
+  list(mu = mu, has_sigma = has_sigma, aterms = aterms, sigc = sigc)
+}
+
+#' The response's residual term when the marginal reads it exactly: brms's
+#' `cov = FALSE` pure AR, `ar(p = )`. `NULL` for no residual term, `FALSE` for
+#' one it does not read.
+#'
+#' That form shifts each row's mean by `sum_k ar_k (y - mu)` at lag `k` in its
+#' group, zero before the group's first row, so `A (y - mu)` is white noise
+#' with `A` unit lower triangular in time order: `det(A) = 1`, and `A (y - X
+#' beta)` is normal with covariance `A V A' + sigma^2 I`. Left to the working
+#' response, the field took a step `ar()` reaches as a unit root and stopped
+#' 25.9 nats short at conv 0 (dev/arstep-findings.md).
+#'
+#' @noRd
+gp_marginal_ar <- function(frame) {
+  acs <- frame[["autocor"]] %||% list()
+  if (!length(acs)) return(NULL)
+  if (length(acs) != 1L) return(FALSE)
+  ac <- acs[[1L]]
+  if (autocor_is_seam(ac) || !autocor_is_cond(ac) ||
+        !identical(ac[["struct"]], "ar") || !identical(ac[["q"]], 0L) ||
+        length(ac[["lag_idx"]]) != ac[["p"]]) {
+    return(FALSE)
+  }
+  ac
 }
 
 #' The model's marginal over the distinct rows of the random design.
@@ -76,7 +121,7 @@ gp_marginal_gate <- function(frame) {
 #' the tape; `noise` is sigma^2 plus the row's `se^2` handled inside.
 #'
 #' @noRd
-gp_marginal_setup <- function(frame) {
+gp_marginal_setup <- function(frame, max_rows = gp_marginal_max_rows) {
   g <- gp_marginal_gate(frame)
   if (is.null(g)) return(NULL)
   mu <- g$mu
@@ -89,15 +134,23 @@ gp_marginal_setup <- function(frame) {
   se2 <- if (is.null(se2)) rep(0, n) else as.numeric(se2)^2
   w <- g$aterms[["weights"]]
   w <- if (is.null(w)) rep(1, n) else as.numeric(w)
+  # se() alone replaces sigma, and se(sigma = TRUE) adds it (resid_sd()):
+  # the gate keeps sigc only for the second
+  if (!is.null(g$sigc)) se2 <- se2 + rep_len(g$sigc, n)^2 / w
   gp_marginal_data(y, X, Z, frame[["re_blocks"]], se2, w, g$has_sigma,
-                   mu[["idx"]], frame)
+                   mu[["idx"]], frame, max_rows)
 }
 
 #' The marginal's sufficient statistics and blocks from `y`, `X`, `Z`.
 #'
 #' @noRd
-gp_marginal_data <- function(y, X, Z, re_blocks, se2, w, has_sigma, idx, frame) {
+gp_marginal_data <- function(y, X, Z, re_blocks, se2, w, has_sigma, idx, frame,
+                             max_rows = gp_marginal_max_rows) {
   n <- length(y)
+  # gp_marginal_gate() has refused every residual term the marginal does not
+  # read; a working response's frame has none
+  ar <- gp_marginal_ar(frame)
+  if (isFALSE(ar)) ar <- NULL
   # a fixed vector, not a draw, so a fit leaves the RNG alone; two rows of Z
   # read one number only when they are the same row
   if (all(se2 == se2[1L]) && all(w == w[1L])) {
@@ -107,7 +160,9 @@ gp_marginal_data <- function(y, X, Z, re_blocks, se2, w, has_sigma, idx, frame) 
     J <- seq_len(n)
   }
   u <- max(J)
-  if (u > gp_marginal_max_rows) return(NULL)
+  if (u > max_rows) return(NULL)
+  ard <- if (!is.null(ar)) gp_ar_data(ar, J, u, y, X)
+  if (!is.null(ar) && is.null(ard)) return(NULL)
   first <- match(seq_len(u), J)
   nj <- tabulate(J, u)
   ybar <- rowsum(y, J, reorder = TRUE)[, 1L] / nj
@@ -136,7 +191,209 @@ gp_marginal_data <- function(y, X, Z, re_blocks, se2, w, has_sigma, idx, frame) 
   list(y = ybar, X = Xbar, n = n, u = u, nj = nj, w = w[first],
        se2 = se2[first], ywyw = sum(yw^2), Xwyw = crossprod(Xw, yw),
        XwXw = crossprod(Xw), logn = sum(log(nj)), blocks = blocks,
-       has_sigma = has_sigma, idx = idx, frame = frame)
+       has_sigma = has_sigma, idx = idx, frame = frame,
+       ar = ard)
+}
+
+#' What the AR marginal needs, on numbers. The field lives on the `u`
+#' distinct rows of the random design (`J` maps rows to them); the AR term
+#' mixes rows, so it is carried by its lags: for lag `k`, the row `k` earlier
+#' in the group, or `n + 1` where there is none. `D` is `(y, X)` by row.
+#'
+#' Where every row is its own position the marginal works on the rows
+#' (`direct`). Where rows repeat positions, a panel, it works on the
+#' positions: `P' A' A P`, `P' A' A D` and `D' A' A D` are quadratic in the AR
+#' coefficients, so their pieces `(L_j P)' (L_k P)` and the like, over lags
+#' `j, k` with lag 0 the row itself, are summed once here and combined at each
+#' coefficient in `u x u`. Factoring the rows cost 180 s on 1000 rows of 40
+#' positions, where the working start took 0.4 s (dev/arstep-findings.md).
+#'
+#' @noRd
+gp_ar_data <- function(ar, J, u, y, X) {
+  n <- length(J)
+  D <- cbind(y, X)
+  out <- list(p = ar[["p"]], idx = ar[["theta_idx"]], lag = ar[["lag_idx"]],
+              J = J, D = D, direct = u == n && identical(J, seq_len(n)))
+  if (out$direct) return(out)
+  rows <- c(list(seq_len(n)), ar[["lag_idx"]])
+  Dpad <- rbind(D, 0)
+  Pj <- lapply(rows, function(r) {
+    ok <- which(r <= n)
+    Matrix::sparseMatrix(i = ok, j = J[r[ok]], x = 1, dims = c(n, u))
+  })
+  Dj <- lapply(rows, function(r) Dpad[r, , drop = FALSE])
+  k1 <- seq_along(rows)
+  pair <- function(f) lapply(k1, function(j) lapply(k1, function(k) f(j, k)))
+  out$PP <- pair(function(j, k) as.matrix(Matrix::crossprod(Pj[[j]], Pj[[k]])))
+  out$PD <- pair(function(j, k) as.matrix(Matrix::crossprod(Pj[[j]], Dj[[k]])))
+  out$DD <- pair(function(j, k) crossprod(Dj[[j]], Dj[[k]]))
+  out
+}
+
+#' `A M` for the AR term's `A = I - sum_k ar_k L_k` and a matrix `M` of rows.
+#'
+#' @noRd
+gp_ar_left <- function(M, a, phi) {
+  out <- M
+  pad <- rbind(M, 0)
+  for (k in seq_len(a$p)) out <- out - phi[k] * pad[a$lag[[k]], , drop = FALSE]
+  out
+}
+
+#' The AR marginal's pieces at one set of AR coefficients. On rows, `A D`. On
+#' positions, the factor `R` of `G = P' A' A P` (positive definite: `A P` has
+#' full column rank), `K = R'^-1 P' A' A D`, `A D`'s part in the span of `A P`,
+#' and `Wd = D' A' A D - K' K`, its part outside, `NULL` where `G` does not
+#' factor (far past a unit root).
+#'
+#' @noRd
+gp_ar_proj <- function(s, phi) {
+  a <- s$ar
+  if (a$direct) return(list(AD = gp_ar_left(a$D, a, phi), phi = phi))
+  w <- c(1, -phi)
+  comb <- function(L) {
+    out <- 0
+    for (j in seq_along(w)) for (k in seq_along(w)) {
+      out <- out + w[j] * w[k] * L[[j]][[k]]
+    }
+    out
+  }
+  G <- comb(a$PP)
+  R <- tryCatch(chol(0.5 * (G + t(G))), error = function(e) NULL)
+  if (is.null(R)) return(gp_ar_proj_qr(s, phi))
+  K <- backsolve(R, comb(a$PD), transpose = TRUE)
+  Wd <- comb(a$DD) - crossprod(K)
+  list(R = R, K = K, Wd = 0.5 * (Wd + t(Wd)))
+}
+
+#' gp_ar_proj() by a QR of `A P` on the rows, where `G` squares a condition
+#' number past what a Cholesky factor takes: past a unit root the columns of
+#' `A` shrink like `ar^-T` over a series of length `T`.
+#'
+#' @noRd
+gp_ar_proj_qr <- function(s, phi) {
+  a <- s$ar
+  n <- length(a$J)
+  P <- matrix(0, n, s$u)
+  P[cbind(seq_len(n), a$J)] <- 1
+  AD <- gp_ar_left(a$D, a, phi)
+  # no tolerance for rank, which a relative one would misread there; and R's
+  # columns must stay in the order of V's
+  q <- qr(gp_ar_left(P, a, phi), tol = 0)
+  if (q$rank < s$u || !identical(q$pivot, seq_len(s$u))) return(NULL)
+  list(K = qr.qty(q, AD)[seq_len(s$u), , drop = FALSE],
+       Wd = crossprod(qr.resid(q, AD)), R = qr.R(q))
+}
+
+#' The quadratic forms and log determinant of `A (D c)` under the covariance
+#' `A P V P' A' + r I`: `Psi` with `c' Psi c` the quadratic form for any
+#' coefficients `c` of `D`'s columns. With `W = A P L`, `L L' = V`, and `M = r
+#' I + R V R'`: `Psi = Wd / r + K' M^-1 K` and `log det = (n - u) log r + log
+#' det M`, so only `u x u` is factored. On rows, `M = A V A' + r I` itself.
+#'
+#' @noRd
+gp_ar_core <- function(s, V, r, pr) {
+  if (is.null(pr)) return(NULL)
+  a <- s$ar
+  if (a$direct) {
+    M <- t(gp_ar_left(t(gp_ar_left(V, a, pr$phi)), a, pr$phi))
+    K <- pr$AD
+  } else {
+    M <- pr$R %*% V %*% t(pr$R)
+    K <- pr$K
+  }
+  M <- 0.5 * (M + t(M))
+  diag(M) <- diag(M) + r
+  Rm <- tryCatch(chol(M), error = function(e) NULL)
+  if (is.null(Rm)) return(NULL)
+  Psi <- crossprod(backsolve(Rm, K, transpose = TRUE))
+  n <- length(a$J)
+  ldet <- 2 * sum(log(diag(Rm)))
+  if (!a$direct) {
+    Psi <- Psi + pr$Wd / r
+    ldet <- ldet + (n - s$u) * log(r)
+  }
+  list(Psi = Psi, ldet = ldet, n = n)
+}
+
+#' The AR marginal at one cell, with `beta` by generalized least squares and
+#' the common scale in closed form, as gp_marginal_cell().
+#'
+#' @noRd
+gp_ar_cell <- function(s, theta, lr, pr) {
+  co <- gp_ar_core(s, gp_marginal_cov(s, theta), exp(lr), pr)
+  if (is.null(co)) return(list(value = Inf))
+  Psi <- co$Psi
+  p <- ncol(Psi) - 1L
+  if (p) {
+    beta <- tryCatch(solve(Psi[-1L, -1L, drop = FALSE], Psi[-1L, 1L]),
+                     error = function(e) NULL)
+    if (is.null(beta) || !all(is.finite(beta))) return(list(value = Inf))
+  } else beta <- numeric(0)
+  cvec <- c(1, -beta)
+  s2 <- sum(cvec * (Psi %*% cvec)) / co$n
+  if (!isTRUE(s2 > 0)) return(list(value = Inf))
+  list(value = 0.5 * (co$n * log(2 * pi * s2) + co$ldet + co$n),
+       beta = drop(beta), s = sqrt(s2))
+}
+
+#' The AR marginal's negative log density at a full point, on numbers, with
+#' the same constant as the fit's objective.
+#'
+#' @noRd
+gp_ar_nll <- function(s, p) {
+  sig2 <- exp(2 * as.numeric(p$betad))
+  co <- gp_ar_core(s, gp_marginal_cov(s, p$theta), sig2,
+                   gp_ar_proj(s, p$thetaac[s$ar$idx]))
+  if (is.null(co)) return(Inf)
+  cvec <- c(1, -as.numeric(p$beta))
+  quad <- sum(cvec * (co$Psi %*% cvec))
+  0.5 * (co$n * log(2 * pi) + co$ldet + quad)
+}
+
+#' A descent on the AR marginal from one cell, on numbers: the free length
+#' scales and sds relative to the first exact gp()'s, the noise ratio and the
+#' AR coefficients, with `beta` and the common scale in closed form.
+#'
+#' @noRd
+gp_ar_descend <- function(s, cc) {
+  frame <- s$frame
+  blocks <- frame[["re_blocks"]]
+  sds <- unlist(lapply(blocks, function(bk) {
+    si <- cs_entry(bk[["covstruct"]])[["sd_idx"]]
+    bk[["theta_idx"]][if (is.function(si)) si(bk) else si]
+  }))
+  i0 <- blocks[[which(vapply(blocks, function(b) {
+    identical(b[["covstruct"]], "gp")
+  }, NA))[1L]]][["theta_idx"]][1L]
+  th0 <- gp_marginal_theta(frame, 0, cc$rho)
+  free <- setdiff(seq_along(th0), i0)
+  np <- length(cc$phi)
+  f <- function(q) {
+    th <- th0
+    th[free] <- q[seq_along(free)]
+    phi <- q[length(free) + 1L + seq_len(np)]
+    v <- gp_ar_cell(s, th, q[length(free) + 1L], gp_ar_proj(s, phi))$value
+    if (is.finite(v)) v else 1e300
+  }
+  q0 <- c(th0[free], cc$lr, cc$phi)
+  o <- tryCatch(suppressWarnings(stats::nlminb(
+    q0, f, control = list(iter.max = 300L, eval.max = 600L, rel.tol = 1e-12))),
+    error = function(e) NULL)
+  if (is.null(o) || !is.finite(o$objective) || o$objective >= 1e300) {
+    return(NULL)
+  }
+  th <- th0
+  th[free] <- o$par[seq_along(free)]
+  lr <- o$par[length(free) + 1L]
+  phi <- o$par[length(free) + 1L + seq_len(np)]
+  cv <- gp_ar_cell(s, th, lr, gp_ar_proj(s, phi))
+  if (!is.finite(cv$value)) return(NULL)
+  th[sds] <- th[sds] + log(cv$s)
+  tac <- frame[["par_template"]][["thetaac"]]
+  tac[s$ar$idx] <- phi
+  list(value = cv$value, beta = as.numeric(cv$beta), theta = th,
+       betad = array(log(cv$s) + lr / 2), thetaac = as.numeric(tac))
 }
 
 #' The field and random-effect part of the marginal covariance of the means.
@@ -167,15 +424,17 @@ gp_marginal_cov <- function(s, theta) {
 
 #' The marginal's negative log density, on the tape. Same constant as the fit's
 #' objective, so the two read one number at one point on a gaussian response.
+#' With an AR term, on numbers only (gp_ar_nll()).
 #'
 #' @noRd
 gp_marginal_nll <- function(s) {
   function(p) {
     "[<-" <- RTMB::ADoverload("[<-")
+    if (!is.null(s$ar)) return(gp_ar_nll(s, p))
     sig2 <- if (s$has_sigma) exp(2 * p$betad) else 0
     noise <- (sig2 / s$w + s$se2) / s$nj
-    V <- gp_marginal_cov(s, p$theta) + RTMB::diag(noise, s$u)
     e <- if (ncol(s$X)) s$y - as.vector(s$X %*% p$beta) else s$y
+    V <- gp_marginal_cov(s, p$theta) + RTMB::diag(noise, s$u)
     out <- -sum(RTMB::dmvnorm(e, 0, V, log = TRUE))
     if (s$n > s$u) {
       within <- s$ywyw
@@ -201,18 +460,21 @@ gp_marginal_nll <- function(s) {
 #'
 #' @noRd
 gp_marginal_cell <- function(s, theta, lr, s0 = NULL) {
+  if (!is.null(s$ar)) return(gp_ar_cell(s, theta, lr, s$pr))
   r <- exp(lr)
   known <- !is.null(s0)
   Cb <- gp_marginal_cov(s, theta)
+  y <- s$y
+  X <- s$X
   den <- if (!known) r / s$w else
     (if (s$has_sigma) r * s0^2 else 0) / s$w + s$se2
   V <- (if (known) s0^2 * Cb else Cb)
   diag(V) <- diag(V) + den / s$nj
   R <- tryCatch(chol(V), error = function(e) NULL)
   if (is.null(R)) return(list(value = Inf))
-  wy <- backsolve(R, s$y, transpose = TRUE)
-  p <- ncol(s$X)
-  wX <- if (p) backsolve(R, s$X, transpose = TRUE) else matrix(0, s$u, 0L)
+  wy <- backsolve(R, y, transpose = TRUE)
+  p <- ncol(X)
+  wX <- if (p) backsolve(R, X, transpose = TRUE) else matrix(0, s$u, 0L)
   den1 <- den[1L]
   has_within <- s$n > s$u
   XtX <- crossprod(wX) + (if (has_within) s$XwXw / den1 else 0)
@@ -291,6 +553,13 @@ gp_marginal_opt <- function(s, keep = 3L, distinct = 4L) {
   sy <- sqrt(sum(s$nj * res^2) / s$n)
   if (!isTRUE(sy > 0)) sy <- 1
   scales <- if (has_se) sy * c(0.3, 1, 3) else list(NULL)
+  # an AR coefficient near the truth and one at a unit root, which takes a
+  # step as a persistent residual, are separate maxima on a step-shaped field
+  phis <- if (is.null(s$ar)) list(NULL) else {
+    lapply(c(0, 0.5, 0.9, 1), function(a) c(a, numeric(s$ar$p - 1L)))
+  }
+  # one factor of the AR term's design per coefficient, for every cell
+  prs <- lapply(phis, function(ph) if (!is.null(s$ar)) gp_ar_proj(s, ph))
   rho <- list()
   cells <- list()
   for (i in gpi) {
@@ -300,15 +569,20 @@ gp_marginal_opt <- function(s, keep = 3L, distinct = 4L) {
     for (r in d / 2^(0:10)) {
       rho2 <- rho
       rho2[[as.character(i)]] <- r
-      for (s0 in scales) {
-        for (lr in lrs) {
-          lsd <- if (is.null(s0)) 0 else log(s0)
-          th <- gp_marginal_theta(frame, lsd, rho2)
-          cv <- gp_marginal_cell(s, th, lr, s0)
-          if (!is.finite(cv$value)) next
-          cells[[length(cells) + 1L]] <- list(value = cv$value, rho = rho2,
-                                              lr = lr, beta = cv$beta, s = cv$s)
-          if (cv$value < best$value) best <- list(value = cv$value, r = r)
+      for (ip in seq_along(phis)) {
+        ph <- phis[[ip]]
+        s$pr <- prs[[ip]]
+        for (s0 in scales) {
+          for (lr in lrs) {
+            lsd <- if (is.null(s0)) 0 else log(s0)
+            th <- gp_marginal_theta(frame, lsd, rho2)
+            cv <- gp_marginal_cell(s, th, lr, s0)
+            if (!is.finite(cv$value)) next
+            cells[[length(cells) + 1L]] <- list(value = cv$value, rho = rho2,
+                                                lr = lr, beta = cv$beta,
+                                                s = cv$s, phi = ph)
+            if (cv$value < best$value) best <- list(value = cv$value, r = r)
+          }
         }
       }
     }
@@ -323,36 +597,78 @@ gp_marginal_opt <- function(s, keep = 3L, distinct = 4L) {
   o0 <- o0[!duplicated(rk[o0])]
   ord <- unique(c(o0[seq_len(min(distinct, length(o0)))],
                   order(vals)[seq_len(min(keep, length(vals)))]))
+  if (!is.null(s$ar)) {
+    # and the best cell at each AR coefficient
+    pk <- vapply(cells, function(cc) paste(cc$phi, collapse = "_"), "")
+    o1 <- order(vals)
+    ord <- unique(c(ord, o1[!duplicated(pk[o1])]))
+  }
   nll <- gp_marginal_nll(s)
   old <- RTMB::TapeConfig()
   on.exit(RTMB::TapeConfig(old), add = TRUE)
   RTMB::TapeConfig(matmul = "atomic")
   out <- NULL
+  found <- list()
   for (k in ord) {
     cc <- cells[[k]]
-    p <- list(theta = gp_marginal_theta(frame, log(cc$s), cc$rho))
-    if (ncol(s$X)) p$beta <- cc$beta
-    if (s$has_sigma) p$betad <- log(cc$s) + cc$lr / 2
-    ob <- RTMB::MakeADFun(nll, p, silent = TRUE)
-    # beta in y's units, as everything else here, so the descent does not
-    # depend on them
-    sc <- ifelse(names(ob$par) == "beta", 1 / sy, 1)
-    ctl <- list(iter.max = 300L, eval.max = 400L)
-    o <- tryCatch(stats::nlminb(ob$par, ob$fn, ob$gr, scale = sc, control = ctl),
-                  error = function(e) NULL)
-    if (is.null(o) || !is.finite(o$objective)) next
-    if (is.null(out) || o$objective < out$value) {
+    if (!is.null(s$ar)) {
+      cand <- gp_ar_descend(s, cc)
+      if (is.null(cand)) next
+    } else {
+      p <- list(theta = gp_marginal_theta(frame, log(cc$s), cc$rho))
+      if (ncol(s$X)) p$beta <- cc$beta
+      if (s$has_sigma) p$betad <- log(cc$s) + cc$lr / 2
+      ob <- RTMB::MakeADFun(nll, p, silent = TRUE)
+      # beta in y's units, as everything else here, so the descent does not
+      # depend on them
+      sc <- ifelse(names(ob$par) == "beta", 1 / sy, 1)
+      ctl <- list(iter.max = 300L, eval.max = 400L)
+      # this descent's own NaN steps are its business: a warning from it
+      # would name nothing the caller wrote
+      o <- tryCatch(suppressWarnings(stats::nlminb(ob$par, ob$fn, ob$gr,
+                                                   scale = sc, control = ctl)),
+                    error = function(e) NULL)
+      if (is.null(o) || !is.finite(o$objective)) next
       pl <- ob$env$parList(o$par)
-      out <- list(value = o$objective, beta = as.numeric(pl$beta),
-                  betad = pl$betad, theta = as.numeric(pl$theta))
+      cand <- list(value = o$objective, beta = as.numeric(pl$beta),
+                   betad = pl$betad, theta = as.numeric(pl$theta))
     }
+    if (all(is.finite(cand$theta))) found[[length(found) + 1L]] <- cand
+    if (is.null(out) || cand$value < out$value) out <- cand
   }
   if (is.null(out)) return(NULL)
-  if (s$has_sigma && !has_se) out <- gp_marginal_polish(s, out)
+  alts <- gp_marginal_alts(found, out, blocks[gpi])
+  # the AR descent already reads beta and the scale in closed form
+  if (s$has_sigma && !has_se && is.null(s$ar)) {
+    out <- gp_marginal_polish(s, out)
+  }
+  out$alts <- alts
   bt <- numeric(length(frame[["par_template"]][["beta"]]))
   bt[s$idx] <- out$beta
   out$beta <- bt
   out
+}
+
+#' The marginal's other local maxima, best first: those whose length scales
+#' differ from the maximum's, and from each other's, by more than a factor
+#' `1.1` in some exact gp(). Each is a `theta`.
+#'
+#' @noRd
+gp_marginal_alts <- function(found, out, gp_blocks) {
+  li <- unlist(lapply(gp_blocks, function(bk) bk[["theta_idx"]][-1L]))
+  if (!length(li) || length(found) < 2L) return(list())
+  found <- found[order(vapply(found, `[[`, 0, "value"))]
+  kept <- list(out$theta)
+  alts <- list()
+  for (cand in found) {
+    far <- vapply(kept, function(th) {
+      max(abs(cand$theta[li] - th[li])) > log(1.1)
+    }, NA)
+    if (!all(far)) next
+    kept[[length(kept) + 1L]] <- cand$theta
+    alts[[length(alts) + 1L]] <- cand$theta
+  }
+  alts
 }
 
 #' A last descent with `beta` and the common scale read in closed form at each
@@ -404,6 +720,80 @@ gp_marginal_polish <- function(s, out) {
        betad = array(log(cv$s) + o$par[length(o$par)] / 2))
 }
 
+#' The outer gradient of a fit whose objective is the marginal of an exact
+#' gp(), from the marginal's own tape, or `NULL`. The z tape's gradient runs an
+#' inner solve over a dense Hessian each time: at 500 positions the outer
+#' Hessian's differences took 11.3 s of a 25 s fit, and the marginal's tape
+#' 0.87 s (dev/reviews/2026-11-03-ncgp.md, cost). The fit's own maximum
+#' likelihood only, with no prior: anything else is another objective. The two
+#' must read one value at `at`, or the z tape keeps the job.
+#'
+#' The marginal's gradient rounds with the condition of its covariance `V`,
+#' where the z tape's does not, so `V` must be well conditioned too: its bound
+#' `(trace of the field part + largest noise) / smallest noise` at most
+#' `gp_marginal_kappa_max`.
+#'
+#' @noRd
+gp_marginal_outer_gr <- function(fit, at) {
+  fr <- fit$frame
+  if (!any(vapply(fr[["re_blocks"]] %||% list(), function(bk) {
+    identical(bk[["covstruct"]], "gp")
+  }, NA))) {
+    return(NULL)
+  }
+  if (isTRUE(fit$REML) || isTRUE(fit$quadrature) || !is.null(fit$importance) ||
+        !is.null(fit$beta_whiten) || isTRUE(fit$control$profile) ||
+        NROW(fit$prior) > 0L) {
+    return(NULL)
+  }
+  pn <- names(at)
+  if (!length(pn) || !all(pn %in% c("beta", "betad", "theta"))) return(NULL)
+  s <- tryCatch(gp_marginal_setup(fr, max_rows = Inf),
+                error = function(e) NULL)
+  if (is.null(s) || s$has_sigma != ("betad" %in% pn)) return(NULL)
+  sig2 <- if (s$has_sigma) exp(2 * at[[which(pn == "betad")]]) else 0
+  noise <- (sig2 / s$w + s$se2) / s$nj
+  th <- unname(at[pn == "theta"])
+  vf <- tryCatch(diag(as.matrix(gp_marginal_cov(s, th))),
+                 error = function(e) NA_real_)
+  kap <- (sum(vf) + max(noise)) / min(noise)
+  if (!isTRUE(kap <= gp_marginal_kappa_max)) return(NULL)
+  nll <- gp_marginal_nll(s)
+  idx <- s$idx
+  f <- function(p) {
+    if (!is.null(p$beta)) p$beta <- p$beta[idx]
+    nll(p)
+  }
+  pl <- lapply(c(beta = "beta", betad = "betad", theta = "theta"),
+               function(k) unname(at[pn == k]))
+  pl <- pl[lengths(pl) > 0L]
+  old <- RTMB::TapeConfig()
+  ob <- tryCatch({
+    RTMB::TapeConfig(matmul = "atomic")
+    RTMB::MakeADFun(f, pl, silent = TRUE)
+  }, error = function(e) NULL, finally = RTMB::TapeConfig(old))
+  if (is.null(ob) || !identical(names(ob$par), pn)) return(NULL)
+  v <- tryCatch(ob$fn(at), error = function(e) NA_real_)
+  v0 <- tryCatch(fit$obj$fn(at), error = function(e) NA_real_)
+  if (!isTRUE(abs(v - v0) <= gp_marginal_value_tol * max(1, abs(v0)))) {
+    return(NULL)
+  }
+  function(q) ob$gr(q)
+}
+
+# How far apart, relative to the value, the marginal and the z tape may read at
+# one point before the z tape keeps the outer Hessian. The inner problem is
+# gaussian and linear, so they differ by the inner solve's rounding only.
+gp_marginal_value_tol <- 1e-9
+
+# The largest bound on the condition of the marginal's covariance at which it
+# gives the outer Hessian. Against the z tape on 377 fits of the ncgp review's
+# sets, the standard errors moved at most 8.7e-8 below 1e6, 5.6e-4 below 1e9,
+# and beyond 1e9 by up to 1.0, with 5 sets of NaN standard errors changed; at
+# noise 1e-3 the marginal's were 35 percent off an exact 200-bit Hessian and
+# the z tape's 3e-5 (dev/fitedge-findings.md, item 3).
+gp_marginal_kappa_max <- 1e6
+
 #' The value and length scale a link-scale response reads for each exact gp() a
 #' response's mean holds, for what the marginal's gate refuses: another family, a
 #' non-identity link, `sigma ~`, `ar()`, `mi()`, `me()`, `mo()`, several responses.
@@ -412,27 +802,33 @@ gp_marginal_polish <- function(s, out) {
 #' on the same rows, and on `mi()`, `me()` and `mo()` it did not
 #' (dev/ncgp-findings.md, round 2).
 #'
-#' @return `list(idx, theta)`, the positions in the template's `theta` and their
-#'   values, or `NULL`.
+#' A block in a parameter that a nonlinear body of the mean reads gets the same
+#' start, from gp_body_start(): with no start for it, `a + b * z` with
+#' `a ~ gp(x)` stopped 100 to 114 nats short, conv 0 and silent
+#' (dev/fitedge-findings.md, item 1).
+#'
+#' `tpl` is the template the descent starts from, which places the body's other
+#' coefficients. `body = FALSE` leaves those blocks out, as a caller's `start`
+#' does: from a far start the body read a field of sd 1e-11 and stopped 26 and
+#' 125 nats below 0.79.1 (dev/reviews/2026-11-06-fitedge.md, B1).
+#'
+#' @return `list(idx, theta, alts, body)`: the positions in the template's
+#'   `theta`, their values, the full `theta` vectors at each other local
+#'   maximum the working marginal reached (gp_marginal_alts()), and which of
+#'   the positions the body start set, or `NULL`.
 #' @noRd
-gp_start_working <- function(frame) {
+gp_start_working <- function(frame, tpl = frame[["par_template"]],
+                             body = TRUE) {
   blocks <- Filter(function(bk) identical(bk[["covstruct"]], "gp"),
                    frame[["re_blocks"]] %||% list())
   keys <- vapply(blocks, gp_block_lp, "", frame = frame)
   idx <- integer(0)
   theta <- numeric(0)
+  alts <- list()
+  from_body <- integer(0)
   for (key in setdiff(unique(keys), "")) {
     lp <- frame[["linpreds"]][[key]]
-    if (!identical(lp[["dpar"]], "mu") || !is.null(lp[["nl_body"]]) ||
-          !is.null(lp[["constant"]])) {
-      next
-    }
-    yw <- gp_working_y(frame, lp)
-    if (is.null(yw)) next
-    off <- as.numeric(lp[["offset"]] %||% 0)
-    yw <- yw - off
-    ok <- is.finite(yw)
-    if (sum(ok) < 3L || NROW(lp[["Z"]]) != length(yw)) next
+    if (!is.null(lp[["nl_body"]]) || !is.null(lp[["constant"]])) next
     rb <- blocks[keys == key]
     at <- 0L
     from <- integer(0)
@@ -443,16 +839,135 @@ gp_start_working <- function(frame) {
       from <- c(from, ti)
     }
     fr <- list(re_blocks = rb, par_template = list(theta = numeric(at), beta = 0))
+    if (!identical(lp[["dpar"]], "mu")) {
+      if (!body) next
+      m <- tryCatch(gp_body_start(frame, key, tpl, rb, fr),
+                    error = function(e) NULL)
+      if (is.null(m) || !all(is.finite(m$theta))) next
+      alts <- lapply(alts, function(th) c(th, m$theta))
+      idx <- c(idx, from)
+      theta <- c(theta, m$theta)
+      from_body <- c(from_body, from)
+      next
+    }
+    yw <- gp_working_y(frame, lp)
+    if (is.null(yw)) next
+    off <- as.numeric(lp[["offset"]] %||% 0)
+    yw <- yw - off
+    ok <- is.finite(yw)
+    if (sum(ok) < 3L || NROW(lp[["Z"]]) != length(yw)) next
     n <- sum(ok)
     m <- tryCatch(gp_marginal_opt(
       gp_marginal_data(yw[ok], matrix(1, n, 1L), lp[["Z"]][ok, , drop = FALSE],
                        rb, rep(0, n), rep(1, n), TRUE, 1L, fr)),
       error = function(e) NULL)
     if (is.null(m) || !all(is.finite(m$theta))) next
+    # another predictor's alternatives sit beside this one's maximum
+    at <- length(theta) + seq_along(from)
+    alts <- c(lapply(alts, function(th) c(th, m$theta)),
+              lapply(m$alts, function(a) {
+                th <- c(theta, m$theta)
+                th[at] <- a
+                th
+              }))
     idx <- c(idx, from)
     theta <- c(theta, m$theta)
   }
-  if (length(idx)) list(idx = idx, theta = theta)
+  if (length(idx)) list(idx = idx, theta = theta, alts = alts,
+                        body = from_body)
+}
+
+#' The marginal's maximum for the blocks `rb` of a parameter `a` that a
+#' nonlinear body of the mean reads, or `NULL`: gp_marginal_opt() on the body
+#' linearized at the template, one Gauss-Newton step. With `y_w` the mean's
+#' working response and `eta0` the body at the template with every field at 0,
+#' `y_w - eta0 + J_a a0 + sum(J_k b_k0)` is linear in `a`'s coefficients, in
+#' each other coefficient `b_k` the body reads and in the field, with the
+#' field's rows scaled by `J_a`; the derivatives are central differences. On
+#' `a + b * z` that is the linear spelling's marginal, so the body starts where
+#' `y ~ z + gp(x)` does: a start from `y` alone read 0.44 nats short on one of
+#' 24 rows (dev/fitedge-findings.md, item 1). With the second descent from
+#' 0.79.1's start beside it (gp_second_descent()), a second step from the
+#' first step's coefficients never read higher on 48 rows of `exp(a)`,
+#' `a * exp(b * z)` and the logistic body, and read up to 44 nats lower on 4;
+#' one step alone, with no second descent, is worse than 0.79.1 on 6 of 96
+#' rows (dev/fitedge-findings.md, fix round). Rows where the body barely reads
+#' `a` (`|J_a|` under 1e-3 of its largest) are left out, and a coefficient the
+#' design cannot tell from the others keeps its start.
+#'
+#' @noRd
+gp_body_start <- function(frame, key, tpl, rb, fr) {
+  lp <- frame[["linpreds"]][[key]]
+  rn <- lp[["resp"]]
+  nl <- frame[["spec"]]$responses[[rn]]$nlpars %||% character(0)
+  body <- frame[["linpreds"]][[linpred_key(rn, "mu")]]
+  if (!lp[["dpar"]] %in% nl || is.null(body) || is.null(body[["nl_body"]]) ||
+        !identical(body[["dpar"]], "mu") ||
+        NROW(lp[["Z"]]) != NROW(lp[["X"]])) {
+    return(NULL)
+  }
+  ym <- gp_working_y(frame, body)
+  if (is.null(ym)) return(NULL)
+  off <- as.numeric(lp[["offset"]] %||% 0)
+  # the body with every row of `a` shifted by h
+  ev <- function(t, h = 0) {
+    f2 <- frame
+    f2[["linpreds"]][[key]][["offset"]] <- off + h
+    e <- tryCatch(suppressWarnings(nl_body_at(f2, body, t)),
+                  error = function(e) NULL)
+    if (length(e) == length(ym)) as.numeric(e)
+  }
+  own <- lp[["idx"]]
+  bc <- nl_body_coefs(frame, body)$coefs
+  others <- do.call(rbind, lapply(names(bc), function(par) {
+    pos <- bc[[par]]
+    if (identical(par, lp[["par"]])) pos <- setdiff(pos, own)
+    if (length(pos)) data.frame(par = par, pos = pos, stringsAsFactors = FALSE)
+  }))
+  Xa <- as.matrix(lp[["X"]])
+  ba <- tpl[[lp[["par"]]]][own]
+  a0 <- off + if (length(ba)) as.numeric(Xa %*% ba) else 0
+  h <- 1e-4 * max(1, abs(a0))
+  e0 <- ev(tpl)
+  e1 <- ev(tpl, h)
+  e2 <- ev(tpl, -h)
+  if (is.null(e0) || is.null(e1) || is.null(e2)) return(NULL)
+  Ja <- (e1 - e2) / (2 * h)
+  yt <- ym - e0 + Ja * (a0 - off)
+  Xt <- if (ncol(Xa)) Ja * Xa else matrix(0, length(Ja), 0L)
+  for (k in seq_len(NROW(others))) {
+    par <- others$par[k]
+    v <- tpl[[par]][others$pos[k]]
+    hk <- 1e-4 * max(1, abs(v))
+    tp <- tm <- tpl
+    tp[[par]][others$pos[k]] <- v + hk
+    tm[[par]][others$pos[k]] <- v - hk
+    ep <- ev(tp)
+    em <- ev(tm)
+    if (is.null(ep) || is.null(em)) next
+    Jk <- (ep - em) / (2 * hk)
+    if (!all(is.finite(Jk))) next
+    yt <- yt + Jk * v
+    Xt <- cbind(Xt, Jk)
+  }
+  ok <- is.finite(yt) & is.finite(Ja) & apply(is.finite(Xt), 1L, all)
+  if (sum(ok) < 3L) return(NULL)
+  ok <- ok & abs(Ja) > 1e-3 * max(abs(Ja[ok]))
+  n <- sum(ok)
+  if (n < 3L) return(NULL)
+  # a column the rows cannot tell from the others, `a + b` with two
+  # intercepts, keeps its start
+  q <- qr(Xt[ok, , drop = FALSE])
+  keep <- sort(q$pivot[seq_len(q$rank)])
+  Zt <- Matrix::Diagonal(x = Ja[ok]) %*% lp[["Z"]][ok, , drop = FALSE]
+  f2 <- fr
+  f2[["par_template"]][["beta"]] <- numeric(length(keep))
+  m <- tryCatch(gp_marginal_opt(
+    gp_marginal_data(yt[ok], Xt[ok, keep, drop = FALSE], Zt, rb, rep(0, n),
+                     rep(1, n), TRUE, seq_along(keep), f2)),
+    error = function(e) NULL)
+  if (is.null(m) || !all(is.finite(m$theta))) return(NULL)
+  m
 }
 
 #' The linear predictor a block's coefficients enter, by name, or `""`.
@@ -522,9 +1037,13 @@ gp_finite <- function(v) {
 #' warm start away.
 #'
 #' `to_beta` carries a natural `beta` to the coordinates the tape holds it in.
+#' `body = FALSE` turns off the start of a block in a nonlinear body
+#' (gp_body_start()), for a caller's own `start`. A restart from a saddle is
+#' not the caller's, and keeps it.
 #'
 #' @noRd
-gp_start_scan <- function(obj, template, frame, start, to_beta = identity) {
+gp_start_scan <- function(obj, template, frame, start, to_beta = identity,
+                          body = TRUE) {
   bks <- Filter(function(bk) identical(bk[["covstruct"]], "gp"),
                 frame[["re_blocks"]] %||% list())
   if (!length(bks) || !is.null(start[["theta"]])) return(obj)
@@ -542,7 +1061,16 @@ gp_start_scan <- function(obj, template, frame, start, to_beta = identity) {
     if (!is.null(m$betad) && is.null(start[["betad"]])) {
       tpl[["betad"]][] <- m$betad
     }
-    if (!is.na(val(tpl))) {
+    if (!is.null(m$thetaac) && is.null(start[["thetaac"]])) {
+      tpl[["thetaac"]][] <- m$thetaac
+    }
+    v <- val(tpl)
+    # the AR marginal restates the objective's density by hand, so it is
+    # used only where the objective reads its number at its own point
+    if (!is.null(m$thetaac) && !gp_marginal_agrees(m, template, val, to_beta)) {
+      v <- NA_real_
+    }
+    if (!is.na(v)) {
       obj$par <- outer_from_template(tpl, obj, frame)
       # the proof check_convergence() reads: a stop at this value is at a maximum
       # the marginal found by another route
@@ -550,8 +1078,10 @@ gp_start_scan <- function(obj, template, frame, start, to_beta = identity) {
       return(obj)
     }
   }
-  w <- tryCatch(gp_start_working(frame), error = function(e) NULL)
+  w <- tryCatch(gp_start_working(frame, template, body = body),
+                error = function(e) NULL)
   covered <- integer(0)
+  scanned <- template
   if (!is.null(w)) {
     tpl <- template
     tpl[["theta"]][w$idx] <- w$theta
@@ -560,7 +1090,87 @@ gp_start_scan <- function(obj, template, frame, start, to_beta = identity) {
       covered <- w$idx
     }
   }
-  gp_start_scan_units(obj, template, frame, val, covered)
+  out <- gp_start_scan_units(obj, template, frame, val, covered)
+  body <- intersect(covered, w[["body"]])
+  if (!length(covered) || (!length(w$alts) && !length(body))) {
+    return(out)
+  }
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  alt <- list()
+  if (length(w$alts)) {
+    tpl <- template
+    tpl[["theta"]][w$idx] <- w$alts[[1L]]
+    if (!is.na(val(tpl))) {
+      alt <- c(alt, list(outer_from_template(tpl, obj, frame)))
+    }
+  }
+  if (length(body)) {
+    keep <- setdiff(covered, body)
+    scanned[["theta"]][keep] <- template[["theta"]][keep]
+    p <- gp_start_scan_units(obj, scanned, frame, val, keep)$par
+    if (length(p) == length(out$par) && all(is.finite(p))) {
+      alt <- c(alt, list(p))
+    }
+  }
+  if (length(alt)) out$env$.frmtmb_gp_alt <- alt
+  out
+}
+
+#' A second descent from the working marginal's next local maximum
+#' (gp_start_scan()), where it has one, and the better optimum kept. The working
+#' response is not the model, and its best maximum can start the descent in a
+#' basin of the model's that is not the best: on bernoulli, binomial and
+#' low-count Poisson rows the fit stopped 0.2 to 1.07 nats short at conv 0, and
+#' the next maximum reached the best of 15 starts (dev/arstep-findings.md).
+#'
+#' @noRd
+gp_second_descent <- function(obj, opt, control, bounds, par_units = NULL,
+                              verbose = 0L, tally = NULL) {
+  alt <- obj$env$.frmtmb_gp_alt
+  if (!length(alt)) return(opt)
+  rm(".frmtmb_gp_alt", envir = obj$env)
+  if (!all(is.finite(opt$par)) || !is.finite(opt$objective)) return(opt)
+  saved <- obj_state_save(obj)
+  best <- opt
+  for (p in alt) {
+    o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
+                               start_par = p, tally = tally),
+                  error = function(e) NULL)
+    if (!is.null(o) && all(is.finite(o$par)) && is.finite(o$objective) &&
+          best$objective - o$objective > 1e-10 * max(1, abs(best$objective))) {
+      best <- o
+    }
+  }
+  obj_settle(obj, opt, best, saved)
+  gain <- opt$objective - best$objective
+  if (verbose) {
+    vb_say("exact gp(): ", length(alt), " more start(s), gained ",
+           format(gain, digits = 3), " in log-likelihood")
+  }
+  best$gp_second <- c(runs = length(alt), gain = gain)
+  # every optimizer run is in the count, the lost one too: se_check_at_fit()
+  # weighs the fit-time Hessian against it
+  if (!is.null(tally)) {
+    best$evals <- tally$evals
+    if (!is.null(best$nonfinite_trials)) best$nonfinite_trials <- tally$n
+  }
+  best
+}
+
+#' Whether the objective at the marginal's maximum reads the marginal's value,
+#' to `1e-6` relative: a gaussian field integrates out exactly, so the two
+#' differ only by rounding.
+#'
+#' @noRd
+gp_marginal_agrees <- function(m, template, val, to_beta = identity) {
+  tpl <- template
+  tpl[["beta"]] <- to_beta(m$beta)
+  tpl[["theta"]][] <- m$theta
+  if (!is.null(m$betad)) tpl[["betad"]][] <- m$betad
+  if (!is.null(m$thetaac)) tpl[["thetaac"]][] <- m$thetaac
+  v <- val(tpl)
+  isTRUE(abs(v - m$value) <= 1e-6 * max(1, abs(v)))
 }
 
 #' The best of a few length scales, read from the objective with each field's

@@ -978,10 +978,12 @@ test_that("a link that does not hold the mean is read by its margin", {
            lr_series(3L, 10L, 15L, 0, 0.5)), a))
 })
 
-test_that("mi() on the response is refused beside a latent residual", {
-  # the stop-gap stays this release: nobody has measured that case, and
-  # mi_rows_joint() does not know a latent residual. Move it after
-  # mi_ml_frame() to fire on length(rows) > 0 (dev/test-backlog.md)
+test_that("mi() beside a latent residual: refused only where a row is read", {
+  # a missing value no other density reads leaves the objective
+  # (mi_ml_frame()), and its row's latent then has no observation: the model
+  # of a weight of 0 on that row. 0.79.1 refused it with a reason that is
+  # false there; a read value still shares the inner problem with the
+  # latents, which nobody has measured (dev/fitedge-findings.md, item 4)
   d <- lr_data(sd = 0.5)
   fit <- lr_fit("cnt", "ar(t, g, cov = TRUE)", poisson(), d)
   expect_null(latres_refuse_laplace(fit$spec, fit$frame))
@@ -991,9 +993,97 @@ test_that("mi() on the response is refused beside a latent residual", {
   dg$x <- stats::rnorm(nrow(dg))
   dg$y <- stats::rgamma(nrow(dg), 5, 5 / exp(0.3 * dg$x))
   dg$y[c(3L, 20L, 41L)] <- NA
-  expect_error(frm(bf(y | mi() ~ x + ar(t, g, cov = TRUE)),
-                   family = Gamma(link = "log"), data = dg),
-               "mi() on the response", fixed = TRUE)
+  fm <- lr_fit("y | mi()", "ar(t, g, cov = TRUE)", Gamma(link = "log"), dg)
+  dw <- dg
+  dw$w <- ifelse(is.na(dg$y), 0, 1)
+  dw$y[is.na(dw$y)] <- 1
+  fw <- lr_fit("y | weights(w)", "ar(t, g, cov = TRUE)", Gamma(link = "log"),
+               dw)
+  l0 <- as.numeric(logLik(fw))
+  expect_lt(abs(as.numeric(logLik(fm)) - l0), 1e-8 * abs(l0))
+  e0 <- unlist(fw$estimates[c("beta", "betad", "theta")])
+  e1 <- unlist(fm$estimates[c("beta", "betad", "theta")])
+  expect_lt(max(abs(e1 - e0)), 1e-6 * max(abs(e0)))
+  # lognormal: the value is the exact marginal of log y over the observed
+  # rows, sigma^2 I + sderr^2 C restricted to them, at a point of the test's
+  # choosing
+  dl <- lr_data(G = 6L, K = 4L)
+  miss <- c(2L, 7L, 16L)
+  dl$pos[miss] <- NA
+  fl <- lr_fit("pos | mi()", lr_terms[["ar1"]], lognormal(), dl)
+  par <- fl$opt$par
+  th <- c(log(0.7), 0.6)
+  par[names(par) == "theta"] <- th
+  par[names(par) == "betad"] <- log(0.5)
+  bk <- frame_latres(fl$frame)[[1L]]
+  ar <- latres_coefs(th[-1L], bk$aux)$ar
+  mu <- as.numeric(cbind(1, dl$x) %*% par[names(par) == "beta"])
+  ll <- 0
+  for (g in levels(dl$g)) {
+    r <- which(dl$g == g & !is.na(dl$pos))
+    k <- which(!is.na(dl$pos[dl$g == g]))
+    C <- exp(2 * th[1L]) * lr_target_cov("ar1", 4L, ar = ar)[k, k] +
+      diag(0.25, length(k))
+    R <- chol(C)
+    res <- backsolve(R, log(dl$pos[r]) - mu[r], transpose = TRUE)
+    ll <- ll - sum(log(diag(R))) - 0.5 * length(k) * log(2 * pi) -
+      0.5 * sum(res^2) - sum(log(dl$pos[r]))
+  }
+  expect_lt(abs(-fl$obj$fn(par) - ll), 1e-8 * abs(ll))
+  # a value another response reads is still refused
+  dg$w2 <- stats::rnorm(nrow(dg))
+  expect_error(frm(bf(y | mi() ~ x + ar(t, g, cov = TRUE),
+                      family = Gamma(link = "log")) +
+                     bf(w2 ~ mi(y), family = gaussian()) + set_rescor(FALSE),
+                   data = dg),
+               "another density reads its missing values", fixed = TRUE)
+})
+
+test_that("a read mi() predictor beside a latent residual is exact", {
+  # lognormal reading a gaussian predictor's missing values: log y and xm are
+  # jointly gaussian, so the missing xm integrate out in closed form, and the
+  # Laplace value of the shared inner problem is that marginal, here at a
+  # point of the test's choosing (dev/fitedge-findings.md, fix round, m3)
+  set.seed(73001)
+  G <- 6L
+  K <- 4L
+  d <- expand.grid(t = seq_len(K), g = factor(seq_len(G)))
+  d <- d[order(d$g, d$t), ]
+  n <- nrow(d)
+  d$xm <- stats::rnorm(n, 0.5, 1)
+  e <- as.vector(replicate(G, stats::arima.sim(list(ar = 0.6), K, sd = 0.5)))
+  d$ln <- exp(0.6 + 0.4 * d$xm + e + stats::rnorm(n, 0, 0.3))
+  d$xm[c(2L, 7L, 16L)] <- NA
+  fit <- allow_warnings(
+    frm(bf(ln ~ mi(xm) + ar(t, g, cov = TRUE), family = lognormal()) +
+          bf(xm | mi() ~ 1, family = gaussian()) + set_rescor(FALSE),
+        data = d),
+    c("Optimizer did not report", "Standard errors are not available",
+      "Large maximum absolute gradient", "The Laplace approximation of"))
+  par <- fit$opt$par
+  b <- c(0.6, 0.4, 0.5)
+  sg <- c(0.3, 0.9)
+  th <- c(log(0.5), 0.6)
+  expect_identical(names(fit$estimates$beta),
+                   c("ln_(Intercept)", "ln_mixm", "xm_(Intercept)"))
+  par[names(par) == "beta"] <- b
+  par[names(par) == "betad"] <- log(sg)
+  par[names(par) == "theta"] <- th
+  bk <- frame_latres(fit$frame)[[1L]]
+  ar <- latres_coefs(th[-1L], bk$aux)$ar
+  C <- exp(2 * th[1L]) * lr_target_cov("ar1", K, ar = ar)
+  o <- !is.na(d$xm)
+  m <- ifelse(o, d$xm, b[3L])
+  ll <- sum(stats::dnorm(d$xm[o], b[3L], sg[2L], log = TRUE))
+  for (g in levels(d$g)) {
+    i <- which(d$g == g)
+    V <- C + diag(sg[1L]^2 + b[2L]^2 * sg[2L]^2 * (!o[i]), K)
+    R <- chol(V)
+    res <- backsolve(R, log(d$ln[i]) - b[1L] - b[2L] * m[i], transpose = TRUE)
+    ll <- ll - sum(log(diag(R))) - 0.5 * K * log(2 * pi) - 0.5 * sum(res^2) -
+      sum(log(d$ln[i]))
+  }
+  expect_lt(abs(-fit$obj$fn(par) - ll), 1e-8 * abs(ll))
 })
 
 test_that("a nonlinear dpar beside a linear mu keeps its latent residual", {
@@ -1137,11 +1227,15 @@ test_that("response_mean_gh() is one rule for a row's total latent variance", {
   expect_lt(got, 1.05 * sqrt(draw^2 + drop(crossprod(g, V %*% g))))
 })
 
-test_that("the SEs of many fitted rows are skipped, with a message", {
-  d <- lr_data(sd = 0.5)
+test_that("the SEs of many fitted rows are read from the sparse factor", {
+  # above 200 latents, so the fitted rows take the selected inverse and not
+  # a dense block of the inner covariance (jcs_block_max)
+  d <- lr_data(sd = 0.5, G = 30L, K = 8L)
   fit <- lr_fit("cnt", "ar(t, g, cov = TRUE)", poisson(), d)
-  # the default leaves a small fit its standard errors
-  expect_true(all(is.finite(fitted(fit)[, "Est.Error"])))
+  # the reference is the joint covariance formed densely from the joint
+  # precision (helper-latres-ref.R), not the sparse route
+  ref <- latres_ref_se(fit)
+  # above the row limit no dense block is formed, so nothing is skipped
   withr::local_options(frmtmb.latres_se_rows = 10L)
   said <- 0L
   count <- function(m) {
@@ -1149,18 +1243,17 @@ test_that("the SEs of many fitted rows are skipped, with a message", {
     invokeRestart("muffleMessage")
   }
   v <- withCallingHandlers(fitted(fit), frmtmb_latres_se_skipped = count)
-  expect_true(all(is.na(v[, "Est.Error"])))
+  eps <- sqrt(.Machine$double.eps)
+  # poisson's log link: d mu / d eta is mu
+  expect_lt(latres_ref_ratio(v[, "Est.Error"], v[, "Estimate"] * ref), eps)
   expect_true(all(is.finite(v[, "Estimate"])))
-  expect_gte(said, 1L)
-  said <- 0L
   l <- withCallingHandlers(frm_linpred(fit, se.fit = TRUE),
                            frmtmb_latres_se_skipped = count)
-  expect_true(all(is.na(l$se.fit)))
+  expect_lt(latres_ref_ratio(l$se.fit, ref), eps)
   expect_equal(l$fit, frm_linpred(fit))
-  expect_gte(said, 1L)
+  expect_identical(said, 0L)
   # rows of a grid read beta and theta alone, above the limit too
   nd <- data.frame(t = 1:5, g = factor(rep("new", 5L)), x = 0)
-  said <- 0L
   v <- withCallingHandlers(fitted(fit, newdata = nd),
                            frmtmb_latres_se_skipped = count)
   expect_true(all(is.finite(v[, "Est.Error"])))
@@ -1392,9 +1485,11 @@ test_that("a joint covariance past the limit is refused, by name", {
   fit <- lr_fit("y", "ar(t, g, cov = TRUE)", poisson(), d)
   withr::local_options(frmtmb.latres_dense_rows = 10L)
   nd <- d[1:5, ]
+  # what returns a dense block over every latent
   expect_error(frm_lp_basis(fit), "frmtmb.latres_dense_rows", fixed = TRUE)
-  expect_error(frm_curve(fit, newdata = nd), "frmtmb.latres_dense_rows",
-               fixed = TRUE)
+  expect_error(frm_joint_cov(fit), "frmtmb.latres_dense_rows", fixed = TRUE)
+  # new rows load no fitted latent, and read the estimates alone
+  expect_true(all(is.finite(frm_curve(fit, newdata = nd)$.se)))
   # what names no joint covariance still runs
   expect_true(all(is.finite(frm_linpred(fit, newdata = nd))))
   expect_true(all(is.finite(fitted(fit, newdata = nd)[, "Estimate"])))

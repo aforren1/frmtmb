@@ -1,0 +1,4 @@
+frmtmb tests/testthat/test-map.R
+frmtmb tests/testthat/test-nl-rtmb-scope.R
+frmtmb tests/testthat/test-prior-compat.R
+frmtmb tests/testthat/test-loglik-prior.R

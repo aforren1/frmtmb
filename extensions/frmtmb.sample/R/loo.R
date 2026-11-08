@@ -467,10 +467,11 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
   unit <- NULL
   # core warns per draw when a residual term's density takes its dense
   # route; one warning per call says it, 4000 would bury it
-  warned <- FALSE
+  seen <- new.env(parent = emptyenv())
+  seen$warned <- FALSE
   once <- function(w) {
-    if (warned) invokeRestart("muffleWarning")
-    warned <<- TRUE
+    if (seen$warned) invokeRestart("muffleWarning")
+    seen$warned <- TRUE
   }
   for (k in seq_along(rows)) {
     v <- withCallingHandlers(

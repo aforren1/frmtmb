@@ -1221,16 +1221,30 @@ Numbering is settled at consolidation. Not reported.
 
 ### RTMBdist-5. `dbetabinom()` loses the density as the shapes grow
 
-- Seen: 1.1.0, 2026-11-02. Number to be settled at consolidation.
+- Seen: 1.1.0, 2026-11-02; still in 1.2.0, 2026-11-06. Number to be settled
+  at consolidation.
 - Repro: `dbetabinom(5, 10, 0.5 * phi, 0.5 * phi, log = TRUE)` on the tape, or
   summed over 300 rows, with `phi = exp(39)`: the sum of raw `lgamma()` values of
   shapes near 1e17 cancels. One data set reads -66752 at log phi 39 and +327680
-  at 45, against -548.982078 by the finite product.
+  at 45, against -548.982078 by the finite product. On 1.2.0, the counts 5, 3
+  and 7 of 10 at shapes `0.5 * phi` sum to -1536.000000 on the tape at log phi
+  39 and 0.000000 at 45, against -5.690003 for the binomial
+  (`dev/osa-edge.R`).
 - Expected: the binomial limit, flat in `phi`. The finite product
   `sum(log(a + j))` has no large `lgamma()`.
-- Workaround: `beta_binomial_lpmf()` (`R/families.R`).
+- 1.2.0's NEWS does not name this. What it changes for `dbetabinom()` is OSA:
+  `pbetabinom()` is new, so `oneStepPredict(method = "cdf")` works on it. The
+  NaN that frmtmb 0.79.1 read on 21 of 150 beta-binomial rows through 1.2.0
+  was not RTMBdist's: it was TMB's `oneStepGeneric` with no
+  `discreteSupport`, which integrates a spline through the mass function's
+  continuous extension. On RTMB and RTMBdist alone that route reads NaN on 17
+  of 150 `dbetabinom()` rows and on 2 of 150 `dbinom()` rows; with
+  `discreteSupport = 0:10`, or `method = "cdf"`, it reads none
+  (`dev/osa-rtmbdist.R`). Not RTMBdist's: TMB-6 below.
+- Workaround: `beta_binomial_lpmf()` (`R/families.R`); frmtmb's OSA residuals
+  read `beta_binomial_cdf_log()`, not `pbetabinom()`.
 - Record: `dev/nlfix-findings.md`, section 0a;
-  `dev/reviews/2026-11-02-nlfix.md`, R3.
+  `dev/reviews/2026-11-02-nlfix.md`, R3; `dev/osa-findings.md`.
 - Status: not reported.
 
 ## TMB
@@ -1316,6 +1330,26 @@ Numbering is settled at consolidation. Not reported.
   `tests/testthat/test-gp-noncentered.R` pins it on a sorted hand tape.
 - Record: `dev/reviews/2026-11-03-ncgp.md`, "TMB's defect"; `dev/ncgp-findings.md`.
 - Status: not reported. The user decides.
+
+### TMB-6. `oneStepPredict(method = "oneStepGeneric", discrete = TRUE)` with no `discreteSupport` takes the continuous branch, and says nothing
+
+- Seen: TMB 1.9.25, 2026-11-06, through `RTMB::oneStepPredict()`.
+- Repro: any count model, `oneStepPredict(obj, method = "oneStepGeneric",
+  discrete = TRUE, range = c(0, Inf))`. The code chooses its branch by
+  `OSG_continuous <- missing(discreteSupport) || partialDiscrete`, so with
+  `discrete = TRUE` and no `discreteSupport` it profiles the density with an
+  adaptive step, at counts that are not whole, fits a spline through the
+  profile and sums the spline on the integers. On RTMB and RTMBdist alone,
+  seed 9, 150 rows of 10 trials: NaN on 2 of 150 `dbinom()` rows and on 17 of
+  150 `dbetabinom()` rows, with no warning (`dev/osa-rtmbdist.R`).
+- Expected: an error or a warning that `discreteSupport` is needed, as the
+  discrete branch already warns "Setting 'discreteSupport' to ..." when it
+  picks one.
+- Workaround: frmtmb refuses `oneStepGeneric` on a count without
+  `discreteSupport`, and its default route for a count is `method = "cdf"`.
+- Record: `dev/osa-findings.md`, section 1.1; `dev/reviews/2026-11-06-osa.md`,
+  m7.
+- Status: not reported.
 
 ## tmbstan
 

@@ -224,6 +224,14 @@ print.frmtmb_multiple <- function(x, digits = 4, ...) {
 #'     coefficients are far from normal.}
 #' }
 #'
+#' Under a prior with a density (`frm(prior = )`), the likelihood rules
+#' (`"D3"`, and `"D2"` with `use = "likelihood"`) stop, as
+#' [anova.frmtmb_fit()] does. The Wald rules (`"D1"`, and `"D2"` with
+#' `use = "wald"`) still run: they are Wald tests at the MAP estimates,
+#' with the covariance of those estimates, consistent with the Wald
+#' intervals that `summary()` prints. Their nominal size is then not
+#' guaranteed, because the prior pulls the estimates toward its location.
+#'
 #' Pooled parameter values are the plain across-imputation means of the
 #' optimizer's own parameter vector, so variance components are pooled
 #' on the internal (log / Cholesky) scale, matching `$pooled`. No model
@@ -299,6 +307,15 @@ anova.frmtmb_multiple <- function(object, ...,
     }
   }
   wald <- method == "D1" || (method == "D2" && use == "wald")
+  # the likelihood rules pool deviances of maximized objectives, which
+  # under a prior hold the log prior: anova.frmtmb_fit()'s refusal
+  if (!wald) {
+    for (mf in c(list(object), others)) {
+      if (any(vapply(mf$fits, fit_prior_density, NA))) {
+        prior_lrt_refusal("anova()", "a pooled fit has")
+      }
+    }
+  }
   if (!length(others)) {
     if (is.null(constraint)) {
       frm_stop("anova() needs a second frmtmb_multiple fit, or a ",
@@ -379,8 +396,8 @@ pooled_order <- function(a, b) {
              " observations in one fit and ", nb[which(na != nb)[1]],
              " in the other", call. = FALSE)
   }
-  dfa <- attr(logLik(a$fits[[1]]), "df")
-  dfb <- attr(logLik(b$fits[[1]]), "df")
+  dfa <- as.vector(loglik_df(a$fits[[1]]))
+  dfb <- as.vector(loglik_df(b$fits[[1]]))
   if (dfa == dfb) {
     frm_stop("anova() needs nested fits of different size (both have ",
              dfa, " parameters)", call. = FALSE)
@@ -501,8 +518,8 @@ pooled_wald_roots <- function(fits, tested, U) {
 #' @noRd
 pooled_lrt_parts <- function(big, small, method) {
   m <- big$m
-  k <- attr(logLik(big$fits[[1]]), "df") -
-    attr(logLik(small$fits[[1]]), "df")
+  k <- as.vector(loglik_df(big$fits[[1]])) -
+    as.vector(loglik_df(small$fits[[1]]))
   dev1 <- vapply(big$fits, function(f) 2 * f$opt$objective, 0)
   dev0 <- vapply(small$fits, function(f) 2 * f$opt$objective, 0)
   out <- list(k = k, d = pmax(dev0 - dev1, 0),
@@ -1741,6 +1758,15 @@ logLik.frmtmb_multiple <- function(object, ...) {
     paste0("Compare nested pooled fits with anova(m1, m0), which pools ",
            "the likelihood-ratio test (D3, or D1 and D2), or read ",
            "logLik(x$fits[[j]])"))
+}
+
+#' @export
+logLik_penalized.frmtmb_multiple <- function(object, ...) {
+  multiple_refuse(
+    "logLik_penalized()",
+    paste0("the m maximized values are of m different data sets, and ",
+           "their average is the value of no model"),
+    "Read logLik_penalized(x$fits[[j]]) for imputation j")
 }
 
 #' @exportS3Method bayesplot::pp_check

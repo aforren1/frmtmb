@@ -200,12 +200,13 @@ par_alias_index <- function(fit) {
   map <- outer_par_map(fit)
   th_pos <- which(map$comp == "theta")
   ac_pos <- which(map$comp == "thetaac")
-  nms <- character(0)
-  pos <- integer(0)
+  got <- new.env(parent = emptyenv())
+  got$nms <- character(0)
+  got$pos <- integer(0)
   add <- function(nm, p) {
-    if (nm %in% nms || is.na(p) || length(p) != 1L) return(invisible())
-    nms <<- c(nms, nm)
-    pos <<- c(pos, p)
+    if (nm %in% got$nms || is.na(p) || length(p) != 1L) return(invisible())
+    got$nms <- c(got$nms, nm)
+    got$pos <- c(got$pos, p)
   }
   for (bk in fit$frame[["re_blocks"]] %||% list()) {
     # the same blocks hyp_env_vals names, for the same reason
@@ -259,7 +260,7 @@ par_alias_index <- function(fit) {
     if (length(p) != 1L) next
     add(names(lncor_values(fit$estimates[[b$comp]], b$sx, b$prefix)), p)
   }
-  stats::setNames(pos, nms)
+  stats::setNames(got$pos, got$nms)
 }
 
 #' Bare nonlinear-parameter names, as positions in `outer_par_map()`.
@@ -612,6 +613,8 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
     frm_stop("confint(method = '", method, "') needs a fit without ",
              "frmtmb_control(profile = TRUE)", call. = FALSE)
   }
+  quad_nested_refuse_profile(object, paste0("confint(method = '",
+                                            method, "')"))
   if (is.null(parm)) {
     frm_stop("`parm` is required for method = '", method, "'", call. = FALSE)
   }
@@ -626,11 +629,11 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   for (k in seq_along(idx)) {
     i <- idx[k]
     if (method == "profile") {
-      pr <- TMB::tmbprofile(object$obj, name = i, trace = FALSE, ...)
+      pr <- profile_run(object, i, TMB::tmbprofile, trace = FALSE, ...)
       ci[k, 1:2] <- unname(stats::confint(pr, level = level))
     } else {
-      r <- TMB::tmbroot(object$obj, name = i,
-                        target = 0.5 * stats::qchisq(level, df = 1), ...)
+      r <- profile_run(object, i, TMB::tmbroot,
+                       target = 0.5 * stats::qchisq(level, df = 1), ...)
       ci[k, 1:2] <- unname(r)
     }
     ci[k, 3] <- est[i]
@@ -639,6 +642,77 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
     }
   }
   ci
+}
+
+#' TMB::tmbprofile() or TMB::tmbroot() (`fun`) along outer parameter
+#' `i`, or along the natural combination `lincomb`, in the coordinates
+#' the fit's optimizer stepped in (opt_basis()).
+#'
+#' TMB holds the profiled direction and optimizes the others in the
+#' coordinates it is handed. On a slope whose column is far from zero,
+#' `x + 1e6`, a step of the slope with the intercept held moved the
+#' predictor by 1e6 times the step: the objective overflowed, and every
+#' profile interval of the slope was `NA, NA` with an unclassed
+#' "NA/NaN function evaluation" warning (review of lane bigx, major 3).
+#' In the fit's coordinates `q`, `p = M q`, the same profile is that of
+#' `M' lincomb` over `q`, and the other directions are well conditioned.
+#' A fit with no basis (or an importance or quadrature fit, whose tape
+#' carries none) is profiled as before, bit for bit.
+#'
+#' The handed object exposes `fn`, `gr`, `par` and an environment with
+#' the entries TMB saves and restores, holding the best point in `q`. The
+#' fit's own objective is evaluated through it, so its state is put back
+#' afterwards. tmbroot() reads its default range off a sdreport() of the
+#' object, which needs a TMB object, so the range is formed here from
+#' the fit's own standard error, `sd.range` times it, as TMB forms it.
+#'
+#' @noRd
+profile_run <- function(object, i, fun, ..., lincomb = NULL) {
+  obj <- object$obj
+  np <- length(obj$par)
+  B <- if (is.environment(obj$env)) obj$env$.frmtmb_opt_basis
+  plain <- function() {
+    if (is.null(lincomb)) fun(obj, name = i, ...) else
+      fun(obj, lincomb = lincomb, ...)
+  }
+  if (is.null(B) || !identical(nrow(B$M), np) ||
+        !is.null(object$importance) || isTRUE(object$quadrature)) {
+    return(plain())
+  }
+  args <- list(...)
+  l <- if (is.null(lincomb)) as.numeric(seq_len(np) == i) else lincomb
+  if (identical(fun, TMB::tmbroot) && is.null(args[["parm.range"]])) {
+    V <- tryCatch(sdr_of(object)$cov.fixed, error = keep_missing(NULL))
+    sd0 <- if (is.matrix(V) && all(dim(V) == np)) {
+      sqrt(drop(crossprod(l, V %*% l)))
+    } else NA_real_
+    if (!is.finite(sd0)) return(plain())
+    sr <- rep_len(args[["sd.range"]] %||% 7, 2L)
+    args[["parm.range"]] <- c(-1, 1) * sd0 * sr
+  }
+  M <- B$M
+  env <- obj$env
+  pb <- env$last.par.best
+  p0 <- if (is.null(pb)) obj$par else pb[env$lfixed()]
+  e2 <- new.env(parent = emptyenv())
+  e2$last.par.best <- drop(B$Mi %*% as.numeric(p0))
+  e2$random <- NULL
+  for (v in c("random.start", "value.best", "last.par", "inner.control",
+              "tracemgc")) {
+    assign(v, get0(v, envir = env, inherits = FALSE), envir = e2)
+  }
+  to_p <- function(q) drop(M %*% as.numeric(q))
+  view <- list(par = e2$last.par.best,
+               fn = function(q, ...) obj$fn(to_p(q)),
+               gr = function(q, ...) {
+                 matrix(crossprod(M, as.numeric(obj$gr(to_p(q)))), nrow = 1L)
+               },
+               env = e2)
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  nm <- if (!is.null(i)) names(obj$par)[i]
+  do.call(fun, c(list(view), if (!is.null(nm)) list(name = nm),
+                 list(lincomb = drop(crossprod(M, l))), args))
 }
 
 #' Transformed-scale Wald rows for the covariance parameters of one fit:
@@ -681,9 +755,10 @@ varcorr_trans_rows <- function(fit) {
   }
   th_pos <- which(rownames(Vfull) == "theta")
   th <- fit$estimates[["theta"]]
-  rows <- list()
+  acc <- new.env(parent = emptyenv())
+  acc$rows <- list()
   add <- function(term, type, est_t, se_t, bk) {
-    rows[[length(rows) + 1L]] <<- data.frame(
+    acc$rows[[length(acc$rows) + 1L]] <- data.frame(
       block = bk[["term_label"]], term = term, type = type,
       est_t = est_t, se_t = se_t
     )
@@ -803,6 +878,7 @@ varcorr_trans_rows <- function(fit) {
       }
     }
   }
+  rows <- acc$rows
   acr <- autocor_trans_rows(fit)
   if (!length(rows) && is.null(acr)) return(NULL)
   out <- if (length(rows)) do.call(rbind, rows) else NULL
@@ -937,7 +1013,7 @@ smooth_edf <- function(fit) {
   if (!is.null(sdr$cov_fixed_root)) {
     jc <- tryCatch(get_joint_cov(fit), error = keep_missing(NULL))
     bj <- if (!is.null(jc)) which(jc$names == "b")
-    if (length(bj) == length(b_pos)) dcr[b_pos] <- pmax(diag(jc$V)[bj], 0)
+    if (length(bj) == length(b_pos)) dcr[b_pos] <- pmax(jc_diag(jc, bj), 0)
   }
   th <- fit$estimates[["theta"]]
   out <- vapply(blocks, function(bk) {
@@ -1975,9 +2051,10 @@ lrt_pvalue <- function(chisq, ddf) {
 #'
 #' A fit whose prior adds a log density to the objective (a MAP fit,
 #' `frm(prior = )`) is refused, and so is `drop1()` on one. Its
-#' `logLik()` is the log-likelihood plus the log prior, so a difference
-#' of two holds prior densities at two different estimates. It is not a
-#' likelihood ratio, and it can be negative. A prior that only sets
+#' estimates maximize the log-likelihood plus the log prior, so its
+#' [logLik()][logLik_penalized] is the log-likelihood at a point that
+#' does not maximize it, and a difference of two is not a likelihood
+#' ratio. It can be negative. A prior that only sets
 #' bounds adds no density and is not refused. Refit without the prior
 #' for a likelihood-ratio test. To compare models under the prior, use
 #' `loo()` or `bayes_factor()` of frmtmb.sample.
@@ -2105,11 +2182,11 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
              call. = FALSE)
   }
   ll <- vapply(fits, function(f) as.numeric(logLik(f)), 0)
-  df <- vapply(fits, function(f) attr(logLik(f), "df"), 0L)
+  df <- vapply(fits, function(f) as.vector(loglik_df(f)), 0L)
   na_df <- which(is.na(df))
   if (length(na_df)) {
     frm_stop("anova(): model ", na_df[1L], " has no degrees of freedom ",
-             "to compare: ", attr(logLik(fits[[na_df[1L]]]), "df_why"),
+             "to compare: ", attr(loglik_df(fits[[na_df[1L]]]), "df_why"),
              call. = FALSE)
   }
   ord <- order(df)
@@ -2233,9 +2310,9 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
   }
 
   ll0 <- logLik(object)
-  df0 <- attr(ll0, "df")
+  df0 <- as.vector(loglik_df(object))
   if (is.na(df0)) {
-    frm_stop("drop1(): ", attr(ll0, "df_why"), call. = FALSE)
+    frm_stop("drop1(): ", attr(loglik_df(object), "df_why"), call. = FALSE)
   }
   aic0 <- -2 * as.numeric(ll0) + k * df0
   n_sc <- length(scope)
@@ -2276,16 +2353,17 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
     if (held) args$data <- refit_channel(rd, formula = nb, fit = object)
     fit_i <- do.call(frm, c(list(formula = nb), args), quote = TRUE)
     ll_i <- logLik(fit_i)
-    if (is.na(attr(ll_i, "df"))) {
+    df_i <- loglik_df(fit_i)
+    if (is.na(df_i)) {
       # a refit whose degrees of freedom are unknown gives no test, and
       # the row would otherwise be NA without a reason
       frm_stop("drop1(): the refit without ", scope[i], " has no degrees ",
                "of freedom to compare: ",
-               attr(ll_i, "df_why") %||% "logLik() gives none",
+               attr(df_i, "df_why") %||% "logLik() gives none",
                call. = FALSE)
     }
-    ddf[i] <- df0 - attr(ll_i, "df")
-    aic[i] <- -2 * as.numeric(ll_i) + k * attr(ll_i, "df")
+    ddf[i] <- df0 - as.vector(df_i)
+    aic[i] <- -2 * as.numeric(ll_i) + k * as.vector(df_i)
     lrt[i] <- 2 * (as.numeric(ll0) - as.numeric(ll_i))
   }
   tab <- data.frame(Df = c(NA, ddf), AIC = c(aic0, aic),
@@ -2936,10 +3014,13 @@ prior_table_slots <- function(x) {
 #' @export
 profile.frmtmb_fit <- function(fitted, parm, ...) {
   require_fit_packages(fitted)
+  # before `parm` is read: a nested fit refuses every parameter, so a
+  # missing one is not the error to report
+  quad_nested_refuse_profile(fitted, "profile()")
   nm <- outer_par_names(fitted)
   idx <- resolve_par_index(fitted, parm, "profile")
   out <- lapply(idx, function(i) {
-    TMB::tmbprofile(fitted$obj, name = i, trace = FALSE, ...)
+    profile_run(fitted, i, TMB::tmbprofile, trace = FALSE, ...)
   })
   names(out) <- nm[idx]
   if (length(out) == 1L) out[[1L]] else out
@@ -3173,14 +3254,15 @@ se_null_boundary <- function(fit, sdr) {
 #'
 #' @noRd
 hyp_env_vals <- function(fit, vals, comp) {
-  env <- list()
+  acc <- new.env(parent = emptyenv())
+  acc$vals <- list()
   put <- function(nm, val) {
-    if (!is.null(env[[nm]])) {
+    if (!is.null(acc$vals[[nm]])) {
       frm_stop("Internal error: two parameters of this model share the ",
                "name '", nm, "'. Please report it with the model formula",
                call. = FALSE)
     }
-    env[[nm]] <<- unname(val)
+    acc$vals[[nm]] <- unname(val)
     invisible(NULL)
   }
 
@@ -3286,7 +3368,7 @@ hyp_env_vals <- function(fit, vals, comp) {
   }
   lncor_put(fit, vals, comp, put)
   me_put_hyper(fit, vals, comp, put)
-  env
+  acc$vals
 }
 
 #' brms's names for an ordinal fit's thresholds and `cs()`
@@ -4256,6 +4338,7 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
                  "the fixed effects out of the outer problem)",
                  call. = FALSE)
       }
+      quad_nested_refuse_profile(x, "hypothesis(method = 'profile')")
       if (isTRUE(x$control$profile)) {
         frm_stop("hypothesis(method = 'profile') needs a fit without ",
                  "frmtmb_control(profile = TRUE)", call. = FALSE)
@@ -4274,11 +4357,11 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
                  call. = FALSE)
       }
       pargs <- utils::modifyList(
-        list(obj = x$obj, lincomb = v, trace = FALSE,
-             ytol = 0.5 * stats::qchisq(lev, 1) + 1),
+        list(trace = FALSE, ytol = 0.5 * stats::qchisq(lev, 1) + 1),
         list(...)
       )
-      pr <- do.call(TMB::tmbprofile, pargs)
+      pr <- do.call(profile_run, c(list(x, NULL, TMB::tmbprofile,
+                                        lincomb = v), pargs))
       ci <- stats::confint(pr, level = lev)
       pr[[1L]] <- pr[[1L]] + const
       profiles[[i]] <- pr

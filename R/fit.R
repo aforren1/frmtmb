@@ -79,12 +79,23 @@
 #'
 #'   An exact `gp()` on a gaussian response with a constant `sigma` starts at
 #'   the maximum of the model's marginal, read from the best cell of six
-#'   length scales on a coarse grid. Another
-#'   family, a non-identity link, `sigma ~`, `ar()`, `mi()`, `me()` or `mo()`
+#'   length scales on a coarse grid. Beside `ar()` in brms's default form
+#'   (`cov = FALSE`, any order, a free `sigma`, no `se()` or `weights()`) that
+#'   marginal holds the `ar` coefficients too, so they start at its maximum.
+#'   On step-shaped data the `ar` coefficient there is often at or just above
+#'   1, as brms's unconstrained `cov = FALSE` likelihood allows. Another
+#'   family, a non-identity link, `sigma ~`, `ma()`, `arma()`,
+#'   `ar(cov = TRUE)`, `mi()`, `me()` or `mo()`
 #'   starts at that marginal of the response on its link's scale, for `sdgp` and
-#'   the length scale. A nonlinear body, a mixture and `sigma ~ gp()` start at
-#'   the best of a few length scales read from the objective. A `theta` here
-#'   replaces all of this, and a `beta` or `betad` replaces only itself.
+#'   the length scale. Where that marginal has a second maximum at another
+#'   length scale, the fit also starts there and keeps the better of the
+#'   two. A field in a parameter of a nonlinear body starts at the
+#'   marginal of the body made linear at its start, and the fit also
+#'   descends from the best of a few length scales and keeps the better; a
+#'   `start` of your own turns the first off. A mixture and `sigma ~ gp()`
+#'   start at the best of a few length scales read from the objective. A
+#'   `theta` here replaces all of this, and a `beta` or `betad` replaces
+#'   only itself.
 #'
 #'   None of this can be certain. A marginal can have more than one maximum. On
 #'   744 rows of curves no test had seen, the fit stopped more than 0.001
@@ -100,9 +111,16 @@
 #'   of one vector and not others is refused.
 #'
 #'   A nonlinear body can have more than one maximum, and nothing in a fit
-#'   marks a second one. A `start` with other signs, or a located prior, can
-#'   show it, and [frm_allfit()] cannot, as it starts every optimizer from one
-#'   point.
+#'   marks a second one. From the default start, `frm()` also fits from each
+#'   sign pattern of the body's coefficients and returns the highest point
+#'   (see "The default starting values" in [par_template()]). A `start`, or
+#'   `options(frmtmb.nl_sign_probe = FALSE)`, skips that; a located prior
+#'   places the start and does not skip it. The point a pattern reaches can
+#'   itself be a second maximum: the fit then converges with no warning and
+#'   is still below the highest one, as on 1 of 89 such fits measured (1.84
+#'   short, where the default start alone stopped 2.29 short with a warning).
+#'   A `start` elsewhere, or a located prior, can show a higher maximum;
+#'   [frm_allfit()] cannot, as it starts every optimizer from one point.
 #' @param control A list from [frmtmb_control()].
 #' @param se If `TRUE`, run [RTMB::sdreport()] at fit time. The default
 #'   (`FALSE`) defers it until standard errors are first needed
@@ -119,9 +137,11 @@
 #' @param prior Optional [set_prior()] specification. This makes the
 #'   fit MAP / regularized ML (glmmTMB's `priors=` in spirit): useful
 #'   for stabilizing singular variance components or separating
-#'   binomials. The reported logLik/AIC then include the prior terms
-#'   and are penalized quantities, and `anova()` comparisons across
-#'   different priors are meaningless. A `brmsprior` object built by
+#'   binomials. `logLik()` is then the log-likelihood at the MAP
+#'   estimates, and [logLik_penalized()] the maximized value with the
+#'   log prior. `AIC()`, `BIC()`, `anova()` and `drop1()` refuse a prior
+#'   with a density, as its estimates do not maximize the likelihood.
+#'   A `brmsprior` object built by
 #'   brms's own `prior()` is translated row by row, so priors copied
 #'   out of a brms script work whichever package's `prior()` was in
 #'   scope. The argument takes brms's spelling, `prior`; the `priors`
@@ -190,12 +210,35 @@
 #'   adaptive Gauss-Kronrod quadrature instead of the Laplace
 #'   approximation (the `glmer(nAGQ = k)` analogue; matches it in
 #'   tests). Worth it for Bernoulli responses with small clusters,
-#'   where Laplace biases variance components. Scalar random-intercept
-#'   models only, and not with `mi()`, `trunc()`, `REML = TRUE`, or
-#'   `frmtmb_control(profile = TRUE)`. A row may read one block only:
-#'   nested blocks, `(1 | ga/gb)`, crossed blocks, `(1 | g) + (1 | h)`,
-#'   and `(1 | g)` in both `mu` and `sigma` are refused, as lme4
-#'   refuses `nAGQ > 1` for more than one term. The blocks of a by-split
+#'   where Laplace biases variance components. Scalar random effects
+#'   only (one coefficient per level of a block), and not with `mi()`,
+#'   `trunc()`, `REML = TRUE`, or `frmtmb_control(profile = TRUE)`. A
+#'   row may read two blocks when one is nested in the other, as in
+#'   `(1 | ga/gb)`. Such a model is integrated as an iterated integral
+#'   by Gauss-Hermite rules, `frmtmb_control(quad_nodes = )` nodes per
+#'   level, centered and scaled by the Laplace fit and re-anchored at
+#'   the estimate. That route needs exactly two blocks on the same
+#'   predictors, one response, Gaussian blocks and per-row densities,
+#'   and its memory is limited by `frmtmb_control(quad_max_gb = )`. Its
+#'   accuracy depends on the design: against independent references the
+#'   log-likelihood error at the default nodes was 9e-11 to 7e-6 on
+#'   seven designs with standard deviations near 1, and 5e-4 to 6e-4
+#'   with an inner standard deviation near 3 or an outer one of 3; on a
+#'   near-separable response it was 1.7e-2, where the rule did not settle
+#'   and the fit warned. More nodes do not always help on the hard
+#'   designs. The Laplace error on the same designs was 0.07 to 1.4. A
+#'   fit whose rule does not settle warns (class
+#'   `frmtmb_quad_unsettled`) and gives the rule's own error at the
+#'   estimate, the log-likelihood at the fit's nodes against 21 x 21 (or
+#'   10 more per level); on such a design more nodes are not a sure
+#'   remedy, since the error need not fall as they rise. Profile and
+#'   root-search
+#'   intervals and `ranef(condVar = TRUE)` are refused on a nested fit
+#'   (class `frmtmb_quad_nested_unsupported`); Wald and bootstrap
+#'   intervals work. Crossed blocks, `(1 | g) + (1 | h)`, are refused,
+#'   because their integral does not factor into one-dimensional ones;
+#'   so are `(1 | g)` in both `mu` and `sigma`, where the rule converges
+#'   slowly, and three or more blocks on a row. The blocks of a by-split
 #'   `gr(g, by = f)` each read rows of their own and are allowed. A
 #'   plain Laplace fit runs first and the quadrature tape is built at
 #'   its optimum: the
@@ -1067,7 +1110,10 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                   objective_only = identical(dry_run, "objective"),
                   # the user's own call is the one place a placed start is
                   # news; refit(), influence and the pre-fit are not
-                  announce_start = announce, check_se = TRUE)
+                  announce_start = announce, check_se = TRUE,
+                  # the caller's `start`, not a saddle restart's moved one,
+                  # decides the body start (gp_start_scan())
+                  gp_body = is.null(start))
   }
   has_body <- any(vapply(frame[["linpreds"]], function(lp) {
     !is.null(lp[["nl_body"]])
@@ -1078,7 +1124,7 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
         isTRUE(control[["optCtrl"]][["iter.max"]] == 0)) {
     return(run(start, TRUE))
   }
-  nl_fit_off_saddle(run, frame, start, prior)
+  nl_fit_probed(run, frame, start, prior)
 }
 
 #' The refusal of `frm(threshold = )`, which names the family argument
@@ -1271,7 +1317,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                           template = NULL, data2 = list(),
                           objective_only = FALSE,
                           announce_start = FALSE,
-                          check_se = announce_start) {
+                          check_se = announce_start,
+                          gp_body = is.null(start)) {
   lower_arg <- lower
   upper_arg <- upper
   vb <- verbose_level(control)
@@ -1323,7 +1370,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                         upper = upper_arg, prior = prior,
                         quadrature = quadrature, importance = importance,
                         template = tpl, data2 = data2,
-                        announce_start = announce_start, check_se = FALSE)
+                        announce_start = announce_start, check_se = FALSE,
+                        gp_body = gp_body)
         }, control, pre$template, vb)
       if (check_se) {
         se_check(fit, control)
@@ -1346,7 +1394,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   prior_entries <- NULL
   if (!is.null(prior)) {
     # MAP / regularized ML: the optimized objective includes the prior
-    # terms, so logLik/AIC are penalized quantities - documented
+    # terms; logLik() takes them off again (fit_log_prior())
     ri <- resolve_prior_input(list(frame = frame, spec = spec), prior)
     prior_entries <- ri$entries
     check_map_dirichlet(ri$entries)
@@ -1411,6 +1459,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   }
 
   integrate <- NULL
+  qnest <- NULL
   if (isTRUE(quadrature)) {
     if (!is.null(template[["miss"]])) {
       # the latent values of mi() and me() are one integral per value,
@@ -1429,8 +1478,33 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
         bk[["covstruct"]] %in% c("us", "diag", "homdiag", "us_t", "diag_t")
     }, TRUE)
     if (!length(scalar_iid) || !all(scalar_iid)) {
-      frm_stop("quadrature = TRUE currently supports scalar random ",
-               "intercepts only (every block must be a dim-1 us/diag term)",
+      bad <- frame[["re_blocks"]][!scalar_iid]
+      lab <- if (length(bad)) {
+        tryCatch(block_term_as_written(bad[[1L]]),
+                 error = function(e) bad[[1L]][["term_label"]])
+      }
+      # a two-coefficient diagonal block is the same model as two scalar
+      # blocks over its factor, which the nested rule integrates
+      split2 <- length(bad) && bad[[1L]][["dim"]] == 2L &&
+        bad[[1L]][["covstruct"]] %in% c("diag", "homdiag")
+      frm_stop("quadrature = TRUE integrates scalar random intercepts and ",
+               "slopes, one coefficient per level of a block (a ",
+               "dimension-1 us, diag or homdiag term), and ",
+               if (is.null(lab)) "this model has no such block" else {
+                 paste0("`", lab, "` ", if (bad[[1L]][["dim"]] > 1L) {
+                   paste0("has ", bad[[1L]][["dim"]], " coefficients per ",
+                          "level")
+                 } else {
+                   paste0("has the '", bad[[1L]][["covstruct"]], "' ",
+                          "structure")
+                 })
+               },
+               if (split2) {
+                 paste0(". Its two uncorrelated coefficients are the ",
+                        "same model as two terms, (1 | g) + (0 + x | g), ",
+                        "which quadrature integrates as nested blocks")
+               },
+               ". Fit with quadrature = FALSE, the Laplace approximation",
                call. = FALSE)
     }
     # the rule integrates one random effect at a time, and Student-t
@@ -1494,7 +1568,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     # adaptive Gauss-Kronrod marginalization per scalar random effect
     # (TMB's experimental `integrate`; the nAGQ analogue - matches
     # glmer(nAGQ = 25) in tests). Spec replicated from TMB's GK().
-    quad_check_blocks(frame)
+    # Two nested blocks on a row take the route of R/quadrature-nested.R
+    # instead, which never reads this spec.
+    qnest <- quad_check_blocks(frame)
     integrate <- list(b = structure(
       list(dim = 1, adaptive = FALSE, debug = FALSE,
            method = "marginal_gk"),
@@ -1586,6 +1662,14 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   }
   su <- smooth_fx_units(frame, names(obj$par))
   if (!is.null(su)) par_units <- (par_units %||% 1) * su
+  # a nonlinear coefficient in the units its body moves by (nl_par_units());
+  # a whitened or profiled beta is not in the outer vector as itself
+  nu <- if (is.null(bw) && !isTRUE(control$profile)) {
+    nl_par_units(frame, template_guard, names(obj$par), par_units,
+                 prior_entries,
+                 curve = isTRUE(attr(start, "frmtmb_nl_probe")))
+  }
+  if (!is.null(nu)) par_units <- (par_units %||% 1) * nu
   # and a coefficient in the response's units is in them, for the
   # optimizer's steps and for the Hessian the standard errors come from,
   # so the fit of y * c is the fit of y scaled (predictor_units()). A
@@ -1596,6 +1680,11 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   ru <- predictor_par_units(frame, names(obj$par), p_units,
                             scaled = if (!is.null(par_units)) par_units != 1)
   if (!is.null(ru)) par_units <- (par_units %||% 1) * ru
+  # an ill-conditioned fixed design is stepped in its own coordinates by
+  # every optimizer run on this objective (opt_basis(), optimize_obj())
+  ob <- opt_basis(frame, obj, control$optimizer)
+  if (!is.null(ob)) obj$env$.frmtmb_opt_basis <- ob
+  obj$env$.frmtmb_basis_note <- NULL
   # the optimizer trace rides on the optimizer's own control list, so
   # keep it out of the control stored on the fit (refit and friends
   # reuse that list and must not inherit a trace)
@@ -1618,7 +1707,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   } else if (is.null(integrate)) {
     obj <- gp_start_scan(obj, template, frame, start, to_beta = function(b) {
       if (is.null(bw)) b else beta_whiten_map(b, bw, inv = TRUE)
-    })
+    }, body = gp_body)
     opt <- fit_error_context(
       spec, start, REML, control, quadrature, prior,
       tryCatch(optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb,
@@ -1642,6 +1731,27 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                  }
                  stop(e)
                }))
+    opt <- gp_second_descent(obj, opt, ctl_opt, bounds, par_units,
+                             verbose = vb, tally = tally)
+    # not on the refit of a sign probe's winner: from there a second
+    # descent in the body's Jacobian basis ran on along a ridge to the
+    # linear limit, to a point whose standard errors read finite, and the
+    # fit lost the warning that it is not a maximum (binomial
+    # Michaelis-Menten, 4.6 short; release review of 0.80.0, item 1)
+    if (is.null(bw) && !isTRUE(attr(start, "frmtmb_nl_probe"))) {
+      opt <- nl_basis_descent(obj, opt, frame, ctl_opt, bounds, par_units,
+                              tally, vb)
+    }
+  } else if (!is.null(qnest)) {
+    qf <- quad_nest_fit(nll, template, random, frame[["map"]], lap_obj,
+                        ctl_opt, bounds, par_units, frame, qnest, vb)
+    obj <- qf$obj
+    opt <- qf$opt
+    # each round's tape is a rule anchored at one point and is optimized
+    # inside a box around it, in natural coordinates (a box is not a box
+    # in the basis); the final tape takes the basis, so that the escapes
+    # below step in it as the Laplace fit does
+    if (!is.null(ob)) obj$env$.frmtmb_opt_basis <- ob
   } else {
     qf <- quad_fit(nll, template, random, frame[["map"]], integrate, lap_obj,
                    ctl_opt, bounds, par_units, frame, vb)
@@ -1684,7 +1794,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # corrected optimum is both the source of the conditional modes and
   # a complete parameter list to start from.
   est_at <- function(opt) {
-    est <- if (is.null(imp)) obj$env$parList(opt$par) else {
+    est <- if (is.null(imp) && is.null(qnest)) {
+      obj$env$parList(opt$par)
+    } else {
       solved_par_list(lap_obj, opt$par)
     }
     if (!is.null(bw)) est[["beta"]] <- beta_whiten_map(est[["beta"]], bw)
@@ -1718,6 +1830,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   fit <- structure(
     list(spec = spec, frame = frame, obj = obj, opt = opt, sdr = NULL,
          REML = REML, estimates = est, prior = prior,
+         # the entries the objective's prior term was built from, so
+         # logLik() subtracts that very term without resolving again;
+         # not named prior_*, which `$prior` would partial-match
+         resolved_prior = prior_entries,
          bform = bform, call = cl, data = frame[["data_frame"]],
          data2 = data2,
          control = control, quadrature = isTRUE(quadrature),
@@ -1735,6 +1851,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   )
   # the coordinates an integrated beta was taped in (beta_whitener())
   if (!is.null(bw)) fit$beta_whiten <- bw
+  # the nested route's nodes and how its re-anchoring ended; post-fit
+  # methods that cannot read the frozen tape refuse on it
+  if (!is.null(qnest)) fit$quad_nested <- qf$info
   if (is.null(imp) && is.null(integrate)) {
     esc <- sd_up_escape(fit, ctl_opt, bounds, par_units, tally)
     if (!is.null(esc)) {
@@ -1764,6 +1883,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   fit$cache$bounds <- bounds
   # on the user's own call only: a refit, the autoscale pre-fit or a
   # bootstrap replicate would repeat it
+  if (announce_start) opt_coords_warn(lap_obj %||% obj)
   if (announce_start && is.null(imp) && is.null(integrate)) {
     flat_msg <- nl_flat_message(obj, opt, frame, fit)
     if (!is.null(flat_msg)) {
@@ -1890,7 +2010,7 @@ solved_par_list <- function(obj, par) {
   obj$env$parList(par)
 }
 
-#' Refuse quadrature when a row reads more than one random-effect block.
+#' Route quadrature by the number of random-effect blocks a row reads.
 #'
 #' The Gauss-Kronrod rule integrates one scalar effect at a time. With
 #' two blocks on a row, nested or crossed, TMBad's marginal_gk
@@ -1898,14 +2018,15 @@ solved_par_list <- function(obj, par) {
 #' one-dimensional factors and leaves the rest to the Laplace
 #' approximation: over `(1 | ga/gb)` the objective equaled the Laplace
 #' one to 1e-8, and summary() failed because sdreport() cannot mix the
-#' two methods. lme4 refuses nAGQ > 1 for more than one term for the
-#' same reason. An exact route (one pass per block, inner block first)
-#' was measured and set aside: its tape grows by 12 to 551 MB per row
-#' (dev/fuzzfix-findings.md, "To file").
+#' two methods. So a row that reads two blocks goes to the nested rule
+#' of R/quadrature-nested.R, and quad_nest_plan() refuses what that rule
+#' cannot integrate (crossed blocks, more than two blocks).
 #'
 #' The count is per row, so a by-split `gr(g, by = f)`, whose blocks
 #' each read rows of their own, and an `mvbf()` with one block per
-#' response stay allowed.
+#' response stay on the Gauss-Kronrod route.
+#'
+#' Returns NULL for that route, and the nested plan otherwise.
 #'
 #' @noRd
 quad_check_blocks <- function(frame) {
@@ -1927,19 +2048,7 @@ quad_check_blocks <- function(frame) {
   per_row <- lapply(hits, rowSums)
   depth <- max(0L, vapply(per_row, max, 1))
   if (depth <= 1L) return(invisible())
-  # name the blocks that share a row, as the user wrote them
-  share <- unique(unlist(lapply(hits, function(h) {
-    which(colSums(h[rowSums(h) > 1L, , drop = FALSE]) > 0)
-  })))
-  labs <- vapply(blocks[share], block_term_as_written, "")
-  frm_stop("quadrature = TRUE integrates one scalar random effect per ",
-           "row, and here a row reads ", depth, " random-effect blocks (",
-           paste0("`", labs, "`", collapse = ", "), "). With nested or ",
-           "crossed blocks the Gauss-Kronrod rule integrates only some ",
-           "of the effects and leaves the rest to the Laplace ",
-           "approximation. lme4 refuses the same models (nAGQ > 1 needs ",
-           "a single scalar term). Fit with quadrature = FALSE, the ",
-           "Laplace approximation", call. = FALSE)
+  quad_nest_plan(frame, depth)
 }
 
 #' Which of two quadrature candidates quad_fit() keeps. A stationary one
@@ -2253,7 +2362,10 @@ sdr_of <- function(fit) {
 #'   `y ~ 0 + x` with `x` on a 1e-6 scale lost 62.6 log-likelihood
 #'   units against [stats::glm()], and a random slope on a column
 #'   spread 0.01 lost up to 14.4. Every other fit is the fit
-#'   `autoscale = FALSE` gives, bit for bit.
+#'   `autoscale = FALSE` gives, bit for bit. A column that is far from
+#'   zero against its spread, such as `x + 1e6`, does not need this
+#'   option: whatever its value, the optimizer steps in coordinates in
+#'   which each ill-conditioned fixed design has orthogonal columns.
 #' @param check_nlev_1 What to do about a scalar random-effect term
 #'   whose grouping factor has a single level: `"warning"` (default),
 #'   `"ignore"`, or `"stop"`, following lme4's `lmerControl()` check
@@ -2389,6 +2501,26 @@ sdr_of <- function(fit) {
 #'   in [frm_bootstrap()], [influence()], and [frm_allfit()] force
 #'   `verbose` off, so a verbose fit does not make them print hundreds
 #'   of lines; [refit()] and [frm_multiple()] report normally.
+#' @param quad_nodes Gauss-Hermite nodes per level for `frm(quadrature =
+#'   TRUE)` over two nested blocks: one count for both levels, or the
+#'   outer level's count and then the inner level's, from 1 to 50. The
+#'   default `c(11, 15)` gives more nodes to the inner level, whose small
+#'   groups are the least Gaussian. On 12 groups of 6 weighted Bernoulli
+#'   rows in 24 inner groups, the log-likelihood error was 7e-6 at the
+#'   default, 2.5e-7 at 21 nodes per level and 6e-10 at 31, against 0.85
+#'   for the Laplace approximation. Memory and time grow with the rows
+#'   times the product of the two counts. A model with one block per row
+#'   does not read this setting: its rule is adaptive Gauss-Kronrod.
+#' @param quad_max_gb Limit, in GB, on the memory that `frm(quadrature =
+#'   TRUE)` over two nested blocks may add. The fit predicts that memory
+#'   before the Laplace warm start, from three small probe tapes and a
+#'   cost per family measured on 20 families, and stops with a message
+#'   that gives the prediction and the remedies when it is above the
+#'   limit. On those families the prediction was 1.22 to 1.61 times the
+#'   measured peak. A family not measured is predicted with the largest
+#'   measured cost, so its prediction can be several times its peak. At
+#'   the default nodes, 3000 Bernoulli rows took about 0.5 GB, 3000
+#'   Student rows 5.3 GB, and 40 censored Beta rows 3.7 GB.
 #' @return A list of control settings.
 #'
 #' @srrstats {RE2.0} Data transformations are documented and can be turned
@@ -2459,7 +2591,8 @@ frmtmb_control <- function(optimizer = "nlminb",
                            check_mi = c("warning", "ignore", "stop"),
                            importance_seed = 1L, importance_rounds = 5L,
                            importance_ess = 0.25, mo_search = TRUE,
-                           verbose = NULL) {
+                           verbose = NULL, quad_nodes = c(11L, 15L),
+                           quad_max_gb = 4) {
   # The three flags below reach isTRUE() later, which reads a
   # string or a length-2 vector as FALSE; checking here refuses the
   # mistake instead of quietly turning the option off.
@@ -2473,6 +2606,16 @@ frmtmb_control <- function(optimizer = "nlminb",
   check_count(importance_seed, "importance_seed", min = 0L)
   check_count(importance_rounds, "importance_rounds", min = 1L)
   check_positive(importance_ess, "importance_ess")
+  # one count for both levels, or outer then inner
+  if (!is.numeric(quad_nodes) || !length(quad_nodes) %in% 1:2 ||
+        anyNA(quad_nodes) || any(quad_nodes != round(quad_nodes)) ||
+        any(quad_nodes < 1) || any(quad_nodes > 50)) {
+    frm_stop("`quad_nodes` must be one or two whole numbers from 1 to 50 ",
+             "(the Gauss-Hermite nodes of the outer and the inner level), ",
+             "not ", arg_desc(quad_nodes), call. = FALSE)
+  }
+  quad_nodes <- rep_len(as.integer(quad_nodes), 2L)
+  check_positive(quad_max_gb, "quad_max_gb")
   if (importance_ess > 1) {
     frm_stop("`importance_ess` is an effective sample size as a FRACTION ",
              "of the draw count, so it lies in (0, 1]; ",
@@ -2509,7 +2652,8 @@ frmtmb_control <- function(optimizer = "nlminb",
        importance_seed = as.integer(importance_seed),
        importance_rounds = as.integer(importance_rounds),
        importance_ess = importance_ess, mo_search = isTRUE(mo_search),
-       verbose = verbose)
+       verbose = verbose, quad_nodes = quad_nodes,
+       quad_max_gb = quad_max_gb)
 }
 
 #' lme4's lmerControl runs a battery of structural checks before the fit
@@ -2636,32 +2780,33 @@ check_re_structure <- function(spec, frame, control) {
 #'
 #' @noRd
 nlminb_trial_fn <- function(fn, tally = NULL) {
-  n_eval <- 0L
-  n_mapped <- 0L
-  last_par <- NULL
-  last_val <- NA_real_
-  best_par <- NULL
-  best_val <- Inf
+  st <- new.env(parent = emptyenv())
+  st$n_eval <- 0L
+  st$n_mapped <- 0L
+  st$last_par <- NULL
+  st$last_val <- NA_real_
+  st$best_par <- NULL
+  st$best_val <- Inf
   list(
     fn = function(par) {
       v <- fn(par)
-      n_eval <<- n_eval + 1L
-      last_par <<- par
-      last_val <<- if (length(v) == 1L) as.numeric(v) else NA_real_
-      if (length(v) == 1L && is.finite(v) && v < best_val) {
-        best_val <<- as.numeric(v)
-        best_par <<- par
+      st$n_eval <- st$n_eval + 1L
+      st$last_par <- par
+      st$last_val <- if (length(v) == 1L) as.numeric(v) else NA_real_
+      if (length(v) == 1L && is.finite(v) && v < st$best_val) {
+        st$best_val <- as.numeric(v)
+        st$best_par <- par
       }
-      if (n_eval > 1L && length(v) == 1L && is.nan(v)) {
-        n_mapped <<- n_mapped + 1L
+      if (st$n_eval > 1L && length(v) == 1L && is.nan(v)) {
+        st$n_mapped <- st$n_mapped + 1L
         if (!is.null(tally)) tally$n <- tally$n + 1L
         return(Inf)
       }
       v
     },
-    count = function() n_mapped,
-    last = function() list(par = last_par, val = last_val),
-    best = function() list(par = best_par, val = best_val)
+    count = function() st$n_mapped,
+    last = function() list(par = st$last_par, val = st$last_val),
+    best = function() list(par = st$best_par, val = st$best_val)
   )
 }
 
@@ -2874,12 +3019,13 @@ fit_recovery_starts <- function(obj, nll, template, random, map, frame,
 #' @noRd
 optimizer_from_best <- function(obj, par, e, optimizer, bounds, control,
                                 par_units, verbose = 0L, tally = NULL,
-                                fn = obj$fn, gr = obj$gr) {
+                                fn = obj$fn, gr = obj$gr, to_q = identity) {
   pb <- obj$env$last.par.best
   # last.par.best spans the joint vector when the model has random
   # effects (profiled parameters included); lfixed() selects the outer
-  # block the optimizer actually iterates on
-  p0 <- if (is.null(pb)) NULL else pb[obj$env$lfixed()]
+  # block the optimizer actually iterates on. `to_q` takes it to the
+  # coordinates `fn` and `par` are in (opt_basis())
+  p0 <- if (is.null(pb)) NULL else to_q(pb[obj$env$lfixed()])
   usable <- !(is.null(p0) || length(p0) != length(par) || anyNA(p0) ||
                 isTRUE(all.equal(unname(as.numeric(p0)),
                                  unname(as.numeric(par)))))
@@ -2916,6 +3062,10 @@ optimizer_from_best <- function(obj, par, e, optimizer, bounds, control,
 #' with it although the first run had a finite optimum (fuzz seed
 #' 20379118, dev/optrap-findings.md).
 #'
+#' Where the objective carries a basis (opt_basis()), the optimizer
+#' steps in its coordinates, and the result is mapped back: `par` is in
+#' the natural coordinates either way.
+#'
 #' @noRd
 optimize_obj <- function(obj, control,
                          bounds = list(lower = -Inf, upper = Inf),
@@ -2950,21 +3100,36 @@ optimize_obj <- function(obj, control,
     tally$evals <- tally$evals + 1L
     obj$gr(x)
   }
+  cs <- opt_coords(obj, optimizer, bounds, par_units)
+  if (verbose && !is.null(cs$basis)) {
+    vb_say("the optimizer steps in the coordinates of the fixed design, ",
+           "which is ill-conditioned; its trace shows those coordinates")
+  }
+  fn_q <- if (is.null(cs$basis)) fn_c else function(q) fn_c(cs$to_p(q))
+  gr_q <- if (is.null(cs$basis)) gr_c else {
+    function(q) cs$grad(gr_c(cs$to_p(q)))
+  }
   run <- function(par) {
-    tryCatch(run_optimizer(optimizer, par, fn_c, gr_c,
-                           bounds$lower, bounds$upper, control$optCtrl,
-                           par_units, tally),
-             error = function(e) {
-               optimizer_from_best(obj, par, e, optimizer, bounds,
-                                   control, par_units, verbose, tally,
-                                   fn = fn_c, gr = gr_c)
-             })
+    q <- cs$to_q(par)
+    res <- tryCatch(run_optimizer(optimizer, q, fn_q, gr_q,
+                                  cs$lower, cs$upper, control$optCtrl,
+                                  cs$units, tally),
+                    error = function(e) {
+                      optimizer_from_best(obj, q, e, optimizer,
+                                          list(lower = cs$lower,
+                                               upper = cs$upper),
+                                          control, cs$units, verbose,
+                                          tally, fn = fn_q, gr = gr_q,
+                                          to_q = cs$to_q)
+                    })
+    res$par <- cs$to_p(res$par)
+    res
   }
   if (verbose) t0 <- vb_now()
   opt <- run(start_par)
   if (verbose) vb_stage("optimize", t0, vb_opt_detail(opt))
   for (i in seq_len(control$restarts)) {
-    g <- max(abs(obj$gr(opt$par) * (par_units %||% 1)))
+    g <- max(abs(cs$grad(obj$gr(opt$par)) * (cs$units %||% 1)))
     if (is.finite(g) && g < control$grad_tol) break
     if (verbose) t0 <- vb_now()
     saved <- obj_state_save(obj)
@@ -2980,7 +3145,8 @@ optimize_obj <- function(obj, control,
                })
     }
     kept <- if (!inherits(opt2, "error")) {
-      restart_result(opt, opt2, control, par_units)
+      restart_result(opt, opt2, control, par_units,
+                     any_move = !is.null(cs$basis))
     }
     if (!is.null(kept)) {
       opt <- kept
@@ -2989,10 +3155,362 @@ optimize_obj <- function(obj, control,
     obj_settle(obj, opt, opt, saved)
     if (inherits(opt2, "error")) break
   }
+  if (!is.null(cs$basis) && !isTRUE(opt$convergence == 0) &&
+        grepl("false convergence", opt$message %||% "", fixed = TRUE)) {
+    opt <- natural_finish(obj, opt, optimizer, fn_c, gr_c, bounds, control,
+                          par_units, tally, verbose)
+  }
   # only the nlminb path maps trials; optim and a custom optimizer have
   # no count to report, and NULL says so where 0 would claim a measurement
   if (identical(optimizer, "nlminb")) opt$nonfinite_trials <- tally$n
   opt$evals <- tally$evals
+  opt
+}
+
+#' Coordinates for the optimizer in which each ill-conditioned fixed
+#' design has orthogonal columns: the basis `M` of reparam_basis(), with
+#' the outer parameters `p = M q`. NULL when no design gets a block.
+#'
+#' A covariate far from zero against its spread, `x + 1e6` with sd 1,
+#' leaves its column and the intercept's nearly collinear. Along the
+#' direction that moves both, the gradient is that of the log-likelihood
+#' per unit of the intercept, about 1e-12 of its curvature per unit of
+#' the slope, so nlminb's relative test passes at the start: poisson
+#' `y ~ (x + 1e6) + (1 | g)` stopped at code 0 after 2 to 4 iterations
+#' with the slope near 0, 20 to 47 log-likelihood units below the same
+#' model on `x`, on 5 of 5 data seeds, 4 of them with no warning; Gamma
+#' did the same, bernoulli stopped 0.4 to 3.7 short from an offset of
+#' 1e5, and gaussian without a group term 50 short on 1 of 5
+#' (dev/bigx-findings.md). In these coordinates a unit step moves the
+#' predictor by about one unit per row whatever the offset, as on `x`.
+#' They are the ones the standard errors and newton_polish() take for
+#' such a design, by the same rule (design_whitener()), so a design that
+#' is not ill-conditioned keeps its natural coordinates and its fit bit
+#' for bit.
+#'
+#' `units` are the optimizer's units in the new coordinates: the
+#' response's unit (predictor_units()) for a coordinate of a design's
+#' block, since a unit step there moves the predictor by about one, and
+#' `par_units` for every other parameter.
+#'
+#' Only where the optimizer and the steps are frmtmb's: a caller's
+#' optimizer function keeps the coordinates it was handed, and a fit
+#' with more than `se_reparam_np` outer parameters is not looked at.
+#' `options(frmtmb.opt_basis = FALSE)` keeps the natural coordinates
+#' everywhere, so that the tests can still reach the Newton steps
+#' newton_polish() takes from a stop short of the maximum.
+#'
+#' @noRd
+opt_basis <- function(frame, obj, optimizer = "nlminb", est = NULL,
+                      min_kappa = opt_basis_kappa) {
+  pn <- names(obj$par)
+  np <- length(pn)
+  if (np < 2L || np > se_reparam_np || user_optimizer(optimizer) ||
+        isFALSE(getOption("frmtmb.opt_basis", TRUE))) {
+    return(NULL)
+  }
+  M <- tryCatch(reparam_basis(frame, pn, est = est, min_kappa = min_kappa,
+                              mo = TRUE),
+                error = keep_missing(NULL))
+  if (is.null(M) || !all(dim(M) == np)) return(NULL)
+  pos <- attr(M, "pos")
+  Mi <- attr(M, "inv")
+  if (is.null(Mi) || !all(dim(Mi) == np) || !all(is.finite(Mi))) {
+    return(NULL)
+  }
+  # the response's unit of each coordinate in a design's block
+  ru <- rep(NA_real_, np)
+  pu <- tryCatch(predictor_units(frame), error = keep_missing(numeric(0)))
+  for (key in names(frame[["linpreds"]])) {
+    lp <- frame[["linpreds"]][[key]]
+    ix <- tryCatch(outer_index_of(lp, pn, frame), error = keep_missing(NULL))
+    ix <- intersect(ix, pos)
+    if (length(ix)) ru[ix] <- if (key %in% names(pu)) pu[[key]] else 1
+  }
+  ru[pos[is.na(ru[pos])]] <- 1
+  blocks <- lapply(attr(M, "blocks"), function(b) {
+    b$M <- unname(M[b$pos, b$pos, drop = FALSE])
+    b$Mi <- unname(Mi[b$pos, b$pos, drop = FALSE])
+    b$center <- if (identical(b$kind, "design")) {
+      tryCatch(opt_center(frame, b$key, b$pos, pn),
+               error = keep_missing(NULL))
+    }
+    b
+  })
+  list(M = matrix(as.numeric(M), np, np),
+       Mi = matrix(as.numeric(Mi), np, np), pos = pos, unit = ru,
+       blocks = blocks,
+       nl = any(vapply(blocks, function(b) identical(b$kind, "nl"), NA)))
+}
+
+#' The condition number of a fixed design from which the optimizer
+#' steps in that design's coordinates (opt_basis()). The standard errors
+#' take theirs from 1e4 (se_reparam_kappa); the optimizer engages
+#' earlier, since just below 1e4 a shifted column still left a fit short
+#' with no warning: bernoulli `y ~ (x + 5250) + (1 | g)` 0.10 standard
+#' errors off, Gamma at `x + 4500` 0.042 (dev/reviews/2026-11-06-bigx.md,
+#' major 4). See dev/bigx-findings.md for what moving it cost.
+#'
+#' @noRd
+opt_basis_kappa <- 1e3
+
+#' Is `optimizer` a caller's own function? frmtmb's built-in wrappers
+#' (allfit_optimizers(), marked `frmtmb_builtin`) are frmtmb's steps and
+#' take its coordinates like nlminb.
+#'
+#' @noRd
+user_optimizer <- function(optimizer) {
+  is.function(optimizer) && !isTRUE(attr(optimizer, "frmtmb_builtin"))
+}
+
+#' The centering map of a design block, for a call whose bounds reach
+#' it (opt_coords()): its intercept's position `icpt` and the means `m`
+#' of its other columns, aligned with `pos`, so that `q` keeps every
+#' coefficient but the intercept, which is centered: `p_icpt = q_icpt -
+#' sum(m q)`. A box on a coefficient then stays a box. `kappa` is the
+#' centered design's condition number (lp_design_kappa()), `cols` the
+#' columns that lie far from zero against their spread, for a warning.
+#' NULL for a design without an intercept.
+#'
+#' @noRd
+opt_center <- function(frame, key, pos, pn) {
+  lp <- frame[["linpreds"]][[key]]
+  X <- as.matrix(lp[["X"]])
+  full <- outer_index_of(lp, pn, frame)
+  j <- match(pos, full)
+  if (anyNA(j)) return(NULL)
+  X <- X[, j, drop = FALSE]
+  ic <- match("(Intercept)", colnames(X))
+  if (is.na(ic)) return(NULL)
+  m <- colMeans(X)
+  m[ic] <- 0
+  Xc <- X - rep(m, each = nrow(X))
+  sdv <- apply(X, 2L, stats::sd)
+  far <- which(abs(m) > opt_center_far * sdv & seq_along(m) != ic)
+  list(icpt = ic, m = unname(m),
+       kappa = lp_design_kappa(list(X = Xc)),
+       cols = colnames(X)[if (length(far)) far else setdiff(seq_along(m), ic)],
+       key = key)
+}
+
+#' A column whose mean is this many standard deviations from zero is
+#' named in the warning of opt_coords_note().
+#'
+#' @noRd
+opt_center_far <- 100
+
+#' The coordinates one optimize_obj() call iterates in: the basis the
+#' objective carries (`obj$env$.frmtmb_opt_basis`, set by
+#' fit_assembled() from opt_basis()), or the natural ones.
+#'
+#' Block by block. A block no bound reaches takes the design's
+#' coordinates. A bound on a coefficient of a block would be a general
+#' linear constraint there, which the optimizer's box cannot hold, so a
+#' design block with an intercept that no bound holds takes the centering
+#' map instead (opt_center()): every coefficient but the intercept stays
+#' natural, and its box stays a box. Through 0.79.1 and on the first
+#' build of this change, any `lb` or `ub` on class `b` sent such a fit
+#' back to natural coordinates in silence: `normal(0, 10)` with `lb = -5`
+#' on poisson `y ~ (x + 1e6) + (1 | g)` stopped 6.3 to 9.4 standard
+#' errors off, 4 of 5 data seeds with no warning, and `lb = 0.45`
+#' stopped with "NA/NaN gradient evaluation" (review of lane bigx,
+#' blocker 1). A block that keeps its natural coordinates (a bound on its
+#' intercept, no intercept, or a centered design still ill-conditioned)
+#' is noted on the objective (`.frmtmb_basis_note`), and the fit warns
+#' (opt_coords_warn()). An nl body's block is not noted: its Jacobian
+#' says nothing about a column far from zero.
+#'
+#' A caller's optimizer function keeps the coordinates it is handed.
+#'
+#' Returns `to_q` and `to_p` (the maps between the coordinates), `grad`
+#' (a natural gradient taken to the new coordinates), the box and the
+#' units in the new coordinates, and `basis` (NULL for the natural
+#' coordinates, where every map is the identity).
+#'
+#' @noRd
+opt_coords <- function(obj, optimizer, bounds, par_units) {
+  np <- length(obj$par)
+  natural <- list(basis = NULL, to_q = identity, to_p = identity,
+                  grad = identity, lower = bounds$lower,
+                  upper = bounds$upper, units = par_units)
+  B <- if (is.environment(obj$env)) obj$env$.frmtmb_opt_basis
+  if (is.null(B) || user_optimizer(optimizer) || nrow(B$M) != np) {
+    return(natural)
+  }
+  lower <- rep_len(bounds$lower %||% -Inf, np)
+  upper <- rep_len(bounds$upper %||% Inf, np)
+  boxed <- is.finite(lower) | is.finite(upper)
+  units <- rep_len(par_units %||% 1, np)
+  M <- diag(1, np)
+  Mi <- diag(1, np)
+  any_blk <- FALSE
+  for (b in B$blocks) {
+    p <- b$pos
+    if (!any(boxed[p])) {
+      M[p, p] <- b$M
+      Mi[p, p] <- b$Mi
+      units[p] <- B$unit[p]
+      any_blk <- TRUE
+      next
+    }
+    ce <- b$center
+    why <- if (identical(b$kind, "nl")) NA_character_ else
+      if (is.null(ce)) "no intercept" else
+        if (boxed[p[ce$icpt]]) "intercept" else
+          if (!(ce$kappa < opt_basis_kappa)) "centered"
+    if (!is.null(ce) && !boxed[p[ce$icpt]]) {
+      i0 <- p[ce$icpt]
+      M[i0, p] <- -ce$m
+      M[i0, i0] <- 1
+      Mi[i0, p] <- ce$m
+      Mi[i0, i0] <- 1
+      any_blk <- TRUE
+    }
+    if (length(why) && !is.na(why) && is.environment(obj$env)) {
+      note <- obj$env$.frmtmb_basis_note %||% list()
+      note[[b$key]] <- list(why = why, cols = ce$cols)
+      obj$env$.frmtmb_basis_note <- note
+    }
+  }
+  if (!any_blk) return(natural)
+  pn <- names(obj$par)
+  B2 <- list(M = M, Mi = Mi)
+  list(basis = B2,
+       to_q = function(p) drop(Mi %*% as.numeric(p)),
+       to_p = function(q) stats::setNames(drop(M %*% as.numeric(q)), pn),
+       grad = function(g) drop(crossprod(M, as.numeric(g))),
+       lower = ifelse(boxed, lower, -Inf), upper = ifelse(boxed, upper, Inf),
+       units = if (all(units == 1)) NULL else units)
+}
+
+#' The warning of a fit whose bounds kept a design block of an
+#' ill-conditioned fixed design in its natural coordinates
+#' (opt_coords()), where the optimizer can stop short of the maximum and
+#' say nothing. Class `frmtmb_ill_design`. Once per fit.
+#'
+#' @noRd
+opt_coords_warn <- function(obj) {
+  note <- if (is.environment(obj$env)) obj$env$.frmtmb_basis_note
+  if (!length(note)) return(invisible(NULL))
+  for (key in names(note)) {
+    n <- note[[key]]
+    cols <- paste(n$cols %||% character(0), collapse = ", ")
+    frm_warning(
+      "The fixed design of '", key, "' is ill-conditioned",
+      if (nzchar(cols)) paste0(" (", cols, ")"), ", and ",
+      switch(n$why,
+        intercept = "a bound on its intercept",
+        "no intercept" = paste0("a bound on one of its coefficients, ",
+                                "with no intercept to center on,"),
+        centered = paste0("a bound on one of its coefficients, with ",
+                          "columns that centering does not condition,")),
+      " keeps the optimizer in the natural coordinates, where it can ",
+      "stop short of the maximum without converging there. Center the ",
+      "columns before the fit, or remove the bound",
+      call. = FALSE, class = "frmtmb_ill_design")
+  }
+  invisible(NULL)
+}
+
+#' One run in the natural coordinates from where a run in the design's
+#' coordinates (opt_coords()) stopped at "false convergence (8)", kept
+#' when it reports convergence and ends no higher; otherwise `opt`
+#' stands, with the objective's state put back at it. Only that stop:
+#' after an iteration limit the natural run converged where the limit
+#' had left the fit 0.14 short, and the limit's warning was gone on 8 of
+#' 200 fits with `iter.max` of 1 to 4 (review of lane bigx, minor 1).
+#'
+#' In the design's coordinates the objective carries the rounding of
+#' the natural intercept, and nlminb's relative tests, which compare a
+#' step with the size of the coordinates, can find no step at the
+#' maximum: a gaussian raw polynomial of degree 8 on [1, 2] stopped there
+#' at "false convergence (8)" and warned, where the natural run of 0.79.1
+#' reported convergence (test-curve-illcond.R). From that point the
+#' natural coordinates' tests can pass. nlminb takes a step only where
+#' the objective falls, so the run ends no higher than it starts.
+#'
+#' @noRd
+natural_finish <- function(obj, opt, optimizer, fn, gr, bounds, control,
+                           par_units, tally, verbose = 0L) {
+  saved <- obj_state_save(obj)
+  o <- tryCatch(run_optimizer(optimizer, opt$par, fn, gr, bounds$lower,
+                              bounds$upper, control$optCtrl, par_units,
+                              tally),
+                error = keep_missing(NULL))
+  keep <- !is.null(o) && isTRUE(o$convergence == 0) &&
+    all(is.finite(o$par)) && isTRUE(o$objective <= opt$objective)
+  if (verbose) {
+    vb_say("the run in the design's coordinates stopped at code ",
+           opt$convergence, "; a run in natural coordinates from there ",
+           if (keep) "converged and is kept" else "did not, and is dropped")
+  }
+  if (!keep) {
+    obj_settle(obj, opt, opt, saved)
+    return(opt)
+  }
+  o$par <- stats::setNames(as.numeric(o$par), names(opt$par))
+  o$natural_finish <- list(convergence = opt$convergence,
+                           message = opt$message)
+  o
+}
+
+#' A second descent for a model with a nonlinear body, in coordinates
+#' that also whiten the body's Jacobian at the first descent's stop
+#' (opt_basis() with `est`, reparam_nl_jacobian()), kept when it ends
+#' lower; otherwise `opt` stands, with the objective's state and basis
+#' put back.
+#'
+#' A body has no design before the fit, so the first descent's basis
+#' covers only the plain designs. On a body linear in a column far from
+#' zero the Jacobian is that design: `b0 + b1 * w` with `w = x + 1e6`
+#' and `b0 ~ 1 + (1 | g)` stopped 7.6 and 9.9 standard errors off, 24
+#' and 37 log-likelihood units short, the first with no warning (review
+#' of lane bigx, major 1). A Jacobian that is not ill-conditioned at the
+#' stop gets no block, and the fit is left bit for bit.
+#'
+#' @noRd
+nl_basis_descent <- function(obj, opt, frame, control, bounds, par_units,
+                             tally, verbose = 0L) {
+  bodies <- vapply(frame[["linpreds"]] %||% list(),
+                   function(lp) !is.null(lp[["nl_body"]]), NA)
+  if (!any(bodies) || !all(is.finite(opt$par)) ||
+        !is.finite(opt$objective)) {
+    return(opt)
+  }
+  est <- tryCatch(obj$env$parList(opt$par), error = keep_missing(NULL))
+  if (is.null(est)) return(opt)
+  for (nm in intersect(names(frame[["par_template"]]), names(est))) {
+    if (length(est[[nm]]) == length(frame[["par_template"]][[nm]])) {
+      names(est[[nm]]) <- names(frame[["par_template"]][[nm]])
+    }
+  }
+  ob <- opt_basis(frame, obj, control$optimizer, est = est)
+  if (is.null(ob) || !isTRUE(ob$nl)) return(opt)
+  old <- obj$env$.frmtmb_opt_basis
+  saved <- obj_state_save(obj)
+  obj$env$.frmtmb_opt_basis <- ob
+  # a body's own solver warns at trial points (deSolve's "Excessive
+  # precision requested" in frmtmb.ode's test-ode-events.R and
+  # test-ode-nlf.R, 8 warnings on the first build of this step); the
+  # fit's checks speak to the point it keeps, so they are muffled here
+  o <- tryCatch(withCallingHandlers(
+    optimize_obj(obj, control, bounds, par_units, start_par = opt$par,
+                 tally = tally),
+    warning = function(w) invokeRestart("muffleWarning")),
+    error = keep_missing(NULL))
+  better <- !is.null(o) && all(is.finite(o$par)) &&
+    is.finite(o$objective) &&
+    o$objective < opt$objective - 1e-10 * max(1, abs(opt$objective))
+  if (verbose) {
+    vb_say("a second descent in the coordinates of the nonlinear body's ",
+           "Jacobian ", if (better) {
+             paste0("gained ", format(opt$objective - o$objective,
+                                      digits = 3))
+           } else "gained nothing and is dropped")
+  }
+  if (better) return(o)
+  obj$env$.frmtmb_opt_basis <- old
+  obj_settle(obj, opt, opt, saved)
   opt
 }
 
@@ -3029,8 +3547,20 @@ optimize_obj <- function(obj, control,
 #' left test-bcm-simple.R's SIMPLE_1 with a gradient of 0.0025 under
 #' OpenBLAS 0.3.26, above that test's bound.
 #'
+#' `any_move` drops the test on the move, for a run in the coordinates
+#' of an ill-conditioned design (opt_basis()). There the objective
+#' carries the rounding of the natural intercept, `x + 1e6` times the
+#' slope: about 1e-9 on a poisson fit of 150 rows, against a curvature
+#' near 300 per unit of the coordinates, so the restart's steps wander
+#' over about 3e-6 where the objective is flat to rounding. On `y ~ (x +
+#' 1e6)` (data seed 1 of dev/bigx-grid.R) the run stopped at code 0 at
+#' the maximum, and its restart moved 5e-6, gained nothing and stopped at
+#' "false convergence (8)" (dev/bigx-trace2.R). The gain alone says
+#' whether a restart found anything.
+#'
 #' @noRd
-restart_result <- function(opt, opt2, control = list(), par_units = NULL) {
+restart_result <- function(opt, opt2, control = list(), par_units = NULL,
+                           any_move = FALSE) {
   if (!isTRUE(opt2$objective <= opt$objective)) return(NULL)
   if (!isTRUE(opt$convergence == 0) || isTRUE(opt2$convergence == 0)) {
     return(opt2)
@@ -3044,7 +3574,7 @@ restart_result <- function(opt, opt2, control = list(), par_units = NULL) {
   p2 <- as.numeric(opt2$par)
   u <- if (length(par_units) == length(p1)) par_units else rep(1, length(p1))
   still <- length(p2) == length(p1) && all(is.finite(p2)) &&
-    all(abs(p2 - p1) <= xt * pmax(abs(p1), u))
+    (any_move || all(abs(p2 - p1) <= xt * pmax(abs(p1), u)))
   if (gained <= rt * max(1, abs(opt$objective)) && still) {
     opt2$restart <- list(convergence = opt2$convergence,
                          message = opt2$message,
@@ -3568,18 +4098,19 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
   # and every fit stopped 0.09 to 1.2 short (dev/illse-check.R). The
   # natural Hessian at the stop decides, by the rule the standard
   # errors use (hess_needs_reparam())
-  M <- NULL
-  decided <- is.null(frame)
+  rp <- new.env(parent = emptyenv())
+  rp$M <- NULL
+  rp$decided <- is.null(frame)
   v <- opt$objective
   saved <- obj_state_save(obj)
   moved <- FALSE
   steps <- 0L
-  Mi <- NULL
+  rp$Mi <- NULL
   hess_at <- function(p, g = NULL) {
-    if (!is.null(M)) {
-      h <- reparam_hessian_refined(obj, p, M)
+    if (!is.null(rp$M)) {
+      h <- reparam_hessian_refined(obj, p, rp$M)
       if (is.null(h) || !all(is.finite(h$H))) return(NULL)
-      Mi <<- h$M
+      rp$Mi <- h$M
       return(h$H)
     }
     H <- tryCatch(if (re) {
@@ -3589,9 +4120,9 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
     }, error = keep_missing(NULL))
     if (is.null(H) || !identical(dim(H), c(np, np))) return(NULL)
     fin <- all(is.finite(H))
-    if (!fin && (decided || is.null(frame))) return(NULL)
-    if (!decided) {
-      decided <<- TRUE
+    if (!fin && (rp$decided || is.null(frame))) return(NULL)
+    if (!rp$decided) {
+      rp$decided <- TRUE
       # a parameter with an empty row that a step cannot gain on, such
       # as a group sd at zero, is left where it is, and the steps are
       # taken over the others: its row alone kept a degree-8 fit with
@@ -3616,7 +4147,7 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
         out <- setdiff(seq_len(np), keep)
         if (!is.null(M0) && all(dim(M0) == np) &&
               !length(intersect(out, attr(M0, "pos")))) {
-          M <<- if (length(out)) reparam_cols(M0, keep) else M0
+          rp$M <- if (length(out)) reparam_cols(M0, keep) else M0
           return(hess_at(p))
         }
       }
@@ -3626,14 +4157,14 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
   }
   chol_at <- function(H) {
     if (is.null(H)) return(NULL)
-    Hs <- if (is.null(M)) H * outer(u, u) else H
+    Hs <- if (is.null(rp$M)) H * outer(u, u) else H
     tryCatch(chol((Hs + t(Hs)) / 2), error = keep_missing(NULL))
   }
   # one step from p with the Hessian Hc and its Cholesky factor R:
   # list(q, vq, model), or NULL when no step is taken
   polish_step <- function(Hc, R, g) {
     if (is.null(Hc)) return(NULL)
-    damped <- is.null(R) && !is.null(M)
+    damped <- is.null(R) && !is.null(rp$M)
     if (damped) {
       # Far from the maximum the Hessian in the design's coordinates can
       # be indefinite: on that y ~ x fit the slope's coordinate against
@@ -3648,11 +4179,11 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
     if (is.null(R)) return(NULL)
     # in natural units, where the Hessian is closest to unit diagonal,
     # or in the coordinates the Hessian was taken in
-    gs <- if (is.null(M)) g * u else drop(crossprod(Mi, g))
+    gs <- if (is.null(rp$M)) g * u else drop(crossprod(rp$Mi, g))
     hsolve <- function(v) backsolve(R, forwardsolve(t(R), v))
     st <- -drop(hsolve(gs))
     if (!all(is.finite(st))) return(NULL)
-    B <- if (is.null(M)) diag(u, np) else Mi
+    B <- if (is.null(rp$M)) diag(u, np) else rp$Mi
     q <- p + drop(B %*% st)
     # A step that leaves the box is taken again with the coordinates it
     # crosses held at their bounds: the Newton step of the quadratic
@@ -3694,7 +4225,7 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
     if (!is.finite(gain) || gain <= 1e-6) return(NULL)
     vq <- tryCatch(obj$fn(q), error = keep_missing(NA_real_))
     t <- 1
-    if (!is.null(M)) {
+    if (!is.null(rp$M)) {
       # in the design's coordinates a step from far off is shortened
       # until it gains a tenth of what the quadratic model predicts at
       # that fraction t of it: on the y ~ x fit the full second step
@@ -3754,7 +4285,7 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
     moved <- TRUE
     steps <- steps + 1L
     end_ok <- NA
-    stale <- !is.null(M) && isTRUE(st_try$model)
+    stale <- !is.null(rp$M) && isTRUE(st_try$model)
   }
   # the loop leaves end_ok NA when its last step was taken and the
   # Hessian there not yet read
@@ -3867,14 +4398,15 @@ mo_search <- function(obj, opt, frame, control, bounds, par_units = NULL,
   upper <- rep_len(bounds$upper, np)
   n_before <- if (is.null(tally)) 0L else tally$n
   best <- opt
-  runs <- 0L
+  tried <- new.env(parent = emptyenv())
+  tried$runs <- 0L
   # a gain below this is the same optimum reached twice
   better <- function(o) {
     !is.null(o) && all(is.finite(o$par)) && is.finite(o$objective) &&
       best$objective - o$objective > 1e-10 * max(1, abs(best$objective))
   }
   refit <- function(p, lo = lower, up = upper, ctl = control) {
-    runs <<- runs + 1L
+    tried$runs <- tried$runs + 1L
     tryCatch(optimize_obj(obj, ctl, list(lower = lo, upper = up),
                           par_units, start_par = p, tally = tally),
              error = function(e) NULL)
@@ -3974,9 +4506,9 @@ mo_search <- function(obj, opt, frame, control, bounds, par_units = NULL,
   # `opt` need not have ended at it, and the face probes above move
   # the objective's state (obj_settle())
   obj_settle(obj, opt, best, saved)
-  if (!runs) return(opt)
+  if (!tried$runs) return(opt)
   gain <- opt$objective - best$objective
-  best$mo_search <- c(runs = runs, gain = gain)
+  best$mo_search <- c(runs = tried$runs, gain = gain)
   # a search run replaces `opt`, whose escape record would go with it
   if (is.null(best$stationary_escape)) {
     best$stationary_escape <- opt$stationary_escape
@@ -3988,8 +4520,8 @@ mo_search <- function(obj, opt, frame, control, bounds, par_units = NULL,
   if (!is.null(tally)) best$evals <- tally$evals
   if (verbose) {
     vb_stage("mo() search", t0,
-             paste0(runs, " run", if (runs != 1L) "s", ", gain ",
-                    format(gain, digits = 3)))
+             paste0(tried$runs, " run", if (tried$runs != 1L) "s",
+                    ", gain ", format(gain, digits = 3)))
   }
   best
 }
@@ -4222,7 +4754,8 @@ nl_start_message <- function(spec, emsg) {
          "gives the names, and the names go straight back. (2) A normal() ",
          "or student_t() prior with a location, e.g. prior(normal(",
          "<location>, <scale>), nlpar = \"", nlp[1L], "\"): the fit ",
-         "starts from the location")
+         "starts from the location. Only (1) stops frm() from also trying ",
+         "the sign patterns of the body's coefficients")
 }
 
 #' Runs the optimizer call and rewrites any failure into a message that
@@ -4731,12 +5264,18 @@ grad_headroom <- function(fit, g, active) {
   }
   if (is.null(H) || !identical(dim(H), c(np, np))) {
     # he() is not implemented for a Laplace objective, so the Hessian of
-    # the marginal comes from differencing its gradient
+    # the marginal comes from differencing its gradient, with the steps
+    # fit_outer_hessian() takes (outer_fd_steps(); optimHess()'s own
+    # wherever no column is wider than one unit). optimHess()'s absolute
+    # 1e-3 on the slope of `x + 1e5` moved the predictor by 100, the
+    # Hessian was not finite, and an autoscaled fit at the maximum warned
+    # that its curvature was unusable, with every standard error NaN
+    # (dev/bigx-auto.R)
     H <- tryCatch(
-      stats::optimHess(p, function(q) as.numeric(fit$obj$fn(q)),
-                       function(q) drop(fit$obj$gr(q))),
+      fd_hessian(p, function(q) drop(fit$obj$gr(q)),
+                 eps = outer_fd_steps(fit$frame, names(p)))$H,
       error = function(e) NULL)
-    # optimHess() leaves the tape's last evaluation at a PERTURBED point,
+    # the differences leave the tape's last evaluation at a PERTURBED point,
     # and on a Laplace objective that is a displaced inner solve. Nothing
     # downstream should read it, but diagnose_flat() has the same pattern
     # and fit_end_checks() runs after this, so put the tape back where the
@@ -5169,11 +5708,11 @@ check_convergence <- function(fit, control) {
              "is rarely in the right region (see par_template())")
     } else ""
     if (!gp_ok) {
-      msgs <- c(msgs, paste0("Optimizer did not report convergence: ",
-                             fit$opt$message, nl_hint,
-                             if (is.null(fit$importance)) {
-                               conv_headroom_clause(room, control$grad_tol)
-                             }))
+      msgs <- c(msgs, frmtmb_conv_code = paste0(
+        "Optimizer did not report convergence: ", fit$opt$message, nl_hint,
+        if (is.null(fit$importance)) {
+          conv_headroom_clause(room, control$grad_tol)
+        }))
     }
   }
   if (!is.null(fit$importance)) {
@@ -5207,7 +5746,9 @@ check_convergence <- function(fit, control) {
     # much log likelihood one Newton step would still buy. See
     # grad_verdict().
     v <- grad_verdict(fit, gvec, control)
-    if (isTRUE(v$warn)) msgs <- c(msgs, grad_warning_msg(v))
+    if (isTRUE(v$warn)) {
+      msgs <- c(msgs, frmtmb_conv_gradient = grad_warning_msg(v))
+    }
   } else if (is.null(sep) && !is.null(gvec) && length(gvec) &&
                any(!is.finite(gvec))) {
     # A gradient that is not finite at the reported optimum used to pass
@@ -5216,7 +5757,7 @@ check_convergence <- function(fit, control) {
     # X-convergence on a three-component ordinal mixture whose probit
     # component saturated, gradient Inf; dev/ordmix-rev-probit-sat.R).
     bad <- names(fit$opt$par)[!is.finite(gvec)]
-    msgs <- c(msgs, paste0(
+    msgs <- c(msgs, frmtmb_conv_gradient_nonfinite = paste0(
       "The gradient at the reported optimum is not finite (",
       paste(unique(bad), collapse = ", "), "), so convergence could not ",
       "be checked: the objective's derivative is undefined there, which ",
@@ -5236,6 +5777,11 @@ check_convergence <- function(fit, control) {
                            "errors are unreliable. The model may be ",
                            "overparameterized", flat_par_note(fit)))
   }
-  for (m in msgs) frm_warning(m, call. = FALSE)
-  invisible(list(grad = g, warnings = msgs, at_max = at_max))
+  # the stop warnings carry a class, which nl_stop_warning() reads
+  for (i in seq_along(msgs)) {
+    cl <- names(msgs)[i]
+    frm_warning(msgs[[i]], call. = FALSE,
+                class = if (isTRUE(nzchar(cl))) cl)
+  }
+  invisible(list(grad = g, warnings = unname(msgs), at_max = at_max))
 }

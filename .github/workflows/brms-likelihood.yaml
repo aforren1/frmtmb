@@ -63,7 +63,15 @@ jobs:
     # minutes. Linux is faster, but the first run of this workflow, and
     # any run whose restore-keys fallback misses, pays for all 25 at
     # once.
-    timeout-minutes: 90
+    #
+    # Those numbers are old: ubuntu-next's copy of this job, from an
+    # empty cache, ran the identity tier in 49 to 88 minutes on 24.04
+    # (2026-10-19 to 11-02). The cache prefix carries the rstan version,
+    # so a new rstan empties it here too. A slow apt mirror added 41
+    # minutes of setup on 2026-11-06. Both at once exceed 90 minutes, so
+    # the job's limit is wide and the identity tier carries the limit
+    # that catches a wedged run.
+    timeout-minutes: 180
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
@@ -100,7 +108,7 @@ jobs:
       # DSOs are stored, and the restore-keys prefix means a changed key
       # still recovers every program that did not change.
       #
-      # All five, not two. actions/cache saves at post-job only when the
+      # All five, not two. The save step below saves only when the
       # primary key was not an exact hit. Hash the identity tier's two
       # files alone and the first run compiles the methods tier's extra
       # program, restores an exact key hit, saves nothing, and recompiles
@@ -125,7 +133,18 @@ jobs:
           cat("prefix=brms-stan-", v, "-\n", sep = "",
               file = Sys.getenv("GITHUB_OUTPUT"), append = TRUE)
         shell: Rscript {0}
-      - uses: actions/cache@v4
+      # Restore and save are separate steps, so that a job that fails or
+      # hits a time limit still keeps the programs it compiled (the
+      # combined action saves only from a successful job). A save from
+      # such a job goes under the primary key plus "-partial-<run id>",
+      # never under the primary key itself: GitHub never overwrites a
+      # key, and a partial cache under the primary key would be an exact
+      # hit ever after, so the programs it lacks would be compiled on
+      # every run and never saved. The restore-keys prefix matches the
+      # partial key and takes the newest match, so the next run starts
+      # from it and saves the full set under the primary key.
+      - uses: actions/cache/restore@v4
+        id: stancache
         with:
           path: dev/stan-cache
           key: ${{ steps.stankey.outputs.prefix }}${{ hashFiles('dev/stan-cache-key.txt') }}
@@ -158,6 +177,8 @@ jobs:
       # tier's own cache notes record that failure. Separate processes
       # read every RDS from an earlier session, which works.
       - name: Run the brms log-density identity tier
+        # 88 minutes from an empty cache at the slowest measured
+        timeout-minutes: 120
         run: |
           # A skipped suite is green, so the gate is asserted before the
           # run rather than inferred from the counts afterwards: a
@@ -252,3 +273,10 @@ jobs:
                  paste(df$test[df$skipped], collapse = "; "))
           }
         shell: Rscript {0}
+      # last, on any outcome (see the restore step); an exact hit has
+      # nothing new to save
+      - uses: actions/cache/save@v4
+        if: ${{ always() && steps.stankey.outcome == 'success' && steps.stancache.outputs.cache-hit != 'true' && hashFiles('dev/stan-cache/*.rds') != '' }}
+        with:
+          path: dev/stan-cache
+          key: ${{ steps.stankey.outputs.prefix }}${{ hashFiles('dev/stan-cache-key.txt') }}${{ job.status != 'success' && format('-partial-{0}', github.run_id) || '' }}

@@ -412,8 +412,9 @@ test_that("marginaleffects warns of what its SE omits, and still answers", {
                  class = "frmtmb_interop_se_part")
   expect_warning(marginaleffects::predictions(fit, newdata = nz), "se.fit")
   # a test of a coefficient is the right one, so a refusal stopped a right answer
+  # a test of a coefficient reads no draw, so it no longer warns of one
   h <- allow_warnings(marginaleffects::hypotheses(fit, "b2 = 0"),
-                      c(mfx_se_part, "positional indices"), mfx_se_part)
+                      "positional indices")
   cf <- fixef(fit)
   expect_equal(as.numeric(h$estimate), cf["z", "Estimate"])
   expect_equal(as.numeric(h$std.error), cf["z", "Est.Error"], tolerance = 1e-6)
@@ -427,7 +428,7 @@ test_that("marginaleffects warns of what its SE omits, and still answers", {
     marginaleffects::predictions(f0, newdata = nd)$std.error)))
 })
 
-test_that("the same warning reaches a field and a group-level term", {
+test_that("a field and a group-level term read fitted()'s standard error", {
   skip_if_not_installed("marginaleffects")
   set.seed(7411)
   n <- 200
@@ -435,18 +436,19 @@ test_that("the same warning reaches a field and a group-level term", {
   d$y <- 1 + sin(2 * d$x) + stats::rnorm(12, 0, 0.8)[d$g] +
     stats::rnorm(n, 0, 0.5)
   nd <- data.frame(x = c(-1, 1), g = factor(c(1, 2), 1:12))
-  # each of these holds a variance in no coefficient of get_coef()
+  # through 0.79.1 get_coef() held no parameter of these, each warned, and
+  # the standard error of a level was off by a factor of 2 to 9; now
+  # get_coef() holds them, and nothing is left to warn of
   fs <- list(frm(y ~ s(x), data = d), frm(y ~ gp(x, k = 15), data = d))
   for (f in fs) {
-    expect_warning(marginaleffects::predictions(f, newdata = nd),
-                   class = "frmtmb_interop_se_part")
+    expect_no_warning(p <- marginaleffects::predictions(f, newdata = nd))
+    expect_equal(p$std.error, unname(fitted(f, newdata = nd)[, "Est.Error"]),
+                 tolerance = 1e-5)
   }
   fg <- allow_warnings(frm(y ~ x + (1 | g), data = d), "boundary")
-  p <- allow_warnings(marginaleffects::predictions(fg, newdata = nd),
-                      mfx_se_part, "group-level effects")
-  # what it warns of is true: the level's SE is not fitted()'s
+  expect_no_warning(p <- marginaleffects::predictions(fg, newdata = nd))
   ft <- fitted(fg, newdata = nd)
-  expect_gt(min(abs(p$std.error / ft[, "Est.Error"] - 1)), 0.1)
+  expect_equal(p$std.error, unname(ft[, "Est.Error"]), tolerance = 1e-5)
   # and with the group dropped it agrees, with no warning
   pn <- allow_warnings(
     marginaleffects::predictions(fg, newdata = nd, re_formula = NA),
@@ -721,12 +723,17 @@ test_that("a middle category's Q on a new me() row is the draw's own quantile", 
   }
 })
 test_that("the warning says the standard error can be off in either direction", {
+  skip_if_not_installed("marginaleffects")
+  d <- mn_count()
+  fit <- frm(bf(cnt ~ me(xo, sx) + z), family = poisson(), data = d)
+  expect_warning(marginaleffects::get_vcov(fit), "too wide or too narrow")
+  expect_warning(marginaleffects::get_vcov(fit), mfx_se_part, fixed = TRUE)
+  # a group-level term alone is in get_coef(), and no longer warns
   set.seed(7983)
   d <- data.frame(x = rnorm(120), g = factor(rep(1:12, 10)))
   d$y <- 1 + d$x + rep(rnorm(12), 10) + rnorm(120)
-  fit <- suppressWarnings(frm(y ~ x + (1 | g), data = d))
-  expect_warning(marginaleffects::get_vcov(fit), "too wide or too narrow")
-  expect_warning(marginaleffects::get_vcov(fit), "standard errors from the population-level")
+  fg <- frm(y ~ x + (1 | g), data = d)
+  expect_no_warning(marginaleffects::get_vcov(fg))
 })
 
 test_that("a me() row under trunc() keeps the tail guard of one mean", {

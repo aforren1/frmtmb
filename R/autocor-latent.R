@@ -1197,21 +1197,32 @@ latres_fitted_mean <- function(fit, newdata, re_formula, resp, dpar,
   total
 }
 
-#' Whether a standard error of a row of this fit would solve the whole joint
-#' precision densely, above the row count where that stops being a cost a method
-#' can pay unasked: 6 to 12 s at 2000 rows, 80 s at 4000, 984 s and 491 MB of
-#' saved cache at 8000, and 80 GB at 100000, where the fit itself takes 30 s.
+#' Whether a standard error of a fitted row of this fit would read a dense block
+#' of the joint covariance over every latent, above the row count where that
+#' stops being a cost a method can pay unasked: 4.7 s at 2000 rows, 40 s at
+#' 4000, 984 s and 491 MB of saved cache at 8000, and 80 GB at 100000, where
+#' the fit itself takes 30 s. The sparse joint covariance (jcs_joint_cov())
+#' reads the fitted rows at no such cost, so this says yes only where it does
+#' not apply, or where the route (`dense`, the differenced category
+#' probabilities of an ordinal fit) forms the block anyway.
 #' `options(frmtmb.latres_se_rows = )` moves the limit.
 #'
 #' @noRd
-latres_skip_se <- function(fit, newdata = NULL) {
-  # rows of a grid read beta and theta alone, 0.02 to 0.31 s at 4000 rows
+latres_skip_se <- function(fit, newdata = NULL, dense = FALSE) {
+  # rows of a grid read beta, theta and another block's levels alone
   if (!is.null(newdata) || !length(frame_latres(fit$frame))) return(FALSE)
   limit <- getOption("frmtmb.latres_se_rows", 3000L)
   if (fit$frame[["n_obs"]] <= limit) return(FALSE)
-  frm_message("The standard errors of the fitted rows are skipped (NA): a ",
-              "latent residual over ", fit$frame[["n_obs"]], " rows would ",
-              "need the whole joint covariance as a dense matrix, about ",
+  if (!dense) {
+    jc <- tryCatch(get_joint_cov(fit, dense = FALSE),
+                   error = keep_missing(NULL))
+    if (jc_is_sparse(jc)) return(FALSE)
+  }
+  frm_message("The standard errors of the fitted rows are skipped (NA): ",
+              "this route of a latent residual over ", fit$frame[["n_obs"]],
+              " rows would ",
+              "need the joint covariance of every latent as a dense matrix, ",
+              "about ",
               format(8 * length(fit$estimates[["b"]])^2 / 1e9, digits = 2),
               " GB. options(frmtmb.latres_se_rows = ) moves the limit of ",
               limit, " rows; frm_linpred() gives the values at no cost",
@@ -1251,13 +1262,24 @@ latres_refuse_laplace <- function(spec, frame) {
     resp <- spec$responses[[a[["ac"]][["resp"]]]]
     fam <- resp$family
     lab <- a[["ac"]][["label"]]
-    # two latent vectors in one inner problem, which no measurement has read
-    if (isTRUE(resp$aterms[["mi"]])) {
+    # A missing value no other density reads leaves the objective first
+    # (mi_ml_frame()), and its row's latent is then one with no observation
+    # (dev/fitedge-findings.md, item 4). A read value of a predictor, `mi(xm)`,
+    # shares the inner problem with the latents too, and there the fit is the
+    # exact marginal on lognormal to 5e-7 on 5 seeds; a read value of the
+    # response itself sits in its own density beside its row's latent, which
+    # nobody has measured (dev/fitedge-findings.md, fix round, m3)
+    rn <- resp$resp_name %||% a[["ac"]][["resp"]]
+    if (isTRUE(resp$aterms[["mi"]]) &&
+          length(mi_ml_frame(frame)[["mi_map"]][[rn]][["rows"]])) {
       frm_stop(lab, ": mi() on the response cannot be combined with a latent ",
-               "residual on frm(). The imputed values and the latents would ",
-               "share one inner problem, and that Laplace approximation has ",
-               "not been measured against an exact value. frm_sample() ",
-               "samples the model", call. = FALSE)
+               "residual on frm() where another density reads its missing ",
+               "values. Each such value would sit in the response's own ",
+               "density beside its row's latent, in one inner problem, and ",
+               "that Laplace approximation has not been measured against an ",
+               "exact value (a missing predictor read through mi() has been, ",
+               "on lognormal). ",
+               "frm_sample() samples the model", call. = FALSE)
     }
     if (!isTRUE(a[["on_response"]])) next
     frm_stop(

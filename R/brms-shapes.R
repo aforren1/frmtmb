@@ -595,7 +595,7 @@ fit_fd_se <- function(fit, f, eps = 1e-5, b_idx = NULL, b_batch = NULL,
   # d out / d eta of one predictor on every row, from ONE pair of
   # evaluations with its eta moved; memoized, since the chain columns
   # and the extra variance of one predictor read the same derivative
-  geta <- list()
+  geta <- new.env(parent = emptyenv())
   g_of <- function(key) {
     if (is.null(geta[[key]])) {
       shifted <- function(step) {
@@ -604,7 +604,7 @@ fit_fd_se <- function(fit, f, eps = 1e-5, b_idx = NULL, b_batch = NULL,
         g$cache <- new.env(parent = emptyenv())
         as.vector(as.matrix(f(g)))
       }
-      geta[[key]] <<- (shifted(eps) - shifted(-eps)) / (2 * eps)
+      geta[[key]] <- (shifted(eps) - shifted(-eps)) / (2 * eps)
     }
     geta[[key]]
   }

@@ -28,13 +28,21 @@ and both are accepted), \code{"pearson"}, \code{"deviance"}, or \code{"osa"}.
 brms's \code{residuals()} takes \code{newdata} in this position; this one
 has always taken \code{type} there, so give \code{newdata} by name.}
 
-\item{osa_method}{Method for \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}}; defaults to
-\code{"fullGaussian"} for gaussian models and \code{"oneStepGeneric"}
-otherwise. A truncated, censored or ordinal response always uses
-\code{"oneStepGeneric"} (a truncated gaussian is not gaussian) with the
-integration domain and discrete support taken from the \code{trunc()}
-bounds or the censoring window, which must then be the same for
-every row.}
+\item{osa_method}{Method for \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}}. The default
+is \code{"cdf"} for an uncensored core family with a CDF: each row is
+read against its family's own CDF, inside its own \code{trunc()} window,
+and a count is randomized over its own step of that CDF. An
+untruncated, unweighted \code{gaussian()} defaults to \code{"fullGaussian"},
+which is exact for a gaussian response. A censored, ordinal or
+CDF-less response uses \code{"oneStepGeneric"}, with the integration
+domain and discrete support taken from the \code{trunc()} bounds or the
+censoring window, which must then be the same for every row. On a
+count, \code{"oneStepGeneric"} needs a finite \code{discreteSupport}, and the
+gaussian methods are refused. \code{"fullGaussian"}, if asked for on a
+weighted fit, reads a weight as a precision,
+\verb{(y - mu) sqrt(w) / sigma}, rather than as a frequency. A fit with
+\code{quadrature = TRUE} is refused: its objective has integrated the
+random effects already.}
 
 \item{...}{For \code{type = "osa"}: passed to \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}},
 and checked against that function's own formals. For every other
@@ -82,9 +90,49 @@ one response gives an \verb{n x 4 x nresp} array, as brms's does;
 \code{"osa"} gives one-step-ahead (conditional quantile) residuals via
 \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}}: standard-normal under a correctly specified
 model, valid under correlated observations where pearson residuals
-mislead.
+mislead. With no group-level term, a residual of the default
+route is the randomized quantile residual of the fitted
+distribution: \code{qnorm(F(y))} for a continuous response, and for a
+count \code{qnorm(u)} with \code{u} drawn uniformly on \verb{[F(y - 1), F(y)]}. The
+uniforms are TMB's: \code{set.seed(123)} by default, so the same fit gives
+the same residuals and the session's random stream is left as it
+was; pass \verb{seed =} (through \code{...}) for other draws, or \code{seed = NULL}
+for the session's stream. A residual is read in the tail its row lies
+in, so it holds far out on either side (about +-37 and beyond).
 }
 \details{
+With a group-level term, TMB integrates the random effects of each
+one-step predictive by the Laplace approximation, and that is
+approximate. Against the exact one-step predictive, by quadrature on
+20 groups of 10 rows (three data sets per family), the median error
+was below 0.001 under \code{(1 | g)} on seven count families and 0.006 to
+0.016 under a latent \code{ar()} on poisson and the zero-inflated and
+hurdle counts. The largest was 0.15 under \code{(1 | g)} and 0.13 under
+\code{ar()}. The error is largest on the first row of each group, whose
+predictive is an integral over the group effect's prior alone. Over
+many rows the residuals stay calibrated: their Kolmogorov-Smirnov
+p-value against N(0, 1) was within 0.13 of that of the exact
+residuals on each of 42 fits. Read a single residual near a cutoff
+with that error in mind.
+
+A case weight is a frequency, as \code{weights()} is in the likelihood
+(brms's reading): a row of weight \code{w} gets the residual of the last
+of \code{w} copies of it, given the other \code{w - 1}, and the later rows are
+conditioned on all \code{w} copies. A row of weight 0 is no part of the
+fitted likelihood and gets \code{NA}. A weight between 0 and 1 also gets
+\code{NA}, with a warning: there TMB reads the row's mass from the weighted
+density, \code{p^w}, so a count's randomization would be wrong. A residual that
+\code{oneStepPredict()} cannot form is \code{NaN} with a warning.
+
+The cost grows faster than the number of rows: TMB makes three
+evaluations of the whole objective per row, each with an inner
+optimization when there are random effects. The rows are handed to
+\code{oneStepPredict()} in blocks of about \code{sqrt(n)}, each conditioned on
+the rows before it, so that the objective carries the CDF of one block
+at a time. With \code{(1 | g)} and 2000 rows in 100 groups, poisson
+residuals took about a minute and negbinomial ones about two, on a
+loaded machine.
+
 On a \code{trunc()}ed response, \code{"response"} residuals are taken against
 the truncated mean \verb{E[Y | lb <= Y <= ub]}. \code{"pearson"} divides by the
 untruncated family variance, so it is conservative there. \code{"osa"}

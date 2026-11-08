@@ -21,7 +21,7 @@ mi_stan_model <- function(code) {
   if (is.null(mod) && file.exists(path)) mod <- readRDS(path)
   if (is.null(mod)) {
     mod <- rstan::stan_model(model_code = code, save_dso = TRUE)
-    saveRDS(mod, path)
+    stan_cache_write(mod, path)
   }
   mi_models[[key]] <- mod
   mod

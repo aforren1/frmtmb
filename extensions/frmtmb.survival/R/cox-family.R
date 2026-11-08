@@ -318,7 +318,7 @@ cox_bhaz_args <- function(call) {
   a <- as.list(call)[-1L]
   nms <- names(a) %||% rep("", length(a))
   out <- list()
-  put <- function(full, i) {
+  put <- function(out, full, i) {
     if (!is.null(out[[full]])) {
       # brms stops on a full name given twice; a shortened one beside
       # the full name never reaches the argument, and brms drops it
@@ -331,17 +331,18 @@ cox_bhaz_args <- function(call) {
                         " =` without a message")
                }, call. = FALSE)
     }
-    out[[full]] <<- a[[i]]
+    out[[full]] <- a[[i]]
+    out
   }
   taken <- c("gr", "df", "degree", "intercept", "knots", "Boundary.knots",
              "warn.outside")
-  for (i in which(nzchar(nms) & nms %in% taken)) put(nms[[i]], i)
+  for (i in which(nzchar(nms) & nms %in% taken)) out <- put(out, nms[[i]], i)
   for (i in which(nzchar(nms) & !nms %in% taken)) {
     nm <- nms[[i]]
     pre <- function(cands) cands[startsWith(cands, nm)]
     step1 <- pre(setdiff(c("gr", "df"), names(out)))
     if (length(step1) == 1L) {
-      put(step1, i)
+      out <- put(out, step1, i)
       next
     }
     step2 <- pre(c("knots", "degree", "periodic", "derivs", "integral",
@@ -349,7 +350,7 @@ cox_bhaz_args <- function(call) {
     meant <- pre(c("intercept", "Boundary.knots"))
     if (length(step2) == 1L && step2 %in% c("knots", "degree",
                                              "warn.outside")) {
-      put(step2, i)
+      out <- put(out, step2, i)
       next
     }
     if (length(meant)) {

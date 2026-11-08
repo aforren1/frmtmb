@@ -97,33 +97,33 @@ refit_channel_for <- function(data, formula, family) {
   ch
 }
 
-#' Does the objective a fit maximized hold a prior density? Read from the
-#' resolved prior entries: a prior that only sets bounds adds nothing
-#' to the objective, and `logLik()` is then the log-likelihood.
+#' Does the objective a fit maximized hold a prior density that moves the
+#' estimate? Read from the resolved prior entries: a prior that only sets
+#' bounds adds nothing to the objective, and a uniform density read with
+#' no change of variables adds a constant (`prior_entry_constant()`), so
+#' with either the estimates maximize the likelihood inside the box.
 #'
 #' @noRd
 fit_prior_density <- function(fit) {
-  pr <- fit[["prior"]]
-  if (is.null(pr) || !length(pr)) return(FALSE)
-  ri <- tryCatch(resolve_prior_input(list(frame = fit[["frame"]],
-                                          spec = fit[["spec"]]), pr),
-                 error = keep_missing(NULL))
+  ent <- tryCatch(fit_prior_entries(fit), error = keep_missing(NULL))
   # a prior that cannot be resolved again cannot be shown to be flat
-  is.null(ri) || length(ri$entries) > 0L
+  if (is.null(ent)) return(TRUE)
+  !all(vapply(ent, prior_entry_constant, NA))
 }
 
 #' Refuse a likelihood-ratio statistic between fits whose objective
 #' holds a prior density. Such a fit maximizes the log-likelihood plus
-#' the log prior, so a difference of two maxima has a term of prior
-#' densities at two different estimates: it is not a likelihood ratio
+#' the log prior, so its `logLik()` is the log-likelihood at a point that
+#' does not maximize it: a difference of two is not a likelihood ratio
 #' and it can be negative.
 #'
 #' @noRd
 prior_lrt_refusal <- function(what, which) {
   frm_stop(what, " compares log-likelihoods, and ", which, " a prior ",
            "that adds its log density to the objective (frm(prior = )). ",
-           "Its logLik() is the log-likelihood plus the log prior, so a ",
-           "difference of two is not a likelihood ratio and has no ",
+           "Its estimates maximize the log-likelihood plus the log prior, ",
+           "not the log-likelihood, so a difference of two logLik() values ",
+           "is not a likelihood ratio and has no ",
            "chi-square reference. For a likelihood-ratio test, refit ",
            "without the prior; a prior that only sets bounds can stay. ",
            "To compare the models under the prior, use loo() or ",

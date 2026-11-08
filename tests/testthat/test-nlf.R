@@ -162,8 +162,17 @@ test_that("post-processing follows the nonlinear parameter a body names", {
   expect_length(residuals(fit)[, "Estimate"], n)
   # mu is linear, so its delta-method standard error is unaffected
   expect_false(is.null(frm_linpred(fit, se.fit = TRUE)$se.fit))
-  expect_error(frm_linpred(fit, dpar = "sigma", se.fit = TRUE),
-               "se.fit is not supported")
+  # a + b * z is the linear sigma ~ z, so the delta method through the body
+  # is that predictor's own standard error
+  lin <- frm(bf(y ~ x, sigma ~ z), family = gaussian(), data = d)
+  nd <- data.frame(x = 0, z = c(-1, 0, 1))
+  for (ty in c("link", "response")) {
+    sb <- frm_linpred(fit, newdata = nd, dpar = "sigma", type = ty,
+                      se.fit = TRUE)$se.fit
+    sl <- frm_linpred(lin, newdata = nd, dpar = "sigma", type = ty,
+                      se.fit = TRUE)$se.fit
+    expect_lt(max(abs(sb / sl - 1)), 1e-3, label = ty)
+  }
   # the effect display finds the body's covariate, not mu's
   ce <- conditional_effects(fit, dpar = "sigma", band = "boot", boot = 5)
   expect_named(ce, "z")

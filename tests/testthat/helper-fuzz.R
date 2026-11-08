@@ -1748,22 +1748,21 @@ FUZZ_KNOWN_REFUSAL <- list(
        match = function(f) grepl("aterm=trunc", f$spec) &&
          f$invariant %in% c("predict_eq_fitted", "simulate_mean") &&
          grepl("has no truncated mean", f$detail)),
-  list(id = "quad-one-block-per-row",
-       why = paste("quadrature = TRUE integrates one scalar random effect",
-                   "per row. Over (1 | ga/gb) one Gauss-Kronrod pass",
-                   "integrated the ga effects and left the ga:gb effects",
-                   "to the Laplace approximation: the log-likelihood",
-                   "equaled the Laplace one to 1e-8 and summary() failed.",
-                   "lme4 refuses nAGQ > 1 for more than one term. An",
-                   "exact iterated route was measured and set aside",
-                   "because its tape grows by 12 to 551 MB per row. The",
-                   "refusal comes before any tape, and quadrature = FALSE",
-                   "fits these models."),
+  list(id = "quad-nested-memory",
+       why = paste("quadrature = TRUE integrates (1 | ga/gb) by repeating",
+                   "every row once per pair of Gauss-Hermite nodes, and",
+                   "predicts the memory that tape takes before building",
+                   "it. A censored Beta row costs about 620 kB per node",
+                   "pair while the tape is built (100 rows at 11 x 15",
+                   "nodes took 10 GB), so such a spec is above the",
+                   "default limit of frmtmb_control(quad_max_gb = 4).",
+                   "The refusal names the limit and the remedies, and",
+                   "quadrature = FALSE fits these models."),
        match = function(f) identical(f$invariant, "fit_error") &&
          grepl("mode=quadrature", f$spec) &&
          grepl("re=nested", f$spec) &&
-         grepl("quadrature = TRUE integrates one scalar random effect per",
-               f$detail, fixed = TRUE))
+         grepl("above the limit of", f$detail, fixed = TRUE) &&
+         grepl("quad_max_gb", f$detail, fixed = TRUE))
 )
 
 # Divergences from brms's reading of the same formula. Each one is a

@@ -352,19 +352,33 @@
 #' Under `cov = FALSE` new rows are refused, in brms's words.
 #' [conditional_effects()] and `emmeans()` drop the term, as brms's do.
 #'
-#' Past `getOption("frmtmb.latres_dense_rows", 20000L)` rows, a standard error
-#' that reads the whole joint covariance is refused, with its size in the
-#' message, because it is `16 n^2` bytes: [frm_curve()], [frm_lp_basis()] and
-#' [conditional_effects()] read it.
+#' The joint covariance of the estimates and the latents is held as the sparse
+#' Cholesky factor of their joint precision, which is banded along a chain, so
+#' a standard error reads it at a cost that grows with the rows, not with
+#' their square. [fitted()], [residuals()] and `frm_linpred(se.fit = TRUE)` on
+#' the fitted rows read each row's variance through the selected inverse of
+#' the factor: on one poisson series, 0.4 s at 8000 rows and 1.7 s at 32000.
+#' A hurdle or zero-inflated mean reads the latent of `mu` and a level of
+#' `hu ~ (1 | id)` or `zi ~ (1 | id)` on one row, a pair that no row's
+#' likelihood couples; that pair is read from a column of the inverse solved
+#' once per level, 3.3 s at 32000 rows. Rows in `newdata` read the estimates
+#' and the levels of any other group-level block alone, [frm_curve()] and
+#' [conditional_effects()] too.
 #'
-#' A standard error of a fitted row solves the whole joint precision as a dense
-#' matrix: 6 to 12 s at 2000 rows, 80 s at 4000, 984 s at 8000. Above 3000 rows
-#' [fitted()], [residuals()] and `frm_linpred(se.fit = TRUE)` with `newdata =
-#' NULL` give `NA` for it with a message of class `frmtmb_latres_se_skipped`.
-#' `options(frmtmb.latres_se_rows = )` moves the limit. Rows in `newdata`,
-#' [frm_curve()] and [conditional_effects()] keep their standard errors. Beside
-#' another group-level block, [fitted()] on new rows reads the joint covariance
-#' up to `frmtmb.latres_dense_rows` rows, and above that reads `NA` with a message.
+#' A dense block of the joint covariance is formed only where a function
+#' returns one or must form one: [frm_joint_cov()], [frm_lp_basis()] on the
+#' fitted rows, and the category probabilities of an ordinal family's fitted
+#' rows. A block of more than `getOption("frmtmb.latres_dense_rows", 20000L)^2`
+#' numbers is refused, with its size in the message. The same option bounds a
+#' wider block: on any fit with group-level effects, latent or not, a `vcov =`
+#' that marginaleffects carries into those effects inverts the inner block, one
+#' row per effect, densely, and past that many inner rows the effects are held
+#' at their estimates with a warning ([frmtmb-marginaleffects]). Above 3000
+#' rows the category probabilities' standard errors are `NA`, with a message of
+#' class `frmtmb_latres_se_skipped`; `options(frmtmb.latres_se_rows = )` moves
+#' that limit. A fit whose covariance of the estimates is held as a factor,
+#' which an ill-conditioned design gives, keeps the dense joint covariance, and
+#' both limits apply to every standard error of its fitted rows.
 #'
 #' A coefficient near an end of its range, or an `sderr` near 0 against the
 #' response's scale, is at a limit only if the fit's numbers say that end is not

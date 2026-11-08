@@ -345,21 +345,29 @@ test_that("the registry says simulate() works where a simulator exists", {
   # whose test-cox.R checks its row
 })
 
-test_that("one-step-ahead residuals are refused by name on a point mass", {
+test_that("one-step-ahead residuals read a count's point mass as data", {
   # PIN: through 0.63.0 every zero-inflated and hurdle family failed here
   # with base R's "comparison (==) is possible only for atomic and list
-  # types". Seen failing on the base build for hurdle_poisson.
+  # types", and through 0.79.1 a count's hurdle was refused by name. The
+  # default osa_method = "cdf" hands the density the count as data. On a
+  # continuous response the generic route is still the only one there
+  # is, and the mass at zero is still refused.
   d <- sim_hnb(13, n = 80)
   for (fam in list(hurdle_poisson(), hurdle_negbinomial())) {
     fit <- frm(bf(y ~ x), family = fam, data = d)
-    expect_error(residuals(fit, type = "osa"),
+    r <- residuals(fit, type = "osa")[, "Estimate"]
+    expect_true(all(is.finite(r)), info = fam$family)
+    expect_error(residuals(fit, type = "osa", osa_method = "oneStepGeneric",
+                           discreteSupport = 0:60),
                  paste0("not available for family '", fam$family, "'"),
                  fixed = TRUE)
   }
   fz <- frm(bf(y ~ x) + zero_one_inflated_beta(), data = sim_zoib(14, 80))
   expect_error(residuals(fz, type = "osa"), "point mass", fixed = TRUE)
   expect_identical(frm_compat("hurdle_negbinomial", "residuals_osa")$status,
-                   "refused")
+                   "works")
+  expect_identical(frm_compat("zero_one_inflated_beta",
+                              "residuals_osa")$status, "refused")
 })
 
 test_that("a response that cannot identify coi warns, and only then", {

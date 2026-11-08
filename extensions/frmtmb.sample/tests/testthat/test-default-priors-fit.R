@@ -38,7 +38,7 @@ dpf_brms_draws <- function(form, fam, data, par) {
   if (is.null(mod) && file.exists(path)) mod <- readRDS(path)
   if (is.null(mod)) {
     mod <- rstan::stan_model(model_code = code, save_dso = TRUE)
-    saveRDS(mod, path)
+    stan_cache_write(mod, path)
   }
   dpf_models[[key]] <- mod
   sf <- suppressWarnings(rstan::sampling(mod, data = sdat, chains = 2,
@@ -215,7 +215,7 @@ dpf_brms_matrix <- function(form, data, pars) {
   if (is.null(mod) && file.exists(path)) mod <- readRDS(path)
   if (is.null(mod)) {
     mod <- rstan::stan_model(model_code = code, save_dso = TRUE)
-    saveRDS(mod, path)
+    stan_cache_write(mod, path)
   }
   dpf_models[[key]] <- mod
   sf <- suppressWarnings(rstan::sampling(mod, data = sdat, chains = 2,

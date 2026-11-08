@@ -735,8 +735,10 @@ test_that("the compatibility registry lists the three families", {
   expect_true(all(fams %in% ft$key[ft$kind == "family"]))
   for (f in fams) {
     expect_identical(frm_compat(f, "simulate")$status, "works", info = f)
-    expect_identical(frm_compat(f, "residuals_osa")$status, "refused",
-                     info = f)
+    # a count's point mass is read as data by osa_method = "cdf"
+    expect_identical(frm_compat(f, "residuals_osa")$status,
+                     if (f == "zero_inflated_beta_binomial") "works" else
+                       "refused", info = f)
   }
   expect_identical(frm_compat("zero_inflated_beta_binomial",
                               "trials()")$status, "works")

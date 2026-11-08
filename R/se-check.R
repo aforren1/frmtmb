@@ -56,6 +56,10 @@ fit_outer_hessian <- function(fit, pull = NULL) {
   on.exit(obj_state_restore(obj, saved), add = TRUE)
   hx <- if (!length(obj$env$random)) outer_hessian_ad(obj, at)
   pn <- names(fit$opt$par)
+  # the same differences, of a gradient that needs no inner solve where the
+  # objective is the marginal of an exact gp() (gp_marginal_outer_gr())
+  gr <- if (is.null(hx)) gp_marginal_outer_gr(fit, at)
+  if (is.null(gr)) gr <- obj$gr
   out <- if (!is.null(hx)) {
     # u is a diagonal scaling, so Hq is the exact Hessian in the
     # optimizer's units to one rounding per entry
@@ -63,10 +67,10 @@ fit_outer_hessian <- function(fit, pull = NULL) {
          Hq = if (scaled) hx$H * outer(u, u),
          E = hx$E, exact = TRUE)
   } else if (!scaled) {
-    h <- fd_hessian(at, obj$gr, eps = outer_fd_steps(fit$frame, pn))
+    h <- fd_hessian(at, gr, eps = outer_fd_steps(fit$frame, pn))
     list(H = h$H, at = at, Hq = NULL, E = h$E)
   } else {
-    h <- fd_hessian(at / u, function(q) obj$gr(q * u) * u,
+    h <- fd_hessian(at / u, function(q) gr(q * u) * u,
                     eps = outer_fd_steps(fit$frame, pn, u))
     list(H = h$H / outer(u, u), at = at, Hq = h$H,
          E = h$E / outer(u, u))
@@ -1327,8 +1331,8 @@ se_linear_pars <- function(fit) {
 #' -0.0464 + 0.1900 Age` to 1.3e-16. Along these directions the
 #' likelihood is exactly flat, so they need no Hessian at all, and a
 #' prediction is estimable when it is orthogonal to them to rounding.
-#' The rank uses the frame's own test (`qr()` with its default
-#' tolerance). A design whose QR would cost more than `se_design_flops`
+#' The rank uses the frame's own test (design_rank_qr()). A
+#' design whose QR would cost more than `se_design_flops`
 #' is not decomposed; its alias is then judged by the Hessian alone.
 #'
 #' The directions a `mo()` simplex is flat along because a category no
@@ -1353,7 +1357,7 @@ se_design_null <- function(fit) {
     X <- tryCatch(as.matrix(patch_mo_cols(fit, lp, X)),
                   error = function(e) NULL)
     if (is.null(X) || !all(is.finite(X))) next
-    qx <- qr(X)
+    qx <- design_rank_qr(X)
     r <- qx$rank
     p <- NCOL(X)
     if (r >= p) next
@@ -1363,6 +1367,10 @@ se_design_null <- function(fit) {
                diag(1, p - r))
     N <- matrix(0, p, p - r)
     N[qx$pivot, ] <- Z
+    # the QR is of the scaled columns, X / s: back to X's coefficients
+    s <- sqrt(colSums(X^2) / max(1L, nrow(X)))
+    s[!is.finite(s) | !(s > 0)] <- 1
+    N <- N / s
     M <- matrix(0, np, p - r)
     M[pos, ] <- N
     out <- cbind(out, M)
@@ -2982,7 +2990,10 @@ jc_nonest <- function(jc, G, pos) {
   n <- NROW(G)
   fl <- jc$flat
   if (is.null(N) || !NCOL(N) || !n || !length(pos)) return(rep(FALSE, n))
-  G <- as.matrix(G)
+  # a gradient over every latent of a latent residual stays sparse: dense,
+  # it is n^2 numbers (R/joint-sparse.R)
+  sp <- inherits(G, "sparseMatrix")
+  G <- if (sp) methods::as(G, "CsparseMatrix") else as.matrix(G)
   bad <- rep(FALSE, n)
   fc <- intersect(fl$cols %||% integer(0), seq_len(NCOL(N)))
   oc <- setdiff(seq_len(NCOL(N)), fc)
@@ -2994,9 +3005,16 @@ jc_nonest <- function(jc, G, pos) {
     }
     s[!is.finite(s) | !(s > 0)] <- 1
     Nq <- N[, oc, drop = FALSE] * s
-    Gq <- G / rep(s[pos], each = n)
-    num <- abs(Gq %*% Nq[pos, , drop = FALSE])
-    den <- outer(sqrt(rowSums(Gq^2)), sqrt(colSums(Nq^2)))
+    if (sp) {
+      Gq <- G %*% Matrix::Diagonal(x = 1 / s[pos])
+      num <- abs(as.matrix(Gq %*% Nq[pos, , drop = FALSE]))
+      gn <- sqrt(as.numeric(Matrix::rowSums(Gq^2)))
+    } else {
+      Gq <- G / rep(s[pos], each = n)
+      num <- abs(Gq %*% Nq[pos, , drop = FALSE])
+      gn <- sqrt(rowSums(Gq^2))
+    }
+    den <- outer(gn, sqrt(colSums(Nq^2)))
     bad <- rowSums(num > se_pred_tol * den, na.rm = TRUE) > 0
   }
   if (length(fc)) {
@@ -3005,7 +3023,7 @@ jc_nonest <- function(jc, G, pos) {
     r <- r[!is.na(j)]
     j <- j[!is.na(j)]
     if (length(r)) {
-      Gs <- G[, j, drop = FALSE] / rep(fl$scale[r], each = n)
+      Gs <- as.matrix(G[, j, drop = FALSE]) / rep(fl$scale[r], each = n)
       Bs <- N[r, fc, drop = FALSE] * fl$scale[r]
       num <- sqrt(rowSums((Gs %*% Bs)^2))
       bad <- bad | (num > fl$tol * sqrt(rowSums(Gs^2))) %in% TRUE

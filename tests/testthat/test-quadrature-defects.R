@@ -112,8 +112,8 @@ test_that("quadrature survives non-gaussian families", {
     })
   )
   for (cs in cases) {
-    # nested blocks are refused under quadrature (test-quadrature-nested.R)
-    for (re in "(1 | g)") {
+    # nested blocks take the iterated rule (test-quadrature-nested.R)
+    for (re in c("(1 | g)", "(1 | ga/gb)")) {
       set.seed(11)
       dd <- d
       dd$y <- cs$y()
@@ -134,17 +134,21 @@ test_that("quadrature survives non-gaussian families", {
   }
 })
 
-test_that("quadrature refuses a nested block, which Laplace fits", {
+test_that("quadrature over a nested gaussian block is the exact Laplace fit", {
   # the Gauss-Kronrod rule integrated only the ga effects of the pair and
-  # left the ga:gb ones to Laplace; the fit now stops before any tape
+  # left the ga:gb ones to Laplace; 0.73.0 refused the model. The nested
+  # rule integrates both, and for a gaussian response the Laplace
+  # integral is exact, so the two fits must agree
   d <- quad_nested_data()
   set.seed(11)
   d$y <- d$eta + rnorm(nrow(d))
-  expect_error(frm(bf(y ~ 1 + x + (1 | ga/gb)) + gaussian(), data = d,
-                   quadrature = TRUE),
-               "integrates one scalar random effect per row")
+  fq <- frm(bf(y ~ 1 + x + (1 | ga/gb)) + gaussian(), data = d,
+            quadrature = TRUE)
   fl <- frm(bf(y ~ 1 + x + (1 | ga/gb)) + gaussian(), data = d)
-  expect_true(is.finite(as.numeric(logLik(fl))))
+  expect_length(fq$obj$env$random, 0L)
+  ll_q <- as.numeric(logLik(fq))
+  ll_l <- as.numeric(logLik(fl))
+  expect_lt(abs(ll_q - ll_l) / abs(ll_l), 1e-7)
 })
 
 test_that("quadrature refuses trunc() instead of returning logLik = +Inf", {

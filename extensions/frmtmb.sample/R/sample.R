@@ -1889,10 +1889,11 @@ ndt_uniform_prior <- function(fit, rspec, link = NULL) {
 #' @noRd
 default_priors_for <- function(fit, flat = FALSE) {
   multi <- length(fit$spec$responses) > 1L
-  pl <- NULL
+  acc <- new.env(parent = emptyenv())
+  acc$pl <- NULL
   add <- function(p) {
     if (flat) p <- flat_spec(p)
-    pl <<- if (is.null(pl)) p else pl + p
+    acc$pl <- if (is.null(acc$pl)) p else acc$pl + p
   }
   st <- function(loc, scl) {
     sprintf("student_t(3, %s, %s)", as.character(loc), as.character(scl))
@@ -2100,7 +2101,7 @@ default_priors_for <- function(fit, flat = FALSE) {
       add(set_prior("lkj(1)", class = "corme"))
     }
   }
-  pl
+  acc$pl
 }
 
 #' The mixing weights of each mixture response that has no formula on
@@ -4554,14 +4555,15 @@ check_stan_draws <- function(sf, what) {
 #'
 #' @noRd
 tmbstan_build_broken <- local({
-  cached <- NULL
+  memo <- new.env(parent = emptyenv())
+  memo$cached <- NULL
   function() {
-    if (!is.null(cached)) return(cached)
+    if (!is.null(memo$cached)) return(memo$cached)
     hpp <- system.file("model.hpp", package = "tmbstan")
-    cached <<- nzchar(hpp) &&
+    memo$cached <- nzchar(hpp) &&
       any(grepl("std_normal_lpdf<propto__>(y)",
                 readLines(hpp, warn = FALSE), fixed = TRUE))
-    cached
+    memo$cached
   }
 })
 

@@ -123,7 +123,8 @@ ce_level_plan <- function(fit, grids, base, re_formula) {
       draw = rr || !cs_levels_coupled(bk))
   }
   locked <- ce_locked_vars(fit)
-  status <- lapply(blocks, function(b) c(observed = FALSE, new = FALSE))
+  tally <- new.env(parent = emptyenv())
+  tally$status <- lapply(blocks, function(b) c(observed = FALSE, new = FALSE))
   plans <- lapply(grids, function(g) {
     nd <- g$nd
     n <- nrow(nd)
@@ -159,7 +160,8 @@ ce_level_plan <- function(fit, grids, base, re_formula) {
         read <- ce_by_reads(b$bk, nd)
       }
       st[, k] <- ifelse(!read, "-", ifelse(obs, "", paste0("new:", key)))
-      status[[k]] <<- status[[k]] | c(any(read & some), any(read & !obs))
+      tally$status[[k]] <- tally$status[[k]] |
+        c(any(read & some), any(read & !obs))
     }
     sig <- apply(st, 1L, paste, collapse = "\r")
     groups <- split(seq_len(n), factor(sig, levels = unique(sig)))
@@ -167,7 +169,7 @@ ce_level_plan <- function(fit, grids, base, re_formula) {
                     blocks = blocks, locked = locked, base = base)
     list(n = n, parts = unname(parts))
   })
-  list(grids = plans, blocks = blocks, status = status)
+  list(grids = plans, blocks = blocks, status = tally$status)
 }
 
 #' Which members of an `mm()` term each row routes to one block, as a

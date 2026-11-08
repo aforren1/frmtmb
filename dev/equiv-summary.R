@@ -177,7 +177,9 @@ if (!identical(wd[order(names(wd))], wn[order(names(wn))])) {
     cf <- rd(fp_frame)
     cf <- cf[cf$in_core_only, ]
     pw <- wn[cf$feature_a] * wn[cf$feature_b]
-    W2 <- vapply(strata, function(s) sum(pw[cf$status == s]), 0)
+    # a frame newer than weights.tsv holds features it does not weigh;
+    # they add no weight
+    W2 <- vapply(strata, function(s) sum(pw[cf$status == s], na.rm = TRUE), 0)
     W2 <- W2 / sum(W2)
   }
   changed <- names(wn)[wn != wd[names(wn)]]

@@ -50,18 +50,41 @@ jobs:
           needs: check
       # which BLAS, LAPACK and compiler the check ran with, so that a
       # failure on one image can be reproduced with
-      # dev/ciharden-openblas.sh <version> lapack
+      # dev/ciharden-openblas.sh <version> lapack. Also the CPU and the
+      # OpenBLAS kernel it chose (OPENBLAS_VERBOSE prints "Core: ..." at
+      # load), and the OpenBLAS package with its architecture variant:
+      # the 2026-11-02 failure on 26.04 did not reproduce on the Windows
+      # box under upstream's generic OpenBLAS 0.3.32, while 26.04 installs
+      # Ubuntu's amd64v3 (x86-64-v3) build of it
+      # a record only: its failure must not skip the check and the gate
       - name: Record the numerical libraries
+        continue-on-error: true
+        env:
+          OPENBLAS_VERBOSE: 2
         run: |
           print(sessionInfo())
           print(extSoftVersion())
           print(La_library())
           print(La_version())
           cat(system("gcc --version", intern = TRUE)[1], "\n")
+          cpu <- grep("^model name", readLines("/proc/cpuinfo"), value = TRUE)
+          cat(cpu[1], "\n")
+          # dpkg -l gives the version; the variant shows only in the
+          # index the package came from ("amd64v3 Packages")
+          writeLines(system("dpkg -l 'libopenblas*' | grep '^ii'; true",
+                            intern = TRUE))
+          writeLines(system("apt-cache policy libopenblas0-pthread; true",
+                            intern = TRUE))
         shell: Rscript {0}
       - uses: r-lib/actions/check-r-package@v2
+        id: check
         with:
           upload-snapshots: true
+      # as in R-CMD-check.yaml, on a failed check too
+      - name: Fail on a skip from a broken or missing Suggests package
+        if: ${{ !cancelled() && steps.check.outcome != 'skipped' }}
+        run: bash .github/scripts/skip-gate.sh check
+        shell: bash
 
   # brms-likelihood.yaml's job, step for step, on both images. Kept a
   # copy rather than a shared action so that the push-triggered job is
@@ -75,8 +98,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, ubuntu-26.04]
-    # the push job's budget: 25 programs from an empty cache
-    timeout-minutes: 90
+    # The push job's 180 minutes, for its reasons, and because a weekly
+    # run finds its cache evicted (GitHub drops a cache unused for 7
+    # days) and compiles every program: all six jobs of 2026-10-19, 10-26
+    # and 11-02 missed it. The identity tier alone took 2936, 3826 and
+    # 5296 s on 24.04 and 4692, 4688 and 3956 s on 26.04, and at 5296 s
+    # the 24.04 column was cancelled at the old 90 minutes. With a slow
+    # mirror's 41 minutes of setup, the tier's 120-minute step limit must
+    # fit inside the job's, or a wedged tier cancels the job and skips
+    # the tiers after it
+    timeout-minutes: 180
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
@@ -128,7 +159,18 @@ jobs:
         shell: Rscript {0}
         env:
           IMAGE: ${{ matrix.os }}
-      - uses: actions/cache@v4
+      # Restore and save are separate steps, so that a job that fails or
+      # hits a time limit still keeps the programs it compiled (the
+      # combined action saves only from a successful job). A save from
+      # such a job goes under the primary key plus "-partial-<run id>",
+      # never under the primary key itself: GitHub never overwrites a
+      # key, and a partial cache under the primary key would be an exact
+      # hit ever after, so the programs it lacks would be compiled on
+      # every run and never saved. The restore-keys prefix matches the
+      # partial key and takes the newest match, so the next run starts
+      # from it and saves the full set under the primary key.
+      - uses: actions/cache/restore@v4
+        id: stancache
         with:
           path: dev/stan-cache
           key: ${{ steps.stankey.outputs.prefix }}${{ hashFiles('dev/stan-cache-key.txt') }}
@@ -156,6 +198,8 @@ jobs:
           cat("Stan (rstan):", rstan::stan_version(), "\n")
         shell: Rscript {0}
       - name: Run the brms log-density identity tier
+        # as in brms-likelihood.yaml: 88 minutes at the slowest measured
+        timeout-minutes: 120
         run: |
           stopifnot(
             requireNamespace("rstan", quietly = TRUE),
@@ -243,3 +287,10 @@ jobs:
                  paste(df$test[df$skipped], collapse = "; "))
           }
         shell: Rscript {0}
+      # last, on any outcome (see the restore step); an exact hit has
+      # nothing new to save
+      - uses: actions/cache/save@v4
+        if: ${{ always() && steps.stankey.outcome == 'success' && steps.stancache.outputs.cache-hit != 'true' && hashFiles('dev/stan-cache/*.rds') != '' }}
+        with:
+          path: dev/stan-cache
+          key: ${{ steps.stankey.outputs.prefix }}${{ hashFiles('dev/stan-cache-key.txt') }}${{ job.status != 'success' && format('-partial-{0}', github.run_id) || '' }}

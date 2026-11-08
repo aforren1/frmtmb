@@ -511,3 +511,25 @@ test_that("a fit whose call has a start the caller cannot see refits", {
   expect_false(any(ms$table$status == "error"))
   expect_identical(nrow(ms$table), 3L)
 })
+
+test_that("under a prior the refits are compared on what they maximize", {
+  skip_on_cran()
+  # logLik() is the data part under a prior, and logLik_penalized() the
+  # value each refit maximized; a mode is ranked on the second
+  dd <- small_data()
+  pr <- set_prior("normal(0, 0.5)", class = "Intercept", dpar = "mu1") +
+    set_prior("normal(2, 0.5)", class = "Intercept", dpar = "mu2")
+  fit <- frm(bf(y ~ 1),
+             family = hmm(K = 2, gaussian(), time = t, group = id),
+             data = dd, prior = pr)
+  pen <- frmtmb::logLik_penalized(fit)
+  # the prior moved the means, so the two values differ
+  expect_gt(abs(attr(pen, "log_prior")), 1)
+  ms <- hmm_starts(fit, n = 2, seed = 5L)
+  expect_identical(ms$table$logLik[1L], as.numeric(pen))
+  expect_identical(ms$original_logLik, as.numeric(pen))
+  ok <- ms$table$status != "error"
+  expect_true(all(ms$table$logLik[ok] <=
+                    as.numeric(frmtmb::logLik_penalized(ms$best)) +
+                      ms$mode_tol))
+})

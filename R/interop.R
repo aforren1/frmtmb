@@ -108,9 +108,11 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 }
 
 # marginaleffects support: the four extension generics plus the
-# class-whitelist option set in .onLoad. Predictions under set_coef are
-# conditional on the estimated random-effect modes (the glmmTMB/lmer
-# convention for delta-method slopes).
+# class-whitelist option set in .onLoad. A prediction reads the
+# random-effect modes, and get_coef() carries them, so the delta method
+# holds their uncertainty, as fitted() does; lme4's and glmmTMB's
+# convention holds them fixed, which was off on most mixed fits
+# (interop_re_part()).
 
 #' marginaleffects on frmtmb fits
 #'
@@ -135,8 +137,34 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 #' its coefficient, and that coefficient gets a variance of 0 in
 #' `get_vcov()`.
 #'
-#' A prediction that keeps the group-level effects is conditional on
-#' their estimated modes, as for lme4 and glmmTMB fits.
+#' On a fit with a group-level term, a smooth, `gp()` or `hsgp()`,
+#' `get_coef()` then gives the group-level effects at their estimated
+#' modes, under the names [frm_lp_basis()] gives them
+#' (`b.<term>.<level>.<coef>`), and the covariance parameters that a
+#' field's coefficients read (`theta.<name>`, as for an exact `gp()`, whose
+#' field is `sdgp L z`). A prediction reads the modes, as [fitted()] does.
+#' Under `re_formula = NA` the group-level effects are not in
+#' `get_coef()`; the coefficients of a smooth stay, because `re_formula`
+#' does not drop a smooth. Inside `hypotheses()` called on the fit itself,
+#' a test of the model's own coefficients, `get_coef()` and `get_vcov()` give
+#' the population-level and distributional ones alone, as `hypotheses()`
+#' reads those of a `brmsfit`: `"b2 = 0"` names the same coefficient as
+#' before, and `joint = TRUE` tests those coefficients and no group-level
+#' effect. A function given as `hypothesis` is not such a test: it gets the
+#' model, and what it returns is differentiated with the group-level effects
+#' in, as the same call outside `hypotheses()` is. A latent residual's
+#' values are not in `get_coef()`, though under
+#' `cov = TRUE` a new row continues from them: there is one per fitted row,
+#' which would cost one prediction each, and the warning of class
+#' `frmtmb_interop_se_part` names the latent residual on such a fit.
+#'
+#' marginaleffects takes its Jacobian with one prediction per parameter,
+#' so the time grows with the number of levels. On a poisson `(1 + x | g)`
+#' fit with 40 rows per level, `avg_slopes()` took 0.30 s at 30 levels and
+#' 16.3 s at 500 levels, where it took 0.03 s and 0.09 s with the
+#' group-level effects held fixed. `vcov = FALSE` gives the estimates alone,
+#' at the cost of a few predictions, and `re_formula = NA` drops the
+#' group-level effects from `get_coef()`.
 #'
 #' @section The vcov argument:
 #' marginaleffects passes its `vcov` argument to `get_vcov()`:
@@ -152,7 +180,14 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 #'     such a matrix is refused there. If the matrix has no finite
 #'     value in a row of `get_coef()`, as `vcov(fit, full = TRUE)` has
 #'     for a parameter the fit does not determine, a warning names the
-#'     row: every standard error is then `NaN`.}
+#'     row: every standard error is then `NaN`. On a fit whose
+#'     `get_coef()` holds group-level effects, a matrix over the outer
+#'     vector is carried into them: their block is their covariance given
+#'     the outer parameters plus the given matrix carried through the
+#'     modes' derivative in those parameters, as the default carries the
+#'     model's own. A matrix over the rows of `get_vcov(fit)` is read as
+#'     given. A matrix over the coefficients alone holds the effects at
+#'     their modes, with a warning of class `frmtmb_interop_se_part`.}
 #'   \item{A function}{A function of the fit that returns one of these
 #'     matrices.}
 #'   \item{`"HC0"`}{The sandwich with each row as its own cluster
@@ -168,6 +203,14 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 #'   \item{A one-sided formula, `~ g`}{The cluster sandwich over `g`,
 #'     `vcov_cluster(type = "CR1")`, with the factor `G / (G - 1)`.}
 #' }
+#' On a fit with a group-level term, `"HC0"` and `"HC1"` are refused
+#' (each row is its own cluster, which every grouping level crosses), so
+#' the sandwich there is a cluster formula over a grouping factor the
+#' effects nest in, `~ g`. It covers the outer parameters, and it is carried
+#' into the group-level effects as a matrix over the outer vector is: only
+#' the part of their variance that comes from the outer parameters becomes
+#' robust, and their conditional variance given those parameters stays
+#' model-based.
 #' The bread of these sandwiches is the inverse of the observed
 #' information. `sandwich::vcovHC()` and `vcovCL()` use the expected
 #' information of a glm. The two are equal for a gaussian model and for
@@ -197,33 +240,71 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 #' errors, and [frm_bootstrap()] is the route to a robust one.
 #'
 #' @section What the standard error holds:
-#' marginaleffects forms a standard error from the coefficients `get_coef()`
-#' holds, the population-level and distributional ones, by the delta method. It
-#' cannot carry a variance that is in no such coefficient. The default `vcov`
-#' gives the warning of class `frmtmb_interop_se_part` on a fit where that gap
-#' exists, because `get_vcov()` is not told which rows or which quantity it
-#' serves.
+#' marginaleffects forms a standard error from the parameters `get_coef()`
+#' holds, by the delta method. With the group-level effects and the field
+#' parameters among them, `get_vcov()` gives the joint covariance of the
+#' fixed effects, the variance parameters and the predicted effects, which is
+#' the covariance [fitted.frmtmb_fit()] and `frm_linpred(se.fit = TRUE)`
+#' read. So the standard error of a level from `predictions()` is
+#' `fitted()`'s `Est.Error`, and an average, a slope or a contrast holds the
+#' same uncertainty. On 168 fits with `(1 | g)` or `(1 + x | g)` on four
+#' families, the standard errors of 2016 levels were within 1e-5 of
+#' `fitted()`'s, and those of `avg_predictions()`, `avg_slopes()` and
+#' `avg_comparisons()` were within 25 percent of the standard deviation of
+#' 150 draws from the joint covariance on 164 of the fits. On the other 4,
+#' a contrast of a group-level covariate at 8 groups, the delta method
+#' itself is that far from the draws.
+#'
+#' Through 0.79.1 `get_coef()` held the population-level and distributional
+#' coefficients alone, and the standard error held the group-level effects
+#' and a smooth's coefficients fixed. On the same 168 fits,
+#' `avg_predictions()` was more than 25 percent too wide on 77 percent of
+#' them (median 2.03 times) and `avg_slopes()` on 52 percent (median 1.30
+#' times); on a `gp()` field every level read one value.
+#'
+#' What no parameter holds is left out, with a warning of class
+#' `frmtmb_interop_se_part` that names it:
 #'
 #' * A `me()` term. Every row reads as a new row, whose latent value brms draws
 #'   from `N(x, sdx)`. The standard error of a level reads 0.07 where
 #'   [frm_linpred()] reads 1.11. A slope, a contrast or a test of a coefficient
-#'   needs no such draw and is right: -0.491, standard error 0.0485.
-#' * A smooth, `gp()` or `hsgp()` term. `get_coef()` holds no coefficient of the
-#'   field. On a `gp()` the standard error is 0.31 on every row, where
-#'   [frm_linpred()] reads 0.087 to 0.695; on `s(x)` it reads 0.70, 0.12, 1.07,
-#'   1.59 where [frm_linpred()] reads 0.088, 0.068, 0.55, 1.32. It is too wide
-#'   near the data and too narrow far from it.
-#' * Group-level effects, with `re_formula` keeping them. The standard error
-#'   holds neither their uncertainty nor their covariance with the intercept:
-#'   0.209 where [fitted.frmtmb_fit()] reads 0.104 on a gaussian `(1 | g)`,
-#'   1.435 where it reads 0.488 on a poisson one. Under `re_formula = NA` the
-#'   two agree, and no warning comes.
+#'   on an identity link needs no such draw and is right: -0.491, standard
+#'   error 0.0485. `get_vcov()` warns.
+#' * A latent residual (an autocorrelation term on a family with no residual).
+#'   A new row's latent value is in no parameter, and the fitted latents it
+#'   continues from under `cov = TRUE` are left out of `get_coef()` (see
+#'   above). `get_vcov()` warns.
+#' * A fit whose objective integrates the group-level effects out
+#'   (`quadrature = TRUE` or `importance =`). Its covariance has no rows for
+#'   them, so they are held at their modes, as `fitted()` holds them, and says.
+#'   `get_vcov()` warns.
+#' * A grouping level the fit did not see (`allow_new_levels = TRUE`), and an
+#'   exact `gp()` at a position the fit did not see. `fitted()` adds the
+#'   block's variance and the field's kriging variance there. `get_predict()`
+#'   warns once per call, from the first prediction of the Jacobian, which
+#'   marginaleffects does not muffle, and counts the rows of each kind. A
+#'   kriging variance below 1e-4 of the field's own variance is not counted;
+#'   at the data and between data points it was below 1e-7 in the cases
+#'   measured, and the level's standard error equals `fitted()`'s to 4
+#'   digits there.
+#' * A matrix passed as `vcov` that covers the coefficients alone (see
+#'   above).
 #'
-#' `frm_linpred(se.fit = TRUE)` and [fitted.frmtmb_fit()] carry each of these.
 #' On the response scale of a `me()` fit, the estimate is the mean over the
 #' draw, as [fitted.frmtmb_fit()] reads it. `vcov = FALSE` gives the estimates
-#' alone. A covariance matrix passed as `vcov` is read as you give it, and gives
-#' no warning.
+#' alone, with no standard error and no warning.
+#'
+#' marginaleffects' Jacobian is a finite difference; `fitted()` and
+#' [frm_lp_basis()] differentiate exactly. Far from its data an exact `gp()`
+#' is strongly curved in its length scale, and the two part: on a
+#' `gp(x) + (1 | g)` fit with data on 0 to 6, the forward difference read
+#' 0.9996, 1.0217, 1.0749, 1.0232 and 0.6265 times `fitted()`'s standard
+#' error at x = 7, 8, 9, 10 and 12, and `numderiv = "fdcenter"` read 1.0006,
+#' 1.0081, 1.2061, 1.1244 and 0.6441, no closer. Read a level there from
+#' `fitted()`. A slope of an exact `gp()` at a small step `eps` reads the
+#' field's nugget, which grows as `1 / eps`: on one fit with `x` on 0 to 6
+#' its standard error was 0.0308 at the default step and at `eps = 1e-3`,
+#' 0.0328 at `1e-4` and 0.1124 at `1e-5`, for the same estimate.
 #'
 #' @section brms's prediction arguments:
 #' `re_formula`, `allow_new_levels`, `dpar` (also under brms's name
@@ -254,7 +335,11 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 #'   d$y <- 1 + 0.5 * d$x + rnorm(12)[d$g] + rnorm(120)
 #'   fit <- frm(y ~ x + (1 | g), data = d)
 #'   nd <- data.frame(x = c(-1, 1), g = factor(1, levels = 1:12))
-#'   # population-level predictions (marginaleffects warns, see above)
+#'   # the standard error holds the group-level effects, as fitted() does
+#'   marginaleffects::predictions(fit, newdata = nd)
+#'   fitted(fit, newdata = nd)
+#'   # population-level predictions; marginaleffects warns that it does not
+#'   # know re_formula for this class, and passes it on
 #'   suppressWarnings(marginaleffects::predictions(fit, newdata = nd,
 #'                                                 re_formula = NA))
 #'   # a cluster-robust covariance
@@ -525,11 +610,7 @@ interop_vcov <- function(model, simplex = TRUE, Vfull = NULL,
       next
     }
     cols <- j + seq_len(sum(rc == cp)) - 1L
-    z <- model$estimates[[cp]]
-    Jw <- RTMB::MakeTape(function(x) mo_simplex(x, g$mi[["chart"]]),
-                         z)$jacobian(z)
-    Js <- apply(Jw, 2L, cumsum)
-    Js <- matrix(Js, nrow = nrow(Jw))[g$obs, , drop = FALSE]
+    Js <- mo_gap_cum_jacobian(model, cp, g)
     rows <- i + seq_along(g$obs)
     G[rows, cols] <- Js
     srow[rows] <- TRUE
@@ -560,6 +641,20 @@ interop_vcov <- function(model, simplex = TRUE, Vfull = NULL,
     V <- zero_const(Vs)
   }
   V
+}
+
+#' The Jacobian of the cumulative weights at a gap simplex's observed
+#' categories (`interop_mo_gaps()`) in its chart coordinates: the rows
+#' `get_coef()` carries for that simplex, as functions of the rows the
+#' fit's covariance has.
+#'
+#' @noRd
+mo_gap_cum_jacobian <- function(model, cp, g) {
+  z <- model$estimates[[cp]]
+  Jw <- RTMB::MakeTape(function(x) mo_simplex(x, g$mi[["chart"]]),
+                       z)$jacobian(z)
+  Js <- apply(Jw, 2L, cumsum)
+  matrix(Js, nrow = nrow(Jw))[g$obs, , drop = FALSE]
 }
 
 #' The warning of `get_vcov()` on a fit with an empty `mo()` category
@@ -617,6 +712,265 @@ coef_vcov_root <- function(model, extra = TRUE, simplex = TRUE) {
   K
 }
 
+#' The parameters a prediction reads beyond `interop_coef_vector()`: the
+#' group-level effects `b` and, for a block whose coefficients are a
+#' function of its covariance parameters (an exact `gp()`'s `sd L z`, an
+#' `rr` block's loadings), those `theta`.
+#'
+#' marginaleffects forms `J V J'` over `get_coef()`, so a parameter left
+#' out of it is held at its estimate. Through 0.79.1 these were left out,
+#' and the standard error of `avg_predictions()` was off by more than 25
+#' percent on 77 percent of 168 mixed fits, `avg_slopes()` on 52 percent
+#' (dev/review-predread-r2-mfxrate.R). With them, the delta method reads
+#' the joint covariance of the fixed effects, the variance parameters and
+#' the predicted effects, which is what `fitted()` and
+#' `frm_linpred(se.fit = TRUE)` read.
+#'
+#' Left out: a latent residual's `b`, one per fitted row. marginaleffects
+#' passes every row as new, and a new row reads them only under
+#' `cov = TRUE`, through the conditional mean it continues from; holding
+#' them in would cost one prediction per fitted row, and on a measured
+#' fit the SEs moved by 1 to 6 percent (dev/reviews/2026-11-06-mfxse.md,
+#' m4), so they stay out and `interop_warn_se_part()` names the latent
+#' residual on such a fit; a group-level term under
+#' `re_formula = NA` (a smooth's coefficients stay, as `re_formula` does
+#' not drop a smooth); and every `b` of a fit whose objective integrates
+#' them out (quadrature or importance), which has no covariance for them.
+#' `NULL` when nothing is added.
+#'
+#' @noRd
+interop_re_part <- function(model, dots = list()) {
+  blocks <- model$frame[["re_blocks"]] %||% list()
+  if (!length(blocks) || !interop_has_b(model)) return(NULL)
+  keep_re <- re_form_keeps(dots[["re_formula"]])
+  # a row at a level the fit did not see reads the mean over that level's
+  # effect (fitted_me_moments()), which reads its block's theta
+  new_lv <- isTRUE(dots[["allow_new_levels"]])
+  b_idx <- integer(0)
+  th_idx <- integer(0)
+  for (bk in blocks) {
+    cs <- bk[["covstruct"]]
+    if (identical(cs, "latres")) next
+    if (!keep_re && !cs %in% c("smooth", "gp", "hsgp")) next
+    b_idx <- c(b_idx, bk[["b_idx"]])
+    if (block_reads_theta(bk) ||
+          (new_lv && !cs %in% c("smooth", "gp", "hsgp"))) {
+      th_idx <- c(th_idx, bk[["theta_idx"]])
+    }
+  }
+  th_idx <- sort(unique(th_idx))
+  b_idx <- sort(unique(b_idx))
+  if (!length(b_idx)) return(NULL)
+  comp <- c(rep("theta", length(th_idx)), rep("b", length(b_idx)))
+  idx <- c(th_idx, b_idx)
+  list(comp = comp, idx = idx, names = interop_re_names(model, comp, idx))
+}
+
+#' Whether the objective holds `b` as its inner parameters, one per
+#' effect, so that the joint covariance has a row for each.
+#'
+#' @noRd
+interop_has_b <- function(model) {
+  env <- tryCatch(model$obj$env, error = function(e) NULL)
+  if (is.null(env)) return(FALSE)
+  rnd <- names(env$par)[env$random]
+  sum(rnd == "b") == length(model$estimates[["b"]]) &&
+    length(model$estimates[["b"]]) > 0L
+}
+
+#' Whether a block's coefficients read its covariance parameters, as
+#' `expand_b()` reads them.
+#'
+#' @noRd
+block_reads_theta <- function(bk) {
+  cs <- bk[["covstruct"]]
+  if (cs %in% c("gp", "rr")) return(TRUE)
+  block_expands(bk) && isTRUE(cs_entry(cs)[["expand"]][["uses_theta"]])
+}
+
+#' The names of `interop_re_part()`'s entries: `frm_lp_basis()`'s
+#' `coef_names`, `b.<term>.<level>.<coef>` and `theta.<name>`, unique
+#' against the coefficient names before them.
+#'
+#' @noRd
+interop_re_names <- function(model, comp, idx) {
+  tpl <- model$frame[["par_template"]]
+  lb <- b_coef_labels(model)
+  if (length(lb) != length(tpl[["b"]])) {
+    lb <- as.character(seq_along(tpl[["b"]]))
+  }
+  lt <- names(tpl[["theta"]])
+  if (length(lt) != length(tpl[["theta"]])) {
+    lt <- as.character(seq_along(tpl[["theta"]]))
+  }
+  isb <- comp == "b"
+  nm <- character(length(idx))
+  nm[isb] <- paste0("b.", lb[idx[isb]])
+  nm[!isb] <- paste0("theta.", lt[idx[!isb]])
+  before <- interop_coef_names(model)
+  make.unique(c(before, nm))[length(before) + seq_along(nm)]
+}
+
+#' The rows of the joint covariance (`rn`, its component names) that give
+#' each entry of `interop_coef_vector()`, as a matrix `M`: that vector's
+#' covariance is `M V M'`. A selection, except for a `mo()` simplex with
+#' an empty category, whose rows are the cumulative weights. `NULL` when
+#' the two do not line up.
+#'
+#' @noRd
+interop_joint_map <- function(model, rn) {
+  gaps <- interop_mo_gaps(model)
+  nm <- interop_coef_names(model)
+  M <- matrix(0, length(nm), length(rn))
+  i <- 0L
+  for (cp in c("beta", "betad", interop_extra_comps(model))) {
+    pos <- which(rn == cp)
+    g <- gaps[[cp]]
+    if (is.null(g)) {
+      if (i + length(pos) > length(nm)) return(NULL)
+      M[cbind(i + seq_along(pos), pos)] <- 1
+      i <- i + length(pos)
+      next
+    }
+    Js <- mo_gap_cum_jacobian(model, cp, g)
+    if (ncol(Js) != length(pos) || i + nrow(Js) > length(nm)) return(NULL)
+    M[i + seq_len(nrow(Js)), pos] <- Js
+    i <- i + nrow(Js)
+  }
+  if (i != length(nm)) return(NULL)
+  M
+}
+
+#' The joint covariance over every parameter, fixed and random, with the
+#' outer block replaced by `Vf`, a covariance over the outer parameter
+#' vector (a sandwich): the random block is the inner one plus `Vf`
+#' carried into the effects, `Qrr^-1 + J Vf J'` with
+#' `J = -Qrr^-1 Qrf`, as `joint_cov_repair()` carries the model's own.
+#' `NULL` when the fit has no joint precision, `Vf` does not cover the
+#' outer vector, or the inner block has more rows than
+#' `frmtmb.latres_dense_rows` (as `get_joint_cov()` refuses a dense latent
+#' block), so that the caller says the effects are held.
+#'
+#' Only the outer part, `J Vf J'`, follows `Vf`; the conditional part
+#' `Qrr^-1` stays the model's. The inverse is dense, `n x n` over the inner
+#' rows, hence the guard; at 1000 rows of `(1 + x | g)` it took 0.02 s, and
+#' `predictions(vcov = ~ g)` spent 15.8 of its 19.5 s in `vcov_cluster()`
+#' (dev/mfxse-cost-outer.R).
+#'
+#' @noRd
+interop_joint_from_outer <- function(model, Vf) {
+  Q <- tryCatch(joint_precision(model), error = keep_missing(NULL))
+  if (is.null(Q)) return(NULL)
+  p <- nrow(Q)
+  r <- model$obj$env$random
+  f <- setdiff(seq_len(p), r)
+  if (!length(r) || length(f) != nrow(Vf)) return(NULL)
+  if (length(r) > getOption("frmtmb.latres_dense_rows", 20000L)) return(NULL)
+  Wrr <- tryCatch(as.matrix(Matrix::solve(Q[r, r, drop = FALSE])),
+                  error = function(e) NULL)
+  if (is.null(Wrr) || !all(is.finite(Wrr))) return(NULL)
+  J <- -Wrr %*% as.matrix(Q[r, f, drop = FALSE])
+  JV <- J %*% Vf
+  V <- matrix(0, p, p, dimnames = list(rownames(Q), rownames(Q)))
+  V[r, r] <- Wrr + tcrossprod(JV, J)
+  V[r, f] <- JV
+  V[f, r] <- t(JV)
+  V[f, f] <- Vf
+  list(V = V, names = rownames(Q))
+}
+
+#' `V0`, a covariance over `interop_coef_vector()`, with the rows of
+#' `interop_re_part()` added from the joint covariance: the model's own
+#' (`get_joint_cov()`), or one carried from `Vf` over the outer vector
+#' (`interop_joint_from_outer()`). The block over the coefficients stays
+#' `V0`, so their standard errors are `vcov()`'s and every reader of
+#' coefficients alone is unchanged.
+#'
+#' Attribute `held` names what the result leaves out: "re" when the
+#' effects could not be added, so marginaleffects holds them at their
+#' modes.
+#'
+#' @noRd
+interop_vcov_re <- function(model, V0, dots = list(), Vf = NULL) {
+  rp <- interop_re_part(model, dots)
+  if (is.null(rp)) return(V0)
+  held <- function(why) {
+    attr(V0, "held") <- why
+    V0
+  }
+  jc <- if (is.null(Vf)) {
+    tryCatch(get_joint_cov(model), error = function(e) NULL)
+  } else {
+    interop_joint_from_outer(model, Vf)
+  }
+  if (is.null(jc$V) || is.null(jc$names)) return(held("re"))
+  rn <- jc$names
+  pos <- list(b = which(rn == "b"), theta = which(rn == "theta"))
+  if (length(pos$b) != length(model$estimates[["b"]]) ||
+        (any(rp$comp == "theta") &&
+           length(pos$theta) != length(model$estimates[["theta"]]))) {
+    return(held("re"))
+  }
+  isb <- rp$comp == "b"
+  apos <- integer(length(rp$idx))
+  apos[isb] <- pos$b[rp$idx[isb]]
+  apos[!isb] <- pos$theta[rp$idx[!isb]]
+  M <- interop_joint_map(model, rn)
+  if (is.null(M) || nrow(M) != nrow(V0)) return(held("re"))
+  Vj <- jc$V
+  C <- M %*% as.matrix(Vj[, apos, drop = FALSE])
+  A <- as.matrix(Vj[apos, apos, drop = FALSE])
+  # a coefficient no prediction reads (a one-value mo() term) has 0 in V0
+  # and keeps it here; a row V0 lost keeps its NaN
+  const <- interop_mo_const(model)
+  C[const, ] <- 0
+  C[!is.finite(diag(as.matrix(V0))), ] <- NaN
+  nm <- c(rownames(V0), rp$names)
+  V <- rbind(cbind(as.matrix(V0), C), cbind(t(C), (A + t(A)) / 2))
+  dimnames(V) <- list(nm, nm)
+  V
+}
+
+#' Whether this call is inside `marginaleffects::hypotheses()` called on a
+#' `frmtmb_fit` itself: a test of the model's own coefficients, the
+#' default joint test (`joint = TRUE`) among them.
+#'
+#' marginaleffects gives `get_coef()` and `get_vcov()` no argument that
+#' says which kind of call they serve. Its joint test calls both with no
+#' argument at all (`joint_test()`), exactly as a prediction's Jacobian
+#' calls `get_coef()`, so with the group-level effects in `get_coef()` the
+#' default joint test was a Wald test that the 24 modes of a `(1 + x | g)`
+#' fit are 0 (F 328 on 27 df, against 15.4 on 3;
+#' dev/reviews/2026-11-06-mfxse.md, M1). The `internal_call` key reaches
+#' `get_coef()` from `avg_slopes()` only, not from `predictions()` or
+#' `avg_comparisons()`, so it cannot key the effects in. `hypotheses()` and
+#' its `model` argument are marginaleffects' exported interface, so the
+#' frame of that function is read instead: matched by identity, not by
+#' name.
+#'
+#' A function given as `hypothesis` is not such a test: marginaleffects hands
+#' it the model and differentiates whatever it returns, `avg_predictions(x)`
+#' for one, so there the effects stay in. Held fixed, that standard error was
+#' 1.774 where the call alone reads 0.143 (dev/reviews/2026-11-06-mfxse.md,
+#' short check, S1).
+#'
+#' @noRd
+interop_in_hypotheses <- function() {
+  hyp <- tryCatch(getExportedValue("marginaleffects", "hypotheses"),
+                  error = function(e) NULL)
+  if (is.null(hyp)) return(FALSE)
+  for (i in rev(seq_len(sys.nframe()))) {
+    if (!identical(sys.function(i), hyp)) next
+    m <- tryCatch(get("model", envir = sys.frame(i), inherits = FALSE),
+                  error = function(e) NULL)
+    if (!inherits(m, "frmtmb_fit")) next
+    h <- tryCatch(get("hypothesis", envir = sys.frame(i), inherits = FALSE),
+                  error = function(e) NULL)
+    return(!is.function(h))
+  }
+  FALSE
+}
+
 #' @exportS3Method marginaleffects::get_coef
 get_coef.frmtmb_fit <- function(model, ...) {
   # Exempt: marginaleffects reaches this through its numderiv machinery
@@ -625,7 +979,20 @@ get_coef.frmtmb_fit <- function(model, ...) {
   # rather than written out. Guarding it broke avg_slopes(), slopes(),
   # avg_comparisons() and hypotheses(); dev/argspell-interop-log.txt has
   # the run. A count of zero written call sites is not evidence here.
-  interop_coef_vector(model)
+  v <- interop_coef_vector(model)
+  dots <- list(...)
+  # hypotheses() on the model's own coefficients reads them alone, as
+  # hypotheses() on a brmsfit reads its population-level draws; the
+  # positions "b1", "b2" are the same either way
+  if (interop_in_hypotheses()) return(v)
+  rp <- interop_re_part(model, dots)
+  if (is.null(rp)) return(v)
+  est <- model$estimates
+  extra <- numeric(length(rp$idx))
+  isb <- rp$comp == "b"
+  extra[isb] <- est[["b"]][rp$idx[isb]]
+  extra[!isb] <- est[["theta"]][rp$idx[!isb]]
+  c(v, stats::setNames(extra, rp$names))
 }
 
 #' @exportS3Method marginaleffects::set_coef
@@ -668,43 +1035,75 @@ set_coef.frmtmb_fit <- function(model, coefs, ...) {
     model$estimates[[cp]][] <- coefs[off + seq_len(k)]
     off <- off + k
   }
+  # the group-level effects and the theta their coefficients read
+  # (interop_re_part()), by name where they have names: get_coef() leaves
+  # them out under re_formula = NA, and hypotheses() leaves them all out
+  if (length(coefs) > off) {
+    rest <- coefs[-seq_len(off)]
+    rp <- interop_re_part(model)
+    k <- if (!is.null(names(rest)) && !is.null(rp)) {
+      match(names(rest), rp$names)
+    }
+    if (is.null(k) || anyNA(k)) {
+      rp <- interop_re_part(model, list(...))
+      k <- seq_along(rest)
+    }
+    if (is.null(rp) || length(rest) > length(rp$idx)) {
+      frm_stop("set_coef(): ", length(coefs), " values for a fit whose ",
+               "get_coef() has ", off, " coefficients and ",
+               length(rp$idx), " group-level parameters", call. = FALSE)
+    }
+    isb <- rp$comp[k] == "b"
+    model$estimates[["b"]][rp$idx[k][isb]] <- unname(rest[isb])
+    model$estimates[["theta"]][rp$idx[k][!isb]] <- unname(rest[!isb])
+  }
   model
 }
 
-#' What the standard error of a level from `marginaleffects` does not hold, said
-#' once per call.
+#' What the standard error from `marginaleffects` does not hold, said once per
+#' call.
 #'
-#' It forms `J V J'` over `get_coef()`, the population-level coefficients and
-#' the distributional ones. It cannot carry anything else, and `get_vcov()` gets
-#' no rows, and every row reads as new, so this cannot be told by row. It cannot
-#' be a refusal either: a slope, a contrast or a test of a coefficient is right
-#' on a `me()` term (z -0.491, se 0.0485; dev/review-predread-r1-check3.R, seed
-#' 7402). The gaps are measured in dev/predread-mfx-se.R, seed 7411, and in
-#' dev/review-predread-r1-check3.R, seed 7403: `(1 | g)` reads 0.209 where
-#' `fitted()` reads 0.104, and agrees under `re_formula = NA`; a `gp()` reads
-#' 0.31 on every row where `frm_linpred(se.fit = TRUE)` reads 0.087 to 0.695.
+#' It forms `J V J'` over `get_coef()`. Since the group-level effects joined
+#' that vector (`interop_re_part()`), what is left is a variance in no
+#' parameter: the draw of a new row's `me()` value or latent residual, which
+#' `get_vcov()` cannot tell by row, as every row reads as new. It cannot be a
+#' refusal: a slope, a contrast or a test of a coefficient is right on a `me()`
+#' term with an identity link (z -0.491, se 0.0485;
+#' dev/review-predread-r1-check3.R, seed 7402). And the group-level effects of a
+#' fit whose objective integrates them out, which has no covariance for them,
+#' or whose joint covariance could not be formed (`held`, from
+#' `interop_vcov_re()`).
 #'
 #' @noRd
-interop_warn_se_part <- function(model, dots) {
-  blocks <- vapply(model$frame[["re_blocks"]] %||% list(),
-                   function(bk) bk[["covstruct"]], "")
-  field <- blocks %in% c("smooth", "gp", "hsgp")
+interop_warn_se_part <- function(model, dots, held = NULL) {
+  cs <- vapply(model$frame[["re_blocks"]] %||% list(),
+               function(bk) bk[["covstruct"]], "")
+  field <- cs %in% c("smooth", "gp", "hsgp")
+  grp <- !field & cs != "latres"
+  reads_re <- any(field) || (any(grp) && re_form_keeps(dots[["re_formula"]]))
   omits <- c(
     if (!is.null(model$frame[["me"]])) {
       "the draw of a new row's me() value"
     },
-    if (any(field)) "the coefficients of a smooth, gp() or hsgp() term",
-    if (any(!field) && re_form_keeps(dots[["re_formula"]])) {
-      "the group-level effects (re_formula = NA drops them, and then a level agrees)"
+    if (any(cs == "latres")) {
+      paste0("the draw of a new row's latent residual, and under cov = TRUE ",
+             "the fitted latent values it continues from")
+    },
+    if (reads_re && !interop_has_b(model)) {
+      paste0("the group-level effects and smooth coefficients, which an ",
+             "objective with quadrature = TRUE or importance = integrates ",
+             "out, so it has no covariance for them")
+    } else if (reads_re && identical(held, "re")) {
+      paste0("the group-level effects and smooth coefficients, whose ",
+             "joint covariance could not be formed")
     })
   if (!length(omits)) return(invisible(NULL))
-  frm_warning("marginaleffects forms its standard errors from the population-",
-              "level coefficients alone. It holds fixed ",
+  frm_warning("marginaleffects forms its standard errors from the parameters ",
+              "get_coef() holds. It holds fixed ",
               paste(omits, collapse = ", and "),
               ". The standard error of a level from predictions(), or of an ",
-              "average of levels, can be too wide or too narrow, often by a ",
-              "factor of 2 or more. On a log or logit link, or with a ",
-              "group-level slope, a slope or contrast can be off too. A test ",
+              "average of levels, can be too wide or too narrow, and on a ",
+              "log or logit link a slope or contrast can be off too. A test ",
               "of a coefficient is not affected. frm_linpred(newdata = , ",
               "se.fit = TRUE) and fitted(newdata = ) give a level's standard ",
               "error. vcov = FALSE gives the estimates alone, with no ",
@@ -720,8 +1119,13 @@ get_vcov.frmtmb_fit <- function(model, vcov = NULL, ...) {
   # formula gave the model-based standard errors without a message
   # (doubling the matrix left them unchanged where lm() gives sqrt(2)).
   if (isFALSE(vcov)) return(NULL)
-  if (!is.null(vcov) && !isTRUE(vcov)) return(interop_user_vcov(model, vcov))
-  interop_warn_se_part(model, list(...))
+  dots <- list(...)
+  if (!is.null(vcov) && !isTRUE(vcov)) {
+    V <- interop_user_vcov(model, vcov, dots)
+    # a user's covariance holds no new level's variance either
+    if (!interop_in_hypotheses()) interop_rows_arm(model)
+    return(V)
+  }
   # NOT vcov(model): that is brms's population-level block since item
   # 2.6f, and it has neither the rows nor the names of get_coef(), which
   # is the vector marginaleffects perturbs. A covariance one row short
@@ -731,7 +1135,17 @@ get_vcov.frmtmb_fit <- function(model, vcov = NULL, ...) {
   # A mo() simplex with an empty category is in the coordinates the data
   # determine (interop_mo_gaps()), so this matrix is finite there and a
   # prediction at the empty category gets NaN from set_coef().
-  V <- interop_vcov(model)
+  # The group-level effects follow the coefficients (interop_vcov_re()),
+  # except in a test of the coefficients themselves, which reads none of
+  # what the warning names
+  if (interop_in_hypotheses()) {
+    V <- interop_vcov(model)
+  } else {
+    V <- interop_vcov_re(model, interop_vcov(model), dots)
+    interop_warn_se_part(model, dots, attr(V, "held"))
+    attr(V, "held") <- NULL
+    interop_rows_arm(model)
+  }
   # marginaleffects forms J V J' from this matrix itself, with J taken
   # by finite differences, and it cannot be handed a factor instead. On
   # every fit whose covariance is held as a factor (se_reparam_cov()),
@@ -797,8 +1211,15 @@ mo_gap_nan_warning <- function(fit, n_nan, n) {
 #'
 #' Every other string is refused with its reason (`interop_vcov_refusal()`).
 #'
+#' The group-level effects join each of these as they join the default
+#' (`interop_vcov_re()`): a covariance over the outer vector, a sandwich
+#' among them, is carried into the effects; a matrix over `get_vcov()`'s
+#' rows is read as given. A matrix over the coefficients alone has nothing
+#' to carry, so marginaleffects holds the effects at their modes, and a
+#' warning says so (`interop_user_re()`).
+#'
 #' @noRd
-interop_user_vcov <- function(model, vcov) {
+interop_user_vcov <- function(model, vcov, dots = list()) {
   nm <- interop_coef_names(model)
   if (is.function(vcov)) {
     out <- tryCatch(vcov(model), error = function(e) {
@@ -813,7 +1234,9 @@ interop_user_vcov <- function(model, vcov) {
   }
   sandwich_of <- function(cl, type, mult = 1) {
     cs <- cluster_sandwich_full(model, resolve_cluster(model, cl), type)
-    interop_vcov_checked(model, Vfull = mult * cs$V, Vfull_p = mult * cs$Vp)
+    interop_user_re(model, interop_vcov_checked(model, Vfull = mult * cs$V,
+                                                Vfull_p = mult * cs$Vp),
+                    dots, Vf = mult * cs$Vp)
   }
   if (inherits(vcov, "formula")) return(sandwich_of(vcov, "CR1"))
   if (is.character(vcov) && length(vcov) == 1L) {
@@ -847,7 +1270,19 @@ interop_user_vcov <- function(model, vcov) {
                paste(nm, collapse = ", "), "), such as a multiple of ",
                "get_vcov(fit)", call. = FALSE)
     }
-    return(interop_vcov_checked(model, Vfull = vcov))
+    return(interop_user_re(model, interop_vcov_checked(model, Vfull = vcov),
+                           dots, Vf = vcov))
+  }
+  # a matrix over get_vcov()'s rows, the group-level ones among them
+  re_nm <- interop_re_part(model)$names
+  all_nm <- c(nm, re_nm)
+  if (length(re_nm) && nrow(vcov) == length(all_nm) && !is.null(cn) &&
+        setequal(cn, all_nm) && !anyDuplicated(cn) &&
+        (is.null(rownames(vcov)) || identical(rownames(vcov), cn))) {
+    i <- match(all_nm, cn)
+    V <- vcov[i, i, drop = FALSE]
+    dimnames(V) <- list(all_nm, all_nm)
+    return(V)
   }
   if (nrow(vcov) != length(nm)) {
     frm_stop("vcov = has ", nrow(vcov), " rows, but get_coef() has ",
@@ -861,7 +1296,7 @@ interop_user_vcov <- function(model, vcov) {
                 "assumed to be in the same order as the model ",
                 "coefficients", call. = FALSE)
     dimnames(vcov) <- list(nm, nm)
-    return(vcov)
+    return(interop_user_re(model, vcov, dots))
   }
   rn <- rownames(vcov)
   if (!setequal(cn, nm) || anyDuplicated(cn) ||
@@ -873,7 +1308,45 @@ interop_user_vcov <- function(model, vcov) {
   i <- match(nm, cn)
   V <- vcov[i, i, drop = FALSE]
   dimnames(V) <- list(nm, nm)
-  V
+  interop_user_re(model, V, dots)
+}
+
+#' A user's covariance over `get_coef()`'s coefficients, `V`, with the
+#' group-level effects added where they can be: carried from `Vf`, the
+#' user's covariance over the outer vector, into the effects
+#' (`interop_vcov_re()`). Without `Vf` there is nothing to carry them
+#' from, and a warning of class `frmtmb_interop_se_part` says that
+#' marginaleffects holds them at their estimates, as it did for every
+#' `vcov` through 0.79.1.
+#'
+#' @noRd
+interop_user_re <- function(model, V, dots, Vf = NULL) {
+  if (interop_in_hypotheses() || is.null(interop_re_part(model, dots))) {
+    return(V)
+  }
+  out <- if (is.null(Vf)) structure(V, held = "re") else {
+    interop_vcov_re(model, V, dots, Vf = Vf)
+  }
+  if (!is.null(attr(out, "held"))) {
+    attr(out, "held") <- NULL
+    why <- if (is.null(Vf)) {
+      "the covariance given covers the coefficients of get_coef() alone"
+    } else {
+      paste0("the covariance given could not be carried into the ",
+             "group-level effects: the fit has no joint precision, or more ",
+             "inner rows than options(frmtmb.latres_dense_rows = ) allows ",
+             "a dense block")
+    }
+    frm_warning("vcov =: ", why, ", so marginaleffects holds the group-level ",
+                "effects and smooth coefficients at their estimates, and the ",
+                "standard error of a level or an average can be too wide or ",
+                "too narrow. A covariance over the outer parameters ",
+                "(vcov(fit, full = TRUE), vcov_cluster(full = TRUE)), a ",
+                "cluster sandwich ~ g or a matrix over the rows of ",
+                "get_vcov(fit) carries them", call. = FALSE,
+                class = "frmtmb_interop_se_part")
+  }
+  out
 }
 
 #' `interop_vcov(Vfull =)`, warning when the result has `NaN` in a row of
@@ -1041,6 +1514,7 @@ get_predict.frmtmb_fit <- function(model, newdata, type = "response",
   # a factor column of 8 levels on 3 rows returned 11 rows.
   rid <- newdata[["rowid"]]
   if (is.null(rid) || length(rid) != NROW(p)) rid <- seq_len(NROW(p))
+  interop_rows_check(model, newdata, dots, rid > 0)
   if (!is.null(model[["mo_cum_override"]]) && anyNA(p)) {
     # the rows asked for, not the padding
     asked <- rid > 0
@@ -1062,6 +1536,106 @@ get_predict.frmtmb_fit <- function(model, newdata, type = "response",
     ))
   }
   data.frame(rowid = rid, estimate = as.numeric(p))
+}
+
+#' Arm the row check of `get_predict()` (`interop_rows_check()`) on a fit
+#' whose prediction can read a variance in no parameter: a grouping level
+#' the fit did not see, or an exact `gp()` at a position it did not see.
+#' `get_vcov()` arms it, once per marginaleffects call that forms a
+#' standard error, and keeps the estimates it was called at.
+#'
+#' The check runs at the first `get_predict()` whose parameters differ from
+#' those estimates: a call of the Jacobian. A call at the estimates can be
+#' marginaleffects' estimate pass, which `comparisons()` makes after
+#' `get_vcov()` and inside `get_predict_error()`, whose `myTryCatch()`
+#' muffles every warning; warning there, the check said nothing from
+#' `avg_slopes()` or `avg_comparisons()` (dev/reviews/2026-11-06-mfxse.md,
+#' M2). The Jacobian's calls are not muffled.
+#'
+#' @noRd
+interop_rows_arm <- function(model) {
+  cache <- model$cache
+  if (!is.environment(cache)) return(invisible())
+  cs <- vapply(model$frame[["re_blocks"]] %||% list(),
+               function(bk) bk[["covstruct"]], "")
+  cache[["mfx_rows_armed"]] <- any(cs != "latres")
+  cache[["mfx_rows_at"]] <- model$estimates
+  invisible()
+}
+
+#' The share of an unseen position's kriging variance, relative to the
+#' field's own variance, below which `interop_rows_check()` does not
+#' count the row. marginaleffects forms a slope from a prediction at
+#' `x + eps`, an unseen position whose kriging variance is of the order
+#' of `eps^2` and whose omission moves no standard error it reports.
+#'
+#' @noRd
+interop_krig_share <- 1e-4
+
+#' The warning of `get_predict()`, once per armed call
+#' (`interop_rows_arm()`), when rows marginaleffects predicts read a
+#' variance that no parameter of `get_coef()` holds: a grouping level the
+#' fit did not see (`allow_new_levels = TRUE`), whose effect `fitted()`
+#' gives the block's variance, or an exact `gp()` at a position the fit did
+#' not see, whose field `fitted()` gives its kriging variance. The
+#' standard error marginaleffects forms leaves it out. `asked` marks the
+#' rows asked for, not marginaleffects' padding.
+#'
+#' @noRd
+interop_rows_check <- function(model, newdata, dots, asked) {
+  cache <- model$cache
+  if (!is.environment(cache) || !isTRUE(cache[["mfx_rows_armed"]]) ||
+        identical(model$estimates, cache[["mfx_rows_at"]])) {
+    return(invisible())
+  }
+  cache[["mfx_rows_armed"]] <- FALSE
+  rr <- tryCatch(re_resolve(model, dots[["re_formula"]], "marginaleffects"),
+                 error = function(e) NULL)
+  if (is.null(rr) || is.null(newdata)) return(invisible())
+  fit <- rr$fit
+  use_re <- re_form_keeps(rr$re_formula)
+  anl <- isTRUE(dots[["allow_new_levels"]])
+  n <- nrow(newdata)
+  nl <- logical(n)
+  kr <- logical(n)
+  th <- fit$estimates[["theta"]]
+  for (lp in fit$frame[["linpreds"]] %||% list()) {
+    ed <- tryCatch(suppressWarnings(
+      lp_eta_design(fit, lp, newdata, use_re, anl)),
+      error = function(e) NULL)
+    if (is.null(ed) || ed[["n"]] != n) next
+    ev <- lp_extra_var(fit, ed, use_re)
+    for (b in ev$new_levels) nl[b$nas] <- TRUE
+    for (sp in ed[["sm_parts"]]) {
+      if (is.null(sp$extra_var)) next
+      v0 <- sd_floored(th[sp$bk[["theta_idx"]][1L]])^2
+      kr <- kr | sp$extra_var > interop_krig_share * v0
+    }
+  }
+  nl <- nl & asked
+  kr <- kr & asked
+  if (!any(nl) && !any(kr)) return(invisible())
+  what <- c(
+    if (any(nl)) {
+      paste0(sum(nl), " read a grouping level the fit did not see, whose ",
+             "effect has the block's variance")
+    },
+    if (any(kr)) {
+      paste0(sum(kr), " read an exact gp() at a position the fit did not ",
+             "see, whose field has a kriging variance")
+    })
+  frm_warning("Of the ", sum(asked), " rows marginaleffects predicts, ",
+              paste(what, collapse = ", and "), ". No parameter of ",
+              "get_coef() holds that variance, so the standard error of a ",
+              "level, an average, a slope or a contrast leaves it out",
+              if (any(kr)) {
+                paste0(", and far from the data the finite-difference ",
+                       "Jacobian of an exact gp() is itself unreliable")
+              },
+              ". fitted(newdata = ) and frm_linpred(newdata = , ",
+              "se.fit = TRUE) add it", call. = FALSE,
+              class = "frmtmb_interop_se_part")
+  invisible()
 }
 
 #' Refuse, by name, the prediction arguments marginaleffects passes on

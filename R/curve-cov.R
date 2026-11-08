@@ -61,14 +61,15 @@
 #'
 #' @noRd
 curve_catch_span <- function(expr) {
-  msgs <- character(0)
+  got <- new.env(parent = emptyenv())
+  got$msgs <- character(0)
   val <- withCallingHandlers(
     expr,
     frmtmb_ps_span_warning = function(w) {
-      msgs <<- c(msgs, conditionMessage(w))
+      got$msgs <- c(got$msgs, conditionMessage(w))
       invokeRestart("muffleWarning")
     })
-  list(value = val, span = unique(msgs))
+  list(value = val, span = unique(got$msgs))
 }
 
 #' Refuse a feature search whose bracket leaves a `ps()` knot span.

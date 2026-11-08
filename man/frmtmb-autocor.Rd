@@ -326,18 +326,33 @@ read that draw: on poisson \code{Est.Error} 0.133 became the draws' 1.005.
 Under \code{cov = FALSE} new rows are refused, in brms's words.
 \code{\link[=conditional_effects]{conditional_effects()}} and \code{emmeans()} drop the term, as brms's do.
 
-Past \code{getOption("frmtmb.latres_dense_rows", 20000L)} rows, a standard error
-that reads the whole joint covariance is refused, with its size in the
-message, because it is \verb{16 n^2} bytes: \code{\link[=frm_curve]{frm_curve()}}, \code{\link[=frm_lp_basis]{frm_lp_basis()}} and
-\code{\link[=conditional_effects]{conditional_effects()}} read it.
+The joint covariance of the estimates and the latents is held as the sparse
+Cholesky factor of their joint precision, which is banded along a chain, so
+a standard error reads it at a cost that grows with the rows, not with
+their square. \code{\link[=fitted]{fitted()}}, \code{\link[=residuals]{residuals()}} and \code{frm_linpred(se.fit = TRUE)} on
+the fitted rows read each row's variance through the selected inverse of
+the factor: on one poisson series, 0.4 s at 8000 rows and 1.7 s at 32000.
+A hurdle or zero-inflated mean reads the latent of \code{mu} and a level of
+\code{hu ~ (1 | id)} or \code{zi ~ (1 | id)} on one row, a pair that no row's
+likelihood couples; that pair is read from a column of the inverse solved
+once per level, 3.3 s at 32000 rows. Rows in \code{newdata} read the estimates
+and the levels of any other group-level block alone, \code{\link[=frm_curve]{frm_curve()}} and
+\code{\link[=conditional_effects]{conditional_effects()}} too.
 
-A standard error of a fitted row solves the whole joint precision as a dense
-matrix: 6 to 12 s at 2000 rows, 80 s at 4000, 984 s at 8000. Above 3000 rows
-\code{\link[=fitted]{fitted()}}, \code{\link[=residuals]{residuals()}} and \code{frm_linpred(se.fit = TRUE)} with \code{newdata = NULL} give \code{NA} for it with a message of class \code{frmtmb_latres_se_skipped}.
-\code{options(frmtmb.latres_se_rows = )} moves the limit. Rows in \code{newdata},
-\code{\link[=frm_curve]{frm_curve()}} and \code{\link[=conditional_effects]{conditional_effects()}} keep their standard errors. Beside
-another group-level block, \code{\link[=fitted]{fitted()}} on new rows reads the joint covariance
-up to \code{frmtmb.latres_dense_rows} rows, and above that reads \code{NA} with a message.
+A dense block of the joint covariance is formed only where a function
+returns one or must form one: \code{\link[=frm_joint_cov]{frm_joint_cov()}}, \code{\link[=frm_lp_basis]{frm_lp_basis()}} on the
+fitted rows, and the category probabilities of an ordinal family's fitted
+rows. A block of more than \code{getOption("frmtmb.latres_dense_rows", 20000L)^2}
+numbers is refused, with its size in the message. The same option bounds a
+wider block: on any fit with group-level effects, latent or not, a \verb{vcov =}
+that marginaleffects carries into those effects inverts the inner block, one
+row per effect, densely, and past that many inner rows the effects are held
+at their estimates with a warning (\link{frmtmb-marginaleffects}). Above 3000
+rows the category probabilities' standard errors are \code{NA}, with a message of
+class \code{frmtmb_latres_se_skipped}; \code{options(frmtmb.latres_se_rows = )} moves
+that limit. A fit whose covariance of the estimates is held as a factor,
+which an ill-conditioned design gives, keeps the dense joint covariance, and
+both limits apply to every standard error of its fitted rows.
 
 A coefficient near an end of its range, or an \code{sderr} near 0 against the
 response's scale, is at a limit only if the fit's numbers say that end is not

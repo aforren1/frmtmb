@@ -133,16 +133,26 @@ test_that("marginaleffects works through the extension generics", {
 
   # variables= keeps marginaleffects off the grouping factor (it has no
   # way to know g is a random-effect group for an external class)
-  sl_f <- allow_warnings(marginaleffects::avg_slopes(fit, newdata = dd,
-                                                     variables = c("x", "f")),
-                         mfx_se_part)
+  sl_f <- marginaleffects::avg_slopes(fit, newdata = dd,
+                                      variables = c("x", "f"))
   sl_g <- suppressWarnings(
     marginaleffects::avg_slopes(ref, newdata = dd,
                                 variables = c("x", "f"))
   )
   of <- order(sl_f$term); og <- order(sl_g$term)
   expect_vector_equal(sl_f$estimate[of], sl_g$estimate[og], tol = 1e-4)
-  expect_vector_equal(sl_f$std.error[of], sl_g$std.error[og], tol = 1e-3)
+  # glmmTMB holds the group-level effects at their modes; with the
+  # coefficient block alone as vcov, so does frmtmb, and the standard
+  # errors agree. The default holds the effects' uncertainty as well
+  # (test-marginaleffects-re.R)
+  nm <- interop_coef_names(fit)
+  w <- "covers the coefficients of get_coef() alone"
+  sl_h <- allow_warnings(marginaleffects::avg_slopes(
+    fit, newdata = dd, variables = c("x", "f"),
+    vcov = marginaleffects::get_vcov(fit)[nm, nm]), w, require = w)
+  oh <- order(sl_h$term)
+  expect_vector_equal(sl_h$std.error[oh], sl_g$std.error[og], tol = 1e-3)
+  expect_false(isTRUE(all.equal(sl_f$std.error[of], sl_h$std.error[oh])))
 
   cm_f <- allow_warnings(marginaleffects::avg_comparisons(fit, newdata = dd,
                                                           variables = "f"),

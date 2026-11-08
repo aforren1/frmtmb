@@ -132,12 +132,16 @@ jobs:
       # this job red if a broken build ever returns.
       # dev/tmbstan121-findings.md has the measurement.
       - uses: r-lib/actions/check-r-package@v2
+        id: check
         with:
           working-directory: extensions/frmtmb.sample
           args: 'c("--no-manual")'
           upload-snapshots: true
       # A skip on a broken or missing Suggests package passes R CMD
       # check; fail it here (.github/scripts/skip-gate.sh has why)
+      # on a failed check too: the gate ran only after a pass, so 0.79.0's
+      # other failures hid a skip on an extension until 0.79.1
       - name: Fail on a skip from a broken or missing Suggests package
+        if: ${{ !cancelled() && steps.check.outcome != 'skipped' }}
         run: bash .github/scripts/skip-gate.sh extensions/frmtmb.sample/check
         shell: bash

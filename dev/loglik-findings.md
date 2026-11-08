@@ -1,3 +1,684 @@
+# Lane loglik, round r080 (2026-11-06): logLik() without the prior
+
+Base 3cd2a0c8 (frmtmb 0.79.1), worktree `frmtmb-wt-loglik`, branch
+`wt-r80-loglik`, library `C:/Users/adf44/source/r/wt-loglik-lib` (core and
+frmtmb.latent from this tree) in front of `rellib-r18`. Nothing is
+committed. This section is the record of round r080. The record of the
+earlier lane of the same name (0.75.0, `log_lik()` for residual
+covariance terms) follows it unchanged, under "Earlier lane loglik". The
+earlier lane's scripts `dev/loglik-*.R` without `r80` in the name are its
+own, except the ones this lane added: `dev/loglik-base.R`,
+`dev/loglik-names.R`, `dev/loglik-routes.R`, `dev/loglik-run-tests.R`,
+`dev/loglik-run-par.sh`, `dev/loglik-run-session.R`,
+`dev/loglik-run-sessions.sh` and every `dev/loglik-r80-*` file. Logs are gitignored; every number below is
+pasted from the log named beside it.
+
+STATUS: fix round 1 done (see "Fix round 1"); core suite and R CMD check rerun there.
+
+## Decision: the split, with one refusal
+
+The user's split, not the fallback. `logLik()` on an `frm()` fit is the
+log-likelihood of the data at the estimates: the maximized value less the
+log prior at the estimates. `logLik_penalized()` (new export) is the
+maximized value, with attribute `log_prior`. `AIC()`, `BIC()`,
+`extractAIC()` and so `step()` refuse a prior with a density.
+
+One route cannot split exactly: `REML = TRUE` with a prior that reads the
+fixed effects (class `b`, `Intercept`, an `nlpar`, or a centered
+Intercept's offset). REML integrates `beta` with the Laplace
+approximation, so that prior sits inside the integral. There `logLik()`
+stops (class `frmtmb_loglik_inner_prior`) and `logLik_penalized()` still
+answers, with `log_prior = NA`. The rule in code (`fit_log_prior()`,
+`R/methods-fit.R`): resolve the fit's prior entries again, collect every
+component an entry or its centering offset reads, and refuse if any is an
+integrated component (`b`, `miss`, and `beta` under REML). A profiled
+`beta` (`frmtmb_control(profile = TRUE)`) is not integrated: TMB's
+`profile` maximizes it in the inner problem with no Laplace term
+(`TMB::MakeADFun` source, `tmb_sparse_izamd` zeroes the profiled block
+of the Hessian before the log-determinant, then adds back
+`sum(profile)/2 * log(2 pi)`). No route of `frm()` puts a prior on `b` or
+`miss` today; the rule covers it if one appears.
+
+### Brief's table, rebuilt (`dev/loglik-base.R`, seed 4101)
+
+My construction (`n = 200`, 20 groups, `y = 1 + 0.5 x + u_g + e`) is not
+the brief's (its logLik for no prior was -297.44; no script with seed
+4101 and that number exists in `dev/`), so the levels differ. The pattern
+reproduces: `normal(0, 100)` lowers logLik by 5.5241, and
+`log(100 * sqrt(2 * pi)) = 5.5242`.
+
+Before (rellib-r18, `dev/loglik-base-before.log`):
+
+    none             logLik -305.7011162851  AIC 619.4022326  b_x 0.526750
+    normal(0, 100)   logLik -311.2252388774  AIC 630.4504778  b_x 0.526750
+    normal(0, 10)    logLik -308.9240271702  AIC 625.8480543  b_x 0.526724
+    normal(0, 1)     logLik -306.7581141894  AIC 621.5162284  b_x 0.524193
+    normal(0, 0.1)   logLik -313.5847876904  AIC 635.1695754  b_x 0.349713
+    normal(0, 100)   data logLik at MAP via no-prior tape -305.7011162850
+    normal(0, 10)    data logLik at MAP via no-prior tape -305.7011163555
+    normal(0, 1)     data logLik at MAP via no-prior tape -305.7017863499
+    normal(0, 0.1)   data logLik at MAP via no-prior tape -308.8534760685
+
+After (lane build, `dev/loglik-base-after.log`; AIC refusal text cut):
+
+    none             logLik -305.7011162851  AIC 619.4022326  pen -305.7011163
+    normal(0, 100)   logLik -305.7011162850  AIC ERROR: AIC() counts each ...  pen -311.2252389
+    normal(0, 10)    logLik -305.7011163555  AIC ERROR: ...  pen -308.9240272
+    normal(0, 1)     logLik -305.7017863499  AIC ERROR: ...  pen -306.7581142
+    normal(0, 0.1)   logLik -308.8534760685  AIC ERROR: ...  pen -313.5847877
+
+Each new `logLik()` equals the no-prior tape at the MAP estimates to the
+10 printed decimals, and `logLik_penalized()` is the old `logLik()`.
+
+glmmTMB 1.1.15.2 on the same data with `normal(0, 100)` on `x`
+(`dev/loglik-names.R`, `dev/loglik-names.log`): `logLik` -305.7011162849
+with no prior and -311.2252388773 with it, and `AIC(m1)` 630.4505 with no
+word. So glmmTMB's `logLik()` is the penalized value, frmtmb's old one.
+
+## First question: every route that adds a prior
+
+`dev/loglik-routes.R`, seeds 4101 to 4106. For each route, a MAP fit `fp`
+and the same model with no prior `f0` share one parameter layout, so
+`-f0$obj$fn(fp$opt$par)` is the data-only objective of the same route at
+the MAP estimates. `split = -fp$opt$objective + nlp(fp$estimates)`, with
+`nlp` the fit's own `neg_log_prior_fn()` over its resolved entries. Two
+routes need their own data value:
+
+- profile: `f0`'s profiled tape maximizes `beta` again (row "tape
+  re-max", 1.55e-03 off, which is the wrong comparison), so the data
+  value is the plain Laplace tape at `(beta, theta)` of the MAP fit;
+- importance: the fit's own corrected-objective closure is found on its
+  tape and evaluated with `neg_log_prior = NULL`, at the same draws and
+  offsets.
+
+Lane build (`dev/loglik-routes-after.log`; the before log has the same
+split and data columns, `dev/loglik-routes-before.log`):
+
+    A laplace gaussian       pen -305.4110095949 log_prior -5.2257905702 split -300.1852190247 data -300.1852190247 rel 0.00e+00 comps [beta,theta]
+    A laplace poisson        pen -312.8105778688 log_prior -6.7961136010 split -306.0144642678 data -306.0144642678 rel 0.00e+00 comps [beta,theta]
+    B profile (tape re-max)  pen -305.4110095949 log_prior -5.2257905676 split -300.1852190273 data -299.7207296004 rel 1.55e-03 comps [beta,theta]
+    B profile                pen -305.4110095949 log_prior -5.2257905676 split -300.1852190273 data -300.1852190273 rel 0.00e+00 comps [beta,theta]
+    C quadrature             pen -139.5810059831 log_prior -8.0746023977 split -131.5064035854 data -131.5064035812 rel 3.15e-11 comps [beta,theta]
+    D importance             pen -312.7310342313 log_prior -6.7869910242 split -305.9440432072 data -305.9440432072 rel 3.72e-16 comps [beta,theta]
+    E REML, sd prior         pen -304.6727739640 log_prior -2.1499311665 split -302.5228427975 data -302.5228427975 rel 0.00e+00 comps [theta]
+    E REML, b prior          pen -308.1547693900 log_prior -5.1993163607 split -302.9554530293 data -302.3746957269 rel 1.92e-03 comps [beta,theta]
+    F exact gp               pen -17.0086185014  log_prior -2.0048234697 split -15.0037950318  data -15.0037950318  rel 0.00e+00 comps [theta]
+    G latent residual        pen -139.6909608505 log_prior -2.4636062049 split -137.2273546456 data -137.2273546455 rel 4.09e-13 comps [theta]
+    H me()                   pen -239.6356354382 log_prior -4.2507389064 split -235.3848965318 data -235.3848965318 rel 1.21e-16 comps [beta,logsdme]
+    I mo() simo              pen -87.9070014583  log_prior -0.4658718298 split -87.4411296285  data -87.4411296285  rel 0.00e+00 comps [zeta1]
+    J nonlinear              pen -5.1818325534   log_prior -1.2011591578 split -3.9806733957   data -3.9806733957   rel 2.12e-15 comps [beta]
+    max rel over separable routes: 3.15e-11
+
+`logLik()` on the lane build returns `split` on every separable row (the
+log's last column) and refuses row "E REML, b prior". Route I carries the
+simplex chart's Jacobian inside the Dirichlet prior; it splits off with
+the prior. Route C's 3.15e-11 is the Gauss-Kronrod rule's own rounding on
+two tapes (4.2e-9 absolute); every other route is 4.1e-13 or less. That
+the split is the data value is an identity wherever the prior reads only
+outer parameters (the inner problem and its log-determinant do not see
+it); these rows are the numerical check of it on each route.
+
+## What changed
+
+Core:
+
+- `R/methods-fit.R`: `logLik.frmtmb_fit` subtracts the log prior and
+  refuses where the prior is inside the integral; new
+  `logLik_penalized()` (generic and `frmtmb_fit` method),
+  `AIC.frmtmb_fit`, `BIC.frmtmb_fit` (refuse any fit in the call with a
+  density prior, then `NextMethod()`), helpers `fit_integrated_comps()`,
+  `fit_log_prior()`, `loglik_inner_prior_refusal()`,
+  `ic_prior_refusal()`; one Rd, `man/logLik_penalized.Rd`, that documents
+  `logLik()`, `logLik_penalized()`, `AIC()`, `BIC()`. `summary()` prints
+  `logLik` and `log prior` and no AIC or BIC under a density prior, and
+  marks `(MAP)` only for a density (`fit_prior_density()`), not for
+  bounds alone.
+- `R/sugar.R`: `extractAIC.frmtmb_fit` refuses (so `step()` does).
+- `R/fit-end.R`: the discrete check runs under a prior, on the data value.
+- `R/allfit.R`, `R/par-template.R`: compare `logLik_penalized()`.
+- `R/multiple.R`: `anova.frmtmb_multiple` refuses D3 and likelihood D2
+  under a density prior.
+- `R/refit-data.R`, `R/confint.R`: refusal text and `?anova.frmtmb_fit`
+  no longer say logLik holds the prior.
+- `R/fit.R`: `@param prior` and one comment.
+- `R/compat.R`: notes of two rows (statuses unchanged):
+  `REML x prior` (conditional) and `importance x prior` (works).
+- `R/frmtmb-package.R`: `AIC` and `BIC` added to `@importFrom stats`
+  (see "A defect R CMD check found").
+- `NEWS.md`: two BREAKING bullets and four others under
+  `# frmtmb (development version)`.
+
+frmtmb.latent:
+
+- `R/hmm-starts.R`: the four `logLik()` reads become
+  `frmtmb::logLik_penalized()`; `@return` says so. `man/hmm_starts.Rd`
+  regenerated. `NEWS.md` bullet.
+
+Tests:
+
+- new `tests/testthat/test-loglik-prior.R` (9 blocks; the 9th,
+  `frm_allfit()`, was added after the suite runs: 49 passes alone);
+- `tests/testthat/test-refit-data.R`: `step()` now stops at
+  `extractAIC()`, so the expected message is the AIC refusal's;
+- `tests/testthat/test-beta-binomial-density.R`: one `expect_silent()`
+  pinned "skipped under a prior", which the brief reverses; removed (it
+  also passed a plain data frame as `prior`, which the resolver refuses),
+  with a pointer to the new test;
+- `tests/testthat/test-map.R`, `test-nl-rtmb-scope.R`,
+  `test-prior-compat.R`, `test-brms-priors.R` (gated): each pinned
+  "logLik() holds the prior" (see "Tests" below);
+- `extensions/frmtmb.latent/tests/testthat/test-hmm-starts.R`: one block.
+
+Name of the accessor. brms 2.23.0 exports `log_posterior()` (draws of
+`lp__`) and `log_lik()` (pointwise data part); glmmTMB has no separate
+accessor (its internal `prior_nll`; `logLik()` is penalized); lme4 has no
+priors and names the penalized criterion `REMLcrit()` / `devcomp()`'s
+`pwrss` ("penalized weighted residual sum of squares";
+`dev/loglik-names.log`). `log_posterior` is taken in this ecosystem:
+frmtmb.sample exports it for draws, with brms's meaning. So
+`logLik_penalized()`: the penalized log-likelihood the fit maximized,
+next to `logLik()` in the index. It equals `logLik()` with no prior.
+
+## Tests: seen to fail on rellib-r18, pass on the lane build
+
+`dev/loglik-run-tests.R` (`dev/release/run-tests.R` with `LIB` set to
+rellib-r18), one file per process; "before" is rellib-r18 alone, "after"
+puts the lane library first. From `dev/loglik-fixbase.log` and
+`dev/loglik-fix.log`:
+
+    before  RESULT test-map.R pass=3 fail=0 err=1 skip=0 warn=0
+    before  RESULT test-nl-rtmb-scope.R pass=102 fail=0 err=1 skip=0 warn=0
+    before  RESULT test-prior-compat.R pass=198 fail=0 err=1 skip=0 warn=0
+    before  RESULT test-loglik-prior.R pass=6 fail=13 err=4 skip=0 warn=0
+    after   RESULT test-map.R pass=8 fail=0 err=0 skip=0 warn=0
+    after   RESULT test-nl-rtmb-scope.R pass=105 fail=0 err=0 skip=0 warn=0
+    after   RESULT test-prior-compat.R pass=202 fail=0 err=0 skip=0 warn=0
+    after   RESULT test-loglik-prior.R pass=42 fail=0 err=0 skip=0 warn=0
+
+Every block of `test-loglik-prior.R` fails on the base build by
+behavior, not only by the missing symbol (`dev/loglik-fixbase-out/`):
+the closed-form likelihood check is off by 0.0566 relative; the Laplace
+split by 0.0176, quadrature by 0.0401, REML with an sd prior by 0.0162;
+`logLik()` does not refuse under REML with a b prior; `AIC()`, `BIC()`,
+`extractAIC()` do not refuse; `summary()` has AIC and BIC; the discrete
+check gives no warning under a prior; `anova()` of `frm_multiple()` fits
+with a prior answers. The three edited files fail on the base build by
+the missing symbol only: their new `logLik()` lines are the same claim as
+`test-loglik-prior.R`'s first block.
+
+The latent test, three arms (`dev/loglik-r80-latent-arms.R`, logs
+`dev/loglik-t-out/latent-arm-*.txt`): base (both packages from
+rellib-r18) errors on the missing export; mixed (lane core, rellib-r18
+frmtmb.latent) fails three expectations, the table's first `logLik`
+-245.7 against the penalized -248.3; lane passes 4 of 4. So the
+frmtmb.latent change is needed by the core change, and the floor follows.
+
+Tests changed to the new meaning, each seen to fail on the lane build
+before the edit (`dev/loglik-core.log`, `dev/loglik-gated.log`):
+
+    RESULT test-map.R pass=6 fail=1 ...   -logLik(map) vs raw + nlp: 2.760495 off
+    RESULT test-nl-rtmb-scope.R pass=104 fail=1 ...   tape 1476.3 vs -logLik 1473.6
+    RESULT test-prior-compat.R pass=200 fail=1 ...   12.673717 off
+    RESULT test-brms-priors.R pass=101 fail=1 ... (gated)   |logLik(fit) - logLik(no prior)| 0.04, wanted > 1
+
+Each pinned "logLik() holds the prior"; each now reads
+`logLik_penalized()` for that identity, and `test-map.R` and
+`test-prior-compat.R` also assert that `logLik()` is the raw tape at the
+MAP. Two of them had an absolute tolerance on the line I rewrote
+(`1e-6`); it is now relative (`1e-8` of the value). Gated rerun:
+`RESULT test-brms-priors.R pass=102 fail=0 err=0 skip=0 warn=0`
+(`dev/loglik-t-out/gated-brms-priors.txt`).
+
+## Audit of every reader
+
+Each reader of `opt$objective` in `R/` (grep `\$objective` plus
+`[["objective"]]`, 49 lines at 3cd2a0c8) and of `logLik()` in core and
+the eight extensions, and the value it wants.
+
+### `opt$objective`: optimizer internals, want the penalized value, unchanged
+
+These compare or report the objective the optimizer minimizes. Under a
+prior that objective holds the log prior, and that is what they must
+compare. None changed.
+
+| Where | What it does |
+|---|---|
+| `R/allfit.R:39` | bobyqa wrapper returns `fval` as `objective` |
+| `R/autoscale.R:341`, `:460` | pre-fit verdict; choose between the scaled and plain fits |
+| `R/fit.R:1224`, `:1745`, `:1810` | verbose output of the objective and a gain |
+| `R/fit.R:1954`, `:2037`, `:2694`, `:2700` | best of several attempts; optimizer wrapper |
+| `R/fit.R:3034` to `:3048`, `:3303` to `:3316` | Newton polish gain; recovery starts |
+| `R/fit.R:3361` to `:3399` | the larger-sd escape |
+| `R/fit.R:3556` to `:3771`, `:3859` to `:4024` | Newton polish; `mo_search()` |
+| `R/fit.R:5160` | `gp_ok`: objective against the gp warm start's marginal |
+| `R/gp-start.R:343` to `:398` | gp warm-start scan |
+| `R/importance.R:1541`, `:1547` | corrected objective at the reported anchor |
+| `R/multiple.R:541` (`dev_at_pooled()`) | D3 deviance at the pooled vector; refused under a prior now (below) |
+
+### Readers that changed
+
+| Where | Before | Wants | Now |
+|---|---|---|---|
+| `logLik.frmtmb_fit` (`R/methods-fit.R`) | `-objective` | data | `-objective - log prior`; refuses where the prior is inside the integral |
+| `logLik_penalized()` (new) | none | penalized | `-objective`, attribute `log_prior` |
+| `AIC`, `BIC` (stats defaults through `logLik()`) | penalized, silent | refuse | `AIC.frmtmb_fit`, `BIC.frmtmb_fit` refuse any fit in the call with a density prior |
+| `extractAIC.frmtmb_fit` (`R/sugar.R`), so `step()` | penalized | refuse | refuses |
+| `summary.frmtmb_fit` | `logLik`, `AIC`, `BIC`; `(MAP)` for any prior | data | `logLik`, `log prior`, AIC/BIC `NA` and not printed; `(MAP)` only for a density |
+| `discrete_loglik_warning()` (`R/fit-end.R`) | skipped under any prior | data | runs on the data value; skipped under REML as before |
+| `frm_allfit()` (`R/allfit.R`) | `logLik()` | penalized (each optimizer maximizes it) | `logLik_penalized()`, with a line saying so |
+| `nl_restart_round()`, `nl_fit_off_saddle()` (`R/par-template.R:767`, `:840`) | `logLik()` | penalized (restarts judged on what they maximize) | `logLik_penalized()` |
+| `anova.frmtmb_multiple` D2 (likelihood), D3 (`R/multiple.R:506`) | `2 * objective`, silent under a prior | refuse | refuses, as `anova.frmtmb_fit` does |
+| `hmm_starts()` (frmtmb.latent `R/hmm-starts.R:399`, `:431`, `:442`, `:537`) | `logLik()` | penalized (modes ranked on what each refit maximized; `grad_rel` is the objective's gradient) | `frmtmb::logLik_penalized()` |
+
+Without the last change, the lane's core with rellib-r18's frmtmb.latent
+ranks the refits on the data value: the test fails three ways
+(`dev/loglik-r80-latent-arms.R mixed`, below).
+
+### Readers that need no change
+
+| Where | Why |
+|---|---|
+| `anova.frmtmb_fit`, `drop1()` (`R/confint.R`) | already refuse a density prior (`fit_prior_density()`); message reworded |
+| `deviance.frmtmb_fit` (`R/sugar.R`) | `-2 * logLik()`: now the data deviance, as lme4's |
+| `nl_local_message()` (`R/par-template.R:944`) | reached only with no prior: under any prior `use_curvature = FALSE`, so `look$local` is empty and the message never runs |
+| `nl_saddle_warning()`, restart messages | print the penalized value they compared, labeled "log-likelihood" as before; not reworded (not done, below) |
+| `pooled_order()`, `pooled_lrt_parts()` df reads (`R/multiple.R:382`, `:504`) | read `attr(logLik(), "df")` only |
+| `loo()`, `waic()`, `LOO()`, `log_lik()` messages (`R/loo.R`) | point to `AIC()`, which now explains itself under a prior |
+| `R/brms-postfit.R:38`, `R/autocor-seam.R:233` examples | fits with no prior |
+| frmtmb.learn trace identity `sum(log p) == logLik(fit)` | now holds under a prior too |
+| frmtmb.survival `rp-check.R`, `royston-parmar.R` | comments and messages about a floored likelihood, no prior |
+| frmtmb.sample | builds its own objectives; reads neither `logLik()` nor `opt$objective` of a fit |
+| frmtmb.spatial, .coupling, .eam, .ode | no reader |
+| equivalence survey L1 and L4 (`dev/equiv-lib.R:132`, `:402`) | under a prior they read `-f$opt$objective`, the penalized value, which this change does not touch; without one `logLik()`, unchanged. No edit needed |
+| `frm_compat()` rows | notes of `REML x prior` and `importance x prior` updated (statuses unchanged) |
+
+## Equivalence survey: the 21 sampled pairs that carry a prior
+
+L1 and L4 read `-f$opt$objective` under a prior and `logLik()` without one
+(`dev/equiv-lib.R:132`, `:402`), so the split cannot move them; the rerun
+checks that by construction. `dev/loglik-r80-equiv-ids.R` lists the pairs
+whose spec has a prior (21 of 172); `dev/loglik-r80-equiv-run.sh` reruns
+them with `FRMTMB_EQUIV_LIB` = lane lib; rellib-r18;
+`dev/loglik-r80-equiv-compare.R` compares with `results.tsv`'s
+`verdict_measured`, `level` and `l1_const` (`dev/loglik-r80-equiv-compare.log`):
+
+       id    rec_verdict    now_verdict rec_level now_level       rec_l1
+     p001     equivalent     equivalent        L1        L1 -2.84217e-14
+     p002         defect         defect        L1        L1  3.99897e-01
+     p006     equivalent     equivalent     L1+L2     L1+L2  0.00000e+00
+     p008     equivalent     equivalent        L1        L1  5.68434e-14
+     p015     equivalent     equivalent        L1        L1  0.00000e+00
+     p023 cannot measure cannot measure      <NA>      <NA>  6.70659e-01
+     p035     equivalent     equivalent     L1+L2     L1+L2 -3.41061e-13
+     p036     equivalent     equivalent     L1+L2     L1+L2 -5.68434e-14
+     p037     equivalent     equivalent  L1+L2+L4  L1+L2+L4 -1.13687e-13
+     p038     equivalent     equivalent        L1        L1 -1.13687e-13
+     p043     equivalent     equivalent        L1        L1 -6.67200e-01
+     p050     equivalent     equivalent        L1        L1  1.13687e-13
+     p058     equivalent     equivalent        L1        L1 -1.13687e-12
+     p071 cannot measure cannot measure      <NA>      <NA>           NA
+     p089 cannot measure cannot measure      <NA>      <NA>           NA
+     p095     equivalent     equivalent        L1        L1 -3.41061e-13
+     p103     equivalent     equivalent        L1        L1  3.28420e+00
+     p134     equivalent     equivalent        L1        L1  5.19146e-01
+     p140     equivalent     equivalent        L1        L1  0.00000e+00
+     p144     equivalent     equivalent        L1        L1  0.00000e+00
+     p145     equivalent     equivalent        L1        L1 -1.07461e-01
+           now_l1 same
+     -2.84217e-14 TRUE
+      3.99897e-01 TRUE
+      0.00000e+00 TRUE
+      5.68434e-14 TRUE
+      0.00000e+00 TRUE
+      6.70659e-01 TRUE
+     -3.41061e-13 TRUE
+     -5.68434e-14 TRUE
+     -1.13687e-13 TRUE
+     -1.13687e-13 TRUE
+     -6.67200e-01 TRUE
+      1.13687e-13 TRUE
+     -1.13687e-12 TRUE
+               NA TRUE
+               NA TRUE
+     -3.41061e-13 TRUE
+      3.28420e+00 TRUE
+      5.19146e-01 TRUE
+      0.00000e+00 TRUE
+      0.00000e+00 TRUE
+     -1.07461e-01 TRUE
+    pairs: 21  verdict and level unchanged: 21  changed: 0 
+
+## Suites
+
+One file per process (`dev/loglik-run-par.sh`, 3 jobs, `NOT_CRAN=true`,
+lane library first). Every log's `lib:` line names the lane core;
+frmtmb.latent is the lane's, the other seven extensions rellib-r18's
+(their code is unchanged). Totals generated from the logs:
+
+    core (dev/loglik-core.log): files=309 pass=22549 fail=3 err=0 skip=239 warn=0
+    frmtmb.coupling (dev/loglik-ext.log): files=11 pass=551 fail=0 err=0 skip=5 warn=0
+    frmtmb.eam (dev/loglik-ext.log): files=33 pass=1848 fail=0 err=0 skip=5 warn=0
+    frmtmb.latent (dev/loglik-ext.log): files=12 pass=687 fail=0 err=0 skip=2 warn=0
+    frmtmb.learn (dev/loglik-ext.log): files=16 pass=474 fail=0 err=0 skip=13 warn=0
+    frmtmb.ode (dev/loglik-ext.log): files=11 pass=549 fail=0 err=0 skip=1 warn=0
+    frmtmb.sample (dev/loglik-ext.log): files=85 pass=3962 fail=0 err=0 skip=18 warn=0
+    frmtmb.spatial (dev/loglik-ext.log): files=8 pass=478 fail=0 err=0 skip=6 warn=0
+    frmtmb.survival (dev/loglik-ext.log): files=15 pass=552 fail=0 err=0 skip=0 warn=0
+    gated subset, FRMTMB_BRMS_FIT_TESTS=true (dev/loglik-gated.log): files=38 pass=4468 fail=1 err=0 skip=0 warn=0
+
+The three core failures and the one gated failure are the four tests
+that pinned the old meaning ("Tests" above); each was edited and passes
+on rerun (`dev/loglik-fix.log`, `dev/loglik-final.log`,
+`dev/loglik-t-out/gated-brms-priors.txt`):
+
+    RESULT test-compat-extensions.R pass=2 fail=0 err=0 skip=0 warn=0
+    RESULT test-compat-register.R pass=103 fail=0 err=0 skip=0 warn=0
+    RESULT test-compat.R pass=759 fail=0 err=0 skip=0 warn=0
+    RESULT test-prior-compat.R pass=202 fail=0 err=0 skip=0 warn=0
+    RESULT test-loglik-prior.R pass=49 fail=0 err=0 skip=0 warn=0
+    RESULT test-map.R pass=8 fail=0 err=0 skip=0 warn=0
+    RESULT test-brms-priors.R pass=102 fail=0 err=0 skip=0 warn=0
+
+The gated subset is the 38 core files that mention a prior and one of
+logLik, AIC, BIC, summary, brms_lp_check, extractAIC, step, allfit,
+anova or drop1 and are gated (`dev/loglik-r80-gated.jobs`); skip 0.
+
+One session per suite, three orders (`dev/loglik-run-sessions.sh`,
+`dev/loglik-sessions.log`); every LEAK line is tagged
+`[with load of ...]`, none is this lane's:
+
+    SESSION frmtmb forward files=296/309 pass=22554 fail=0 err=0 skip=239 warn=0
+    SESSION frmtmb reverse files=296/309 pass=22704 fail=0 err=0 skip=239 warn=0
+    SESSION frmtmb preload files=296/309 pass=22797 fail=0 err=0 skip=241 warn=0
+    SESSION frmtmb.latent forward files=12/12 pass=687 fail=0 err=0 skip=2 warn=0
+    SESSION frmtmb.latent reverse files=12/12 pass=687 fail=0 err=0 skip=2 warn=0
+    SESSION frmtmb.latent preload files=12/12 pass=687 fail=0 err=0 skip=2 warn=0
+    SESSIONS ran 6 of 6
+
+files=296/309: the 13 others skip at file level without the gate
+(test-brms-suite-*.R and three *-brms.R files): they hold gated tests only.
+
+OpenBLAS 0.3.26 with LAPACK (`dev/ciharden-openblas.sh 0.3.26 lapack`,
+`dev/loglik-openblas.log`), the four files with exactness checks:
+
+    RESULT test-map.R pass=8 fail=0 err=0 skip=0 warn=0
+    RESULT test-nl-rtmb-scope.R pass=105 fail=0 err=0 skip=0 warn=0
+    RESULT test-prior-compat.R pass=202 fail=0 err=0 skip=0 warn=0
+    RESULT test-loglik-prior.R pass=42 fail=0 err=0 skip=0 warn=0
+
+## A defect R CMD check found, fixed
+
+The first `R CMD check --as-cran` of frmtmb.latent
+(`dev/loglik-r80-check-latent.log`, first run) gave 3 WARNINGs and a NOTE
+from one cause: frmtmb's namespace did not load with only base attached,
+`object 'BIC' not found whilst loading namespace 'frmtmb'`. The new
+`S3method(AIC, frmtmb_fit)` and `S3method(BIC, frmtmb_fit)` need the
+generics visible in the namespace, and frmtmb imported neither from
+stats. No test saw it, because every test session attaches stats. Fixed
+by adding `AIC BIC` to the `@importFrom stats` line of
+`R/frmtmb-package.R` (so `NAMESPACE` imports them). After the fix, with
+`R_DEFAULT_PACKAGES=NULL`, `loadNamespace("frmtmb")` and
+`loadNamespace("frmtmb.latent")` both load (`dev/loglik-r80-install3.log`
+and the command in the lane's report).
+
+## Cost of the split
+
+Superseded by "Fix round 1", m8: the entries are now kept on the fit.
+
+`dev/loglik-r80-timing.R` (seed 4101, one process, arms interleaved,
+blocks over 1.2 s, minimum of 5 rounds; `dev/loglik-r80-timing.log`):
+
+    control_noprior  min 134.3 us  median 180.7 us
+    prior            min 2392.6 us  median 4013.7 us
+    penalized_prior  min 2685.5 us  median 3681.6 us
+    one MAP fit: 0.050 s
+
+`logLik()` under a prior resolves the prior again on every call
+(`resolve_prior_input()`, as `fit_prior_density()` already did for
+`anova()`), about 2.3 ms more per call, or 1/20 of one fit of this
+model. `summary()` pays it three times. Not cached: a cache keyed on the
+fit's estimates would have to be invalidated by every path that replaces
+`fit$opt`, and the cost is small against any fit.
+
+## Bump and floor
+
+- frmtmb: minor. Two BREAKING changes (`logLik()` under a prior; AIC,
+  BIC, extractAIC refuse) and a new export.
+- frmtmb.latent: minor, `hmm_starts()` ranks on a different value under a
+  prior. Floor: frmtmb at the release that exports `logLik_penalized()`
+  (the version after 0.79.1). I did not edit either DESCRIPTION: the
+  round sets versions at consolidation. Roxygen 8.1.1 rewrote
+  `Config/roxygen2/version` to 8.1.1 in both DESCRIPTIONs; I set it back
+  to 8.1.0, so neither DESCRIPTION is in the diff.
+- The other seven extensions: no change, no floor. Their suites pass on
+  the lane core (above).
+
+## Not done, and why
+
+Fix round 1 closed the first three items and the restart label below
+(M2, m6, m7); the gated-tier and seed items stand.
+
+- The restart messages of a nonlinear fit (`R/par-template.R`,
+  "log-likelihood X") print the penalized value under a prior and still
+  call it "log-likelihood". The number is the one that was compared, as
+  before this change; rewording five messages was outside the split.
+- `AIC(lm_fit, map_fit)` (a non-frmtmb fit first) dispatches to
+  `stats:::AIC.default`, which calls `logLik()` on each and gives the
+  data value with no refusal; so does `AIC(logLik(map_fit))`, and any
+  package that builds AIC from `logLik()` (performance, MuMIn). Closing
+  those would need a marked `logLik` class, which `print`, `all.equal`
+  and other packages read; I judged it not worth it.
+- No `logLik_penalized()` method for `frm_multiple()` fits; the generic
+  gives "no applicable method". `logLik()` on them already refuses.
+- The change to the nonlinear restarts (`logLik_penalized()` in
+  `nl_restart_round()`) has no test that fails without it: on the base
+  build `logLik()` was the penalized value, so the old and new code agree
+  there, and under the lane's `logLik()` the old code would rank restarts
+  on the data value. Same for `frm_allfit()`: its new test is an identity
+  check, not a seen-to-fail test.
+- Gated tier: the 38-file subset above, not the whole gated tier, and no
+  extension's gated tests.
+- The brief's own seed-4101 numbers (-297.44 ...) were not reproduced:
+  no script in `dev/` has them; mine are from my own construction.
+
+## Process notes
+
+- Once, four R processes ran for about a minute: a single-file rerun of
+  `test-map.R` while three suite processes ran.
+- `dev/loglik-r80-equiv-run.sh` first piped the id list into the loop,
+  so `wait` returned at once and the driver printed "done" while the last
+  three pairs ran; they finished and wrote their results (21 of 21).
+  Fixed in the script.
+- The first core `R CMD build` copied `dev/ciharden-out` while I deleted
+  it, and failed ("copying to build directory failed"). I stopped that
+  task with TaskStop; its `R CMD build` children lived on, and
+  `Stop-Process` on them was denied by the permission system, so I let
+  them end on their own (they did) and reran the checks one after the
+  other.
+- `dev/ciharden-out/` is deleted.
+
+## R CMD check --as-cran (final code)
+
+`dev/loglik-r80-rcheck.sh`, built and checked in `dev/loglik-check/`,
+`_R_CHECK_CRAN_INCOMING_REMOTE_=FALSE`, pandoc and TinyTeX on PATH,
+`R_LIBS` = lane lib; rellib-r18; user library. Run after the
+`importFrom` fix, so its test step ran the whole core suite on the final
+code (`Running 'testthat.R' [41m] OK`):
+
+    frmtmb         Status: 1 NOTE   (dev/loglik-r80-check-frmtmb.log)
+    frmtmb.latent  Status: 1 NOTE   (dev/loglik-r80-check-latent.log)
+
+Both NOTEs are "Skipping checking math rendering: package 'V8'
+unavailable", the expected one. The check trees are deleted; the logs
+stay.
+
+## Fix round 1 (review `dev/reviews/2026-11-06-loglik.md`, verdict FIX)
+
+Every item, with what was done and the evidence. "Pre-fix" is the
+lane's code before this round, as the reviewer built it in
+`rev-loglik-lib` (`REV_MUT` unset); "mutant" is the same build with one
+`REV_MUT` switch.
+
+- **M1, pkgdown index.** `logLik_penalized` added under "Inference and
+  diagnostics" in `_pkgdown.yml`, after `anova.frmtmb_fit`.
+  `dev/loglik-r80-pkgdown.R` (`dev/loglik-r80-pkgdown.log`): pkgdown
+  2.2.1, `check_pkgdown: OK` ("No problems found"); the review measured
+  "1 topic missing from index" before.
+- **M2, criteria that dispatch elsewhere.** Under a prior with a density
+  `logLik()` now has `df = NA` and a `df_why` that says why
+  (`prior_df_why`, `R/methods-fit.R`); the value is still the data
+  log-likelihood. Every internal reader of the count now calls
+  `loglik_df()`: `pooled_order()` and `pooled_lrt_parts()`
+  (`R/multiple.R`), `anova.frmtmb_fit` and `drop1()` (`R/confint.R`),
+  `extractAIC()` (`R/sugar.R`). `dev/loglik-r80-dfna-probe.R`, seed 201
+  (`dev/loglik-r80-dfna-probe.log`, lines shortened):
+
+      print(logLik(fp))            'log Lik.' -192.5685 (df=NA)
+      AIC(fp)                      ERROR <frmtmb_prior_ic> ...
+      AIC(lm, fp)                     df      AIC | fl  3 392.2962 | fp NA       NA
+      BIC(lm, fp)                     df      BIC | fl  3 400.6586 | fp NA       NA
+      AIC(logLik(fp))              [1] NA
+      BIC(logLik(fp))              [1] NA
+      anova(fp, fp2)               ERROR <frmtmb_error> anova() compares log-likelihoods, and model 1 has a prior ...
+      lmtest::lrtest(fp, fp2)      #Df blank; LogLik -192.57, -192.52; Chisq 0.096; Pr(>Chisq) blank
+      print(frm_allfit(fp))        original fit: logLik_penalized -196.7122664, code 0 ...
+      anova(m1, m0) D1             statistic 0.07733, df1 1, p 0.7809 (the Wald rule still runs)
+      anova(m1, m0) D3             ERROR <frmtmb_error> anova() compares log-likelihoods, and a pooled fit has a prior ...
+      logLik_penalized(m1)         ERROR <frmtmb_error> logLik_penalized() has no pooled answer ...
+      df.residual(fp)              [1] 116
+      summary(fp) Method line      " Method: ML (MAP)   logLik: -192.569   log prior: -4.14372 "
+      frmtmb.sample functions whose body calls logLik(: none
+
+  Nothing errors unhelpfully: `lmtest::lrtest()` prints the statistic
+  with no df and no p-value. The review measured `AIC(lm, fp)` and
+  `AIC(logLik(fp))` at 301.5597279 for `fp` before. NEWS and
+  `?logLik_penalized` now say which calls stop and which get `NA`.
+  Pinned by the block "criteria that dispatch elsewhere read NA, never a
+  number" of `test-loglik-prior.R` (`AIC(lm, fp)`, `BIC(lm, fp)`,
+  `AIC(logLik(fp))`, and the no-prior control).
+- **M3, nlstart merge hazard.** Not in this tree. Consolidation must
+  change `nl_sign_probe()` in `frmtmb-wt-nlstart/R/par-template.R`
+  (its lines 90 and 91, `ll0 <- as.numeric(stats::logLik(fit))` and
+  `ll1 <- ... stats::logLik(r)`) to `logLik_penalized()`, because the
+  probe selects a refit on the penalized objective (its lines 62 to 68),
+  and label its `frmtmb_nl_multistart` message "penalized
+  log-likelihood" under a prior (`fit_penalized(fit)`), as
+  `nl_fit_off_saddle()` now does.
+- **m1, negative control for the discrete check.** The reviewer's case A
+  (50 zero counts, `normal(-5, 0.01)` on the Intercept: penalized +3.35,
+  data -0.34) is in the block "the discrete check runs under a prior" as
+  `expect_no_warning()`. Run against the review build
+  (`dev/loglik-t-out/mut-*.txt`): with `REV_MUT=discpen` that block
+  fails, "Actually got a <frmtmb_discrete_loglik> with message: The
+  log-likelihood is 3.34934, above 0"; with `REV_MUT` unset it passes.
+  The family type is now checked first in `discrete_loglik_warning()`.
+- **m2, Jacobian rows.** New block "the split holds through every
+  chart's Jacobian": `mo()` with a `simo` Dirichlet, `ar` with a prior on
+  class `ar`, exact `gp()` with `sdgp` and `lscale` priors, and
+  `(1 + x | g)` with `lkj(4)` and an `sd` prior. Each `logLik()` equals
+  the no-prior tape at the MAP to `sqrt(eps)` relative, with a nonzero
+  log prior.
+- **m3, uniform priors.** `prior_entry_constant()`: an entry is a
+  constant when its density is `uniform()` and it is read with no change
+  of variables (scale not `sd`, `natural` or `ordthres`; a `trans` chart
+  is not of kind `uniform`). `fit_prior_density()` ignores such entries,
+  so AIC, BIC, `anova()`, `drop1()` and the summary treat the fit as
+  bounded ML. Where the reasoning fails the refusal stays: a uniform
+  density on an `sd`, or on any parameter read through a log-Jacobian,
+  is not constant on the optimizer's scale and moves the estimate. New
+  block "a uniform prior on a coefficient is bounds, not a density":
+  `uniform(-5, 5)` on `b` gives the no-prior slope to 1e-6, a finite df,
+  `AIC()` equal to the no-prior one to 1e-8, `log_prior` = log(1/10) and
+  method "ML"; `uniform(0, 10)` on `sd` is refused, with `df = NA`.
+- **m4, meaning of `log_prior`.** Kept: the value the optimizer adds,
+  with every log-Jacobian and no truncation normalizer. New section "The
+  log prior term" in `?logLik_penalized` names the charts and works the
+  difference from brms's `lprior` for `normal(0, 1)` on an `sd`:
+  `+ log(s)` here, `+ log(2)` in brms (the review's `brmscode.log` and
+  `discrete-after.log`). NEWS says it in one sentence.
+- **m5, summary under REML with a b prior.** Prints
+  `logLik_penalized: <value>` and "logLik: none, as the prior on the
+  fixed effects is inside the REML integral". Pinned in the REML block.
+- **m6, labels.** `nl_fit_off_saddle()` and `nl_saddle_warning()` say
+  "penalized log-likelihood" when the maximized value differs from
+  `logLik()` (`fit_penalized()`, which also covers a uniform prior's
+  constant). `print.frmtmb_allfit()` names the column, the original
+  line and the spread `logLik_penalized` in that case. Pinned by the
+  block "the nonlinear restart message names the penalized value" (the
+  reviewer's seed 501 construction): the message says "penalized
+  log-likelihood", and its last number is `logLik_penalized()` of the
+  fit to 1e-5 relative, away from `logLik()`.
+- **m7.** `logLik_penalized.frmtmb_multiple` refuses through
+  `multiple_refuse()`, as `logLik()` does. Pinned.
+- **m8, cost.** The resolved prior entries stay on the fit
+  (`fit$resolved_prior`; not `prior_*`, which `$prior` would
+  partial-match), so `fit_log_prior()` is one closure call;
+  `fit_prior_entries()` resolves again only for an object without the
+  slot. `dev/loglik-r80-cost.R` (the review's script with three arms,
+  seed 401, 7 blocks, run base, prefix, after, prefix, after;
+  `dev/loglik-r80-cost.log`); `big_prior` is the review's 24-row prior.
+  `proc.time()` ticks at 10 ms, so these are block means, min / median:
+
+      arm      big_prior logLik()   big_prior summary()   big_prior print(fit)
+      base     0.00 / 0.00 ms       2.00 / 4.00 ms        4.00 / 6.00 ms
+      prefix   3.00 / 5.50 ms       18.00 / 22.00 ms      16.00 / 24.00 ms
+      after    0.00 / 0.00 ms       2.00 / 6.00 ms        4.00 / 6.00 ms
+      prefix   5.50 / 6.00 ms       18.00 / 22.00 ms      18.00 / 22.00 ms
+      after    0.00 / 0.00 ms       2.00 / 4.00 ms        2.00 / 6.00 ms
+
+  The fix-round build is back at the base build's cost.
+- **m9, floor.** For consolidation: frmtmb.latent's DESCRIPTION floor
+  must rise from `frmtmb (>= 0.79.0)` to the frmtmb release that exports
+  `logLik_penalized()`; `hmm_starts()` calls it.
+
+Tests of this round seen to fail on the pre-fix build
+(`dev/loglik-t-out/mut-none.txt`: `RESULT test-loglik-prior.R pass=68
+fail=4 err=3`): the REML summary block (2 fails), the dispatch block (df
+not NA, then no `df_why`), the uniform block (`AIC()` refused), the
+`frm_multiple()` block ("no applicable method"), the restart-message
+block (the message says "log-likelihood").
+
+Fix-round runs, one file per process, lane library first (`dev/loglik-fix2.log`,
+`dev/loglik-core2.log`, `dev/loglik-ext2.log`; every `lib:` line names the lane core):
+
+    RESULT test-loglik-prior.R pass=88 fail=0 err=0 skip=0 warn=3
+    RESULT test-map.R pass=8 fail=0 err=0 skip=0 warn=0
+    RESULT test-nl-rtmb-scope.R pass=105 fail=0 err=0 skip=0 warn=0
+    RESULT test-prior-compat.R pass=202 fail=0 err=0 skip=0 warn=0
+    RESULT test-refit-data.R pass=122 fail=0 err=0 skip=0 warn=0
+    RESULT test-beta-binomial-density.R pass=93 fail=0 err=0 skip=0 warn=0
+    RESULT test-arg-refusal.R pass=122 fail=0 err=0 skip=0 warn=0
+    (test-loglik-prior.R rerun with explicit bounds on the uniform rows:
+    RESULT test-loglik-prior.R pass=88 fail=0 err=0 skip=0 warn=0)
+    core suite: files=309 pass=22600 fail=0 err=0 skip=239 warn=0
+    frmtmb.coupling: files=11 pass=551 fail=0 err=0 skip=5 warn=0
+    frmtmb.eam: files=33 pass=1848 fail=0 err=0 skip=5 warn=0
+    frmtmb.latent: files=12 pass=687 fail=0 err=0 skip=2 warn=0
+    frmtmb.learn: files=16 pass=474 fail=0 err=0 skip=13 warn=0
+    frmtmb.ode: files=11 pass=549 fail=0 err=0 skip=1 warn=0
+    frmtmb.sample: files=85 pass=3962 fail=0 err=0 skip=18 warn=0
+    frmtmb.spatial: files=8 pass=478 fail=0 err=0 skip=6 warn=0
+    frmtmb.survival: files=15 pass=552 fail=0 err=0 skip=0 warn=0
+
+R CMD check --as-cran of core on the fix-round code
+(`dev/loglik-r80-check-frmtmb2.log`): `Running 'testthat.R' [37m] OK`,
+`Status: 1 NOTE` (V8 math rendering). frmtmb.latent is unchanged in
+this round; its suite passes on the new core (above).
+
+## After the short check (SHIP), two text items
+
+- NEWS and `?logLik_penalized` now name exactly which calls give `NA`
+  (`AIC(lm_fit, map_fit)`, `BIC(lm_fit, map_fit)`, `AIC(logLik(map_fit))`),
+  which refuse (`AIC()`, `BIC()`, `extractAIC()`, `step()` dispatched on
+  the fit), and that a package counting df itself is not covered
+  (`insight::get_loglikelihood()`, so `performance`). Text only.
+- `?anova.frmtmb_multiple` and the NEWS bullet on pooling now say that
+  under a prior the Wald rules (D1, D2 with `use = "wald"`) are Wald tests
+  at the MAP, consistent with `summary()`'s Wald intervals, with nominal
+  size not guaranteed. Text only. Rds rendered with `Rd2txt` and read.
+
+# Earlier lane loglik
+
 # Lane loglik: log_lik() for residual covariance terms, and the 13 bin-2 sar() and fcor() rows
 
 Base 70476dc3 (frmtmb 0.75.0), worktree `frmtmb-wt-loglik`, branch

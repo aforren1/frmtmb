@@ -1,7 +1,12 @@
 # Refit under every available optimizer (the lme4::allFit analog).
 
 #' Derivative-free optimizers from Suggests, wrapped to the
-#' `frmtmb_control()` custom-optimizer contract.
+#' `frmtmb_control()` custom-optimizer contract. Each is marked
+#' `frmtmb_builtin`, so that it steps in the coordinates of an
+#' ill-conditioned fixed design as nlminb does (user_optimizer()): as a
+#' plain function it got none, and from `start_from_mle = FALSE` bobyqa
+#' and NLopt stopped 33.1 and 33.6 short, 7.55 standard errors off, on
+#' poisson `y ~ (x + 1e6) + (1 | g)` (review of lane bigx, minor 3).
 #'
 #' @noRd
 allfit_optimizers <- function() {
@@ -44,6 +49,9 @@ allfit_optimizers <- function() {
            message = r$message %||% "")
     }
   }
+  for (k in names(opts)) {
+    if (is.function(opts[[k]])) attr(opts[[k]], "frmtmb_builtin") <- TRUE
+  }
   opts
 }
 
@@ -71,6 +79,8 @@ allfit_optimizers <- function() {
 #' worse optimum does not read as agreement. One that reaches the best
 #' while reporting a failure code agrees, with its code shown: started
 #' at the optimum, `optim`'s line search can fail there (code 52).
+#' Under a prior with a density, the table compares the value each
+#' optimizer maximizes, [logLik_penalized()].
 #'
 #' @param fit A `frmtmb_fit`.
 #' @param optimizers Named list of optimizers (names or functions, as
@@ -134,8 +144,11 @@ frm_allfit <- function(fit, optimizers = NULL, start_from_mle = TRUE, ...) {
   }
   names(fits) <- names(errors) <- names(optimizers)
   structure(list(fits = fits, errors = errors, times = times,
-                 original = list(logLik = as.numeric(logLik(fit)),
+                 # each optimizer maximizes the objective, which under a
+                 # prior holds the log prior, so that is what is compared
+                 original = list(logLik = as.numeric(logLik_penalized(fit)),
                                  convergence = fit$opt$convergence),
+                 penalized = fit_penalized(fit),
                  tol = ctl0$grad_tol %||% 1e-3,
                  start_from_mle = start_from_mle),
             class = "frmtmb_allfit")
@@ -146,7 +159,7 @@ print.frmtmb_allfit <- function(x, ...) {
   frm_check_dots(...)
   ok <- !vapply(x$fits, is.null, TRUE)
   ll <- vapply(x$fits, function(f) {
-    if (is.null(f)) NA_real_ else as.numeric(logLik(f))
+    if (is.null(f)) NA_real_ else as.numeric(logLik_penalized(f))
   }, numeric(1))
   code <- vapply(x$fits, function(f) {
     if (is.null(f)) NA_integer_ else as.integer(f$opt$convergence)
@@ -164,24 +177,32 @@ print.frmtmb_allfit <- function(x, ...) {
              ifelse(below & code != 0L, "did not converge",
              ifelse(below, "converged elsewhere",
              ifelse(code != 0L, paste0("agrees; code ", code), "agrees"))))
+  # under a prior every value here is the penalized one, and is named so
+  lab <- if (isTRUE(x$penalized)) "logLik_penalized" else "logLik"
   if (!is.na(ll0)) {
-    cat("original fit: logLik ", format(ll0, digits = 10), ", code ",
+    cat("original fit: ", lab, " ", format(ll0, digits = 10), ", code ",
         x$original$convergence, if (ll0 < best - tol) {
           paste0(", ", format(best - ll0, digits = 3), " below the best")
         }, "\n", sep = "")
   }
   cat("refits started at ", if (isFALSE(x$start_from_mle)) {
     "the original fit's start"
-  } else "the original fit's estimates", "\n\n", sep = "")
+  } else "the original fit's estimates", "\n", sep = "")
+  if (isTRUE(x$penalized)) {
+    cat("logLik_penalized() is the value that every optimizer maximizes ",
+        "under the prior\n", sep = "")
+  }
+  cat("\n")
   tab <- data.frame(
     optimizer = names(x$fits),
-    logLik = ll,
+    ll = ll,
     `vs best` = signif(ll - best, 3),
     convergence = code,
     verdict = verdict,
     seconds = round(x$times, 2),
     check.names = FALSE
   )
+  names(tab)[2L] <- lab
   print(tab, row.names = FALSE)
   if (any(verdict == "converged elsewhere")) {
     cat("\nAn optimizer that reports convergence below the best ",
@@ -190,7 +211,8 @@ print.frmtmb_allfit <- function(x, ...) {
         "on this model.\n", sep = "")
   }
   if (sum(ok) > 1L) {
-    cat("\nlogLik spread:", format(diff(range(ll[ok])), digits = 3), "\n")
+    cat("\n", lab, " spread: ", format(diff(range(ll[ok])), digits = 3),
+        "\n", sep = "")
     # the flat vector, not the summary matrix: what is compared across
     # restarts is the estimates, one per coefficient
     fe <- vapply(x$fits[ok], function(f) fixef(f, flatten = TRUE),

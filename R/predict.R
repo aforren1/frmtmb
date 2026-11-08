@@ -6,13 +6,23 @@
 # block's components (one component per contributing linear predictor).
 
 #' Memoized joint covariance of all estimated parameters (fixed + random),
-#' with row/col component names. Cached in `fit$cache`.
+#' with row/col component names. Cached in `fit$cache`. On a fit with a
+#' latent residual it is held sparse (jcs_joint_cov()); where that route does
+#' not apply, `dense = FALSE` returns `NULL` instead of forming it dense.
 #'
 #' @noRd
-get_joint_cov <- function(fit) {
+get_joint_cov <- function(fit, dense = TRUE) {
   cache <- fit$cache
   if (!is.null(cache$Vjoint)) return(cache$Vjoint)
   if (length(frame_latres(fit$frame))) {
+    # a latent per row makes V (n + p)^2 dense; held sparse, a reader pays
+    # for the block it reads (R/joint-sparse.R)
+    sp <- jcs_joint_cov(fit)
+    if (!is.null(sp)) {
+      cache$Vjoint <- sp
+      return(cache$Vjoint)
+    }
+    if (!dense) return(NULL)
     m <- fit$frame[["n_obs"]]
     lim <- getOption("frmtmb.latres_dense_rows", 20000L)
     if (m > lim) {
@@ -165,6 +175,28 @@ joint_cov_repair <- function(fit, Q, sdr) {
   V[r, f] <- JV
   V[f, r] <- t(JV)
   V[f, f] <- Vf
+  meta <- joint_cov_repair_meta(fit, sdr, p, r, f)
+  # the factor of the covariance (se_reparam_cov()) carried into the
+  # group effects as the propagated part is: V = Vrest + root root'
+  root <- NULL
+  Vrest <- NULL
+  if (!is.null(Lf)) {
+    root <- matrix(0, p, ncol(Lf), dimnames = list(rownames(Q), NULL))
+    root[f, ] <- Lf
+    root[r, ] <- JL
+    Vrest <- matrix(0, p, p, dimnames = dimnames(V))
+    Vrest[r, r] <- Wrr
+  }
+  list(V = V, null = meta$null, flat = meta$flat, units = meta$units,
+       root = root, Vrest = Vrest, lost_pos = meta$lost_pos)
+}
+
+#' What joint_cov_repair() carries beside `V`, at joint positions: the lost
+#' directions, the flat subspace's scaling, the optimizer's units and the
+#' lost parameters. The sparse route (jcs_joint_cov()) reads the same.
+#'
+#' @noRd
+joint_cov_repair_meta <- function(fit, sdr, p, r, f) {
   null <- NULL
   if (NCOL(sdr$se_null)) {
     null <- matrix(0, p, NCOL(sdr$se_null))
@@ -185,19 +217,7 @@ joint_cov_repair <- function(fit, Q, sdr) {
       flat$dscale <- ds
     }
   }
-  # the factor of the covariance (se_reparam_cov()) carried into the
-  # group effects as the propagated part is: V = Vrest + root root'
-  root <- NULL
-  Vrest <- NULL
-  if (!is.null(Lf)) {
-    root <- matrix(0, p, ncol(Lf), dimnames = list(rownames(Q), NULL))
-    root[f, ] <- Lf
-    root[r, ] <- JL
-    Vrest <- matrix(0, p, p, dimnames = dimnames(V))
-    Vrest[r, r] <- Wrr
-  }
-  list(V = V, null = null, flat = flat, units = units, root = root,
-       Vrest = Vrest,
+  list(null = null, flat = flat, units = units,
        lost_pos = f[match(names(sdr$se_lost), outer_par_names(fit))])
 }
 
@@ -2543,21 +2563,35 @@ frm_linpred <- function(object, newdata = NULL,
   }
 
   if (!is.null(lp[["nl_body"]])) {
-    if (se.fit) {
+    is_cond <- autocor_is_cond(object$frame[["autocor"]][[rspec$resp_name]]) &&
+      identical(dpar, "mu")
+    if (se.fit && (is_cond || (type == "response" &&
+                                 !is.null(dpar_report_hook(rspec$family, dpar,
+                                                           rspec))))) {
       frm_stop("se.fit is not supported for the nonlinear predictor yet; ",
                "request the nonlinear parameters (dpar = '",
                rspec$nlpars[1], "', ...) instead", call. = FALSE)
     }
     # brms's cov = FALSE ARMA is part of mu itself, a body's too: below
-    if (!autocor_is_cond(object$frame[["autocor"]][[rspec$resp_name]]) ||
-          !identical(dpar, "mu")) {
+    if (!is_cond) {
       eta <- nl_body_value(object, lp, newdata, re_formula, allow_new_levels)
-      out <- if (type == "response") {
-        dpar_response_link(rspec, lp, dpar)$linkinv(eta)
-      } else {
-        eta
+      lk <- dpar_response_link(rspec, lp, dpar)
+      out <- if (type == "response") lk$linkinv(eta) else eta
+      if (!se.fit) return(if (is.null(newdata)) napred(object, out) else out)
+      # the delta method through the body's taped Jacobian, as
+      # conditional_effects() reads it; through 0.79.1 Est.Error was NA here
+      lb <- lp_basis_nl(object, lp, rspec, newdata, use_re, allow_new_levels,
+                        get_joint_cov(object))
+      se <- sqrt(pmax(lb_rowvar(lb), 0) + lb$extra_var)
+      if (any(lb$nonest)) se[lb$nonest] <- NA_real_
+      se[lb$se_nonest] <- NaN
+      se_pred_warn(lb$se_nonest)
+      if (type == "response") se <- se * abs(lk$mu_eta(eta))
+      if (is.null(newdata)) {
+        out <- napred(object, out)
+        se <- napred(object, se)
       }
-      return(if (is.null(newdata)) napred(object, out) else out)
+      return(list(fit = out, se.fit = se))
     }
   }
 
@@ -2626,8 +2660,11 @@ frm_linpred <- function(object, newdata = NULL,
   rrj <- if (has_rr) rr_jacobians(object)
   jc <- get_joint_cov(object)
   da <- lp_delta_A(object, lp, ed, newdata, use_re, jc, has_rr, rrj)
-  lb <- lp_basis_out(object, jc, ed[["eta"]], as.matrix(da$A), da$coef_pos,
-                     lp_extra_var_vec(object, ed, use_re), ed[["nonest"]])
+  # a design over every latent stays sparse: dense, it is n^2 numbers
+  lb <- lp_basis_out(object, jc, ed[["eta"]],
+                     if (jc_is_sparse(jc)) da$A else as.matrix(da$A),
+                     da$coef_pos, lp_extra_var_vec(object, ed, use_re),
+                     ed[["nonest"]])
   var_eta <- pmax(lb_rowvar(lb), 0) + lb$extra_var
   se_eta <- sqrt(var_eta)
   # the kept columns still have a finite variance, but it is not the
@@ -2778,6 +2815,10 @@ linpred_layers <- function(object, rspec, layers, newdata, re_formula, use_re,
   pick <- object[["layer_pick"]]
   take <- function(m) if (is.null(pick)) m else m[, pick]
   if (!se.fit) return(take(fit))
+  # the stacked design is dense over every latent of a latent residual
+  if (latres_skip_se(object, newdata, dense = TRUE)) {
+    return(list(fit = take(fit), se.fit = take(fit * NA_real_)))
+  }
   for (l in layers) {
     if (!is.null(l$lp[["nl_body"]])) {
       # the refusal the predictor gives when it is named
@@ -2817,7 +2858,16 @@ lp_basis_layer <- function(object, l, rspec, newdata, use_re, anl, extra_cov,
   lp <- l$lp
   if (!is.null(lp[["nl_body"]])) {
     out <- lp_basis_nl(object, lp, rspec, newdata, use_re, anl, jc)
-    # the nonlinear route refuses every source of extra variance
+    if (extra_cov && any(out$extra_var != 0)) {
+      # the body carries a row's own draw at first order, and no covariance
+      # of one draw across rows: a me(gr = ) level, a gp() position
+      frm_stop("frm_lp_basis(extra_cov = TRUE): the nonlinear body reads ",
+               "variance that is not coefficient uncertainty (an exact ",
+               "gp() kriging variance, or the draw of a new row's me() ",
+               "value). Its covariance across rows through a nonlinear ",
+               "body is not written; extra_cov = FALSE gives each row's ",
+               "variance", call. = FALSE)
+    }
     if (extra_cov) out$extra_cov <- Matrix::Diagonal(x = out$extra_var)
     return(out)
   }
@@ -3214,7 +3264,9 @@ lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
 #' @noRd
 lp_extra_var <- function(object, ed, use_re) {
   nl <- list()
-  if (use_re && length(ed[["re_parts"]])) {
+  # a mean over the new level's effects carries their variance itself
+  # (fitted_me_moments()), so the coefficient part leaves it out
+  if (use_re && length(ed[["re_parts"]]) && !isTRUE(object[["me_no_extra"]])) {
     th <- object$estimates[["theta"]]
     for (rp in ed[["re_parts"]]) {
       nas <- which(is.na(rp$j))
@@ -3628,9 +3680,17 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
   for (dnm in dnames) {
     lp <- object$frame[["linpreds"]][[linpred_key(rnm, dnm)]]
     if (!is.null(lp[["nl_body"]])) {
-      frm_stop("se.fit is not supported on the response scale for a ",
-               "nonlinear predictor yet; request the nonlinear parameters ",
-               "(dpar = '", rspec$nlpars[1], "', ...) instead", call. = FALSE)
+      # the body's taped Jacobian is its design, and what its parts read
+      # beside the coefficients enters as this predictor's own variance
+      lb <- lp_basis_nl(object, lp, rspec, newdata, use_re, allow_new_levels,
+                        jc)
+      eds[[dnm]] <- list(eta = lb$eta, n = length(lb$eta),
+                         nonest = lb$nonest)
+      das[[dnm]] <- list(A = lb$A, coef_pos = lb$coef_pos)
+      evs[[dnm]] <- list(new_levels = list(),
+                         gp = if (any(lb$extra_var != 0)) list(lb$extra_var))
+      dp[[dnm]] <- lp[["link"]]$linkinv(lb$eta)
+      next
     }
     ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
     eds[[dnm]] <- ed
@@ -3662,8 +3722,15 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
   # one gradient row per observation over the union of coefficient
   # positions; predictors that share a coefficient (the b block) add
   pos_all <- unique(unlist(lapply(das, `[[`, "coef_pos")))
-  G <- matrix(0, n, length(pos_all))
-  for (dnm in dnames) {
+  # beside a latent residual the gradient spans every latent and is
+  # stacked sparse; the loop below fills the dense one
+  stacked <- jc_is_sparse(jc)
+  G <- if (stacked) {
+    jcs_stack_grad(das, grad, dnames, pos_all, n)
+  } else {
+    matrix(0, n, length(pos_all))
+  }
+  for (dnm in if (stacked) character(0) else dnames) {
     cp <- das[[dnm]]$coef_pos
     if (!length(cp)) next
     cols <- match(cp, pos_all)
@@ -3769,10 +3836,11 @@ napred <- function(fit, x) {
 #' carries no observation noise; [predict.frmtmb_fit()] is the
 #' predictive interval that does.
 #'
-#' A predictor whose standard error this package cannot produce, such
-#' as a nonlinear body or a structured likelihood, reports `NA` in
-#' `Est.Error` and in the `Q` columns rather than a number it does not
-#' have. The estimate is unaffected.
+#' A nonlinear body's `Est.Error` is the delta method through the body's
+#' taped Jacobian. A predictor whose standard error this package cannot
+#' produce, such as a structured likelihood, reports `NA` in `Est.Error`
+#' and in the `Q` columns rather than a number it does not have. The
+#' estimate is unaffected.
 #'
 #' The `Q` columns are the interval on the scale of the link, mapped through its
 #' inverse, so they stay in the support of the expected response, and they are
@@ -3793,6 +3861,55 @@ napred <- function(fit, x) {
 #'
 #' The product of two `me()` values on one row is read at first order: its mean is
 #' low by 7 percent at 0.8 and 0.6 on a log link.
+#'
+#' A `me()` value that a nonlinear parameter reads is one of the draws below:
+#' `fitted()` integrates the body over it. `frm_linpred(se.fit = TRUE)` and
+#' [frm_lp_basis()] read it through the body at first order.
+#'
+#' @section The draws of a new row:
+#' A new row can read three draws that are not coefficient uncertainty: a
+#' `me()` value, a latent residual, and with `allow_new_levels = TRUE` the
+#' effects of a grouping level the fit did not see. brms draws each of them,
+#' and its `posterior_epred()` averages over them; a new level is drawn as
+#' brms's `sample_new_levels = "gaussian"` draws it, not as its default
+#' `"uncertainty"`. The estimate here is that mean. On a log link that reads
+#' the mean, and on a lognormal's `mu`, it is the closed form: `exp(v / 2)`
+#' times the value at the draws' mean of 0, with `v` their variance on the
+#' link scale, so at a new level of `(1 | g)` at sd 1 it is 1.65 times the
+#' median. Elsewhere it is Gauss-Hermite quadrature over the draws. The
+#' draws are independent of each other, and each one moves every predictor
+#' that reads it, so a latent on `mu` beside a `me()` value on `hu` is read
+#' in two dimensions; a draw that moves no cell of what is read costs
+#' nothing. `sample_new_levels = "old_levels"` reads a level the fit saw and
+#' takes no mean. `scale = "linear"` stays at the effects' mean, with their
+#' variance in `Est.Error`.
+#'
+#' `Est.Error` is the draws' sd beside the coefficients'. At a new level it
+#' holds the block's estimated sd as known: the sd's own uncertainty is not
+#' in it, where brms's posterior carries it (0.90 of brms's on a poisson
+#' `(1 | g)` of 40 groups). With two or more directions the `Q` columns are
+#' the draw's quantiles along the direction in which the value moves most,
+#' widened to the whole variance, and covered 0.926 to 0.957 of the draws'
+#' own distribution on four hurdle rows. Past two directions the rule is
+#' checked against two fewer nodes, and a warning of class
+#' `frmtmb_draw_rule` gives the change when the sd moves by more than 2
+#' percent. Past four directions that move the value, the four that move it
+#' most are kept, with a warning of class `frmtmb_draw_dims`.
+#'
+#' One mean does not exist. A lognormal mean is `exp(mu + sigma^2 / 2)`, and
+#' when `sigma` reads a draw on its log link, the exact mean over the draw is
+#' infinite at any size of the draw, from its far tail. This holds for a
+#' lognormal component's `sigma<k>` of a mixture and for a nonlinear
+#' parameter that a body for `sigma` reads. The estimate and `Est.Error` are
+#' then the 11-node Gauss-Hermite mean and sd, which reach 5.19 sds of the
+#' draw as a sampler's draws do, with one warning per call of class
+#' `frmtmb_mean_not_finite` that gives the largest change 9 nodes make. On a
+#' `sigma ~ (1 | g)` at sd 0.27 this reads 2.0897 against 2.0897 from 4e6
+#' draws; at a draw sd of 0.4 on `sigma`, no mean of draws is stable, and
+#' neither is this; where a node overflows the row reads `NaN`. The `Q`
+#' columns are the draw's quantiles. Any other mean whose rule does not
+#' settle as it grows from 21 or 41 nodes is read the same way, with a
+#' warning of class `frmtmb_mean_unsettled`.
 #'
 #' At a row whose `mi()` value left the objective, a reader's fit reads the
 #' value's mean. Under a nonlinear link this is below brms's average: a median
@@ -4171,7 +4288,8 @@ prob_band_draw <- function(out, probs, mm, up) {
   # reads that, so each row reads the draw's own quantile, on 99 points of
   # equal weight; the logit carries the coefficients' share of the variance
   vals <- lapply(stats::qnorm(stats::ppoints(99L)), mm$val)
-  vr <- matrix(mm$var, dim(out)[1L], dim(out)[3L])
+  # several draws: the variance along the one the values are read on
+  vr <- matrix(mm$var1 %||% mm$var, dim(out)[1L], dim(out)[3L])
   for (k in seq_len(dim(out)[3L])) {
     V <- vapply(vals, function(v) as.matrix(v)[, k], numeric(dim(out)[1L]))
     V <- matrix(V, dim(out)[1L], length(vals))
@@ -4250,19 +4368,28 @@ fitted_point <- function(object, newdata = NULL, re_formula = NULL,
   out
 }
 
-#' A new row's expected response over its `me()` draw and that draw's variance
-#' of it, by Gauss-Hermite on the response scale (`response_mean_gh()`), or
-#' `NULL`
-#' when the fit has no such row. `plug` is the value at the observed `x`,
-#' `slope` is `dE / deta` over `dm / deta` there, which scales the coefficient
-#' part of the standard error, and `grad` is `dm / deta` itself, which puts the
-#' draw on a band's scale.
+#' A new row's expected response over its draws and those draws' variance of
+#' it, by Gauss-Hermite on the response scale over the directions of
+#' `me_row_loads()` (`me_gh_moments()`), or `NULL` when the fit has no such
+#' row. The draws are a `me()` value, a latent residual and the effects of a
+#' level the fit did not see. `plug` is the value at the observed `x`, `slope`
+#' is `dE / deta` over `dm / deta` there, which scales the coefficient part of
+#' the standard error, and `grad` is `dm / deta` itself, which puts the draw on
+#' a band's scale.
+#'
+#' With several directions, `val` is the value along one of them and `var1`
+#' its variance there (`me_band_dir()`): a band reads the draw's quantiles
+#' along it.
+#'
+#' A new level read at its effects' mean of 0 was the median: `fitted()` of a
+#' poisson `(1 | g)` at sd 1 read low by `exp(1 / 2)`, 1.649.
 #'
 #' @noRd
 fitted_me_moments <- function(object, newdata, re_formula, resp, dpar,
                               allow_new_levels, mean_only = FALSE) {
   if (is.null(newdata)) return(NULL)
-  if (is.null(object$frame[["me"]]) && !length(frame_latres(object$frame))) {
+  if (is.null(object$frame[["me"]]) && !length(frame_latres(object$frame)) &&
+        !(isTRUE(allow_new_levels) && length(object$frame[["re_blocks"]]))) {
     return(NULL)
   }
   resp <- resp_read(object, resp)
@@ -4276,34 +4403,85 @@ fitted_me_moments <- function(object, newdata, re_formula, resp, dpar,
   loads <- me_row_loads(rr$fit, rspec, newdata, re_form_keeps(rr$re_formula),
                         allow_new_levels, dpar)
   if (is.null(loads)) return(NULL)
-  lp <- object$frame[["linpreds"]][[loads$key]]
   what <- function(fit) {
     as.matrix(frm_linpred(fit, newdata = newdata, type = "response",
                           dpar = dpar, resp = resp, re_formula = re_formula,
                           allow_new_levels = allow_new_levels))
   }
   val <- me_node_value(object, loads, what)
-  # the integral runs in the latent's own units: an identity link on eta = 0, so
-  # the node each row sees is its dpars$mu, and the predictors move with it
-  sds <- sqrt(loads$s2)
-  node <- function(u) ifelse(sds > 0, u / sds, 0)
-  over <- function(fn) {
-    response_mean_gh(rep_len(0, length(sds)), loads$s2,
-                     list(links = list(mu = list(linkinv = identity))), list(),
-                     mean_fn = function(fam, dpars, aterms) {
-                       fn(node(dpars[["mu"]]))
-                     })
+  v0 <- val(0)
+  loads <- me_keep_dirs(loads, val, v0, rn)
+  val <- me_node_value(object, loads, what)
+  r <- length(loads$dirs)
+  if (me_log_linear(object, rspec, loads, dpar)) {
+    # exp(eta + u) over a normal u of variance s2 has the mean exp(s2 / 2)
+    # times the value at u = 0 and the second moment exp(2 s2) times its
+    # square, exactly, so no node is needed: 41 nodes and 82 for the slope
+    # cost 189 ms at three rows of a new level
+    s2 <- Reduce(`+`, lapply(loads$dirs, function(dj) dj[[loads$key]]^2))
+    m1 <- exp(log(v0) + s2 / 2)
+    if (mean_only) return(list(mean = drop(m1)))
+    return(list(mean = drop(m1), var = drop(m1^2 * expm1(s2)),
+                plug = drop(v0), slope = drop(exp(s2 / 2) + 0 * v0),
+                grad = drop(v0), s2 = loads$s2, val = val))
   }
-  m1 <- over(val)
-  if (mean_only) return(list(mean = drop(m1)))
-  m2 <- over(function(z) val(z)^2)
+  div <- me_mean_diverges(object, rspec, loads, dpar)
+  K <- if (div) me_gh_div else me_gh_size[r]
+  mo <- me_gh_moments(val, r, K, second = !mean_only)
+  if (!div && r <= 2L) {
+    # the net under the rule, row by row: a mean that does not settle as the
+    # rule grows, or is not finite where the value at the draws' mean is, is
+    # read as one that may diverge, on the rule of stated reach. A mean that
+    # converges settles as the rule grows; one whose far nodes explode grows
+    # with it. sin(a)^2 at a draw sd of pi moved by 1.2 percent between 19 and
+    # 21 nodes, and settles at 41; at 10 pi it does not settle
+    lo <- me_gh_moments(val, r, K - 2L, second = FALSE)$m1
+    ch <- me_row_change(lo, mo$m1, v0)
+    open <- ch > me_net_tol
+    if (any(open)) {
+      ch0 <- max(ch)
+      grown <- rep(FALSE, length(open))
+      for (Kb in K + c(10L, 20L)) {
+        mb <- me_gh_moments(val, r, Kb, second = !mean_only)
+        ch2 <- me_row_change(mb$m1, mo$m1, v0)
+        mo <- me_rows_take(mo, mb, open)
+        # a row that grew is not settling: its far nodes explode
+        grown <- grown | (open & ch2 >= ch)
+        open <- open & !grown & ch2 > me_net_tol
+        ch <- ch2
+        if (!any(open)) break
+      }
+      open <- open | grown
+      if (any(open)) {
+        div <- TRUE
+        m11 <- me_gh_moments(val, r, me_gh_div, second = !mean_only)
+        mo <- me_rows_take(mo, m11, open)
+        lo9 <- me_gh_moments(val, r, me_gh_div - 2L, second = FALSE)$m1
+        me_warn_unsettled(rn, ch0,
+                          max(c(0, me_row_change(lo9, m11$m1, v0)[open])))
+      }
+    }
+  } else if (div) {
+    me_warn_not_finite(rn, me_rule_change(val, r, K, mo$m1, v0))
+  }
+  if (mean_only) return(list(mean = drop(mo$m1)))
+  if (r >= 3L && !div) me_rule_check(val, r, K, mo, rn)
+  v <- pmax(mo$m2 - mo$m1^2, 0)
   h <- 1e-4
   grad <- (val(0, h) - val(0, -h)) / (2 * h)
-  gmean <- (over(function(z) val(z, h)) -
-              over(function(z) val(z, -h))) / (2 * h)
+  ks <- if (div) me_gh_div else me_gh_slope_size[r]
+  gmean <- (me_gh_moments(function(z) val(z, h), r, ks, second = FALSE)$m1 -
+              me_gh_moments(function(z) val(z, -h), r, ks, second = FALSE)$m1) /
+    (2 * h)
   slope <- ifelse(abs(grad) > 0, gmean / grad, 1)
-  list(mean = drop(m1), var = pmax(drop(m2 - m1^2), 0), plug = drop(val(0)),
-       slope = drop(slope), grad = drop(grad), s2 = loads$s2, val = val)
+  out <- list(mean = drop(mo$m1), var = drop(v), plug = drop(v0),
+              slope = drop(slope), grad = drop(grad), s2 = loads$s2, val = val)
+  if (r > 1L) {
+    b <- me_band_dir(val, r, if (div) me_gh_div else 41L)
+    out$val <- b$val
+    out$var1 <- drop(b$var)
+  }
+  out
 }
 
 #' The location predictors brms stacks into a third dimension when a
@@ -4434,7 +4612,9 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
   # the handler below muffles what fitted_point() already said, which
   # would include a waiting SE check's report
   se_flush_deferred(object)
-  if (latres_skip_se(object, newdata)) {
+  # a category distribution is differenced over a dense block of every
+  # latent; one number per row reads the sparse joint covariance
+  if (latres_skip_se(object, newdata, dense = is.matrix(est))) {
     return(if (is.matrix(est)) est * NA_real_ else rep(NA_real_, length(est)))
   }
   # the mean over a new row's latent has no design row, so it is differenced
@@ -4498,6 +4678,24 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
     if (is.null(mm)) return(fd)
     return(sqrt(fd^2 + matrix(mm$var, nrow(fd), ncol(fd))))
   }
+  # a new row's draws on the response scale: their variance by the integral,
+  # and the coefficients' at the mean's own slope, not the observed value's.
+  # Read first: a new level that a body reads has a coefficient part, and
+  # no se.fit of the whole
+  if (!is.null(mm)) {
+    cf <- tryCatch(withCallingHandlers(frm_linpred(
+      me_coef_only(object), newdata = newdata, type = "response",
+      dpar = dpar, resp = resp, re_formula = re_formula,
+      allow_new_levels = allow_new_levels, se.fit = TRUE)$se.fit,
+      warning = function(w) {
+        if (!inherits(w, c("frmtmb_modes_conditional_se",
+                           "frmtmb_se_lost_prediction"))) {
+          invokeRestart("muffleWarning")
+        }
+      }),
+      error = keep_missing(NULL))
+    if (!is.null(cf)) return(sqrt((as.numeric(cf) * mm$slope)^2 + mm$var))
+  }
   # fitted_point() has already raised this call's warnings, so they are
   # muffled here, except the one only the standard error can raise: a
   # quadrature fit's Est.Error without the group-effect term, which the
@@ -4518,24 +4716,20 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
       if (inherits(e, "frmtmb_latres_dense")) {
         frm_message(conditionMessage(e), class = "frmtmb_latres_se_skipped")
       }
+      # an Est.Error of NA is said, not left silent
+      if (inherits(e, "frmtmb_nl_new_level")) {
+        frm_warning(conditionMessage(e), call. = FALSE,
+                    class = "frmtmb_nl_new_level")
+      }
       keep_missing(NULL)(e)
     })
   if (is.null(p)) return(NULL)
-  # a new row's me() draw on the response scale: its variance by the integral,
-  # and the coefficients' at the mean's own slope, not the observed value's
-  if (is.null(mm)) {
-    # a new row's latent is in brms's linear predictor, as a me() draw is here
-    sl <- if (!is.null(newdata) && scale == "linear") {
-      latres_row_sd(object, resp %||% names(object$spec$responses)[1L], dpar)
-    }
-    return(if (is.null(sl)) p$se.fit else sqrt(p$se.fit^2 + sl^2))
+  # a new row's latent is in brms's linear predictor, as a me() draw is here
+  sl <- if (is.null(mm) && !is.null(newdata) && scale == "linear") {
+    latres_row_sd(object, resp %||% names(object$spec$responses)[1L], dpar)
   }
-  cf <- tryCatch(suppressWarnings(frm_linpred(
-    me_coef_only(object), newdata = newdata, type = "response", dpar = dpar,
-    resp = resp, re_formula = re_formula, allow_new_levels = allow_new_levels,
-    se.fit = TRUE)$se.fit), error = keep_missing(NULL))
-  if (is.null(cf)) return(p$se.fit)
-  sqrt((as.numeric(cf) * mm$slope)^2 + mm$var)
+  if (!is.null(mm)) return(p$se.fit)
+  if (is.null(sl)) p$se.fit else sqrt(p$se.fit^2 + sl^2)
 }
 
 #' The draws-only arguments of `fitted()` and `residuals()`, refused
@@ -5342,7 +5536,47 @@ residuals_unsupported <- c(
 #' `"osa"` gives one-step-ahead (conditional quantile) residuals via
 #' [TMB::oneStepPredict()]: standard-normal under a correctly specified
 #' model, valid under correlated observations where pearson residuals
-#' mislead.
+#' mislead. With no group-level term, a residual of the default
+#' route is the randomized quantile residual of the fitted
+#' distribution: `qnorm(F(y))` for a continuous response, and for a
+#' count `qnorm(u)` with `u` drawn uniformly on `[F(y - 1), F(y)]`. The
+#' uniforms are TMB's: `set.seed(123)` by default, so the same fit gives
+#' the same residuals and the session's random stream is left as it
+#' was; pass `seed =` (through `...`) for other draws, or `seed = NULL`
+#' for the session's stream. A residual is read in the tail its row lies
+#' in, so it holds far out on either side (about +-37 and beyond).
+#'
+#' With a group-level term, TMB integrates the random effects of each
+#' one-step predictive by the Laplace approximation, and that is
+#' approximate. Against the exact one-step predictive, by quadrature on
+#' 20 groups of 10 rows (three data sets per family), the median error
+#' was below 0.001 under `(1 | g)` on seven count families and 0.006 to
+#' 0.016 under a latent `ar()` on poisson and the zero-inflated and
+#' hurdle counts. The largest was 0.15 under `(1 | g)` and 0.13 under
+#' `ar()`. The error is largest on the first row of each group, whose
+#' predictive is an integral over the group effect's prior alone. Over
+#' many rows the residuals stay calibrated: their Kolmogorov-Smirnov
+#' p-value against N(0, 1) was within 0.13 of that of the exact
+#' residuals on each of 42 fits. Read a single residual near a cutoff
+#' with that error in mind.
+#'
+#' A case weight is a frequency, as `weights()` is in the likelihood
+#' (brms's reading): a row of weight `w` gets the residual of the last
+#' of `w` copies of it, given the other `w - 1`, and the later rows are
+#' conditioned on all `w` copies. A row of weight 0 is no part of the
+#' fitted likelihood and gets `NA`. A weight between 0 and 1 also gets
+#' `NA`, with a warning: there TMB reads the row's mass from the weighted
+#' density, `p^w`, so a count's randomization would be wrong. A residual that
+#' `oneStepPredict()` cannot form is `NaN` with a warning.
+#'
+#' The cost grows faster than the number of rows: TMB makes three
+#' evaluations of the whole objective per row, each with an inner
+#' optimization when there are random effects. The rows are handed to
+#' `oneStepPredict()` in blocks of about `sqrt(n)`, each conditioned on
+#' the rows before it, so that the objective carries the CDF of one block
+#' at a time. With `(1 | g)` and 2000 rows in 100 groups, poisson
+#' residuals took about a minute and negbinomial ones about two, on a
+#' loaded machine.
 #'
 #' On a `trunc()`ed response, `"response"` residuals are taken against
 #' the truncated mean `E[Y | lb <= Y <= ub]`. `"pearson"` divides by the
@@ -5442,13 +5676,21 @@ residuals_unsupported <- c(
 #'   and both are accepted), `"pearson"`, `"deviance"`, or `"osa"`.
 #'   brms's `residuals()` takes `newdata` in this position; this one
 #'   has always taken `type` there, so give `newdata` by name.
-#' @param osa_method Method for [TMB::oneStepPredict()]; defaults to
-#'   `"fullGaussian"` for gaussian models and `"oneStepGeneric"`
-#'   otherwise. A truncated, censored or ordinal response always uses
-#'   `"oneStepGeneric"` (a truncated gaussian is not gaussian) with the
-#'   integration domain and discrete support taken from the `trunc()`
-#'   bounds or the censoring window, which must then be the same for
-#'   every row.
+#' @param osa_method Method for [TMB::oneStepPredict()]. The default
+#'   is `"cdf"` for an uncensored core family with a CDF: each row is
+#'   read against its family's own CDF, inside its own `trunc()` window,
+#'   and a count is randomized over its own step of that CDF. An
+#'   untruncated, unweighted `gaussian()` defaults to `"fullGaussian"`,
+#'   which is exact for a gaussian response. A censored, ordinal or
+#'   CDF-less response uses `"oneStepGeneric"`, with the integration
+#'   domain and discrete support taken from the `trunc()` bounds or the
+#'   censoring window, which must then be the same for every row. On a
+#'   count, `"oneStepGeneric"` needs a finite `discreteSupport`, and the
+#'   gaussian methods are refused. `"fullGaussian"`, if asked for on a
+#'   weighted fit, reads a weight as a precision,
+#'   `(y - mu) sqrt(w) / sigma`, rather than as a frequency. A fit with
+#'   `quadrature = TRUE` is refused: its objective has integrated the
+#'   random effects already.
 #' @param ... For `type = "osa"`: passed to [TMB::oneStepPredict()],
 #'   and checked against that function's own formals. For every other
 #'   type: refused, naming the argument. The `residuals.brmsfit()`
@@ -5734,7 +5976,237 @@ osa_point_mass_families <- c(
   "zero_inflated_beta", "xbeta",
   "zero_inflated_asym_laplace", "zero_one_inflated_beta",
   "hurdle_poisson", "hurdle_negbinomial", "hurdle_gamma",
-  "hurdle_lognormal", "hurdle_cumulative")
+  "hurdle_lognormal", "hurdle_cumulative",
+  # no branch, but the same mass at zero, which the one-step integral of
+  # a density cannot see: NaN on 71 of 150 rows (dev/osa-findings.md)
+  "tweedie")
+
+#' Whether a family has a CDF the one-step `"cdf"` route can read: a
+#' `cdf_log` pair, or the probability-scale `lcdf` slot.
+#'
+#' @noRd
+osa_has_cdf <- function(fam) {
+  !is.null(fam[["cdf_log"]]) || !is.null(fam[["lcdf"]])
+}
+
+#' Whether the response reached the objective as the observation of
+#' `oneStepPredict(method = "cdf")`: an `osa` object whose data-term
+#' indicator has three columns, the density and the two tails.
+#'
+#' @noRd
+osa_is_cdf <- function(y) methods::is(y, "osa") && NCOL(y@keep) == 3L
+
+#' Both log tails of a family's CDF at `q` (data) for the one-step route,
+#' from `cdf_log` where the family declares it and from `lcdf` (a
+#' probability) and `lccdf` (a log) otherwise, as `sim_cdf_pair()` reads
+#' them, but on the tape; core's bernoulli in closed form
+#' (`osa_bernoulli_pair()`).
+#'
+#' @noRd
+osa_log_pair <- function(fam, q, dpv, av, extra, n) {
+  if (identical(fam[["family"]], "bernoulli") &&
+        identical(frm_family_package(fam), "frmtmb")) {
+    return(osa_bernoulli_pair(fam, q, dpv, n))
+  }
+  if (!is.null(fam[["cdf_log"]])) {
+    return(fam_log_pair(fam, q, dpv, av, extra, n))
+  }
+  Fp <- fam_lcdf(fam, q, dpv, av, extra)
+  lS <- if (has_lccdf(fam)) fam_lccdf(fam, q, dpv, av, extra) else log1p(-Fp)
+  list(lF = cdf_rows(log(Fp), n), lS = cdf_rows(lS, n))
+}
+
+#' A bernoulli response's two log tails in closed form, for the one-step
+#' tape: a 0 has `F = 1 - p` and `P(Y > 0) = p`, a 1 has `F = 1` and no
+#' upper tail. The family's `cdf_log` reads them through the incomplete
+#' beta at one trial, which is exact too and dearer on a tape TMB
+#' evaluates three times per row.
+#'
+#' @noRd
+osa_bernoulli_pair <- function(fam, q, dpv, n) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  pq <- dpar_complement(dpv, "mu", fam[["links"]][["mu"]])
+  lq <- cdf_rows(log(pq[["q"]]), n)
+  lp <- cdf_rows(log(pq[["p"]]), n)
+  q <- rep_len(q, n)
+  lF <- 0 * lq
+  lS <- 0 * lq
+  i0 <- which(q == 0)
+  i1 <- which(q != 0)
+  if (length(i0)) {
+    lF[i0] <- lq[i0]
+    lS[i0] <- lp[i0]
+  }
+  if (length(i1)) lS[i1] <- -Inf
+  list(lF = lF, lS = lS)
+}
+
+#' `log P(Y <= y)` and `log P(Y > y)` of each row, inside the `trunc()`
+#' window where there is one, floored at -1e4.
+#'
+#' The floor is not cosmetic. `oneStepPredict()` multiplies each tail by
+#' a data-term indicator that is a PARAMETER of its tape, and an
+#' indicator of 0 times a tail of `-Inf` (the survivor at a binomial's
+#' last count) is `NaN`, not 0. RTMB's own `dGenericOSA()` floors at
+#' `log(1e-300)`, which clamped a residual at about -37; this floor is
+#' past any residual a double can hold.
+#'
+#' @noRd
+osa_cdf_tails <- function(fam, y, dpv, av, extra) {
+  n <- length(y)
+  pair <- function(q) osa_log_pair(fam, q, dpv, av, extra, n)
+  py <- pair(y)
+  out <- list(lower = py[["lF"]], upper = py[["lS"]])
+  if (!is.null(av[["trunc_lb"]]) || !is.null(av[["trunc_ub"]])) {
+    te <- trunc_edges(fam, av, n)
+    if (!all(te$lo_abs & te$hi_abs)) {
+      # the window (lb', ub] the likelihood renormalizes on, split at y
+      none <- rep(FALSE, n)
+      rows <- seq_len(n)
+      plo <- pair(ifelse(te$lo_abs, y, te$lo))
+      phi <- pair(ifelse(te$hi_abs, y, te$hi))
+      lz <- log_window(plo, phi, te$lo_abs, te$hi_abs, rows)
+      out <- list(lower = log_window(plo, py, te$lo_abs, none, rows) - lz,
+                  upper = log_window(py, phi, none, te$hi_abs, rows) - lz)
+    }
+  }
+  floor_l <- rep(-1e4, n)
+  lapply(out, function(l) RTMB::logspace_add(cdf_rows(l, n), floor_l))
+}
+
+#' One response's contribution to the objective under
+#' `oneStepPredict(method = "cdf")`: the density where the first column
+#' of the data-term indicator is on, and `log F(y)` and `log S(y)` where
+#' the second and third are.
+#'
+#' Under this method the response is data, not a parameter of the tape,
+#' so the family's own density reads it as it does in a fit: a point
+#' mass that branches on `y == 0` and a density whose arithmetic needs a
+#' whole count both work.
+#'
+#' A case weight `w` is a frequency, as in the fit, whose likelihood is
+#' `w` copies of the row. The density term keeps `w`, because it is also
+#' how the row conditions the later ones on a group-level term, and each
+#' tail gets `w - 1` copies of the density beside it. TMB's row mass,
+#' `p / (F + S)` from the three terms, is then `p` and its CDF `F`: the
+#' residual of the last of the `w` copies, given the other `w - 1`. With
+#' the tails read alone, a weight of 2 differed from the duplicated row by
+#' up to 0.33 under `(1 | g)`, and with the weight on the tails too a
+#' count's step was `p^w` wide (dev/osa-findings.md).
+#'
+#' @noRd
+osa_cdf_loglik <- function(fam, yobs, yraw, dpv, av, extra, w) {
+  keep <- yobs@keep
+  n <- length(yraw)
+  ll <- row_lpdf(fam, yraw, yraw, dpv, av, extra)
+  # below a weight of 1 the tails carry no copy of the density: with
+  # w - 1 copies they were S(y | u) / p(y | u)^(1 - w), which a group
+  # effect's prior does not integrate (a row of weight 0 read NaN), and
+  # with none they are the CDF of a fresh copy of the row. A count's row
+  # mass still comes from the w ll term, p^w and not p, so such rows are
+  # NA (residual_values())
+  wl <- (pmax(w, 1) - 1) * ll + numeric(n)
+  # the rows whose tails TMB can switch on in this call: residual_values()
+  # steps through the rows in blocks, and a row outside the block has
+  # both tail indicators fixed at 0, so its tails would only cost
+  rows <- getOption("frmtmb.osa_tail_rows") %||% seq_len(n)
+  sub <- function(l) lapply(l, function(v) if (length(v) == n) v[rows] else v)
+  ct <- osa_cdf_tails(fam, yraw[rows], sub(dpv), sub(av), extra)
+  sum(keep[, 1] * w * ll) +
+    sum(keep[rows, 2] * (ct[["lower"]] + wl[rows]) +
+          keep[rows, 3] * (ct[["upper"]] + wl[rows]))
+}
+
+#' The blocks of rows `residual_values()` hands `oneStepPredict()` one at
+#' a time under `method = "cdf"`, or `NULL` for one call over every row.
+#'
+#' The tape carries a CDF pair for every row that can be switched on, and
+#' TMB evaluates the whole tape three times per row, so over every row the
+#' tails cost `n` times what the density costs; that made a poisson
+#' `(1 | g)` fit of 2000 rows take 34 minutes
+#' (dev/reviews/2026-11-06-osa.md, M3). A block of rows `a..b` is called
+#' with the rows before it as `conditional` and the rows after it switched
+#' off, which is the same one-step predictive, and its tape carries the
+#' tails of the block alone (`osa_cdf_loglik()`). Blocks of about
+#' `sqrt(n)` rows balance the tails against retaping the objective per
+#' block.
+#'
+#' @noRd
+osa_cdf_blocks <- function(n, args) {
+  if (!is.null(args[["subset"]]) || !is.null(args[["conditional"]])) {
+    return(NULL)
+  }
+  size <- max(getOption("frmtmb.osa_block", 0L), ceiling(sqrt(n)), 20L)
+  if (n <= size) return(NULL)
+  split(seq_len(n), ceiling(seq_len(n) / size))
+}
+
+#' The one-step residual from the log columns `oneStepPredict()` returns,
+#' read in the tail the row lies in.
+#'
+#' TMB forms `qnorm(Fx - U px)` on the probability scale, so a row whose
+#' upper tail is below about 1e-16 reads `Inf`: a poisson count of 60
+#' about a mean of 3, whose residual is 15.24, did, with a warning that
+#' blamed the CDF. Here `log Fx`, `log Sx` and `log px` come from `nll`,
+#' `nlcdf.lower` and `nlcdf.upper`, and a row with `Fx > 1/2` is read as
+#' `-qnorm(Sx + U px)` on the log scale. `U` is the row's uniform as TMB
+#' drew it, 0 for a continuous response.
+#'
+#' @noRd
+osa_tail_residual <- function(pred, U) {
+  l1pe <- function(d) ifelse(d > 0, d + log1p(exp(-d)), log1p(exp(d)))
+  lse <- function(a, b) {
+    m <- pmax(a, b)
+    ifelse(is.finite(m), m + log1p(exp(-abs(a - b))), m)
+  }
+  d <- pred[["nlcdf.lower"]] - pred[["nlcdf.upper"]]
+  lF <- -l1pe(d)
+  lS <- -l1pe(-d)
+  lp <- -lse(pred[["nll"]] - pred[["nlcdf.lower"]],
+             pred[["nll"]] - pred[["nlcdf.upper"]])
+  U <- rep_len(U, length(d))
+  lower <- !is.na(lF) & lF <= log(0.5)
+  # the row's mass is at most its own tail; a rounding past it is not one
+  ratio <- pmin(exp(lp - lF), 1)
+  r <- numeric(length(d))
+  # a log probability above 0 is no probability; it comes only from a row
+  # whose mass TMB could not read, a weight below 1, set NA afterwards
+  tl <- pmin(lF[lower] + log1p(-U[lower] * ratio[lower]), 0)
+  r[lower] <- stats::qnorm(tl, log.p = TRUE)
+  up <- !is.na(lF) & !lower
+  r[up] <- -stats::qnorm(pmin(lse(lS[up], log(U[up]) + lp[up]), 0),
+                         log.p = TRUE)
+  r[!is.finite(d)] <- NaN
+  r
+}
+
+#' The uniforms `oneStepPredict()` drew for a discrete response, drawn
+#' again: `set.seed(seed)` as it does, or, with `seed = NULL`, from the
+#' stream as it stood before the call (`rs0`). The global stream is left
+#' as `oneStepPredict()` left it. `NULL` when the draws cannot be
+#' replayed (no stream before the call).
+#'
+#' @noRd
+osa_uniforms <- function(n, seed, rs0) {
+  ge <- globalenv()
+  rs1 <- get0(".Random.seed", envir = ge, inherits = FALSE)
+  on.exit({
+    if (is.null(rs1)) {
+      if (exists(".Random.seed", envir = ge, inherits = FALSE)) {
+        rm(".Random.seed", envir = ge)
+      }
+    } else {
+      assign(".Random.seed", rs1, envir = ge)
+    }
+  })
+  if (!is.null(seed)) {
+    set.seed(seed)
+  } else {
+    if (is.null(rs0)) return(NULL)
+    assign(".Random.seed", rs0, envir = ge)
+  }
+  stats::runif(n)
+}
 
 #' @noRd
 residual_values <- function(object, type = c("response", "pearson",
@@ -5829,6 +6301,19 @@ residual_values <- function(object, type = c("response", "pearson",
     }
   }
   if (type == "osa") {
+    if (isTRUE(object$quadrature)) {
+      # oneStepPredict() integrates the random effects by TMB's Laplace
+      # approximation of the fit's objective, and this objective has
+      # integrated them already, inside the tape; TMB stopped on "Names
+      # to be 'integrate'd must be among the random parameters"
+      frm_stop("residuals(type = \"osa\") is not available for a fit with ",
+               "quadrature = TRUE: its objective integrates the random ",
+               "effects inside the tape, so it has no random effects left ",
+               "for oneStepPredict() to integrate one row at a time. Refit ",
+               "without quadrature for these residuals, or use ",
+               "dharma_residuals()", call. = FALSE,
+               class = "frmtmb_osa_quadrature")
+    }
     if (!is.null(object$frame[["mi_map"]][[rspec$resp_name]])) {
       # the missing rows are latent parameters, not data the one-step
       # tape registers; it died inside TMB on "'observation.name' must
@@ -5863,23 +6348,54 @@ residual_values <- function(object, type = c("response", "pearson",
                "dharma_residuals(), which uses simulate() and does draw ",
                "correlated residuals", call. = FALSE)
     }
-    if (fam[["family"]] %in% osa_point_mass_families) {
-      frm_stop("residuals(type = \"osa\") is not available for family '",
-               fam[["family"]], "': its density puts a point mass on an ",
-               "exact response value and branches on y == 0, and the ",
-               "one-step tape hands the density no value to compare. Use ",
-               "type = \"pearson\", or dharma_residuals(), which uses ",
-               "simulate()", call. = FALSE)
-    }
+    disc <- identical(fam[["type"]], "discrete")
+    ordinal <- identical(fam[["type"]], "ordinal")
     av0 <- object$frame[["aterm_values"]][[rspec$resp_name]]
     tb <- trunc_bounds(av0, object$frame[["n_obs"]])
-    cb <- osa_cens_domain(av0, object$frame[["y"]][[rspec$resp_name]],
-                          identical(fam[["type"]], "discrete"))
-    ordinal <- identical(fam[["type"]], "ordinal")
+    cb <- osa_cens_domain(av0, object$frame[["y"]][[rspec$resp_name]], disc)
+    # A core family with a CDF takes method "cdf": each row's one-step CDF
+    # is read off the family's own tails, the response stays data, and a
+    # discrete row is randomized over exactly its own mass. The other
+    # routes read the density alone. Under "oneStepGeneric" TMB
+    # integrated a spline through a profile of it: on a count that is the
+    # mass function's continuous extension, NaN past a binomial's trials
+    # and bernoulli residuals far off, and on a continuous family up to
+    # whole units off, NaN on a few rows of inverse.gaussian() and
+    # frechet(), and a crash on eight families whose density does not
+    # take the osa object (dev/osa-findings.md). gaussian() keeps
+    # "fullGaussian", which is exact and also handles a correlated
+    # response, unless it is truncated: oneStepGeneric there leaves each
+    # later row's normalizer in the objective with its density switched
+    # off, and with a group-level term its integral read NaN. A weighted
+    # gaussian takes "cdf" as well, so that a weight is a frequency there
+    # as on every other family and in brms; "fullGaussian" reads it as a
+    # precision. An extension's family keeps its own route, because an
+    # extension's `lcdf` need not be a CDF of the response alone (the
+    # Wiener first-passage families).
+    wv <- av0[["weights"]]
+    weighted <- !is.null(wv) && any(wv != 1)
+    cdf_default <- is.null(cb) && !ordinal && osa_has_cdf(fam) &&
+      identical(frm_family_package(fam), "frmtmb") &&
+      (!identical(fam[["family"]], "gaussian") || !is.null(tb) || weighted)
     method <- osa_method %||%
-      if (!is.null(tb) || !is.null(cb) || ordinal) "oneStepGeneric"
+      if (cdf_default) "cdf"
+      else if (!is.null(tb) || !is.null(cb) || ordinal) "oneStepGeneric"
       else if (identical(fam[["family"]], "gaussian")) "fullGaussian"
       else "oneStepGeneric"
+    if (fam[["family"]] %in% osa_point_mass_families &&
+          !(disc && identical(method, "cdf"))) {
+      frm_stop("residuals(type = \"osa\") is not available for family '",
+               fam[["family"]], "'", if (disc) " with this osa_method",
+               ": it puts a point mass on an exact response value, and ",
+               "this one-step route reads the density alone, which cannot ",
+               "see the mass.",
+               if (disc) {
+                 " The default osa_method = \"cdf\" reads the count as data"
+               } else {
+                 paste(" Use type = \"pearson\", or dharma_residuals(),",
+                       "which uses simulate()")
+               }, call. = FALSE)
+    }
     if (!is.null(cb) && !identical(method, "oneStepGeneric")) {
       # a censored row's contribution is a probability MASS, so its
       # observation drops out of the tape; every method that
@@ -5887,10 +6403,21 @@ residual_values <- function(object, type = c("response", "pearson",
       frm_stop("residuals(type = \"osa\") on a cens() fit needs ",
                "osa_method = \"oneStepGeneric\"", call. = FALSE)
     }
+    if (identical(method, "cdf") && (ordinal || !osa_has_cdf(fam))) {
+      # RTMB's own route would look for a p-function named after the
+      # density, which frmtmb's densities do not have
+      frm_stop("residuals(type = \"osa\", osa_method = \"cdf\") needs the ",
+               "family's CDF, and '", fam[["family"]], "' supplies none ",
+               "(frmtmb_family(cdf_log =) or lcdf =)", call. = FALSE,
+               package = frm_family_package(fam))
+    }
     args <- list(obj = object$obj, observation.name = ".frm_obs",
                  method = method, trace = FALSE, ...)
+    # every method is told whether the response is discrete, so that TMB
+    # refuses its gaussian methods on a count rather than reading the
+    # count as a continuous value
+    if (is.null(args[["discrete"]])) args$discrete <- disc || ordinal
     if (method == "oneStepGeneric") {
-      args$discrete <- identical(fam[["type"]], "discrete") || ordinal
       if (ordinal) {
         # the taped lpdf is a proper pmf on 1..K once the category is
         # selected arithmetically (see ord_cat_sel)
@@ -5910,7 +6437,9 @@ residual_values <- function(object, type = c("response", "pearson",
         if (length(lo) > 1L || length(hi) > 1L) {
           frm_stop("residuals(type = \"osa\") needs trunc() bounds that are ",
                    "the same for every observation; got row-varying bounds",
-                   call. = FALSE)
+                   if (osa_has_cdf(fam)) {
+                     ". osa_method = \"cdf\" takes them"
+                   }, call. = FALSE)
         }
       }
       if (!is.null(cb)) {
@@ -5934,18 +6463,111 @@ residual_values <- function(object, type = c("response", "pearson",
           # reproduces the analytic PIT
           args$splineApprox <- FALSE
         }
-      } else if (args$discrete && is.null(args[["range"]]) && !ordinal) {
-        args$range <- c(0, Inf)
+      }
+      if (args$discrete && is.null(args[["discreteSupport"]])) {
+        # without a support TMB integrates a spline through the profile
+        # of the mass function's continuous extension, which is NaN past
+        # a binomial's trials and approximate on every count
+        frm_stop("residuals(type = \"osa\", osa_method = ",
+                 "\"oneStepGeneric\") on a discrete response sums the mass ",
+                 "over `discreteSupport`, and none is known for this fit. ",
+                 "Pass discreteSupport = 0:K with K past the largest count ",
+                 "the model gives weight to",
+                 if (osa_has_cdf(fam)) {
+                   ", or use osa_method = \"cdf\", which needs none"
+                 }, call. = FALSE)
       }
     }
-    osa <- do.call(RTMB::oneStepPredict, args)
+    seed <- if ("seed" %in% names(args)) args[["seed"]] else 123
+    rs0 <- get0(".Random.seed", envir = globalenv(), inherits = FALSE)
+    blocks <- if (identical(method, "cdf")) {
+      osa_cdf_blocks(object$frame[["n_obs"]], args)
+    }
+    one_step <- function() {
+      if (is.null(blocks)) return(do.call(RTMB::oneStepPredict, args))
+      # every block draws its uniforms afresh; the residuals below take
+      # theirs from one draw over all rows (osa_uniforms())
+      do.call(rbind, lapply(blocks, function(ix) {
+        a <- args
+        a$subset <- ix
+        if (ix[1] > 1L) a$conditional <- seq_len(ix[1] - 1L)
+        op <- options(frmtmb.osa_tail_rows = ix)
+        on.exit(options(op))
+        do.call(RTMB::oneStepPredict, a)
+      }))
+    }
+    # on the rows of weight between 0 and 1, which are set NA below, TMB's
+    # own qnorm(Fx - U px) reads px above Fx and warns "NaNs produced"
+    fractional <- !is.null(wv) && any(wv > 0 & wv < 1)
+    one_step_quiet <- function() {
+      if (!fractional) return(one_step())
+      withCallingHandlers(one_step(), warning = function(w) {
+        if (identical(conditionMessage(w), "NaNs produced")) {
+          invokeRestart("muffleWarning")
+        }
+      })
+    }
+    osa <- tryCatch(one_step_quiet(), error = function(e) {
+      # without a CDF the density itself is handed the osa observation
+      # object, and a density that does arithmetic RTMB has no method for
+      # on it fails deep inside the tape with a message about S4 types
+      frm_stop("residuals(type = \"osa\", osa_method = \"", method, "\") ",
+               "failed in oneStepPredict(): ",
+               sub("[.]$", "", conditionMessage(e)),
+               if (!osa_has_cdf(fam)) {
+                 paste0(". The '", fam[["family"]], "' family supplies no ",
+                        "CDF, so this route hands its density the ",
+                        "observation as an `osa` object; a family that ",
+                        "declares frmtmb_family(cdf_log =) takes ",
+                        "osa_method = \"cdf\" instead")
+               }, call. = FALSE)
+    })
     r <- osa$residual
+    if (identical(method, "cdf") &&
+          all(c("nll", "nlcdf.lower", "nlcdf.upper") %in% names(osa))) {
+      U <- if (isTRUE(args$discrete)) {
+        osa_uniforms(nrow(osa), seed, rs0)
+      } else 0
+      if (!is.null(U)) r <- osa_tail_residual(osa, U)
+    }
+    # A row of weight 0 is no part of the fitted likelihood, so it has no
+    # fitted distribution to be read against. Below a weight of 1, TMB's
+    # row mass comes from the density term w ll, so it is the mean of
+    # p^w, not of p, and a count's randomization over it would be wrong;
+    # the tails, which carry no copy of the density there, are the CDF of
+    # a fresh copy of the row, so a continuous response's residual would
+    # be sound. Both are NA until a fresh-copy residual for continuous
+    # responses is decided on (dev/osa-findings.md)
+    if (!is.null(wv) && length(wv) == length(r)) {
+      r[wv < 1] <- NA_real_
+      frac <- sum(wv > 0 & wv < 1)
+      if (frac) {
+        frm_warning(frac, " rows have a weight between 0 and 1, and their ",
+                    "one-step-ahead residuals are NA: the residual of a ",
+                    "row of weight w is that of the last of w copies of it",
+                    call. = FALSE, class = "frmtmb_osa_weight")
+      }
+    }
+    bad <- sum(!is.finite(r) & !is.na(r) | is.nan(r))
+    if (bad) {
+      # oneStepPredict() returns NaN for a row whose one-step CDF it could
+      # not form and says nothing; a residual plot drops such rows
+      # silently
+      frm_warning(bad, " of ", length(r), " one-step-ahead residuals are ",
+                  "not finite: oneStepPredict(method = \"", method, "\") ",
+                  "could not form the one-step CDF on those rows",
+                  if (!identical(method, "cdf") && osa_has_cdf(fam) &&
+                        is.null(cb)) {
+                    ". osa_method = \"cdf\" reads it from the family's CDF"
+                  }, call. = FALSE, class = "frmtmb_osa_nonfinite")
+    }
     if (!is.null(cb)) {
       # censored rows carry no residual of their own; they enter only as
       # the conditioning event
       full <- rep(NA_real_, object$frame[["n_obs"]])
       full[cb$subset] <- r
       r <- full
+      if (!is.null(wv)) r[wv < 1] <- NA_real_
     }
     return(napred(object, r))
   }
@@ -6621,6 +7243,10 @@ na_unpad <- function(fit, x) {
 #' The other elements (`null`, `units`) are internal.
 #' A fit with no random effects has no joint precision, and `V` is then
 #' the fixed-effect covariance `sdreport()$cov.fixed`; `names` says so.
+#' A fit with a latent residual memoizes the sparse factor of its joint
+#' precision instead, and `V` is formed from it here: about `8 p^2` bytes,
+#' and about four times that while it is formed, refused above
+#' `getOption("frmtmb.latres_dense_rows", 20000)` rows.
 #'
 #' A parameter whose standard error is lost has `NaN` in its row and
 #' column, as in [vcov()]. The rest of `V` propagates the uncertainty of
@@ -6649,6 +7275,8 @@ frm_joint_cov <- function(object) {
   require_fitted(object, "frm_joint_cov()")
   jc <- get_joint_cov(object)
   warn_cov_products(object, "frm_joint_cov()")
+  # the caller reads V whole, so a latent residual's is formed here
+  if (jc_is_sparse(jc)) jc$V <- as.matrix(jc$V)
   jc$labels <- joint_coef_labels(object, jc)
   # the internal covariance keeps finite rows for the parameters the
   # Hessian lost, for predictions that do not move along them; what a
@@ -6754,12 +7382,22 @@ b_coef_labels <- function(fit) {
 #'     covariance between rows of the variance in `extra_var`, whose
 #'     diagonal it is, exactly. A sparse [Matrix::Matrix()] when its
 #'     blocks cover little of the grid (all zero when nothing
-#'     contributes), a dense matrix otherwise. Beside a latent residual, `A` and
-#'     `V` are dense, about `16 n^2` bytes for `n` rows: 1 GB at 8000 rows.}
+#'     contributes), a dense matrix otherwise.}
 #' }
 #' `var(eta)` is `rowSums((A %*% V) * A) + extra_var`, and
 #' `frm_linpred(se.fit = TRUE)` is written that way. The covariance of
 #' the whole prediction is `A V A' + extra_cov`.
+#'
+#' Beside a latent residual (`ar()`, `ma()`, `arma()`, `cosy()` or `unstr()`
+#' on a family with no residual), `coef_pos` leaves out every column that no
+#' row of `A` loads: a latent, a level the rows do not name, a coefficient
+#' whose covariate is 0 on every row. Such a column adds nothing to `A V A'`.
+#' A new row loads no latent, so `A` and `V` stay small. The
+#' fitted rows load every latent, and there `A` and `V` are dense, about
+#' `16 n^2` bytes for `n` rows (1 GB at 8000 rows). A `V` of more than
+#' `getOption("frmtmb.latres_dense_rows", 20000)^2` numbers is refused.
+#' `frm_linpred(se.fit = TRUE)` reads the fitted rows from the sparse factor
+#' of the joint precision instead, at no such cost.
 #'
 #' Under a `cov = FALSE` autocorrelation term `eta` is the predictor without the
 #' term, as brms's `emmeans()` reads it (`incl_autocor = FALSE`), and
@@ -6880,8 +7518,8 @@ frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
   # dpar = "mu" the shared part
   layers <- if (is.null(dpar)) lp_layers(object, rspec)
   if (!is.null(layers)) {
-    return(lp_basis_layers(object, rspec, layers, newdata, use_re,
-                           allow_new_levels, extra_cov, jc))
+    return(lb_dense(lp_basis_layers(object, rspec, layers, newdata, use_re,
+                                    allow_new_levels, extra_cov, jc)))
   }
   dpar <- dpar %||% if ("mu" %in% names(rspec$dpars)) "mu" else
     rspec$primary_dpars[1]
@@ -6891,8 +7529,22 @@ frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
              resp, "'. Available: ",
              paste(names(rspec$dpars), collapse = ", "), call. = FALSE)
   }
-  lp_basis_layer(object, list(lp = lp, k = 1L), rspec, newdata, use_re,
-                 allow_new_levels, extra_cov, jc)
+  lb_dense(lp_basis_layer(object, list(lp = lp, k = 1L), rspec, newdata,
+                          use_re, allow_new_levels, extra_cov, jc))
+}
+
+#' An frm_lp_basis() result with `V` as a matrix, which is its contract:
+#' the fitted rows of a latent residual carry the sparse joint covariance
+#' instead (lp_basis_out()), and this forms the block, under the limit
+#' jcs_check_size() sets.
+#'
+#' @noRd
+lb_dense <- function(lb) {
+  if (is.null(lb$V_sparse)) return(lb)
+  lb$V <- lb$V_sparse[lb$coef_pos, lb$coef_pos, drop = FALSE]
+  lb$A <- as.matrix(lb$A)
+  lb$V_sparse <- NULL
+  lb
 }
 
 #' The variance sources that are not coefficient uncertainty, summed to
@@ -6919,14 +7571,29 @@ lp_extra_var_vec <- function(object, ed, use_re) {
 #' @noRd
 lp_basis_out <- function(object, jc, eta, A, coef_pos, extra_var, nonest) {
   lab <- joint_coef_labels(object, jc)
+  sparse <- NULL
+  if (jc_is_sparse(jc)) {
+    # beside a latent residual most columns are latents no row here loads
+    # (a new row loads none), and they add nothing to A V A'
+    keep <- jcs_loaded_cols(A)
+    A <- A[, keep, drop = FALSE]
+    coef_pos <- coef_pos[keep]
+    nr <- length(unique(stats::na.omit(match(coef_pos, jc$V[["r"]]))))
+    # the fitted rows load every latent: their variances come from the
+    # factor, and a dense block is formed only on request (frm_lp_basis())
+    if (nr > jcs_block_max) sparse <- jc$V else A <- as.matrix(A)
+  }
   out <- list(eta = eta, A = A, coef_pos = coef_pos,
-              V = jc$V[coef_pos, coef_pos, drop = FALSE],
+              V = if (is.null(sparse)) {
+                jc$V[coef_pos, coef_pos, drop = FALSE]
+              },
               coef_names = if (is.null(lab)) NULL else lab[coef_pos],
               extra_var = extra_var,
               nonest = nonest %||% rep(FALSE, length(eta)),
               # rows whose standard error the lost directions take
               # (jc_nonest())
               se_nonest = jc_nonest(jc, A, coef_pos))
+  if (!is.null(sparse)) out$V_sparse <- sparse
   if (!is.null(jc$root)) {
     # V = V_rest + V_root V_root' on a fit whose covariance is held as
     # a factor (se_reparam_cov()), which A V A' cannot be formed from
@@ -6945,6 +7612,9 @@ lp_basis_out <- function(object, jc, eta, A, coef_pos, extra_var, nonest) {
 #'
 #' @noRd
 lb_rowvar <- function(lb) {
+  if (!is.null(lb$V_sparse)) {
+    return(jcs_rowvar(lb$V_sparse, lb$A, lb$coef_pos))
+  }
   if (is.null(lb$V_root)) return(rowSums((lb$A %*% lb$V) * lb$A))
   rowSums((lb$A %*% lb$V_root)^2) + rowSums((lb$A %*% lb$V_rest) * lb$A)
 }
@@ -6980,17 +7650,34 @@ joint_pos_map <- function(jc) {
 #' @noRd
 lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
                         allow_new_levels, jc) {
-  if (isTRUE(allow_new_levels)) {
-    frm_stop("frm_lp_basis(): allow_new_levels = TRUE is refused for a ",
-             "nonlinear predictor. A new level contributes its block's ",
-             "marginal variance, and how that variance passes through a ",
-             "nonlinear body has not been measured", call. = FALSE)
+  # a mean over a new level's effects carries their variance itself
+  # (fitted_me_moments()), so the coefficient part may read such a row at
+  # the effects' mean; anywhere else a new level is refused below, by
+  # class, and a row of levels the fit saw answers under the flag
+  anl <- isTRUE(allow_new_levels) && isTRUE(object[["me_no_extra"]])
+  if (isTRUE(allow_new_levels) && !anl) {
+    return(withCallingHandlers(
+      lp_basis_nl(object, lp, rspec, newdata, use_re, FALSE, jc),
+      frmtmb_new_levels = function(e) {
+        frm_stop(structure(class = c("frmtmb_nl_new_level",
+                                     "frmtmb_new_levels", "error",
+                                     "condition"),
+                           list(message = paste0(
+                             e[["what"]] %||% conditionMessage(e), ", read ",
+                             "by a nonlinear body. A new level adds its ",
+                             "block's marginal variance, and how that ",
+                             "variance passes through a body is not ",
+                             "written, so allow_new_levels = TRUE has no ",
+                             "standard error there. fitted() takes the mean ",
+                             "over the level's effects"),
+                             call = NULL, what = e[["what"]])))
+      }))
   }
   pm <- joint_pos_map(jc)
   est <- object$estimates
   parts <- list()          # per contributing dpar: eta_hat, A, coef_pos
-  build <- function(nm) {
-    if (!is.null(parts[[nm]])) return(invisible(NULL))
+  build <- function(nm, parts) {
+    if (!is.null(parts[[nm]])) return(parts)
     lpk <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, nm)]]
     if (is.null(lpk)) {
       frm_stop("frm_lp_basis(): the nonlinear body names '", nm,
@@ -6998,28 +7685,24 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
                rspec$resp_name, "'", call. = FALSE)
     }
     if (!is.null(lpk[["nl_body"]])) {
-      for (sub in c(lpk[["nl_pars"]], lpk[["nl_dpar_refs"]])) build(sub)
-      parts[[nm]] <<- list(lp = lpk, nl = TRUE)
-      return(invisible(NULL))
+      for (sub in c(lpk[["nl_pars"]], lpk[["nl_dpar_refs"]])) {
+        parts <- build(sub, parts)
+      }
+      parts[[nm]] <- list(lp = lpk, nl = TRUE)
+      return(parts)
     }
-    edk <- lp_eta_design(object, lpk, newdata, use_re, FALSE)
-    ex <- lp_extra_var_vec(object, edk, use_re)
-    if (any(ex != 0)) {
-      frm_stop("frm_lp_basis(): the nonlinear body reaches '", nm,
-               "', which contributes variance that is not coefficient ",
-               "uncertainty (an exact gp() kriging variance, or the draw ",
-               "of a new row's me() value). Its chain rule through a ",
-               "nonlinear body has not been measured", call. = FALSE)
-    }
+    edk <- lp_eta_design(object, lpk, newdata, use_re, anl)
     has_rr <- isTRUE(object$frame[["has_rr"]])
     dak <- lp_delta_A(object, lpk, edk, newdata, use_re, jc, has_rr,
                       if (has_rr) rr_jacobians(object))
-    parts[[nm]] <<- list(lp = lpk, nl = FALSE, eta = unname(edk[["eta"]]),
-                         A = as.matrix(dak$A), pos = dak$coef_pos,
-                         nonest = edk[["nonest"]])
-    invisible(NULL)
+    parts[[nm]] <- list(lp = lpk, nl = FALSE, eta = unname(edk[["eta"]]),
+                        A = as.matrix(dak$A), pos = dak$coef_pos,
+                        nonest = edk[["nonest"]])
+    parts
   }
-  for (nm in c(lp[["nl_pars"]], lp[["nl_dpar_refs"]])) build(nm)
+  for (nm in c(lp[["nl_pars"]], lp[["nl_dpar_refs"]])) {
+    parts <- build(nm, parts)
+  }
 
   pos <- integer(0)
   for (p in parts) if (!isTRUE(p$nl)) pos <- c(pos, p$pos)
@@ -7038,6 +7721,19 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
              call. = FALSE)
   }
   chat <- vapply(pos, function(k) est[[pm$comp[k]]][pm$idx[k]], 0)
+  # a part with variance that is not coefficient uncertainty (a new row's
+  # me() draw, an exact gp()'s kriging) gets one shift of its own on the
+  # tape, every row moved by it: a body is evaluated row by row, so the
+  # column of d eta / d shift is each row's own derivative. One input per row
+  # made the Jacobian rows by rows, 488 MB at 4000 rows
+  ex <- nl_basis_extra(object, parts, newdata, use_re, anl)
+  sh_at <- list()
+  P <- length(chat)
+  for (nm in names(ex)) {
+    sh_at[[nm]] <- P + 1L
+    P <- P + 1L
+  }
+  c0 <- c(chat, numeric(P - length(chat)))
 
   dl <- lp_basis_nl_data(object, newdata)
   # the same statement predict(newdata = ) makes: this door evaluates
@@ -7081,6 +7777,7 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
           j <- match(p$pos[k], pos)
           e <- e + p$A[, k] * (cc[j] - chat[j])
         }
+        if (!is.null(sh_at[[nm]])) e <- e + cc[sh_at[[nm]]]
       }
       e
     }
@@ -7103,17 +7800,64 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
   # predict() warns about unchecked. Errors and incidental warnings are
   # swallowed: a diagnostic that fails must not take the basis with it.
   if (is.environment(span)) {
-    tryCatch(suppressWarnings(eta_fun(chat)), error = function(e) NULL)
+    tryCatch(suppressWarnings(eta_fun(c0)), error = function(e) NULL)
   }
-  tp <- RTMB::MakeTape(eta_fun, chat)
-  eta <- as.numeric(tp(chat))
-  A <- tp$jacobian(chat)
+  tp <- RTMB::MakeTape(eta_fun, c0)
+  eta <- as.numeric(tp(c0))
+  J <- tp$jacobian(c0)
+  A <- J[, seq_along(chat), drop = FALSE]
   ps_span_flush(span)
   nonest <- rep(FALSE, length(eta))
   for (p in parts) {
     if (!isTRUE(p$nl) && !is.null(p$nonest)) nonest <- nonest | p$nonest
   }
-  lp_basis_out(object, jc, eta, A, pos, numeric(length(eta)), nonest)
+  dd <- lapply(sh_at, function(i) J[, i])
+  lp_basis_out(object, jc, eta, A, pos, nl_extra_var(ex, dd, length(eta)),
+               nonest)
+}
+
+#' The variance that is not coefficient uncertainty on each linear part a
+#' body reads, kept by source: a new row's `me()` draws by call, so two parts
+#' that read one call carry one draw, and the kriging variance of an exact
+#' `gp()`. Only the parts with any are listed.
+#'
+#' @noRd
+nl_basis_extra <- function(object, parts, newdata, use_re, anl = FALSE) {
+  out <- list()
+  if (is.null(newdata)) return(out)
+  for (nm in names(parts)) {
+    p <- parts[[nm]]
+    if (isTRUE(p$nl)) next
+    ed <- lp_eta_design(object, p$lp, newdata, use_re, anl)
+    if (!any(lp_extra_var_vec(object, ed, use_re) != 0)) next
+    out[[nm]] <- list(n = ed[["n"]], me = ed[["me_parts"]],
+                      gp = lp_extra_var(object, ed, use_re)$gp)
+  }
+  out
+}
+
+#' The variance a body's parts pass to its `eta` at first order: each
+#' source's load on a part times `d eta / d eta_part`, summed over the parts
+#' one draw reaches before it is squared, as `predict_mean_se()` sums a
+#' `me()` call over the predictors of a mean.
+#'
+#' @noRd
+nl_extra_var <- function(ex, dd, n) {
+  v <- numeric(n)
+  by_call <- list()
+  for (nm in names(ex)) {
+    for (e in ex[[nm]]$me) {
+      if (is.na(e$k)) {
+        v <- v + (dd[[nm]] * e$g * e$sd)^2
+        next
+      }
+      key <- as.character(e$k)
+      by_call[[key]] <- (by_call[[key]] %||% 0) + dd[[nm]] * e$g * e$sd
+    }
+    for (gv in ex[[nm]]$gp) v <- v + dd[[nm]]^2 * gv
+  }
+  for (b in by_call) v <- v + b^2
+  v
 }
 
 #' The raw data columns each nonlinear body reads, at `newdata` or in

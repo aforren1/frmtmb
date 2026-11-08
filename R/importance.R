@@ -1097,7 +1097,8 @@ build_importance_objective <- function(frame, lay, gmap, plan,
   # weights sit near 1 at the anchor. It cancels exactly from the
   # result, and being a CONSTANT it puts no branch on parameter values,
   # which a running maximum would.
-  offs <- matrix(0, ng, nd)
+  shift <- new.env(parent = emptyenv())
+  shift$offs <- matrix(0, ng, nd)
   # Outer parameters that reach the likelihood, against the anchor.
   tmpl <- frame[["par_template"]]
   opos <- imp_outer_pos(tmpl, plan[["par"]], frame[["map"]])
@@ -1252,6 +1253,7 @@ build_importance_objective <- function(frame, lay, gmap, plan,
 
   list(amat = function(pars) weights(pars)[["a"]],
        fn = function(pars) {
+         offs <- shift$offs
          w <- weights(pars)
          # RTMB::rowSums, not the base one: base's drops the advector
          # class and the tape then ends in a bare complex vector
@@ -1264,7 +1266,7 @@ build_importance_objective <- function(frame, lay, gmap, plan,
        },
        neg_log_prior = neg_log_prior,
        set_offset = function(value) {
-         offs <<- matrix(value, ng, nd)
+         shift$offs <- matrix(value, ng, nd)
          invisible(NULL)
        })
 }

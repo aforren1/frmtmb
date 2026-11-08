@@ -46,9 +46,10 @@ p-value; halve it for the one-component case, or use
 
 A fit whose prior adds a log density to the objective (a MAP fit,
 \code{frm(prior = )}) is refused, and so is \code{drop1()} on one. Its
-\code{logLik()} is the log-likelihood plus the log prior, so a difference
-of two holds prior densities at two different estimates. It is not a
-likelihood ratio, and it can be negative. A prior that only sets
+estimates maximize the log-likelihood plus the log prior, so its
+\link[=logLik_penalized]{logLik()} is the log-likelihood at a point that
+does not maximize it, and a difference of two is not a likelihood
+ratio. It can be negative. A prior that only sets
 bounds adds no density and is not refused. Refit without the prior
 for a likelihood-ratio test. To compare models under the prior, use
 \code{loo()} or \code{bayes_factor()} of frmtmb.sample.

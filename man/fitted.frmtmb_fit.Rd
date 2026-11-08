@@ -129,10 +129,11 @@ response and
 carries no observation noise; \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} is the
 predictive interval that does.
 
-A predictor whose standard error this package cannot produce, such
-as a nonlinear body or a structured likelihood, reports \code{NA} in
-\code{Est.Error} and in the \code{Q} columns rather than a number it does not
-have. The estimate is unaffected.
+A nonlinear body's \code{Est.Error} is the delta method through the body's
+taped Jacobian. A predictor whose standard error this package cannot
+produce, such as a structured likelihood, reports \code{NA} in \code{Est.Error}
+and in the \code{Q} columns rather than a number it does not have. The
+estimate is unaffected.
 
 The \code{Q} columns are the interval on the scale of the link, mapped through its
 inverse, so they stay in the support of the expected response, and they are
@@ -153,6 +154,57 @@ the same.
 
 The product of two \code{me()} values on one row is read at first order: its mean is
 low by 7 percent at 0.8 and 0.6 on a log link.
+
+A \code{me()} value that a nonlinear parameter reads is one of the draws below:
+\code{fitted()} integrates the body over it. \code{frm_linpred(se.fit = TRUE)} and
+\code{\link[=frm_lp_basis]{frm_lp_basis()}} read it through the body at first order.
+}
+
+\section{The draws of a new row}{
+
+A new row can read three draws that are not coefficient uncertainty: a
+\code{me()} value, a latent residual, and with \code{allow_new_levels = TRUE} the
+effects of a grouping level the fit did not see. brms draws each of them,
+and its \code{posterior_epred()} averages over them; a new level is drawn as
+brms's \code{sample_new_levels = "gaussian"} draws it, not as its default
+\code{"uncertainty"}. The estimate here is that mean. On a log link that reads
+the mean, and on a lognormal's \code{mu}, it is the closed form: \code{exp(v / 2)}
+times the value at the draws' mean of 0, with \code{v} their variance on the
+link scale, so at a new level of \code{(1 | g)} at sd 1 it is 1.65 times the
+median. Elsewhere it is Gauss-Hermite quadrature over the draws. The
+draws are independent of each other, and each one moves every predictor
+that reads it, so a latent on \code{mu} beside a \code{me()} value on \code{hu} is read
+in two dimensions; a draw that moves no cell of what is read costs
+nothing. \code{sample_new_levels = "old_levels"} reads a level the fit saw and
+takes no mean. \code{scale = "linear"} stays at the effects' mean, with their
+variance in \code{Est.Error}.
+
+\code{Est.Error} is the draws' sd beside the coefficients'. At a new level it
+holds the block's estimated sd as known: the sd's own uncertainty is not
+in it, where brms's posterior carries it (0.90 of brms's on a poisson
+\code{(1 | g)} of 40 groups). With two or more directions the \code{Q} columns are
+the draw's quantiles along the direction in which the value moves most,
+widened to the whole variance, and covered 0.926 to 0.957 of the draws'
+own distribution on four hurdle rows. Past two directions the rule is
+checked against two fewer nodes, and a warning of class
+\code{frmtmb_draw_rule} gives the change when the sd moves by more than 2
+percent. Past four directions that move the value, the four that move it
+most are kept, with a warning of class \code{frmtmb_draw_dims}.
+
+One mean does not exist. A lognormal mean is \code{exp(mu + sigma^2 / 2)}, and
+when \code{sigma} reads a draw on its log link, the exact mean over the draw is
+infinite at any size of the draw, from its far tail. This holds for a
+lognormal component's \verb{sigma<k>} of a mixture and for a nonlinear
+parameter that a body for \code{sigma} reads. The estimate and \code{Est.Error} are
+then the 11-node Gauss-Hermite mean and sd, which reach 5.19 sds of the
+draw as a sampler's draws do, with one warning per call of class
+\code{frmtmb_mean_not_finite} that gives the largest change 9 nodes make. On a
+\code{sigma ~ (1 | g)} at sd 0.27 this reads 2.0897 against 2.0897 from 4e6
+draws; at a draw sd of 0.4 on \code{sigma}, no mean of draws is stable, and
+neither is this; where a node overflows the row reads \code{NaN}. The \code{Q}
+columns are the draw's quantiles. Any other mean whose rule does not
+settle as it grows from 21 or 41 nodes is read the same way, with a
+warning of class \code{frmtmb_mean_unsettled}.
 
 At a row whose \code{mi()} value left the objective, a reader's fit reads the
 value's mean. Under a nonlinear link this is below brms's average: a median

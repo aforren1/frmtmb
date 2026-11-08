@@ -8,11 +8,49 @@ releases, 2026-09-30 at the 0.67.0 release, 2026-10-06 at the
 0.72.0 release, 2026-10-21 at the 0.73.0 release, 2026-10-23 at the
 0.74.0 release, 2026-10-24 at the 0.75.0 release, 2026-10-27 at the
 0.76.0 release, 2026-10-28 at the 0.77.0 release, 2026-10-29 at the
-0.78.0 release and 2026-11-04 at the 0.79.0 release. Read this, then
+0.78.0 release, 2026-11-04 at the 0.79.0 release and 2026-11-07 at the
+0.80.0 release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
 anything: the library has been lost EIGHT times, and the last three
 losses each followed processes being killed, not low disk.
+
+## The 0.80.0 round, opened 2026-11-06, consolidated 2026-11-06 to 2026-11-07
+
+`dev/round-20261106.md` is this round's record, and `dev/rel080-log.md` the
+consolidator's running log. Twelve lanes off `3cd2a0c8` (0.79.1 plus the `gp()` docs,
+pushed), each with `dev/<lane>-findings.md` and `dev/reviews/2026-11-06-<lane>.md`,
+merged onto it in the order ci, latperf, mfxse, loglik, osa, nestquad, arstep, fitedge,
+bigx, nlstart, readers, superassign (`dev/rel080-merge.sh`, `-resolve.R`,
+`-release-fix.R`, `-release-fix2.R`, `-news.R`, `-backlog.R`).
+
+Versions: frmtmb **0.80.0**; frmtmb.sample **0.27.0** and frmtmb.latent **0.7.3**, needing
+0.80.0; frmtmb.ode 0.7.3 and frmtmb.survival 0.2.2 (no `<<-`, floors unchanged). The
+library is `C:/Users/adf44/source/r/rellib-r19`; `rellib-r18` keeps 0.79.1.
+
+### What to know next time
+
+- Read each lane's findings past its review's last section. Four lanes (fitedge,
+  bigx, readers, nestquad) changed code after their review, and two of those
+  changes met another lane on the merged build: fitedge's classed stop warnings
+  broke a nestquad test that read `class(w)[1]`, and bigx's body basis stopped
+  nlstart's sign probe from winning (3 fresh rows 1.6 to 43.7 low) until the probe
+  ran without it. A lane's own key table on the merged build is what finds these.
+- `dev/rel080-rerun.R` runs any lane or review script on the release build: it
+  rewrites lane libraries and lane-tree paths in the script and in what it sources.
+  Copy the lane's output folder into the release tree first if a summary reads
+  its before arm.
+- The 0.77.0 survey frame (rellib-r15) is gone; the survey reads 0.79.0's frame
+  (rellib-r17). Keep rellib-r17 until a new frame is decided.
+- `Rscript -e` with a long program under Git Bash segfaults here; write the R to a
+  file. A bash `while read` loop over `uniq -c` output trims trailing blanks.
+- A `git merge-file --union` of a file with no final newline, written back with
+  `sed 's/$/\r/'`, leaves a lone CR, and git then reads the file as binary
+  (`w/-text`), so autocrlf would not normalize it on commit.
+- The ledger needs `dev/brms-suite/` (gitignored); copy it from the main checkout and keep
+  it for the whole consolidation. A release review found two more merge interactions
+  (bigx x nlstart on the probe refit, bigx's rank test on `0 + f`); both are in
+  `dev/rel080-release-fix3.R`.
 
 ## The 0.79.0 round, opened 2026-10-29, consolidated 2026-11-04
 

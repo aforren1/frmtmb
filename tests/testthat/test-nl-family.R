@@ -23,7 +23,10 @@ nl_fam_data <- function(seed = 20261029, n = 300) {
 nl_fam_response <- function(f, z) {
   n <- z$n
   switch(f,
-    gaussian = , student = , skew_normal = , gen_extreme_value = z$eta + z$e1,
+    gaussian = , skew_normal = , gen_extreme_value = z$eta + z$e1,
+    # heavy tails, so that nu has an interior maximum, as for the
+    # negative binomials below
+    student = z$eta + stats::rt(n, df = 4),
     exgaussian = z$eta + z$e2 + z$e3,
     lognormal = , Gamma = , weibull = , exponential = , inverse.gaussian = ,
     frechet = z$pos,
@@ -33,11 +36,22 @@ nl_fam_response <- function(f, z) {
     zero_one_inflated_beta = ifelse(z$zero, rbinom(n, 1, 0.5),
                                     plogis(z$eta + z$e2)),
     tweedie = , hurdle_gamma = , hurdle_lognormal = ifelse(z$zero, 0, z$pos),
-    poisson = , negbinomial = , negbinomial2 = , nbinom1 = , geometric = ,
-    compois = , discrete_weibull = z$cnt,
-    zero_inflated_poisson = , zero_inflated_negbinomial =
-      ifelse(z$zero, 0L, z$cnt),
-    hurdle_poisson = , hurdle_negbinomial = ifelse(z$zero, 0L, z$cnt + 1L),
+    poisson = , geometric = , compois = , discrete_weibull = z$cnt,
+    # overdispersed counts: on Poisson counts the shape's maximum is at
+    # infinity, so where the fit stops, and which warning it gives, was
+    # the platform's rounding (a gradient warning on ubuntu only at
+    # 0.79.1). Drawn here, after the shared data, so that no other
+    # family's data move.
+    negbinomial = , negbinomial2 = , nbinom1 =
+      stats::rnbinom(n, size = 2, mu = exp(z$eta)),
+    zero_inflated_poisson = ifelse(z$zero, 0L, z$cnt),
+    # size 8: at size 2 the count's own zeros take the inflation, and
+    # the intercept-only fit sends zi to the boundary instead
+    zero_inflated_negbinomial =
+      ifelse(z$zero, 0L, stats::rnbinom(n, size = 8, mu = exp(z$eta))),
+    hurdle_poisson = ifelse(z$zero, 0L, z$cnt + 1L),
+    hurdle_negbinomial =
+      ifelse(z$zero, 0L, stats::rnbinom(n, size = 2, mu = exp(z$eta)) + 1L),
     binomial = , beta_binomial = rbinom(n, 10, z$prob),
     zero_inflated_binomial = , zero_inflated_beta_binomial =
       ifelse(z$zero, 0L, rbinom(n, 10, z$prob)),
@@ -627,6 +641,8 @@ test_that("a point no restart leaves is a warning that names the body", {
   d <- nl_saddle_data()
   body <- bf(y ~ b1 * exp(b2 * x), b1 + b2 ~ 1, nl = TRUE)
   local_mocked_bindings(nl_saddle_starts = function(...) list())
+  # the sign probe would leave the point too (test-nl-start.R)
+  withr::local_options(frmtmb.nl_sign_probe = FALSE)
   got <- list()
   fit <- withCallingHandlers(
     frm(body, family = cumulative(), data = d),
@@ -745,6 +761,76 @@ test_that("two ordinal bodies leave the point without luck from a joint start", 
   expect_lt(abs(as.numeric(logLik(fit)) - sum1) / abs(sum1), 1e-6)
 })
 
+test_that("a body a restart did not move leaves the ridge it ran to", {
+  # the saddle on disc was left, and mu, never moved, ran from its zeros to the
+  # linear limit of exp(): -377.03 at code 1 against -371.54 from a start
+  # (dev/fitedge-findings.md, item 2)
+  set.seed(11001)
+  n <- 300
+  d <- data.frame(x = round(rnorm(n), 3), z = round(rnorm(n), 3))
+  # the review's script drew 15 group effects it did not use; kept, so these
+  # are its data
+  invisible(rnorm(15L))
+  lat <- 1.5 * exp(0.6 * d$x) + 0.7 * d$z
+  d$yo <- ordered(cut(lat + rlogis(n), c(-Inf, 0.5, 1.5, 3, Inf),
+                      labels = 1:4))
+  fm <- bf(yo ~ 1) + nlf(mu ~ b1 * exp(b2 * x)) +
+    nlf(disc ~ exp(d1 * d2 * z)) + lf(b1 ~ 1) + lf(b2 ~ 1) + lf(d1 ~ 1) +
+    lf(d2 ~ 1)
+  allowed <- c("Standard errors", "not identified",
+               "did not report convergence", "gradient")
+  w <- character()
+  fit <- withCallingHandlers(suppressMessages(frm(fm, family = cumulative(),
+                                                  data = d)),
+                             warning = function(cn) {
+                               w <<- c(w, conditionMessage(cn))
+                               invokeRestart("muffleWarning")
+                             })
+  # every body moves from its pattern: from the kept values disc sat at
+  # d2 = 1499 with a gradient of 0.23 left, and warned of it
+  expect_false(any(grepl("gradient|did not report convergence", w)))
+  st <- allow_warnings(suppressMessages(frm(fm, family = cumulative(), data = d,
+    start = list(beta = c("b1_(Intercept)" = 1, "b2_(Intercept)" = 0.5),
+                 betad = c(0.3, 0.3)))), allowed = allowed)
+  ref <- as.numeric(logLik(st))
+  expect_gt(as.numeric(logLik(fit)), ref - 1e-6 * abs(ref))
+})
+
+test_that("the ridge pass reads the stop warnings by class", {
+  # check_convergence()'s three stop warnings, the non-finite gradient among
+  # them, which the text match missed (dev/reviews/2026-11-06-fitedge.md,
+  # short check, m3); a reworded message must not turn the pass off
+  w <- function(cl, msg = "reworded") {
+    structure(class = c(cl, "frmtmb_warning", "warning", "condition"),
+              list(message = msg, call = NULL))
+  }
+  for (cl in c("frmtmb_conv_code", "frmtmb_conv_gradient",
+               "frmtmb_conv_gradient_nonfinite")) {
+    expect_true(nl_stop_warning(list(w("frmtmb_warning"), w(cl))))
+  }
+  # the absent case: a standard-error verdict, and the old text with no class
+  expect_false(nl_stop_warning(list(
+    w("frmtmb_warning", "Standard errors are not available for 2 of 7"),
+    simpleWarning("Optimizer did not report convergence: false convergence"))))
+  expect_false(nl_stop_warning(list()))
+  # and check_convergence() gives the classes: one iteration of a mixed
+  # model stops short with a gradient left
+  set.seed(4401)
+  d <- data.frame(x = stats::rnorm(50), g = factor(rep(1:10, 5)))
+  d$y <- 1 + 2 * d$x + stats::rnorm(10)[d$g] + stats::rnorm(50)
+  cls <- list()
+  withCallingHandlers(
+    frm(y ~ x + (1 | g), data = d,
+        control = frmtmb_control(optCtrl = list(iter.max = 1L))),
+    warning = function(cn) {
+      cls[[length(cls) + 1L]] <<- class(cn)
+      invokeRestart("muffleWarning")
+    })
+  for (cl in c("frmtmb_conv_code", "frmtmb_conv_gradient")) {
+    expect_true(any(vapply(cls, function(k) cl %in% k, NA)))
+  }
+})
+
 test_that("a body with no effect in the data gets a warning, not a stop", {
   set.seed(11002)
   n <- 200
@@ -806,19 +892,30 @@ test_that("a constant body at a local maximum is said in a message", {
   d$yo <- ordered(cut(-0.8 * d$x + rlogis(n), c(-Inf, -1, 0, 1, Inf),
                       labels = 1:4))
   body <- bf(yo ~ b^2 * x * (1 - b^2), b ~ 1, nl = TRUE)
-  msgs <- list()
-  fit <- withCallingHandlers(
-    frm(body, family = cumulative(), data = d),
-    message = function(m) {
-      msgs[[length(msgs) + 1L]] <<- m
-      invokeRestart("muffleMessage")
-    })
+  fit_msgs <- function() {
+    msgs <- list()
+    fit <- withCallingHandlers(
+      frm(body, family = cumulative(), data = d),
+      message = function(m) {
+        msgs[[length(msgs) + 1L]] <<- m
+        invokeRestart("muffleMessage")
+      })
+    list(fit = fit, msgs = msgs)
+  }
   only <- as.numeric(logLik(frm(yo ~ 1, family = cumulative(), data = d)))
-  expect_lt(abs(as.numeric(logLik(fit)) - only) / abs(only), 1e-8)
-  named <- Filter(function(m) inherits(m, "frmtmb_nl_local"), msgs)
+  # the default start stops on the point and the sign probe leaves it
+  # (test-nl-start.R), so the message is read with the probe off
+  off <- withr::with_options(list(frmtmb.nl_sign_probe = FALSE), fit_msgs())
+  expect_lt(abs(as.numeric(logLik(off$fit)) - only) / abs(only), 1e-8)
+  named <- Filter(function(m) inherits(m, "frmtmb_nl_local"), off$msgs)
   expect_length(named, 1L)
   expect_match(conditionMessage(named[[1L]]), "local maximum", fixed = TRUE)
   expect_match(conditionMessage(named[[1L]]), "thresholds-only", fixed = TRUE)
+  # with the probe the fit is higher, and no message calls it the point
+  on <- fit_msgs()
+  expect_gt(as.numeric(logLik(on$fit)) - only, 1e-3 * abs(only))
+  expect_false(any(vapply(on$msgs, inherits, NA, "frmtmb_nl_local")))
+  expect_true(any(vapply(on$msgs, inherits, NA, "frmtmb_nl_multistart")))
 })
 
 test_that("iter.max = 0 reads the objective at the start", {

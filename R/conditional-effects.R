@@ -1266,6 +1266,7 @@ ce_profile_check <- function(x, rspec, lp, dpar_given, categorical) {
 #' @noRd
 ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
                               profile_points) {
+  quad_nested_refuse_profile(x, "conditional_effects(band = 'profile')")
   ed <- lp_eta_design(x, lp, nd, FALSE, FALSE)
   comp <- ce_outer_comp(x)
   par <- x$opt$par
@@ -1312,7 +1313,8 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
     v[pos] <- a
     const <- eta[r] - sum(a * par[pos])
     ci <- tryCatch(
-      suppressWarnings(TMB::tmbroot(x$obj, lincomb = v, target = target)),
+      suppressWarnings(profile_run(x, NULL, TMB::tmbroot, lincomb = v,
+                                   target = target)),
       error = function(e) c(NA_real_, NA_real_)
     )
     if (length(ci) != 2L || !all(is.finite(ci))) {
@@ -1512,7 +1514,7 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #'   label, always present), `effect1__` and, for a two-variable effect,
 #'   `effect2__` (the moderator as a display label: rounded to two
 #'   decimals, levels descending), then `estimate__`, `se__` (on the
-#'   scale the band is symmetric on), `lower__` and `upper__`. Printing
+#'   displayed scale, as in brms), `lower__` and `upper__`. Printing
 #'   it draws the plots. A polytomous fit adds a `cats__` column, one
 #'   block of rows per response category, and keys the effect
 #'   `"x:cats__"`.
@@ -1637,11 +1639,12 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' the same way so that the two bands stay comparable. It is the right
 #' variance around a heavier-tailed truth, not the right quantile.
 #'
-#' What `se__` means follows the band: the Wald standard error (link
-#' scale, or the probability scale on the ordinal display) for `"wald"`
-#' and `"profile"` - the profile changes the endpoints, not the standard
-#' error - and the standard deviation of the bootstrap draws, on the
-#' displayed scale, for `"boot"`.
+#' `se__` is on the displayed scale, as brms's MAD of its draws is. For
+#' `"wald"` and `"profile"` it is the delta-method standard error of the
+#' displayed value: the profile changes the endpoints, not the standard
+#' error. For `"boot"` it is the standard deviation of the bootstrap
+#' draws. The Wald band is symmetric on the link scale, so `se__` is not
+#' its half width.
 #'
 #' The three bands answer the same question and need not give the same
 #' interval. Wald and bootstrap agree in the middle of a grid, and the
@@ -2373,9 +2376,33 @@ ce_me_band <- function(df, x, nd, re_formula, resp, dpar, anl, prob) {
     re_formula = re_formula, allow_new_levels = anl, se.fit = TRUE)$se.fit),
     error = keep_missing(NULL))
   if (is.null(cf)) return(df)
+  # the standard error fitted() reads on the row, the draw's beside the
+  # coefficients': through a body the first order read 1.82 where the
+  # draw's sd is 3.93
+  df$se__ <- sqrt((as.numeric(cf) * mm$slope)^2 + mm$var)
   df$lower__ <- me_band_end(mm, cf, (1 - prob) / 2)
   df$upper__ <- me_band_end(mm, cf, 1 - (1 - prob) / 2)
   df
+}
+
+#' The band of a category display's rows that hold a draw (a new `me()`
+#' value, a latent residual, a new level's effects): `fitted()`'s `Q`
+#' columns, the draw's own quantiles of each category's probability, or
+#' `NULL` where the rows hold none. A Wald interval on the logit about the
+#' value at the held `x` cannot read a middle category's hump: category 3 of
+#' a `cumulative()` row at `sdx = 1.2` read 0.196 to 0.305, where the draw's
+#' quantiles at the estimates are 0.098 to 0.247.
+#'
+#' @noRd
+ce_cat_draw_band <- function(x, nd, re_formula, resp, anl, prob, K) {
+  mm <- fitted_me_moments(x, nd, re_formula, resp, NULL, anl,
+                          mean_only = TRUE)
+  if (is.null(mm)) return(NULL)
+  f <- fitted(x, newdata = nd, re_formula = re_formula, resp = resp,
+              allow_new_levels = anl,
+              probs = c((1 - prob) / 2, 1 - (1 - prob) / 2))
+  if (length(dim(f)) != 3L || dim(f)[3L] != K) return(NULL)
+  list(lower = matrix(f[, 3L, ], nrow(f)), upper = matrix(f[, 4L, ], nrow(f)))
 }
 
 #' `conditional_effects()` of a multivariate model for several responses, in
@@ -2758,6 +2785,9 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         ps <- list(P = P, se = matrix(NA_real_, nrow(P), ncol(P)))
       }
       cats <- colnames(ps$P)
+      qb <- if (band != "boot") {
+        ce_cat_draw_band(x, nd, re_formula, resp, anl, prob, length(cats))
+      }
       df <- do.call(rbind, lapply(seq_along(cats), function(k) {
         d <- ce_frame(nd, ev, g$v2, cond,
                       cats = factor(cats[k], levels = cats))
@@ -2771,6 +2801,10 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         sl <- sk / pmax(pk * (1 - pk), .Machine$double.eps)
         d$lower__ <- stats::plogis(stats::qlogis(pk) - z * sl)
         d$upper__ <- stats::plogis(stats::qlogis(pk) + z * sl)
+        if (!is.null(qb)) {
+          d$lower__ <- qb$lower[, k]
+          d$upper__ <- qb$upper[, k]
+        }
         d
       }))
     } else if (cats_mean) {
@@ -2836,11 +2870,13 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         }
         bs <- ce_band_scale(bl, p$fit)
         df$estimate__ <- p$fit
+        # on the displayed scale, as brms's MAD of its draws is: on the
+        # band's scale it read 0.027 where this reads 0.045 on a lognormal
+        df$se__ <- p$se.fit
         # abs(): a decreasing link (1/mu) has a negative derivative,
         # and a standard error is not negative
-        df$se__ <- p$se.fit / abs(bs$dm)
-        be <- ce_band_ends(bs$inv, bs$t - z * df$se__,
-                           bs$t + z * df$se__, bs$dm)
+        se_t <- p$se.fit / abs(bs$dm)
+        be <- ce_band_ends(bs$inv, bs$t - z * se_t, bs$t + z * se_t, bs$dm)
         df$lower__ <- be$lower
         df$upper__ <- be$upper
         bfail <- bfail + c(be$outside, length(be$lower))
@@ -2856,7 +2892,9 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         }
         lk <- dpar_response_link(rspec, lp, dpar)
         df$estimate__ <- lk$linkinv(p$fit)
-        df$se__ <- p$se.fit
+        # on the displayed scale, as brms's MAD of its draws is: on the
+        # link scale it read 2.1 times this on a lognormal's sigma
+        df$se__ <- p$se.fit * abs(lk$mu_eta(p$fit))
         be <- ce_band_ends(lk$linkinv, p$fit - z * p$se.fit,
                            p$fit + z * p$se.fit, lk$mu_eta(p$fit))
         df$lower__ <- be$lower
@@ -2950,7 +2988,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   # the expensive part and nobody should pay for them twice
   if (!is.null(bd)) attr(out, "boot") <- bd$bs
   attr(out, "pool_scale") <- ce_pool_scale(band, method, categorical,
-                                           cats_mean, hook, rspec, lp)
+                                           cats_mean, hook, rspec, lp, blink)
   out
 }
 
@@ -2959,23 +2997,28 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
 #' `frm_multiple()` result pools the imputations by Rubin's rules.
 #'
 #' `link` maps `estimate__` to that scale, and `se_on` says whether
-#' `se__` is already on it (`"link"`) or on the displayed scale
-#' (`"response"`, the ordinal category probabilities, whose band is on
-#' their logit). `NULL` where the band is not a Wald band of one
+#' `se__` is already on it (`"link"`, the expected category number) or
+#' on the displayed scale (`"response"`, every other display). `NULL`
+#' where the band is not a Wald band of one
 #' transform per call: a bootstrap or profile band, a predictive
 #' interval, and a reported dpar whose band scale is chosen grid by
 #' grid.
 #'
 #' @noRd
 ce_pool_scale <- function(band, method, categorical, cats_mean, hook,
-                          rspec, lp) {
+                          rspec, lp, blink = NULL) {
   if (band != "wald" || method == "predict" || !is.null(hook)) return(NULL)
   if (categorical) {
     if (!identical(rspec$family[["type"]], "ordinal")) return(NULL)
     return(list(link = get_link("logit"), se_on = "response"))
   }
   if (cats_mean) return(list(link = get_link("identity"), se_on = "link"))
-  list(link = lp[["link"]], se_on = "link")
+  # the band's own scale, which on a mean no link inverse gives (lognormal's)
+  # is the log and not the predictor's link
+  link <- if (!is.null(blink) && !identical(blink, lp[["link"]][["name"]])) {
+    tryCatch(get_link(blink), error = function(e) NULL)
+  }
+  list(link = link %||% lp[["link"]], se_on = "response")
 }
 
 #' Pointwise percentile of a draws matrix (draws in rows), NA where a
