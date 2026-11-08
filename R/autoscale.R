@@ -935,7 +935,7 @@ lp_design_kappa <- function(lp,
     Xk <- as.matrix(X[rows, , drop = FALSE])
     nrm <- sqrt(colSums(Xk^2))
     Xk <- Xk[, nrm > 0, drop = FALSE] / rep(nrm[nrm > 0], each = nrow(Xk))
-    q <- base::qr(Xk)
+    q <- base::qr(Xk, tol = design_alias_tol)
     if (q$rank < 2L) 1 else {
       R <- qr.R(q)[seq_len(q$rank), seq_len(q$rank), drop = FALSE]
       1 / base::rcond(R, triangular = TRUE)

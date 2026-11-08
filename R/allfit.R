@@ -1,7 +1,12 @@
 # Refit under every available optimizer (the lme4::allFit analog).
 
 #' Derivative-free optimizers from Suggests, wrapped to the
-#' `frmtmb_control()` custom-optimizer contract.
+#' `frmtmb_control()` custom-optimizer contract. Each is marked
+#' `frmtmb_builtin`, so that it steps in the coordinates of an
+#' ill-conditioned fixed design as nlminb does (user_optimizer()): as a
+#' plain function it got none, and from `start_from_mle = FALSE` bobyqa
+#' and NLopt stopped 33.1 and 33.6 short, 7.55 standard errors off, on
+#' poisson `y ~ (x + 1e6) + (1 | g)` (review of lane bigx, minor 3).
 #'
 #' @noRd
 allfit_optimizers <- function() {
@@ -43,6 +48,9 @@ allfit_optimizers <- function() {
            convergence = as.integer(!r$status %in% 1:4),
            message = r$message %||% "")
     }
+  }
+  for (k in names(opts)) {
+    if (is.function(opts[[k]])) attr(opts[[k]], "frmtmb_builtin") <- TRUE
   }
   opts
 }

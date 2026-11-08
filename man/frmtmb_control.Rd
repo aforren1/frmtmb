@@ -132,7 +132,10 @@ it such a fit can stop short and report convergence: a poisson
 \code{y ~ 0 + x} with \code{x} on a 1e-6 scale lost 62.6 log-likelihood
 units against \code{\link[stats:glm]{stats::glm()}}, and a random slope on a column
 spread 0.01 lost up to 14.4. Every other fit is the fit
-\code{autoscale = FALSE} gives, bit for bit.}
+\code{autoscale = FALSE} gives, bit for bit. A column that is far from
+zero against its spread, such as \code{x + 1e6}, does not need this
+option: whatever its value, the optimizer steps in coordinates in
+which each ill-conditioned fixed design has orthogonal columns.}
 
 \item{check_nlev_1}{What to do about a scalar random-effect term
 whose grouping factor has a single level: \code{"warning"} (default),

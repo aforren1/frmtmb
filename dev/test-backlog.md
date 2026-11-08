@@ -4795,3 +4795,40 @@ sourced from glmmTMB/lme4/brms GitHub test suites and NEWS, 2026-08-31.
 Key files to mirror: glmmTMB test-predict.R, test-formulas.R,
 test-varstruc.R, test-offset.R, test-weight.R, test-NAhandling.R (lme4),
 tests.brmsformula.R (brms).
+
+## Filed in the round opened 2026-11-06
+
+### Filed by lane bigx
+
+- **A bound on class `Intercept` holds the natural intercept; brms and
+  frmtmb's own priors read the centered one.** Present on 0.79.1 and on
+  the lane build. `x = z + 10`, `set_prior(..., class = "Intercept", lb =
+  3)`: frmtmb holds the natural intercept at 3.0000 and the slope falls
+  to 0.1985 from lm()'s 0.4100. brms 2.23.0 declares `real<lower=3>
+  Intercept; // temporary intercept for centered predictors`, where the
+  bound binds nothing; a normal prior on `Intercept` is on the centered
+  intercept in frmtmb too, so the prior and its bound read different
+  parameters (dev/reviews/2026-11-06-bigx.md, short check, B1,
+  `dev/review-bigx-fx-brms.log`). A brms parity defect. Fixing it also
+  removes the case in which a bounded intercept keeps an ill-conditioned
+  design in natural coordinates (`opt_coords()`, warning class
+  `frmtmb_ill_design`): with `lb = -1e7`, which binds neither intercept,
+  poisson `y ~ (x + 1e6) + (1 | g)` is still 6.3 to 7.6 standard errors
+  off and 19.6 to 30.9 short, now warned. Not fixed in this round.- **"False convergence (8)" at the maximum: a classed message, not a
+  warning, where the fit is known to be at it.** The review of lane
+  bigx (dev/reviews/2026-11-06-bigx.md, confirmation) recommends: when
+  nlminb stops at code 8, warn only unless the Hessian is usable, every
+  standard error is finite and the Newton gain from the stop is below
+  1e-5; then give a message of its own class (for example
+  `frmtmb_converged_at_max`), and keep the warning whenever the
+  curvature is unusable. Its battery (products and powers of shifted
+  columns at 1e4 to 1e6, seeds 41 to 45; `y ~ w` at 1e7 to 1e9,
+  gaussian and poisson, seeds 901 to 910; the raw polynomials): 29 of
+  90 fits stopped at code 8, all at the maximum (4.3e-8 below to 2.3e-5
+  above the centered fit), none with another warning, Newton gains
+  from 2.0e-9 to 9.9e-6. A bound of 1e-6 would still warn on at least 3
+  correct fits; 1e-5 on none. Every short stop in that review's
+  batteries carried a gradient or Newton warning, not the code-8 text
+  alone. A separate change: it touches every code-8 fit (19 core test
+  files name "false convergence"), and needs a battery with a short
+  code-8 stop to show the gain test still catches it.

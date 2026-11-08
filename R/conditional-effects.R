@@ -1312,7 +1312,8 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
     v[pos] <- a
     const <- eta[r] - sum(a * par[pos])
     ci <- tryCatch(
-      suppressWarnings(TMB::tmbroot(x$obj, lincomb = v, target = target)),
+      suppressWarnings(profile_run(x, NULL, TMB::tmbroot, lincomb = v,
+                                   target = target)),
       error = function(e) c(NA_real_, NA_real_)
     )
     if (length(ci) != 2L || !all(is.finite(ci))) {

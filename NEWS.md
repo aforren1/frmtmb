@@ -1,3 +1,86 @@
+# frmtmb (development version)
+
+* BREAKING: a covariate far from zero against its spread fits the same
+  model as the covariate centered. With `y ~ (x + 1e6) + (1 | g)` and an
+  sd of 1, the optimizer stopped at its start with code 0. On poisson
+  and Gamma the slope was 6 to 10 standard errors off and the fit 20 to
+  47 log-likelihood units short, on 5 of 5 data sets each, with no
+  warning on 6 of the 10. Bernoulli was 0.9 to 2.6 standard errors off
+  from `x + 1e5`, and a gaussian fit without a group term 12 standard
+  errors off at `x + 1e6`. The optimizer now steps in coordinates in
+  which each ill-conditioned fixed design has orthogonal columns, the
+  ones the standard errors already used. A design with a condition
+  number below 1e3 keeps its fit. On a grid of offsets from 1e3 to 1e8,
+  four families, with and without `(1 | g)` and 5 data sets each, all
+  240 fits give the slope, its standard error and the log-likelihood of
+  the centered fit. At `x + 1e8`, 11 of the 40 fits warn of "false
+  convergence (8)" at the maximum; none below that warns. The same
+  holds for:
+  - a `cumulative()` fit, which was up to 3.6 standard errors off with
+    no warning at `5 x + 1e6`;
+  - a shifted column in `sigma`'s formula, in a `zi` formula, in an
+    nlpar's formula, beside `s()`, `offset()`, `weights()` or a factor,
+    and its interaction with a factor;
+  - a nonlinear body linear in a shifted column, `b0 + b1 * x`, which
+    was 7.6 to 9.9 standard errors off, one of two with no warning;
+  - a prior with `lb` or `ub` on class `b`, which kept the old fit,
+    6.3 to 9.4 standard errors off, 4 of 5 with no warning. A bound on
+    the intercept of such a design, or one that centering does not
+    condition, keeps the old fit and warns (class `frmtmb_ill_design`);
+  - `profile()` and `confint(method = "profile")` or `"uniroot"` on a
+    shifted coefficient, which were `NA` with an unclassed warning;
+  - `frm_allfit()`'s bobyqa and NLopt fits.
+
+  On two raw polynomials with `(1 | g)` whose group sd the optimizer ran
+  to zero, the fit now reaches lme4's maximum at an sd near 0.005, 1e-4
+  higher.
+
+* BREAKING: the frame drops a fixed-effect column by two tests on the
+  design with its columns scaled to the same size. A column whose QR
+  leaves less than 1e-11 of its norm, with every column but the
+  intercept centered, is aliased and is dropped with the message "rank
+  deficient". It was 1e-7 on the unscaled, uncentered design, as in
+  `lm()` and lme4, which dropped the slope of `x + 1e7` with an sd of 1,
+  and products and powers of shifted columns (`w1:w2`, `I(w^2)`) from
+  an offset of 1e4: the fit was 0.43 to 50 log-likelihood units below
+  the model asked for, with a message only. Such columns are now kept,
+  as brms keeps them. Then, in their order, the columns that the
+  optimizer cannot fit (a centered condition number above 1e10, or
+  columns dependent to 1e-11 without centering) are dropped with a
+  warning of class `frmtmb_design_capped`: the data identify them, so
+  the model fitted is not the one written. Products and powers of
+  columns shifted by 1e6 meet this warning. A raw polynomial far from zero,
+  `poly(x, 8, raw = TRUE)` on [1000, 1010], keeps 5 columns with finite
+  standard errors. A near alias that the old test dropped and the new
+  one keeps, such as `x2 = x1 + 1e-9 * noise`, now has standard errors
+  near 1e8, as `glm()` gives. An exact alias is dropped as before.
+
+* `frmtmb_control(autoscale = TRUE)` on a column far from zero warned of
+  "false convergence (8)" at the maximum. From `x + 1e3` such a fit is
+  now silent, and its standard errors are those of the centered fit.
+
+## Limits
+
+* A column far from zero against its spread still costs these fits,
+  each with a warning. Beside a `mo()` term the fit reaches the
+  maximum, but its curvature is not usable and its standard errors are
+  NaN. A category-specific `cs()` term on it, or a random slope on it,
+  `(1 + x | g)`, stops short of the maximum. Center the column.
+* `quadrature = TRUE` and `importance =` run their own objectives in
+  natural coordinates: on bernoulli `x + 1e6` a quadrature fit was
+  1.2e-5 short with no warning, and importance fits warned "false
+  convergence (8)" at the maximum.
+* A nonlinear body that a bound holds runs in natural coordinates, with
+  no warning.
+* A nonlinear body that is curved in a shifted covariate,
+  `b0 * exp(b1 * (z + m))`, still stops short from `m = 100`, by up to
+  39.5 log-likelihood units and 8.7 standard errors, each fit with
+  "false convergence (8)" and a gradient warning.
+* A nonlinear body with an alias inside it, such as
+  `b0 + b1 * x + (b2 + b3) * t`, has a singular Jacobian and gets no
+  second descent: on a shifted `x` two of three fits stopped 20 and 36
+  log-likelihood units short, with a gradient warning only.
+
 # frmtmb 0.79.1
 
 * `residuals(type = "osa")` on `beta_binomial()` always stops with a

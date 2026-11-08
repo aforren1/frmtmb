@@ -626,11 +626,11 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   for (k in seq_along(idx)) {
     i <- idx[k]
     if (method == "profile") {
-      pr <- TMB::tmbprofile(object$obj, name = i, trace = FALSE, ...)
+      pr <- profile_run(object, i, TMB::tmbprofile, trace = FALSE, ...)
       ci[k, 1:2] <- unname(stats::confint(pr, level = level))
     } else {
-      r <- TMB::tmbroot(object$obj, name = i,
-                        target = 0.5 * stats::qchisq(level, df = 1), ...)
+      r <- profile_run(object, i, TMB::tmbroot,
+                       target = 0.5 * stats::qchisq(level, df = 1), ...)
       ci[k, 1:2] <- unname(r)
     }
     ci[k, 3] <- est[i]
@@ -639,6 +639,77 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
     }
   }
   ci
+}
+
+#' TMB::tmbprofile() or TMB::tmbroot() (`fun`) along outer parameter
+#' `i`, or along the natural combination `lincomb`, in the coordinates
+#' the fit's optimizer stepped in (opt_basis()).
+#'
+#' TMB holds the profiled direction and optimizes the others in the
+#' coordinates it is handed. On a slope whose column is far from zero,
+#' `x + 1e6`, a step of the slope with the intercept held moved the
+#' predictor by 1e6 times the step: the objective overflowed, and every
+#' profile interval of the slope was `NA, NA` with an unclassed
+#' "NA/NaN function evaluation" warning (review of lane bigx, major 3).
+#' In the fit's coordinates `q`, `p = M q`, the same profile is that of
+#' `M' lincomb` over `q`, and the other directions are well conditioned.
+#' A fit with no basis (or an importance or quadrature fit, whose tape
+#' carries none) is profiled as before, bit for bit.
+#'
+#' The handed object exposes `fn`, `gr`, `par` and an environment with
+#' the entries TMB saves and restores, holding the best point in `q`. The
+#' fit's own objective is evaluated through it, so its state is put back
+#' afterwards. tmbroot() reads its default range off a sdreport() of the
+#' object, which needs a TMB object, so the range is formed here from
+#' the fit's own standard error, `sd.range` times it, as TMB forms it.
+#'
+#' @noRd
+profile_run <- function(object, i, fun, ..., lincomb = NULL) {
+  obj <- object$obj
+  np <- length(obj$par)
+  B <- if (is.environment(obj$env)) obj$env$.frmtmb_opt_basis
+  plain <- function() {
+    if (is.null(lincomb)) fun(obj, name = i, ...) else
+      fun(obj, lincomb = lincomb, ...)
+  }
+  if (is.null(B) || !identical(nrow(B$M), np) ||
+        !is.null(object$importance) || isTRUE(object$quadrature)) {
+    return(plain())
+  }
+  args <- list(...)
+  l <- if (is.null(lincomb)) as.numeric(seq_len(np) == i) else lincomb
+  if (identical(fun, TMB::tmbroot) && is.null(args[["parm.range"]])) {
+    V <- tryCatch(sdr_of(object)$cov.fixed, error = keep_missing(NULL))
+    sd0 <- if (is.matrix(V) && all(dim(V) == np)) {
+      sqrt(drop(crossprod(l, V %*% l)))
+    } else NA_real_
+    if (!is.finite(sd0)) return(plain())
+    sr <- rep_len(args[["sd.range"]] %||% 7, 2L)
+    args[["parm.range"]] <- c(-1, 1) * sd0 * sr
+  }
+  M <- B$M
+  env <- obj$env
+  pb <- env$last.par.best
+  p0 <- if (is.null(pb)) obj$par else pb[env$lfixed()]
+  e2 <- new.env(parent = emptyenv())
+  e2$last.par.best <- drop(B$Mi %*% as.numeric(p0))
+  e2$random <- NULL
+  for (v in c("random.start", "value.best", "last.par", "inner.control",
+              "tracemgc")) {
+    assign(v, get0(v, envir = env, inherits = FALSE), envir = e2)
+  }
+  to_p <- function(q) drop(M %*% as.numeric(q))
+  view <- list(par = e2$last.par.best,
+               fn = function(q, ...) obj$fn(to_p(q)),
+               gr = function(q, ...) {
+                 matrix(crossprod(M, as.numeric(obj$gr(to_p(q)))), nrow = 1L)
+               },
+               env = e2)
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  nm <- if (!is.null(i)) names(obj$par)[i]
+  do.call(fun, c(list(view), if (!is.null(nm)) list(name = nm),
+                 list(lincomb = drop(crossprod(M, l))), args))
 }
 
 #' Transformed-scale Wald rows for the covariance parameters of one fit:
@@ -2939,7 +3010,7 @@ profile.frmtmb_fit <- function(fitted, parm, ...) {
   nm <- outer_par_names(fitted)
   idx <- resolve_par_index(fitted, parm, "profile")
   out <- lapply(idx, function(i) {
-    TMB::tmbprofile(fitted$obj, name = i, trace = FALSE, ...)
+    profile_run(fitted, i, TMB::tmbprofile, trace = FALSE, ...)
   })
   names(out) <- nm[idx]
   if (length(out) == 1L) out[[1L]] else out
@@ -4274,11 +4345,11 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
                  call. = FALSE)
       }
       pargs <- utils::modifyList(
-        list(obj = x$obj, lincomb = v, trace = FALSE,
-             ytol = 0.5 * stats::qchisq(lev, 1) + 1),
+        list(trace = FALSE, ytol = 0.5 * stats::qchisq(lev, 1) + 1),
         list(...)
       )
-      pr <- do.call(TMB::tmbprofile, pargs)
+      pr <- do.call(profile_run, c(list(x, NULL, TMB::tmbprofile,
+                                        lincomb = v), pargs))
       ci <- stats::confint(pr, level = lev)
       pr[[1L]] <- pr[[1L]] + const
       profiles[[i]] <- pr

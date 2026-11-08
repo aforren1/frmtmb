@@ -1327,8 +1327,8 @@ se_linear_pars <- function(fit) {
 #' -0.0464 + 0.1900 Age` to 1.3e-16. Along these directions the
 #' likelihood is exactly flat, so they need no Hessian at all, and a
 #' prediction is estimable when it is orthogonal to them to rounding.
-#' The rank uses the frame's own test (`qr()` with its default
-#' tolerance). A design whose QR would cost more than `se_design_flops`
+#' The rank uses the frame's own test (design_rank_qr()). A
+#' design whose QR would cost more than `se_design_flops`
 #' is not decomposed; its alias is then judged by the Hessian alone.
 #'
 #' The directions a `mo()` simplex is flat along because a category no
@@ -1353,7 +1353,7 @@ se_design_null <- function(fit) {
     X <- tryCatch(as.matrix(patch_mo_cols(fit, lp, X)),
                   error = function(e) NULL)
     if (is.null(X) || !all(is.finite(X))) next
-    qx <- qr(X)
+    qx <- design_rank_qr(X)
     r <- qx$rank
     p <- NCOL(X)
     if (r >= p) next
@@ -1363,6 +1363,10 @@ se_design_null <- function(fit) {
                diag(1, p - r))
     N <- matrix(0, p, p - r)
     N[qx$pivot, ] <- Z
+    # the QR is of the scaled columns, X / s: back to X's coefficients
+    s <- sqrt(colSums(X^2) / max(1L, nrow(X)))
+    s[!is.finite(s) | !(s > 0)] <- 1
+    N <- N / s
     M <- matrix(0, np, p - r)
     M[pos, ] <- N
     out <- cbind(out, M)

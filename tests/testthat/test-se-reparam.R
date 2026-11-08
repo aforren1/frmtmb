@@ -353,11 +353,21 @@ reparam_lm_se <- function(r) {
 
 test_that("an sd near zero is judged by the check, not the route", {
   # the route took it, since its unit-diagonal eigenvalue is near 1, and
-  # gave SE(log sd) 4.75e5 with no warning; 0.70.0 named it (item 4)
-  r <- reparam_edge_fit(5, 4)
+  # gave SE(log sd) 4.75e5 with no warning; 0.70.0 named it (item 4).
+  # That stop, at a log sd of -17.4, was 1.07e-4 short of lme4's maximum
+  # at an sd of 0.0053, which the optimizer reaches in the design's
+  # coordinates (opt_basis(); dev/bigx-edge.R). The natural coordinates
+  # are asked for here, so that the check still meets the stop
+  r <- withr::with_options(list(frmtmb.opt_basis = FALSE),
+                           reparam_edge_fit(5, 4))
   lost <- sdr_of(r$value)$se_lost
   expect_identical(names(lost), "theta_1")
   expect_true(any(grepl("theta_1", r$warnings, fixed = TRUE)))
+  # by default the fit is at the interior maximum, higher and silent
+  r0 <- reparam_edge_fit(5, 4)
+  expect_length(r0$warnings, 0L)
+  expect_gt(r0$value$opt$par[["theta"]], r$value$opt$par[["theta"]] + 5)
+  expect_gt(as.numeric(logLik(r0$value)), as.numeric(logLik(r$value)))
 })
 
 test_that("with the sd at its boundary the coefficients keep lm()'s SEs", {
@@ -464,6 +474,10 @@ test_that("raising the optimizer's caps keeps the sd escape", {
   r <- reparam_edge_fit(7, 4)
   fo <- y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + (1 | g)
   w <- character()
+  # in the design's coordinates the optimizer reaches the interior
+  # maximum without the escape (opt_basis(); dev/bigx-edge.R); the
+  # natural coordinates still stop at the small sd the escape is for
+  withr::local_options(frmtmb.opt_basis = FALSE)
   f2 <- withCallingHandlers(
     frm(fo, data = r$data,
         control = frmtmb_control(optCtrl = list(iter.max = 5000,
