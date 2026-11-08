@@ -76,7 +76,7 @@ gp_marginal_gate <- function(frame) {
 #' the tape; `noise` is sigma^2 plus the row's `se^2` handled inside.
 #'
 #' @noRd
-gp_marginal_setup <- function(frame) {
+gp_marginal_setup <- function(frame, max_rows = gp_marginal_max_rows) {
   g <- gp_marginal_gate(frame)
   if (is.null(g)) return(NULL)
   mu <- g$mu
@@ -90,13 +90,14 @@ gp_marginal_setup <- function(frame) {
   w <- g$aterms[["weights"]]
   w <- if (is.null(w)) rep(1, n) else as.numeric(w)
   gp_marginal_data(y, X, Z, frame[["re_blocks"]], se2, w, g$has_sigma,
-                   mu[["idx"]], frame)
+                   mu[["idx"]], frame, max_rows)
 }
 
 #' The marginal's sufficient statistics and blocks from `y`, `X`, `Z`.
 #'
 #' @noRd
-gp_marginal_data <- function(y, X, Z, re_blocks, se2, w, has_sigma, idx, frame) {
+gp_marginal_data <- function(y, X, Z, re_blocks, se2, w, has_sigma, idx, frame,
+                             max_rows = gp_marginal_max_rows) {
   n <- length(y)
   # a fixed vector, not a draw, so a fit leaves the RNG alone; two rows of Z
   # read one number only when they are the same row
@@ -107,7 +108,7 @@ gp_marginal_data <- function(y, X, Z, re_blocks, se2, w, has_sigma, idx, frame) 
     J <- seq_len(n)
   }
   u <- max(J)
-  if (u > gp_marginal_max_rows) return(NULL)
+  if (u > max_rows) return(NULL)
   first <- match(seq_len(u), J)
   nj <- tabulate(J, u)
   ybar <- rowsum(y, J, reorder = TRUE)[, 1L] / nj
@@ -404,6 +405,80 @@ gp_marginal_polish <- function(s, out) {
        betad = array(log(cv$s) + o$par[length(o$par)] / 2))
 }
 
+#' The outer gradient of a fit whose objective is the marginal of an exact
+#' gp(), from the marginal's own tape, or `NULL`. The z tape's gradient runs an
+#' inner solve over a dense Hessian each time: at 500 positions the outer
+#' Hessian's differences took 11.3 s of a 25 s fit, and the marginal's tape
+#' 0.87 s (dev/reviews/2026-11-03-ncgp.md, cost). The fit's own maximum
+#' likelihood only, with no prior: anything else is another objective. The two
+#' must read one value at `at`, or the z tape keeps the job.
+#'
+#' The marginal's gradient rounds with the condition of its covariance `V`,
+#' where the z tape's does not, so `V` must be well conditioned too: its bound
+#' `(trace of the field part + largest noise) / smallest noise` at most
+#' `gp_marginal_kappa_max`.
+#'
+#' @noRd
+gp_marginal_outer_gr <- function(fit, at) {
+  fr <- fit$frame
+  if (!any(vapply(fr[["re_blocks"]] %||% list(), function(bk) {
+    identical(bk[["covstruct"]], "gp")
+  }, NA))) {
+    return(NULL)
+  }
+  if (isTRUE(fit$REML) || isTRUE(fit$quadrature) || !is.null(fit$importance) ||
+        !is.null(fit$beta_whiten) || isTRUE(fit$control$profile) ||
+        NROW(fit$prior) > 0L) {
+    return(NULL)
+  }
+  pn <- names(at)
+  if (!length(pn) || !all(pn %in% c("beta", "betad", "theta"))) return(NULL)
+  s <- tryCatch(gp_marginal_setup(fr, max_rows = Inf),
+                error = function(e) NULL)
+  if (is.null(s) || s$has_sigma != ("betad" %in% pn)) return(NULL)
+  sig2 <- if (s$has_sigma) exp(2 * at[[which(pn == "betad")]]) else 0
+  noise <- (sig2 / s$w + s$se2) / s$nj
+  th <- unname(at[pn == "theta"])
+  vf <- tryCatch(diag(as.matrix(gp_marginal_cov(s, th))),
+                 error = function(e) NA_real_)
+  kap <- (sum(vf) + max(noise)) / min(noise)
+  if (!isTRUE(kap <= gp_marginal_kappa_max)) return(NULL)
+  nll <- gp_marginal_nll(s)
+  idx <- s$idx
+  f <- function(p) {
+    if (!is.null(p$beta)) p$beta <- p$beta[idx]
+    nll(p)
+  }
+  pl <- lapply(c(beta = "beta", betad = "betad", theta = "theta"),
+               function(k) unname(at[pn == k]))
+  pl <- pl[lengths(pl) > 0L]
+  old <- RTMB::TapeConfig()
+  ob <- tryCatch({
+    RTMB::TapeConfig(matmul = "atomic")
+    RTMB::MakeADFun(f, pl, silent = TRUE)
+  }, error = function(e) NULL, finally = RTMB::TapeConfig(old))
+  if (is.null(ob) || !identical(names(ob$par), pn)) return(NULL)
+  v <- tryCatch(ob$fn(at), error = function(e) NA_real_)
+  v0 <- tryCatch(fit$obj$fn(at), error = function(e) NA_real_)
+  if (!isTRUE(abs(v - v0) <= gp_marginal_value_tol * max(1, abs(v0)))) {
+    return(NULL)
+  }
+  function(q) ob$gr(q)
+}
+
+# How far apart, relative to the value, the marginal and the z tape may read at
+# one point before the z tape keeps the outer Hessian. The inner problem is
+# gaussian and linear, so they differ by the inner solve's rounding only.
+gp_marginal_value_tol <- 1e-9
+
+# The largest bound on the condition of the marginal's covariance at which it
+# gives the outer Hessian. Against the z tape on 377 fits of the ncgp review's
+# sets, the standard errors moved at most 8.7e-8 below 1e6, 5.6e-4 below 1e9,
+# and beyond 1e9 by up to 1.0, with 5 sets of NaN standard errors changed; at
+# noise 1e-3 the marginal's were 35 percent off an exact 200-bit Hessian and
+# the z tape's 3e-5 (dev/fitedge-findings.md, item 3).
+gp_marginal_kappa_max <- 1e6
+
 #' The value and length scale a link-scale response reads for each exact gp() a
 #' response's mean holds, for what the marginal's gate refuses: another family, a
 #' non-identity link, `sigma ~`, `ar()`, `mi()`, `me()`, `mo()`, several responses.
@@ -412,27 +487,30 @@ gp_marginal_polish <- function(s, out) {
 #' on the same rows, and on `mi()`, `me()` and `mo()` it did not
 #' (dev/ncgp-findings.md, round 2).
 #'
-#' @return `list(idx, theta)`, the positions in the template's `theta` and their
-#'   values, or `NULL`.
+#' A block in a parameter that a nonlinear body of the mean reads gets the same
+#' start, from gp_body_start(): with no start for it, `a + b * z` with
+#' `a ~ gp(x)` stopped 100 to 114 nats short, conv 0 and silent
+#' (dev/fitedge-findings.md, item 1).
+#'
+#' `tpl` is the template the descent starts from, which places the body's other
+#' coefficients. `body = FALSE` leaves those blocks out, as a caller's `start`
+#' does: from a far start the body read a field of sd 1e-11 and stopped 26 and
+#' 125 nats below 0.79.1 (dev/reviews/2026-11-06-fitedge.md, B1).
+#'
+#' @return `list(idx, theta, body)`, the positions in the template's `theta`,
+#'   their values, and which of the positions the body start set, or `NULL`.
 #' @noRd
-gp_start_working <- function(frame) {
+gp_start_working <- function(frame, tpl = frame[["par_template"]],
+                             body = TRUE) {
   blocks <- Filter(function(bk) identical(bk[["covstruct"]], "gp"),
                    frame[["re_blocks"]] %||% list())
   keys <- vapply(blocks, gp_block_lp, "", frame = frame)
   idx <- integer(0)
   theta <- numeric(0)
+  from_body <- integer(0)
   for (key in setdiff(unique(keys), "")) {
     lp <- frame[["linpreds"]][[key]]
-    if (!identical(lp[["dpar"]], "mu") || !is.null(lp[["nl_body"]]) ||
-          !is.null(lp[["constant"]])) {
-      next
-    }
-    yw <- gp_working_y(frame, lp)
-    if (is.null(yw)) next
-    off <- as.numeric(lp[["offset"]] %||% 0)
-    yw <- yw - off
-    ok <- is.finite(yw)
-    if (sum(ok) < 3L || NROW(lp[["Z"]]) != length(yw)) next
+    if (!is.null(lp[["nl_body"]]) || !is.null(lp[["constant"]])) next
     rb <- blocks[keys == key]
     at <- 0L
     from <- integer(0)
@@ -443,6 +521,22 @@ gp_start_working <- function(frame) {
       from <- c(from, ti)
     }
     fr <- list(re_blocks = rb, par_template = list(theta = numeric(at), beta = 0))
+    if (!identical(lp[["dpar"]], "mu")) {
+      if (!body) next
+      m <- tryCatch(gp_body_start(frame, key, tpl, rb, fr),
+                    error = function(e) NULL)
+      if (is.null(m) || !all(is.finite(m$theta))) next
+      idx <- c(idx, from)
+      theta <- c(theta, m$theta)
+      from_body <- c(from_body, from)
+      next
+    }
+    yw <- gp_working_y(frame, lp)
+    if (is.null(yw)) next
+    off <- as.numeric(lp[["offset"]] %||% 0)
+    yw <- yw - off
+    ok <- is.finite(yw)
+    if (sum(ok) < 3L || NROW(lp[["Z"]]) != length(yw)) next
     n <- sum(ok)
     m <- tryCatch(gp_marginal_opt(
       gp_marginal_data(yw[ok], matrix(1, n, 1L), lp[["Z"]][ok, , drop = FALSE],
@@ -452,7 +546,100 @@ gp_start_working <- function(frame) {
     idx <- c(idx, from)
     theta <- c(theta, m$theta)
   }
-  if (length(idx)) list(idx = idx, theta = theta)
+  if (length(idx)) list(idx = idx, theta = theta, body = from_body)
+}
+
+#' The marginal's maximum for the blocks `rb` of a parameter `a` that a
+#' nonlinear body of the mean reads, or `NULL`: gp_marginal_opt() on the body
+#' linearized at the template, one Gauss-Newton step. With `y_w` the mean's
+#' working response and `eta0` the body at the template with every field at 0,
+#' `y_w - eta0 + J_a a0 + sum(J_k b_k0)` is linear in `a`'s coefficients, in
+#' each other coefficient `b_k` the body reads and in the field, with the
+#' field's rows scaled by `J_a`; the derivatives are central differences. On
+#' `a + b * z` that is the linear spelling's marginal, so the body starts where
+#' `y ~ z + gp(x)` does: a start from `y` alone read 0.44 nats short on one of
+#' 24 rows (dev/fitedge-findings.md, item 1). With the second descent from
+#' 0.79.1's start beside it (gp_second_descent()), a second step from the
+#' first step's coefficients never read higher on 48 rows of `exp(a)`,
+#' `a * exp(b * z)` and the logistic body, and read up to 44 nats lower on 4;
+#' one step alone, with no second descent, is worse than 0.79.1 on 6 of 96
+#' rows (dev/fitedge-findings.md, fix round). Rows where the body barely reads
+#' `a` (`|J_a|` under 1e-3 of its largest) are left out, and a coefficient the
+#' design cannot tell from the others keeps its start.
+#'
+#' @noRd
+gp_body_start <- function(frame, key, tpl, rb, fr) {
+  lp <- frame[["linpreds"]][[key]]
+  rn <- lp[["resp"]]
+  nl <- frame[["spec"]]$responses[[rn]]$nlpars %||% character(0)
+  body <- frame[["linpreds"]][[linpred_key(rn, "mu")]]
+  if (!lp[["dpar"]] %in% nl || is.null(body) || is.null(body[["nl_body"]]) ||
+        !identical(body[["dpar"]], "mu") ||
+        NROW(lp[["Z"]]) != NROW(lp[["X"]])) {
+    return(NULL)
+  }
+  ym <- gp_working_y(frame, body)
+  if (is.null(ym)) return(NULL)
+  off <- as.numeric(lp[["offset"]] %||% 0)
+  # the body with every row of `a` shifted by h
+  ev <- function(t, h = 0) {
+    f2 <- frame
+    f2[["linpreds"]][[key]][["offset"]] <- off + h
+    e <- tryCatch(suppressWarnings(nl_body_at(f2, body, t)),
+                  error = function(e) NULL)
+    if (length(e) == length(ym)) as.numeric(e)
+  }
+  own <- lp[["idx"]]
+  bc <- nl_body_coefs(frame, body)$coefs
+  others <- do.call(rbind, lapply(names(bc), function(par) {
+    pos <- bc[[par]]
+    if (identical(par, lp[["par"]])) pos <- setdiff(pos, own)
+    if (length(pos)) data.frame(par = par, pos = pos, stringsAsFactors = FALSE)
+  }))
+  Xa <- as.matrix(lp[["X"]])
+  ba <- tpl[[lp[["par"]]]][own]
+  a0 <- off + if (length(ba)) as.numeric(Xa %*% ba) else 0
+  h <- 1e-4 * max(1, abs(a0))
+  e0 <- ev(tpl)
+  e1 <- ev(tpl, h)
+  e2 <- ev(tpl, -h)
+  if (is.null(e0) || is.null(e1) || is.null(e2)) return(NULL)
+  Ja <- (e1 - e2) / (2 * h)
+  yt <- ym - e0 + Ja * (a0 - off)
+  Xt <- if (ncol(Xa)) Ja * Xa else matrix(0, length(Ja), 0L)
+  for (k in seq_len(NROW(others))) {
+    par <- others$par[k]
+    v <- tpl[[par]][others$pos[k]]
+    hk <- 1e-4 * max(1, abs(v))
+    tp <- tm <- tpl
+    tp[[par]][others$pos[k]] <- v + hk
+    tm[[par]][others$pos[k]] <- v - hk
+    ep <- ev(tp)
+    em <- ev(tm)
+    if (is.null(ep) || is.null(em)) next
+    Jk <- (ep - em) / (2 * hk)
+    if (!all(is.finite(Jk))) next
+    yt <- yt + Jk * v
+    Xt <- cbind(Xt, Jk)
+  }
+  ok <- is.finite(yt) & is.finite(Ja) & apply(is.finite(Xt), 1L, all)
+  if (sum(ok) < 3L) return(NULL)
+  ok <- ok & abs(Ja) > 1e-3 * max(abs(Ja[ok]))
+  n <- sum(ok)
+  if (n < 3L) return(NULL)
+  # a column the rows cannot tell from the others, `a + b` with two
+  # intercepts, keeps its start
+  q <- qr(Xt[ok, , drop = FALSE])
+  keep <- sort(q$pivot[seq_len(q$rank)])
+  Zt <- Matrix::Diagonal(x = Ja[ok]) %*% lp[["Z"]][ok, , drop = FALSE]
+  f2 <- fr
+  f2[["par_template"]][["beta"]] <- numeric(length(keep))
+  m <- tryCatch(gp_marginal_opt(
+    gp_marginal_data(yt[ok], Xt[ok, keep, drop = FALSE], Zt, rb, rep(0, n),
+                     rep(1, n), TRUE, seq_along(keep), f2)),
+    error = function(e) NULL)
+  if (is.null(m) || !all(is.finite(m$theta))) return(NULL)
+  m
 }
 
 #' The linear predictor a block's coefficients enter, by name, or `""`.
@@ -522,9 +709,13 @@ gp_finite <- function(v) {
 #' warm start away.
 #'
 #' `to_beta` carries a natural `beta` to the coordinates the tape holds it in.
+#' `body = FALSE` turns off the start of a block in a nonlinear body
+#' (gp_body_start()), for a caller's own `start`. A restart from a saddle is
+#' not the caller's, and keeps it.
 #'
 #' @noRd
-gp_start_scan <- function(obj, template, frame, start, to_beta = identity) {
+gp_start_scan <- function(obj, template, frame, start, to_beta = identity,
+                          body = TRUE) {
   bks <- Filter(function(bk) identical(bk[["covstruct"]], "gp"),
                 frame[["re_blocks"]] %||% list())
   if (!length(bks) || !is.null(start[["theta"]])) return(obj)
@@ -550,8 +741,10 @@ gp_start_scan <- function(obj, template, frame, start, to_beta = identity) {
       return(obj)
     }
   }
-  w <- tryCatch(gp_start_working(frame), error = function(e) NULL)
+  w <- tryCatch(gp_start_working(frame, template, body = body),
+                error = function(e) NULL)
   covered <- integer(0)
+  scanned <- template
   if (!is.null(w)) {
     tpl <- template
     tpl[["theta"]][w$idx] <- w$theta
@@ -560,7 +753,63 @@ gp_start_scan <- function(obj, template, frame, start, to_beta = identity) {
       covered <- w$idx
     }
   }
-  gp_start_scan_units(obj, template, frame, val, covered)
+  out <- gp_start_scan_units(obj, template, frame, val, covered)
+  body <- intersect(covered, w[["body"]])
+  if (!length(body)) return(out)
+  # 0.79.1's start, the scan with the body's blocks not covered, is the second
+  # descent's: on 7 of 192 rows it reached up to 3.30 nats more than the body
+  # start (dev/reviews/2026-11-06-fitedge.md, B1). The inner solve starts where
+  # the last evaluation left it, so reading it must not move the first descent
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  keep <- setdiff(covered, body)
+  scanned[["theta"]][keep] <- template[["theta"]][keep]
+  alt <- gp_start_scan_units(obj, scanned, frame, val, keep)$par
+  if (length(alt) == length(out$par) && all(is.finite(alt))) {
+    out$env$.frmtmb_gp_alt <- c(out$env$.frmtmb_gp_alt, list(alt))
+  }
+  out
+}
+
+#' A second descent from the working marginal's next local maximum
+#' (gp_start_scan()), where it has one, and the better optimum kept. The working
+#' response is not the model, and its best maximum can start the descent in a
+#' basin of the model's that is not the best: on bernoulli, binomial and
+#' low-count Poisson rows the fit stopped 0.2 to 1.07 nats short at conv 0, and
+#' the next maximum reached the best of 15 starts (dev/arstep-findings.md).
+#'
+#' @noRd
+gp_second_descent <- function(obj, opt, control, bounds, par_units = NULL,
+                              verbose = 0L, tally = NULL) {
+  alt <- obj$env$.frmtmb_gp_alt
+  if (!length(alt)) return(opt)
+  rm(".frmtmb_gp_alt", envir = obj$env)
+  if (!all(is.finite(opt$par)) || !is.finite(opt$objective)) return(opt)
+  saved <- obj_state_save(obj)
+  best <- opt
+  for (p in alt) {
+    o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
+                               start_par = p, tally = tally),
+                  error = function(e) NULL)
+    if (!is.null(o) && all(is.finite(o$par)) && is.finite(o$objective) &&
+          best$objective - o$objective > 1e-10 * max(1, abs(best$objective))) {
+      best <- o
+    }
+  }
+  obj_settle(obj, opt, best, saved)
+  gain <- opt$objective - best$objective
+  if (verbose) {
+    vb_say("exact gp(): ", length(alt), " more start(s), gained ",
+           format(gain, digits = 3), " in log-likelihood")
+  }
+  best$gp_second <- c(runs = length(alt), gain = gain)
+  # every optimizer run is in the count, the lost one too: se_check_at_fit()
+  # weighs the fit-time Hessian against it
+  if (!is.null(tally)) {
+    best$evals <- tally$evals
+    if (!is.null(best$nonfinite_trials)) best$nonfinite_trials <- tally$n
+  }
+  best
 }
 
 #' The best of a few length scales, read from the objective with each field's

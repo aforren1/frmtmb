@@ -1,3 +1,65 @@
+# frmtmb (development version)
+
+## Bug fixes
+
+* BREAKING: an exact `gp()` in a parameter of a nonlinear body, such as
+  `bf(y ~ a + b * z, a ~ gp(x), b ~ 1, nl = TRUE)`, starts at the maximum
+  of the marginal of the body made linear at its start. Before, the field
+  had no warm start. `frm()` also descends from the old start and keeps
+  the better fit, so no fit reads lower than before. On 192 test fits of
+  12 bodies, `frm()` stopped short on 56, by up to 290 nats, with return
+  code 0 and no warning. Now 9 stop short, by up to 36.5 nats, also with no
+  warning, and none reads below its old value. 5 of the 9 are low-count
+  Poisson fits, where the linear spelling `y ~ z + gp(x)` stops at the
+  same value (see the Limits of 0.79.0). On a gaussian body additive in
+  the field's parameter (`a + b * z`, `a + b * z^2`, `a ~ gp(x) + (1 | g)`,
+  `a ~ gp(x, by = f)`) no fit stops short, which closes the gap of a
+  nonlinear body that the Limits of 0.79.0 name, 98.5 nats on a trend
+  plus a wiggle. With a `start` of your own the field starts as before.
+  These fits take about 2 to 2.2 times as long.
+
+* BREAKING: `frm()` now leaves a ridge that the restart from a saddle did
+  not reach, on a model with two or more nonlinear bodies. The restart
+  moved only the body that was constant; when the restarted fit still
+  warns that it may not have converged, `frm()` now also moves the other
+  bodies. `nlf(mu ~ b1 * exp(b2 * x))` beside
+  `nlf(disc ~ exp(d1 * d2 * z))` under `cumulative()` stopped at the
+  linear limit of `exp()`, at log-likelihood -377.03 with return code 1,
+  where a start reaches -371.54. On 30 such fits, 20 stopped short by up
+  to 5.3 nats, each with a warning. Now none does. These fits take about
+  1.4 times as long. A model with one body does not change.
+
+* BREAKING: `frm()` fits `mi()` on the response beside a latent residual
+  when no other density reads the missing values. Before, it refused this
+  model with a reason that is false for it. Those rows leave the
+  objective, and the latent residual of such a row has no observation. On
+  lognormal the log-likelihood is the exact marginal of the observed rows
+  to 1e-8. `frm()` still refuses the model when another response reads
+  the missing values (`bf(w ~ mi(y))`).
+
+## Performance
+
+* The standard errors of an exact `gp()` fit of a gaussian response come
+  from the gradient of the model's marginal, where that is the objective
+  and its covariance is well conditioned. The gradient of the fit's own
+  objective solves for the field each time. At 500 positions `frm()` and
+  `summary()` together took 34.2 s against 53.0 s, and the Hessian alone
+  2.1 s against 37.2 s; over three runs at 500 positions and at 2000 rows
+  the Hessian's time fell by a factor of 14 to 18. At 100 positions the
+  factor is 3.5, and the fit as a whole does not change measurably. On
+  377 test fits the standard errors moved by at most 2.2e-8 of their
+  value, and no standard error changed between a number and `NaN`. Where
+  the noise is small against the field, the marginal loses digits, so
+  these fits keep the old route.
+
+## Limits
+
+* A body that multiplies the field's parameter is reached only in part.
+  `a * exp(b * z)` with `a ~ gp(x)` stops 36.5 nats short on 1 of 12 test
+  fits, and `a * exp(b * z)` with `b ~ gp(x)` 5.2 nats on 1 of 12, with
+  return code 0 and no warning, as before. A `start` for `theta` is how
+  to check such a fit.
+
 # frmtmb 0.79.1
 
 * `residuals(type = "osa")` on `beta_binomial()` always stops with a

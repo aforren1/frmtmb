@@ -4661,6 +4661,36 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round opened 2026-11-06
+
+### fitedge (dev/fitedge-findings.md, dev/reviews/2026-11-06-fitedge.md)
+
+- **An exact `gp()` in a body multiplicative in the field's parameter stops
+  short with no warning.** `a * exp(b * z)` with `a ~ gp(x)`: 12 fresh rows,
+  4 short on 0.79.1 and 3 on the lane, worst -44.10 on both (E wig n 120
+  seed 1: 29.30 against 73.40), conv 0, no warning. The logistic body
+  `a / (1 + exp(-b * (z - c)))`: 2 of 12 short, worst -14.72, both builds.
+  `a * exp(b * z)` with `b ~ gp(x)`: 1 of 12, -5.24. The body start
+  (`gp_body_start()`) linearizes at the template's zeros, where the field's
+  scale `J_a` is not the fit's. Designs: `dev/review-fitedge-designs.R`,
+  `set.seed(52000 + 100 seed + n + 10 design + curve)`.
+- **`frmtmb_latres_laplace` is decided by rounding.** On 3 of 21 pairs of an
+  unread `mi()` response and its weight-0 spelling, it fires on one spelling
+  and not the other, every estimate equal to 7 digits (lognormal `ar(t, g)`
+  seed 1, Gamma `ma(cov = TRUE)` seed 3, weibull `ar(cov = TRUE)` seed 3;
+  `dev/review-fitedge-mi.R`, `set.seed(73000 + seed)`).
+- **`frmtmb_latres_laplace` fires on lognormal, where Laplace is exact.**
+  `y | mi() ~ x + ar(t, g, cov = TRUE)` and its weight-0 spelling, seeds
+  40401, 40403, 40405 (`dev/fitedge-mi-latres.R`): "no curvature to read its
+  first-order correction" and "moves log(sderr) or ar[1] by 0.4". The
+  correction differences `h3`, `h4` that are 0 in exact arithmetic, against a
+  covariance near singular where sigma and sderr trade off.
+- **skew_normal with three bodies (mu, sigma, alpha) stops 68 to 86 nats
+  short on 3 of 16 rows**, with a false-convergence warning, on 0.79.1 and the
+  lane alike; 2 more are 1.2 nats short with only a standard-error warning
+  (`dev/review-fitedge-nl.R tri`, `gen(seed * 100 + 7, slope)`, seeds 1 to 4,
+  slopes +-0.6).
+
 ## Filed at the 0.79.1 release (2026-11-05)
 
 - **`residuals(type = "osa")` on `binomial()` reads NaN with no warning.** 11 of

@@ -1251,13 +1251,24 @@ latres_refuse_laplace <- function(spec, frame) {
     resp <- spec$responses[[a[["ac"]][["resp"]]]]
     fam <- resp$family
     lab <- a[["ac"]][["label"]]
-    # two latent vectors in one inner problem, which no measurement has read
-    if (isTRUE(resp$aterms[["mi"]])) {
+    # A missing value no other density reads leaves the objective first
+    # (mi_ml_frame()), and its row's latent is then one with no observation
+    # (dev/fitedge-findings.md, item 4). A read value of a predictor, `mi(xm)`,
+    # shares the inner problem with the latents too, and there the fit is the
+    # exact marginal on lognormal to 5e-7 on 5 seeds; a read value of the
+    # response itself sits in its own density beside its row's latent, which
+    # nobody has measured (dev/fitedge-findings.md, fix round, m3)
+    rn <- resp$resp_name %||% a[["ac"]][["resp"]]
+    if (isTRUE(resp$aterms[["mi"]]) &&
+          length(mi_ml_frame(frame)[["mi_map"]][[rn]][["rows"]])) {
       frm_stop(lab, ": mi() on the response cannot be combined with a latent ",
-               "residual on frm(). The imputed values and the latents would ",
-               "share one inner problem, and that Laplace approximation has ",
-               "not been measured against an exact value. frm_sample() ",
-               "samples the model", call. = FALSE)
+               "residual on frm() where another density reads its missing ",
+               "values. Each such value would sit in the response's own ",
+               "density beside its row's latent, in one inner problem, and ",
+               "that Laplace approximation has not been measured against an ",
+               "exact value (a missing predictor read through mi() has been, ",
+               "on lognormal). ",
+               "frm_sample() samples the model", call. = FALSE)
     }
     if (!isTRUE(a[["on_response"]])) next
     frm_stop(

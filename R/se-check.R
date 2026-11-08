@@ -56,6 +56,10 @@ fit_outer_hessian <- function(fit, pull = NULL) {
   on.exit(obj_state_restore(obj, saved), add = TRUE)
   hx <- if (!length(obj$env$random)) outer_hessian_ad(obj, at)
   pn <- names(fit$opt$par)
+  # the same differences, of a gradient that needs no inner solve where the
+  # objective is the marginal of an exact gp() (gp_marginal_outer_gr())
+  gr <- if (is.null(hx)) gp_marginal_outer_gr(fit, at)
+  if (is.null(gr)) gr <- obj$gr
   out <- if (!is.null(hx)) {
     # u is a diagonal scaling, so Hq is the exact Hessian in the
     # optimizer's units to one rounding per entry
@@ -63,10 +67,10 @@ fit_outer_hessian <- function(fit, pull = NULL) {
          Hq = if (scaled) hx$H * outer(u, u),
          E = hx$E, exact = TRUE)
   } else if (!scaled) {
-    h <- fd_hessian(at, obj$gr, eps = outer_fd_steps(fit$frame, pn))
+    h <- fd_hessian(at, gr, eps = outer_fd_steps(fit$frame, pn))
     list(H = h$H, at = at, Hq = NULL, E = h$E)
   } else {
-    h <- fd_hessian(at / u, function(q) obj$gr(q * u) * u,
+    h <- fd_hessian(at / u, function(q) gr(q * u) * u,
                     eps = outer_fd_steps(fit$frame, pn, u))
     list(H = h$H / outer(u, u), at = at, Hq = h$H,
          E = h$E / outer(u, u))

@@ -197,7 +197,10 @@ test_that("what the marginal's gate refuses reaches the maximum all the same", {
     list(y ~ gp(x), start = list(beta = 5)),
     list(bf(y ~ mi(zm) + gp(x)) + bf(zm | mi() ~ 1) + set_rescor(FALSE)),
     list(y ~ me(zo, s) + gp(x)),
-    list(y ~ mo(o) + gp(x))
+    list(y ~ mo(o) + gp(x)),
+    # a field in a parameter of a nonlinear body: 100.4 nats short on 0.79.1
+    # (dev/fitedge-findings.md, item 1)
+    list(bf(y ~ a + b * z, a ~ gp(x), b ~ 1, nl = TRUE))
   )
   for (sp in specs) {
     a <- c(sp[1L], list(data = gs_edge), sp[-1L])
@@ -541,4 +544,178 @@ test_that("retaping a fit outside any scope keeps the tape's settings", {
   expect_equal(fit$obj$fn(fit$opt$par), v0, tolerance = 1e-10)
   expect_equal(as.numeric(fit$obj$gr(fit$opt$par)), as.numeric(g0),
                tolerance = 1e-6)
+})
+
+test_that("the outer Hessian of an exact gp() reads the marginal's gradient", {
+  # each gradient of the z tape is an inner solve over a dense Hessian: 11.3 s
+  # of a 25 s fit at 500 positions (dev/fitedge-findings.md, item 3)
+  hess <- function(fit) {
+    g0 <- fit$obj$gr
+    n_gr <- 0L
+    fit$obj$gr <- function(...) {
+      n_gr <<- n_gr + 1L
+      g0(...)
+    }
+    env <- fit$obj$env
+    rm(list = intersect(".frmtmb_outer_h", ls(env, all.names = TRUE)),
+       envir = env)
+    h <- frmtmb:::fit_outer_hessian(fit)
+    # the z tape's own differences at the same steps, for reference
+    pn <- names(fit$opt$par)
+    u <- fit$par_units
+    ref <- if (is.null(u) || all(u == 1)) {
+      frmtmb:::fd_hessian(h$at, g0,
+                          eps = frmtmb:::outer_fd_steps(fit$frame, pn))$H
+    } else {
+      frmtmb:::fd_hessian(h$at / u, function(q) g0(q * u) * u,
+                          eps = frmtmb:::outer_fd_steps(fit$frame, pn, u))$H /
+        outer(u, u)
+    }
+    list(n = n_gr, H = h$H, ref = ref)
+  }
+  ok <- c("Optimizer did not report", "gradient", "Standard errors are not")
+  fit <- allow_warnings(frm(y ~ z + gp(x), data = gs_edge), ok)
+  h <- hess(fit)
+  expect_identical(h$n, 0L)
+  expect_lt(max(abs(h$H - h$ref)), 1e-6 * max(abs(h$ref)))
+  # the guard's absent case: a prior is another objective, and so is a family
+  # with no closed form; both keep the z tape
+  fp <- allow_warnings(
+    frm(y ~ z + gp(x), data = gs_edge,
+        prior = set_prior("normal(0, 1)", class = "b")), ok)
+  expect_null(frmtmb:::gp_marginal_outer_gr(fp, fp$opt$par))
+  expect_gt(hess(fp)$n, 0L)
+  d <- gs_edge
+  d$k <- stats::rpois(nrow(d), exp(1 + 0.3 * sin(d$x)))
+  fk <- allow_warnings(frm(k ~ gp(x), data = d, family = poisson()), ok)
+  expect_null(frmtmb:::gp_marginal_outer_gr(fk, fk$opt$par))
+  expect_gt(hess(fk)$n, 0L)
+  # and a covariance too ill conditioned for the marginal's rounding: at noise
+  # 1e-3 on 2 sin(3x) + x its standard errors were 35 percent off an exact
+  # Hessian, and the z tape's 3e-5
+  set.seed(1)
+  x <- round(stats::runif(80L, 0, 10), 3)
+  f1 <- gs_fit(data.frame(x = x, y = 2 * sin(3 * x) + x +
+                            1e-3 * stats::rnorm(80L)))
+  expect_null(frmtmb:::gp_marginal_outer_gr(f1, f1$opt$par))
+  expect_gt(hess(f1)$n, 0L)
+})
+
+# rows of the body sweeps: dev/fitedge-gpbody-sweep.R (`fe`) and
+# dev/review-fitedge-designs.R (`rv`), same seeds and draws
+gs_fe_row <- function(seed, n, curve, body) {
+  set.seed(18000 + 100 * seed + n + match(curve, c("sin", "wig", "exp")))
+  x <- sort(stats::runif(n, 0, 10))
+  z <- stats::rnorm(n)
+  w <- stats::runif(n, 1, 2)
+  f <- switch(curve, sin = sin(x), wig = 2 * sin(3 * x) + x)
+  y <- switch(body,
+              A = f + 0.3 * z + 0.1 * stats::rnorm(n),
+              C = exp(0.5 + 0.5 * f / max(abs(f))) + 0.3 * z +
+                0.1 * stats::rnorm(n))
+  data.frame(x, z, w, y)
+}
+gs_rv_row <- function(design, seed, n, ci) {
+  di <- c(E = 1L, F = 2L, K = 7L)[[design]]
+  set.seed(52000 + 100 * seed + n + 10 * di + ci)
+  x <- sort(round(stats::runif(n, 0, 10), 3))
+  z <- round(stats::rnorm(n), 3)
+  g <- factor(sample(1:8, n, TRUE))
+  fby <- factor(sample(c("p", "q"), n, TRUE))
+  f <- switch(ci, sin(x), 2 * sin(3 * x) + x, exp(0.3 * x))
+  fs <- f / max(abs(f))
+  ge <- stats::rnorm(8, 0, 0.5)[g]
+  y <- switch(design,
+              E = (2 + fs) * exp(0.4 * z) + 0.1 * stats::rnorm(n),
+              F = (3 + fs) / (1 + exp(-1.5 * (z - 0.2))) +
+                0.1 * stats::rnorm(n),
+              K = stats::rgamma(n, 5, 5 / exp(0.5 + 0.5 * fs + 0.3 * z)))
+  data.frame(x, z, g, fby, y)
+}
+gs_ll <- function(...) {
+  as.numeric(logLik(allow_warnings(frm(...), c("Optimizer did not report",
+                                               "gradient",
+                                               "Standard errors are not"))))
+}
+# 0.79.1's start for a body's field: the body start switched off
+gs_ll_off <- function(...) {
+  local_mocked_bindings(gp_body_start = function(...) NULL, .package = "frmtmb")
+  gs_ll(...)
+}
+
+test_that("a field in a body never ends below the start it replaced", {
+  # Gamma(log) `a + b * z` read 3.30 nats below 0.79.1 with the body start
+  # alone; the scan's start now descends too and the better fit is kept
+  # (dev/reviews/2026-11-06-fitedge.md, B1)
+  dK <- gs_rv_row("K", 1L, 60L, 3L)
+  fK <- bf(y ~ a + b * z, a ~ gp(x), b ~ 1, nl = TRUE)
+  l0 <- gs_ll_off(fK, data = dK, family = Gamma(link = "log"))
+  l1 <- gs_ll(fK, data = dK, family = Gamma(link = "log"))
+  expect_gt(l1, l0 - 1e-6 * abs(l0))
+  # a caller's start is the caller's: from c = 8 the body start read 125 nats
+  # below 0.79.1
+  dF <- gs_rv_row("F", 1L, 60L, 2L)
+  fF <- bf(y ~ a / (1 + exp(-b * (z - c))), a ~ gp(x), b ~ 1, c ~ 1,
+           nl = TRUE)
+  st <- list(beta = c("c_(Intercept)" = 8))
+  l0 <- gs_ll_off(fF, data = dF, start = st)
+  l1 <- gs_ll(fF, data = dF, start = st)
+  expect_lt(abs(l1 - l0), 1e-8 * abs(l0))
+})
+
+test_that("the body start reads every coefficient, in one step", {
+  # from y alone, `a + b * z` stopped 0.44 nats below `y ~ z + gp(x)`, which
+  # is the same model, and `exp(a) + b * z` 17 nats below the best of 12
+  # starts; a second step left `a * exp(b * z)` 44 nats below it
+  # (dev/fitedge-findings.md, item 1 and fix round)
+  dA <- gs_fe_row(2L, 60L, "sin", "A")
+  lin <- gs_ll(y ~ z + gp(x), data = dA)
+  body <- gs_ll(bf(y ~ a + b * z, a ~ gp(x), b ~ 1, nl = TRUE), data = dA)
+  expect_lt(abs(body - lin), 1e-6 * abs(lin))
+  dC <- gs_fe_row(2L, 60L, "wig", "C")
+  fC <- bf(y ~ exp(a) + b * z, a ~ gp(x), b ~ 1, nl = TRUE)
+  best <- -Inf
+  for (rho in c(0.15, 0.5, 1.5, 5)) for (sd0 in c(0.3, 1, 3)) {
+    v <- tryCatch(gs_ll(fC, data = dC,
+                        start = list(theta = c(log(sd0), log(rho)))),
+                  error = function(e) -Inf)
+    best <- max(best, v)
+  }
+  expect_gt(gs_ll(fC, data = dC), best - 1e-5 * abs(best))
+  dE <- gs_rv_row("E", 1L, 120L, 2L)
+  fE <- bf(y ~ a * exp(b * z), a ~ gp(x), b ~ 1, nl = TRUE)
+  best <- -Inf
+  for (rho in c(0.15, 0.5, 1.5, 5)) for (sd0 in c(0.3, 1, 3)) {
+    v <- tryCatch(gs_ll(fE, data = dE,
+                        start = list(theta = c(log(sd0), log(rho)))),
+                  error = function(e) -Inf)
+    best <- max(best, v)
+  }
+  expect_gt(gs_ll(fE, data = dE), best - 1e-5 * abs(best))
+})
+
+test_that("a caller's start turns the body start off on every refit path", {
+  # frm_allfit(), the autoscale pre-fit and refit(newresp =) forwarded a
+  # caller's `start` with the body start still on
+  # (dev/reviews/2026-11-06-fitedge.md, short check, m1)
+  dF <- gs_rv_row("F", 1L, 60L, 2L)
+  fF <- bf(y ~ a / (1 + exp(-b * (z - c))), a ~ gp(x), b ~ 1, c ~ 1,
+           nl = TRUE)
+  n_body <- 0L
+  real <- frmtmb:::gp_body_start
+  local_mocked_bindings(gp_body_start = function(...) {
+    n_body <<- n_body + 1L
+    real(...)
+  }, .package = "frmtmb")
+  ok <- c("Optimizer did not report", "gradient", "Standard errors are not")
+  # the absent case: no start of the caller's, and the body start runs
+  allow_warnings(frm(fF, data = dF), ok)
+  expect_gt(n_body, 0L)
+  n_body <- 0L
+  fit <- allow_warnings(frm(fF, data = dF,
+                            start = list(beta = c("c_(Intercept)" = 8))), ok)
+  expect_identical(n_body, 0L)
+  af <- frm_allfit(fit, optimizers = "nlminb", start_from_mle = FALSE)
+  expect_identical(n_body, 0L)
+  expect_s3_class(af, "frmtmb_allfit")
 })

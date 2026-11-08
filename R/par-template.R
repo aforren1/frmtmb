@@ -735,6 +735,20 @@ nl_flat_warning <- function(held) {
   }, NA))
 }
 
+#' Do these held warnings say the stop may not be the maximum: the optimizer's
+#' code, a gradient left at the stop, or a gradient that is not finite there
+#' (check_convergence())? By class, so a reworded message cannot turn the
+#' ridge pass off. "Hessian is not positive definite" is a standard-error
+#' verdict and is left out.
+#'
+#' @noRd
+nl_stop_warning <- function(held) {
+  any(vapply(held, function(w) {
+    inherits(w, c("frmtmb_conv_code", "frmtmb_conv_gradient",
+                  "frmtmb_conv_gradient_nonfinite"))
+  }, NA))
+}
+
 #' The restarts of one round: the highest fit above `floor`, with its held
 #' warnings, or `NULL` in `best`.
 #'
@@ -844,9 +858,11 @@ nl_fit_off_saddle <- function(run, frame, start, prior) {
   # on a flat direction the first body's patterns move them all and settle it
   todo <- if (on_saddle) seq_along(bodies) else 1L
   pass_first <- TRUE
+  ridge <- FALSE
   repeat {
     for (k in todo) {
-      starts <- nl_saddle_starts(frame, bodies, start, k, best)
+      starts <- nl_saddle_starts(frame, bodies, start, k,
+                                 if (ridge) NULL else best)
       # the first body's base pattern has already moved this one
       if (pass_first && k > 1L) starts <- starts[-1L]
       res <- nl_restart_round(run, starts, best_ll,
@@ -859,12 +875,28 @@ nl_fit_off_saddle <- function(run, frame, start, prior) {
       best_ll <- res$ll
       best_held <- res$held
     }
+    ridge <- FALSE
     if (is.null(best)) break
     look <- nl_saddle_find(best, use_curvature = use_curv)
     left <- look$saddle
     fresh <- Filter(function(b) {
       !key(b) %in% vapply(bodies, key, "")
     }, left)
+    # a kept restart that still warns can have a body it did not move on a
+    # ridge: `b1 * exp(b2 * x)` beside a saddle on `disc` ran to the linear
+    # limit from its zeros, -377.03 at code 1 against -371.54 from a move
+    # (dev/fitedge-findings.md, item 2). Every body moves then, since the kept
+    # ones sit where the ridge left them: disc at d2 = 1499. Only a warning
+    # that the stop is not the maximum asks for it: a product body always holds
+    # "Standard errors are not available", and on two gaussian responses with
+    # four bodies the pass cost 1.5 times for nothing
+    # (dev/reviews/2026-11-06-fitedge.md, m2)
+    if (!length(fresh) && nl_stop_warning(best_held)) {
+      fresh <- Filter(function(b) {
+        !key(b) %in% vapply(bodies, key, "")
+      }, nl_all_bodies(frame))
+      ridge <- length(fresh) > 0L
+    }
     if (!length(fresh)) break
     todo <- length(bodies) + seq_along(fresh)
     bodies <- c(bodies, fresh)
@@ -898,6 +930,21 @@ nl_fit_off_saddle <- function(run, frame, start, prior) {
   release()
   nl_saddle_warning(frame, left, ll0)
   fit
+}
+
+#' Every body with coefficients, in nl_saddle_find()'s form.
+#'
+#' @noRd
+nl_all_bodies <- function(frame) {
+  out <- list()
+  for (lp in frame[["linpreds"]]) {
+    if (is.null(lp[["nl_body"]])) next
+    bc <- nl_body_coefs(frame, lp)
+    if (length(bc$coefs)) {
+      out[[length(out) + 1L]] <- list(lp = lp, coefs = bc$coefs, seen = bc$seen)
+    }
+  }
+  out
 }
 
 #' Which of `bodies` are constant at `fit`'s estimates: a restart's message

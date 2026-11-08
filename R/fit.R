@@ -1067,7 +1067,10 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                   objective_only = identical(dry_run, "objective"),
                   # the user's own call is the one place a placed start is
                   # news; refit(), influence and the pre-fit are not
-                  announce_start = announce, check_se = TRUE)
+                  announce_start = announce, check_se = TRUE,
+                  # the caller's `start`, not a saddle restart's moved one,
+                  # decides the body start (gp_start_scan())
+                  gp_body = is.null(start))
   }
   has_body <- any(vapply(frame[["linpreds"]], function(lp) {
     !is.null(lp[["nl_body"]])
@@ -1271,7 +1274,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                           template = NULL, data2 = list(),
                           objective_only = FALSE,
                           announce_start = FALSE,
-                          check_se = announce_start) {
+                          check_se = announce_start,
+                          gp_body = is.null(start)) {
   lower_arg <- lower
   upper_arg <- upper
   vb <- verbose_level(control)
@@ -1323,7 +1327,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                         upper = upper_arg, prior = prior,
                         quadrature = quadrature, importance = importance,
                         template = tpl, data2 = data2,
-                        announce_start = announce_start, check_se = FALSE)
+                        announce_start = announce_start, check_se = FALSE,
+                        gp_body = gp_body)
         }, control, pre$template, vb)
       if (check_se) {
         se_check(fit, control)
@@ -1618,7 +1623,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   } else if (is.null(integrate)) {
     obj <- gp_start_scan(obj, template, frame, start, to_beta = function(b) {
       if (is.null(bw)) b else beta_whiten_map(b, bw, inv = TRUE)
-    })
+    }, body = gp_body)
     opt <- fit_error_context(
       spec, start, REML, control, quadrature, prior,
       tryCatch(optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb,
@@ -1642,6 +1647,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                  }
                  stop(e)
                }))
+    opt <- gp_second_descent(obj, opt, ctl_opt, bounds, par_units,
+                             verbose = vb, tally = tally)
   } else {
     qf <- quad_fit(nll, template, random, frame[["map"]], integrate, lap_obj,
                    ctl_opt, bounds, par_units, frame, vb)
@@ -5169,11 +5176,11 @@ check_convergence <- function(fit, control) {
              "is rarely in the right region (see par_template())")
     } else ""
     if (!gp_ok) {
-      msgs <- c(msgs, paste0("Optimizer did not report convergence: ",
-                             fit$opt$message, nl_hint,
-                             if (is.null(fit$importance)) {
-                               conv_headroom_clause(room, control$grad_tol)
-                             }))
+      msgs <- c(msgs, frmtmb_conv_code = paste0(
+        "Optimizer did not report convergence: ", fit$opt$message, nl_hint,
+        if (is.null(fit$importance)) {
+          conv_headroom_clause(room, control$grad_tol)
+        }))
     }
   }
   if (!is.null(fit$importance)) {
@@ -5207,7 +5214,9 @@ check_convergence <- function(fit, control) {
     # much log likelihood one Newton step would still buy. See
     # grad_verdict().
     v <- grad_verdict(fit, gvec, control)
-    if (isTRUE(v$warn)) msgs <- c(msgs, grad_warning_msg(v))
+    if (isTRUE(v$warn)) {
+      msgs <- c(msgs, frmtmb_conv_gradient = grad_warning_msg(v))
+    }
   } else if (is.null(sep) && !is.null(gvec) && length(gvec) &&
                any(!is.finite(gvec))) {
     # A gradient that is not finite at the reported optimum used to pass
@@ -5216,7 +5225,7 @@ check_convergence <- function(fit, control) {
     # X-convergence on a three-component ordinal mixture whose probit
     # component saturated, gradient Inf; dev/ordmix-rev-probit-sat.R).
     bad <- names(fit$opt$par)[!is.finite(gvec)]
-    msgs <- c(msgs, paste0(
+    msgs <- c(msgs, frmtmb_conv_gradient_nonfinite = paste0(
       "The gradient at the reported optimum is not finite (",
       paste(unique(bad), collapse = ", "), "), so convergence could not ",
       "be checked: the objective's derivative is undefined there, which ",
@@ -5236,6 +5245,11 @@ check_convergence <- function(fit, control) {
                            "errors are unreliable. The model may be ",
                            "overparameterized", flat_par_note(fit)))
   }
-  for (m in msgs) frm_warning(m, call. = FALSE)
-  invisible(list(grad = g, warnings = msgs, at_max = at_max))
+  # the stop warnings carry a class, which nl_stop_warning() reads
+  for (i in seq_along(msgs)) {
+    cl <- names(msgs)[i]
+    frm_warning(msgs[[i]], call. = FALSE,
+                class = if (isTRUE(nzchar(cl))) cl)
+  }
+  invisible(list(grad = g, warnings = unname(msgs), at_max = at_max))
 }
