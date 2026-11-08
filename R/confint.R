@@ -612,6 +612,8 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
     frm_stop("confint(method = '", method, "') needs a fit without ",
              "frmtmb_control(profile = TRUE)", call. = FALSE)
   }
+  quad_nested_refuse_profile(object, paste0("confint(method = '",
+                                            method, "')"))
   if (is.null(parm)) {
     frm_stop("`parm` is required for method = '", method, "'", call. = FALSE)
   }
@@ -2936,6 +2938,9 @@ prior_table_slots <- function(x) {
 #' @export
 profile.frmtmb_fit <- function(fitted, parm, ...) {
   require_fit_packages(fitted)
+  # before `parm` is read: a nested fit refuses every parameter, so a
+  # missing one is not the error to report
+  quad_nested_refuse_profile(fitted, "profile()")
   nm <- outer_par_names(fitted)
   idx <- resolve_par_index(fitted, parm, "profile")
   out <- lapply(idx, function(i) {
@@ -4256,6 +4261,7 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
                  "the fixed effects out of the outer problem)",
                  call. = FALSE)
       }
+      quad_nested_refuse_profile(x, "hypothesis(method = 'profile')")
       if (isTRUE(x$control$profile)) {
         frm_stop("hypothesis(method = 'profile') needs a fit without ",
                  "frmtmb_control(profile = TRUE)", call. = FALSE)

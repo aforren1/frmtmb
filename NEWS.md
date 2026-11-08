@@ -1,3 +1,37 @@
+# frmtmb (development version)
+
+* BREAKING: `frm(quadrature = TRUE)` integrates two nested random-effect
+  blocks, such as `(1 | school/class)`. Before, frmtmb refused a model in
+  which a row reads more than one block. The new route integrates the
+  inner block inside each level of the outer block with Gauss-Hermite
+  rules that the Laplace fit centers and scales, and re-anchors the
+  rules at the estimate. Against independent references the
+  log-likelihood error at the default nodes was 9e-11 to 7e-6 on seven
+  designs with standard deviations near 1, and 5e-4 to 6e-4 with an
+  inner standard deviation near 3 or an outer one of 3; on a
+  near-separable response it was 1.7e-2, and the fit warned that its
+  rule did not settle. The Laplace error on the same designs was 0.07
+  to 1.4. More nodes do not always reduce the error on the hard designs.
+* A nested fit whose rules do not settle at the estimate warns with
+  class `frmtmb_quad_unsettled`. Profile and root-search intervals
+  (`confint(method = "profile")`, `"uniroot"`, `profile()`,
+  `hypothesis(method = "profile")`, `conditional_effects(band =
+  "profile")`) and `ranef(condVar = TRUE)` stop on a nested fit with
+  class `frmtmb_quad_nested_unsupported`; Wald and bootstrap intervals
+  work.
+* frmtmb still refuses crossed blocks, `(1 | g) + (1 | h)`, and says that
+  their integral does not factor. It also refuses three or more blocks,
+  and two blocks on different predictors, such as `(1 | g)` in `mu` and
+  in `sigma`, each with its reason. `(1 + x || g)` is one block of two
+  coefficients and is refused; the message says to write it as
+  `(1 | g) + (0 + x | g)`, which the nested route integrates.
+* New `frmtmb_control(quad_nodes = )` sets the nodes per level of the
+  nested route (default 11 outer, 15 inner). New
+  `frmtmb_control(quad_max_gb = )` (default 4) limits its memory: the
+  fit predicts the memory from small probe tapes and measured costs per
+  family, and stops before the Laplace warm start when the prediction
+  is above the limit.
+
 # frmtmb 0.79.1
 
 * `residuals(type = "osa")` on `beta_binomial()` always stops with a

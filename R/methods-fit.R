@@ -1864,6 +1864,17 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   # what it reports is the PROJECTED variance, and the projection
   # subtracts a variance
   cvr <- NULL
+  if (condVar && !is.null(object[["quad_nested"]])) {
+    # the nested tape carries no random effects, and sdreport() has no
+    # conditional variance of them to give; dropping condSD would look
+    # like a fit without the attribute
+    frm_stop("ranef(condVar = TRUE) is not available on a fit whose ",
+             "quadrature = TRUE integrates nested blocks: its objective ",
+             "carries no random effects, so there is no conditional ",
+             "variance of them to report. ranef() gives the modes; refit ",
+             "with quadrature = FALSE for the Laplace conditional SDs",
+             call. = FALSE, class = "frmtmb_quad_nested_unsupported")
+  }
   if (condVar) {
     sdr <- sdr_of(object)
     dcr <- sdr$diag.cov.random

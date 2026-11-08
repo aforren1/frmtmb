@@ -1266,6 +1266,7 @@ ce_profile_check <- function(x, rspec, lp, dpar_given, categorical) {
 #' @noRd
 ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
                               profile_points) {
+  quad_nested_refuse_profile(x, "conditional_effects(band = 'profile')")
   ed <- lp_eta_design(x, lp, nd, FALSE, FALSE)
   comp <- ce_outer_comp(x)
   par <- x$opt$par

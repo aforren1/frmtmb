@@ -204,12 +204,35 @@ set by the prior alone, so a weak prior gives very wide intervals.}
 adaptive Gauss-Kronrod quadrature instead of the Laplace
 approximation (the \code{glmer(nAGQ = k)} analogue; matches it in
 tests). Worth it for Bernoulli responses with small clusters,
-where Laplace biases variance components. Scalar random-intercept
-models only, and not with \code{mi()}, \code{trunc()}, \code{REML = TRUE}, or
-\code{frmtmb_control(profile = TRUE)}. A row may read one block only:
-nested blocks, \code{(1 | ga/gb)}, crossed blocks, \code{(1 | g) + (1 | h)},
-and \code{(1 | g)} in both \code{mu} and \code{sigma} are refused, as lme4
-refuses \code{nAGQ > 1} for more than one term. The blocks of a by-split
+where Laplace biases variance components. Scalar random effects
+only (one coefficient per level of a block), and not with \code{mi()},
+\code{trunc()}, \code{REML = TRUE}, or \code{frmtmb_control(profile = TRUE)}. A
+row may read two blocks when one is nested in the other, as in
+\code{(1 | ga/gb)}. Such a model is integrated as an iterated integral
+by Gauss-Hermite rules, \code{frmtmb_control(quad_nodes = )} nodes per
+level, centered and scaled by the Laplace fit and re-anchored at
+the estimate. That route needs exactly two blocks on the same
+predictors, one response, Gaussian blocks and per-row densities,
+and its memory is limited by \code{frmtmb_control(quad_max_gb = )}. Its
+accuracy depends on the design: against independent references the
+log-likelihood error at the default nodes was 9e-11 to 7e-6 on
+seven designs with standard deviations near 1, and 5e-4 to 6e-4
+with an inner standard deviation near 3 or an outer one of 3; on a
+near-separable response it was 1.7e-2, where the rule did not settle
+and the fit warned. More nodes do not always help on the hard
+designs. The Laplace error on the same designs was 0.07 to 1.4. A
+fit whose rule does not settle warns (class
+\code{frmtmb_quad_unsettled}) and gives the rule's own error at the
+estimate, the log-likelihood at the fit's nodes against 21 x 21 (or
+10 more per level); on such a design more nodes are not a sure
+remedy, since the error need not fall as they rise. Profile and
+root-search
+intervals and \code{ranef(condVar = TRUE)} are refused on a nested fit
+(class \code{frmtmb_quad_nested_unsupported}); Wald and bootstrap
+intervals work. Crossed blocks, \code{(1 | g) + (1 | h)}, are refused,
+because their integral does not factor into one-dimensional ones;
+so are \code{(1 | g)} in both \code{mu} and \code{sigma}, where the rule converges
+slowly, and three or more blocks on a row. The blocks of a by-split
 \code{gr(g, by = f)} each read rows of their own and are allowed. A
 plain Laplace fit runs first and the quadrature tape is built at
 its optimum: the

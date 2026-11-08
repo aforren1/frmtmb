@@ -20,7 +20,9 @@ frmtmb_control(
   importance_rounds = 5L,
   importance_ess = 0.25,
   mo_search = TRUE,
-  verbose = NULL
+  verbose = NULL,
+  quad_nodes = c(11L, 15L),
+  quad_max_gb = 4
 )
 }
 \arguments{
@@ -277,6 +279,26 @@ Use \code{suppressMessages()} to silence a verbose fit. The refit loops
 in \code{\link[=frm_bootstrap]{frm_bootstrap()}}, \code{\link[=influence]{influence()}}, and \code{\link[=frm_allfit]{frm_allfit()}} force
 \code{verbose} off, so a verbose fit does not make them print hundreds
 of lines; \code{\link[=refit]{refit()}} and \code{\link[=frm_multiple]{frm_multiple()}} report normally.}
+
+\item{quad_nodes}{Gauss-Hermite nodes per level for \code{frm(quadrature = TRUE)} over two nested blocks: one count for both levels, or the
+outer level's count and then the inner level's, from 1 to 50. The
+default \code{c(11, 15)} gives more nodes to the inner level, whose small
+groups are the least Gaussian. On 12 groups of 6 weighted Bernoulli
+rows in 24 inner groups, the log-likelihood error was 7e-6 at the
+default, 2.5e-7 at 21 nodes per level and 6e-10 at 31, against 0.85
+for the Laplace approximation. Memory and time grow with the rows
+times the product of the two counts. A model with one block per row
+does not read this setting: its rule is adaptive Gauss-Kronrod.}
+
+\item{quad_max_gb}{Limit, in GB, on the memory that \code{frm(quadrature = TRUE)} over two nested blocks may add. The fit predicts that memory
+before the Laplace warm start, from three small probe tapes and a
+cost per family measured on 20 families, and stops with a message
+that gives the prediction and the remedies when it is above the
+limit. On those families the prediction was 1.22 to 1.61 times the
+measured peak. A family not measured is predicted with the largest
+measured cost, so its prediction can be several times its peak. At
+the default nodes, 3000 Bernoulli rows took about 0.5 GB, 3000
+Student rows 5.3 GB, and 40 censored Beta rows 3.7 GB.}
 }
 \value{
 A list of control settings.

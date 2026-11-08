@@ -190,12 +190,35 @@
 #'   adaptive Gauss-Kronrod quadrature instead of the Laplace
 #'   approximation (the `glmer(nAGQ = k)` analogue; matches it in
 #'   tests). Worth it for Bernoulli responses with small clusters,
-#'   where Laplace biases variance components. Scalar random-intercept
-#'   models only, and not with `mi()`, `trunc()`, `REML = TRUE`, or
-#'   `frmtmb_control(profile = TRUE)`. A row may read one block only:
-#'   nested blocks, `(1 | ga/gb)`, crossed blocks, `(1 | g) + (1 | h)`,
-#'   and `(1 | g)` in both `mu` and `sigma` are refused, as lme4
-#'   refuses `nAGQ > 1` for more than one term. The blocks of a by-split
+#'   where Laplace biases variance components. Scalar random effects
+#'   only (one coefficient per level of a block), and not with `mi()`,
+#'   `trunc()`, `REML = TRUE`, or `frmtmb_control(profile = TRUE)`. A
+#'   row may read two blocks when one is nested in the other, as in
+#'   `(1 | ga/gb)`. Such a model is integrated as an iterated integral
+#'   by Gauss-Hermite rules, `frmtmb_control(quad_nodes = )` nodes per
+#'   level, centered and scaled by the Laplace fit and re-anchored at
+#'   the estimate. That route needs exactly two blocks on the same
+#'   predictors, one response, Gaussian blocks and per-row densities,
+#'   and its memory is limited by `frmtmb_control(quad_max_gb = )`. Its
+#'   accuracy depends on the design: against independent references the
+#'   log-likelihood error at the default nodes was 9e-11 to 7e-6 on
+#'   seven designs with standard deviations near 1, and 5e-4 to 6e-4
+#'   with an inner standard deviation near 3 or an outer one of 3; on a
+#'   near-separable response it was 1.7e-2, where the rule did not settle
+#'   and the fit warned. More nodes do not always help on the hard
+#'   designs. The Laplace error on the same designs was 0.07 to 1.4. A
+#'   fit whose rule does not settle warns (class
+#'   `frmtmb_quad_unsettled`) and gives the rule's own error at the
+#'   estimate, the log-likelihood at the fit's nodes against 21 x 21 (or
+#'   10 more per level); on such a design more nodes are not a sure
+#'   remedy, since the error need not fall as they rise. Profile and
+#'   root-search
+#'   intervals and `ranef(condVar = TRUE)` are refused on a nested fit
+#'   (class `frmtmb_quad_nested_unsupported`); Wald and bootstrap
+#'   intervals work. Crossed blocks, `(1 | g) + (1 | h)`, are refused,
+#'   because their integral does not factor into one-dimensional ones;
+#'   so are `(1 | g)` in both `mu` and `sigma`, where the rule converges
+#'   slowly, and three or more blocks on a row. The blocks of a by-split
 #'   `gr(g, by = f)` each read rows of their own and are allowed. A
 #'   plain Laplace fit runs first and the quadrature tape is built at
 #'   its optimum: the
@@ -1411,6 +1434,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   }
 
   integrate <- NULL
+  qnest <- NULL
   if (isTRUE(quadrature)) {
     if (!is.null(template[["miss"]])) {
       # the latent values of mi() and me() are one integral per value,
@@ -1429,8 +1453,33 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
         bk[["covstruct"]] %in% c("us", "diag", "homdiag", "us_t", "diag_t")
     }, TRUE)
     if (!length(scalar_iid) || !all(scalar_iid)) {
-      frm_stop("quadrature = TRUE currently supports scalar random ",
-               "intercepts only (every block must be a dim-1 us/diag term)",
+      bad <- frame[["re_blocks"]][!scalar_iid]
+      lab <- if (length(bad)) {
+        tryCatch(block_term_as_written(bad[[1L]]),
+                 error = function(e) bad[[1L]][["term_label"]])
+      }
+      # a two-coefficient diagonal block is the same model as two scalar
+      # blocks over its factor, which the nested rule integrates
+      split2 <- length(bad) && bad[[1L]][["dim"]] == 2L &&
+        bad[[1L]][["covstruct"]] %in% c("diag", "homdiag")
+      frm_stop("quadrature = TRUE integrates scalar random intercepts and ",
+               "slopes, one coefficient per level of a block (a ",
+               "dimension-1 us, diag or homdiag term), and ",
+               if (is.null(lab)) "this model has no such block" else {
+                 paste0("`", lab, "` ", if (bad[[1L]][["dim"]] > 1L) {
+                   paste0("has ", bad[[1L]][["dim"]], " coefficients per ",
+                          "level")
+                 } else {
+                   paste0("has the '", bad[[1L]][["covstruct"]], "' ",
+                          "structure")
+                 })
+               },
+               if (split2) {
+                 paste0(". Its two uncorrelated coefficients are the ",
+                        "same model as two terms, (1 | g) + (0 + x | g), ",
+                        "which quadrature integrates as nested blocks")
+               },
+               ". Fit with quadrature = FALSE, the Laplace approximation",
                call. = FALSE)
     }
     # the rule integrates one random effect at a time, and Student-t
@@ -1494,7 +1543,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     # adaptive Gauss-Kronrod marginalization per scalar random effect
     # (TMB's experimental `integrate`; the nAGQ analogue - matches
     # glmer(nAGQ = 25) in tests). Spec replicated from TMB's GK().
-    quad_check_blocks(frame)
+    # Two nested blocks on a row take the route of R/quadrature-nested.R
+    # instead, which never reads this spec.
+    qnest <- quad_check_blocks(frame)
     integrate <- list(b = structure(
       list(dim = 1, adaptive = FALSE, debug = FALSE,
            method = "marginal_gk"),
@@ -1642,6 +1693,11 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                  }
                  stop(e)
                }))
+  } else if (!is.null(qnest)) {
+    qf <- quad_nest_fit(nll, template, random, frame[["map"]], lap_obj,
+                        ctl_opt, bounds, par_units, frame, qnest, vb)
+    obj <- qf$obj
+    opt <- qf$opt
   } else {
     qf <- quad_fit(nll, template, random, frame[["map"]], integrate, lap_obj,
                    ctl_opt, bounds, par_units, frame, vb)
@@ -1684,7 +1740,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # corrected optimum is both the source of the conditional modes and
   # a complete parameter list to start from.
   est_at <- function(opt) {
-    est <- if (is.null(imp)) obj$env$parList(opt$par) else {
+    est <- if (is.null(imp) && is.null(qnest)) {
+      obj$env$parList(opt$par)
+    } else {
       solved_par_list(lap_obj, opt$par)
     }
     if (!is.null(bw)) est[["beta"]] <- beta_whiten_map(est[["beta"]], bw)
@@ -1735,6 +1793,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   )
   # the coordinates an integrated beta was taped in (beta_whitener())
   if (!is.null(bw)) fit$beta_whiten <- bw
+  # the nested route's nodes and how its re-anchoring ended; post-fit
+  # methods that cannot read the frozen tape refuse on it
+  if (!is.null(qnest)) fit$quad_nested <- qf$info
   if (is.null(imp) && is.null(integrate)) {
     esc <- sd_up_escape(fit, ctl_opt, bounds, par_units, tally)
     if (!is.null(esc)) {
@@ -1890,7 +1951,7 @@ solved_par_list <- function(obj, par) {
   obj$env$parList(par)
 }
 
-#' Refuse quadrature when a row reads more than one random-effect block.
+#' Route quadrature by the number of random-effect blocks a row reads.
 #'
 #' The Gauss-Kronrod rule integrates one scalar effect at a time. With
 #' two blocks on a row, nested or crossed, TMBad's marginal_gk
@@ -1898,14 +1959,15 @@ solved_par_list <- function(obj, par) {
 #' one-dimensional factors and leaves the rest to the Laplace
 #' approximation: over `(1 | ga/gb)` the objective equaled the Laplace
 #' one to 1e-8, and summary() failed because sdreport() cannot mix the
-#' two methods. lme4 refuses nAGQ > 1 for more than one term for the
-#' same reason. An exact route (one pass per block, inner block first)
-#' was measured and set aside: its tape grows by 12 to 551 MB per row
-#' (dev/fuzzfix-findings.md, "To file").
+#' two methods. So a row that reads two blocks goes to the nested rule
+#' of R/quadrature-nested.R, and quad_nest_plan() refuses what that rule
+#' cannot integrate (crossed blocks, more than two blocks).
 #'
 #' The count is per row, so a by-split `gr(g, by = f)`, whose blocks
 #' each read rows of their own, and an `mvbf()` with one block per
-#' response stay allowed.
+#' response stay on the Gauss-Kronrod route.
+#'
+#' Returns NULL for that route, and the nested plan otherwise.
 #'
 #' @noRd
 quad_check_blocks <- function(frame) {
@@ -1927,19 +1989,7 @@ quad_check_blocks <- function(frame) {
   per_row <- lapply(hits, rowSums)
   depth <- max(0L, vapply(per_row, max, 1))
   if (depth <= 1L) return(invisible())
-  # name the blocks that share a row, as the user wrote them
-  share <- unique(unlist(lapply(hits, function(h) {
-    which(colSums(h[rowSums(h) > 1L, , drop = FALSE]) > 0)
-  })))
-  labs <- vapply(blocks[share], block_term_as_written, "")
-  frm_stop("quadrature = TRUE integrates one scalar random effect per ",
-           "row, and here a row reads ", depth, " random-effect blocks (",
-           paste0("`", labs, "`", collapse = ", "), "). With nested or ",
-           "crossed blocks the Gauss-Kronrod rule integrates only some ",
-           "of the effects and leaves the rest to the Laplace ",
-           "approximation. lme4 refuses the same models (nAGQ > 1 needs ",
-           "a single scalar term). Fit with quadrature = FALSE, the ",
-           "Laplace approximation", call. = FALSE)
+  quad_nest_plan(frame, depth)
 }
 
 #' Which of two quadrature candidates quad_fit() keeps. A stationary one
@@ -2389,6 +2439,26 @@ sdr_of <- function(fit) {
 #'   in [frm_bootstrap()], [influence()], and [frm_allfit()] force
 #'   `verbose` off, so a verbose fit does not make them print hundreds
 #'   of lines; [refit()] and [frm_multiple()] report normally.
+#' @param quad_nodes Gauss-Hermite nodes per level for `frm(quadrature =
+#'   TRUE)` over two nested blocks: one count for both levels, or the
+#'   outer level's count and then the inner level's, from 1 to 50. The
+#'   default `c(11, 15)` gives more nodes to the inner level, whose small
+#'   groups are the least Gaussian. On 12 groups of 6 weighted Bernoulli
+#'   rows in 24 inner groups, the log-likelihood error was 7e-6 at the
+#'   default, 2.5e-7 at 21 nodes per level and 6e-10 at 31, against 0.85
+#'   for the Laplace approximation. Memory and time grow with the rows
+#'   times the product of the two counts. A model with one block per row
+#'   does not read this setting: its rule is adaptive Gauss-Kronrod.
+#' @param quad_max_gb Limit, in GB, on the memory that `frm(quadrature =
+#'   TRUE)` over two nested blocks may add. The fit predicts that memory
+#'   before the Laplace warm start, from three small probe tapes and a
+#'   cost per family measured on 20 families, and stops with a message
+#'   that gives the prediction and the remedies when it is above the
+#'   limit. On those families the prediction was 1.22 to 1.61 times the
+#'   measured peak. A family not measured is predicted with the largest
+#'   measured cost, so its prediction can be several times its peak. At
+#'   the default nodes, 3000 Bernoulli rows took about 0.5 GB, 3000
+#'   Student rows 5.3 GB, and 40 censored Beta rows 3.7 GB.
 #' @return A list of control settings.
 #'
 #' @srrstats {RE2.0} Data transformations are documented and can be turned
@@ -2459,7 +2529,8 @@ frmtmb_control <- function(optimizer = "nlminb",
                            check_mi = c("warning", "ignore", "stop"),
                            importance_seed = 1L, importance_rounds = 5L,
                            importance_ess = 0.25, mo_search = TRUE,
-                           verbose = NULL) {
+                           verbose = NULL, quad_nodes = c(11L, 15L),
+                           quad_max_gb = 4) {
   # The three flags below reach isTRUE() later, which reads a
   # string or a length-2 vector as FALSE; checking here refuses the
   # mistake instead of quietly turning the option off.
@@ -2473,6 +2544,16 @@ frmtmb_control <- function(optimizer = "nlminb",
   check_count(importance_seed, "importance_seed", min = 0L)
   check_count(importance_rounds, "importance_rounds", min = 1L)
   check_positive(importance_ess, "importance_ess")
+  # one count for both levels, or outer then inner
+  if (!is.numeric(quad_nodes) || !length(quad_nodes) %in% 1:2 ||
+        anyNA(quad_nodes) || any(quad_nodes != round(quad_nodes)) ||
+        any(quad_nodes < 1) || any(quad_nodes > 50)) {
+    frm_stop("`quad_nodes` must be one or two whole numbers from 1 to 50 ",
+             "(the Gauss-Hermite nodes of the outer and the inner level), ",
+             "not ", arg_desc(quad_nodes), call. = FALSE)
+  }
+  quad_nodes <- rep_len(as.integer(quad_nodes), 2L)
+  check_positive(quad_max_gb, "quad_max_gb")
   if (importance_ess > 1) {
     frm_stop("`importance_ess` is an effective sample size as a FRACTION ",
              "of the draw count, so it lies in (0, 1]; ",
@@ -2509,7 +2590,8 @@ frmtmb_control <- function(optimizer = "nlminb",
        importance_seed = as.integer(importance_seed),
        importance_rounds = as.integer(importance_rounds),
        importance_ess = importance_ess, mo_search = isTRUE(mo_search),
-       verbose = verbose)
+       verbose = verbose, quad_nodes = quad_nodes,
+       quad_max_gb = quad_max_gb)
 }
 
 #' lme4's lmerControl runs a battery of structural checks before the fit
