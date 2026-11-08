@@ -110,12 +110,36 @@ the data may simply have no effect there, and a \code{start} can test that. A
 message names a constant body that is a local maximum along its coefficients.
 
 A body can also have more than one true maximum, and a default start finds
-one of them. \code{b1 * exp(b2 * x)} under \code{\link[=bernoulli]{bernoulli()}} on one data set reads
--193.4967 from the default start and -189.999 from a positive \code{b1}. Nothing
-in the first fit marks it, so \code{\link[=frm]{frm()}} does not tell you. A \code{start} with
-another sign of \code{b1}, or a located prior, can show it. \code{\link[=frm_allfit]{frm_allfit()}} cannot,
-as its optimizers
-start from one point and agree on the first maximum.
+one of them. Nothing in that fit marks it. So from the default start
+\code{\link[=frm]{frm()}} also fits from each sign pattern of the coefficients that the body
+does not read as an added term, and returns the highest point. With four
+such coefficients or fewer that is every pattern; with more, every
+pattern of the four the body moves most by, so the order of the terms
+does not change the answer. A coefficient inside a curve starts where it
+moves the curve's argument by about 3 (\code{b2} near 1e-3 in
+\code{b1 * exp(b2 * x)} with \code{x} in the thousands), and one the body is linear
+in where it moves the body by about two of the response's units, each
+only where that is far from 1, else at 1. A message (class
+\code{frmtmb_nl_multistart}) says so when that point is higher than the first
+fit by more than 0.01. \code{b1 * exp(b2 * x)} under \code{\link[=bernoulli]{bernoulli()}} on one data
+set reads -193.4967 from the default start alone and -189.999 with the
+patterns. This makes a fit 1.2 to 2.8 times as slow with two or three such
+coefficients, 3.5 to 5.4 times with four, and up to 47 times with five. A
+\code{start}, or \code{options(frmtmb.nl_sign_probe = FALSE)}, skips it; a located
+prior does not. The patterns are not a proof: a \code{start} elsewhere, or a
+located prior, can still show a higher maximum. \code{\link[=frm_allfit]{frm_allfit()}} cannot, as
+its optimizers start from one point.
+
+A nonlinear coefficient that the body reads as an added term (\code{a} and \code{b}
+of \code{a + b * x}) is stepped in the units by which it moves the body, where
+these are 16 or more times from 1: \code{a * x} with \code{x} near \code{1e-20} reaches
+the maximum of \code{y ~ 0 + x}. The curvature of a normal, Student t or
+logistic prior on it is added; under another prior with a curved density,
+such as a gamma or lognormal prior, it keeps its old steps. In the sign
+patterns' runs and the refit of their winner, a coefficient inside a curve
+is stepped in its start size where that is 16 or more times from 1 and no
+prior reaches it, so \code{b2} of \code{b1 * (1 - exp(-b2 * x))} fits alike with \code{x}
+near 1 and near 1e-6.
 }
 
 \section{Two vocabularies, one model}{

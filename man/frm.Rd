@@ -110,9 +110,16 @@ names is positional and must be full length. Naming some entries
 of one vector and not others is refused.
 
 A nonlinear body can have more than one maximum, and nothing in a fit
-marks a second one. A \code{start} with other signs, or a located prior, can
-show it, and \code{\link[=frm_allfit]{frm_allfit()}} cannot, as it starts every optimizer from one
-point.}
+marks a second one. From the default start, \code{frm()} also fits from each
+sign pattern of the body's coefficients and returns the highest point
+(see "The default starting values" in \code{\link[=par_template]{par_template()}}). A \code{start}, or
+\code{options(frmtmb.nl_sign_probe = FALSE)}, skips that; a located prior
+places the start and does not skip it. The point a pattern reaches can
+itself be a second maximum: the fit then converges with no warning and
+is still below the highest one, as on 1 of 89 such fits measured (1.84
+short, where the default start alone stopped 2.29 short with a warning).
+A \code{start} elsewhere, or a located prior, can show a higher maximum;
+\code{\link[=frm_allfit]{frm_allfit()}} cannot, as it starts every optimizer from one point.}
 
 \item{control}{A list from \code{\link[=frmtmb_control]{frmtmb_control()}}.}
 

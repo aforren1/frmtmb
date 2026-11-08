@@ -168,7 +168,9 @@ flags_peak_data <- function(n_id = 10, seed = 5) {
 test_that("an sd the likelihood does not read is flat, not at zero", {
   # 0.69.0 review, item 6: the bump is zero on every row, so the sd of
   # pk's group effect (0.22) does not enter the likelihood at any value;
-  # 0.69.0 said "sd_id__pk_Intercept is at zero"
+  # 0.69.0 said "sd_id__pk_Intercept is at zero". The sign probe leaves
+  # that point (test-nl-start.R), so it is held off here
+  withr::local_options(frmtmb.nl_sign_probe = FALSE)
   d <- flags_peak_data()
   r <- flags_conds(frm(
     bf(I ~ apo - chi * logw + exp(lamp) * exp(-0.5 * ((w - pk) / exp(lsig))^2),

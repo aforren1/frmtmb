@@ -25,7 +25,10 @@ census_exempt <- c(
   "R/fit.R | fit_error_context | stop(e)",
   "R/par-template.R | nl_fit_off_saddle | warning(w)",
   "R/par-template.R | nl_fit_off_saddle | warning(w)",
-  "R/par-template.R | nl_fit_off_saddle | stop(e)")
+  "R/par-template.R | nl_fit_off_saddle | stop(e)",
+  "R/par-template.R | nl_fit_probed | warning(cnd)",
+  "R/par-template.R | nl_fit_probed | message(cnd)",
+  "R/par-template.R | nl_fit_probed | stop(e)")
 
 census_kinds <- c("stop", "warning", "message")
 # base functions that signal a base condition of their own

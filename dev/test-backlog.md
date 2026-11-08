@@ -4661,6 +4661,17 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed by lane nlstart, round of 2026-11-06
+
+- **`y ~ x` at y about 1e6 with a `normal(0, 1000)` prior on the slope
+  takes the lower of two posterior modes**: -2932.63 against -2462.96 for
+  the body spelling `a + b * x` with the same priors, on seeds 6201 to
+  6203 and on both rellib-r18 and the lane's build. Not fixed: the linear
+  spelling has no restart. `dev/reviews/2026-11-06-nlstart.md`, "Filed,
+  not this lane's"; `dev/review-nlstart-prior.R`, rows `apbx 1e6 1000`.
+- **Profile intervals at x near 1e-20 are `NA`** on the linear and body
+  spellings and on both builds (same review).
+
 ## Filed at the 0.79.1 release (2026-11-05)
 
 - **`residuals(type = "osa")` on `binomial()` reads NaN with no warning.** 11 of

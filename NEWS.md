@@ -1,3 +1,60 @@
+# frmtmb (development version)
+
+* BREAKING: a nonlinear fit from its default start also fits from each
+  sign pattern of the body's coefficients and returns the highest point.
+  When that point is higher than the first fit by more than 0.01, a
+  message of class `frmtmb_nl_multistart` says so. Before, a default fit
+  could stop at a lower maximum at return code 0 with no warning:
+  `b1 * (1 - exp(-b2 * x))` under `gaussian()` stopped at its linear
+  limit, 69 to 75 below the maximum on 5 of 5 data sets, and a
+  `bernoulli()` `b1 * exp(b2 * x)` stopped at the other sign of `b2`.
+  - The patterns vary each coefficient that the body does not read as an
+    added term, so `a + b * x` is not affected. With four such
+    coefficients or fewer, every pattern runs; with more, every pattern
+    of the four that move the body most. The order of the terms does not
+    change the result.
+  - A coefficient that moves the body far more or less than 1 per unit
+    starts at the body's scale: `b2` in `b1 * exp(b2 * x)` with `x` in
+    the thousands starts near 1e-3.
+  - On 450 fits (9 families, 5 bodies, 2 slopes, 5 seeds), 16 stopped
+    more than 1e-4 short of the best of 8 random starts, 11 of them with
+    no warning; now 0 do. On 335 other fits (15 bodies, 6 families, 5
+    seeds), 97 were short, 38 with no warning; now 11 are, 4 with no
+    warning. They are Michaelis-Menten bodies under `bernoulli()` and
+    `binomial()`, a power law under `cumulative()`, and fits that warn.
+    On these 785 fits none is lower than before.
+  - The point a pattern reaches can itself be a second maximum. The fit
+    then converges with no warning and is still short: on 1 of the 89
+    fits that the patterns raised, 1.84 short, where the default start
+    alone stopped 2.29 short with a warning. A `start` elsewhere can show
+    it.
+  - The cost is 1.2 to 2.7 times the fit time with two or three such
+    coefficients, and 3.5 times with four, on fits of 300 rows. On fits
+    of 20000 rows it is 1.5 to 2.8 times with two or three, 5.4 times
+    with four, and 47 times with five, where the fit gained 15906
+    log-likelihood units.
+  - Give `start`, or set `options(frmtmb.nl_sign_probe = FALSE)`, to
+    skip it. A located prior does not skip it.
+
+* BREAKING: a nonlinear coefficient that the body reads as an added term
+  is stepped in the units by which it moves the body, where these units
+  are 16 or more times from 1. The curvature of a normal, Student t or
+  logistic prior on it is added; under another prior with a curved
+  density, such as a gamma or lognormal prior, it keeps its old steps.
+  `a * x` with `x` near `1e-20` now reaches the maximum of `y ~ 0 + x`;
+  before, it stopped at its start, -299.33 against -272.50, at return
+  code 0. `a + b * x` with `y` near `1e6` now reaches the maximum of
+  `y ~ x`; before, it stopped at -3045.62 against -1658.76. In the sign
+  patterns' runs and the refit of their winner, a coefficient inside a
+  curve is stepped in its start size where that is 16 or more times from
+  1, and keeps its old steps under a prior. `b1 * (1 - exp(-b2 * x))` and
+  `b1 * exp(b2 * x)` with `x` near 1e-6 now fit as with `x` near 1 on 40
+  of 40 data sets.
+
+* When the refit from the best sign pattern does not stop where that
+  pattern's run stopped, and raises no warning of its own, frm() warns
+  with class `frmtmb_nl_multistart_unsettled`.
+
 # frmtmb 0.79.1
 
 * `residuals(type = "osa")` on `beta_binomial()` always stops with a

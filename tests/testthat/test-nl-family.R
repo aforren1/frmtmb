@@ -627,6 +627,8 @@ test_that("a point no restart leaves is a warning that names the body", {
   d <- nl_saddle_data()
   body <- bf(y ~ b1 * exp(b2 * x), b1 + b2 ~ 1, nl = TRUE)
   local_mocked_bindings(nl_saddle_starts = function(...) list())
+  # the sign probe would leave the point too (test-nl-start.R)
+  withr::local_options(frmtmb.nl_sign_probe = FALSE)
   got <- list()
   fit <- withCallingHandlers(
     frm(body, family = cumulative(), data = d),
@@ -806,19 +808,30 @@ test_that("a constant body at a local maximum is said in a message", {
   d$yo <- ordered(cut(-0.8 * d$x + rlogis(n), c(-Inf, -1, 0, 1, Inf),
                       labels = 1:4))
   body <- bf(yo ~ b^2 * x * (1 - b^2), b ~ 1, nl = TRUE)
-  msgs <- list()
-  fit <- withCallingHandlers(
-    frm(body, family = cumulative(), data = d),
-    message = function(m) {
-      msgs[[length(msgs) + 1L]] <<- m
-      invokeRestart("muffleMessage")
-    })
+  fit_msgs <- function() {
+    msgs <- list()
+    fit <- withCallingHandlers(
+      frm(body, family = cumulative(), data = d),
+      message = function(m) {
+        msgs[[length(msgs) + 1L]] <<- m
+        invokeRestart("muffleMessage")
+      })
+    list(fit = fit, msgs = msgs)
+  }
   only <- as.numeric(logLik(frm(yo ~ 1, family = cumulative(), data = d)))
-  expect_lt(abs(as.numeric(logLik(fit)) - only) / abs(only), 1e-8)
-  named <- Filter(function(m) inherits(m, "frmtmb_nl_local"), msgs)
+  # the default start stops on the point and the sign probe leaves it
+  # (test-nl-start.R), so the message is read with the probe off
+  off <- withr::with_options(list(frmtmb.nl_sign_probe = FALSE), fit_msgs())
+  expect_lt(abs(as.numeric(logLik(off$fit)) - only) / abs(only), 1e-8)
+  named <- Filter(function(m) inherits(m, "frmtmb_nl_local"), off$msgs)
   expect_length(named, 1L)
   expect_match(conditionMessage(named[[1L]]), "local maximum", fixed = TRUE)
   expect_match(conditionMessage(named[[1L]]), "thresholds-only", fixed = TRUE)
+  # with the probe the fit is higher, and no message calls it the point
+  on <- fit_msgs()
+  expect_gt(as.numeric(logLik(on$fit)) - only, 1e-3 * abs(only))
+  expect_false(any(vapply(on$msgs, inherits, NA, "frmtmb_nl_local")))
+  expect_true(any(vapply(on$msgs, inherits, NA, "frmtmb_nl_multistart")))
 })
 
 test_that("iter.max = 0 reads the objective at the start", {

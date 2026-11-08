@@ -100,9 +100,16 @@
 #'   of one vector and not others is refused.
 #'
 #'   A nonlinear body can have more than one maximum, and nothing in a fit
-#'   marks a second one. A `start` with other signs, or a located prior, can
-#'   show it, and [frm_allfit()] cannot, as it starts every optimizer from one
-#'   point.
+#'   marks a second one. From the default start, `frm()` also fits from each
+#'   sign pattern of the body's coefficients and returns the highest point
+#'   (see "The default starting values" in [par_template()]). A `start`, or
+#'   `options(frmtmb.nl_sign_probe = FALSE)`, skips that; a located prior
+#'   places the start and does not skip it. The point a pattern reaches can
+#'   itself be a second maximum: the fit then converges with no warning and
+#'   is still below the highest one, as on 1 of 89 such fits measured (1.84
+#'   short, where the default start alone stopped 2.29 short with a warning).
+#'   A `start` elsewhere, or a located prior, can show a higher maximum;
+#'   [frm_allfit()] cannot, as it starts every optimizer from one point.
 #' @param control A list from [frmtmb_control()].
 #' @param se If `TRUE`, run [RTMB::sdreport()] at fit time. The default
 #'   (`FALSE`) defers it until standard errors are first needed
@@ -1078,7 +1085,7 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
         isTRUE(control[["optCtrl"]][["iter.max"]] == 0)) {
     return(run(start, TRUE))
   }
-  nl_fit_off_saddle(run, frame, start, prior)
+  nl_fit_probed(run, frame, start, prior)
 }
 
 #' The refusal of `frm(threshold = )`, which names the family argument
@@ -1586,6 +1593,14 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   }
   su <- smooth_fx_units(frame, names(obj$par))
   if (!is.null(su)) par_units <- (par_units %||% 1) * su
+  # a nonlinear coefficient in the units its body moves by (nl_par_units());
+  # a whitened or profiled beta is not in the outer vector as itself
+  nu <- if (is.null(bw) && !isTRUE(control$profile)) {
+    nl_par_units(frame, template_guard, names(obj$par), par_units,
+                 prior_entries,
+                 curve = isTRUE(attr(start, "frmtmb_nl_probe")))
+  }
+  if (!is.null(nu)) par_units <- (par_units %||% 1) * nu
   # and a coefficient in the response's units is in them, for the
   # optimizer's steps and for the Hessian the standard errors come from,
   # so the fit of y * c is the fit of y scaled (predictor_units()). A
@@ -4222,7 +4237,8 @@ nl_start_message <- function(spec, emsg) {
          "gives the names, and the names go straight back. (2) A normal() ",
          "or student_t() prior with a location, e.g. prior(normal(",
          "<location>, <scale>), nlpar = \"", nlp[1L], "\"): the fit ",
-         "starts from the location")
+         "starts from the location. Only (1) stops frm() from also trying ",
+         "the sign patterns of the body's coefficients")
 }
 
 #' Runs the optimizer call and rewrites any failure into a message that
