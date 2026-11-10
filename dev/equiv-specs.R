@@ -967,10 +967,15 @@ S("acat x rescor", function() {
        family = NA, data = d)
 })
 S("cens() x cosy()", function() {
-  d <- eq_dat(seed = 154)
-  d$c <- ifelse(d$y > 1.5, "right", "none")
-  d$y <- pmin(d$y, 1.5)
-  list(bf = "bf(y | cens(c) ~ x + cosy(gr = g))", data = d)
+  # The row is conditional since the latent residual: on gaussian and
+  # student both packages refuse cens() beside cosy() (brms: "Invalid
+  # addition arguments for this model"), the spelling this pair had when
+  # its row read refused. The working half is a family with no residual.
+  d <- eq_dat("poisson", seed = 154)
+  d$c <- ifelse(d$y > 4, "right", "none")
+  d$y <- pmin(d$y, 4)
+  list(bf = "bf(y | cens(c) ~ x + cosy(gr = g))", family = "poisson()",
+       data = d)
 })
 S("cumulative x bar_crossing", function() list(
   bf = "bf(y ~ x * (1 | g))", family = "cumulative()",

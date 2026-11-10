@@ -231,9 +231,12 @@ eq_measure <- function(key, row) {
       rec$verdict <- "cannot measure"
       rec$reason <- paste0("frmtmb refuses; no brms analogue (",
                            spec$nobrms, ")")
-    } else if (row$status == "refused") {
+    } else if (row$status %in% c("refused", "conditional")) {
+      # a conditional row states a refusing half too, and a spec that
+      # meets it is no evidence against the row (review 2026-11-10, m2)
       rec$verdict <- "refusal correct"
-      rec$reason <- "both refuse"
+      rec$reason <- if (row$status == "refused") "both refuse" else
+        "both refuse; the refused half of a conditional row"
       rec$agree <- TRUE
     } else {
       # the table claims the pair is reachable, and neither package
@@ -261,7 +264,7 @@ eq_measure <- function(key, row) {
       rec$brms_error <- paste("brms's program does not compile:",
                               eq_clip(cc$error, 200))
       rec$brms_ok <- FALSE
-      if (row$status == "refused") {
+      if (row$status %in% c("refused", "conditional")) {
         rec$verdict <- "refusal correct"
         rec$reason <- "both refuse (brms at the compile)"
         rec$agree <- TRUE

@@ -1,0 +1,3 @@
+frmtmb tests/testthat/test-fcor.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-sampling-ported.R
+frmtmb.spatial extensions/frmtmb.spatial/tests/testthat/test-sar.R

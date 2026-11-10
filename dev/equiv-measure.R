@@ -50,16 +50,65 @@ smp <- read.delim("dev/equiv-data/sample.tsv")
 row <- smp[smp$id == id, ]
 if (nrow(row) != 1L) stop("no sampled pair ", id)
 key <- paste(row$feature_a, row$feature_b, sep = " x ")
-cat("pair", id, ":", key, "[", row$status, "]\n")
+# sample.tsv's status is the pair's STRATUM, frozen at the draw; it sets
+# the weights and the per-stratum rates and stays in the `status` column.
+# The verdict is scored against the build's own row: scored against the
+# frozen status, a pair whose row was corrected after the draw read
+# "compat row wrong" on every later build (dev/compat-findings.md). The
+# row is read with the extensions the frozen statuses were read with,
+# in a process of its own, so that none of them loads into this one
+# (dev/equiv-live-row.R).
+Sys.setenv(FRMTMB_EQUIV_LIB = lib)
+# A child that died with no word (2 of 42 in a parallel batch,
+# dev/compat-findings.md section 11) was once reported as a missing row.
+# Its exit status and output are kept apart from the row's absence, and
+# a failed child is retried once: the row is deterministic, the process
+# is not. The script's full path puts the worktree on the child's command
+# line, so a process listing shows whose child it is.
+live_row <- function(id) {
+  tag <- paste0("live-", id, "-", Sys.getpid())
+  why <- character()
+  for (attempt in 1:2) {
+    out <- file.path(tempdir(), paste0(tag, "-", attempt, ".tsv"))
+    log <- file.path(tempdir(), paste0(tag, "-", attempt, ".log"))
+    rc <- system2(file.path(R.home("bin"), "Rscript"),
+                  c(shQuote(normalizePath("dev/equiv-live-row.R",
+                                          winslash = "/")),
+                    id, shQuote(out)), stdout = log, stderr = log)
+    if (rc == 0L && file.exists(out)) {
+      return(read.delim(out, stringsAsFactors = FALSE)$live_status)
+    }
+    tail <- if (file.exists(log)) {
+      utils::tail(readLines(log, warn = FALSE), 8)
+    }
+    why <- sprintf("exit status %s%s; output: %s", rc,
+                   if (rc == 0L) ", but no row file" else "",
+                   if (length(tail)) paste(tail, collapse = " | ") else
+                     "(none)")
+    cat("live-row child, attempt", attempt, "failed:", why, "\n")
+  }
+  stop("dev/equiv-live-row.R failed twice for ", id, ": ", why)
+}
+live <- live_row(id)
+if (length(live) != 1L || is.na(live)) {
+  stop("no frm_compat() row for ", key)
+}
+cat("pair", id, ":", key, "[ stratum", row$status, "| live", live, "]\n")
 cat("lib:", find.package("frmtmb"), as.character(packageVersion("frmtmb")),
     "\n")
 
-rec <- eq_env$eq_measure(key, row)
+row_live <- row
+row_live$status <- live
+rec <- eq_env$eq_measure(key, row_live)
 eq_flatten <- eq_env$eq_flatten
 rec$seconds <- round(proc.time()[["elapsed"]] - t0, 1)
 rec$frmtmb_version <- as.character(packageVersion("frmtmb"))
+rec$stratum_status <- row$status
+rec$live_status <- live
 saveRDS(rec, file.path(outdir, paste0(id, ".rds")))
 flat <- eq_flatten(rec, row)
+flat$stratum_status <- row$status
+flat$live_status <- live
 utils::write.table(flat, tsv, sep = "\t", row.names = FALSE,
                    quote = TRUE, qmethod = "double")
 cat("verdict", id, ":", flat$verdict, "level", flat$level, "-",

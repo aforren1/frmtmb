@@ -4661,6 +4661,25 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-09
+
+### From lane compat
+
+- **MINOR. Two registered addition terms can claim the same key, and
+  `frmtmb_register_aterm()` does not refuse it.** A term of arity k
+  takes the keys `name1..k`, so `x` (arity 3) beside `x2`: `y | x2(z) +
+  x(u, v, w)` lets x's second argument overwrite x2(z) silently (and
+  then take x2's coercion); the other order gives a misleading
+  "Duplicated addition term `x2()`" refusal. `a` (arity 12) beside `a1`
+  does the same at a11 and a12. `frmtmb_register_aterm("reward1")`
+  beside reward, or `"vint1"` beside core vint(), is accepted. It
+  predates the lane, and no shipped extension collides. Fix:
+  `frmtmb_register_aterm()` refuses a name whose keys (`name`, or
+  `name1..k`) equal a key of another registered term or a core key
+  (`vint<k>`, `vreal<k>`, `trunc_lb`, `trunc_ub`, `cens_y2`,
+  `se_sigma`, `mi_sd`, `thres_gr`) (`dev/reviews/2026-11-10-compat.md`,
+  round 2, R1).
+
 ## Filed at the 0.80.0 release (2026-11-06)
 
 Gathered from the lanes' own sections of the round of 2026-11-06,

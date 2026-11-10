@@ -199,6 +199,18 @@ settle a verdict alone, the verdict is set in
 `dev/equiv-data/adjudication.tsv` with its reason; the summary counts
 those.
 
+"The table's status" is the measured build's own `frm_compat()` row,
+read with the extensions the frame was dumped with
+(`dev/equiv-live-row.R`), not the status frozen in `sample.tsv` at the
+draw. The frozen status stays the pair's stratum, so it sets the
+weights and the per-stratum rates. Both are in results.tsv
+(`stratum_status`, `live_status`), and the summary says how many pairs
+differ. A pair whose row was corrected after the draw is scored against
+the corrected row; before, it read "compat row wrong" on every later
+build. Both packages refusing a pair whose live row is conditional is
+"refusal correct", the refused half of the condition. (Lane compat,
+round of 2026-11-09, `dev/compat-findings.md` sections 9 to 11.)
+
 The decision standard, one for every pair: a frmtmb refusal or
 divergence is "by decision" only when NEWS, SPEC.md,
 `dev/core-boundary.md` or the brms-suite ledger gives a REASON for it.

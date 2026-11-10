@@ -200,7 +200,14 @@ prop <- res[!is.na(res$proposal) & nzchar(res$proposal),
             c("id", "feature_a", "feature_b", "status", "proposal",
               "verdict", "reason")]
 names(prop)[names(prop) == "status"] <- "status_now"
-prop$source <- "sampled pair"
+# a proposal changes the build's own row, which differs from the pair's
+# stratum (the status frozen at the draw) once a row has been corrected
+if (!is.null(res$live_status)) {
+  lv <- res$live_status[match(prop$id, res$id)]
+  prop$status_now <- ifelse(is.na(lv), prop$status_now, lv)
+}
+# rep(), as a run can propose nothing and a 0-row frame takes no scalar
+prop$source <- rep("sampled pair", nrow(prop))
 sw_p <- "dev/equiv-data/nl-sweep.tsv"
 if (file.exists(sw_p)) {
   sw <- rd(sw_p)
@@ -246,6 +253,20 @@ say("frmtmb measured: ", paste(unique(stats::na.omit(res$frmtmb[
   " unique pairs, ", sum(res$draws), " draws; ",
   sum(res$adjudicated == "yes"), " verdicts adjudicated by hand ",
   "(dev/equiv-data/adjudication.tsv).")
+say("")
+# the two statuses a reader could confuse (review 2026-11-10, m4)
+if (!is.null(res$live_status) && !all(is.na(res$live_status))) {
+  has <- !is.na(res$live_status)
+  say("Strata are the compat status at the draw (sample.tsv); verdicts ",
+      "are scored against the measured build's own frm_compat() row. ",
+      sum(has & res$live_status != res$status), " of ", sum(has),
+      " pairs differ", if (any(!has)) paste0(" (", sum(!has),
+                                            " pairs carry no live row)"),
+      ".")
+} else {
+  say("Strata and verdicts both use the compat status at the draw ",
+      "(sample.tsv): these results carry no live row.")
+}
 say("")
 say("Verdicts by stratum (draws, with unique pairs in brackets):")
 say("")

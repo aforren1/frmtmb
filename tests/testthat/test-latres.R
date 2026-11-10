@@ -382,6 +382,8 @@ test_that("autocor_matrix() gives the latent correlation", {
 test_that("variables, the summary and the intervals carry brms's names", {
   d <- lr_data()
   fit <- lr_fit("cnt", "arma(t, g, cov = TRUE)", poisson(), d)
+  # the row the equivalence survey's pair p167 read refused through 0.78.0
+  expect_identical(frm_compat("poisson", "arma()")$status, "conditional")
   expect_true(all(c("ar[1]", "ma[1]", "sderr") %in% variables(fit)))
   s <- summary(fit)
   expect_setequal(rownames(s$cor_pars), c("ar[1]", "ma[1]", "sderr"))

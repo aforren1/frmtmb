@@ -1,3 +1,30 @@
+# frmtmb (development version)
+
+## Compatibility table
+
+* `frm_compat()` reads "refused" for each addition term that no ordinal
+  family declares with each feature that only an ordinal family has
+  (`thres()`, `disc`, the `equidistant` and `sum_to_zero` thresholds,
+  `cs_pred()`). The rows come from the families' declarations, so a
+  term that an extension registers with `frmtmb_register_aterm()` gets
+  them too. In core, 31 rows change for `trials()`, `cens()`,
+  `trunc()`, `se()`, `mi()`, `vint()`, `vreal()` and `rate()`: 25
+  read "untested" before, and 6 read "works" (`cens()`, `trunc()`,
+  `se()`, `mi()` and `rate()` with `cs_pred()`, and `rate()` with
+  `thres()`). With every extension loaded, 30 more change for `bhaz()`,
+  `dec()`, `ndt_group()`, `reward()`, `payoff()` and `stage2()`: 18
+  read "untested" and 12 read "works" (each term with `thres()` and
+  `cs_pred()`). `frm()` already refused each of these models with a
+  message that names the term. brms 2.23.0 refuses each one for which
+  it has the term. No fit changes.
+
+## Bug fixes
+
+* A refusal of a registered addition term of more than one argument
+  whose name ends in a digit, such as frmtmb.learn's `stage2()`, now
+  names the term. Before, it named `stage21()` and `stage22()`, which no
+  formula writes.
+
 # frmtmb 0.80.0
 
 ## Fitting
