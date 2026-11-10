@@ -327,7 +327,7 @@ test_that("loo_model_weights() is loo's, on each model's log_lik()", {
   pa <- quiet(posterior_average(d1, d2, variable = "sigma", seed = 1))
   expect_identical(unname(attr(pa, "weights")),
                    as.numeric(w) / sum(as.numeric(w)))
-  expect_error(loo_model_weights(d1, d2, newdata = cs$dd),
+  expect_error(loo_model_weights(d1, d2, newdata = cs$dd[1:3, ]),
                "cannot honor `newdata`")
   expect_error(loo_model_weights(d1, d2, optim = "x"),
                "has no argument `optim`")
@@ -360,7 +360,7 @@ test_that("newdata and the refits are refused, as loo() refuses them", {
   expect_error(loo_predictive_interval(d, newdata = cs$dd[1:3, ]),
                "loo_predictive_interval() cannot honor `newdata`",
                fixed = TRUE)
-  expect_error(loo_R2(d, newdata = cs$dd), "cannot honor `newdata`")
+  expect_error(loo_R2(d, newdata = cs$dd[1:3, ]), "cannot honor `newdata`")
   # brms 2.23.0 reads `scale` nowhere, so it is named rather than ignored
   expect_error(loo_linpred(d, scale = "response"),
                "has no argument `scale`")

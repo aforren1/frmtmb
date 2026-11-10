@@ -15,7 +15,8 @@ the label to use; then \code{loo::loo_model_weights()}'s own options
 (\code{method}, \code{optim_method}, \code{optim_control}, \code{BB}, \code{BB_n}, \code{alpha},
 \code{cores}), and \code{ndraws}, \code{draw_ids} and \code{resp} (either spelling),
 which reach every model's \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}}. \code{newdata} and the
-new-level arguments are refused unless they hold brms's default.}
+new-level arguments are refused unless they hold brms's default,
+or \code{newdata} holds exactly every model's fitted rows.}
 
 \item{model_names}{Labels for the models. The default deparses the
 arguments, as brms does.}

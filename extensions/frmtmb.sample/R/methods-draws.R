@@ -3024,6 +3024,78 @@ draws_pp_refuses_newdata <- function(fit, resp,
   sim_is_structured(ctx0)
 }
 
+#' Whether `newdata` holds exactly the rows the model was fitted on:
+#' the fit's own model frame object (`x$data`, `model.frame()`), or data
+#' in which every variable the model reads is present and equals its
+#' fitted value, row for row. The model frame is a function of those
+#' variables, so such newdata asks the leave-one-out functions for the
+#' rows they already answer, and brms's answer there is theirs.
+#'
+#' The variables are the frame's variables and those stored beside it
+#' (`frame$raw_vars`: a transform's variable, `x` of `poly(x, 2)`, and
+#' the upper bound `y2` of `cens(cc, y2)`), so a frame column alone does
+#' not vouch for a variable the frame does not hold: in the first review
+#' a moved `y2` was taken for the fitted rows, whose density it changes
+#' (review 2026-11-10, item 1). Every frame column `newdata` holds is
+#' compared as well. A variable with no stored value cannot be checked,
+#' and refuses. A frame rebuilt from the variables is not compared:
+#' `poly()` rebuilt from its stored coefficients differs from the fitted
+#' basis by rounding (2.8e-16), which an exact test cannot tell from
+#' other data.
+#'
+#' @noRd
+draws_newdata_is_fitted <- function(x, newdata) {
+  fit <- draws_base_fit(x)
+  mf <- fit[["data"]]
+  if (!is.data.frame(newdata) || !is.data.frame(mf) ||
+        nrow(newdata) != nrow(mf)) {
+    return(FALSE)
+  }
+  # the frame itself: it is the fitted rows by construction
+  if (identical(newdata, mf)) return(TRUE)
+  same <- function(a, b) {
+    if (is.null(a) || is.null(b)) return(FALSE)
+    lab_a <- is.factor(a) || is.character(a)
+    lab_b <- is.factor(b) || is.character(b)
+    # a factor's level set is the frame's business, not the rows'; a
+    # label against a number is another design
+    if (lab_a || lab_b) {
+      return(lab_a && lab_b && identical(as.character(a), as.character(b)))
+    }
+    if (is.logical(a) != is.logical(b) ||
+          !identical(oldClass(a), oldClass(b))) {
+      return(FALSE)
+    }
+    isTRUE(all.equal(unclass(a), unclass(b), tolerance = 0,
+                     check.attributes = FALSE))
+  }
+  raw <- fit$frame[["raw_vars"]]
+  if (!is.data.frame(raw)) raw <- NULL
+  tt <- attr(mf, "terms")
+  vars <- union(union(union(fit$frame[["data_vars"]], names(raw)),
+                      if (!is.null(tt)) all.vars(attr(tt, "variables"))),
+                names(mf)[make.names(names(mf)) == names(mf)])
+  if (!length(vars) || !all(vars %in% names(newdata))) return(FALSE)
+  ok_var <- vapply(vars, function(v) {
+    ref <- if (v %in% names(mf)) mf[[v]] else raw[[v]]
+    same(newdata[[v]], ref)
+  }, NA)
+  held <- intersect(names(mf), names(newdata))
+  ok_col <- vapply(held, function(v) same(newdata[[v]], mf[[v]]), NA)
+  all(ok_var) && all(ok_col)
+}
+
+#' The sentence a leave-one-out refusal of `newdata` ends with.
+#'
+#' @noRd
+draws_fitted_rows_note <- paste0(
+  " Newdata that holds exactly the rows the model was fitted on (x$data) ",
+  "is accepted, and gives the answer without newdata. A subset of those ",
+  "rows is refused: rows are matched by value, and a subset cannot be ",
+  "placed among the fitted rows unambiguously where rows repeat and a ",
+  "per-row latent value (me(), mi()) or an autocorrelation neighbor ",
+  "enters.")
+
 #' The refusal the methods that carry brms's `newdata` and
 #' `re_formula` slots without supporting them share.
 #'

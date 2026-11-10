@@ -1,3 +1,31 @@
+# frmtmb (development version)
+
+## Hypothesis tests
+
+* `print()` of a `hypothesis()` result on a fit no longer says that a
+  maximum-likelihood fit has no posterior. That was false for a fit with
+  a prior (`frm(prior = )`). It now says that brms computes `Evid.Ratio`
+  and `Post.Prob` from posterior draws, and a point hypothesis also from
+  prior draws, and that a fit has none.
+* `Evid.Ratio` and `Post.Prob` stay `NA` on every fit, for these
+  reasons. A point ratio is the posterior density at the point over the
+  prior density there. Under flat priors, which a maximum-likelihood fit
+  has, the prior has no density, so the ratio does not exist, and brms
+  gives `NA` there too. Under a prior with a density, the ratio needs
+  the posterior density AT the point, and the only posterior density a
+  fit has is the normal approximation at the mode. A tested point is
+  usually in the tail of that approximation, where its error can be
+  orders of magnitude. For a group standard deviation near 0.59 with a
+  `cauchy(0, 2)` prior, the normal approximation on the scale of the
+  standard deviation gave a ratio at 0 of 0.0075, and 4000 draws gave
+  2.9e-6, 2560 times smaller. So a fit does not report a Bayes factor
+  from the normal approximation, for any parameter. A directional ratio
+  is a posterior probability, which a fit also has only as that
+  approximation; its one-sided p-value is in `attr(h, "test")`.
+  `frmtmb.sample::frm_sample(fit, sample_prior = "yes")` samples the fit
+  with its priors, and `hypothesis()` of those draws computes both
+  columns as brms does.
+
 # frmtmb 0.80.0
 
 ## Fitting

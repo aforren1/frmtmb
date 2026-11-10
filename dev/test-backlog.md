@@ -4661,6 +4661,24 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-09
+
+### From lane hollow
+
+- `loo()`, `log_lik()` and the other leave-one-out functions of draws
+  refuse `newdata` that is a SUBSET of the fitted rows, where brms gives
+  those rows' pointwise values (brms 2.23.0 on its example 6: 20 rows,
+  max 3.75e-4 from `loo(fit)`'s rows, the noise of its gp re-prediction).
+  The refusal is because rows are matched by value: a subset cannot be
+  placed among the fitted rows unambiguously where rows repeat and a
+  per-row latent value (`me()`, `mi()`) or an autocorrelation neighbor
+  enters. For a model with none of those terms, a match on row names
+  (`fit$data[1:10, ]` keeps them) followed by a check of each variable's
+  value would place the rows; identical rows then have identical
+  `log_lik()` columns. Then the answer is those columns of the fitted
+  `log_lik()`. Review `dev/reviews/2026-11-10-hollow.md`, item 3;
+  `dev/hollow-findings.md`.
+
 ## Filed at the 0.80.0 release (2026-11-06)
 
 Gathered from the lanes' own sections of the round of 2026-11-06,

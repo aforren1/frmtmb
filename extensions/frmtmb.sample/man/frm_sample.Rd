@@ -163,7 +163,9 @@ without its penalty.}
 \value{
 An object of class \code{frmtmb_draws}: list with the \code{stanfit},
 a draws matrix with named columns (\code{as.matrix()} method), the
-originating fit, and, when any block was non-centered, a
+originating fit, its model frame as \code{data} (the fit's own
+\code{fit$data}, as brms's fit carries \verb{$data}), and, when any block was
+non-centered, a
 \code{reparam} note saying which. The \code{stanfit} holds the parameters as
 Stan sampled them, so on a non-centered run its random-effect
 columns are \code{z} while the draws matrix holds \code{b}. The draws matrix

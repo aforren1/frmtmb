@@ -1,3 +1,31 @@
+# frmtmb.sample (development version)
+
+* A `frm_sample()` result carries the fit's model frame as `$data`, the
+  same object as the fit's `fit$data`. brms code reads `fit$data`, for
+  example as `newdata = fit$data`. On draws it read `NULL`, so
+  `loo(draws, newdata = draws$data)` was `loo(draws)` with no newdata at
+  all.
+* BREAKING: `log_lik()`, `logLik()`, `loo()`, `waic()`, `psis()`, the
+  `loo_*()` functions, `loo_model_weights()` and the `loo_*` types of
+  `pp_check()` accept `newdata` that holds exactly the rows the model
+  was fitted on: `draws$data`, `model.frame()`, or data that holds
+  every variable the model reads, each with its fitted value in every
+  fitted row, such as the data the model was fitted to when the fit
+  dropped no row. Such `newdata` gives the `log_lik()` matrix and the
+  leave-one-out weights of the call without `newdata`. brms computes
+  these functions on `log_lik(newdata =)`, and on the fitted rows that
+  is its answer without `newdata` too: on brms's own example 6,
+  `loo(fit, newdata = fit$data)` gave an elpd of -184.0810 against
+  -184.0806, the difference being brms's new prediction of a `gp()`
+  term. Before, every `newdata` was refused.
+* Other `newdata` is still refused. On rows the model was not fitted on
+  there is no leave-one-out weight: it comes from the row's own column
+  of `log_lik()`. A subset of the fitted rows is refused too, though
+  brms answers it with those rows' pointwise values: rows are matched
+  by value, and a subset cannot be placed among the fitted rows
+  unambiguously where rows repeat and a per-row latent value (`me()`,
+  `mi()`) or an autocorrelation neighbor enters.
+
 # frmtmb.sample 0.27.0
 
 * `posterior_epred()`, `posterior_linpred()` and `posterior_predict()` with

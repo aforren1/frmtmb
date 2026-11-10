@@ -134,7 +134,7 @@ test_that("the loo_* types refuse where log_lik() refuses, naming both", {
              dry_run = "objective")
   ds <- ppc_draws(fit)
   expect_error(suppressMessages(
-    pp_check(ds, type = "loo_pit_overlay", newdata = dd)),
+    pp_check(ds, type = "loo_pit_overlay", newdata = dd[-1, ])),
     "pp_check(type = 'loo_pit_overlay') weights the draws", fixed = TRUE)
   lap <- ds
   lap$draws <- ds$draws[, !startsWith(colnames(ds$draws), "r_"),

@@ -26,6 +26,22 @@ test_that("make_conditions() crosses levels and mean +/- sd", {
                                          sep = "|"))
 })
 
+test_that("make_conditions() of draws reads the fit's data, as of the fit", {
+  # frmtmb.sample's draws carry the model frame as $data, which holds
+  # poly(x, 2) and not x; the draws' fit holds x. Built by hand, so that
+  # core's test needs no extension
+  set.seed(5)
+  d <- data.frame(x = stats::rnorm(30), f = factor(rep(c("u", "v"), 15)))
+  d$y <- stats::rnorm(30, d$x)
+  fit <- frm(bf(y ~ poly(x, 2) + f), family = gaussian(), data = d)
+  ds <- structure(list(stanfit = NULL, draws = matrix(0, 1, 1), fit = fit,
+                       data = fit$data), class = "frmtmb_draws")
+  expect_false("x" %in% names(ds$data))
+  expect_identical(make_conditions(ds, "x"), make_conditions(fit, "x"))
+  expect_identical(make_conditions(ds, c("x", "f")),
+                   make_conditions(d, c("x", "f")))
+})
+
 test_that("update_adterms() replaces, adds and removes addition terms", {
   form <- y | trials(size) ~ x
   expect_equal(update_adterms(form, ~ trials(10)), y | trials(10) ~ x)

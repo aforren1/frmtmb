@@ -3746,8 +3746,24 @@ hyp_delta_var <- function(pc, f, v, g = hyp_fd_grad(f, v)) {
 #'     `1 - alpha` for `"="` and central at `1 - 2 * alpha` for a
 #'     directional row, so that its relevant end is the one-sided bound.
 #'     Wald, profile-likelihood or bootstrap percentile, per `method`.
-#'   - `Evid.Ratio`, `Post.Prob`: `NA`. They are posterior quantities,
-#'     and a fit has no posterior.
+#'   - `Evid.Ratio`, `Post.Prob`: `NA`. brms computes both from draws:
+#'     for a directional row the ratio is the posterior odds of the
+#'     claim, and for a point row it is the Savage-Dickey ratio, the
+#'     kernel density of the posterior draws at the point over that of
+#'     the prior draws. A fit has no draws. Under flat priors, which a
+#'     maximum-likelihood fit has, the prior has no density, so a point
+#'     ratio does not exist; brms gives `NA` there too. Under a prior
+#'     with a density (`frm(prior = )`), the ratio needs the posterior
+#'     density AT the point, and the only posterior density a fit has is
+#'     the normal approximation at the mode. A tested point is usually in
+#'     its tail, where the error of that approximation can be orders of
+#'     magnitude (for a group standard deviation, 2560 times the ratio
+#'     from draws in one measured case), so a fit does not report a
+#'     Bayes factor from it, for any parameter.
+#'     `frmtmb.sample::frm_sample(fit, sample_prior = "yes")`
+#'     samples the fit with its priors and computes both columns as
+#'     brms does. For a directional row on a fit, `attr(h, "test")`
+#'     holds the one-sided p-value.
 #'   - `Star`: `"*"` when a two-sided row's interval excludes 0, or when
 #'     a directional row's one-sided test rejects at level `alpha`
 #'     (brms stars a posterior probability above `1 - alpha` there).
@@ -4421,8 +4437,9 @@ print.frmtmb_hypothesis <- function(x, digits = 2, ...) {
                sum(!attr(x, "converged")), " failed or not converged)"),
       ". Est.Error is the ", if (identical(method, "boot"))
         "bootstrap SD" else "standard error",
-      "; Evid.Ratio and\nPost.Prob are NA, because a maximum-likelihood ",
-      "fit has no posterior.\n", sep = "")
+      ".\nEvid.Ratio and Post.Prob are NA: brms computes them from ",
+      "posterior draws (a point\nhypothesis also from prior draws), and ",
+      "a fit has none. See ?hypothesis.\n", sep = "")
   cat("'*': For one-sided hypotheses, the one-sided test rejects at ",
       "level ", x$alpha, ";\nfor two-sided hypotheses, the value tested ",
       "against lies outside the ", ptwo, "%-CI.\n", sep = "")

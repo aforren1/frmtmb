@@ -39,7 +39,8 @@ psis(log_ratios, ...)
 \item{...}{Further models: for \code{loo()} and \code{waic()} the draws
 objects given without a name, which brms compares in one call, and
 brms's named options, refused by name where they would change the
-answer (\code{newdata} and the other arguments \code{log_lik()} refuses,
+answer (\code{newdata} other than the fitted rows, and the other
+arguments \code{log_lik()} refuses,
 \code{moment_match}, \code{reloo}) and passed on where they are the loo
 package's (\code{r_eff}, \code{save_psis}, \code{cores}). For \code{loo_compare()},
 further models.}
@@ -59,7 +60,8 @@ draws object.}
 pointwise log-likelihood supplies the importance ratios.}
 
 \item{newdata}{For \code{psis()}, accepted in brms's own second position
-and refused, because \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}} does not take it.}
+and refused, as \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}} refuses it: only data that
+holds exactly the fitted rows is accepted, and changes nothing.}
 
 \item{model_name}{For \code{psis()}, brms's label for the model.
 Accepted and unused: a \code{psis} object has nothing to label.}
