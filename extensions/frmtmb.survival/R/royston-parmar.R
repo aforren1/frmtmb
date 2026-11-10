@@ -345,9 +345,10 @@ sv_rp_family <- function(cfg, allknots) {
   }
   cdf <- function(q, dpars, aterms) {
     sv_rp_need_knots(allknots)
-    x <- log(q)
+    pq <- sv_pos_q(q)
+    x <- log(pq[["at"]])
     eta <- sv_rp_eta(sv_rp_basis(allknots, x), gam_of(dpars))
-    sv_squeeze(switch(cfg$scale,
+    pq[["on"]] * sv_squeeze(switch(cfg$scale,
       hazard = -expm1(-exp(eta)),
       odds = 1 - 1 / (1 + exp(eta)),
       normal = RTMB::pnorm(eta, 0, 1)))
@@ -370,9 +371,10 @@ sv_rp_family <- function(cfg, allknots) {
   # double itself runs out, and the term is exact everywhere below it.
   ccdf <- function(q, dpars, aterms) {
     sv_rp_need_knots(allknots)
-    x <- log(q)
+    pq <- sv_pos_q(q)
+    x <- log(pq[["at"]])
     eta <- sv_rp_eta(sv_rp_basis(allknots, x), gam_of(dpars))
-    switch(cfg$scale,
+    pq[["on"]] * switch(cfg$scale,
       hazard = -exp(sv_cap(eta, 700)),
       odds = -sv_log1pexp(eta),
       normal = RTMB::pnorm(eta, 0, 1, lower.tail = FALSE, log.p = TRUE))

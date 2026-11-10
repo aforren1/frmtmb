@@ -361,6 +361,10 @@ V <- mv072(V, "2p")
 mv073 <- source("dev/rel073-bin2-moves.R")$value
 W <- mv073(W, "values")
 V <- mv073(V, "2p")
+# the verdict moves of lane support, round of 2026-11-09
+mvsup <- source("dev/support-bin2-moves.R")$value
+W <- mvsup(W, "values")
+V <- mvsup(V, "2p")
 stopifnot(!anyDuplicated(W$id), !any(grepl("\t", W$reason)),
           all(nzchar(W$msg_has)))
 utils::write.table(W, "dev/brmsport-bin2-valuechecks-manual.tsv", sep = "\t",

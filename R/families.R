@@ -2984,6 +2984,21 @@ fam_geometric <- function(link = "log") {
   )
 }
 
+#' The argument of a CDF slot for a family with support `y > 0`, where
+#' `F` is 0 and `S` is 1 at and below 0. A `trunc(lb = )` at or below 0
+#' reaches the slot there, and is no truncation at all. `q` is data, so
+#' the rows below 0 are resolved off the tape: `q` held at 0 from below,
+#' `at` with those rows read at 1 instead, and `on`, 1 above 0 and 0 at
+#' or below, the weight of a term that is 0 there but not finite or not
+#' differentiable at `q <= 0` itself. A `q` on the tape is left as it is.
+#'
+#' @noRd
+positive_cdf_q <- function(q) {
+  if (inherits(q, "advector")) return(list(q = q, at = q, on = 1))
+  pos <- q > 0
+  list(q = pmax(q, 0), at = ifelse(pos, q, 1), on = as.numeric(pos))
+}
+
 #' Exponential family in the mean parameterization, single dpar `mu`
 #' (the mean, that is one over the rate). It supplies a CDF and a
 #' truncated mean.
@@ -2999,12 +3014,15 @@ fam_exponential <- function(link = "log") {
     lpdf = function(y, dpars, aterms) {
       -log(dpars[["mu"]]) - y / dpars[["mu"]]
     },
+    # q is held at 0 from below, where F is 0 and S is 1: a trunc(lb = )
+    # below 0 is no truncation, and read at q itself it took |lb| / mu
+    # off every row (positive_cdf_q())
     lcdf = function(q, dpars, aterms) {
-      1 - exp(-q / dpars[["mu"]])
+      1 - exp(-positive_cdf_q(q)[["q"]] / dpars[["mu"]])
     },
     # log S = -q / mu in closed form: no complement is ever formed
     lccdf = function(q, dpars, aterms) {
-      -q / dpars[["mu"]]
+      -positive_cdf_q(q)[["q"]] / dpars[["mu"]]
     },
     valid_y = positive_y("exponential"),
     init_dpars = list(mu = function(y, aterms) mean(y)),
@@ -3047,13 +3065,18 @@ fam_weibull <- function(link = "log", link_shape = "log") {
       sc <- dpars[["mu"]] / exp(lgamma(1 + 1 / dpars[["shape"]]))
       RTMB::dweibull(y, shape = dpars[["shape"]], scale = sc, log = TRUE)
     },
+    # (q / sc)^shape is 0 at q <= 0, read at q = 1 and weighted 0, so
+    # that a negative q is not a NaN and q = 0 not a NaN gradient in the
+    # shape (positive_cdf_q())
     lcdf = function(q, dpars, aterms) {
       sc <- dpars[["mu"]] / exp(lgamma(1 + 1 / dpars[["shape"]]))
-      1 - exp(-(q / sc)^dpars[["shape"]])
+      pq <- positive_cdf_q(q)
+      1 - exp(-pq[["on"]] * (pq[["at"]] / sc)^dpars[["shape"]])
     },
     lccdf = function(q, dpars, aterms) {
       sc <- dpars[["mu"]] / exp(lgamma(1 + 1 / dpars[["shape"]]))
-      -(q / sc)^dpars[["shape"]]
+      pq <- positive_cdf_q(q)
+      -pq[["on"]] * (pq[["at"]] / sc)^dpars[["shape"]]
     },
     valid_y = positive_y("weibull"),
     init_dpars = list(

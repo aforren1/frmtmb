@@ -199,8 +199,12 @@ draws_row_loglik <- function(fit, resp) {
                        } else "an observation"))
     }
     # a multivariate model's family extras (ordinal thresholds) are
-    # namespaced by response; this gives the density its own block
-    ll <- row_lpdf(fam, yv, yv, dpv[[r]], av, fit_extras(fit, r))
+    # namespaced by response; this gives the density its own block. A
+    # column is a reported density, so it is the exact one: -Inf for a
+    # gen_extreme_value() row outside its support, where the fitted
+    # objective has a finite barrier
+    ll <- row_lpdf(fam, yv, yv, dpv[[r]], av, fit_extras(fit, r),
+                   exact = TRUE)
     out <- out + (av[["weights"]] %||% 1) * as.numeric(ll)
   }
   out

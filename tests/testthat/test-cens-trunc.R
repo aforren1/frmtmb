@@ -472,3 +472,64 @@ test_that("a count censored right at its trials is refused by name", {
   fit <- frm(y | trials(tr) + cens(cc) ~ 1, family = binomial(), data = d)
   expect_true(is.finite(as.numeric(logLik(fit))))
 })
+
+test_that("trunc(lb = ) below a bounded support is no truncation", {
+  # P(Y > lb) = 1 for lb at or below the support's lower end. Through
+  # 0.80.0 the exponential read its CDF slots at q itself, F(-1) = 1 -
+  # exp(1 / mu) < 0 and log S(-1) = 1 / mu > 0, so trunc(lb = -1)
+  # subtracted 1 / mu from every row and moved the estimate (Intercept
+  # 1.078 against 0.661 at this seed); the von Mises read an arc of
+  # negative length from -pi to -4 (logLik 6.4 lower); the Weibull, the
+  # Frechet and the shifted lognormal stopped at a NaN gradient
+  set.seed(401)
+  e <- stats::rexp(300)
+  set.seed(406)
+  ang <- atan2(sin(stats::rnorm(300, 0.5, 0.8)),
+               cos(stats::rnorm(300, 0.5, 0.8)))
+  # the exponential and the Weibull on exponential data with mean 2, the
+  # Frechet on its own with mean 2 and nu 3, the shifted lognormal on the
+  # exponential data moved by 0.05
+  cases <- list(
+    list(fam = exponential(), y = 2 * e, lb = c(-1, 0)),
+    list(fam = weibull(), y = 2 * e, lb = c(-1, 0)),
+    list(fam = frechet(), y = 2 / gamma(1 - 1 / 3) * e^(-1 / 3),
+         lb = c(-1, 0)),
+    list(fam = shifted_lognormal(), y = 2 * e + 0.05, lb = c(-1, 0)),
+    list(fam = von_mises(), y = ang, lb = -4))
+  for (cs in cases) {
+    fam <- cs$fam
+    d <- data.frame(y = cs$y)
+    f0 <- frm(y ~ 1, family = fam, data = d)
+    for (lb in cs$lb) {
+      d$lb <- lb
+      f1 <- frm(y | trunc(lb = lb) ~ 1, family = fam, data = d)
+      l0 <- as.numeric(logLik(f0))
+      expect_lte(abs(as.numeric(logLik(f1)) - l0),
+                 64 * .Machine$double.eps * abs(l0),
+                 label = paste(fam$family, "lb =", lb))
+      expect_lte(max(abs(fixef(f1)[, 1] - fixef(f0)[, 1])),
+                 1e-6 * max(fixef(f0)[, 2]),
+                 label = paste(fam$family, "lb =", lb))
+    }
+  }
+  # the slots themselves: F = 0 and log S = 0 at and below 0
+  for (fam in list(exponential(), weibull(), frechet())) {
+    dp <- switch(fam$family, exponential = list(mu = 2),
+                 weibull = list(mu = 2, shape = 1.5),
+                 frechet = list(mu = 2, nu = 3))
+    expect_identical(fam$lcdf(c(-1, 0), dp, list()), c(0, 0))
+    expect_identical(fam$lccdf(c(-1, 0), dp, list()) + 0, c(0, 0))
+  }
+  # the shifted lognormal's ndt is a parameter, so its edge is on the
+  # tape: below ndt log S is 0 with a zero gradient and log F finite
+  sl <- shifted_lognormal()
+  tp <- RTMB::MakeTape(function(p) {
+    lp <- sl$cdf_log(c(-1, 0), list(mu = p[1], sigma = p[2], ndt = p[3]),
+                     list())
+    c(lp$lS, lp$lF)
+  }, c(0, 1, 0.02))
+  expect_identical(tp(c(0, 1, 0.02))[1:2], c(0, 0))
+  J <- tp$jacobian(c(0, 1, 0.02))
+  expect_true(all(is.finite(J)))
+  expect_true(all(J[1:2, ] == 0))
+})

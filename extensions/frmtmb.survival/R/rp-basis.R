@@ -112,6 +112,20 @@ sv_squeeze <- function(p, eps2 = 1e-30) {
   1 - 0.5 * ((1 - lo) + sqrt((1 - lo) * (1 - lo) + eps2))
 }
 
+#' A time `q` for the distribution slots, which a `trunc(lb = )` at or
+#' below 0 reaches. There `F` is 0 and `S` is 1, but the spline reads
+#' `log(q)`, which is `-Inf` or `NaN`, and the fit stopped at a `NaN`
+#' gradient. So a row at or below 0 is read at `q = 1` (`at`) and its
+#' slot weighted 0 (`on`). `q` is data: a bound or a recorded time. A `q`
+#' on the tape is left as it is.
+#'
+#' @noRd
+sv_pos_q <- function(q) {
+  if (inherits(q, "advector")) return(list(at = q, on = 1))
+  pos <- q > 0
+  list(at = ifelse(pos, q, 1), on = as.numeric(pos))
+}
+
 #' The Royston and Parmar natural cubic spline basis.
 #'
 #' Column 1 is the constant, column 2 is `x` itself, and column `j + 2`

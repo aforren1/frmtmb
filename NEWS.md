@@ -1,3 +1,43 @@
+# frmtmb (development version)
+
+## Families
+
+* BREAKING: `row_lpdf(exact = TRUE)` gives the exact log density, and
+  frmtmb.sample's `log_lik()`, `loo()` and `waic()` of draws read it.
+  For `gen_extreme_value()` it is `-Inf` outside the support, and a
+  censored row reads a distribution function of exactly 0 below the
+  lower end and 1 above the upper end. Before, these readers got the
+  finite barrier of the fitted objective: -1.0e150 at `y = 0` with
+  `mu = 1`, `sigma = 0.1` and `xi = 0.3`, and +6.4 at a row 1e-12
+  outside the support at `xi = 10`. brms's `dgen_extreme_value()` gives
+  `NaN` there. The log survivor of `gen_extreme_value()` and
+  `frechet()` keeps its far upper tail: it was `-Inf` once
+  `t^(-1 / xi)` underflowed, where the value is about `-800`.
+* Every other evaluation keeps the fitted objective's arithmetic, on the
+  tape and on doubles: the fit, importance sampling, nested quadrature,
+  and the start, curvature and custom-family checks. So no fit of
+  `gen_extreme_value()` changes. On seven fixed-effect fits (the GEV,
+  a mixture of two, `frechet()`, `weibull()` and `exponential()`, with
+  and without `cens()` and `trunc()`), on `importance = 500` and on
+  one-block and nested `quadrature = TRUE` fits of a GEV with random
+  intercepts, every estimate and `logLik()` is the same as before to
+  the last bit.
+* The fitted objective of `gen_extreme_value()` is not the exact
+  likelihood at a row with `t` below 1e-15, nor at a `trunc()` or
+  `cens()` bound outside the support, where its distribution function
+  is within about 1e-13 of 0 or 1. In one measured fit with
+  `trunc(lb = )` below the lower end, that moved `logLik()` by 7.7e-12
+  and a coefficient by 1.8e-7.
+* `trunc(lb = )` at or below the lower end of the support is no
+  truncation for `exponential()`, `weibull()`, `frechet()`,
+  `shifted_lognormal()` and `von_mises()`, as for the other families.
+  Before, `exponential()` added `lb / mu` to every row and gave wrong
+  estimates without a warning (an intercept of 1.078 where the fit
+  without `trunc()` gives 0.661), `von_mises()` with `lb = -4` read an
+  arc of negative length and moved `logLik()` by 6.4, and `weibull()`,
+  `frechet()` and `shifted_lognormal()` stopped at a `NaN` gradient.
+  The shifted lognormal's floor at its shift had rounded to 0.
+
 # frmtmb 0.80.0
 
 ## Fitting

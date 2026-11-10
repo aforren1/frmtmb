@@ -211,3 +211,21 @@ test_that("the monotonicity floor keeps the log density finite", {
   x <- log(c(0.5, 1, 2))
   expect_equal(ok, x + log(1) - x - exp(x), tolerance = 1e-14)
 })
+
+test_that("trunc(lb = ) at or below 0 is no truncation", {
+  # P(T > lb) = 1 for lb <= 0. Through 0.2.2 the distribution slots read
+  # log(lb), -Inf or NaN, and the fit stopped at a NaN gradient
+  set.seed(405)
+  d <- data.frame(y = stats::rweibull(300, 1.5, 2))
+  f0 <- frmtmb::frm(y ~ 1, family = royston_parmar(), data = d)
+  l0 <- as.numeric(stats::logLik(f0))
+  for (lb in c(-1, 0)) {
+    d$lb <- lb
+    f1 <- frmtmb::frm(y | trunc(lb = lb) ~ 1, family = royston_parmar(),
+                      data = d)
+    expect_lte(abs(as.numeric(stats::logLik(f1)) - l0),
+               64 * .Machine$double.eps * abs(l0), label = paste("lb =", lb))
+    expect_lte(max(abs(f1$opt$par - f0$opt$par)),
+               1e-6 * max(abs(f0$opt$par)), label = paste("lb =", lb))
+  }
+})

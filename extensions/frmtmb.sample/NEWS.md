@@ -1,3 +1,12 @@
+# frmtmb.sample (development version)
+
+* BREAKING: `log_lik()` of draws, and so `loo()`, `waic()` and the
+  other readers of its matrix, gives the exact log density: `-Inf` for
+  a `gen_extreme_value()` row outside the support of a draw, where brms
+  gives `NaN`. Before, it gave the finite barrier of the fitted
+  objective, such as -1.0e150. The draws themselves do not change.
+  Needs the frmtmb that adds `row_lpdf(exact = )`.
+
 # frmtmb.sample 0.27.0
 
 * `posterior_epred()`, `posterior_linpred()` and `posterior_predict()` with

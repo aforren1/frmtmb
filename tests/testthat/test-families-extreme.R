@@ -170,6 +170,126 @@ test_that("the GEV density is brms's, and is exact at the Gumbel point", {
   }
 })
 
+test_that("a reader gets the GEV's exact density outside its support", {
+  # what log_lik() and loo() of draws read: row_lpdf(exact = TRUE) on
+  # doubles. Through 0.80.0 this was the tape's barrier, -1.0e150 at
+  # brms's log_lik:349 point (y = 0, mu 1, sigma 0.1, xi 0.3), where
+  # the exact value is -Inf
+  fam <- gen_extreme_value()
+  # rows 1 and 3 are outside (below the lower end at xi > 0, above the
+  # upper end at xi < 0), 2 and 4 inside; row 5 is outside by 1e-12 in t
+  # at xi = 10, where the tape's clamp at t = 1e-15 left F at 2e-14
+  y <- c(0, 0, 3, 1, -0.1 - 1e-13)
+  eta <- list(mu = c(1, -1, 0, 0, 0), sigma = log(c(0.1, 1, 1, 1, 1)),
+              xi = log1p(c(0.3, 0.3, -0.5, -0.5, 10)))
+  dp <- list(mu = eta$mu, sigma = exp(eta$sigma), xi = expm1(eta$xi))
+  out <- c(1L, 3L, 5L)
+  rl <- function(f, y, dp, av = list()) {
+    frmtmb:::row_lpdf(f, y, y, dp, av, NULL, exact = TRUE)
+  }
+  ll <- rl(fam, y, dp)
+  expect_identical(ll[out], rep(-Inf, 3))
+  # inside, the value the fitted objective takes, to rounding: the two
+  # are the same arithmetic on doubles and on the tape
+  tp <- tape_lpdf(fam, y, eta)
+  expect_true(all(abs(ll[-out] - tp[-out]) <= 8 * eps * abs(tp[-out])))
+  # the fitted objective keeps its barrier there, finite with a slope
+  # back into the support
+  expect_true(all(is.finite(tp[out])))
+  # a censored row reads the distribution function, 0 below the lower
+  # end and 1 above the upper end: log F and log S are 0 or -Inf exactly
+  lF <- rl(fam, y, dp, list(cens = rep(-1, 5)))
+  lS <- rl(fam, y, dp, list(cens = rep(1, 5)))
+  expect_identical(lF[out], c(-Inf, 0, -Inf))
+  expect_identical(lS[out], c(0, -Inf, 0))
+  # a mixture of two GEVs: a component outside a row adds exp(-Inf) = 0,
+  # and a row outside both is -Inf, not NaN. theta1 is the log odds of
+  # component 1 against the reference, component 2: weights 0.4 and 0.6
+  mx <- mixture(gen_extreme_value(), gen_extreme_value())
+  mdp <- list(mu1 = c(1, 1), sigma1 = c(0.1, 0.1), xi1 = c(0.3, 0.3),
+              mu2 = c(-1, 1), sigma2 = c(1, 0.1), xi2 = c(0.3, 0.3),
+              theta1 = rep(log(0.4 / 0.6), 2))
+  lm <- rl(mx, c(0, 0), mdp)
+  one <- rl(fam, 0, list(mu = -1, sigma = 1, xi = 0.3))
+  expect_lte(abs(lm[1] - (log(0.6) + one)), 8 * eps * abs(lm[1]))
+  expect_identical(lm[2], -Inf)
+})
+
+test_that("off the reader, doubles keep the fitted objective's arithmetic", {
+  # importance sampling and nested quadrature set the offsets of their
+  # tapes from the objective on doubles and check the tape against it,
+  # so a row outside the support must give them the barrier the tape
+  # gives. A first version made every evaluation on doubles exact, and
+  # nested fits stopped or moved (dev/reviews/2026-11-10-support.md,
+  # finding 1)
+  fam <- gen_extreme_value()
+  y <- c(0, 0, 3, 1)
+  eta <- list(mu = c(1, -1, 0, 0), sigma = log(c(0.1, 1, 1, 1)),
+              xi = log1p(c(0.3, 0.3, -0.5, -0.5)))
+  dp <- list(mu = eta$mu, sigma = exp(eta$sigma), xi = expm1(eta$xi))
+  ld <- frmtmb:::row_lpdf(fam, y, y, dp, list(), NULL)
+  tp <- tape_lpdf(fam, y, eta)
+  expect_true(all(is.finite(ld)))
+  expect_true(all(abs(ld - tp) <= 8 * eps * abs(tp)))
+  # and the switch is the reader's alone: it is off again after the call
+  expect_identical(frmtmb:::row_lpdf(fam, y, y, dp, list(), NULL,
+                                     exact = TRUE)[1], -Inf)
+  expect_identical(frmtmb:::row_lpdf(fam, y, y, dp, list(), NULL), ld)
+})
+
+test_that("the GEV and Frechet log survivors keep their far upper tail", {
+  # log S = log(1 - exp(-e)) with e = exp(-w) = t^(-1 / xi): once e
+  # underflows, log(-expm1(-e)) is -Inf while log S, about -w, is an
+  # ordinary number. At the Gumbel point w = x: x = 800 has log S
+  # = -800 to the last bit (the next term is e / 2, 1e-348). A reader
+  # reads it through a right-censored row
+  rs <- function(f, q, dp) {
+    frmtmb:::row_lpdf(f, q, q, dp, list(cens = rep(1, length(q))), NULL,
+                      exact = TRUE)
+  }
+  fam <- gen_extreme_value()
+  ls <- rs(fam, c(800, 40), list(mu = 0, sigma = 1, xi = 0))
+  expect_identical(ls[1], -800)
+  e40 <- exp(-40)
+  expect_lte(abs(ls[2] - (-40 - e40 / 2)), 4 * eps * 40)
+  # the Frechet's: w = nu log(q / scale), mu 1, nu 2
+  fr <- frechet()
+  s <- 1 / gamma(1 - 1 / 2)
+  q <- s * exp(400)
+  lsf <- rs(fr, q, list(mu = 1, nu = 2))
+  expect_lte(abs(lsf - (-800)), 64 * eps * 800)
+})
+
+test_that("importance and nested quadrature fit a GEV off its support", {
+  # 15 groups of 8, mu 1 + u with sd(u) 0.7, sigma 1: draws and nodes put
+  # rows outside the support. With every evaluation on doubles exact,
+  # importance = 500 at xi 1.5 (seed 2) and nested quadrature at xi 0.5
+  # (seed 3) stopped at "could not reproduce" (-Inf against -Inf), where
+  # 0.80.0 fits both (dev/review-support-is2.R, is.R)
+  rg <- function(n, mu, s, k) mu + s * ((-log(stats::runif(n)))^(-k) - 1) / k
+  sim <- function(seed, xi) {
+    set.seed(seed)
+    g <- rep(seq_len(15), each = 8)
+    u <- stats::rnorm(15, 0, 0.7)
+    d <- data.frame(g = factor(g), y = rg(120, 1 + u[g], 1, xi))
+    d$h <- factor(paste(d$g, rep(1:2, length.out = 120)))
+    d
+  }
+  fi <- allow_warnings(
+    frm(y ~ 1 + (1 | g), family = gen_extreme_value(), data = sim(2, 1.5),
+        importance = 500L),
+    allowed = c("The importance proposal covers",
+                "The importance correction used all",
+                "Large maximum absolute gradient"))
+  expect_true(is.finite(as.numeric(logLik(fi))))
+  fq <- allow_warnings(
+    frm(y ~ 1 + (1 | g) + (1 | h), family = gen_extreme_value(),
+        data = sim(3, 0.5), quadrature = TRUE),
+    allowed = c("did not settle the nested rule",
+                "Large maximum absolute gradient"))
+  expect_true(is.finite(as.numeric(logLik(fq))))
+})
+
 test_that("the GEV density near xi = 0 is the Gumbel's to first order", {
   fam <- gen_extreme_value()
   yy <- c(-2, 0, 1, 4)

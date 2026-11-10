@@ -649,12 +649,28 @@ vm_lmass_tails <- function(a, b, k) {
 #' convention: `F(y) = P(-pi <= Y <= y)` for `Y` with mean direction
 #' `mu`, which is the centered mass between `-pi - mu` and `y - mu`.
 #'
+#' A `q` outside `[-pi, pi]` (data, a `trunc()` bound) is read at the
+#' end it passed, where `F` is 0 or 1: read where it lies, the arc from
+#' `-pi` had a negative length, and `trunc(lb = -4)` moved a fit's
+#' logLik by 6.4 (dev/support-ndt-probe.R). At the end the arc that is
+#' empty has a floored log mass of about -690.8 on the tape; a reader
+#' that asks for the exact value (`exact_support()`) gets `-Inf`.
+#'
 #' @noRd
 von_mises_cdf_log <- function(q, mu, k) {
+  qd <- !inherits(q, "advector")
+  if (qd) q <- pmin(pmax(q, -pi), pi)
+  lF <- vm_lmass(-pi - mu, q - mu, k)
+  lS <- vm_lmass(q - mu, pi - mu, k)
+  if (qd && exact_support() && !inherits(lF, "advector")) {
+    n <- max(length(q), length(lF), length(lS))
+    qn <- rep_len(q, n)
+    lF <- ifelse(qn <= -pi, -Inf, rep_len(lF, n))
+    lS <- ifelse(qn >= pi, -Inf, rep_len(lS, n))
+  }
   # the centered angle and kappa ride along for an arc between two
   # recorded angles, which log_window() takes from vm_lmass() itself
-  list(lF = vm_lmass(-pi - mu, q - mu, k),
-       lS = vm_lmass(q - mu, pi - mu, k),
+  list(lF = lF, lS = lS,
        ctr = q - mu, kappa = k + 0 * q,
        lmass = function(pl, ph, r) {
          vm_lmass(pl[["ctr"]][r], ph[["ctr"]][r], pl[["kappa"]][r])
@@ -1051,13 +1067,28 @@ lognormal_cdf_log <- function(q, mu, sigma) {
 #' `q - ndt`, where `ndt` is a parameter, so the edge cannot be resolved
 #' off the tape. A `q - ndt` at or below 0 is read at 1e-300, where the
 #' CDF is `Phi((-690.8 - mu) / sigma)`, zero to the doubles at any
-#' `sigma` below about 18, and its derivative in `ndt` is zero.
+#' `sigma` below about 18: `lS` is 0 with a zero gradient, and `lF`
+#' about `-z^2 / 2`, finite with a finite gradient, a barrier. A reader
+#' that asks for the exact value (`exact_support()`) gets `lF = -Inf`
+#' there on doubles.
+#'
+#' The floor is the positive part plus the floor (dev/rtmb-pitfalls.md,
+#' item 11). Through 0.80.0 it was `ad_max(q - ndt, 1e-300)`, which forms
+#' `x + ((1e-300 - x) + |1e-300 - x|) / 2`: at `x = -1.02` the sum
+#' rounds to exactly 0, `log(0)` is `-Inf`, and the taped gradient of
+#' every row under `trunc(lb = )` at or below 0 was `NaN`, so the fit
+#' stopped (dev/reviews/2026-11-10-support.md, finding 3).
 #'
 #' @noRd
 shifted_lognormal_cdf_log <- function(q, mu, sigma, ndt) {
-  z <- (log(ad_max(q - ndt, 1e-300)) - mu) / sigma
-  list(lF = RTMB::pnorm(z, log.p = TRUE),
-       lS = RTMB::pnorm(z, lower.tail = FALSE, log.p = TRUE))
+  d <- q - ndt
+  z <- (log(1e-300 + ad_pos(d - 1e-300)) - mu) / sigma
+  lF <- RTMB::pnorm(z, log.p = TRUE)
+  if (exact_support() && !inherits(z, "advector")) {
+    n <- max(length(d), length(lF))
+    lF <- ifelse(rep_len(d, n) <= 0, -Inf, rep_len(lF, n))
+  }
+  list(lF = lF, lS = RTMB::pnorm(z, lower.tail = FALSE, log.p = TRUE))
 }
 
 #' `inverse_gaussian_cdf_log()` with a `q` (data) at or below 0 sent to

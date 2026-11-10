@@ -1,3 +1,10 @@
+# frmtmb.survival (development version)
+
+* `royston_parmar()` takes `trunc(lb = )` at or below 0, which is no
+  truncation for a survival time: the fit is the one without the bound.
+  Before, the fit stopped with a `NaN` gradient, because the
+  distribution function read `log(lb)`.
+
 # frmtmb.survival 0.2.2
 
 * The package code does not use the global assignment operator `<<-`,
