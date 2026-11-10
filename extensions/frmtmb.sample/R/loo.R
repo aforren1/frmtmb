@@ -199,8 +199,12 @@ draws_row_loglik <- function(fit, resp) {
                        } else "an observation"))
     }
     # a multivariate model's family extras (ordinal thresholds) are
-    # namespaced by response; this gives the density its own block
-    ll <- row_lpdf(fam, yv, yv, dpv[[r]], av, fit_extras(fit, r))
+    # namespaced by response; this gives the density its own block. A
+    # column is a reported density, so it is the exact one: -Inf for a
+    # gen_extreme_value() row outside its support, where the fitted
+    # objective has a finite barrier
+    ll <- row_lpdf(fam, yv, yv, dpv[[r]], av, fit_extras(fit, r),
+                   exact = TRUE)
     out <- out + (av[["weights"]] %||% 1) * as.numeric(ll)
   }
   out
@@ -322,7 +326,17 @@ draws_row_loglik <- function(fit, resp) {
 #' @param object A `frmtmb_draws` from [frm_sample()].
 #' @param newdata,re_formula Accepted in brms's own second and third
 #'   positions and refused: see *What is conditioned on*. The refusal
-#'   names the reason and the replacement.
+#'   names the reason and the replacement. One `newdata` is accepted:
+#'   data that holds exactly the rows the model was fitted on, such as
+#'   `x$data` (the fit's model frame) or the data the model was fitted
+#'   to when no row was dropped. Those are the rows this matrix is
+#'   for, so the result is the matrix without `newdata`, which is what
+#'   brms computes there too. Every variable the model reads must be in
+#'   it, with its fitted value. A subset of the fitted rows is refused,
+#'   though brms answers it: rows are matched by value, and a subset
+#'   cannot be placed among the fitted rows unambiguously where rows
+#'   repeat and a per-row latent value (`me()`, `mi()`) or an
+#'   autocorrelation neighbor enters.
 #' @param ndraws Number of draws to use, evenly spaced through the
 #'   matrix (default: all of them).
 #' @param draw_ids The draws to use, by row index, instead of the
@@ -410,6 +424,9 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
   # simulator
   alt <- paste0("Use posterior_epred(newdata =) or posterior_predict(",
                 "newdata =) for a quantity on other rows")
+  # the fitted rows, given as newdata, are the rows this answers, and
+  # they are what brms's log_lik(newdata = fit$data) evaluates
+  if (draws_newdata_is_fitted(object, newdata)) newdata <- NULL
   if (!is.null(newdata)) {
     fb <- draws_base_fit(object)
     if (any(vapply(names(fb$spec$responses), function(r) {
@@ -429,7 +446,8 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
     "trials()) and the case weights, for the rows the model was ",
     "fitted on; newdata supplies none of them. The density is also ",
     "CONDITIONAL on each draw's own group-level values, which is what ",
-    "re_formula would remove. ", alt)
+    "re_formula would remove. ", alt, ".",
+    if (!is.null(newdata)) draws_fitted_rows_note)
   fit <- draws_base_fit(object)
   draws_require_b(object, "log_lik()")
   draws_loglik_factors(fit, "log_lik()")
@@ -563,13 +581,28 @@ logLik.frmtmb_draws <- function(object, newdata = NULL, re_formula = NULL,
 #' weights of [psis()], the `loo_*()` functions and `pp_check()`'s
 #' `loo_*` types.
 #'
+#' @section A log-likelihood that is not finite:
+#' A cell of the [frmtmb::log_lik()] matrix is `-Inf` when a draw puts
+#' an observation outside the support of the response's distribution,
+#' for example a `gen_extreme_value()` row below the lower end of a
+#' draw's support. A leave-one-out or WAIC estimate does not exist with
+#' such a cell. `loo()`, `waic()`, `psis()`, the `loo_*()` functions and
+#' `pp_check()`'s `loo_*` types then stop with an error of class
+#' `frmtmb_loglik_not_finite` that gives the number of cells, draws and
+#' observations. A `NaN` or `+Inf` cell stops them in the same way. brms
+#' also stops there: its density is `NaN` outside a support, and the loo
+#' package refuses `NaN`. Draws that [frm_sample()] makes put no
+#' observation outside its support in practice; a draws object built or
+#' edited by hand can.
+#'
 #' @param x A `frmtmb_draws` from [frm_sample()], or (for
 #'   `loo_compare()`) already-computed criteria.
 #' @param ndraws,resp Passed to [frmtmb::log_lik()].
 #' @param ... Further models: for `loo()` and `waic()` the draws
 #'   objects given without a name, which brms compares in one call, and
 #'   brms's named options, refused by name where they would change the
-#'   answer (`newdata` and the other arguments `log_lik()` refuses,
+#'   answer (`newdata` other than the fitted rows, and the other
+#'   arguments `log_lik()` refuses,
 #'   `moment_match`, `reloo`) and passed on where they are the loo
 #'   package's (`r_eff`, `save_psis`, `cores`). For `loo_compare()`,
 #'   further models.
@@ -656,11 +689,13 @@ loo_criterion <- function(x, dots, dots_expr, crit, compare, resp, ndraws,
              "Name the options, as ndraws = 100", call. = FALSE)
   }
   opts <- dots[!is_model]
+  models <- c(list(x), dots[is_model])
   # brms's own default values ask for nothing log_lik() refuses, so a
-  # call that spells them out is answered as one that leaves them out
+  # call that spells them out is answered as one that leaves them out;
+  # so does newdata that holds every model's fitted rows
   ll_args <- c("newdata", "re_formula", "re.form", draws_new_level_args,
                "nug")
-  hit <- Filter(function(a) !loo_default_value(a, opts[[a]]),
+  hit <- Filter(function(a) loo_arg_asks(models, a, opts[[a]]),
                 intersect(names(opts), ll_args))
   if (length(hit)) {
     frm_stop(what, " cannot honor `", hit[1L], "`: the criterion is ",
@@ -669,7 +704,9 @@ loo_criterion <- function(x, dots, dots_expr, crit, compare, resp, ndraws,
              "pointwise density reads the assembled frame (the response, ",
              "the addition terms and the case weights), which newdata does ",
              "not supply. brms computes it on newdata; here, sample the ",
-             "model on the data whose elpd you want", call. = FALSE)
+             "model on the data whose elpd you want.",
+             if (identical(hit[1L], "newdata")) draws_fitted_rows_note,
+             call. = FALSE)
   }
   for (a in intersect(names(opts), c("moment_match", "reloo"))) {
     check_flag(opts[[a]], a)
@@ -690,7 +727,6 @@ loo_criterion <- function(x, dots, dots_expr, crit, compare, resp, ndraws,
     frm_stop(what, " has no argument `", unknown[1L], "`", call. = FALSE)
   }
   check_flag(compare, "compare")
-  models <- c(list(x), dots[is_model])
   one <- function(m) {
     # brms's use_stored: a criterion add_criterion() stored is returned
     # when the call asks for nothing else
@@ -959,6 +995,46 @@ add_criterion_args <- function(dots, crits) {
   })
 }
 
+#' Stop on a log-likelihood cell that is not finite, before the loo
+#' package sees it. The loo package refuses `+Inf` and `NaN`, and `-Inf`
+#' becomes `+Inf` in the importance ratios of `loo()` and `psis()`, but
+#' `waic.matrix()` takes `-Inf` and returns an elpd of `NaN` without a
+#' word. brms stops in all three, because its density outside a support
+#' is `NaN`. One classed error here gives the three functions, and every
+#' caller of `loo_matrix()`, the same answer and says which cells.
+#'
+#' @noRd
+loo_check_finite <- function(ll, what) {
+  bad <- !is.finite(ll)
+  if (!any(bad)) return(invisible(NULL))
+  cols <- which(colSums(bad) > 0L)
+  rows <- which(rowSums(bad) > 0L)
+  unit <- if (is.null(attr(ll, "unit"))) "observations" else "units"
+  some <- function(i) {
+    paste0(paste(i[seq_len(min(5L, length(i)))], collapse = ", "),
+           if (length(i) > 5L) ", ...")
+  }
+  n_minus <- sum(ll[bad] == -Inf, na.rm = TRUE)
+  why <- c(
+    if (n_minus > 0L) {
+      paste0("A -Inf cell is an observation that the draw puts outside ",
+             "the support of the response's distribution, where its ",
+             "density is 0.")
+    },
+    if (n_minus < sum(bad)) {
+      "A NaN or +Inf cell is a density that is not defined."
+    })
+  frm_stop(what, ": log_lik() is not finite in ", sum(bad), " cells, at ",
+           length(cols), " of ", ncol(ll), " ", unit, " and ", length(rows),
+           " of ", nrow(ll), " draws (", unit, " ", some(cols),
+           "; draws, by row of log_lik(), ", some(rows), "). ",
+           paste(why, collapse = " "),
+           " A leave-one-out or WAIC estimate does not exist with such a ",
+           "cell. Leave those draws out with `draw_ids`, or check how the ",
+           "draws were made.",
+           call. = FALSE, class = "frmtmb_loglik_not_finite")
+}
+
 #' The log-likelihood matrix with the loo package present. `...` reaches
 #' log_lik(): `draw_ids`, for a caller that weights a prediction on the
 #' same draws.
@@ -972,6 +1048,7 @@ loo_matrix <- function(x, ndraws, resp, what, ...) {
   }
   ll <- draws_as_caller(what, re_formula = FALSE,
                         log_lik(x, ndraws = ndraws, resp = resp, ...))
+  loo_check_finite(ll, what)
   # loo::loo.matrix() prints "Computed from N by K log-likelihood
   # matrix" and nothing else, so a matrix whose columns are GROUPS
   # reads exactly like a per-observation one. The attribute log_lik()
@@ -1064,7 +1141,8 @@ loo_call_names <- function(cl, n) {
 #' @param log_ratios For `psis()`, the draws object whose negative
 #'   pointwise log-likelihood supplies the importance ratios.
 #' @param newdata For `psis()`, accepted in brms's own second position
-#'   and refused, because [frmtmb::log_lik()] does not take it.
+#'   and refused, as [frmtmb::log_lik()] refuses it: only data that
+#'   holds exactly the fitted rows is accepted, and changes nothing.
 #' @param model_name For `psis()`, brms's label for the model.
 #'   Accepted and unused: a `psis` object has nothing to label.
 #' @export
@@ -1080,9 +1158,11 @@ psis.frmtmb_draws <- function(log_ratios, newdata = NULL, resp = NULL,
   # asks the same question. `model_name` is brms's label for the fit
   # and loo::psis has nothing to attach it to, so it is accepted and
   # unused, exactly as it is in brms.
+  if (draws_newdata_is_fitted(log_ratios, newdata)) newdata <- NULL
   draws_refuse_newdata(newdata, arg_unset(), arg_unset(), "psis()",
                        "it is built from log_lik(), which does not ",
-                       "take newdata: see ?log_lik")
+                       "take newdata: see ?log_lik.",
+                       draws_fitted_rows_note)
   # the leave-one-out importance ratios are the NEGATIVE log-likelihood
   # (down-weighting the draws the held-out point likes), which is what
   # loo::loo.matrix smooths internally and what brms's psis.brmsfit

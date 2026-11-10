@@ -487,6 +487,8 @@ test_that("fcor and acformula() take a body too", {
              data = d, data2 = list(M = M), start = st)
   expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(lin))) /
               abs(as.numeric(logLik(lin))), 1e-6)
+  # the row the equivalence survey's pair p158 read refused through 0.78.0
+  expect_identical(frm_compat("fcor()", "nl")$status, "conditional")
   f2 <- bf(y ~ b0 + b1 * x, b0 + b1 ~ 1, nl = TRUE) +
     acformula(~ ar(time = t, gr = g, cov = TRUE))
   fit2 <- frm(f2, data = d, start = st)

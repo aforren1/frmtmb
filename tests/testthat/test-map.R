@@ -44,3 +44,29 @@ test_that("an sd prior regularizes a singular variance component", {
   d <- diagnose(map, quiet = TRUE)
   expect_length(d$bad_se, 0)
 })
+
+test_that("hypothesis() on a MAP fit does not call it maximum likelihood", {
+  # Through 0.80.0 print() said "a maximum-likelihood fit has no
+  # posterior" on a fit with a prior, which has one. The columns stay NA
+  # on every fit (?hypothesis, "The returned object" says why); the
+  # printed reason is now true of both kinds of fit.
+  set.seed(394)
+  dd <- data.frame(x = rnorm(120), g = factor(rep(1:12, 10)))
+  dd$y <- rnorm(120, 1 + 0.15 * dd$x + rnorm(12, 0, 0.6)[dd$g], 1)
+  map <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd,
+             prior = set_prior("normal(0, 1)", class = "b") +
+               set_prior("cauchy(0, 2)", class = "sd", lb = 0))
+  ml <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd)
+  for (f in list(map, ml)) {
+    h <- hypothesis(f, c("x = 0", "x > 0"))
+    hs <- hypothesis(f, "Intercept = 0", class = "sd", group = "g")
+    expect_true(all(is.na(c(h$hypothesis$Evid.Ratio,
+                            h$hypothesis$Post.Prob,
+                            hs$hypothesis$Evid.Ratio))))
+    out <- paste(utils::capture.output(print(hs)), collapse = "\n")
+    expect_false(grepl("maximum-likelihood", out, fixed = TRUE))
+    expect_true(grepl("brms computes them from posterior draws", out,
+                      fixed = TRUE))
+    expect_true(grepl("a fit has none", out, fixed = TRUE))
+  }
+})

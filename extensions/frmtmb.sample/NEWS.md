@@ -1,3 +1,58 @@
+# frmtmb.sample 0.28.0
+
+Needs frmtmb 0.81.0, which adds `row_lpdf(exact = )`.
+
+* A `frm_sample()` result carries the fit's model frame as `$data`, the
+  same object as the fit's `fit$data`. brms code reads `fit$data`, for
+  example as `newdata = fit$data`. On draws it read `NULL`, so
+  `loo(draws, newdata = draws$data)` was `loo(draws)` with no newdata at
+  all.
+
+* BREAKING: `log_lik()`, `logLik()`, `loo()`, `waic()`, `psis()`, the
+  `loo_*()` functions, `loo_model_weights()` and the `loo_*` types of
+  `pp_check()` accept `newdata` that holds exactly the rows the model
+  was fitted on: `draws$data`, `model.frame()`, or data that holds
+  every variable the model reads, each with its fitted value in every
+  fitted row, such as the data the model was fitted to when the fit
+  dropped no row. Such `newdata` gives the `log_lik()` matrix and the
+  leave-one-out weights of the call without `newdata`. brms computes
+  these functions on `log_lik(newdata =)`, and on the fitted rows that
+  is its answer without `newdata` too: on brms's own example 6,
+  `loo(fit, newdata = fit$data)` gave an elpd of -184.0810 against
+  -184.0806, the difference being brms's new prediction of a `gp()`
+  term. Before, every `newdata` was refused.
+
+* Other `newdata` is still refused. On rows the model was not fitted on
+  there is no leave-one-out weight: it comes from the row's own column
+  of `log_lik()`. A subset of the fitted rows is refused too, though
+  brms answers it with those rows' pointwise values: rows are matched
+  by value, and a subset cannot be placed among the fitted rows
+  unambiguously where rows repeat and a per-row latent value (`me()`,
+  `mi()`) or an autocorrelation neighbor enters.
+
+* BREAKING: `log_lik()` of draws, and so `loo()`, `waic()` and the
+  other readers of its matrix, gives the exact log density: `-Inf` for
+  a `gen_extreme_value()` row outside the support of a draw, where brms
+  gives `NaN`. Before, it gave the finite barrier of the fitted
+  objective, such as -1.0e150. The draws themselves do not change.
+
+* BREAKING: `loo()`, `waic()` and `psis()` of draws stop with an error
+  of class `frmtmb_loglik_not_finite` when a cell of `log_lik()` is not
+  finite, and give the number of cells, observations and draws. The
+  `loo_*()` functions and the `loo_*` types of `pp_check()` stop in the
+  same way. A `-Inf` cell is an observation that a draw puts outside
+  the support of the response's distribution. Before, `loo()` and
+  `psis()` stopped in the loo package with "All input values must be
+  finite or -Inf", and `waic()` gave an elpd of `NaN` with no error.
+  brms stops in all three, because its density there is `NaN`. Draws
+  from `frm_sample()` were not seen to make such a cell: in 22
+  `gen_extreme_value()` fits that sample the fitted objective (a
+  predicted `xi`, or `cens()`), 0 of 44,000 draws put a row outside
+  the support. The objective is continuous across the end of the
+  support and falls by 1e8 per unit of `t` outside it, so a draw
+  outside must lie in a band about 1e-8 wide. A draws object built or
+  edited by hand can have such a cell.
+
 # frmtmb.sample 0.27.0
 
 * `posterior_epred()`, `posterior_linpred()` and `posterior_predict()` with

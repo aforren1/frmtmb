@@ -5253,7 +5253,13 @@ grad_headroom <- function(fit, g, active) {
   np <- length(p)
   free <- which(!active)
   if (!length(free)) return(0)
-  H <- tryCatch(obj_he_cached(fit$obj, p), error = function(e) NULL)
+  # a covariance parameter at its edge is held, and the rest read where a
+  # correlation past the clamp is pulled back, as in conv_headroom()
+  ec <- headroom_edge_cor(fit, np)
+  H <- headroom_pulled_hessian(fit, ec)
+  if (is.null(H)) {
+    H <- tryCatch(obj_he_cached(fit$obj, p), error = function(e) NULL)
+  }
   u1 <- is.null(fit$par_units) || all(fit$par_units == 1)
   if (is.null(H) || !identical(dim(H), c(np, np))) {
     # in natural units the same differences as optimHess() below, step
@@ -5286,7 +5292,8 @@ grad_headroom <- function(fit, g, active) {
   H <- (H + t(H)) / 2
   tol <- fit$control$grad_tol %||% 1e-3
   u <- rep_len(fit$par_units %||% 1, np)
-  active <- bound_held_by_step(fit, p, g, H, act0 = active)
+  active <- bound_held_by_step(fit, p, g, H, act0 = active) |
+    headroom_edge(fit, H, ec)
   free <- which(!active)
   if (!length(free)) return(0)
   dr <- headroom_drop_rows(fit, H, g, u, tol)
@@ -5304,14 +5311,154 @@ grad_headroom <- function(fit, g, active) {
     h <- headroom_reparam_hessian(fit, H, free)
     ch <- if (!is.null(h)) tryCatch(chol(h$H), error = function(e) NULL)
     if (!is.null(ch)) {
-      return(extra + 0.5 * sum(backsolve(ch, drop(crossprod(h$M, g)),
-                                         transpose = TRUE)^2))
+      pred <- 0.5 * sum(backsolve(ch, drop(crossprod(h$M, g)),
+                                  transpose = TRUE)^2)
+      return(extra + headroom_checked(fit, p, g, h$H, h$M, pred, tol))
     }
   }
-  ch <- tryCatch(chol(H[free, free, drop = FALSE]),
-                 error = function(e) NULL)
-  if (is.null(ch)) return(NA_real_)
-  extra + 0.5 * sum(backsolve(ch, g[free], transpose = TRUE)^2)
+  Hf <- H[free, free, drop = FALSE]
+  ch <- tryCatch(chol(Hf), error = function(e) NULL)
+  pred <- if (is.null(ch)) NA_real_ else {
+    0.5 * sum(backsolve(ch, g[free], transpose = TRUE)^2)
+  }
+  extra + headroom_checked(fit, p, g, Hf, diag(1, np)[, free, drop = FALSE],
+                           pred, tol)
+}
+
+#' The headroom a caller reports: the quadratic model's prediction `pred`.
+#' Where that is above `tol`, or there is none (a Hessian that is not
+#' positive definite), and the standard-error check's Rayleigh-Ritz step
+#' measured a direction flat on the ridge's floor (se_ridge_ritz()), or a
+#' design makes one exactly flat (headroom_ritz_flat()), the
+#' quadratic model is taken over the other directions and the objective
+#' is asked along the flat ones (headroom_off_flat()); that answer is
+#' kept when it is at most `tol`.
+#'
+#' The quadratic model is wrong along a ridge the likelihood is flat on:
+#' on test-se-tier.R's c0 + exp(a)^k every one of 41 draws a few ulps
+#' apart ends at the same log-likelihood to 1e-8, and 9 of them warned
+#' that a Newton step would gain more than grad_tol, or that the
+#' curvature was unusable, because the ridge is curved, so the gradient
+#' across it reads as a gain along it. Those fits then kept sdreport()'s
+#' standard errors of the stop, a_(Intercept)'s among them, while the
+#' other 32 lost it (dev/code8-findings.md, Part C).
+#'
+#' Nothing but a measured flat direction lets the objective overrule the
+#' prediction. A first version took the best of a few straight probes in
+#' place of any prediction above `tol`, and on a curved valley (y = A
+#' exp(B x), x on [30, 31] or [100, 101]) it called stops 0.003 to 10.5
+#' short the maximum, three of them with the code-8 message (review of
+#' lane code8, finding 1, dev/review-code8-valley*.R).
+#'
+#' @noRd
+headroom_checked <- function(fit, p, g, Hq, M, pred, tol) {
+  if (isTRUE(pred <= tol)) return(pred)
+  N <- headroom_ritz_flat(fit)
+  if (!NCOL(N)) return(pred)
+  r <- tryCatch(headroom_off_flat(fit, p, g, Hq, M, N, tol),
+                error = keep_missing(NA_real_))
+  if (isTRUE(r <= tol)) r else pred
+}
+
+#' The directions known to be flat (natural units, one column each): those
+#' the standard-error check's Rayleigh-Ritz step measured flat on a
+#' ridge's floor (`ritz_flat` of se_tier3(), from the fit's own analysis,
+#' built here when it is not yet; se_check() reuses it), and those a design
+#' makes exactly flat (se_design_null(): an alias, a mo() simplex split by
+#' a category no row is in). The finite-difference eigenvalues along the
+#' second kind are noise of either sign: on test-mo-coding.R's gap fit
+#' (seed 23) -4.1e-6 and -5.9e-6 against a largest of 3.4, the gradient
+#' along them 1e-11, and the quadratic model called the curvature
+#' unusable. NULL when there is none, or under `check_se = "ignore"`,
+#' where the check is not asked.
+#'
+#' @noRd
+headroom_ritz_flat <- function(fit) {
+  if (identical(fit$control$check_se, "ignore") ||
+        !is.environment(fit$cache)) {
+    return(NULL)
+  }
+  np <- length(fit$opt$par)
+  an <- tryCatch(se_fit_analysis(fit, force = TRUE),
+                 error = keep_missing(NULL))
+  N <- an$ritz_flat
+  if (!(is.matrix(N) && NROW(N) == np)) N <- matrix(0, np, 0L)
+  # A design null is flat in the likelihood only: a prior with a density
+  # curves the objective along it, and straight probes of at most 10
+  # unit-diagonal lengths fall short of a weak one's quadratic. On y ~ x
+  # + s(x) (s(x).fx1 is x's alias) under normal(0, 1e4) on both, stops
+  # 0.00117 to 11.7 short along the null were called the maximum (review
+  # of lane code8, fix-round check, dev/review-code8-fix-dnull.R). So it
+  # is taken only where the objective has no such prior; elsewhere the
+  # quadratic model, which has the prior's curvature exactly, decides
+  if (!isTRUE(tryCatch(fit_prior_density(fit), error = function(e) TRUE))) {
+    Nd <- tryCatch(se_design_null(fit), error = keep_missing(NULL))
+    if (is.matrix(Nd) && NROW(Nd) == np) N <- cbind(N, Nd)
+  }
+  if (NCOL(N)) N
+}
+
+#' The headroom with the directions `N` (natural units, one per column)
+#' that the Rayleigh-Ritz step measured flat taken out: the quadratic
+#' model's Newton gain over the rest of `Hq` (the Hessian in coordinates
+#' `q`, `p = p0 + M q`), plus what the objective gains along each flat
+#' direction, both ways, at unit-diagonal lengths of 1e-4 to 10. NA when
+#' the rest curves downward beyond `se_flat_tol` of its largest
+#' eigenvalue, when a direction it does not curve along carries more than
+#' `tol` by its gradient, or when the objective is not finite at `p`.
+#'
+#' The objective is asked only along a direction measured flat on the
+#' floor, where a straight step cannot miss a valley the quadratic model
+#' sees; every other direction is the quadratic model's.
+#'
+#' @noRd
+headroom_off_flat <- function(fit, p, g, Hq, M, N, tol) {
+  gq <- drop(crossprod(M, g))
+  if (!all(is.finite(gq)) || !all(is.finite(Hq))) return(NA_real_)
+  Nq <- qr.solve(M, N)
+  D <- sqrt(abs(diag(Hq)))
+  D[!(D > 0)] <- 1
+  qw <- qr(Nq * D)
+  W <- qr.Q(qw)[, seq_len(qw$rank), drop = FALSE]
+  if (!NCOL(W)) return(NA_real_)
+  k <- NROW(Hq)
+  P <- diag(1, k) - tcrossprod(W)
+  S <- P %*% (Hq / outer(D, D)) %*% P
+  S <- (S + t(S)) / 2
+  gs <- drop(P %*% (gq / D))
+  e <- eigen(S, symmetric = TRUE)
+  big <- max(abs(e$values))
+  bound <- se_flat_tol * big
+  if (any(e$values < -bound)) return(NA_real_)
+  gv <- drop(crossprod(e$vectors, gs))
+  cv <- e$values > bound
+  fb <- gv[!cv]^2 / (2 * bound)
+  if (any(fb > tol)) return(NA_real_)
+  gain <- 0.5 * sum(gv[cv]^2 / e$values[cv])
+  obj <- fit$obj
+  saved <- obj_state_save(obj)
+  on.exit({
+    obj_state_restore(obj, saved)
+    try(obj$gr(p), silent = TRUE)
+  }, add = TRUE)
+  f <- function(x) {
+    tryCatch(as.numeric(se_quiet(obj$fn(x))), error = function(e) NA_real_)
+  }
+  # a probe stays inside the box the optimizer ran in
+  box <- tryCatch(fit_outer_box(fit), error = keep_missing(NULL))
+  lo <- rep_len(box$lower %||% -Inf, length(p))
+  hi <- rep_len(box$upper %||% Inf, length(p))
+  f0 <- f(p)
+  if (!is.finite(f0)) return(NA_real_)
+  fx <- numeric(0)
+  for (j in seq_len(NCOL(W))) {
+    dn <- drop(M %*% (W[, j] / D))
+    for (a in c(-1, 1) %o% 10^(-4:1)) {
+      fx <- c(fx, f(pmin(pmax(p + a * dn, lo), hi)))
+    }
+  }
+  structure(gain + max(0, f0 - min(c(f0, fx[is.finite(fx)]))),
+            flat_bound = sum(fb))
 }
 
 #' How much log-likelihood a Newton step from the stop of a fit that did
@@ -5340,9 +5487,14 @@ conv_headroom <- function(fit, g) {
   saved <- obj_state_save(obj)
   on.exit(obj_state_restore(obj, saved), add = TRUE)
   u <- rep_len(fit$par_units %||% 1, np)
+  # a correlation run past the clamp is held, and the rest of the Hessian
+  # read where it is pulled back, as the standard-error check reads it
+  # (cov_from_hessian())
+  ec <- headroom_edge_cor(fit, np)
+  H <- headroom_pulled_hessian(fit, ec)
   # with random effects, fit_outer_hessian()'s differences, which
   # grad_headroom() and the SE check read again at this point
-  H <- if (length(obj$env$random)) fit_outer_hessian_at(fit, p)
+  if (is.null(H) && length(obj$env$random)) H <- fit_outer_hessian_at(fit, p)
   if (is.null(H)) {
     H <- tryCatch(if (length(obj$env$random)) {
       stats::optimHess(p, function(q) as.numeric(obj$fn(q)),
@@ -5357,6 +5509,14 @@ conv_headroom <- function(fit, g) {
   # a parameter on its bound that the Newton step would push out is
   # held, whatever its gradient's sign (bound_held_by_step())
   act <- bound_held_by_step(fit, p, g, H)
+  # and so is a covariance parameter at the edge of its range, as the
+  # standard-error check holds it (cov_from_hessian()): a correlation run
+  # past the clamp, or a log sd the likelihood ignores below its estimate.
+  # Its row is noise, and nothing is gained along it. On brms's fixture 1
+  # a correlation at -1 (its parameter at -723) left the curvature
+  # unusable, so the fit was called short and every standard error was
+  # NaN, sigma's included (dev/code8-findings.md, Part B)
+  act <- act | headroom_edge(fit, H, ec)
   free <- which(!act)
   if (!length(free)) return(0)
   tol <- fit$control$grad_tol %||% 1e-3
@@ -5368,10 +5528,56 @@ conv_headroom <- function(fit, g) {
   if (length(free) >= 2L) {
     h <- headroom_reparam_hessian(fit, H, free)
     if (!is.null(h)) {
-      return(extra + newton_room(h$H, drop(crossprod(h$M, g)), tol))
+      gq <- drop(crossprod(h$M, g))
+      return(extra + headroom_checked(fit, p, g, h$H, h$M,
+                                      newton_room(h$H, gq, tol), tol))
     }
   }
-  extra + newton_room(H[free, free, drop = FALSE], g[free], tol)
+  Hf <- H[free, free, drop = FALSE]
+  extra + headroom_checked(fit, p, g, Hf, diag(1, np)[, free, drop = FALSE],
+                           newton_room(Hf, g[free], tol), tol)
+}
+
+#' The covariance parameters at the edge of their range that the
+#' standard-error check holds (se_edge_cor(), se_edge_sd()), as a logical
+#' vector over the outer parameters; `ec` is headroom_edge_cor()'s
+#' answer. Not asked under quadrature or importance sampling, where the
+#' check gives no boundary verdict.
+#'
+#' @noRd
+headroom_edge <- function(fit, H, ec = headroom_edge_cor(fit, NROW(H))) {
+  np <- NROW(H)
+  out <- logical(np)
+  if (isTRUE(fit$quadrature) || !is.null(fit$importance)) return(out)
+  es <- tryCatch(se_edge_sd(fit, H), error = keep_missing(out))
+  if (length(ec) != np) ec <- out
+  if (length(es) != np) es <- out
+  as.vector(ec) | es
+}
+
+#' se_edge_cor() for the headroom, with its `scale` attribute, or all
+#' FALSE under quadrature or importance sampling.
+#'
+#' @noRd
+headroom_edge_cor <- function(fit, np) {
+  out <- logical(np)
+  if (isTRUE(fit$quadrature) || !is.null(fit$importance)) return(out)
+  ec <- tryCatch(se_edge_cor(fit, np), error = keep_missing(out))
+  if (length(ec) != np) out else ec
+}
+
+#' The outer Hessian with the correlations `ec` marks pulled back
+#' (fit_outer_hessian(pull = )), symmetrized, or NULL when none is marked
+#' or it cannot be built.
+#'
+#' @noRd
+headroom_pulled_hessian <- function(fit, ec) {
+  np <- length(fit$opt$par)
+  if (!any(ec)) return(NULL)
+  H <- tryCatch(fit_outer_hessian(fit, pull = ec)$H,
+                error = keep_missing(NULL))
+  if (!is.matrix(H) || !all(dim(H) == np)) return(NULL)
+  (H + t(H)) / 2
 }
 
 #' Rows of a natural Hessian `H` that the Newton steps leave where they
@@ -5477,6 +5683,11 @@ headroom_reparam_hessian <- function(fit, H, free) {
 #' step could gain as much as its gradient squared over twice that
 #' bound; when that is more than `tol` the gain is not known and the
 #' answer is `NA`, as it is when `H` curves upward beyond the same bound.
+#' What those flatter directions could gain at most is attribute
+#' `flat_bound`: the code-8 message reads it (check_convergence()), since
+#' a weak prior's curvature along an alias, 1e-8 of the largest, is below
+#' that bound, and a stop 0.0187 short along it read a gain of 0 (review
+#' of lane code8, fix-round check, dev/review-code8-fix-dnull2.R).
 #'
 #' @noRd
 newton_room <- function(H, g, tol) {
@@ -5488,8 +5699,51 @@ newton_room <- function(H, g, tol) {
   if (any(e$values < -bound)) return(NA_real_)
   gs <- drop(crossprod(e$vectors, g / D))
   flat <- e$values <= bound
-  if (any(gs[flat]^2 / (2 * bound) > tol)) return(NA_real_)
-  0.5 * sum(gs[!flat]^2 / e$values[!flat])
+  fb <- gs[flat]^2 / (2 * bound)
+  if (any(fb > tol)) return(NA_real_)
+  structure(0.5 * sum(gs[!flat]^2 / e$values[!flat]), flat_bound = sum(fb))
+}
+
+#' The Newton gain at or below which a "false convergence (8)" stop is
+#' reported as converged at the maximum (check_convergence()), when
+#' every standard error is finite and nothing else warned.
+#'
+#' The gain is the shortfall: on code-8 stops forced short (nlminb's
+#' `xf.tol` made coarse) it matched the distance below the default fit to
+#' three digits from 3.6e-6 to 1e-4, and within a factor of 0.86 to 1.64
+#' on the 80 stops short by more than 2e-5, every one of which keeps its
+#' warning (dev/code8-short.R, dev/code8-short-bound.R). So the bound is
+#' the shortfall a code-8 stop may have and not warn, and it must clear
+#' what rounding alone reads at the maximum: on the 109 code-8 stops of
+#' the shifted-column battery, all at the maximum (6.1e-6 below to 2.3e-5
+#' above the centered fit), the gain was 2.4e-11 to 9.92e-6
+#' (dev/code8-battery.R). Twice that largest reading leaves a margin for
+#' another platform's rounding; the review of lane bigx proposed 1e-5,
+#' which the largest reading meets within 1 percent.
+#'
+#' @noRd
+conv_at_max_tol <- 2e-5
+
+#' Does the standard-error check give every outer parameter a finite
+#' standard error? Read from the sdreport() taken at the fit (`se =
+#' TRUE`), else from the check's own analysis, which is built here if it
+#' is not yet (se_check() then reuses it). Under `check_se = "ignore"`
+#' the question is not asked, and the answer is no.
+#'
+#' @noRd
+conv_se_all_finite <- function(fit, control) {
+  if (identical(control$check_se, "ignore") || !is.environment(fit$cache)) {
+    return(FALSE)
+  }
+  sdr <- fit$cache$sdr
+  if (!is.null(sdr)) {
+    V <- sdr$cov.fixed
+    return(!length(sdr$se_lost) && is.matrix(V) &&
+             all(is.finite(diag(V))) && all(diag(V) > 0))
+  }
+  an <- tryCatch(se_fit_analysis(fit, force = TRUE),
+                 error = keep_missing(NULL))
+  !is.null(an) && !length(an$lost)
 }
 
 #' The clause the "did not report convergence" warning ends with: what a
@@ -5640,6 +5894,10 @@ check_convergence <- function(fit, control) {
   # whether a stop nlminb did not call converged was measured to be the
   # maximum (below)
   at_max <- FALSE
+  # a "false convergence (8)" stop measured to be the maximum to
+  # conv_at_max_tol, and its warning, held until the other verdicts are in
+  max_8 <- FALSE
+  code_msg <- NULL
   # Separation sends the optimizer toward infinity, so where it stops,
   # and with which code, is a platform's rounding: it is named whatever
   # the code, and in place of the optimizer's own verdict, which it
@@ -5708,11 +5966,25 @@ check_convergence <- function(fit, control) {
              "is rarely in the right region (see par_template())")
     } else ""
     if (!gp_ok) {
-      msgs <- c(msgs, frmtmb_conv_code = paste0(
+      code_msg <- paste0(
         "Optimizer did not report convergence: ", fit$opt$message, nl_hint,
         if (is.null(fit$importance)) {
           conv_headroom_clause(room, control$grad_tol)
-        }))
+        })
+      # nlminb's "false convergence (8)" at a measured maximum is a
+      # message, decided below once the gradient verdict is in. Not on an
+      # exact gp(), whose Newton step does not see the marginal's ridge
+      # (gp_ok above is that model's proof). What the directions too flat
+      # for the quadratic model could hold counts against the bound too
+      # (newton_room(), `flat_bound`)
+      max_8 <- at_max && is.null(fit$importance) &&
+        grepl("false convergence", fit$opt$message %||% "", fixed = TRUE) &&
+        isTRUE(room + (attr(room, "flat_bound") %||% 0) <=
+                 min(conv_at_max_tol, control$grad_tol)) &&
+        !any(vapply(fit$frame[["re_blocks"]] %||% list(), function(bk) {
+          identical(bk[["covstruct"]], "gp")
+        }, NA))
+      if (!max_8) msgs <- c(msgs, frmtmb_conv_code = code_msg)
     }
   }
   if (!is.null(fit$importance)) {
@@ -5776,6 +6048,29 @@ check_convergence <- function(fit, control) {
     msgs <- c(msgs, paste0("Hessian is not positive definite; standard ",
                            "errors are unreliable. The model may be ",
                            "overparameterized", flat_par_note(fit)))
+  }
+  # nlminb's "false convergence (8)" also fires at the maximum. Where a
+  # Newton step from the stop gains at most conv_at_max_tol, nothing else
+  # here warned, and every standard error is finite, the stop is the
+  # maximum by every measure the fit has, and it is said in a message of
+  # its own class, as lme4 says a singular fit. Otherwise the warning
+  # stays: a curvature that is unusable, a standard error lost (a
+  # boundary, a flat direction) or another verdict means the stop is not
+  # known to be an interior maximum (dev/code8-findings.md, Part A)
+  if (max_8) {
+    if (!length(msgs) && conv_se_all_finite(fit, control)) {
+      frm_message("The optimizer stopped with \"", fit$opt$message,
+                  "\" at the maximum: a Newton step from the stop gains ",
+                  format(as.numeric(room), digits = 3),
+                  " in log-likelihood (at most ",
+                  format(min(conv_at_max_tol, control$grad_tol),
+                         digits = 3),
+                  ") and every standard error is finite, so the fit is ",
+                  "treated as converged",
+                  class = "frmtmb_converged_at_max")
+    } else {
+      msgs <- c(frmtmb_conv_code = code_msg, msgs)
+    }
   }
   # the stop warnings carry a class, which nl_stop_warning() reads
   for (i in seq_along(msgs)) {

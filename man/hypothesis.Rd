@@ -113,8 +113,24 @@ Rubin pooled standard error (a \code{\link[=frm_multiple]{frm_multiple()}} resul
 \code{1 - alpha} for \code{"="} and central at \code{1 - 2 * alpha} for a
 directional row, so that its relevant end is the one-sided bound.
 Wald, profile-likelihood or bootstrap percentile, per \code{method}.
-\item \code{Evid.Ratio}, \code{Post.Prob}: \code{NA}. They are posterior quantities,
-and a fit has no posterior.
+\item \code{Evid.Ratio}, \code{Post.Prob}: \code{NA}. brms computes both from draws:
+for a directional row the ratio is the posterior odds of the
+claim, and for a point row it is the Savage-Dickey ratio, the
+kernel density of the posterior draws at the point over that of
+the prior draws. A fit has no draws. Under flat priors, which a
+maximum-likelihood fit has, the prior has no density, so a point
+ratio does not exist; brms gives \code{NA} there too. Under a prior
+with a density (\code{frm(prior = )}), the ratio needs the posterior
+density AT the point, and the only posterior density a fit has is
+the normal approximation at the mode. A tested point is usually in
+its tail, where the error of that approximation can be orders of
+magnitude (for a group standard deviation, 2560 times the ratio
+from draws in one measured case), so a fit does not report a
+Bayes factor from it, for any parameter.
+\code{frmtmb.sample::frm_sample(fit, sample_prior = "yes")}
+samples the fit with its priors and computes both columns as
+brms does. For a directional row on a fit, \code{attr(h, "test")}
+holds the one-sided p-value.
 \item \code{Star}: \code{"*"} when a two-sided row's interval excludes 0, or when
 a directional row's one-sided test rejects at level \code{alpha}
 (brms stars a posterior probability above \code{1 - alpha} there).

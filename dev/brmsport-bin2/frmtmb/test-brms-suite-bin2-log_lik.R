@@ -810,12 +810,15 @@ test_that("log_lik for count and survival models works correctly", {
   )
   brms_port("log_lik:349", "divergence",
     paste0(
-      "frmtmb's gen_extreme_value() log density is finite and ",
-      "steep outside the support (-1.0e150 at y = 0, mu 1, sigma ",
-      "0.1, xi 0.3), so the optimizer is turned back and a mixture ",
-      "component adds nothing there; brms's dgen_extreme_value() ",
-      "is NaN. Inside the support the two agree (-1.55396; ",
-      "dev/rel071-gev-probe.R). Lane famuni's documented choice"),
+      "frmtmb's gen_extreme_value() log density off the tape, ",
+      "which log_lik() reads, is -Inf outside the support, the ",
+      "exact value; brms's dgen_extreme_value() is NaN there. At ",
+      "the block's seed 3 of 25 draws put y = 0 outside the ",
+      "support: frmtmb -Inf on all 3, brms NaN on all 3; on the 22 ",
+      "inside the two agree to 2.7e-15 relative ",
+      "(dev/support-gev349-probe.R). The fitted objective keeps ",
+      "its finite, steep barrier outside the support, which turns ",
+      "the optimizer back. As log_lik:462 and :478"),
     expect_equal(ll, ll_gen_extreme_value)
   )
 })
@@ -1451,7 +1454,7 @@ test_that("log_lik for the xbeta model runs without errors", {
     "",
     expect_equal(length(ll), ns)
   )
-  brms_value_check("log_lik:580", "ll", "error", {
+  brms_value_check("log_lik:580", "ll", "holds", {
     ll <- brms:::log_lik_xbeta(3, prep = prep)
-  }, msg_has = "Please install the 'betareg' package")
+  })
 })

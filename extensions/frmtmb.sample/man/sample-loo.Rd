@@ -39,7 +39,8 @@ psis(log_ratios, ...)
 \item{...}{Further models: for \code{loo()} and \code{waic()} the draws
 objects given without a name, which brms compares in one call, and
 brms's named options, refused by name where they would change the
-answer (\code{newdata} and the other arguments \code{log_lik()} refuses,
+answer (\code{newdata} other than the fitted rows, and the other
+arguments \code{log_lik()} refuses,
 \code{moment_match}, \code{reloo}) and passed on where they are the loo
 package's (\code{r_eff}, \code{save_psis}, \code{cores}). For \code{loo_compare()},
 further models.}
@@ -59,7 +60,8 @@ draws object.}
 pointwise log-likelihood supplies the importance ratios.}
 
 \item{newdata}{For \code{psis()}, accepted in brms's own second position
-and refused, because \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}} does not take it.}
+and refused, as \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}} refuses it: only data that
+holds exactly the fitted rows is accepted, and changes nothing.}
 
 \item{model_name}{For \code{psis()}, brms's label for the model.
 Accepted and unused: a \code{psis} object has nothing to label.}
@@ -125,6 +127,22 @@ the draws, which is what brms does. A subset of the draws (\code{ndraws},
 is taken on one chain, as brms takes it. The same rule gives the
 weights of \code{\link[=psis]{psis()}}, the \verb{loo_*()} functions and \code{pp_check()}'s
 \verb{loo_*} types.
+}
+
+\section{A log-likelihood that is not finite}{
+
+A cell of the \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}} matrix is \code{-Inf} when a draw puts
+an observation outside the support of the response's distribution,
+for example a \code{gen_extreme_value()} row below the lower end of a
+draw's support. A leave-one-out or WAIC estimate does not exist with
+such a cell. \code{loo()}, \code{waic()}, \code{psis()}, the \verb{loo_*()} functions and
+\code{pp_check()}'s \verb{loo_*} types then stop with an error of class
+\code{frmtmb_loglik_not_finite} that gives the number of cells, draws and
+observations. A \code{NaN} or \code{+Inf} cell stops them in the same way. brms
+also stops there: its density is \code{NaN} outside a support, and the loo
+package refuses \code{NaN}. Draws that \code{\link[=frm_sample]{frm_sample()}} makes put no
+observation outside its support in practice; a draws object built or
+edited by hand can.
 }
 
 \examples{

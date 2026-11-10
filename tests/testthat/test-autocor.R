@@ -549,6 +549,22 @@ test_that("aterms that need a per-row density are refused", {
   }
 })
 
+test_that("cens() beside cosy() is refused on gaussian and student", {
+  # the refused half of the conditional row cens() x cosy(), which brms
+  # refuses with 'Invalid addition arguments for this model'; the
+  # equivalence survey's pair p154 read it on gaussian before it was
+  # spelled on poisson, where the row works (dev/compat-findings.md)
+  d <- ac_sim(seed = 2, G = 8, K = 4)
+  d$cc <- 0
+  for (fam in list(gaussian(), student())) {
+    expect_error(
+      frm(bf(y | cens(cc) ~ x + cosy(week, subj)), family = fam, data = d),
+      "cosy(): cens() cannot be combined with a residual correlation term",
+      fixed = TRUE)
+  }
+  expect_identical(frm_compat("cens()", "cosy()")$status, "conditional")
+})
+
 test_that("structural combinations are refused", {
   d <- ac_sim(seed = 2, G = 8, K = 4)
   d$y2 <- stats::rnorm(nrow(d))

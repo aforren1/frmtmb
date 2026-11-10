@@ -31,13 +31,14 @@ ah_round_tol <- function(ref) {
 }
 
 # The error 0.71.0's Hessian had at the same point: optimHess()'s
-# absolute step of 1e-3 (fd_hessian() at its default), so that a bound
-# is a ratio to what the old route measures on this very fit
+# absolute step of 1e-3 (fd_hessian() at its default step, and with no
+# column retaken, which tau_band = Inf turns off), so that a bound is a
+# ratio to what the old route measures on this very fit
 ah_old_err <- function(fit, at, ref) {
   ns <- asNamespace("frmtmb")
   st <- ns$obj_state_save(fit$obj)
   on.exit(ns$obj_state_restore(fit$obj, st))
-  ah_cov_err(solve(ns$fd_hessian(at, fit$obj$gr)$H), ref)
+  ah_cov_err(solve(ns$fd_hessian(at, fit$obj$gr, tau_band = Inf)$H), ref)
 }
 
 test_that("a poisson GLM's covariance is the inverse of its information", {
@@ -201,15 +202,18 @@ test_that("a GLMM whose design is unit scale keeps optimHess()'s steps", {
 test_that("a kinked log density shows no standard error of 0", {
   # asym_laplace() is piecewise linear in its location, so its AD
   # Hessian is [[0, B], [B', C]]: solve() succeeds, and the block for
-  # sigma and quantile is exactly 0. These fits stop short (the gradient
-  # check), which keeps sdreport()'s inverse, so the SEs were 0 and the
-  # intervals of zero width (lane adhess review, finding 1). A variance
-  # that is not positive is NaN, with its reason.
+  # sigma and quantile is exactly 0. These fits stopped short by the
+  # gradient check, which kept sdreport()'s inverse, so the SEs were 0 and
+  # the intervals of zero width (lane adhess review, finding 1). A
+  # variance that is not positive is NaN, with its reason. Where the
+  # likelihood itself gains nothing from the stop (headroom_probe()), the
+  # fit is at the kink and the standard-error check names the parameters
   set.seed(2)
   n <- 400
   d <- data.frame(x = stats::rnorm(n))
   d$y <- 1 + 0.5 * d$x + stats::rnorm(n)
-  ok <- c("did not report convergence", "Large maximum absolute gradient")
+  ok <- c("did not report convergence", "Large maximum absolute gradient",
+          "Standard errors are not available")
   ns <- asNamespace("frmtmb")
   for (f in list(bf(y ~ x), bf(y ~ x, quantile = 0.5))) {
     fit <- allow_warnings(frm(f, family = asym_laplace(), data = d), ok)

@@ -144,6 +144,8 @@ V <- do.call(rbind, v)
 V <- source("dev/rel071-bin2-moves.R")$value(V, "2t")
 # the verdict moves of the 0.73.0 consolidation
 V <- source("dev/rel073-bin2-moves.R")$value(V, "2t")
+# the verdict moves of the 0.81.0 consolidation (lane hollow's Row 2)
+V <- source("dev/rel081-bin2-moves.R")$value(V, "2t")
 # loo_linpred() of a cs() fit holds a layer per threshold since 0.79.0 (frm_linpred()
 # reads the cs() offsets), so the row holds and has no verdict
 V <- V[!(V$id == "brmsfit-methods:523" & V$pkg == "frmtmb.sample"), ]

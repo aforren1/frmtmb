@@ -86,12 +86,16 @@ res$top_level <- top
 # Weak evidence (review 2026-10-28, finding 4): an agreement read only
 # off the flat-prior posterior's fitted means (the route that scored a
 # known identity at 0.851 sd), or a REML fit, which no brms quantity
-# can check beyond the model itself.
+# can check beyond the model itself, unless its L1 reading also holds the
+# REML integral against brms's own program (l1_marg_ok, the marginal
+# identity of eq_laplace_stan()).
 route <- if (is.null(res$l4_route)) rep("", nrow(res)) else res$l4_route
 route[is.na(route)] <- ""
+marg_ok <- if (is.null(res$l1_marg_ok)) rep(FALSE, nrow(res)) else
+  as.logical(res$l1_marg_ok) %in% TRUE
 res$weak_evidence <- res$agree & (
   (top == "L4" & route == "posterior") |
-    res$feature_a == "REML" | res$feature_b == "REML")
+    ((res$feature_a == "REML" | res$feature_b == "REML") & !marg_ok))
 
 wilson <- function(x, n, z = stats::qnorm(0.975)) {
   if (n == 0) return(c(NA, NA, NA))
@@ -200,7 +204,14 @@ prop <- res[!is.na(res$proposal) & nzchar(res$proposal),
             c("id", "feature_a", "feature_b", "status", "proposal",
               "verdict", "reason")]
 names(prop)[names(prop) == "status"] <- "status_now"
-prop$source <- "sampled pair"
+# a proposal changes the build's own row, which differs from the pair's
+# stratum (the status frozen at the draw) once a row has been corrected
+if (!is.null(res$live_status)) {
+  lv <- res$live_status[match(prop$id, res$id)]
+  prop$status_now <- ifelse(is.na(lv), prop$status_now, lv)
+}
+# rep(), as a run can propose nothing and a 0-row frame takes no scalar
+prop$source <- rep("sampled pair", nrow(prop))
 sw_p <- "dev/equiv-data/nl-sweep.tsv"
 if (file.exists(sw_p)) {
   sw <- rd(sw_p)
@@ -247,6 +258,20 @@ say("frmtmb measured: ", paste(unique(stats::na.omit(res$frmtmb[
   sum(res$adjudicated == "yes"), " verdicts adjudicated by hand ",
   "(dev/equiv-data/adjudication.tsv).")
 say("")
+# the two statuses a reader could confuse (review 2026-11-10, m4)
+if (!is.null(res$live_status) && !all(is.na(res$live_status))) {
+  has <- !is.na(res$live_status)
+  say("Strata are the compat status at the draw (sample.tsv); verdicts ",
+      "are scored against the measured build's own frm_compat() row. ",
+      sum(has & res$live_status != res$status), " of ", sum(has),
+      " pairs differ", if (any(!has)) paste0(" (", sum(!has),
+                                            " pairs carry no live row)"),
+      ".")
+} else {
+  say("Strata and verdicts both use the compat status at the draw ",
+      "(sample.tsv): these results carry no live row.")
+}
+say("")
 say("Verdicts by stratum (draws, with unique pairs in brackets):")
 say("")
 say("| stratum | ", paste(verdicts, collapse = " | "), " |")
@@ -285,7 +310,8 @@ say("- no defect (agree, or a divergence by decision): ", f3(p_nd))
 say("- sensitivity, weak evidence out: ", f3(p_weak), ". The ",
     sum(res$weak_evidence), " pairs (", sum(res$draws[res$weak_evidence]),
     " draws) scored agree only by L4 fitted means against a flat-prior ",
-    "posterior, or under REML, count as not agree: ",
+    "posterior, or under REML without the marginal identity, count as ",
+    "not agree: ",
     paste(res$id[res$weak_evidence], collapse = ", "), ".")
 say("- agree, among measured pairs only: ", pct(p_m))
 say("- agree, strata weighted by pair COUNT instead of reach: ",

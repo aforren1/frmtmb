@@ -311,21 +311,45 @@ test_that("a straight step off a curved ridge is not taken as curvature", {
   # tangent lost 5.6e-3 (above grad_tol) at a ratio of 15.5 per doubling,
   # the fourth power of a curved ridge, and the first probe kept
   # a_(Intercept) at an SE of 9.655 and theta_1 at 0.3677
+  #
+  # Where on the ridge the fit stops is rounding's choice (a from -26 to
+  # 26, k from -0.2 to 0.2 over y moved by a few ulps), and so was the
+  # verdict up to 0.80.0: of 41 such draws, 9 kept a finite SE for a (a
+  # gradient warning sent them to sdreport()'s inverse), 3 lost sigma's
+  # and all 32 others lost c0's, which the fit with k held at its
+  # estimate gives as 69 (dev/code8-ridge.R, dev/code8-ridge-truth.R).
+  # The ridge moves exactly a, k and theta_1, and 41 of 41 draws now lose
+  # those three and nothing else (dev/code8-findings.md, Part C). The
+  # draws here are five on which the defect returns when the step test
+  # loses its ratio (se_curvature_real() without it keeps a finite SE for
+  # a on 12 of 41 draws, these among them; dev/code8-ridge-mutant.R). A
+  # gradient warning is a true statement about the quadratic model on a
+  # curved ridge, so it is allowed; the verdict is the lost set
   set.seed(77)
   dn <- data.frame(g = factor(rep(seq_len(8), each = 10)))
   dn$x <- rnorm(nrow(dn))
   u <- rnorm(8, 0, 0.6)[dn$g]
   dn$yn <- 1 + 0.3 * dn$x + exp(0.3 + u)^0.8 + rnorm(nrow(dn), 0, 0.3)
-  f <- suppressMessages(suppressWarnings(
-    frm(bf(yn ~ c0 + exp(a)^k, c0 ~ 1 + x, a ~ 1 + (1 | g), k ~ 1,
-           nl = TRUE), data = dn)))
-  lost <- sdr_of(f)$se_lost
-  expect_true(all(c("a_(Intercept)", "k_(Intercept)", "theta_1") %in%
-                    names(lost)))
-  se <- sqrt(diag(vcov(f, full = TRUE)))
-  nm <- frmtmb:::outer_par_names(f)
-  expect_true(is.nan(se[[match("a_(Intercept)", nm)]]))
-  expect_true(is.nan(se[[match("theta_1", nm)]]))
+  y0 <- dn$yn
+  ridge <- c("a_(Intercept)", "k_(Intercept)", "theta_1")
+  for (j in c(0, -20, -3, 6, 17)) {
+    dn$yn <- y0 * (1 + 2e-15 * j)
+    f <- allow_warnings(
+      suppressMessages(frm(bf(yn ~ c0 + exp(a)^k, c0 ~ 1 + x,
+                              a ~ 1 + (1 | g), k ~ 1, nl = TRUE),
+                           data = dn)),
+      c("Standard errors are not available",
+        "Large maximum absolute gradient", "did not report convergence"))
+    lost <- sdr_of(f)$se_lost
+    expect_setequal(as.character(names(lost)), ridge)
+    expect_true(all(lost == "flat"), info = paste("draw", j))
+    se <- sqrt(diag(allow_warnings(vcov(f, full = TRUE),
+                                   "Standard errors are not available")))
+    nm <- frmtmb:::outer_par_names(f)
+    expect_true(all(is.nan(se[match(ridge, nm)])), info = paste("draw", j))
+    expect_true(all(is.finite(se[setdiff(nm, ridge)])),
+                info = paste("draw", j))
+  }
 })
 
 test_that("a boundary sd on a larger design is caught by its likelihood", {

@@ -33,11 +33,25 @@
 #'
 #' The support depends on the parameters: `y > mu - sigma / xi` for
 #' `xi > 0` and `y < mu - sigma / xi` for `xi < 0`. Outside the
-#' support the density is 0. Its log falls by `1e8` per unit of
-#' `t` below 0 rather than jumping to `-Inf`, so a row a millionth
-#' outside has a log density below -100 and the optimizer meets a slope
-#' that turns it back, not a wall. The start, `xi = 0`, is inside the
-#' support for every data set. For `xi > -1` the density goes to 0 at
+#' support the density is 0. The pointwise log-likelihood of draws
+#' (`log_lik()`, and so `loo()` and `waic()`, of frmtmb.sample) is exact
+#' there: a log density of `-Inf` (brms's `dgen_extreme_value()` gives
+#' `NaN`), and a distribution function of exactly 0 below the lower end
+#' and 1 above the upper end. The fitted objective is different, and so
+#' is every computation that a fit makes from it (importance sampling,
+#' nested quadrature, the start and Hessian checks): its log density
+#' falls by `1e8` per unit of `t` below 0 rather than jumping to `-Inf`,
+#' so a row a millionth outside has a log density below -100 and the
+#' optimizer meets a slope that turns it back, not a wall. A row with
+#' `t` above `1e-15` gets the same number from both to the last bit, and
+#' a mixture component outside a row adds `exp(-Inf) = 0` to it either
+#' way. The fitted objective differs from the exact likelihood in two
+#' places only: at a row with `t` below `1e-15`, and at a `trunc()` or
+#' `cens()` bound outside the support, where its distribution function
+#' is within about 1e-13 of 0 or 1 rather than at it. In one measured
+#' fit with `trunc(lb = )` below the lower end that moved `logLik()` by
+#' 7.7e-12 and a coefficient by 1.8e-7. The start, `xi = 0`, is inside
+#' the support for every data set. For `xi > -1` the density goes to 0 at
 #' an end of the support, so a maximum has every row inside it. That is
 #' the region brms's `scale_xi()` maps its `tmp_xi` onto.
 #'
@@ -178,8 +192,42 @@ dpar_links_xi <- c("log1p", "identity")
 #' `exp(-1e304)` either way, so holding it there changes no value a
 #' double can carry.
 #'
+#' Only a reader that reports the value asks for the exact one
+#' (`exact_support()`); there, on plain doubles, it is `exp(-w)` itself:
+#' between `w = -709.8` and `-700` the log density is then the exact
+#' one, and below that it is `-Inf`, the exact value in doubles.
+#'
 #' @noRd
-exp_neg_capped <- function(w) exp(-ad_max(w, -700))
+exp_neg_capped <- function(w) {
+  if (!inherits(w, "advector") && exact_support()) return(exp(-w))
+  exp(-ad_max(w, -700))
+}
+
+#' Does the caller ask for the exact density, `-Inf` outside a support
+#' and no clamp? Only a reader that reports densities does, through
+#' `row_lpdf(exact = TRUE)`, which sets the option
+#' `frmtmb.exact_support` for the call. Every other evaluation, on the
+#' tape or on doubles, keeps the fitted objective's arithmetic: importance
+#' sampling and nested quadrature set the offsets of their tapes from
+#' values on doubles and check the tape against them, and both need the
+#' finite barrier there (dev/reviews/2026-11-10-support.md, finding 1).
+#'
+#' @noRd
+exact_support <- function() isTRUE(getOption("frmtmb.exact_support"))
+
+#' `log(1 - exp(-exp(-w)))`, the log survivor of the Frechet and the
+#' GEV, on plain doubles, for a reader (`exact_support()`). Where
+#' `e = exp(-w)` is small the survivor is
+#' `e (1 - e / 2 + ...)`, and `log(-expm1(-e))` is `-Inf` once `e`
+#' underflows, at `w` above 745, where the log itself, about `-w`, is an
+#' ordinary number. Below `e = 1e-8` the next term, `e^2 / 24`, is below
+#' 5e-18.
+#'
+#' @noRd
+log_surv_exp_neg <- function(w) {
+  e <- exp(-w)
+  ifelse(e < 1e-8, -w - e / 2, log(-expm1(-e)))
+}
 
 # ---------------------------------------------------------------- frechet
 
@@ -243,11 +291,20 @@ fam_frechet <- function(link = "log", link_nu = "logm1") {
       ll <- log(nu) - ls - (1 + nu) * z - exp_neg_capped(nu * z)
       if (is.null(ov)) ll else ll * ov$keep
     },
+    # at q <= 0, where F is 0 and log S is 0, both are read at q = 1 and
+    # weighted 0: log(q) there is -Inf or NaN (positive_cdf_q())
     lcdf = function(q, dpars, aterms) {
-      exp(-exp_neg_capped(dpars[["nu"]] * logz(q, dpars)))
+      pq <- positive_cdf_q(q)
+      w <- dpars[["nu"]] * logz(pq[["at"]], dpars)
+      pq[["on"]] * exp(-exp_neg_capped(w))
     },
     lccdf = function(q, dpars, aterms) {
-      log(-expm1(-exp_neg_capped(dpars[["nu"]] * logz(q, dpars))))
+      pq <- positive_cdf_q(q)
+      w <- dpars[["nu"]] * logz(pq[["at"]], dpars)
+      if (!inherits(w, "advector") && exact_support()) {
+        return(pq[["on"]] * log_surv_exp_neg(w))
+      }
+      pq[["on"]] * log(-expm1(-exp_neg_capped(w)))
     },
     valid_y = positive_y("frechet"),
     init_dpars = list(
@@ -326,7 +383,8 @@ log1p_ratio <- function(z) {
 #' `t` is held at 1e-15 there, which keeps `h` finite with the sign of
 #' `x` and at least the edge's size, so `exp(-exp(-h))` is that 0 or 1
 #' to within 1e-13 at any `xi` up to 10, as a `trunc()` bound or a
-#' censoring point beyond the support needs.
+#' censoring point beyond the support needs. These are the pieces of the
+#' tape; on plain doubles the family reads `gev_parts_exact()`.
 #'
 #' @noRd
 gev_parts <- function(q, dpars) {
@@ -342,6 +400,37 @@ gev_parts <- function(q, dpars) {
   # starts at -1 and is exact there (dev/famuni-cdfprobe.R)
   zc <- ad_max(z + out, -1 + 1e-15)
   list(l = log1p(zc), h = x * log1p_ratio(zc), out = out)
+}
+
+#' Does a GEV density or CDF evaluation report the exact value? Only on
+#' plain doubles, for a reader that asks (`exact_support()`); a tape
+#' and every other evaluation keep the soft support of `gev_parts()`.
+#' The test is on class and on an option, so it resolves while a tape is
+#' built and leaves no branch on a parameter.
+#'
+#' @noRd
+gev_exact <- function(q, dpars) {
+  exact_support() && !inherits(q, "advector") &&
+    !any(vapply(dpars[c("mu", "sigma", "xi")], inherits, NA, "advector"))
+}
+
+#' The pieces of `gev_parts()` on plain doubles, with no clamp: `l`, `h`
+#' and `x` at the rows inside the support, where `t = 1 + xi x > 0`, and
+#' `inside`. A reader reports these values, so a row outside has density
+#' 0 and a distribution function of exactly 0 below the lower end
+#' (`xi > 0`, where `x < 0`) and 1 above the upper end (`xi < 0`, where
+#' `x > 0`). At `t = 0` itself the density is 0 for every `xi > -1`.
+#'
+#' @noRd
+gev_parts_exact <- function(q, dpars) {
+  x <- (q - dpars[["mu"]]) / dpars[["sigma"]]
+  z <- dpars[["xi"]] * x
+  inside <- z > -1
+  # an outside row is read at z = 0, which keeps log1p() quiet, and is
+  # replaced by the caller
+  zi <- ifelse(inside, z, 0)
+  list(l = log1p(zi), h = x * log1p_ratio(zi), x = x + 0 * z,
+       inside = inside)
 }
 
 # zeta(2), ..., zeta(22), from 256-bit Rmpfr::zeta(): the coefficients
@@ -580,7 +669,17 @@ fam_gev_impl <- function(link, link_sigma, link_xi, chart) {
   }
   core_lpdf <- function(y, dpars) {
     ov <- osa_unwrap(y)
-    g <- gev_parts(if (is.null(ov)) y else ov$y, dpars)
+    yy <- if (is.null(ov)) y else ov$y
+    if (gev_exact(yy, dpars)) {
+      # what a reader reports (log_lik(), loo()): the exact value, -Inf
+      # outside the support
+      g <- gev_parts_exact(yy, dpars)
+      ll <- -dpar_log(dpars, "sigma", lk_sigma) - g[["l"]] - g[["h"]] -
+        exp(-g[["h"]])
+      ll <- ifelse(g[["inside"]], ll, -Inf)
+      return(if (is.null(ov)) ll else ll * ov$keep)
+    }
+    g <- gev_parts(yy, dpars)
     # a row outside the support has density 0, which is -Inf on the
     # log scale and a NaN in every gradient that passes through it, so
     # in a mixture() one component that does not reach a row poisoned
@@ -593,10 +692,22 @@ fam_gev_impl <- function(link, link_sigma, link_xi, chart) {
     if (is.null(ov)) ll else ll * ov$keep
   }
   lpdf <- function(y, dpars, aterms) core_lpdf(y, dpars) + xi_guard(dpars)
+  # outside the support the distribution function is 0 below the lower
+  # end and 1 above the upper end, where x > 0
   lcdf <- function(q, dpars, aterms) {
+    if (gev_exact(q, dpars)) {
+      g <- gev_parts_exact(q, dpars)
+      return(ifelse(g[["inside"]], exp(-exp(-g[["h"]])),
+                    as.numeric(g[["x"]] > 0)) + xi_guard(dpars))
+    }
     exp(-exp_neg_capped(gev_parts(q, dpars)[["h"]])) + xi_guard(dpars)
   }
   lccdf <- function(q, dpars, aterms) {
+    if (gev_exact(q, dpars)) {
+      g <- gev_parts_exact(q, dpars)
+      return(ifelse(g[["inside"]], log_surv_exp_neg(g[["h"]]),
+                    ifelse(g[["x"]] > 0, -Inf, 0)) + xi_guard(dpars))
+    }
     log(-expm1(-exp_neg_capped(gev_parts(q, dpars)[["h"]]))) +
       xi_guard(dpars)
   }

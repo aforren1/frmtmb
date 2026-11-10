@@ -62,9 +62,12 @@ test_that("a column 1e8 from zero against sd 1 is kept, not dropped", {
   d <- offset_data("gaussian", 1e8, 3, re = FALSE)
   fz <- frm(bf(y ~ z), family = gaussian(), data = d)
   fw <- NULL
+  # a stop at "false convergence (8)" at the maximum is a message of its
+  # own class, and only that message is allowed
   expect_no_message(
-    fw <- allow_warnings(frm(bf(y ~ w), family = gaussian(), data = d),
-                         "false convergence (8)"))
+    fw <- allow_at_max(allow_warnings(frm(bf(y ~ w), family = gaussian(),
+                                          data = d),
+                                      "false convergence (8)")))
   expect_length(fixef_vec(fw), 2L)
   cmp <- offset_compare(fw, fz)
   expect_lt(abs(cmp$shift), 1e-2)
@@ -197,7 +200,8 @@ test_that("products and powers of shifted columns are kept and fitted", {
   # at an offset of 1e5 the raw design's condition number is above 1e10
   # and the centered one's is not: the frame keeps w1:w2 and I(w1^2),
   # which the base build dropped, 40 and 5.7 log-likelihood units short.
-  # A stop at the maximum may say "false convergence (8)"
+  # A stop at the maximum may say "false convergence (8)", as a warning or
+  # as the message of class frmtmb_converged_at_max
   set.seed(1)
   n <- 200
   z1 <- stats::rnorm(n)
@@ -212,8 +216,9 @@ test_that("products and powers of shifted columns are kept and fitted", {
     fz <- frm(cc[[2]], family = cc[[3]], data = d)
     fw <- NULL
     expect_no_message(
-      fw <- allow_warnings(frm(cc[[1]], family = cc[[3]], data = d),
-                           "false convergence (8)"))
+      fw <- allow_at_max(allow_warnings(frm(cc[[1]], family = cc[[3]],
+                                            data = d),
+                                        "false convergence (8)")))
     expect_length(fw$estimates[["beta"]], cc[[4]])
     expect_lt(abs(as.numeric(logLik(fw)) / as.numeric(logLik(fz)) - 1),
               1e-6)
@@ -227,13 +232,13 @@ test_that("products and powers of shifted columns are kept and fitted", {
     fz <- frm(cc[[2]], family = cc[[3]], data = d)
     cls <- character(0)
     fw <- NULL
-    expect_no_message(fw <- withCallingHandlers(
+    expect_no_message(fw <- allow_at_max(withCallingHandlers(
       frm(cc[[1]], family = cc[[3]], data = d),
       warning = function(x) {
         cls <<- c(cls, if (inherits(x, "frmtmb_design_capped")) "capped"
                   else conditionMessage(x))
         invokeRestart("muffleWarning")
-      }))
+      })))
     if (length(fw$estimates[["beta"]]) == cc[[4]]) {
       expect_true(all(grepl("false convergence (8)", cls, fixed = TRUE)))
       expect_lt(abs(as.numeric(logLik(fw)) / as.numeric(logLik(fz)) - 1),
@@ -338,13 +343,13 @@ test_that("a product of shifted columns beside `0 + f` is judged centered", {
     d$w2 <- d$z2 + m
     cls <- character(0)
     fw <- NULL
-    expect_no_message(fw <- withCallingHandlers(
+    expect_no_message(fw <- allow_at_max(withCallingHandlers(
       frm(y ~ 0 + f + w1 * w2, data = d),
       warning = function(x) {
         cls <<- c(cls, if (inherits(x, "frmtmb_design_capped")) "capped"
                   else class(x)[1L])
         invokeRestart("muffleWarning")
-      }))
+      })))
     if (m == 1e5) {
       # the centered design is well conditioned here: kept and fitted
       expect_length(fw$estimates[["beta"]], 6L)

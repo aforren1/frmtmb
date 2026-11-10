@@ -443,7 +443,7 @@ frm_row_loglik <- function(fit, resp = NULL) {
     av <- frame[["aterm_values"]][[r]]
     fam <- rspecs[[r]][["family"]]
     yv <- frame[["y"]][[r]]
-    ll <- row_lpdf(fam, yv, yv, dpv[[r]], av, extra)
+    ll <- row_lpdf(fam, yv, yv, dpv[[r]], av, extra, exact = TRUE)
     out <- out + (av[["weights"]] %||% 1) * as.numeric(ll)
   }
   out

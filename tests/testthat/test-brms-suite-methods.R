@@ -416,19 +416,8 @@ test_that("fitted has reasonable outputs", {
     "",
     expect_equal(dim(fi), c(nobs(fit1), 4))
   )
-  brms_port("brmsfit-methods:326", "cannot transfer",
-    paste0(
-      "fitted(fit1, dpar = 'sigma') is brms's four-column summary, ",
-      "and FIXTURE 1 DOES NOT CONVERGE (nlminb false convergence ",
-      "(8), an sd at -723 to -1253 on the log scale, an objective ",
-      "unbounded within reach), so its sigma coefficients' ",
-      "variances are negative, the Est.Error and the two Q columns ",
-      "are NaN and all(fi > 0) is NA rather than TRUE. The ",
-      "Estimate column is positive, which is what the assertion is ",
-      "about; brms's fixture converged. It held at 0.69.0 by the ",
-      "luck of the stop point (34 of 41 jittered starts; lane ",
-      "optrap's review, item 6). A converged stand-in would ",
-      "transfer it (dev/brmsport-findings.md section 3)"),
+  brms_port("brmsfit-methods:326", "pass",
+    "",
     expect_true(all(fi > 0))
   )
   brms_setup("brmsfit-methods:327",
@@ -595,11 +584,24 @@ test_that("hypothesis has reasonable ouputs", {
   )
   brms_port("brmsfit-methods:394", "hollow",
     paste0(
-      "holds only as is.numeric(NA_real_): Evid.Ratio is NA on a ",
-      "fit (D4, dev/brmsnames-findings.md 'The hypothesis() ",
-      "object'), where brms reports a number. Marked by hand, ",
-      "because a rule cannot tell this NA from an NA that is the ",
-      "right answer"),
+      "divergence by decision that holds only as ",
+      "is.numeric(NA_real_). brms's fixture was sampled with ",
+      "proper priors and sample_prior = 'yes', and its Evid.Ratio, ",
+      "0.117, is the Savage-Dickey ratio of the kernel densities ",
+      "of 25 posterior and 25 prior draws at 0. This fixture is a ",
+      "maximum-likelihood fit: no draws and flat priors, so the ",
+      "ratio does not exist, and Evid.Ratio is NA, as brms's is ",
+      "without prior draws. On a fit with a prior the ratio needs ",
+      "the posterior density at the point, and the only one a fit ",
+      "has is the normal approximation at the mode, whose error in ",
+      "the tail can be orders of magnitude (2560 times the draws' ",
+      "ratio for a group sd), so a fit does not report a Bayes ",
+      "factor from it for any parameter and gives NA there too ",
+      "(NEWS, Hypothesis tests). hypothesis() of frm_sample(fit, ",
+      "sample_prior = 'yes') computes brms's ratio, identical to ",
+      "brms:::density_ratio() on the same draws ",
+      "(dev/hollow-findings.md). Marked by hand, because a rule ",
+      "cannot tell this NA from one that is wrong"),
     expect_true(is.numeric(hyp$hypothesis$Evid.Ratio[1]))
   )
   brms_port("brmsfit-methods:395", "pass",

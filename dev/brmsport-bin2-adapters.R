@@ -9,7 +9,8 @@
 # adapter only moves numbers: it names the family as brms names it, reads
 # column i of brms's prep, and hands frmtmb's row composition the
 # result. The density is frmtmb's row_lpdf(), which the objective and
-# log_lik() run (it folds cens() and trunc() into the family's lpdf),
+# log_lik() run (it folds cens() and trunc() into the family's lpdf; with
+# exact = TRUE, as log_lik() of draws reads it),
 # and the draw is frmtmb's sim_draw(), which every simulation entry
 # point runs (it adds trunc() rejection to the family's sim). An ordinal
 # family's density and draw are its exported ord_lpdf_make() and
@@ -285,7 +286,8 @@ brms_adapt_cat_log_lik <- function(fun, i, prep) {
     }
     avs <- lapply(av, `[`, rows)
     as.numeric(frmtmb::row_lpdf(fam, y, y, dps, avs,
-                                if (length(extra[[1L]])) extra))
+                                if (length(extra[[1L]])) extra,
+                                exact = TRUE))
   })
 }
 
@@ -327,7 +329,7 @@ brms_adapt_log_lik <- function(fun, i, prep) {
     })
   } else {
     av <- brms_adapt_aterms(fam, i, prep, dp$n)
-    ll <- frmtmb::row_lpdf(fam, y, y, dp$dpars, av, NULL)
+    ll <- frmtmb::row_lpdf(fam, y, y, dp$dpars, av, NULL, exact = TRUE)
   }
   w <- prep[["data"]][["weights"]]
   if (!is.null(w)) ll <- ll * w[i]
@@ -437,7 +439,7 @@ brms_g1_d <- function(fun, x, dp, av = list(), log = FALSE, cens = NULL) {
   dp <- lapply(dp, rep_len, length.out = n)
   av <- lapply(av, rep_len, length.out = n)
   if (!is.null(cens)) av$cens <- rep_len(cens, n)
-  ll <- as.numeric(frmtmb::row_lpdf(fam, x, x, dp, av, NULL))
+  ll <- as.numeric(frmtmb::row_lpdf(fam, x, x, dp, av, NULL, exact = TRUE))
   if (log) ll else exp(ll)
 }
 brms_g1_r <- function(fun, n, dp, av = list()) {

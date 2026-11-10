@@ -1,0 +1,4 @@
+frmtmb tests/testthat/test-compat.R
+frmtmb tests/testthat/test-nl-family.R
+frmtmb tests/testthat/test-latres.R
+frmtmb tests/testthat/test-mi-families.R

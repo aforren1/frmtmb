@@ -61,6 +61,12 @@
 #' `trunc()` folded in; it runs on numeric dpar values as readily as on
 #' the tape, which is what makes a pointwise `log_lik()` reproduce the
 #' fitted density exactly instead of approximating it.
+#' `row_lpdf(..., exact = TRUE)` is for a reader that reports the
+#' densities: on doubles it gives the exact value where the fitted
+#' objective holds a soft support, `-Inf` for a `gen_extreme_value()`
+#' row outside its support where the objective has a finite barrier. The
+#' default, `exact = FALSE`, is the objective's own arithmetic, which a
+#' computation that feeds a fit needs.
 #' `with_cs_offsets(fit, rspec, dpv)` takes the WHOLE list
 #' `eval_dpars()` returns, one element per response (`rspec` is
 #' ignored), and gives it back with the category-specific (`cs()`)

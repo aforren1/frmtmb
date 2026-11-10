@@ -1,3 +1,202 @@
+# frmtmb 0.81.0
+
+## Convergence and standard errors
+
+* BREAKING: When nlminb stops with "false convergence (8)" at the
+  maximum, `frm()` gives a message of class `frmtmb_converged_at_max` in
+  place of the warning "Optimizer did not report convergence". The fit is
+  at the maximum when a Newton step from the stop gains at most 2e-5 in
+  log-likelihood, counting the most that the directions too flat to
+  measure could hold, every standard error is finite, and no other
+  convergence verdict warned. Otherwise the warning (class
+  `frmtmb_conv_code`) stays. On 319 fits of covariates far from zero, 109
+  stopped at code 8, all at the maximum, and all 109 now give the message.
+  Of 99 code-8 stops forced short of the maximum, the 80 short by more
+  than 2e-5 all keep the warning. An exact `gp()` term keeps the warning
+  unless its warm start proves the stop, as before. Select the message
+  with `withCallingHandlers(frmtmb_converged_at_max = ...)` or
+  `suppressMessages()`; the code in `fit$opt$convergence` is unchanged.
+
+* BREAKING: A fit that stops with a correlation of a two-dimensional
+  block at -1 or 1 is now measured at the maximum over the other
+  parameters, as the standard-error check measures it. Before, the
+  correlation's row left the curvature unusable, the fit was called
+  short, and every standard error was that of the stop: on brms's
+  example fit 1 the sigma coefficients had negative variances and
+  `fitted(dpar = "sigma")` had NaN errors. Now the correlation is
+  reported as a boundary (singular) fit, and the parameters it does not
+  reach keep finite standard errors.
+
+* BREAKING: The convergence check measures what a stop could still gain
+  with the quadratic model of the objective (one Newton step), as
+  before. Only where the standard-error check measured a ridge flat on
+  its floor, or a design makes a direction exactly flat (an alias, or a
+  `mo()` simplex split by a category no row is in) and the fit has no
+  prior with a density, does the check take the model over the other
+  directions and ask the objective itself along the flat ones; if that
+  gains at most `frmtmb_control(grad_tol =)`, the stop is the maximum
+  and the gradient warning is not given. A curved ridge the likelihood
+  is flat on reads the gradient across it as a gain along it, which is
+  why it is asked.
+
+* BREAKING: A correlation that has run to its limit in an unstructured
+  block of three or more is now held at its edge, as one in a block of
+  two was: its Cholesky row is pulled back along itself before the
+  Hessian is taken. On `(1 + poly(x, 2) | g)` with a tight prior on one
+  standard deviation, the intercept and both poly terms had been called
+  flat; they now keep standard errors within 3 percent of their
+  profiles'.
+
+* BREAKING: The standard-error verdict on a ridge that the likelihood is
+  flat along no longer depends on where on the ridge the fit stops.
+  On `c0 + exp(a)^k` with `a ~ 1 + (1 | g)`, 41 fits with the response
+  moved by a few units in the last place now lose the standard errors
+  of `a`, `k` and the group standard deviation, the parameters the ridge
+  moves, and keep those of `c0`, `x` and `sigma`. Before, 9 of the 41
+  kept a finite standard error for `a`, 3 lost `sigma`'s and 32 lost
+  `c0`'s. The finite-difference Hessian of a model with random effects
+  now takes again, with a smaller step, every column whose step raised
+  the objective by more than 0.01, and the small directions of a ridge
+  are measured on the ridge's floor.
+
+## Families
+
+* BREAKING: `row_lpdf(exact = TRUE)` gives the exact log density, and
+  frmtmb.sample's `log_lik()`, `loo()` and `waic()` of draws read it.
+  For `gen_extreme_value()` it is `-Inf` outside the support, and a
+  censored row reads a distribution function of exactly 0 below the
+  lower end and 1 above the upper end. Before, these readers got the
+  finite barrier of the fitted objective: -1.0e150 at `y = 0` with
+  `mu = 1`, `sigma = 0.1` and `xi = 0.3`, and +6.4 at a row 1e-12
+  outside the support at `xi = 10`. brms's `dgen_extreme_value()` gives
+  `NaN` there. The log survivor of `gen_extreme_value()` and
+  `frechet()` keeps its far upper tail: it was `-Inf` once
+  `t^(-1 / xi)` underflowed, where the value is about `-800`.
+
+* Every other evaluation keeps the fitted objective's arithmetic, on the
+  tape and on doubles: the fit, importance sampling, nested quadrature,
+  and the start, curvature and custom-family checks. So no fit of
+  `gen_extreme_value()` changes. On seven fixed-effect fits (the GEV,
+  a mixture of two, `frechet()`, `weibull()` and `exponential()`, with
+  and without `cens()` and `trunc()`), on `importance = 500` and on
+  one-block and nested `quadrature = TRUE` fits of a GEV with random
+  intercepts, every estimate and `logLik()` is the same as before to
+  the last bit.
+
+* BREAKING: A `trunc()` bound outside the support is no truncation,
+  as for the other families: `lb` at or below the lower end for
+  `exponential()`, `weibull()`, `frechet()` and `shifted_lognormal()`,
+  and `lb` below -pi or `ub` above pi for `von_mises()`. Before,
+  `exponential()` added `lb / mu` to every row and gave wrong estimates
+  without a warning (an intercept of 1.078 where the fit without
+  `trunc()` gives 0.661). `von_mises()` read an arc of negative length
+  and moved `logLik()` by 6.4 with `lb = -4`, by 38.6 with `ub = 4`,
+  and by 188 with `cens()` beside `lb = -4, ub = 4`, there with a
+  parameter 69.1 away. `weibull()`, `frechet()` and
+  `shifted_lognormal()` stopped at a `NaN` gradient. The shifted
+  lognormal's floor at its shift had rounded to 0.
+
+## Hypothesis tests
+
+* `print()` of a `hypothesis()` result on a fit no longer says that a
+  maximum-likelihood fit has no posterior. That was false for a fit with
+  a prior (`frm(prior = )`). It now says that brms computes `Evid.Ratio`
+  and `Post.Prob` from posterior draws, and a point hypothesis also from
+  prior draws, and that a fit has none.
+
+* `Evid.Ratio` and `Post.Prob` stay `NA` on every fit, for these
+  reasons. A point ratio is the posterior density at the point over the
+  prior density there. Under flat priors, which a maximum-likelihood fit
+  has, the prior has no density, so the ratio does not exist, and brms
+  gives `NA` there too. Under a prior with a density, the ratio needs
+  the posterior density AT the point, and the only posterior density a
+  fit has is the normal approximation at the mode. A tested point is
+  usually in the tail of that approximation, where its error can be
+  orders of magnitude. For a group standard deviation near 0.59 with a
+  `cauchy(0, 2)` prior, the normal approximation on the scale of the
+  standard deviation gave a ratio at 0 of 0.0075, and 4000 draws gave
+  2.9e-6, 2560 times smaller. So a fit does not report a Bayes factor
+  from the normal approximation, for any parameter. A directional ratio
+  is a posterior probability, which a fit also has only as that
+  approximation; its one-sided p-value is in `attr(h, "test")`.
+  `frmtmb.sample::frm_sample(fit, sample_prior = "yes")` samples the fit
+  with its priors, and `hypothesis()` of those draws computes both
+  columns as brms does.
+
+## Compatibility table
+
+* `frm_compat()` reads "refused" for each addition term that no ordinal
+  family declares with each feature that only an ordinal family has
+  (`thres()`, `disc`, the `equidistant` and `sum_to_zero` thresholds,
+  `cs_pred()`). The rows come from the families' declarations, so a
+  term that an extension registers with `frmtmb_register_aterm()` gets
+  them too. In core, 31 rows change for `trials()`, `cens()`,
+  `trunc()`, `se()`, `mi()`, `vint()`, `vreal()` and `rate()`: 25
+  read "untested" before, and 6 read "works" (`cens()`, `trunc()`,
+  `se()`, `mi()` and `rate()` with `cs_pred()`, and `rate()` with
+  `thres()`). With every extension loaded, 30 more change for `bhaz()`,
+  `dec()`, `ndt_group()`, `reward()`, `payoff()` and `stage2()`: 18
+  read "untested" and 12 read "works" (each term with `thres()` and
+  `cs_pred()`). `frm()` already refused each of these models with a
+  message that names the term. brms 2.23.0 refuses each one for which
+  it has the term. No fit changes.
+
+## Bug fixes
+
+* A refusal of a registered addition term of more than one argument
+  whose name ends in a digit, such as frmtmb.learn's `stage2()`, now
+  names the term. Before, it named `stage21()` and `stage22()`, which no
+  formula writes.
+
+* `make_conditions()` of draws from `frmtmb.sample::frm_sample()` reads
+  the data of the fit they were drawn from, as it does for the fit. The
+  draws now carry the fit's model frame as `$data`, which holds a
+  transform's basis, such as `poly(x, 2)`, and not its variable, so
+  `make_conditions(draws, "x")` stopped with "`x` is not a column of
+  the data".
+
+## Limits
+
+* The fitted objective of `gen_extreme_value()` is not the exact
+  likelihood at a row with `t` below 1e-15, nor at a `trunc()` or
+  `cens()` bound outside the support, where its distribution function
+  is within about 1e-13 of 0 or 1. In one measured fit with
+  `trunc(lb = )` below the lower end, that moved `logLik()` by 7.7e-12
+  and a coefficient by 1.8e-7.
+
+* A correlation row held at its edge in an unstructured block of three
+  or more loses the standard errors of all of its entries, although
+  the row's direction is determined: on `(1 + poly(x, 2) | g)` with a
+  tight prior on one standard deviation, `cor(Intercept, polyx22)` is
+  0.41 and has no standard error. Only the row's length is at the
+  boundary.
+
+* On a ridge that the standard-error check measures flat, the
+  convergence check asks the objective only along the flat directions.
+  Under a weak prior across the ridge (`normal(0.5, 1000)` on `k` of
+  `c0 + exp(a)^k`), two stops 1.9e-4 and 1.2e-3 short along it lost
+  the gradient warning that 0.80.0 gave. Stops short by 0.003 or more
+  warn, and none gets the message `frmtmb_converged_at_max`.
+
+* Some densities outside a support still read a finite floor, also for
+  a reader: an empty or unresolvable censoring or truncation window
+  (about -690.8), tied thresholds of an ordinal mixture, the tails of
+  OSA residuals (-1e4), and the floors of frmtmb.eam's and
+  frmtmb.survival's composed densities. A fit or a draw does not reach
+  the last of these: their links keep each fitted or sampled row away
+  from the floor.
+
+* `weights()`, `subset()` and `index()` with `disc`, `equidistant` and
+  `sum_to_zero` stay "untested" in `frm_compat()`: the ordinal
+  families take these terms, and a fit that runs is not a measured
+  agreement with brms.
+
+* `frmtmb_register_aterm()` does not refuse a term whose argument
+  keys collide with those of another term, such as `x` of three
+  arguments beside `x2`: there `y | x2(z) + x(u, v, w)` lets the
+  second argument of `x()` replace `x2(z)` without a word. No shipped
+  extension has such a pair.
+
 # frmtmb 0.80.0
 
 ## Fitting

@@ -211,9 +211,13 @@ registered_aterm_of <- function(nm) {
   reg <- frmtmb_aterm_registry$reg
   if (!length(reg)) return(NULL)
   if (!is.null(reg[[nm]])) return(reg[[nm]])
-  base <- sub("[0-9]+$", "", nm)
-  e <- reg[[base]]
-  if (!is.null(e) && e$arity > 1L) e else NULL
+  # the keys of an arity-k term are its name and 1..k (parse_response()).
+  # Stripping the trailing digits instead read frmtmb.learn's stage21 as
+  # "stage", so a refusal named `stage21()` and `stage22()`
+  for (e in reg) {
+    if (e$arity > 1L && nm %in% paste0(e$name, seq_len(e$arity))) return(e)
+  }
+  NULL
 }
 
 #' The TERM one addition-term value came from, as a formula writes it
@@ -248,7 +252,7 @@ aterm_spelling <- function(nm) {
   if (!length(m)) {
     e <- registered_aterm_of(nm)
     if (!is.null(e) && e$arity > 1L) {
-      m <- c(nm, e$name, sub("^.*[^0-9]", "", nm))
+      m <- c(nm, e$name, substring(nm, nchar(e$name) + 1L))
     }
   }
   if (length(m) == 3L) {

@@ -59,11 +59,25 @@ model, as in brms.
 
 The support depends on the parameters: \code{y > mu - sigma / xi} for
 \code{xi > 0} and \code{y < mu - sigma / xi} for \code{xi < 0}. Outside the
-support the density is 0. Its log falls by \code{1e8} per unit of
-\code{t} below 0 rather than jumping to \code{-Inf}, so a row a millionth
-outside has a log density below -100 and the optimizer meets a slope
-that turns it back, not a wall. The start, \code{xi = 0}, is inside the
-support for every data set. For \code{xi > -1} the density goes to 0 at
+support the density is 0. The pointwise log-likelihood of draws
+(\code{log_lik()}, and so \code{loo()} and \code{waic()}, of frmtmb.sample) is exact
+there: a log density of \code{-Inf} (brms's \code{dgen_extreme_value()} gives
+\code{NaN}), and a distribution function of exactly 0 below the lower end
+and 1 above the upper end. The fitted objective is different, and so
+is every computation that a fit makes from it (importance sampling,
+nested quadrature, the start and Hessian checks): its log density
+falls by \code{1e8} per unit of \code{t} below 0 rather than jumping to \code{-Inf},
+so a row a millionth outside has a log density below -100 and the
+optimizer meets a slope that turns it back, not a wall. A row with
+\code{t} above \code{1e-15} gets the same number from both to the last bit, and
+a mixture component outside a row adds \code{exp(-Inf) = 0} to it either
+way. The fitted objective differs from the exact likelihood in two
+places only: at a row with \code{t} below \code{1e-15}, and at a \code{trunc()} or
+\code{cens()} bound outside the support, where its distribution function
+is within about 1e-13 of 0 or 1 rather than at it. In one measured
+fit with \code{trunc(lb = )} below the lower end that moved \code{logLik()} by
+7.7e-12 and a coefficient by 1.8e-7. The start, \code{xi = 0}, is inside
+the support for every data set. For \code{xi > -1} the density goes to 0 at
 an end of the support, so a maximum has every row inside it. That is
 the region brms's \code{scale_xi()} maps its \code{tmp_xi} onto.
 

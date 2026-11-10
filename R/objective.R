@@ -173,9 +173,19 @@ trunc_edges <- function(fam, av, n) {
 #' (brms-34 in dev/upstream-bugs.md), so the two differ for right
 #' censoring with an upper bound and left censoring with a lower one.
 #'
+#' `exact = TRUE` is for a reader that reports the densities
+#' (`log_lik()` of draws): on doubles, a family that holds a soft support
+#' on the tape (`gen_extreme_value()`) gives the exact value instead,
+#' `-Inf` outside its support (`exact_support()`). The default keeps the
+#' fitted objective's arithmetic, which every internal evaluation needs.
+#'
 #' @noRd
-row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
+row_lpdf <- function(fam, yobs, yraw, dpv, av, extra, exact = FALSE) {
   "[<-" <- RTMB::ADoverload("[<-")
+  if (isTRUE(exact)) {
+    old <- options(frmtmb.exact_support = TRUE)
+    on.exit(options(old), add = TRUE)
+  }
   ll <- if (is.null(fam[["extra_pars"]])) {
     fam[["lpdf"]](yobs, dpv, av)
   } else {

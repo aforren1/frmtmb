@@ -1,0 +1,3 @@
+frmtmb tests/testthat/test-compat.R
+frmtmb tests/testthat/test-autocor.R
+frmtmb tests/testthat/test-compat-register.R

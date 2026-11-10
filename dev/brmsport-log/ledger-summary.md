@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | `tests.brm.R` | 23 | 23 | 0 | 0 |
 | `tests.brmsfit-helpers.R` | 3 | 2 | 0 | 1 |
-| `tests.brmsfit-methods.R` | 223 | 162 | 44 | 17 |
+| `tests.brmsfit-methods.R` | 223 | 163 | 44 | 16 |
 | `tests.brmsformula.R` | 16 | 16 | 0 | 0 |
 | `tests.brmsterms.R` | 5 | 0 | 0 | 5 |
 | `tests.data-helpers.R` | 6 | 2 | 1 | 3 |
@@ -14,13 +14,13 @@
 | `tests.families.R` | 84 | 76 | 0 | 8 |
 | `tests.priors.R` | 36 | 28 | 2 | 6 |
 | `tests.standata.R` | 87 | 77 | 2 | 8 |
-| **total** | **494** | **397** | **49** | **48** |
+| **total** | **494** | **398** | **49** | **47** |
 
 ### Outcome by class
 
 | outcome | class | assertions |
 |---|---|---|
-| pass | - | 367 |
+| pass | - | 368 |
 | pass | own-words | 29 |
 | pass | weak-pass | 1 |
 | divergence | class | 22 |
@@ -30,13 +30,12 @@
 | divergence | policy | 10 |
 | cannot transfer | absent | 1 |
 | cannot transfer | brms-internal | 15 |
-| cannot transfer | fixture | 1 |
 | cannot transfer | mcmc | 4 |
 | cannot transfer | no-draws | 3 |
 | cannot transfer | stan | 24 |
 
-Bin 1 passes: 397 of 494 (80.4%).
-Against bins 1 and 2: 397 of 823 (48.2%); bin 2 was not ported.
+Bin 1 passes: 398 of 494 (80.6%).
+Against bins 1 and 2: 398 of 823 (48.4%); bin 2 was not ported.
 Runs testthat alone would count as a pass and the harness does not, over both packages: 5 (1 vacuous, 4 reading a stale object); hollow passes marked by hand: 1.
 
 ### The frmtmb.sample half

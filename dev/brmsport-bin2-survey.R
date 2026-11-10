@@ -107,7 +107,7 @@ groups <- data.frame(stringsAsFactors = FALSE, rbind(
       paste0(
         "not ported, by cost: the prep needs more than the thin ",
         "adapter reads (ARMA, SAR or FCOR structure, a multivariate ",
-        "response, wiener's frmtmb.eam family, a custom family), and ",
+        "response, wiener's frmtmb.eam family), and ",
         "frmtmb has each of these models, so the row is transferable ",
         "and stays in the rate's denominator")),
   c("G4",
@@ -173,8 +173,8 @@ names(groups) <- c("group", "reads", "frmtmb_counterpart", "cost",
 # its draws refuses it, so brms's leave-one-out conditional density of
 # each observation is a gap too: the quantity is well defined, brms
 # computes it, and no scope document puts it outside frmtmb (review
-# 2026-10-14, finding 1). The multivariate, ARMA posterior_predict and
-# custom-family rows remain transferable, at the cost named.
+# 2026-10-14, finding 1). The multivariate and ARMA posterior_predict
+# rows remain transferable, at the cost named.
 bp_absent <- function(term) c("absent", paste0(
   "gap: frmtmb has no ", term, " term; frm() refuses it ('", term,
   "() is a brms autocorrelation term that frmtmb does not support'; ",
@@ -186,14 +186,19 @@ bp_fit_bound <- function(what) c("not-ported", paste0(
   "from fit$estimates, the structure from fit$frame) and no exported ",
   "function takes brms's per-draw matrices, so a port must construct ",
   "a fit per draw or call internals: not a thin read"))
-bp_custom <- c("not-ported", paste0(
-  "not ported (cost): brms's custom family dispatches to a user's ",
-  "prep-level function, log_lik_<name>(i, prep) or ",
-  "posterior_predict_<name>(i, prep), found by name; frmtmb's ",
-  "custom_family() is frmtmb_family(), which takes lpdf(y, dpars, ",
-  "aterms) and sim(dpars, aterms, n) at construction. A port must ",
-  "restate the user's function in that signature, a 2T-style ",
-  "restatement rather than a thin read"))
+# The custom-family rows are a decision (the user's, 2026-11-09, lane
+# hollow): frmtmb serves log_lik() and posterior_predict() of a custom
+# family from the slots given at construction, and has no prep and no
+# dispatch by name to port to (dev/hollow-findings.md, Row 3).
+bp_custom <- c("brms-internal", paste0(
+  "decision: brms's custom family dispatches to a user's prep-level ",
+  "function, log_lik_<name>(i, prep) or posterior_predict_<name>(i, ",
+  "prep), found by name and fed brms's internal prep, and the row calls ",
+  "brms:::log_lik_custom() or brms:::posterior_predict_custom() on a ",
+  "hand-built prep. frmtmb's custom_family() is frmtmb_family(), which ",
+  "takes lpdf(y, dpars, aterms) and sim(dpars, aterms, n) at ",
+  "construction and serves log_lik() and posterior_predict() from them, ",
+  "so frmtmb has no prep and no dispatch by name, by design"))
 bin2port_g34 <- list(
   "log_lik for multivariate linear models runs without errors" =
     bp_fit_bound(paste(

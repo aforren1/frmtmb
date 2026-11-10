@@ -3382,7 +3382,9 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   without its penalty.
 #' @return An object of class `frmtmb_draws`: list with the `stanfit`,
 #'   a draws matrix with named columns (`as.matrix()` method), the
-#'   originating fit, and, when any block was non-centered, a
+#'   originating fit, its model frame as `data` (the fit's own
+#'   `fit$data`, as brms's fit carries `$data`), and, when any block was
+#'   non-centered, a
 #'   `reparam` note saying which. The `stanfit` holds the parameters as
 #'   Stan sampled them, so on a non-centered run its random-effect
 #'   columns are `z` while the draws matrix holds `b`. The draws matrix
@@ -3980,7 +3982,10 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   }
   sample_args$own <- list(own)
   sample_args$from_formula <- from_formula
-  structure(list(stanfit = sf, draws = m, fit = fit,
+  # `data` is the fit's model frame, the same object in memory: brms
+  # code reads `fit$data`, as `newdata = fit$data`, and on draws it read
+  # NULL, which loo() took for no newdata at all
+  structure(list(stanfit = sf, draws = m, fit = fit, data = fit[["data"]],
                  reparam = if (length(ncp$idx)) {
                    list(blocks = ncp$idx, labels = ncp$labels,
                         centered = ncp$centered)

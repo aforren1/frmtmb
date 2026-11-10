@@ -951,6 +951,10 @@ frmtmb_compat_groups_lst <- list(
   # the families that take cs() with no caveat; cumulative() and
   # hurdle_cumulative() take it with brms's warning, in rows of their own
   ordinal_cs = c("sratio", "cratio", "acat"),
+  # what only an ordinal family has, so it can never meet an addition
+  # term that no ordinal family declares
+  ordinal_only = c("thres()", "disc", "equidistant", "sum_to_zero",
+                   "cs_pred()"),
   discrete = c("poisson", "negbinomial", "negbinomial2", "nbinom1",
                "geometric",
                "compois", "binomial", "bernoulli", "beta_binomial",
@@ -1447,8 +1451,6 @@ compat_hand_rules_tbl <- function() {
   # other 32 refuse it through their own accepts_aterms declaration,
   # which frame assembly enforces by name. A kind-level rule under all
   # of them would have won no pair, which is a claim nobody can read.
-  r("trials()", "cs_pred()", "refused",
-    "Refused, as brms 2.23.0 refuses it: cs() needs an ordinal family, and no ordinal family takes trials().")
   r("trials()", "group:trials_families", "works",
     "The families whose response is a count out of a known number of trials. Every other family refuses trials() by name: it is not on their allow-list, so writing it would change nothing about the fit.")
   r("trials()", "multinomial", "conditional",
@@ -1471,10 +1473,6 @@ compat_hand_rules_tbl <- function() {
     "thres(x = K) takes cs(), with one coefficient per threshold. thres(gr = ) with cs() is refused, as brms refuses it: the threshold positions differ by group.")
   r("thres()", "mo()", "works",
     "Verified by a tiny fit. mo() changes only the latent predictor.")
-  for (at in c("cens()", "trunc()", "se()", "trials()", "mi()")) {
-    r("thres()", at, "refused",
-      "Refused: the ordinal families that thres() belongs to do not take this term.")
-  }
   r("thres()", "mvbf", "works",
     "Verified: frm() fits it and brms 2.23.0 builds and compiles it. The ordinal response keeps its thresholds, the other response its own model.")
   r("thres()", "mixture", "works",
@@ -1504,13 +1502,9 @@ compat_hand_rules_tbl <- function() {
   # brms's discrimination parameter and its threshold = "equidistant"
   # and "sum_to_zero" of the ordinal families (dev/ordinal-findings.md;
   # the cells marked by a tiny fit are dev/fixes-compat-probe.R)
-  r("cens()", "disc", "refused",
-    "Refused, as brms 2.23.0 refuses it: disc belongs to the ordinal families, and they take no cens().")
-  r("cens()", "equidistant", "refused",
-    "Refused, as brms 2.23.0 refuses it: the structure belongs to the ordinal families, and they take no cens().")
-  r("vint()", "sum_to_zero", "refused",
-    "Refused, as brms 2.23.0 refuses it: the structure belongs to the ordinal families, and they take no vint().",
-    override = TRUE)
+  # An addition term no ordinal family declares meets none of these
+  # features: compat_ordinal_only_rules() derives those rows from the
+  # declarations, for an extension's terms too (dev/compat-findings.md)
   r("disc", "kind:family", "refused",
     "Refused by name: disc is the discrimination parameter of the ordinal families, and no other family has it.")
   r("disc", "group:ordinal", "works",
@@ -2392,11 +2386,43 @@ compat_hand_cache <- new.env(parent = emptyenv())
 #' @noRd
 frmtmb_compat_rules_tbl <- function() {
   hand <- compat_hand_rules_tbl()
+  acc <- compat_core_family_accepts()
   out <- do.call(rbind, c(
-    list(hand, compat_aterm_rules(compat_core_family_accepts())),
+    list(hand, compat_aterm_rules(acc), compat_ordinal_only_rules(acc)),
     lapply(compat_contrib_rules_ordered(), function(mk) mk())))
   rownames(out) <- NULL
   out
+}
+
+#' Refusals of each addition term no ordinal family declares, against
+#' the features only an ordinal family has (group `ordinal_only`).
+#'
+#' Derived, not listed, because an extension's terms (dec(), bhaz())
+#' register after the core table is written: a list kept them at the
+#' kind-level "works" and the "untested" default, while frame assembly
+#' refuses each by name on every ordinal family. weights(), subset(),
+#' index() and thres() are declared, so their rows stay as they are.
+#'
+#' @noRd
+compat_ordinal_only_rules <- function(accepts) {
+  acc <- accepts[frmtmb_compat_groups_lst$ordinal]
+  # a family with no allow-list takes every term, so nothing is derived
+  if (!length(acc) || any(vapply(acc, is.null, NA))) {
+    return(compat_rule_frame(NULL, NULL))
+  }
+  ft <- frmtmb_compat_features_tbl()
+  terms <- ft$name[ft$kind == "aterm"]
+  bad <- terms[!(sub("[(][)]$", "", terms) %in% unlist(acc))]
+  if (!length(bad)) return(compat_rule_frame(NULL, NULL))
+  data.frame(feature_a = bad, feature_b = "group:ordinal_only",
+             status = "refused",
+             note = paste0("Refused: thres(), disc, the equidistant and ",
+                           "sum_to_zero thresholds and cs() belong to the ",
+                           "ordinal families, and no ordinal family ",
+                           "declares this addition term, so frm() refuses ",
+                           "it by name. brms 2.23.0 refuses each term it ",
+                           "has on these families too."),
+             override = FALSE, stringsAsFactors = FALSE)
 }
 
 # ---------------------------------------------------------------- resolution

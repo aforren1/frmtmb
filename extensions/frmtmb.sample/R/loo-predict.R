@@ -27,7 +27,13 @@
 #' `re_formula` and the new-level arguments. For a summary on other
 #' rows, use [posterior_predict()] or [posterior_epred()] with
 #' `newdata`: on a row the model has not seen, there is no observation
-#' to leave out.
+#' to leave out. `newdata` that holds exactly the rows the model was
+#' fitted on (`object$data`) is accepted: those are the rows these
+#' functions answer, and on them brms's answer is theirs. A subset of
+#' them is refused, though brms answers it: rows are matched by value,
+#' and a subset cannot be placed among the fitted rows unambiguously
+#' where rows repeat and a per-row latent value (`me()`, `mi()`) or an
+#' autocorrelation neighbor enters.
 #'
 #' @section Draws:
 #' `ndraws` and `draw_ids` choose the draws ONCE, and the same draws give
@@ -70,7 +76,8 @@
 #'   them. `newdata`, `re_formula` and the new-level arguments are
 #'   refused unless they hold brms's default value (`NULL`;
 #'   `allow_new_levels = FALSE`; `sample_new_levels = "uncertainty"`),
-#'   which asks for nothing (see *Leave-one-out, and newdata*). Any
+#'   which asks for nothing, or `newdata` holds exactly the fitted rows
+#'   (see *Leave-one-out, and newdata*). Any
 #'   other name is an error that names it.
 #' @return A matrix with one row per observation and one column per
 #'   summary, named `mean`, `var` or `q<100 p>`. Where the prediction
@@ -169,7 +176,7 @@ loo_predictive_interval.frmtmb_draws <- function(object, prob = 0.9,
 #' reads nowhere) says so instead of changing nothing in silence.
 #'
 #' @noRd
-loo_draws_opts <- function(dots, what, pred_args) {
+loo_draws_opts <- function(dots, what, pred_args, models = list()) {
   nms <- names(dots) %||% rep("", length(dots))
   if (any(!nzchar(nms))) {
     frm_stop(what, " takes its further arguments by name, and argument ",
@@ -178,8 +185,9 @@ loo_draws_opts <- function(dots, what, pred_args) {
   # newdata and the arguments that only mean something with it: the
   # weights are built from log_lik(), which refuses them, and the policy
   # is loo()'s, so its reason is given in its words. brms's own default
-  # values ask for none of that and pass.
-  given <- function(a) a %in% nms && !loo_default_value(a, dots[[a]])
+  # values ask for none of that and pass, as does newdata holding the
+  # fitted rows, which never reaches the prediction either.
+  given <- function(a) a %in% nms && loo_arg_asks(models, a, dots[[a]])
   ll_refused <- c("newdata", "re_formula", "re.form", draws_new_level_args,
                   "nug")
   hit <- Filter(given, ll_refused)
@@ -190,7 +198,8 @@ loo_draws_opts <- function(dots, what, pred_args) {
              hit[1L], "`. A row the model was not fitted on has no ",
              "observation to leave out. brms computes the weights on ",
              "newdata's own response; here, use posterior_predict(newdata ",
-             "=) or posterior_epred(newdata =) for those rows",
+             "=) or posterior_epred(newdata =) for those rows.",
+             if (identical(hit[1L], "newdata")) draws_fitted_rows_note,
              call. = FALSE)
   }
   for (a in intersect(nms, c("moment_match", "reloo"))) {
@@ -217,6 +226,18 @@ loo_draws_opts <- function(dots, what, pred_args) {
   list(ndraws = dots$ndraws, draw_ids = dots$draw_ids,
        pred = dots[intersect(nms, pred_args)],
        psis = dots[intersect(nms, psis_args)])
+}
+
+#' Whether the argument `name` = `value` asks the leave-one-out functions
+#' of `models` for anything: not when it is brms's default, and not
+#' when it is `newdata` holding every model's fitted rows
+#' (draws_newdata_is_fitted()), which are the rows they answer.
+#'
+#' @noRd
+loo_arg_asks <- function(models, name, value) {
+  if (loo_default_value(name, value)) return(FALSE)
+  !(identical(name, "newdata") && length(models) &&
+      all(vapply(models, draws_newdata_is_fitted, NA, newdata = value)))
 }
 
 #' Whether `value` is brms's default for the argument `name`, so that
@@ -297,7 +318,7 @@ loo_draws_expect <- function(object, pred_fun, what, type, probs,
   if (!requireNamespace("loo", quietly = TRUE)) {
     loo_need_pkg(what)
   }
-  op <- loo_draws_opts(dots, what, pred_args)
+  op <- loo_draws_opts(dots, what, pred_args, list(object))
   if (identical(type, "quantile")) {
     ok <- is.numeric(probs) && length(probs) >= 1L && !anyNA(probs) &&
       all(probs > 0 & probs < 1)
@@ -473,7 +494,7 @@ loo_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
       posterior_summary(R2, probs = probs, robust = robust)
     } else R2)
   }
-  op <- loo_draws_opts(dots, "loo_R2()", c("dpar", "nlpar"))
+  op <- loo_draws_opts(dots, "loo_R2()", c("dpar", "nlpar"), list(object))
   for (a in c("ndraws", "draw_ids")) {
     if (a %in% c(names(args_epred), names(args_loglik))) {
       frm_stop("loo_R2(): give `", a, "` in `...`, where it chooses the ",
@@ -563,7 +584,8 @@ loo_R2_boot <- function(y, ypred, ll, psis_object) {
 #'   (`method`, `optim_method`, `optim_control`, `BB`, `BB_n`, `alpha`,
 #'   `cores`), and `ndraws`, `draw_ids` and `resp` (either spelling),
 #'   which reach every model's [frmtmb::log_lik()]. `newdata` and the
-#'   new-level arguments are refused unless they hold brms's default.
+#'   new-level arguments are refused unless they hold brms's default,
+#'   or `newdata` holds exactly every model's fitted rows.
 #' @param model_names Labels for the models. The default deparses the
 #'   arguments, as brms does.
 #' @return loo's weights object, named by model.
@@ -639,12 +661,14 @@ draws_model_weights <- function(models, opts, ll_opts, what) {
   # nothing log_lik() refuses, and pass
   ll_refused <- c("newdata", "re_formula", "re.form", draws_new_level_args,
                   "nug")
-  hit <- Filter(function(a) !loo_default_value(a, opts[[a]]),
+  hit <- Filter(function(a) loo_arg_asks(models, a, opts[[a]]),
                 intersect(names(opts), ll_refused))
   if (length(hit)) {
     frm_stop(what, " cannot honor `", hit[1L], "`: the weights are ",
              "computed from log_lik() of each model, which takes the rows ",
-             "the model was fitted on and refuses it", call. = FALSE)
+             "the model was fitted on and refuses it.",
+             if (identical(hit[1L], "newdata")) draws_fitted_rows_note,
+             call. = FALSE)
   }
   if ("r_eff_list" %in% names(opts)) {
     frm_stop(what, " cannot honor `r_eff_list`: the relative efficiencies ",

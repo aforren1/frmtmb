@@ -607,6 +607,111 @@ test_that("disc and the threshold structures have rows, and they hold", {
                "sum_to_zero")
 })
 
+test_that("an addition term no ordinal family takes refuses its features", {
+  # Through 0.80.0 four of these pairs had a row of their own, the ones
+  # the equivalence survey drew (cens() x disc and x equidistant, vint() x
+  # sum_to_zero, trials() x cs()), and their neighbors read untested or,
+  # for cs() and thres() against cens(), trunc(), se(), mi() and rate(),
+  # works, though frm() and brms 2.23.0 refuse every one
+  # (dev/compat-findings.md). One derived rule per term now covers the
+  # group, for every term registered in the session.
+  ft <- frm_compat_features()
+  aterms <- ft$name[ft$kind == "aterm"]
+  contrib <- names(unlist(frmtmb_compat_contrib$features))
+  acc <- compat_core_family_accepts()[frmtmb_compat_groups_lst$ordinal]
+  taken <- paste0(unique(unlist(acc)), "()")
+  rules <- frm_compat_rules()[seq_len(compat_core_rule_count()), ]
+  # the ordinal families' own declarations, inverted; the loops below
+  # read this and not the rule, so that a rule that is missing fails them
+  all_refused <- setdiff(aterms, taken)
+  refused <- setdiff(all_refused, contrib)
+  expect_setequal(rules$feature_a[rules$feature_b == "group:ordinal_only" &
+                                    rules$status == "refused"], all_refused)
+  # the absent case: a term they declare keeps its rows
+  expect_true(all(c("weights()", "subset()", "index()") %in% taken))
+  expect_identical(frm_compat("weights()", "thres()")$status, "works")
+  expect_identical(frm_compat("weights()", "disc")$status, "untested")
+
+  # written out rather than read from the group, for the same reason
+  only <- c("thres()", "disc", "equidistant", "sum_to_zero", "cs_pred()")
+  for (at in all_refused) for (st in only) {
+    expect_identical(frm_compat(at, st)$status, "refused",
+                     info = paste(at, st))
+  }
+  expect_true(setequal(frmtmb_compat_groups_lst[["ordinal_only"]], only))
+
+  set.seed(20261109)
+  n <- 60
+  d <- data.frame(x = rnorm(n), z = rnorm(n), nt = 4L, cc = 0L, s = 1,
+                  k = 1L, rr = 0.5, tt = 2, w = 1)
+  d$y <- as.integer(cut(0.8 * d$x + stats::rlogis(n),
+                        c(-Inf, -1, 0, 1, Inf)))
+  spell <- c("weights()" = "weights(w)", "trials()" = "trials(nt)",
+             "cens()" = "cens(cc)", "trunc()" = "trunc(lb = 0)",
+             "se()" = "se(s)", "mi()" = "mi()", "vint()" = "vint(k)",
+             "vreal()" = "vreal(rr)", "rate()" = "rate(tt)")
+  expect_setequal(setdiff(names(spell), "weights()"), refused)
+  model <- function(at, st) {
+    lhs <- paste0("y | ", spell[[at]])
+    switch(st,
+      "thres()" = list(f = paste0("y | thres(3) + ", spell[[at]], " ~ x"),
+                       fam = cumulative()),
+      disc = list(f = c(paste(lhs, "~ x"), "disc ~ 0 + z"),
+                  fam = cumulative()),
+      equidistant = list(f = paste(lhs, "~ x"),
+                         fam = cumulative(threshold = "equidistant")),
+      sum_to_zero = list(f = paste(lhs, "~ x"),
+                         fam = cumulative(threshold = "sum_to_zero")),
+      "cs_pred()" = list(f = paste(lhs, "~ x + cs(z)"), fam = sratio()))
+  }
+  run <- function(at, st) {
+    m <- model(at, st)
+    dd <- d
+    if (at == "mi()") dd$y[c(3, 9)] <- NA
+    form <- do.call(bf, lapply(m$f, stats::as.formula))
+    suppressMessages(frm(form, family = m$fam, data = dd))
+  }
+  for (st in only) {
+    # the absent case: the structure itself fits beside a declared term
+    expect_s3_class(run("weights()", st), "frmtmb_fit")
+    for (at in refused) {
+      base <- sub("[(][)]$", "", at)
+      expect_error(run(at, st), paste0(base, "[(][)]|'", base, "'"),
+                   info = paste(at, st))
+    }
+  }
+})
+
+test_that("a term registered after load is refused with the same features", {
+  # Through the first spelling of the rule, a hand-written list, an
+  # extension's terms (dec(), bhaz()) kept "works" with thres() and cs()
+  # and "untested" with disc and the threshold structures, while frm()
+  # refused them by name (dev/reviews/2026-11-10-compat.md, m1)
+  local_frmtmb_registries()
+  frmtmb_register_aterm("tterm", arity = 1L)
+  only <- c("thres()", "disc", "equidistant", "sum_to_zero", "cs_pred()")
+  for (st in only) {
+    expect_identical(frm_compat("tterm()", st)$status, "refused", info = st)
+  }
+  set.seed(20261110)
+  d <- data.frame(x = rnorm(60), z = rnorm(60), w = 1)
+  d$y <- as.integer(cut(0.8 * d$x + stats::rlogis(60),
+                        c(-Inf, -1, 0, 1, Inf)))
+  expect_error(frm(bf(y | tterm(w) ~ x), family = cumulative(), data = d),
+               "tterm()", fixed = TRUE)
+  expect_error(frm(bf(y | tterm(w) ~ x + cs(z)), family = sratio(), data = d),
+               "tterm()", fixed = TRUE)
+  # a term of several arguments whose name ends in a digit, as
+  # frmtmb.learn's stage2(): its keys are tpair21 and tpair22, and the
+  # refusal named those through 0.80.0
+  frmtmb_register_aterm("tpair2", arity = 2L)
+  expect_identical(frm_compat("tpair2()", "thres()")$status, "refused")
+  msg <- conditionMessage(expect_error(
+    frm(bf(y | tpair2(w, w) ~ x), family = cumulative(), data = d)))
+  expect_match(msg, "`tpair2()` is not one this family reads", fixed = TRUE)
+  expect_no_match(msg, "tpair21", fixed = TRUE)
+})
+
 test_that("the structures' mixture cells hold for ordinal mixtures", {
   # Lane fixes wrote these cells "refused" while an ordinal family could
   # not be a mixture component; lane ordmix made it one, so at the

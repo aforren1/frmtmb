@@ -182,15 +182,8 @@ test_that("loo has reasonable outputs", {
   brms_setup("brmsfit-methods:468",
     loo6_2 <- SW(loo(fit6, cores = 1, newdata = fit6$data))
   )
-  brms_port("brmsfit-methods:469", "hollow",
-    paste0(
-      "policy (newdata): holds hollowly. A frmtmb_draws has no ",
-      "$data (names stanfit, draws, fit), so fit6$data is NULL and ",
-      "the call is loo(fit6), which since 0.73.0 accepts brms's ",
-      "default newdata = NULL; with the data given (newdata = ",
-      "model.frame(fit6)) loo() of draws refuses newdata by name, ",
-      "as log_lik() of draws does. brms computes the elpd on ",
-      "newdata"),
+  brms_port("brmsfit-methods:469", "pass",
+    "",
     expect_true(is.numeric(loo6_2$estimates))
   )
   brms_setup("brmsfit-methods:470",
@@ -279,12 +272,12 @@ test_that("loo_epred has reasonable outputs", {
   )
   brms_port("brmsfit-methods:508", "divergence",
     paste0(
-      "the loo_*() functions refuse newdata by name, as loo() ",
-      "does: a leave-one-out weight is the observation's own ",
-      "column of log_lik(), so it exists only for a row the model ",
-      "was fitted on. brms computes the weights on the new rows' ",
-      "own response (this row with allow_new_levels = TRUE). Lane ",
-      "loodraws's decision 1"),
+      "the loo_*() functions refuse newdata other than the fitted ",
+      "rows, as loo() does: a leave-one-out weight is the ",
+      "observation's own column of log_lik(), so it exists only ",
+      "for a row the model was fitted on. brms computes the ",
+      "weights on the new rows' own response (this row with ",
+      "allow_new_levels = TRUE). Lane loodraws's decision 1"),
     expect_equal(dim(llp), c(nrow(newdata), 2))
   )
   brms_setup("brmsfit-methods:510",
@@ -359,12 +352,12 @@ test_that("loo_predict has reasonable outputs", {
   )
   brms_port("brmsfit-methods:544", "divergence",
     paste0(
-      "the loo_*() functions refuse newdata by name, as loo() ",
-      "does: a leave-one-out weight is the observation's own ",
-      "column of log_lik(), so it exists only for a row the model ",
-      "was fitted on. brms computes the weights on the new rows' ",
-      "own response (this row with allow_new_levels = TRUE). Lane ",
-      "loodraws's decision 1"),
+      "the loo_*() functions refuse newdata other than the fitted ",
+      "rows, as loo() does: a leave-one-out weight is the ",
+      "observation's own column of log_lik(), so it exists only ",
+      "for a row the model was fitted on. brms computes the ",
+      "weights on the new rows' own response (this row with ",
+      "allow_new_levels = TRUE). Lane loodraws's decision 1"),
     expect_equal(dim(llp), c(nrow(newdata), 2))
   )
   brms_setup("brmsfit-methods:546",

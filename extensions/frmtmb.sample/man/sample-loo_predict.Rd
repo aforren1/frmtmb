@@ -61,7 +61,8 @@ and \code{reloo} are refused when \code{TRUE}, as \code{\link[frmtmb:loo]{frmtmb
 them. \code{newdata}, \code{re_formula} and the new-level arguments are
 refused unless they hold brms's default value (\code{NULL};
 \code{allow_new_levels = FALSE}; \code{sample_new_levels = "uncertainty"}),
-which asks for nothing (see \emph{Leave-one-out, and newdata}). Any
+which asks for nothing, or \code{newdata} holds exactly the fitted rows
+(see \emph{Leave-one-out, and newdata}). Any
 other name is an error that names it.}
 
 \item{prob}{For \code{loo_predictive_interval()}, the mass of the central
@@ -95,7 +96,13 @@ rows' own response. Here \code{\link[frmtmb:loo]{frmtmb::loo()}} and \code{\link
 \code{re_formula} and the new-level arguments. For a summary on other
 rows, use \code{\link[=posterior_predict]{posterior_predict()}} or \code{\link[=posterior_epred]{posterior_epred()}} with
 \code{newdata}: on a row the model has not seen, there is no observation
-to leave out.
+to leave out. \code{newdata} that holds exactly the rows the model was
+fitted on (\code{object$data}) is accepted: those are the rows these
+functions answer, and on them brms's answer is theirs. A subset of
+them is refused, though brms answers it: rows are matched by value,
+and a subset cannot be placed among the fitted rows unambiguously
+where rows repeat and a per-row latent value (\code{me()}, \code{mi()}) or an
+autocorrelation neighbor enters.
 }
 
 \section{Draws}{

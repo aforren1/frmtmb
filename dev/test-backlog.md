@@ -4661,6 +4661,127 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed at the 0.81.0 release (2026-11-10)
+
+Gathered from the lanes' own sections of the round of 2026-11-09
+(compat, code8, hollow; translator and support filed none here), then
+the reviews' and the consolidation's items left for later. Lane
+records: `dev/<lane>-findings.md`, reviews
+`dev/reviews/2026-11-10-<lane>.md` (translator:
+`dev/reviews/2026-11-09-translator.md`).
+
+### From lane compat
+
+- **MINOR. Two registered addition terms can claim the same key, and
+  `frmtmb_register_aterm()` does not refuse it.** A term of arity k
+  takes the keys `name1..k`, so `x` (arity 3) beside `x2`: `y | x2(z) +
+  x(u, v, w)` lets x's second argument overwrite x2(z) silently (and
+  then take x2's coercion); the other order gives a misleading
+  "Duplicated addition term `x2()`" refusal. `a` (arity 12) beside `a1`
+  does the same at a11 and a12. `frmtmb_register_aterm("reward1")`
+  beside reward, or `"vint1"` beside core vint(), is accepted. It
+  predates the lane, and no shipped extension collides. Fix:
+  `frmtmb_register_aterm()` refuses a name whose keys (`name`, or
+  `name1..k`) equal a key of another registered term or a core key
+  (`vint<k>`, `vreal<k>`, `trunc_lb`, `trunc_ub`, `cens_y2`,
+  `se_sigma`, `mi_sd`, `thres_gr`) (`dev/reviews/2026-11-10-compat.md`,
+  round 2, R1).
+
+### From lane code8
+
+- **MINOR. A Cholesky row held at its edge loses every entry's SE,
+  though the row's direction is determined.** se_edge_cor() holds a row
+  of a `us()` block of three or more as a whole when its largest entry
+  is past the clamp and doubling the row does not move the
+  log-likelihood. On test-brms-names-specials.R's `(1 + poly(x, 2) |
+  g)` under `normal(2, 0.001)` on one sd, row 3 stops at (808, 1814),
+  and theta_5 and theta_6 both lose their SEs, although the row's
+  direction carries cor(Intercept, polyx22) = 0.41, which the data
+  determine; only the row's length (its share, going to 0) is at the
+  boundary. Reporting it would need the row in polar coordinates
+  (direction and length) for the SE (dev/code8-findings.md, fix round;
+  review of lane code8, fix round short check, note 1).
+
+- **MINOR. Under a weak prior, two ridge stops just short of the
+  maximum lose the gradient warning.** Through the Ritz-flat exception
+  of headroom_ritz_flat(), `c0 + exp(a)^k` with `normal(0.5, 1000)` on
+  k: stops 1.9e-4 and 1.23e-3 short of the maximum give no gradient
+  warning, where 0.80.0 gives one. From 0.00316 short upward every stop
+  warns on both builds, and no stop gets the converged-at-maximum
+  message. The difference is at the `grad_tol` scale (1e-3)
+  (dev/review-code8-fix-ridgeprior.R and -ridgeprior2.R; review of lane
+  code8, third fix-round check).
+
+### From lane hollow
+
+- `loo()`, `log_lik()` and the other leave-one-out functions of draws
+  refuse `newdata` that is a SUBSET of the fitted rows, where brms gives
+  those rows' pointwise values (brms 2.23.0 on its example 6: 20 rows,
+  max 3.75e-4 from `loo(fit)`'s rows, the noise of its gp re-prediction).
+  The refusal is because rows are matched by value: a subset cannot be
+  placed among the fitted rows unambiguously where rows repeat and a
+  per-row latent value (`me()`, `mi()`) or an autocorrelation neighbor
+  enters. For a model with none of those terms, a match on row names
+  (`fit$data[1:10, ]` keeps them) followed by a check of each variable's
+  value would place the rows; identical rows then have identical
+  `log_lik()` columns. Then the answer is those columns of the fitted
+  `log_lik()`. Review `dev/reviews/2026-11-10-hollow.md`, item 3;
+  `dev/hollow-findings.md`.
+
+### From the reviews and the lanes' records, left for later
+
+- **MINOR. The live-row instrument does not count a conditional row's
+  refused half.** `dev/equiv-flow.R` scores "refusal correct" when both
+  packages refuse and the live row is "conditional". A conditional row
+  whose spec was meant to meet the working half, where both packages
+  refuse, then passes without a flag; the reason text names it, the
+  summary does not count it. A generated count line would make such
+  pairs readable (review of lane compat, round 2, m2 cost note).
+
+- **MINOR. Floors outside a support that a reader still sees.** With
+  `row_lpdf(exact = TRUE)` in place, the eam floors
+  (`wiener-family.R:986`, `:1059`, `:1070`, `:1108`, the contaminant,
+  `wiener-gng.R:642`, `lba.R`, `rdm.R`, `gddm.R:1527`), frmtmb.survival's
+  `sv_floor_pos` and caps, the ordinal mixture's gap floor
+  (`.gap_floor`) and `log1m_exp_ad()`'s window floor can be made exact
+  for a reader through `exact_support()` without touching their fits
+  (`dev/support-findings.md`, the survey table, rows "not changed").
+
+- **Translator gaps the survey still has** (`dev/translator-findings.md`,
+  section 9): an mv mixture's `theta_<resp>` (p005), `mo()` outside mu
+  (`simo_<dpar>`, p030), an unpredicted `nu` in a multivariate student
+  model (p068), `tmp_xi` with a predicted xi, an ordinal mixture with
+  shared thresholds (`order = "mu"`), and `gr(by = )`'s sd matrix (the
+  audit's by-group branch has no pair to read). The first three agree at
+  L4 by the optimizing route.
+
+- **The code-8 message on ubuntu needs CI.** `test-se-reparam.R:554`
+  warned "false convergence (8)" at the maximum on every ubuntu job of
+  0.80.0; on this machine the fit stops at code 0 under reference BLAS
+  and OpenBLAS 0.3.26 alike (`dev/code8-aexp.R`), so the new message
+  there is not seen here (`dev/code8-findings.md`, OpenBLAS runs).
+
+- **MINOR. `loo()`, `waic()` and `psis()` of draws stop on a `-Inf`
+  cell, by decision.** With the exact reader, a draw that puts a
+  `gen_extreme_value()` row outside its support gives `-Inf` in
+  `log_lik()`. At the release all three stop with one error of class
+  `frmtmb_loglik_not_finite` (`loo_check_finite()` in frmtmb.sample's
+  `loo_matrix()`), as brms 2.23.0 stops on its `NaN` there ("NAs not
+  allowed in input"). Before that, `loo()` and `psis()` stopped in the
+  loo package ("All input values must be finite or -Inf": loo 2.10.1's
+  `validate_ll()` refuses the `+Inf` that `-Inf` becomes in the
+  importance ratios) and `waic()` gave an elpd of `NaN`
+  (`dev/rel081-loo-inf.R`). Seen only on a draws object built by hand
+  (`dev/rel081-loo-exact.R`). A sampled scalar `xi` cannot reach it:
+  brms's `tmp_xi` chart keeps every fitted row inside the support.
+  Where the chart is blocked (a predicted `xi`, a `cens()` or `trunc()`
+  term, a second GEV response, a mixture component) the sampler reads
+  the fitted objective, which is continuous across the end of the
+  support and falls by 1e8 per unit of `t` outside it, so a draw
+  outside must lie in a band about 1e-8 wide: 0 of 44,000 draws in 22
+  such fits (release review, finding 2). Left: nothing, unless a model
+  is found whose draws reach the band.
+
 ## Filed at the 0.80.0 release (2026-11-06)
 
 Gathered from the lanes' own sections of the round of 2026-11-06,

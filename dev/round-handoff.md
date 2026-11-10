@@ -8,12 +8,61 @@ releases, 2026-09-30 at the 0.67.0 release, 2026-10-06 at the
 0.72.0 release, 2026-10-21 at the 0.73.0 release, 2026-10-23 at the
 0.74.0 release, 2026-10-24 at the 0.75.0 release, 2026-10-27 at the
 0.76.0 release, 2026-10-28 at the 0.77.0 release, 2026-10-29 at the
-0.78.0 release, 2026-11-04 at the 0.79.0 release and 2026-11-07 at the
-0.80.0 release. Read this, then
+0.78.0 release, 2026-11-04 at the 0.79.0 release, 2026-11-07 at the
+0.80.0 release and 2026-11-10 at the 0.81.0 release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
 anything: the library has been lost EIGHT times, and the last three
 losses each followed processes being killed, not low disk.
+
+## The 0.81.0 round, opened 2026-11-09, consolidated 2026-11-10
+
+`dev/round-20261109.md` is this round's record, and `dev/rel081-log.md` the
+consolidators' running log. Five lanes off `e0cce906` (0.80.0, pushed), each with
+`dev/<lane>-findings.md` and `dev/reviews/2026-11-10-<lane>.md` (translator:
+`2026-11-09-translator.md`), merged onto it in the order translator, compat, code8,
+hollow, support (`dev/rel081-merge.sh`, `-release-fix.R`, `-release-fix2.R`, `-news.R`,
+`-backlog.R`). 0 conflicts. The survey's headline moved from 89.0 to 89.7, Wald [85.2,
+94.2]; the ported suite from 634 to 636 of 823.
+
+Versions: frmtmb **0.81.0**; frmtmb.sample **0.28.0**, needing 0.81.0
+(`row_lpdf(exact = )`); frmtmb.survival 0.2.3 (floor 0.75.0 unchanged). The other six
+extensions keep theirs. The library is `C:/Users/adf44/source/r/rellib-r20`;
+`rellib-r19` keeps 0.80.0.
+
+### What to know next time
+
+- `dev/brmsport-bin2-all.sh` needs `dev/brmsport-bin2-log/` before it starts, and a
+  fresh worktree lacks it (gitignored): make it first. `dev/rel081-bin2.sh` does.
+- The bin-2 pipeline rewrites `dev/brmsport-bin2-verdicts-manual.tsv` from
+  `dev/brmsport-bin2-verdicts-2t.R` (and the 2P files from `-2p.R`). A lane that edits
+  the tsv by hand loses the edit on regeneration. Put a lane's bin-2 rows into a moves
+  file the generator sources (`dev/rel081-bin2-moves.R`, `dev/support-bin2-moves.R`),
+  and diff the regenerated hand files against the merged tree's before reading flips.
+- Git Bash's `grep` drops the CR, so a CRLF test with `grep` reads none; test with
+  `tr -cd '\r' | wc -c`.
+- `dev/upstream-bugs.md` numbers collide across lanes; check the merged file before
+  taking a lane's number.
+- Each survey pair starts a live-row child (2 R processes per pair): run
+  `equiv-run.sh` with 1 job under the limit of three.
+- loo's `validate_ll()` accepts `-Inf` in a log-likelihood and refuses `+Inf`, which is
+  what `-Inf` becomes in the importance ratios, so `waic.matrix()` took a `-Inf` cell and
+  gave NaN. Since the release review frmtmb.sample stops first, in all three functions,
+  with `frmtmb_loglik_not_finite` (`loo_check_finite()` in `loo_matrix()`).
+- A consolidation can be handed from one agent to another mid-chain. Write each chain
+  so that its phases print start and end lines, and keep the running log current.
+- The release review (SHIP, five minors) is applied by `dev/rel081-release-fix3.R`
+  and its short check (FIX, one minor) by `dev/rel081-release-fix4.R`, both
+  rerunnable. A review point that changes an extension's code needs that package's
+  tiers, sessions and check again; `dev/rel081-fix4-verify.sh` is the form.
+- A guard meant for every caller of a quantity goes where the quantity is built, and
+  every other place that builds it needs the guard too: `pp_check()`'s `loo_*` types
+  built their own `log_lik()` matrix and missed `loo_check_finite()` until the short
+  check. Grep for every call of the reader, not only the helper.
+- A rerunnable edit script must tell an insertion (old text inside the new) from a
+  deletion (new text inside the old), or it reads a deletion as done.
+- `pkgdown::check_pkgdown()` needs pandoc on PATH (and `RSTUDIO_PANDOC`), or it reads
+  "Pandoc not available" for every package.
 
 ## The 0.80.0 round, opened 2026-11-06, consolidated 2026-11-06 to 2026-11-07
 

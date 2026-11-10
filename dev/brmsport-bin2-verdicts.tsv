@@ -42,7 +42,7 @@ brmsfit-methods:460	frmtmb.sample	pass
 brmsfit-methods:467	frmtmb	divergence	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
 brmsfit-methods:467	frmtmb.sample	pass	
 brmsfit-methods:469	frmtmb	divergence	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
-brmsfit-methods:469	frmtmb.sample	hollow	policy (newdata): holds hollowly. A frmtmb_draws has no $data (names stanfit, draws, fit), so fit6$data is NULL and the call is loo(fit6), which since 0.73.0 accepts brms's default newdata = NULL; with the data given (newdata = model.frame(fit6)) loo() of draws refuses newdata by name, as log_lik() of draws does. brms computes the elpd on newdata
+brmsfit-methods:469	frmtmb.sample	pass	
 brmsfit-methods:471	frmtmb	divergence	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
 brmsfit-methods:471	frmtmb.sample	cannot transfer	loo 2.10.1's loo_compare() returns a data frame whose first column is the model name, so [2, 1] is a string and the range check is FALSE; brms 2.23.0's own fixture 6 gives the same string (dev/remeasure-bin2-probe1.R)
 brmsfit-methods:478	frmtmb	divergence	loo_subsample() approximates loo() over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name
@@ -58,7 +58,7 @@ brmsfit-methods:490	frmtmb.sample	pass
 brmsfit-methods:497	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
 brmsfit-methods:497	frmtmb.sample	pass	
 brmsfit-methods:508	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
-brmsfit-methods:508	frmtmb.sample	divergence	the loo_*() functions refuse newdata by name, as loo() does: a leave-one-out weight is the observation's own column of log_lik(), so it exists only for a row the model was fitted on. brms computes the weights on the new rows' own response (this row with allow_new_levels = TRUE). Lane loodraws's decision 1
+brmsfit-methods:508	frmtmb.sample	divergence	the loo_*() functions refuse newdata other than the fitted rows, as loo() does: a leave-one-out weight is the observation's own column of log_lik(), so it exists only for a row the model was fitted on. brms computes the weights on the new rows' own response (this row with allow_new_levels = TRUE). Lane loodraws's decision 1
 brmsfit-methods:511	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
 brmsfit-methods:511	frmtmb.sample	pass	
 brmsfit-methods:512	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
@@ -74,7 +74,7 @@ brmsfit-methods:526	frmtmb.sample	divergence	loo_linpred(scale = ) is refused by
 brmsfit-methods:533	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
 brmsfit-methods:533	frmtmb.sample	pass	
 brmsfit-methods:544	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
-brmsfit-methods:544	frmtmb.sample	divergence	the loo_*() functions refuse newdata by name, as loo() does: a leave-one-out weight is the observation's own column of log_lik(), so it exists only for a row the model was fitted on. brms computes the weights on the new rows' own response (this row with allow_new_levels = TRUE). Lane loodraws's decision 1
+brmsfit-methods:544	frmtmb.sample	divergence	the loo_*() functions refuse newdata other than the fitted rows, as loo() does: a leave-one-out weight is the observation's own column of log_lik(), so it exists only for a row the model was fitted on. brms computes the weights on the new rows' own response (this row with allow_new_levels = TRUE). Lane loodraws's decision 1
 brmsfit-methods:547	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
 brmsfit-methods:547	frmtmb.sample	pass	
 brmsfit-methods:548	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
@@ -207,7 +207,7 @@ log_lik:316	frmtmb	pass
 log_lik:324	frmtmb	pass	
 log_lik:331	frmtmb	pass	
 log_lik:339	frmtmb	pass	
-log_lik:349	frmtmb	divergence	frmtmb's gen_extreme_value() log density is finite and steep outside the support (-1.0e150 at y = 0, mu 1, sigma 0.1, xi 0.3), so the optimizer is turned back and a mixture component adds nothing there; brms's dgen_extreme_value() is NaN. Inside the support the two agree (-1.55396; dev/rel071-gev-probe.R). Lane famuni's documented choice
+log_lik:349	frmtmb	divergence	frmtmb's gen_extreme_value() log density off the tape, which log_lik() reads, is -Inf outside the support, the exact value; brms's dgen_extreme_value() is NaN there. At the block's seed 3 of 25 draws put y = 0 outside the support: frmtmb -Inf on all 3, brms NaN on all 3; on the 22 inside the two agree to 2.7e-15 relative (dev/support-gev349-probe.R). The fitted objective keeps its finite, steep barrier outside the support, which turns the optimizer back. As log_lik:462 and :478
 log_lik:367	frmtmb	pass	
 log_lik:375	frmtmb	pass	
 log_lik:389	frmtmb	pass	

@@ -197,6 +197,12 @@ log-density composition the objective itself runs, with \code{cens()} and
 \code{trunc()} folded in; it runs on numeric dpar values as readily as on
 the tape, which is what makes a pointwise \code{log_lik()} reproduce the
 fitted density exactly instead of approximating it.
+\code{row_lpdf(..., exact = TRUE)} is for a reader that reports the
+densities: on doubles it gives the exact value where the fitted
+objective holds a soft support, \code{-Inf} for a \code{gen_extreme_value()}
+row outside its support where the objective has a finite barrier. The
+default, \code{exact = FALSE}, is the objective's own arithmetic, which a
+computation that feeds a fit needs.
 \code{with_cs_offsets(fit, rspec, dpv)} takes the WHOLE list
 \code{eval_dpars()} returns, one element per response (\code{rspec} is
 ignored), and gives it back with the category-specific (\code{cs()})

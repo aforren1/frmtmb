@@ -68,6 +68,11 @@ test_that("a value no density reads is the complete-case fit, exactly", {
     bb <- frmtmb:::fixef_by_dpar(b)$mu
     expect_lt(max(abs(ba - bb)) / max(abs(bb)), 1e-3, label = fam)
   }
+  # each fit above is its family's row; von_mises x mi() (the equivalence
+  # survey's pair p169) read refused through 0.78.0
+  for (fam in mi_fams) {
+    expect_identical(frm_compat(fam, "mi()")$status, "works", info = fam)
+  }
 })
 
 test_that("a student fit reads no Laplace error any more", {

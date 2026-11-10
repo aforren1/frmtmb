@@ -835,27 +835,6 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   2026-10-28.
 - Status: not reported.
 
-### brms-50. `me()` on new data draws one latent per predictor, against its own Stan program
-
-Numbering is settled at consolidation. Not reported.
-
-- Seen: 2.23.0, 2026-11-02 (`dev/review-predread-mejoint.R`, seed 7701;
-  `dev/predread-me-brms-probe.R`, data seed 41).
-- Repro: `mvbf(bf(y1 ~ me(xo, sx)), bf(y2 ~ me(xo, sx)), rescor = FALSE)`, then
-  `posterior_epred()` and `posterior_predict()` with `newdata`. The same for a
-  `mu` and a `sigma` that read one call.
-- Expected: one latent value per row and draw, as the program has one `Xme_1`
-  that `mu_y1` and `mu_y2` both read. Actual: `prepare_predictions_sp()` draws for
-  each predictor. `cor(y1, y2)` of the expected values over draws is 0.007, 0.003,
-  -0.015 by row on new data, and 0.99 to 0.97 in sample under
-  `save_pars(latent = TRUE)` on the same fit, same rows.
-- Why it matters: at the training rows the observed correlation of
-  `y - E[y | x_obs]` is 0.734, one shared latent predicts 0.7385 and brms's
-  replicates give -0.001. The 95 percent width of `y1 - y2` at `sdx = 2` is 15.08
-  drawn independently and 3.18 shared. A marginal moves too on `mu` and `sigma`:
-  predictive skew 0.03, -0.02, -0.14 against 0.33, 0.36, 0.63.
-- frmtmb: shares one latent, a stated divergence (`?predict.frmtmb_fit`).
-
 ### brms-44. A `resp` out of model order stops every method that prepares several responses under `set_rescor(TRUE)`
 
 - Seen: 2.23.0, 2026-10-28 (`dev/rescorpp-compare.R`, log
@@ -910,29 +889,6 @@ Numbering is settled at consolidation. Not reported.
   is posted upstream.
 - Status: not reported.
 
-### brms-49. `predictor.bprepnl()` drops the ARMA term the Stan program has
-
-- Seen: 2.23.0. Found 2026-11-02.
-- Repro: `bf(y ~ a + b * x, a + b ~ 1, nl = TRUE, autocor = ~ ar(time = t,
-  gr = g, cov = FALSE))` on gaussian data with an AR part, at any draw.
-- Expected: `posterior_epred()` and `log_lik()` read the one-step mean, as
-  the program's `mu[n] += Err[n, 1:Kar] * ar` does and as the linear formula's
-  `predictor.bprepl()` does through `predictor_ac()`. Actual:
-  `predictor.bprepnl()` (`R/predictor.R`) never calls `predictor_ac()`, so
-  `posterior_epred()` is the body alone and `log_lik()` is the density at an
-  ARMA coefficient of 0. Nothing warns.
-- Numbers: phi 0.531, nl `log_lik` sum -185.87332294, by-hand density at phi = 0
-  -185.8733; Stan `log_prob` on the nl program, the linear program and the
-  linear `log_lik` -150.99326554, 34.9 nats away (`dev/reviews/2026-11-02-nlfix.md`,
-  item 4). Second model, seed 1582: -149.1356 against -148.6737
-  (`dev/nlfix-arnl2.R`).
-- Distinct from the other `predictor_ac()` entry of this round: that one's
-  latent arm (`prep$ac$err`) misses the AR sum, and this branch calls neither
-  arm.
-- Workaround: frmtmb follows the model, a divergence by decision stated in NEWS
-  and `?frmtmb-autocor`.
-- Record: `dev/nlfix-findings.md`. Status: not reported.
-
 ### brms-46. `mi()` with `cens()` never reads the latent value
 
 - Seen: 2.23.0, 2026-11-02.
@@ -971,6 +927,76 @@ Numbering is settled at consolidation. Not reported.
 - Workaround: frmtmb refuses conflicting flags under one key in both orders.
 - Record: `dev/reviews/2026-11-02-refuse.md`, M2,
   `dev/review-refuse-misc2.R` (seed 10203).
+- Status: not reported.
+
+### brms-49. `predictor.bprepnl()` drops the ARMA term the Stan program has
+
+- Seen: 2.23.0. Found 2026-11-02.
+- Repro: `bf(y ~ a + b * x, a + b ~ 1, nl = TRUE, autocor = ~ ar(time = t,
+  gr = g, cov = FALSE))` on gaussian data with an AR part, at any draw.
+- Expected: `posterior_epred()` and `log_lik()` read the one-step mean, as
+  the program's `mu[n] += Err[n, 1:Kar] * ar` does and as the linear formula's
+  `predictor.bprepl()` does through `predictor_ac()`. Actual:
+  `predictor.bprepnl()` (`R/predictor.R`) never calls `predictor_ac()`, so
+  `posterior_epred()` is the body alone and `log_lik()` is the density at an
+  ARMA coefficient of 0. Nothing warns.
+- Numbers: phi 0.531, nl `log_lik` sum -185.87332294, by-hand density at phi = 0
+  -185.8733; Stan `log_prob` on the nl program, the linear program and the
+  linear `log_lik` -150.99326554, 34.9 nats away (`dev/reviews/2026-11-02-nlfix.md`,
+  item 4). Second model, seed 1582: -149.1356 against -148.6737
+  (`dev/nlfix-arnl2.R`).
+- Distinct from the other `predictor_ac()` entry of this round: that one's
+  latent arm (`prep$ac$err`) misses the AR sum, and this branch calls neither
+  arm.
+- Workaround: frmtmb follows the model, a divergence by decision stated in NEWS
+  and `?frmtmb-autocor`.
+- Record: `dev/nlfix-findings.md`. Status: not reported.
+
+### brms-50. `me()` on new data draws one latent per predictor, against its own Stan program
+
+Numbering is settled at consolidation. Not reported.
+
+- Seen: 2.23.0, 2026-11-02 (`dev/review-predread-mejoint.R`, seed 7701;
+  `dev/predread-me-brms-probe.R`, data seed 41).
+- Repro: `mvbf(bf(y1 ~ me(xo, sx)), bf(y2 ~ me(xo, sx)), rescor = FALSE)`, then
+  `posterior_epred()` and `posterior_predict()` with `newdata`. The same for a
+  `mu` and a `sigma` that read one call.
+- Expected: one latent value per row and draw, as the program has one `Xme_1`
+  that `mu_y1` and `mu_y2` both read. Actual: `prepare_predictions_sp()` draws for
+  each predictor. `cor(y1, y2)` of the expected values over draws is 0.007, 0.003,
+  -0.015 by row on new data, and 0.99 to 0.97 in sample under
+  `save_pars(latent = TRUE)` on the same fit, same rows.
+- Why it matters: at the training rows the observed correlation of
+  `y - E[y | x_obs]` is 0.734, one shared latent predicts 0.7385 and brms's
+  replicates give -0.001. The 95 percent width of `y1 - y2` at `sdx = 2` is 15.08
+  drawn independently and 3.18 shared. A marginal moves too on `mu` and `sigma`:
+  predictive skew 0.03, -0.02, -0.14 against 0.33, 0.36, 0.63.
+- frmtmb: shares one latent, a stated divergence (`?predict.frmtmb_fit`).
+
+### brms-51. A mixture's `gen_extreme_value` component must cover every response
+
+- Seen: 2.23.0, 2026-11-09.
+- Repro: `bf(y ~ 1, mu1 ~ x, mu2 ~ x)` with
+  `mixture(gen_extreme_value(), gen_extreme_value())` on the survey's
+  pair p021 data (`eq_mix(21)` in `dev/equiv-specs.R`). The program
+  declares `tmp_xi1` and `tmp_xi2` and maps each through `scale_xi(tmp_xi,
+  Y, mu<k>, sigma<k>)` (`chunks/fun_scale_xi.stan`) over ALL of `Y`.
+- Expected: no constraint on a component's xi from rows that another
+  component covers. A mixture's density is `sum_k theta_k f_k(y)`, and
+  `f_k(y) = 0` off component k's support is a valid value. Actual: every component's xi is held inside the
+  interval that puts every response inside THAT component's support. The
+  maximum likelihood point on these data has xi1 = -0.266, with 114 of
+  200 rows off component 1's support, against brms's interval (-0.115,
+  0.436); brms's best maximum of 6 `optimizing()` starts is 2.12 nats
+  below it (-298 against -296, `dev/equiv-data/results.tsv`, p021).
+- Workaround: none in frmtmb, which fits the unrestricted mixture. Its
+  log-likelihood at its estimate equals a hand-written mixture density
+  to 2.8e-13 (`dev/translator-gev-check.R`), and on brms's parameter
+  space the two densities are an L1 identity at three points
+  (`dev/translator-findings.md`, p021).
+- Record: `dev/translator-findings.md`, p021. Filed by the lane as
+  brms-49; numbered brms-51 at the 0.81.0 release, since brms-49 and
+  brms-50 were taken.
 - Status: not reported.
 
 ## RTMB

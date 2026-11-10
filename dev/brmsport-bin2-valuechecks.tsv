@@ -73,4 +73,4 @@ log_lik:534	frmtmb	holds		HOLDS: 400 values (0 NA, 0 infinite), max abs diff 7.4
 log_lik:547	frmtmb	holds		HOLDS: 90 values (0 NA, 0 infinite), max abs diff 0, max rel 0
 log_lik:550	frmtmb	holds		HOLDS: 90 values (60 NA, 0 infinite), max abs diff 4.44e-16, max rel 2.06e-16
 log_lik:565	frmtmb	holds		HOLDS: 5 values (0 NA, 0 infinite), max abs diff 8.88e-16, max rel 3.26e-16
-log_lik:580	frmtmb	error	Please install the 'betareg' package	REFERENCE ERROR: Please install the 'betareg' package.
+log_lik:580	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 8.53e-14, max rel 6.43e-14

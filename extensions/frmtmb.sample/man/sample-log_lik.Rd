@@ -40,7 +40,17 @@
 
 \item{newdata, re_formula}{Accepted in brms's own second and third
 positions and refused: see \emph{What is conditioned on}. The refusal
-names the reason and the replacement.}
+names the reason and the replacement. One \code{newdata} is accepted:
+data that holds exactly the rows the model was fitted on, such as
+\code{x$data} (the fit's model frame) or the data the model was fitted
+to when no row was dropped. Those are the rows this matrix is
+for, so the result is the matrix without \code{newdata}, which is what
+brms computes there too. Every variable the model reads must be in
+it, with its fitted value. A subset of the fitted rows is refused,
+though brms answers it: rows are matched by value, and a subset
+cannot be placed among the fitted rows unambiguously where rows
+repeat and a per-row latent value (\code{me()}, \code{mi()}) or an
+autocorrelation neighbor enters.}
 
 \item{resp}{For a multivariate model, the responses whose density to
 report: the default is every response, summed without \code{rescor} and
