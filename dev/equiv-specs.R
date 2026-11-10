@@ -223,6 +223,34 @@ eq_decision_gp <- paste(
 eq_gp <- function(spec, sample = TRUE) {
   spec$l4 <- sample
   spec$l1_decision <- eq_decision_gp
+  spec$l1_code_fix <- eq_gp_nugget_fix
+  spec
+}
+# brms's program with its nugget line at frmtmb's relative size, the one
+# line the decision covers (the release review of 2026-11-04 measured L1
+# under 1e-8 this way). L1 on it then reads every other line of the two
+# models, so a pair that holds there is a divergence by decision MEASURED
+# at L1 rather than adjudicated by hand.
+eq_gp_nugget_fix <- function(code) {
+  new <- gsub("cov[n, n] += 1e-12;", "cov[n, n] += 1e-12 * square(sdgp);",
+              code, fixed = TRUE)
+  if (identical(new, code)) stop("brms's gp nugget line was not found")
+  new
+}
+
+# L1 at fixed points (eq_jitter_optimizer()) for a pair whose fit puts a
+# latent block, or one row of it, at a boundary: an SD near 0, or a
+# correlation at +/-1, which leaves a row of z with almost no weight
+# (L's diagonal entry near 0). At the estimate and +/- 0.05 such a part
+# moves the density by less than the L1 tolerance, so a wrong map of it
+# still read L1 TRUE (review 2026-11-09, M1, and its short check, F1;
+# dev/translator-audit.R finds such parts). At frm()'s start every SD
+# and correlation sits near its starting value, so each part counts, and
+# the inner gradient is still read.
+eq_sd_collapsed <- function(spec, what) {
+  spec$l1_points <- list(scale = 0.3, why = paste(
+    "a latent block is degenerate at the estimate (", what, "), where L1",
+    "cannot see part of it"))
   spec
 }
 
@@ -339,7 +367,13 @@ S("fitted x hypothesis_profile", function() list(
 S("gen_extreme_value x mixture", function() list(
   bf = "bf(y ~ 1, mu1 ~ x, mu2 ~ x)",
   family = "mixture(gen_extreme_value(), gen_extreme_value())",
-  data = eq_mix(21)))
+  data = eq_mix(21),
+  # frm()'s optimum puts 114 of 200 rows off component 1's support
+  # (dev/translator-gev-check.R), which brms's scale_xi() cannot express
+  l1_points = list(scale = 0.1, why = paste(
+    "brms maps each component's xi into the interval that keeps every",
+    "response in that component's support, and frm()'s optimum lies",
+    "outside it"))))
 S("gp_pred() x mvbf", function() {
   d <- eq_mv(22, "gaussian")
   d$y1 <- sin(2 * d$x) + rnorm(nrow(d), 0, 0.4)
@@ -457,7 +491,10 @@ S("s() x prior", function() {
 S("s() x REML", function() {
   d <- eq_dat(seed = 44)
   d$y <- sin(2 * d$x) + rnorm(nrow(d), 0, 0.5)
-  list(bf = "bf(y ~ s(x))", data = d, frm_args = list(REML = TRUE))
+  # the joint identity holds at any point; the marginal one reads the
+  # integral REML maximizes (eq_laplace_stan())
+  list(bf = "bf(y ~ s(x))", data = d, frm_args = list(REML = TRUE),
+       l1_marginal = TRUE)
 })
 S("shifted_lognormal x mixture", function() list(
   bf = "bf(y ~ 1, mu1 ~ x, mu2 ~ x)",
@@ -471,13 +508,16 @@ S("t2() x nl", function() {
   d <- eq_dat(seed = 47)
   d$y <- (2 + sin(d$z) * cos(d$x)) * exp(0.3 * d$x) +
     rnorm(nrow(d), 0, 0.5)
-  list(bf = "bf(y ~ b1 * exp(b2 * x), b1 ~ t2(z, x), b2 ~ 1, nl = TRUE)",
-       data = d)
+  eq_sd_collapsed(list(
+    bf = "bf(y ~ b1 * exp(b2 * x), b1 ~ t2(z, x), b2 ~ 1, nl = TRUE)",
+    data = d), "sds_b1_1 3.67, 2.55, 1.4e-4")
 })
 S("t2() x rescor", function() {
   d <- eq_mv(48)
   d$y1 <- d$y1 + sin(d$z) * cos(d$x)
-  list(bf = "mvbf(bf(y1 ~ t2(x, z)), bf(y2 ~ x), rescor = TRUE)", data = d)
+  eq_sd_collapsed(list(
+    bf = "mvbf(bf(y1 ~ t2(x, z)), bf(y2 ~ x), rescor = TRUE)", data = d),
+    "sds_y1_1 5.04, 4.2e-4, 2.6e-4")
 })
 S("thres() x nl", function() list(
   bf = "bf(y | thres(3) ~ b1 * x, b1 ~ 1, nl = TRUE)",
@@ -585,7 +625,8 @@ S("cumulative x hypothesis_profile", function() list(
   margs = list(h = "x = 0")))
 S("cumulative x smooth", function() {
   d <- eq_dat("ordinal", seed = 76)
-  list(bf = "bf(y ~ s(x) + z)", family = "cumulative()", data = d)
+  eq_sd_collapsed(list(bf = "bf(y ~ s(x) + z)", family = "cumulative()",
+                       data = d), "sds_1 8.7e-5")
 })
 S("discrete_weibull x emmeans", function() list(
   bf = "bf(y ~ f + x)", family = "discrete_weibull()",
@@ -850,7 +891,10 @@ S("cs x se()", function() {
 S("cs_pred() x mixture", function() list(
   bf = "bf(y ~ 1, mu1 ~ cs(x), mu2 ~ cs(x))",
   family = "mixture(sratio(), sratio())",
-  data = eq_dat("ordinal", seed = 131)))
+  data = eq_dat("ordinal", seed = 131),
+  l1_points = list(scale = 0.3, why = paste(
+    "frm() stops at a degenerate boundary (thresholds near 3700), where",
+    "the densities saturate and Stan's gradient is NaN"))))
 S("gaussian x cosy()", function() list(
   bf = "bf(y ~ x + z + cosy(gr = g))", data = eq_dat(seed = 132)))
 S("gaussian x diag", function() list(
@@ -867,8 +911,10 @@ S("gp x nl", function() {
   # pair did not finish inside the 2400 s budget of the first run
   d$z <- round(d$z, 1)
   d$y <- (2 + sin(d$z)) * exp(0.3 * d$x) + rnorm(nrow(d), 0, 0.5)
+  # L1 on brms's program with frmtmb's nugget settles the pair, so the
+  # flat-prior posterior (about 190 s of sampling) is no longer read
   eq_gp(list(bf = "bf(y ~ b1 * exp(b2 * x), b1 ~ gp(z), b2 ~ 1, nl = TRUE)",
-       data = d))
+       data = d), sample = FALSE)
 })
 S("lognormal x simulate", function() list(
   bf = "bf(y ~ x + z)", family = "lognormal()",
@@ -889,8 +935,9 @@ S("multinomial x us", function() {
     stats::rmultinom(1, 10, p[i, ])[, 1]
   }, numeric(3)))
   colnames(d$y) <- c("a", "b", "c")
-  list(bf = "bf(y | trials(ntr) ~ x + (1 | g))", family = "multinomial()",
-       data = d)
+  eq_sd_collapsed(list(bf = "bf(y | trials(ntr) ~ x + (1 | g))",
+                       family = "multinomial()", data = d),
+                  "sd_1 3.2e-5, sd_2 0.50")
 })
 S("poisson x prior", function() list(
   bf = "bf(y ~ x + z)", family = "poisson()",
@@ -1064,3 +1111,36 @@ S("zero_inflated_beta x nl", function() {
 S("zero_inflated_poisson x equidistant", function() list(
   bf = "bf(y ~ x)", family = "zero_inflated_poisson(threshold = 'equidistant')",
   data = eq_dat("zero_inflated_poisson", seed = 172)))
+
+# ====================================== degenerate blocks, fixed points
+#
+# The pairs whose L1, read at the estimate and +/- 0.05, cannot see one
+# row of a group-level block (dev/translator-audit.R, per row, 2026-11-10;
+# the values are its translated SDs and the diagonal of L at the
+# estimate). p087's mmc() slope SD collapsed; in every other pair the
+# correlation sits at +/-1, so the second row of z has almost no weight.
+# Each is read at fixed points instead (eq_sd_collapsed()). The four
+# pairs found by the first, whole-block audit carry it in their own spec.
+eq_degenerate <- c(
+  "us x emmeans" = "sd_1 0.308, 0.251; diag(L_1) 1, 0.0017",
+  "us x predict" = "sd_1 0.418, 0.053; diag(L_1) 1, 0.0050",
+  "von_mises x |ID|" = "sd_1 0.176, 0.044; diag(L_1) 1, 0.0030",
+  "us x importance" = "sd_1 0.446, 0.091; diag(L_1) 1, 0.0030",
+  "|ID| x mmc()" = "sd_1 0.327, 0.102, 0.023; diag(L_1) 1, 0.0025, 0.0046",
+  "gr_cov x mmc()" = "sd_1 0.463, 1.1e-6",
+  "predict x mmc()" = "sd_1 0.329, 0.027; diag(L_1) 1, 0.0060",
+  "smooth x mmc()" = "sd_1 0.153, 0.109; diag(L_1) 1, 0.0042",
+  "sum_to_zero x mmc()" = "sd_1 0.738, 0.085; diag(L_1) 1, 0.0035",
+  "us x hsgp" = "sd_1 0.489, 0.141; diag(L_1) 1, 0.0054",
+  "us x me()" = "sd_1 0.695, 0.115; diag(L_1) 1, 0.0039",
+  "us x mmc()" = "sd_1 0.036, 0.301; diag(L_1) 1, 0.0038",
+  "us x cens()" = "sd_1 0.511, 0.105; diag(L_1) 1, 0.0042")
+for (k in names(eq_degenerate)) {
+  if (is.null(eq_specs[[k]])) stop("no spec ", k)
+  eq_specs[[k]] <- (function(f, w) {
+    force(f)
+    force(w)
+    function() eq_sd_collapsed(f(), w)
+  })(eq_specs[[k]], eq_degenerate[[k]])
+}
+rm(k)

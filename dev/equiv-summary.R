@@ -86,12 +86,16 @@ res$top_level <- top
 # Weak evidence (review 2026-10-28, finding 4): an agreement read only
 # off the flat-prior posterior's fitted means (the route that scored a
 # known identity at 0.851 sd), or a REML fit, which no brms quantity
-# can check beyond the model itself.
+# can check beyond the model itself, unless its L1 reading also holds the
+# REML integral against brms's own program (l1_marg_ok, the marginal
+# identity of eq_laplace_stan()).
 route <- if (is.null(res$l4_route)) rep("", nrow(res)) else res$l4_route
 route[is.na(route)] <- ""
+marg_ok <- if (is.null(res$l1_marg_ok)) rep(FALSE, nrow(res)) else
+  as.logical(res$l1_marg_ok) %in% TRUE
 res$weak_evidence <- res$agree & (
   (top == "L4" & route == "posterior") |
-    res$feature_a == "REML" | res$feature_b == "REML")
+    ((res$feature_a == "REML" | res$feature_b == "REML") & !marg_ok))
 
 wilson <- function(x, n, z = stats::qnorm(0.975)) {
   if (n == 0) return(c(NA, NA, NA))
@@ -285,7 +289,8 @@ say("- no defect (agree, or a divergence by decision): ", f3(p_nd))
 say("- sensitivity, weak evidence out: ", f3(p_weak), ". The ",
     sum(res$weak_evidence), " pairs (", sum(res$draws[res$weak_evidence]),
     " draws) scored agree only by L4 fitted means against a flat-prior ",
-    "posterior, or under REML, count as not agree: ",
+    "posterior, or under REML without the marginal identity, count as ",
+    "not agree: ",
     paste(res$id[res$weak_evidence], collapse = ", "), ".")
 say("- agree, among measured pairs only: ", pct(p_m))
 say("- agree, strata weighted by pair COUNT instead of reach: ",

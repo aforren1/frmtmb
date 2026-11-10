@@ -181,9 +181,16 @@ the truth, and a fixed seed per pair.
   the review's mutant of p042 cut to `s(z, k = 4)` reads 0.974. The 0.5
   bound sits between, so the route can fail an identity and pass a
   modest misfit. Its agreements are flagged `weak_evidence` in
-  results.tsv, with the REML pair (no brms quantity checks REML beyond
-  the model), and the summary gives the rate without them as a named
+  results.tsv, with a REML pair whose L1 does not also hold the REML
+  integral, and the summary gives the rate without them as a named
   sensitivity row. The headline keeps them.
+
+  The REML integral (round of 2026-11-09): a spec with `l1_marginal =
+  TRUE` also reads, at each of the three points, the Laplace value of
+  brms's own program over mu's coefficients and the random effects
+  against minus frm()'s objective (`eq_laplace_stan()`). For a gaussian
+  response the joint is exactly quadratic in those blocks, so this is
+  the integral itself, not an approximation. Such a pair is not weak.
 
 ### 2.6 Verdicts and the decision standard
 
@@ -411,6 +418,11 @@ Not defects, recorded for the reader:
   p094 and p109 are divergences by decision, with their reason in NEWS, and
   p136 stays equivalent at L4 only, weak. The adjudication rows and the
   generated blocks above still read as at 0.78.0 until the record is rerun.
+  Since the round of 2026-11-09 the instrument reads this directly: an
+  exact gp() spec carries `l1_code_fix`, brms's program with its nugget
+  line at frmtmb's relative size, and when L1 holds on that program the
+  flow scores the pair a divergence by decision at L1. p136 moves there
+  too (`dev/translator-findings.md`).
 - The nl x family rule (section 5): the table refuses nl for every
   family but gaussian, and the rule is enforced only for the multi-mu
   families. The sweep's counts are in the summary block; its honored
@@ -503,8 +515,10 @@ the rate, not a regression gate.
   maxima (frm() linear against frm() nl) and checks that brms builds
   the spelling; it does not run brms's density.
 - The translator gaps the survey met and did not close: mv mixtures
-  (theta_<resp>), gev xi (tmp_xi), the univariate Ymi, mo() outside mu
-  (simo_<dpar>), cs() in a mixture, and t2() under mvbf. (The exact gp()
+  (theta_<resp>), the univariate Ymi and mo() outside mu
+  (simo_<dpar>). The round of 2026-11-09 closed gev xi (tmp_xi), cs() in
+  a mixture, t2() under mvbf and a smooth in an nl body
+  (`dev/translator-findings.md`). (The exact gp()
   gap was in this list until the round of 2026-10-29 closed it: the
   translator read the positions in the wrong order.) Five extensions were added in dev/equiv-lib.R and each was
   checked by a pair that became an L1 identity: mm() group names,

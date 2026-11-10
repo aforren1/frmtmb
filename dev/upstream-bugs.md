@@ -973,6 +973,30 @@ Numbering is settled at consolidation. Not reported.
   `dev/review-refuse-misc2.R` (seed 10203).
 - Status: not reported.
 
+### brms-49. A mixture's `gen_extreme_value` component must cover every response
+
+- Seen: 2.23.0, 2026-11-09.
+- Repro: `bf(y ~ 1, mu1 ~ x, mu2 ~ x)` with
+  `mixture(gen_extreme_value(), gen_extreme_value())` on the survey's
+  pair p021 data (`eq_mix(21)` in `dev/equiv-specs.R`). The program
+  declares `tmp_xi1` and `tmp_xi2` and maps each through `scale_xi(tmp_xi,
+  Y, mu<k>, sigma<k>)` (`chunks/fun_scale_xi.stan`) over ALL of `Y`.
+- Expected: no constraint on a component's xi from rows that another
+  component covers. A mixture's density is `sum_k theta_k f_k(y)`, and
+  `f_k(y) = 0` off component k's support is a valid value. Actual: every component's xi is held inside the
+  interval that puts every response inside THAT component's support. The
+  maximum likelihood point on these data has xi1 = -0.266, with 114 of
+  200 rows off component 1's support, against brms's interval (-0.115,
+  0.436); brms's best maximum of 6 `optimizing()` starts is 2.12 nats
+  below it (-298 against -296, `dev/equiv-data/results.tsv`, p021).
+- Workaround: none in frmtmb, which fits the unrestricted mixture. Its
+  log-likelihood at its estimate equals a hand-written mixture density
+  to 2.8e-13 (`dev/translator-gev-check.R`), and on brms's parameter
+  space the two densities are an L1 identity at three points
+  (`dev/translator-findings.md`, p021).
+- Record: `dev/translator-findings.md`, p021.
+- Status: not reported.
+
 ## RTMB
 
 ### RTMB-1. `pbeta()`, `pbinom()` and `pnbinom()` have non-finite third derivatives

@@ -321,39 +321,111 @@ eq_measure <- function(key, row) {
       optimizer = eq_step_optimizer(c(1, -1)[k]), restarts = 0,
       check_se = "ignore"))
   }
+  if (!is.null(spec$l1_points) && !is.null(fit_l1)) {
+    # the identity read at three fixed points instead of at the optimum
+    # (eq_jitter_optimizer()); the spec says why the optimum cannot serve
+    refit <- function(k) {
+      eq_frm_fit(spec_l1, ctrl = list(
+        optimizer = eq_jitter_optimizer(spec$l1_points$scale, k),
+        restarts = 0, check_se = "ignore"))
+    }
+    fj <- eq_try(refit(0))
+    rec$l1_points_why <- spec$l1_points$why
+    if (is.null(fj$error) && inherits(fj$value, "frmtmb_fit")) {
+      fit_l1 <- fj$value
+    } else {
+      rec$l1_error <- paste("the fixed point would not build:",
+                            eq_clip(fj$error %||% "no fit", 200))
+      fit_l1 <- NULL
+    }
+  }
+  # one L1 reading scored: the value at three points against the stated
+  # constant, the gradient at the estimate, and the REML marginal where
+  # the spec asks for it
+  l1_score <- function(v) {
+    # under a prior the constant is free: brms normalizes a density
+    # truncated at a bound (minus log of its mass, log 2 for a half
+    # normal) and frm()'s penalty need not, which moves no estimate.
+    # What must hold is that it is the SAME at all three points.
+    cst <- if (!is.null(spec$prior)) v$at$const else spec$const %||% 0
+    tol <- 1e-6 * max(1, abs(v$at$ours))
+    pts <- vapply(v$extra, function(e) {
+      if (!is.null(e$error)) NA_real_ else e$const
+    }, 0)
+    s <- list(const = v$at$const, grad = v$at$grad, ours = v$at$ours,
+              extra = pts, extra_err = unlist(lapply(v$extra, `[[`, "error")),
+              points = 1L + sum(!is.na(pts)),
+              val_ok = abs(v$at$const - cst) < tol,
+              grad_ok = is.finite(v$at$grad) && v$at$grad < 1e-3,
+              pts_ok = all(is.na(pts) | abs(pts - cst) < tol))
+    if (!is.null(spec$l1_points)) {
+      # at fixed points the value is the check (without random effects no
+      # gradient backs it), so a point that errors fails the pair rather
+      # than dropping out as NA (review 2026-11-09, m4)
+      s$pts_ok <- s$pts_ok && length(pts) == 2L && !anyNA(pts)
+    }
+    if (!is.null(spec$l1_points) && !joint) {
+      # no point is an optimum, so no gradient has to vanish; with random
+      # effects the inner mode is still one, and its gradient is read
+      s$grad_ok <- TRUE
+      s$grad_skipped <- TRUE
+    }
+    s$ok <- s$val_ok && s$grad_ok && s$pts_ok
+    if (isTRUE(spec$l1_marginal)) {
+      mc <- c(v$at$marg[["const"]] %||% NA_real_,
+              vapply(v$extra, function(e) {
+                if (is.null(e$marg)) NA_real_ else e$marg[["const"]]
+              }, 0))
+      s$marg <- mc
+      s$marg_ok <- length(mc) == 3L && !anyNA(mc) && all(abs(mc) < tol)
+      s$ok <- s$ok && s$marg_ok
+    }
+    s
+  }
   if (!isTRUE(spec$no_l1) && !is.null(fit_l1)) {
     l1 <- eq_try(eq_l1(spec, bform, family, spec$data, fit_l1, prior, joint,
                        refit = if (isTRUE(spec$no_points)) NULL else refit))
     if (is.null(l1$error)) {
-      v <- l1$value
-      # under a prior the constant is free: brms normalizes a density
-      # truncated at a bound (minus log of its mass, log 2 for a half
-      # normal) and frm()'s penalty need not, which moves no estimate.
-      # What must hold is that it is the SAME at all three points.
-      cst <- if (!is.null(spec$prior)) v$at$const else spec$const %||% 0
+      s <- l1_score(l1$value)
       rec$l1_const_free <- !is.null(spec$prior)
-      tol <- 1e-6 * max(1, abs(v$at$ours))
-      rec$l1_const <- v$at$const
-      rec$l1_grad <- v$at$grad
-      rec$l1_ours <- v$at$ours
-      pts <- vapply(v$extra, function(e) {
-        if (!is.null(e$error)) NA_real_ else e$const
-      }, 0)
-      rec$l1_extra_const <- pts
-      rec$l1_extra_err <- unlist(lapply(v$extra, `[[`, "error"))
-      val_ok <- abs(v$at$const - cst) < tol
-      grad_ok <- is.finite(v$at$grad) && v$at$grad < 1e-3
-      pts_ok <- all(is.na(pts) | abs(pts - cst) < tol)
-      rec$l1_points <- 1L + sum(!is.na(pts))
-      rec$l1_val_ok <- val_ok
-      rec$l1_grad_ok <- grad_ok
-      rec$l1_pts_ok <- pts_ok
-      rec$l1_ok <- val_ok && grad_ok && pts_ok
+      rec$l1_const <- s$const
+      rec$l1_grad <- s$grad
+      rec$l1_ours <- s$ours
+      rec$l1_extra_const <- s$extra
+      rec$l1_extra_err <- s$extra_err
+      rec$l1_points <- s$points
+      rec$l1_val_ok <- s$val_ok
+      rec$l1_grad_ok <- s$grad_ok
+      rec$l1_grad_skipped <- s$grad_skipped
+      rec$l1_pts_ok <- s$pts_ok
+      rec$l1_marg <- s$marg
+      rec$l1_marg_ok <- s$marg_ok
+      rec$l1_ok <- s$ok
       if (!rec$l1_ok && !is.null(spec$l1_decision)) {
         # the two programs differ by a recorded design choice (the exact
         # gp() nugget), so L1 is kept as a number and the verdict is
         # read from the level the choice does not touch
         rec$l1_by_decision <- spec$l1_decision
+        if (is.function(spec$l1_code_fix)) {
+          # brms's program with that one choice made frmtmb's way: if
+          # it is then an identity, the choice is the only difference,
+          # and the pair is a divergence by decision measured at L1
+          l1d <- eq_try(eq_l1(spec, bform, family, spec$data, fit_l1, prior,
+                              joint, refit = if (isTRUE(spec$no_points))
+                                NULL else refit,
+                              code_fix = spec$l1_code_fix))
+          if (is.null(l1d$error)) {
+            sdec <- l1_score(l1d$value)
+            rec$l1_dec_const <- c(sdec$const, sdec$extra)
+            rec$l1_dec_grad <- sdec$grad
+            rec$l1_dec_ok <- sdec$ok
+            level <- c(level, "L1")
+            ok_all <- ok_all && sdec$ok
+            rec$decided <- sdec$ok
+          } else {
+            rec$l1_dec_error <- l1d$error
+          }
+        }
       } else {
         level <- c(level, "L1")
         ok_all <- ok_all && rec$l1_ok
@@ -479,6 +551,13 @@ eq_measure <- function(key, row) {
                         if (ok_all) "and agrees with brms" else
                           "and DISAGREES with brms")
     rec$proposal <- if (ok_all) "works" else "broken"
+  } else if (ok_all && isTRUE(rec$decided)) {
+    # every level agrees once the recorded choice is made frmtmb's way
+    rec$verdict <- "divergence by decision"
+    rec$reason <- paste("L1 is an identity with brms's program changed only",
+                        "by the recorded choice;", spec$l1_decision)
+    rec$equivalent <- FALSE
+    rec$agree <- FALSE
   } else {
     rec$verdict <- if (ok_all) "equivalent" else "defect"
     rec$reason <- if (ok_all) "every level agrees" else
@@ -561,6 +640,13 @@ eq_flatten <- function(rec, row) {
     l4_control = paste(signif(rec$l4_control %||% NA, 3), collapse = ","),
     l1_without = rec$l1_without %||% "",
     l1_by_decision = eq_clip(rec$l1_by_decision %||% "", 120),
+    l1_marg = paste(signif(rec$l1_marg %||% NA, 3), collapse = ","),
+    l1_marg_ok = rec$l1_marg_ok %||% NA,
+    l1_dec = paste(signif(c(rec$l1_dec_const, rec$l1_dec_grad) %||% NA, 3),
+                   collapse = ","),
+    l1_dec_ok = rec$l1_dec_ok %||% NA,
+    l1_at = if (is.null(rec$l1_points_why)) "" else
+      paste("fixed points, no gradient:", eq_clip(rec$l1_points_why, 120)),
     method_reached = if (is.null(rec$spec$method)) NA else
       isTRUE(rec$method_reached),
     l4_error = eq_clip(rec$l4_error %||% ""),
