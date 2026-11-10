@@ -1,3 +1,58 @@
+# frmtmb (development version)
+
+## Convergence and standard errors
+
+* BREAKING: When nlminb stops with "false convergence (8)" at the
+  maximum, `frm()` gives a message of class `frmtmb_converged_at_max` in
+  place of the warning "Optimizer did not report convergence". The fit is
+  at the maximum when a Newton step from the stop gains at most 2e-5 in
+  log-likelihood, counting the most that the directions too flat to
+  measure could hold, every standard error is finite, and no other
+  convergence verdict warned. Otherwise the warning (class
+  `frmtmb_conv_code`) stays. On 319 fits of covariates far from zero, 109
+  stopped at code 8, all at the maximum, and all 109 now give the message.
+  Of 99 code-8 stops forced short of the maximum, the 80 short by more
+  than 2e-5 all keep the warning. An exact `gp()` term keeps the warning
+  unless its warm start proves the stop, as before. Select the message
+  with `withCallingHandlers(frmtmb_converged_at_max = ...)` or
+  `suppressMessages()`; the code in `fit$opt$convergence` is unchanged.
+* A fit that stops with a correlation of a two-dimensional block at -1
+  or 1 is now measured at the maximum over the other parameters, as the
+  standard-error check measures it. Before, the correlation's row left
+  the curvature unusable, the fit was called short, and every standard
+  error was that of the stop: on brms's example fit 1 the sigma
+  coefficients had negative variances and `fitted(dpar = "sigma")` had
+  NaN errors. Now the correlation is reported as a boundary (singular)
+  fit, and the parameters it does not reach keep finite standard errors.
+* The convergence check measures what a stop could still gain with the
+  quadratic model of the objective (one Newton step), as before. Only
+  where the standard-error check measured a ridge flat on its floor, or
+  a design makes a direction exactly flat (an alias, or a `mo()` simplex
+  split by a category no row is in) and the fit has no prior with a
+  density, does the check take the model over
+  the other directions and ask the objective itself along the flat
+  ones; if that gains at most
+  `frmtmb_control(grad_tol =)`, the stop is the maximum and the gradient
+  warning is not given. A curved ridge the likelihood is flat on reads
+  the gradient across it as a gain along it, which is why it is asked.
+* A correlation that has run to its limit in an unstructured block of
+  three or more is now held at its edge, as one in a block of two was:
+  its Cholesky row is pulled back along itself before the Hessian is
+  taken. On `(1 + poly(x, 2) | g)` with a tight prior on one standard
+  deviation, the intercept and both poly terms had been called flat;
+  they now keep standard errors within 3 percent of their profiles'.
+* BREAKING: The standard-error verdict on a ridge that the likelihood is
+  flat along no longer depends on where on the ridge the fit stops.
+  On `c0 + exp(a)^k` with `a ~ 1 + (1 | g)`, 41 fits with the response
+  moved by a few units in the last place now lose the standard errors
+  of `a`, `k` and the group standard deviation, the parameters the ridge
+  moves, and keep those of `c0`, `x` and `sigma`. Before, 9 of the 41
+  kept a finite standard error for `a`, 3 lost `sigma`'s and 32 lost
+  `c0`'s. The finite-difference Hessian of a model with random effects
+  now takes again, with a smaller step, every column whose step raised
+  the objective by more than 0.01, and the small directions of a ridge
+  are measured on the ridge's floor.
+
 # frmtmb 0.80.0
 
 ## Fitting

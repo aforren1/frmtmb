@@ -35,6 +35,16 @@ allow_warnings <- function(expr, allowed, require = character()) {
   invisible(val)
 }
 
+# Evaluate `expr`, muffling the message of class frmtmb_converged_at_max
+# (nlminb's "false convergence (8)" at a measured maximum) and nothing
+# else, for a test whose fit may stop there on some rounding and whose
+# point is something else.
+allow_at_max <- function(expr) {
+  withCallingHandlers(expr, frmtmb_converged_at_max = function(m) {
+    invokeRestart("muffleMessage")
+  })
+}
+
 # Evaluate `expr`, muffling the boundary (singular) fit message of the
 # standard-error check (class frmtmb_boundary_fit) and nothing else, for
 # a test whose data happen to put a variance component at zero and whose

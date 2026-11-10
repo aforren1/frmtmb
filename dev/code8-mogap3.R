@@ -1,0 +1,35 @@
+# Why conv_headroom() is NA on test-mo-coding.R's gap fit (seed 23) on the
+# fix build: the pieces newton_room() reads.
+source("dev/code8-common.R")
+set.seed(23)
+n <- 300
+d <- data.frame(x = sample(c(1, 2, 5), n, TRUE), z = rnorm(n),
+                g = factor(sample(1:10, n, TRUE)))
+d$y <- 1 + (0.4 + rnorm(10, 0, 0.2)[d$g]) * d$x + 0.5 * d$z + rnorm(n)
+f <- quiet(frm(y ~ mo(x) + z + (mo(x) | g), data = d))
+p <- f$opt$par; np <- length(p)
+nm <- fns$outer_par_names(f)
+g <- drop(f$obj$gr(p))
+ec <- fns$headroom_edge_cor(f, np)
+cat("edge cor:", nm[ec], " scale attr:", !is.null(attr(ec, "scale")), "\n")
+H <- fns$headroom_pulled_hessian(f, ec)
+cat("pulled H null:", is.null(H), "\n")
+act <- fns$bound_held_by_step(f, p, g, H) | fns$headroom_edge(f, H, ec)
+cat("held:", nm[act], "\n")
+u <- rep_len(f$par_units %||% 1, np)
+dr <- fns$headroom_drop_rows(f, H, g, u, 1e-3)
+free <- setdiff(which(!act), which(dr))
+cat("free:", nm[free], "\n")
+Hf <- H[free, free]
+D <- sqrt(abs(diag(Hf)))
+e <- eigen(Hf / outer(D, D), symmetric = TRUE)
+cat("ev:", signif(e$values, 3), "\n")
+gs <- drop(crossprod(e$vectors, g[free] / D))
+cat("gs:", signif(gs, 3), "\n")
+cat("newton_room:", fns$newton_room(Hf, g[free], 1e-3), "\n")
+h <- fns$headroom_reparam_hessian(f, H, free)
+cat("reparam used:", !is.null(h), "\n")
+if (!is.null(h)) cat("newton_room reparam:",
+                     fns$newton_room(h$H, drop(crossprod(h$M, g)), 1e-3), "\n")
+cat("ritz_flat cols:", NCOL(fns$headroom_ritz_flat(f)), "\n")
+cat("conv_headroom:", fns$conv_headroom(f, g), "\n")

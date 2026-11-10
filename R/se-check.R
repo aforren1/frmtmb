@@ -210,22 +210,22 @@ outer_fd_steps <- function(frame, pn, u = 1) {
 #' rises by a small amount over it, and `par` is in whatever coordinates
 #' the caller chose (natural units, where `par_units` are in play). The
 #' rise along coordinate `i`, `tau = 0.5 * H[i, i] * 0.001^2`, does not
-#' depend on the coordinates. Where the matrix has no Cholesky factor
-#' and some columns rose by more than `tau_band`, those columns are
-#' taken again with the step that gives a rise of `tau_step`, and the
-#' retaken matrix is kept when it factors and its smallest eigenvalue is
-#' above its own noise (the spectral norm of its `E`). With the
+#' depend on the coordinates. Where some columns rose by more than
+#' `tau_band`, those columns are taken again with the step that gives a
+#' rise of `tau_step`, and the retaken matrix is kept when those columns
+#' are finite. With the
 #' response units of 0.70.0 on brms_missings' fit_imp2 the steps of
 #' `bmi_michl` and `bmi_michl:age` rose by about 0.03 and 0.09 and the
 #' Hessian was indefinite, so every standard error was NaN (lane
 #' remeasure, R1);
 #' retaken, the standard errors agree with a Richardson Jacobian of the
 #' gradient to 5e-7 whatever the units (dev/optstart-r1-steps.R). A
-#' matrix that factors is the old Hessian bit for bit, and so is one the
-#' retake does not make factor: a flat or curved ridge stays the
-#' standard-error check's to judge. Retaking every column whose rise is
-#' above the band moved the check's verdict on test-se-tier.R's curved
-#' ridge (dev/optstart-sediag.R).
+#' matrix whose every rise is within the band is the old Hessian bit for
+#' bit. Up to 0.80.0 the retake was kept only where the first matrix did
+#' not factor, because retaking moved the check's verdict on
+#' test-se-tier.R's curved ridge (dev/optstart-sediag.R); that verdict now
+#' rests on the likelihood along the ridge (se_ridge_ritz()), and the
+#' retake is what makes the rest of that Hessian readable.
 #'
 #' `eps` is the step, one per coordinate or one for all. Its default is
 #' optimHess()'s; fit_outer_hessian() passes outer_fd_steps(), which is
@@ -246,13 +246,9 @@ fd_hessian <- function(par, gr, tau_band = 1e-2, tau_step = 1e-4,
     H[, i] <- (1 * (df1 - df2)) / (2 * eps[i] * 1 * 1)
     dpar[i] <- dpar[i] + eps[i]
   }
-  factors <- function(M) {
-    all(is.finite(M)) &&
-      !inherits(try(chol(0.5 * (M + t(M))), silent = TRUE), "try-error")
-  }
   d <- diag(H)
   redo <- which(is.finite(d) & d > 0 & 0.5 * d * eps^2 > tau_band)
-  if (length(redo) && !factors(H)) {
+  if (length(redo)) {
     H2 <- H
     for (i in redo) {
       h <- sqrt(2 * tau_step / d[i])
@@ -263,15 +259,17 @@ fd_hessian <- function(par, gr, tau_band = 1e-2, tau_step = 1e-4,
       H2[, i] <- (df1 - df2) / (2 * h)
       dpar[i] <- par[i]
     }
-    # a retake of a matrix that is singular by construction can factor by
-    # its noise alone: on test-se-tier.R's curved ridge the retake's
-    # smallest eigenvalue was 1.5e-6 against a noise of 1.1e-3, and on
-    # R1's oversized steps 1.03 against 0.02 (dev/optstart-retake.R)
-    if (factors(H2)) {
-      lmin <- min(eigen(0.5 * (H2 + t(H2)), symmetric = TRUE,
-                        only.values = TRUE)$values)
-      if (lmin > norm(abs(H2 - t(H2)) / 2, "2")) H <- H2
-    }
+    # A retaken matrix is kept whenever it is finite, singular or not. On
+    # test-se-tier.R's curved ridge the step of 1e-3 on k (estimated near
+    # 0.08) raised the objective by 1.7 and left a noise of 17 in sigma's
+    # row of 144, which the empty-row rule then read as flat in 3 of 41
+    # draws a few ulps apart; retaken, the noise is 2e-7 of the largest
+    # unit-diagonal entry in every draw, and the ridge is judged on the
+    # likelihood (se_ridge_ritz()), not on the noise (dev/code8-findings.md,
+    # Part C). Up to 0.80.0 the retake was kept only when it factored
+    # with its smallest eigenvalue above its noise, which a ridge never
+    # does.
+    if (all(is.finite(H2[, redo]))) H <- H2
   }
   E <- abs(H - t(H)) / 2
   H <- 0.5 * (H + t(H))
@@ -578,14 +576,31 @@ se_edge_sd <- function(fit, H) {
 #' before the decomposition, as se_edge_sd() does an sd at zero. It
 #' reads the rest of the Hessian at the clamp (se_pull_back()).
 #'
-#' Only for dimension 2, where the parameter is the correlation,
+#' In dimension 2 the parameter is the correlation,
 #' `rho = t / sqrt(1 + t^2)`. In a wider block one Cholesky parameter
-#' past 70.7 need not put any correlation near +/-1, and moving it
+#' past 70.7 need not put any correlation near +/-1, and moving it alone
 #' moves the interior correlations of its row (lane ci701 review, R1).
+#' What reaches the boundary there is a ROW: row `i` of the unnormalized
+#' Cholesky factor is `(L[i, 1], ..., L[i, i - 1], 1)`, and when its
+#' off-diagonal part runs out the row's own share, `1 / |row|`, goes to 0,
+#' so the block's covariance turns singular with the correlations fixed by
+#' the row's direction. So a row whose largest off-diagonal entry is past
+#' the clamp is at its edge when doubling the whole row (the same
+#' direction, half the share) changes the log-likelihood by no more than
+#' `se_edge_tol`, and it is pulled back along itself, to where its largest
+#' entry is at the clamp (attribute `scale`, read by se_pull_back()). On
+#' test-brms-names-specials.R's `(1 + poly(x, 2) | g)` under a tight prior
+#' on one sd, row 3 stops at (808, 1814): the Hessian there was noise
+#' (asymmetry 254 in the theta rows), and the check called `(Intercept)`,
+#' both poly terms and three sds flat, where their profiles are clean
+#' quadratics. With the row pulled back the asymmetry is 4.5e-4 and those
+#' SEs are 0.283, 1.46 and 1.33 against 0.285, 1.45 and 1.30 from the
+#' profile (review of lane code8, finding 2; dev/code8-tightsd-pull.R).
 #'
 #' @noRd
 se_edge_cor <- function(fit, np) {
   out <- logical(np)
+  scale <- rep(1, np)
   if (isTRUE(fit$quadrature)) return(out)
   th <- fit$estimates[["theta"]]
   if (!length(th)) return(out)
@@ -595,14 +610,48 @@ se_edge_cor <- function(fit, np) {
   tc <- se_cor_clamp_theta()
   for (bk in fit$frame[["re_blocks"]] %||% list()) {
     d <- bk[["dim"]]
-    if (!identical(bk[["covstruct"]], "us") || !isTRUE(d == 2L)) next
+    if (!identical(bk[["covstruct"]], "us") || !isTRUE(d >= 2L)) next
     ti <- bk[["theta_idx"]][-seq_len(d)]
-    ti <- ti[!is.na(ti) & ti >= 1L & ti <= length(th)]
-    for (k in ti[abs(th[ti]) > tc]) {
-      out[thpos[k]] <- se_at_edge(fit, om$names[thpos[k]], sign(th[k]))
+    if (length(ti) != d * (d - 1L) / 2L || anyNA(ti) || any(ti < 1L) ||
+          any(ti > length(th))) {
+      next
+    }
+    if (d == 2L) {
+      for (k in ti[abs(th[ti]) > tc]) {
+        out[thpos[k]] <- se_at_edge(fit, om$names[thpos[k]], sign(th[k]))
+      }
+      next
+    }
+    # the lower triangle's entries, column by column (us_chol_L())
+    lt <- matrix(0L, d, d)
+    lt[lower.tri(lt)] <- seq_along(ti)
+    for (i in 2:d) {
+      k <- ti[lt[i, seq_len(i - 1L)]]
+      big <- max(abs(th[k]))
+      if (!(big > tc) || !se_row_at_edge(fit, thpos[k])) next
+      out[thpos[k]] <- TRUE
+      scale[thpos[k]] <- tc / big
     }
   }
+  if (any(scale != 1)) attr(out, "scale") <- scale
   out
+}
+
+#' Does doubling the outer parameters `j` together, the rest held, change
+#' the log-likelihood by no more than `se_edge_tol`? (A Cholesky row of a
+#' wider `us()` block at its edge, se_edge_cor().)
+#'
+#' @noRd
+se_row_at_edge <- function(fit, j) {
+  p <- fit$opt$par
+  obj <- fit$obj
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  q <- p
+  q[j] <- 2 * q[j]
+  f0 <- tryCatch(obj$fn(p), error = function(e) NA_real_)
+  f1 <- tryCatch(obj$fn(q), error = function(e) NA_real_)
+  is.finite(f0) && is.finite(f1) && abs(f1 - f0) <= se_edge_tol
 }
 
 #' The internal value of a two-dimensional unstructured block's
@@ -615,11 +664,19 @@ se_cor_clamp_theta <- function() {
 }
 
 #' `p` with the parameters `pull` marks moved back to the clamp, each on
-#' its own side; `p` unchanged when nothing is marked.
+#' its own side, or, where `pull` carries a `scale` (a row of a wider
+#' block, se_edge_cor()), multiplied by it; `p` unchanged when nothing is
+#' marked.
 #'
 #' @noRd
 se_pull_back <- function(p, pull) {
   if (!length(pull) || !any(pull)) return(p)
+  sc <- attr(pull, "scale")
+  if (length(sc) == length(p)) {
+    row <- pull & sc != 1
+    p[row] <- p[row] * sc[row]
+    pull <- pull & !row
+  }
   p[pull] <- sign(p[pull]) * se_cor_clamp_theta()
   p
 }
@@ -759,6 +816,7 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
   ev <- numeric(0)
   remeasured <- FALSE
   flat <- NULL
+  ritz_flat <- NULL
   # the rest of an ill-conditioned design in its own coordinates, where
   # the eigenvalues below are rounding (se_reparam_cov())
   rp <- if (length(free) >= 2L && length(free) < np) {
@@ -808,6 +866,53 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
     keep <- if (min(ev) > se_flat_tol * big) rep(TRUE, length(ev)) else {
       ev > thr
     }
+    # A ridge the likelihood is flat along, beside a direction it curves
+    # along weakly, is judged on the likelihood measured on the ridge's
+    # floor (se_ridge_ritz()), not on the Hessian's eigenvectors: on
+    # test-se-tier.R's c0 + exp(a)^k the flat direction (true eigenvalue
+    # 0) sits 9e-7 below c0's (real, its SE 69 with k held), and the
+    # Hessian's noise mixed the two by 7e-3, so whether theta_1 or c0 was
+    # named changed with the draw. Asked of the small directions that
+    # load on a parameter outside a primary linear predictor, as
+    # se_ridge_curvature() is, when there are two or more of them. One
+    # alone cannot be mixed with another, and keeps its verdicts: on
+    # test-latres.R's cancelling ARMA roots (ar at 1 - 1e-6, ma at
+    # -0.999) the one small direction read a curvature of 2.7e-4 on the
+    # floor, so the limit lost its NaN and its message
+    nonlin <- !se_linear_pars(fit)[free]
+    ritz_k <- integer(0)
+    ritz_all <- integer(0)
+    if (any(nonlin)) {
+      # a direction that curves downward beyond its noise is not a ridge
+      # but an ascent, which se_line_probe() asks about below: on the
+      # binomial Michaelis-Menten run to K = 1e8 (test-nl-start.R) the
+      # likelihood still rises along it
+      small <- which(ev <= se_ridge_screen * big & ev >= -thr)
+      small <- small[vapply(small, function(k) {
+        sqrt(sum(e$vectors[nonlin, k]^2)) > se_ridge_nonlin
+      }, NA)]
+      small <- small[order(ev[small])][seq_len(min(length(small),
+                                                   se_span_max))]
+      rz <- if (length(small) >= 2L && length(small) < length(ev)) {
+        se_ridge_ritz(fit, p, free, e, Df, small, keep)
+      }
+      if (!is.null(rz)) {
+        e$vectors[, small] <- rz$vectors
+        ev[small] <- e$values[small] <- rz$values
+        nk[small] <- rz$noise
+        thr[small] <- pmax(se_flat_tol * big, se_dir_mult * rz$noise)
+        keep[small] <- ev[small] > thr[small]
+        # A direction it keeps is decided; one it does not goes to the
+        # step test and the re-measurement below as any other, with the
+        # vector it measured. Its own error cannot tell a ridge from weak
+        # real curvature: the ridge reads 1e-12 to 2.4e-10 against an
+        # error of 7e-11, and so does a raw polynomial's weakest direction
+        # (test-se-reparam.R), which is real, as the step test confirms
+        # and a straight step off the curved ridge does not
+        ritz_k <- small[keep[small]]
+        ritz_all <- small
+      }
+    }
     # A small positive eigenvalue can be real curvature: a raw polynomial
     # of degree 5 on [1, 2] has one at 1e-11 of the largest, and lm()
     # and lme4 report every standard error of it. With (1 | g) and degree
@@ -819,7 +924,8 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
     # model says loses 2 * grad_tol of log-likelihood does: a ridge loses
     # nothing (se_curvature_real()). Below 100 machine epsilons of the
     # largest the eigenvalue itself has no digits left to trust.
-    try_k <- which(!keep & ev > 100 * .Machine$double.eps * big)
+    try_k <- setdiff(which(!keep & ev > 100 * .Machine$double.eps * big),
+                     ritz_k)
     for (k in try_k) {
       keep[k] <- se_curvature_real(fit, p, free, e$vectors[, k] / Df, ev[k])
     }
@@ -835,8 +941,8 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
     # (se_linear_pars()); the others are not asked, which spared a
     # calendar-year covariate on 1e5 rows 8 gradients of the Laplace
     # objective (0.69.0 review of lane seflags, cost).
-    nonlin <- !se_linear_pars(fit)[free]
-    ridge_k <- setdiff(which(keep & ev <= se_ridge_screen * big), try_k)
+    ridge_k <- setdiff(which(keep & ev <= se_ridge_screen * big),
+                       c(try_k, ritz_k))
     ridge_k <- ridge_k[vapply(ridge_k, function(k) {
       sqrt(sum(e$vectors[nonlin, k]^2)) > se_ridge_nonlin
     }, NA)]
@@ -888,7 +994,7 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
     rescued <- try_k[keep[try_k]]
     unmeas <- which(!keep & ev <= 100 * .Machine$double.eps * big &
                       ev >= -thr)
-    unmeas <- unmeas[!vapply(unmeas, in_design, NA)]
+    unmeas <- setdiff(unmeas[!vapply(unmeas, in_design, NA)], ritz_k)
     S <- c(unmeas, rescued)
     if (length(unmeas) && length(S) <= se_span_max) {
       sp <- se_span_remeasure(fit, p, free, e, Df, S)
@@ -1081,6 +1187,15 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
       sc[free] <- Df
       sc
     }, tol = NA_real_), list(dscale = dsc))
+    # the directions the Rayleigh-Ritz step measured and that stayed
+    # removed: the convergence check asks the objective along these, and
+    # along nothing else, where its quadratic model fails
+    # (headroom_checked())
+    rf <- setdiff(ritz_all, which(keep))
+    if (length(rf)) {
+      ritz_flat <- matrix(0, np, length(rf))
+      ritz_flat[free, ] <- e$vectors[, rf, drop = FALSE] / Df
+    }
   }
   lost <- why != ""
   shown <- V
@@ -1088,7 +1203,8 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
   shown[, lost] <- NaN
   # `ev` is kept for diagnosis: the spectrum the verdicts were read from
   list(V = V, shown = shown, lost = stats::setNames(why[lost], nm[lost]),
-       null = null, flat = flat, tier = 3L, ev = ev, remeasured = remeasured)
+       null = null, flat = flat, tier = 3L, ev = ev, remeasured = remeasured,
+       ritz_flat = ritz_flat)
 }
 
 #' The noise of the finite-difference outer Hessian of a fit with random
@@ -1240,6 +1356,86 @@ se_ridge_curvature <- function(fit, p, free, e, Df, k, keep) {
   # 0.0024 at these steps and 5.2 at ten times the larger one
   if (!is.finite(c1) || c1 > se_ridge_shrink * e$values[k]) return(c1)
   (100 * c1 - c2) / 99
+}
+
+#' The unit-diagonal Hessian on the span of the small directions `S` of
+#' `e`, measured on the ridge's floor, and its eigen-decomposition there
+#' (a Rayleigh-Ritz step).
+#'
+#' The larger directions (kept, outside `S`) are first made stationary by
+#' Newton steps with the Hessian held, as in se_ridge_curvature(). The
+#' Hessian times each direction of `S` is then read from central
+#' differences of the gradient at steps of `se_ridge_step` and ten times
+#' it, extrapolated to a step of zero, and projected on `S`. A ridge
+#' gives an eigenvalue of zero to the precision of the gradient, a real
+#' direction its curvature, whatever the finite-difference Hessian's noise
+#' was. On test-se-tier.R's ridge, 41 draws with y moved by a few ulps:
+#' the flat eigenvalue reads 1e-12 to 2.4e-10 against c0's 8.85e-7, and
+#' the flat direction matches the invariance's tangent to 1e-6, where the
+#' Hessian's own eigenvector was 7e-3 off (dev/code8-ridge-rr.R).
+#'
+#' `noise` is the measurement's own error bound: half the asymmetry of
+#' the projected matrix plus what the extrapolation moved it by, the part
+#' of the change that is not quadratic (spectral norms).
+#'
+#' Returns `list(values, vectors, noise)` (vectors as columns of the free
+#' block, unit length), or NULL when a gradient is not finite.
+#'
+#' @noRd
+se_ridge_ritz <- function(fit, p, free, e, Df, S, keep) {
+  obj <- fit$obj
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  oth <- setdiff(which(keep & e$values > max(e$values[S])), S)
+  U <- e$vectors[, oth, drop = FALSE]
+  lo <- e$values[oth]
+  g <- function(x) {
+    r <- tryCatch(se_quiet(as.numeric(obj$gr(x)))[free] / Df,
+                  error = function(e) NULL)
+    if (length(r) == length(free) && all(is.finite(r))) r
+  }
+  crit <- function(gs) sum(drop(crossprod(U, gs))^2 / lo)
+  x <- p
+  gx <- g(x)
+  if (is.null(gx)) return(NULL)
+  if (length(oth)) {
+    cx <- crit(gx)
+    for (it in seq_len(se_ridge_iter)) {
+      y <- x
+      y[free] <- x[free] - drop(U %*% (drop(crossprod(U, gx)) / lo)) / Df
+      gy <- g(y)
+      if (is.null(gy)) break
+      cy <- crit(gy)
+      if (!(cy < cx)) break
+      x <- y
+      gx <- gy
+      cx <- cy
+    }
+  }
+  V <- e$vectors[, S, drop = FALSE]
+  hv <- function(v, h) {
+    d <- numeric(length(p))
+    d[free] <- h * v / Df
+    gp <- g(x + d)
+    gm <- g(x - d)
+    if (is.null(gp) || is.null(gm)) return(NULL)
+    (gp - gm) / (2 * h)
+  }
+  W1 <- W2 <- matrix(0, NROW(V), NCOL(V))
+  for (i in seq_len(NCOL(V))) {
+    w1 <- hv(V[, i], se_ridge_step)
+    w2 <- hv(V[, i], 10 * se_ridge_step)
+    if (is.null(w1) || is.null(w2)) return(NULL)
+    W1[, i] <- w1
+    W2[, i] <- w2
+  }
+  B1 <- crossprod(V, W1)
+  B <- crossprod(V, (100 * W1 - W2) / 99)
+  Bs <- (B + t(B)) / 2
+  nz <- norm(abs(B - t(B)) / 2, "2") + norm(B1 - B, "2")
+  eb <- eigen(Bs, symmetric = TRUE)
+  list(values = eb$values, vectors = V %*% eb$vectors,
+       noise = rep(nz, NCOL(V)))
 }
 
 #' The fraction of the eigenvalue below which se_ridge_curvature()
@@ -1835,7 +2031,8 @@ sdr_rescue_hessian <- function(fit, sdr, H = NULL) {
 #' That is one gradient sweep per coefficient, so its share of the fit
 #' grows with the number of coefficients (1.19 to 1.24 at 301). With
 #' random effects it builds the finite-difference Hessian (fd_hessian(),
-#' two gradients per outer parameter), which a later summary() reuses,
+#' two to four gradients per outer parameter), which a later summary()
+#' reuses,
 #' when se_check_at_fit() says so: a decision on counted work, never on
 #' the clock, so the same call warns at the same place on any machine
 #' (lane nanse review, RB1: a wall-clock budget deferred the same fit 1
@@ -1938,12 +2135,15 @@ se_fit_analysis0 <- function(fit, force) {
 #' with random effects now, or leave it to the first standard-error use?
 #'
 #' Counted work, so the answer is the same on every run and every
-#' machine: the build costs two gradients per outer parameter, and it
-#' runs when that is at most `se_check_share` of the objective and
+#' machine: the build costs two gradients per outer parameter, and two
+#' more for each column fd_hessian() takes again, so at most four, and it
+#' runs when that bound is at most `se_check_share` of the objective and
 #' gradient evaluations the optimizer made (`fit$opt$evals`, counted by
 #' optimize_obj()), or when the fit has at most `se_check_np_free` outer
 #' parameters. A fit without a count (a path that did not go through
-#' optimize_obj()) has only the second rule.
+#' optimize_obj()) has only the second rule. The retake took 16 to 20, 8
+#' to 12 and 10 to 16 gradients on an LMM and a poisson GLMM of 1e5 rows
+#' and a nonlinear fit of 2e4 (review of lane code8, finding 3).
 #'
 #' @noRd
 se_check_at_fit <- function(fit) {
@@ -1951,7 +2151,7 @@ se_check_at_fit <- function(fit) {
   if (np <= se_check_np_free) return(TRUE)
   ev <- fit$opt$evals
   is.numeric(ev) && length(ev) == 1L && is.finite(ev) &&
-    2 * np <= se_check_share * ev
+    4 * np <= se_check_share * ev
 }
 
 #' A gradient costs more than an objective value (on a Laplace

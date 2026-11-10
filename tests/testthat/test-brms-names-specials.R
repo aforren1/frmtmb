@@ -340,7 +340,14 @@ test_that("class sd and cs() take the design column's spelling too", {
                             c("Standard errors are not available",
                               "standard error",
                               "Large maximum absolute gradient"))
-      sdv <- VarCorr(fit)$g$sd[, "Estimate"]
+      # on poly(x, 2) the block's third Cholesky row runs to its limit
+      # (808, 1814), and the VarCorr() entries that move along it have no
+      # SE; the fixed effects and the other sds keep theirs. Both of the
+      # row's entries lose theirs, although its direction (cor(Intercept,
+      # polyx22) = 0.41) is determined: a known limit (dev/test-backlog.md)
+      vc <- allow_warnings(VarCorr(fit),
+                           "move along a direction the fit does not")
+      sdv <- vc$g$sd[, "Estimate"]
       expect_identical(names(sdv)[abs(sdv - 2) < 0.01 * 2], cs[3],
                        label = spell)
     }

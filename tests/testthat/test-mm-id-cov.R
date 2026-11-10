@@ -141,11 +141,13 @@ test_that("a cor = FALSE key over another group is refused in brms's words", {
 test_that("a merged mm() block predicts as its terms do", {
   dd <- mmid_data()
   # the data have no slope and no sigma effect, so the fit can stop at
-  # the edge of the correlation space: what is read here is the design
+  # the edge of the correlation space, where the standard-error check
+  # names what it loses: what is read here is the design
   fit <- allow_warnings(frm(bf(y ~ x + (1 + mmc(x1, x2) | p | mm(g1, g2)),
                                sigma ~ 1 + (1 | p | mm(g1, g2))),
                             data = dd),
-                        "Optimizer did not report convergence")
+                        c("Optimizer did not report convergence",
+                          "Standard errors are not available"))
   # on its own rows, newdata rebuilds the design the fit read
   a <- allow_warnings(fitted(fit), "covariance of the estimates")
   b <- allow_warnings(fitted(fit, newdata = dd),

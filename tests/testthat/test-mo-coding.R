@@ -512,24 +512,41 @@ test_that("marginaleffects' standard errors carry the mo() simplex", {
 
 test_that("a gap fit that lost another direction warns in get_vcov()", {
   skip_if_not_installed("marginaleffects")
-  # (mo(x) | g) with x in 1, 2, 5 stops at cor = 1 (seed 23 of the
-  # review): the covariance on the determined directions is NaN itself.
-  # The first build of this change returned NaN in every entry with no
-  # warning; 0.76.0 kept the coefficient block and warned, and so does
-  # this one
+  # (mo(x) | g) with x in 1, 2, 5 (seed 23 of the review). Stopped short
+  # by an iteration cap, the covariance on the determined directions is
+  # NaN itself. The first build of this change returned NaN in every
+  # entry with no warning; 0.76.0 kept the coefficient block and warned,
+  # and so does this one
   set.seed(23)
   n <- 300
   d <- data.frame(x = sample(c(1, 2, 5), n, TRUE), z = rnorm(n),
                   g = factor(sample(1:10, n, TRUE)))
   d$y <- 1 + (0.4 + rnorm(10, 0, 0.2)[d$g]) * d$x + 0.5 * d$z + rnorm(n)
-  fit <- allow_warnings(frm(y ~ mo(x) + z + (mo(x) | g), data = d),
-                        "Optimizer did not report convergence")
+  short <- allow_warnings(
+    frm(y ~ mo(x) + z + (mo(x) | g), data = d,
+        control = frmtmb_control(optCtrl = list(iter.max = 3,
+                                                eval.max = 1000))),
+    c("Optimizer did not report convergence",
+      "Large maximum absolute gradient"))
   w <- "the fit lost another direction as well"
-  V <- allow_warnings(marginaleffects::get_vcov(fit), c(w, mfx_se_part),
+  V <- allow_warnings(marginaleffects::get_vcov(short), c(w, mfx_se_part),
                       require = w)
+  # (its coefficient block is that of a point short of the maximum, and
+  # is asserted on the converged fit below)
   cf <- c("(Intercept)", "z", "mox", "sigma_(Intercept)")
-  expect_true(all(is.finite(V[cf, cf])))
   expect_true(all(is.nan(V["zeta1_cum1", ])))
+  # The default fit stops at cor = 1. Up to 0.80.0 the correlation's row
+  # left the curvature unusable and the stop was taken as short; with
+  # the correlation held at its edge, as the standard-error check holds
+  # it, the stop is the maximum (a gain of 5.7e-11), the correlation is
+  # a boundary, and the directions the data determine keep their
+  # covariance (dev/code8-findings.md, Part B)
+  fit <- allow_boundary(allow_warnings(
+    frm(y ~ mo(x) + z + (mo(x) | g), data = d),
+    c("Optimizer did not report convergence",
+      "Standard errors are not available")), require = TRUE)
+  V <- allow_warnings(marginaleffects::get_vcov(fit), mfx_se_part)
+  expect_true(all(is.finite(V[c(cf, "zeta1_cum1"), c(cf, "zeta1_cum1")])))
 })
 
 test_that("dfbeta() keeps the coefficients' columns on a mo() fit", {

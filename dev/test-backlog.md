@@ -4661,6 +4661,33 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-09
+
+### From lane code8
+
+- **MINOR. A Cholesky row held at its edge loses every entry's SE,
+  though the row's direction is determined.** se_edge_cor() holds a row
+  of a `us()` block of three or more as a whole when its largest entry
+  is past the clamp and doubling the row does not move the
+  log-likelihood. On test-brms-names-specials.R's `(1 + poly(x, 2) |
+  g)` under `normal(2, 0.001)` on one sd, row 3 stops at (808, 1814),
+  and theta_5 and theta_6 both lose their SEs, although the row's
+  direction carries cor(Intercept, polyx22) = 0.41, which the data
+  determine; only the row's length (its share, going to 0) is at the
+  boundary. Reporting it would need the row in polar coordinates
+  (direction and length) for the SE (dev/code8-findings.md, fix round;
+  review of lane code8, fix round short check, note 1).
+
+- **MINOR. Under a weak prior, two ridge stops just short of the
+  maximum lose the gradient warning.** Through the Ritz-flat exception
+  of headroom_ritz_flat(), `c0 + exp(a)^k` with `normal(0.5, 1000)` on
+  k: stops 1.9e-4 and 1.23e-3 short of the maximum give no gradient
+  warning, where 0.80.0 gives one. From 0.00316 short upward every stop
+  warns on both builds, and no stop gets the converged-at-maximum
+  message. The difference is at the `grad_tol` scale (1e-3)
+  (dev/review-code8-fix-ridgeprior.R and -ridgeprior2.R; review of lane
+  code8, third fix-round check).
+
 ## Filed at the 0.80.0 release (2026-11-06)
 
 Gathered from the lanes' own sections of the round of 2026-11-06,

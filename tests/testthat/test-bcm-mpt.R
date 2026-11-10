@@ -211,10 +211,16 @@ test_that("the MPT covariance block has no finite standard error", {
   invisible(utils::capture.output(dg <- diagnose(fit)))
   expect_false(dg$pdHess)
   expect_lt(dg$min_cov_eigenvalue, 0)
-  # every parameter without a finite standard error is a COVARIANCE
-  # parameter; the three group means and the traits themselves are fine
+  # the covariance block is among the parameters without a finite
+  # standard error. Which others join it is the difference step's
+  # choice: the objective at the stop falls by 0.015 within 1e-9 of it
+  # along one coordinate and rises like the logarithm of the distance
+  # beyond, along the group means as along the covariance parameters
+  # (dev/code8-mpt.R), so no curvature there is a measurement. Steps of
+  # 1e-3 gave the group means finite SEs up to 0.80.0; steps sized to the
+  # rise give none
   expect_gt(length(dg$bad_se), 0)
-  expect_true(all(grepl("^theta", dg$bad_se)))
+  expect_true(any(grepl("^theta", dg$bad_se)))
   # WHICH covariance coordinate carries the largest gradient is a
   # tie-break among coordinates that are all unidentified, so pinning it
   # is a bet on this machine's BLAS rather than a claim about the model.

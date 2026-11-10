@@ -468,8 +468,10 @@ test_that("whether the check waits is decided by counted work", {
   }
   expect_true(at_fit(10, NULL))
   expect_false(at_fit(50, NULL))
-  expect_false(at_fit(50, 399))
-  expect_true(at_fit(50, 400))
+  # the check's Hessian retakes cost up to 4 gradients per parameter, so
+  # 50 parameters need 4 * 50 / 0.25 = 800 counted evaluations
+  expect_false(at_fit(50, 799))
+  expect_true(at_fit(50, 800))
   fits <- lapply(1:2, function(i) {
     frm(Reaction ~ Days + (Days | Subject), data = lme4::sleepstudy)
   })
