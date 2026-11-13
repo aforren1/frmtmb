@@ -1,3 +1,46 @@
+# frmtmb (development version)
+
+## Fitting
+
+* BREAKING: An exact `gp()` in a parameter of a nonlinear body that
+  multiplies it, such as `a * exp(b * z)` with `a ~ gp(x)` or with
+  `b ~ gp(x)`, now reaches the maximum. The start for the field
+  linearizes the body at the template, where `exp(b * z)` is 1 and
+  `a * z * exp(b * z)` is 0, so the field got a scale that is not the
+  fit's, or no start. The fit then stopped at a long field, 36.5 and 5.24
+  log-likelihood units short, with return code 0 and no warning. Now,
+  after the descent, `frm()` reads the body again at the fit's own
+  coefficients and descends from the length scale it gives. It keeps
+  that optimum only if it is higher and regular: return code 0, the
+  gradient within `grad_tol`, no eigenvalue of the inner Hessian near
+  zero, and each length scale between half the median distance from a
+  position to its nearest neighbour and ten times the range of the
+  positions. Off the gaussian the objective can rise where it has no
+  maximum, for example at a field that is white noise, and these tests
+  keep such a point out. It reads the body again after each gain,
+  at most three times. This runs on the fit you ask for from its cold
+  start, and on `update()`; a `start` of your own, `refit()` and the
+  autoscale pre-fit skip it. On 192 test fits of nonlinear bodies with a
+  field, 3 rose, by 0.0016 to 36.5, and none fell; on 122 more, 10 rose,
+  by 0.31 to 173.4, and none fell. On those 122 the fits took about as
+  long as before in total; on the 192 smaller ones they took 1.2 times as
+  long, and one fit of 400 rows took up to 1.16 times as long where the
+  second reading found nothing new.
+
+## Limits
+
+* With `student()` and an exact `gp()` on a step-shaped field, the fit
+  stops at the best regular maximum of the Laplace objective, with return
+  code 0 and no warning, but the marginal likelihood of the model can be
+  higher elsewhere. On one test fit, importance sampling read the
+  marginal about 2.5 higher near a point where the Laplace objective has
+  only a spike: one eigenvalue of the inner Hessian is near zero there
+  (4.2e-8), which adds 8.5 to the Laplace value, and a fit that reaches
+  the spike warns (code 1, gradient about 1e12). No check at the stop
+  tells this case from a correct fit; the inner Hessian there is healthy.
+  `frmtmb.sample::frm_sample()` reads such a model without the Laplace
+  approximation.
+
 # frmtmb 0.81.0
 
 ## Convergence and standard errors

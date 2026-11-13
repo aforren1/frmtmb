@@ -1347,6 +1347,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                                   autoscaled = !is.null(ascale)))
   }
   prefit_seeded <- FALSE
+  gp_cold <- is.null(template)
   if (!is.null(ascale) && is.null(template)) {
     # two-stage warm start: fit the standardized frame, back-transform
     # the optimum, and continue below as the ordinary unscaled fit
@@ -1707,7 +1708,12 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   } else if (is.null(integrate)) {
     obj <- gp_start_scan(obj, template, frame, start, to_beta = function(b) {
       if (is.null(bw)) b else beta_whiten_map(b, bw, inv = TRUE)
-    }, body = gp_body)
+    }, body = gp_body,
+    # the user's own fit from its cold start only: the autoscale pre-fit,
+    # refit() and influence() only supply or reuse a start, and the
+    # second reading there doubled its cost for nothing
+    # (dev/reviews/2026-11-11-gpstop.md, MINOR 6)
+    relin = gp_body && announce_start && (gp_cold || prefit_seeded))
     opt <- fit_error_context(
       spec, start, REML, control, quadrature, prior,
       tryCatch(optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb,

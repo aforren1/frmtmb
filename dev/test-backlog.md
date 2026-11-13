@@ -4661,6 +4661,64 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-11
+
+### From lane gpstop
+
+- **0.81.0's own first descent can end at a white-noise field, code 0,
+  no warning.** A field in a nonlinear body (and the additive low-count
+  poisson body of fitedge's lane96) ends with its length scale far below
+  a tenth of the median nearest-neighbour gap on 5 rows, at code 0 with
+  no warning and the same with and without the second reading
+  (`dev/gpstop-fx-margin.R`, `gpstop-out/fx-margin.txt`): exp_a
+  bernoulli n120 s2 at 5.4e-4 of the median gap, lane96 B wig 60 2 at
+  0.021, logis_a poisson n40 s1 at 0.031, logis_a bernoulli n120 s2 at
+  0.049, lane96 B wig 60 1 at 0.074. The review's MAJOR 2 showed such a field to be a Laplace
+  artifact on its row (importance sampling 4 to 11 below). The second
+  reading now refuses to move a fit there; nothing yet tells the user
+  when the first descent stops there.
+
+- **5033 re-described: `student()` with an exact `gp()` on a step field
+  is a limit of the Laplace approximation, open.** The default (st80:
+  `dev/arstep-ng.R`, seed 1, n 80) stops at the best regular maximum of
+  the Laplace objective, 68.5503, code 0, no warning, inner Hessian
+  eigenvalue 0.999. The higher Laplace values (79.545, and 207.366 on
+  n 160) are spikes: inner eigenvalue 4.17e-8 and 1.82e-5, adding 8.50
+  and 5.46, outer gradient 1.3e12 and 2.0e11, each fit warned. But the
+  marginal by importance sampling rises from 71.0 to 71.3 at the default
+  to 73.5 to 73.9 at the st80 spike (the review's four estimates and
+  `dev/gpstop-stis2.R`, 40000 draws), about 2.5 above the default, and
+  no check at the default's stop separates this from a correct fit. On
+  n 160 the importance-sampling value is lower at the spike (201.9
+  against 203.6). `dev/gpstop-findings.md`, item 2;
+  `dev/reviews/2026-11-11-gpstop.md`, MAJOR 3.
+- **An approximate `gp(x, k = )` in a nonlinear body stops at a
+  degenerate length scale, silent.** The body start and its second
+  reading at the optimum cover the exact field only, so the approximate
+  field gets no start: `a * exp(b * z)` with `a ~ gp(x, k = 20)` ended at
+  a log length scale of -12.43, code 0, no warning, outer Hessian
+  eigenvalue 1.4e-8 (the HSGP's sd and length-scale ridge), and with `b ~ gp(x, k = 20)` 1.18 below the best of 8 theta
+  starts (100.401246 against 101.584647); `pow_a` gaussian n 120 seed 2
+  with `k = 12` at -12.67 (`dev/reviews/gpstop-review-gate.R`,
+  `gpstop-review-sweep.R`; review MINOR 7). The gate was not widened.
+
+- **The two exact `gp()` rows 0.80.0's Limits name beside `student()` stay
+  short, silent:** `pois_mid two 80` 1.59 and `gsigma step 40` 1.45 below
+  a theta start that ends at code 0 with no warning, on rellib-r20 and on
+  the lane alike (`dev/gpstop-ng.R`, seed 1; `dev/gpstop-findings.md`).
+  A candidate, not built or measured: read the mean's working marginal
+  again at the fit's optimum, as `gp_body_relin()` reads a body, with each
+  row's known noise there (`sigma_i^2` under `sigma ~ z`, `1 / mu_i` under
+  poisson). A t-weighted version of that read the fit's own length scale
+  on 6 `student()` rows and gained nothing (`dev/gpstop-stproto.R`).
+- **`student()` beside an exact `gp()` has Laplace spikes.** Where a row
+  sits past `sqrt(nu) sigma`, one eigenvalue of the inner Hessian can
+  come near 0, and the Laplace value there gains `-log(ev_min) / 2`
+  (4.2e-8 and 1.8e-5 on the rows of 0.80.0's Limits, adding 8.5 and 5.5).
+  The fits that reach one warn (code 1, gradient 1e9 to 1e12), so it is
+  not silent; a message that names the cause (a near-singular inner
+  Hessian) would say more than the gradient warning does.
+
 ## Filed at the 0.81.0 release (2026-11-10)
 
 Gathered from the lanes' own sections of the round of 2026-11-09
@@ -4828,6 +4886,7 @@ then the reviews' items left for later. Lane records:
   (`gp_body_start()`) linearizes at the template's zeros, where the field's
   scale `J_a` is not the fit's. Designs: `dev/review-fitedge-designs.R`,
   `set.seed(52000 + 100 seed + n + 10 design + curve)`.
+CLOSED in the round of 2026-11-11 (lane gpstop): the body is linearized again at the fit's optimum (`gp_body_relin()`); E wig 120 2 and L wig 120 2 reach the best start (dev/gpstop-findings.md, item 1).
 - **`frmtmb_latres_laplace` is decided by rounding.** On 3 of 21 pairs of an
   unread `mi()` response and its weight-0 spelling, it fires on one spelling
   and not the other, every estimate equal to 7 digits (lognormal `ar(t, g)`
@@ -5032,7 +5091,6 @@ translator's order of the positions.
   `dev/reviews/2026-11-02-nlfix.md`, "Filed, no change asked".
 - **`ar()` on a step field is 25.9 nats short, student -11, under the exact
   `gp()`.** Named in NEWS, Limits, by decision. `dev/reviews/2026-11-03-ncgp.md`.
-
 ### MINOR and performance
 
 - `fitted()`, `residuals()`, `frm_linpred(se.fit)` on a latent residual are not
