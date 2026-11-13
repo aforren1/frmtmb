@@ -1,3 +1,46 @@
+# frmtmb (development version)
+
+## Predictions
+
+* BREAKING: `predict()` reads each side of each parameter's draws off
+  the log-likelihood where the normal law of the estimates does not
+  describe it, and says so once per fit with a message of class
+  `frmtmb_draw_held`. Each parameter is moved alone, the others at their
+  estimates. A side where the log-likelihood changes by at most 1e-4 at
+  2 standard errors is flat: the draws do not go that way, and the other
+  parameters are drawn given that parameter's estimate. A side where the
+  log-likelihood falls by 2 before half the distance where the normal
+  law says it does is steep: its draws are scaled down to match, and a
+  draw z standard errors out goes no further, in its own standard
+  errors, than the parameter can move alone before the log-likelihood
+  falls by z^2 / 2. All other draws are as before, bit for bit.
+  Before, a parameter at or near the end of its range was drawn from a
+  normal law with a huge standard error, and up to half the draws took
+  values that the data rule out:
+  - A `zero_inflated_binomial()` fit with no excess zeros had a
+    zero-inflation intercept of -22.2 with a standard error of 4927.
+    `predict()` averaged 3.04 where `fitted()` gave 5.74, and 49% of the
+    draws were 0. It now averages 5.73, with 0.5% zeros. Nine more
+    zero-inflated and hurdle families had the same defect, and so did
+    `zi ~ x` and `hu ~ x`.
+  - A `zero_inflated_poisson()` fit whose zero inflation is just inside
+    its range (-7.0, standard error 18.5) averaged 1.98 where `fitted()`
+    gave 3.08. It now averages 3.07, as brms 2.23.0 does (3.06).
+  - A `mixture(cumulative(), cumulative())` fit with two thresholds of
+    one component at the same value gave `NA` in 42.75% of its draws.
+    It now gives none.
+  - `se(s, sigma = TRUE)` with the residual sd estimated at zero drew
+    with a standard deviation of 1.6e141, and a new level of a group
+    whose sd is near zero (6 groups) with a standard deviation of 2.2e7.
+    They are now 0.068 (brms: 0.108) and 1.01 (0.995 at the estimates).
+
+* BREAKING: `predict()` warns, with class `frmtmb_predict_na`, when the
+  family's simulator returns a response that is not finite at finite
+  parameters, and gives the number of such cells per row. Before, these
+  cells were `NA` or infinite with no condition. This includes
+  `predict(summary = FALSE)` on a `cs()` fit whose thresholds cross in
+  some draws; `summary = TRUE` keeps its own warning.
+
 # frmtmb 0.81.0
 
 ## Convergence and standard errors

@@ -3274,9 +3274,17 @@ See `dev/round-20261020.md`, "Found at the consolidation".
   are the seam a fix would read. Of the same class: `predict()` of
   `se(s, sigma = TRUE)` with sigma near 0 overflows the draws (sd
   1.6e141).
+  CLOSED in the round of 2026-11-11 (lane ppdraw): predict() reads each
+  side of a parameter at or near the end of its range off the
+  likelihood (flat side not drawn into, steep side narrowed), for zi,
+  hu, `zi ~ x`, sigma and group sds (`frmtmb_draw_held`). The joint
+  move it does not read is filed in this round's section.
 - **`mixture(cumulative(), cumulative())` draws `NA`**: `predict(
   propagate_error = TRUE)` gives `NA` in 42.75% of draws with no
   condition (review R1-c, `dev/ndaterm-rev-r1ord.R`). Pre-existing.
+  CLOSED in the round of 2026-11-11 (lane ppdraw): the collapsed gap's
+  flat side is not drawn into (0 NA), and a non-finite simulator draw at
+  finite parameters now warns with a count.
 
 #### Open - low
 
@@ -4660,6 +4668,74 @@ none is a regression of this release.
   package does not declare (inferred by the review, not run). The skip
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
+
+## Filed in the round of 2026-11-11
+
+### From lane ppdraw
+
+- **MEDIUM. `predict()` on a weakly identified mixture draws from a
+  normal law the likelihood does not support.** Lane ppdraw's sweep
+  (`dev/ppdraw-sweep.R`, seed 101, 300 rows, 1000 draws) has three
+  mixture fits whose `predict()` mean leaves `fitted()` by 7.9 to 21.9
+  Monte Carlo standard errors with no parameter at an edge:
+  `mixture(gaussian(), gaussian())` and `mixture(poisson(), poisson())`
+  on one-component data (z -21.86 and -7.88), and
+  `mixture(cumulative(), cumulative())` on two-component data (largest
+  category z 9.67). The simulator is right: against the mean of the
+  expected response at each drawn parameter vector the same draws give
+  z 0.45, 0.12 and a largest category z of 3.21 (`dev/ppdraw-probe3.R`).
+  The draw law is not: the log-likelihood falls at the draws by a median
+  of 5.68, 11 and 10.2 (99th percentile 85.8, 1182 and 156) where a
+  normal law over p parameters says chi2_p / 2, a median of 3.17, 2.18
+  and 4.17. On the zero-inflated and hurdle fits of the sweep the two
+  agree (median 1.19 against 1.18). Options, not built: importance
+  weights `exp(-drop) / normal density` over the draws (one objective
+  per draw), or a warning when the median drop exceeds the law's by a
+  set factor. Needs a user decision on whether predict() may reweight
+  its draws.
+- **LOW. `predict()`'s mean and `fitted()` differ by the plug-in gap on
+  identified fits, which is not documented.** `fitted()` is the
+  expected response at the estimates; `predict()` averages over the
+  parameter draws. On the sweep's hurdle_negbinomial and hurdle_poisson
+  interior fits the gap is 5.09 and 3.63 Monte Carlo standard errors
+  (0.4 to 1 percent of the mean), and the paired reference agrees
+  (z -0.43, 0.77 at 400 draws, `dev/ppdraw-probe3.R`). brms's
+  `fitted()` is a mean over draws, so brms has no such gap. A sentence
+  in `?predict.frmtmb_fit` would say it.
+- **LOW. predict()'s side law moves one parameter at a time.** It reads
+  each side with the other parameters at their estimates, so a joint
+  move that no single side shows is not seen: on `zi ~ x` at the
+  boundary (3269 data) the intercept's and the slope's steep sides are
+  each narrowed, yet together they still draw zi above what brms 2.23.0
+  draws (lane ppdraw's fix round, `dev/ppdraw-fix-a14.R` and
+  `dev/ppdraw-fix-brms.R`, 4000 draws): P(y = 0) 0.0126 against 0.0098,
+  and on `hu ~ x` with no zeros 0.0069 against 0.0033 (0.81.0: 0.4941
+  and 0.4907). The means are within 3.2 Monte Carlo standard errors of
+  fitted() at 400 draws. Part of the gap is brms's prior on zi. A
+  joint reading (the log-likelihood at the draws) is the
+  importance-weight question of the item above. With lane boundfam's
+  rule the slope is held instead (undefined at that limit).
+- **LOW. predict()'s side law costs an inner solve per side on a fit
+  with random effects, on its first call.** 3.27 s on a poisson GLMM
+  with 62 outer parameters and 2000 levels, where the fit took 13.0 s
+  and a second predict() 0.20 s; 1.22 s on a zinb GLMM with 8 (lane
+  ppdraw's fix round, `dev/ppdraw-fix-cost.R`). No screen was found
+  that can tell from the estimates alone that a side is not steep: the
+  standard error is in the parameter's units, and the curvature at the
+  estimate is what the normal law already reads.
+- **LOW. predict()'s side law has a cliff at `draw_edge_c`.** A side is
+  narrowed only when the log-likelihood falls by 2 within one
+  conditional sd; just past that it keeps the full normal law. On a
+  smooth family of fits (`y ~ x + (1 + x | g)`, 20 groups, the group
+  slope scaled by lambda from 0.5 to 2, `dev/reviews/ppdraw-short-cliff.R`,
+  logs `-lane.txt`, `-base.txt`), a new level's 98% predictive width at
+  x = 2 is 5.17 to 5.19 for lambda up to 1.4 (fall at 1 csd 2.08) and
+  steps to 5.56 at 1.5 (fall 1.94), against the reviewer's exact
+  reference of about 5.70. Fix route: a continuous scale, such as
+  min(1, t2 / (2 csd)) on every side, which needs `draw_edge_c` only as
+  a screen. The coverage check that confirmed the law
+  (`dev/reviews/ppdraw-short-cov-sum.txt`) has the changed fits at 0.890
+  to 0.920 coverage at 90%.
 
 ## Filed at the 0.81.0 release (2026-11-10)
 

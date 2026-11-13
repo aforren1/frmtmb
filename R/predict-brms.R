@@ -355,9 +355,14 @@ predict.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
   rr <- re_resolve(object, re_formula, "predict()")
   object <- rr$fit
   re_formula <- rr$re_formula
+  na_said <- if (summary) {
+    names(rspecs)[vapply(rspecs, function(rs) {
+      ord_response_has_cs(object, rs)
+    }, TRUE)]
+  }
   ds <- predict_simulate(object, rspecs, newdata, re_formula,
                          allow_new_levels, ndraws, ntrys, propagate_error,
-                         sample_new_levels)
+                         sample_new_levels, na_said = na_said %||% character(0))
   if (!is.null(transform)) ds <- lapply(ds, match.fun(transform))
   if (!summary) {
     return(if (length(ds) == 1L) ds[[1L]] else predict_stack(ds))
@@ -595,11 +600,16 @@ predict_category_props <- function(object, rspec, d, cross = NULL) {
 #' in the joint draws; each response's marginal summary, which is what
 #' `predict()` returns, does not depend on it.
 #'
+#' `na_said` names the responses whose NA draws the caller reports
+#' itself (the `cs()` crossing count of `predict_category_props()`), so
+#' that they are not reported twice.
+#'
 #' @noRd
 predict_simulate <- function(object, rspecs, newdata, re_formula,
                              allow_new_levels, ndraws, ntrys,
                              propagate_error,
-                             sample_new_levels = "gaussian") {
+                             sample_new_levels = "gaussian",
+                             na_said = character(0)) {
   av <- list()
   nls <- list()
   # brms's "old_levels" choice is one per call and grouping factor,
@@ -686,6 +696,7 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
   joint <- isTRUE(object$spec[["rescor"]]) && length(rspecs) > 1L
   out <- stats::setNames(vector("list", length(rspecs)), names(rspecs))
   masked <- stats::setNames(vector("list", length(rspecs)), names(rspecs))
+  simna <- list()
   for (s in seq_len(ndraws)) {
     fs <- draw(s)
     if (!is.null(bdraw)) fs <- bdraw(fs, s)
@@ -746,13 +757,51 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
       }
       if (length(dim(out[[nm]])) == 3L) {
         out[[nm]][s, ok, ] <- ys
+        bad <- rowSums(!is.finite(as.matrix(ys))) > 0L
       } else {
         out[[nm]][s, ok] <- as.numeric(ys)
+        bad <- !is.finite(as.numeric(ys))
       }
+      # finite parameters the simulator gave no finite draw for
+      # (thresholds that overflow, cs() offsets that cross, a process
+      # with no end in its window): counted, never silent
+      if (is.null(simna[[nm]])) simna[[nm]] <- integer(n)
+      simna[[nm]][ok] <- simna[[nm]][ok] + bad
     }
   }
   predict_report_masked(out, masked, ndraws)
+  predict_report_sim_na(simna[setdiff(names(simna), na_said)], ndraws)
   out
+}
+
+#' Say which rows the simulator left NA or infinite at finite parameters.
+#'
+#' @noRd
+predict_report_sim_na <- function(simna, ndraws) {
+  msgs <- character(0)
+  for (nm in names(simna)) {
+    cnt <- simna[[nm]]
+    hit <- which(cnt > 0L)
+    if (!length(hit)) next
+    what <- paste0(hit, " (", cnt[hit], " of ", ndraws, ")")
+    if (length(what) > 6L) {
+      what <- c(what[1:6], paste0("and ", length(what) - 6L, " more"))
+    }
+    msgs <- c(msgs, paste0(
+      if (length(simna) > 1L) paste0("response '", nm, "': "),
+      if (length(hit) == 1L) "row " else "rows ",
+      paste(what, collapse = ", ")))
+  }
+  if (length(msgs)) {
+    frm_warning("predict(): the family's simulator returned no finite ",
+                "response from a replicate's parameters for ",
+                paste(msgs, collapse = "; "), ". Those cells are NA or ",
+                "infinite. The parameters are finite there, but the ",
+                "family has no finite draw at them. propagate_error = ",
+                "FALSE simulates at the estimates alone", call. = FALSE,
+                class = "frmtmb_predict_na")
+  }
+  invisible(NULL)
 }
 
 #' Which rows of one replicate have every distributional parameter
@@ -1261,6 +1310,13 @@ predict_par_drawer <- function(object, propagate_error, ndraws) {
         !isTRUE(ds$mo_const_only)) {
     V <- NULL
   }
+  # a "limit" that is not the family's own limiting case is a mean or
+  # covariance parameter left undetermined by a fit with no maximum: its
+  # raw variance (2.4e137 on an all-zero poisson) is no law to draw from
+  if (any(ds$lost %in% "limit") && !draw_limit_quiet(object, ds$lost)) {
+    V <- NULL
+  }
+  if (is.null(ds$root)) V <- draw_limit_restore(V, ds, object)
   # a covariance held as a factor (se_reparam_cov()) is drawn through
   # it: chol() of the whole matrix refuses one that ill-conditioned, or
   # returns a factor with none of its digits
@@ -1294,7 +1350,10 @@ predict_par_drawer <- function(object, propagate_error, ndraws) {
   p <- length(v0)
   # all ndraws draws at once, column s for replicate s: the caller's
   # stream is consumed by the same amount whatever the rows are
-  D <- v0 + crossprod(L, matrix(stats::rnorm(p * ndraws), p, ndraws))
+  Z <- matrix(stats::rnorm(p * ndraws), p, ndraws)
+  law <- draw_edge_law(object, map, V, colSums(L^2), !is.null(ds$root),
+                       rownames(V) %||% map$names)
+  D <- v0 + if (is.null(law)) crossprod(L, Z) else draw_edge_apply(law, L, Z)
   held <- latres_held_pos(object, map)
   if (length(held)) D[held, ] <- v0[held]
   out <- function(s) fit_set_outer(object, D[, s], map)
@@ -1303,6 +1362,418 @@ predict_par_drawer <- function(object, propagate_error, ndraws) {
   attr(out, "delta") <- function(s) D[, s] - v0
   out
 }
+
+#' The draw law, side by side, where the likelihood does not support the
+#' normal one, or `NULL` where it does.
+#'
+#' The normal law N(theta_hat, V) reads the likelihood's curvature at the
+#' estimates. Where an estimate sits at or near the end of its range, the
+#' likelihood is flat on one side and falls far faster than that
+#' curvature says on the other, and V's standard error measures only how
+#' little it curves at the estimate. A zero-inflation intercept at -22.2
+#' with no excess zeros in the data has a standard error of 4927: half
+#' its normal draws put the zero inflation near 1, and predict() averaged
+#' 3.04 where fitted() gave 5.74 (backlog 3269). One just inside its
+#' range (-7.0, standard error 18.5) did the same (2.03 against 3.08).
+#' A threshold gap of an ordinal mixture at exp(-13.1), standard error
+#' 3840, made the thresholds after it infinite in half the draws (backlog
+#' 3277). A group log sd at -3.0 with standard error 6.8 gave a new
+#' level's prediction a standard deviation of 2.2e7.
+#'
+#' So each side of each parameter the objective reads is asked of the
+#' likelihood, with the other parameters at the estimates
+#' (draw_edge_side()):
+#'
+#' - a side where the log-likelihood changes by at most `draw_edge_flat`
+#'   at `draw_edge_k` standard deviations is flat: the draws do not move
+#'   the parameter that way (scale 0);
+#' - a side where it falls by `draw_edge_k^2 / 2` (what the normal law
+#'   gives at `draw_edge_k` conditional standard deviations) within
+#'   `draw_edge_c` of that distance is steep: its draws are scaled by
+#'   how much sooner the likelihood gets there, and a draw `z` sds out
+#'   goes, in its own sds, no further than the one-parameter slice goes,
+#'   in conditional sds, before the log-likelihood falls by `z^2 / 2`
+#'   (draw_edge_map(); the slice's own point where the two sds agree);
+#' - any other side keeps the normal law, so a fit whose likelihood the
+#'   normal law describes keeps its draws bit for bit.
+#'
+#' A draw is never moved further than the normal law moves it: a side is
+#' only ever narrowed. The conditional standard deviation `csd`
+#' (draw_edge_csd(), the curve a one-parameter move sees) is the
+#' reference, not the marginal one: an intercept beside an
+#' uncentered slope falls about 100 times faster along its own axis than
+#' its marginal standard deviation says, and is interior.
+#'
+#' A parameter with a flat side is drawn on its own, with its other side
+#' scaled, and the rest are drawn from their normal law conditional on
+#' it at its estimate (the Schur complement of V), then asked again under
+#' that law. A slope on the zero inflation beside such an intercept
+#' (`zi ~ x`) has a standard error of 4710 that its own two steep sides,
+#' not the correlation (0.03), narrow.
+#'
+#' The verdict is kept in the fit's cache, and said once per fit (class
+#' `frmtmb_draw_held`). It costs one objective evaluation per side of
+#' each parameter where nothing changes, one more on a side that may be
+#' flat, and up to about 50 on a steep side; on a fit with random
+#' effects each is an inner solve.
+#'
+#' @noRd
+draw_edge_law <- function(object, map, V, sd2, reparam, labels) {
+  cache <- object$cache
+  law <- if (is.environment(cache)) cache[["draw_edge_law"]]
+  if (is.null(law)) {
+    law <- draw_edge_build(object, map, V, sd2, reparam)
+    if (is.environment(cache)) cache[["draw_edge_law"]] <- law
+  }
+  if (isFALSE(law)) return(NULL)
+  if (!is.environment(cache) || !isTRUE(cache[["draw_edge_said"]])) {
+    if (is.environment(cache)) cache[["draw_edge_said"]] <- TRUE
+    frm_message(draw_edge_text(law, labels), class = "frmtmb_draw_held")
+  }
+  law
+}
+
+#' @noRd
+draw_edge_text <- function(law, labels) {
+  q <- function(i) paste0("`", labels[i], "`", collapse = ", ")
+  paste0(
+    "predict(): ",
+    if (length(law$edge)) {
+      paste0("the log-likelihood is flat toward one end of the range of ",
+             q(law$edge), ", so the draws do not move ",
+             if (length(law$edge) > 1L) "them" else "it",
+             " that way and draw the other parameters given ",
+             if (length(law$edge) > 1L) "their estimates" else
+               "its estimate", ". ")
+    },
+    if (length(law$narrowed)) {
+      paste0("The draws of ", q(law$narrowed), " are narrowed on a side ",
+             "where the log-likelihood falls faster than the normal law ",
+             "of vcov() says, so that they do not reach values the data ",
+             "rule out. ")
+    },
+    "Said once per fit")
+}
+
+#' @noRd
+draw_edge_build <- function(object, map, V, sd2, reparam = FALSE) {
+  obj <- object$obj
+  p <- object$opt$par
+  np <- length(p)
+  P <- length(map$names)
+  off <- P - np
+  if (is.null(obj) || !is.function(obj$fn) || off < 0L ||
+        length(sd2) != P || NROW(V) != P) {
+    return(FALSE)
+  }
+  sdv <- sqrt(pmax(sd2, 0))
+  # before any evaluation moves the point the cached Hessian is checked at
+  csd <- draw_edge_csd(object, V, sdv, off, reparam)
+  if (is.null(csd)) return(FALSE)
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  f0 <- tryCatch(obj$fn(p), error = function(e) NA_real_)
+  if (!is.finite(f0)) return(FALSE)
+  pos <- off + seq_len(np)
+  lo <- hi <- as.list(rep(1, P))
+  sd_law <- sdv
+  sides <- draw_edge_sides(obj, p, off, pos, sdv, csd, f0)
+  lo[pos] <- sides$lo
+  hi[pos] <- sides$hi
+  flat <- function(v) length(v) == 1L && v == 0
+  edge <- pos[vapply(lo[pos], flat, TRUE) | vapply(hi[pos], flat, TRUE)]
+  Lc <- NULL
+  if (length(edge)) {
+    Vc <- draw_edge_condition(V, edge)
+    Lc <- draw_root(Vc)
+    rest <- setdiff(pos, edge)
+    sd_law[rest] <- sqrt(pmax(diag(Vc)[rest], 0))
+    sides <- draw_edge_sides(obj, p, off, rest, sd_law, csd, f0)
+    lo[rest] <- sides$lo
+    hi[rest] <- sides$hi
+  }
+  steep <- function(v) length(v) > 1L
+  narrowed <- setdiff(pos[vapply(lo[pos], steep, TRUE) |
+                            vapply(hi[pos], steep, TRUE)], edge)
+  if (!length(edge) && !length(narrowed)) return(FALSE)
+  list(lo = lo, hi = hi, s = sd_law, Lc = Lc, edge = edge,
+       narrowed = narrowed)
+}
+
+#' The law of each side, `list(lo, hi)` of the draw positions `js`, each
+#' read at its own standard deviation `sdv[j]` (draw_edge_side()).
+#'
+#' @noRd
+draw_edge_sides <- function(obj, p, off, js, sdv, csd, f0) {
+  lo <- hi <- as.list(rep(1, length(js)))
+  for (i in seq_along(js)) {
+    j <- js[i]
+    s <- sdv[j]
+    if (!is.finite(s) || s <= 0) next
+    cs <- min(csd[j], s)
+    lo[[i]] <- draw_edge_side(obj, p, j - off, -1, s, cs, f0)
+    hi[[i]] <- draw_edge_side(obj, p, j - off, 1, s, cs, f0)
+  }
+  list(lo = lo, hi = hi)
+}
+
+#' One side's law: 0 where it is flat; 1 where the normal law stands;
+#' on a steep side, the distances (in conditional standard deviations
+#' `cs`) at which the log-likelihood falls by `z^2 / 2`, z = 1 to 4, each
+#' at most `z`. A move the objective cannot evaluate counts as a steep
+#' one: the data rule it out.
+#'
+#' @noRd
+draw_edge_side <- function(obj, p, k, dir, s, cs, f0) {
+  at <- function(t) {
+    q <- p
+    q[k] <- p[k] + dir * t
+    f1 <- tryCatch(suppressWarnings(obj$fn(q)), error = function(e) NA_real_)
+    if (is.finite(f1)) f1 - f0 else Inf
+  }
+  K <- draw_edge_k
+  tc <- min(draw_edge_c * K * cs, K * s)
+  dc <- at(tc)
+  if (dc >= K^2 / 2) {
+    tk <- vapply(1:4, function(z) draw_edge_reach(at, z^2 / 2, z * cs), 0)
+    return(cummax(tk) / cs)
+  }
+  if (abs(dc) <= draw_edge_flat &&
+        (tc >= K * s || abs(at(K * s)) <= draw_edge_flat)) {
+    return(0)
+  }
+  1
+}
+
+#' The distance at which `at()` first reaches `target`, at most `cap`: a
+#' geometric search down from `cap`, then six halvings of the bracket in
+#' log scale, which leaves it to a few percent.
+#'
+#' @noRd
+draw_edge_reach <- function(at, target, cap) {
+  if (at(cap) < target) return(cap)
+  hi <- cap
+  lo <- cap
+  repeat {
+    lo <- lo / 4
+    if (lo < cap * 1e-8) return(lo)
+    if (at(lo) < target) break
+    hi <- lo
+  }
+  for (i in seq_len(6L)) {
+    mid <- sqrt(lo * hi)
+    if (at(mid) < target) lo <- mid else hi <- mid
+  }
+  sqrt(lo * hi)
+}
+
+#' Deviations `x` on one side of a position whose draw law has standard
+#' deviation `s`, mapped through that side's law `v` (draw_edge_side()).
+#' `v` holds, in conditional standard deviations `cs`, the distances
+#' along the one-parameter slice at which the log-likelihood falls by
+#' `z^2 / 2`, z = 1 to 4 (linear between, and past 4 at the last knots'
+#' slope). A draw `z = |x| / s` out goes to `s * g`, `g` the least of
+#' `z` (the normal law), `z * v[2] / 2` (the side's one scale) and `v`
+#' at `z`: the draw's distance in its own sds is at most the slice's in
+#' conditional sds. That is the point where the slice falls by `z^2 / 2`
+#' only where `s = cs`; where the parameter is correlated with others
+#' (`s > cs`) the draw goes `s / cs` times as far along this axis, as the
+#' normal law's own draws do, and the slice is not where it lands.
+#'
+#' Either alone failed a case. The one scale lets the normal tail past
+#' z = 2 run through a wall: a log sd with the residual sd at 0 under
+#' se(sigma = TRUE) drew a row of standard error 0.05 with a standard
+#' deviation of 0.61, where brms 2.23.0 has 0.108. The knots alone
+#' follow an exponential wall too closely inside it: on 3269's zero
+#' inflation they gave half brms's share of zeros (0.0055 against
+#' 0.0097), and on `zi ~ x` a mean 8 Monte Carlo standard errors from
+#' fitted() against 3.4 (dev/ppdraw-findings.md, "Fix round").
+#'
+#' @noRd
+draw_edge_map <- function(x, s, v) {
+  if (length(v) == 1L) return(x * v)
+  z <- abs(x) / s
+  g <- stats::approx(0:4, c(0, v), xout = pmin(z, 4))$y
+  far <- z > 4
+  g[far] <- v[4] + (z[far] - 4) * max(0, v[4] - v[3])
+  sign(x) * s * pmin(z, z * v[2] / 2, g)
+}
+
+#' The standard deviation of each draw position along its own axis, the
+#' others held: `1 / sqrt(H[j, j])` from the objective's Hessian in the
+#' outer parameters where the fit has it (`fit$cache$hessian_fixed`,
+#' taken at the estimates), which is exactly the curve a one-parameter
+#' move of the objective sees, under REML too; else `1 / sqrt(diag(V^-1))`.
+#' `NULL` where neither can be trusted: a covariance held as a factor
+#' (se_reparam_cov()) is one solve() takes every digit from. On a raw
+#' degree-8 polynomial it narrowed draws 20-fold that the normal law
+#' describes.
+#'
+#' @noRd
+draw_edge_csd <- function(object, V, sdv, off, reparam) {
+  np <- NROW(V) - off
+  hc <- if (is.environment(object$cache)) object$cache$hessian_fixed
+  H <- hc$H
+  out <- sdv
+  if (is.null(hc$Hq) && is.matrix(H) && NROW(H) == np &&
+        identical(hc$at, sdr_outer_point(object$obj))) {
+    # a curvature that rounds below zero (a correlation held at its limit
+    # reads +-1e-9) has no conditional sd: Inf here, and the marginal one
+    # stands, with no "NaNs produced" from sqrt()
+    cs <- 1 / sqrt(pmax(diag(H), 0))
+    ok <- is.finite(cs) & cs > 0
+    j <- off + which(ok)
+    out[j] <- pmin(cs[ok], sdv[j])
+    return(out)
+  }
+  if (reparam) return(NULL)
+  s <- which(is.finite(sdv) & sdv > 0)
+  if (!length(s)) return(out)
+  Q <- tryCatch(solve(V[s, s, drop = FALSE]), error = function(e) NULL)
+  if (is.null(Q)) return(out)
+  cs <- 1 / sqrt(pmax(diag(Q), 0))
+  ok <- is.finite(cs) & cs > 0
+  out[s[ok]] <- pmin(cs[ok], sdv[s[ok]])
+  out
+}
+
+#' The draw covariance with the positions `edge` drawn on their own (their
+#' variances, no covariance) and the rest conditional on them at their
+#' estimates.
+#'
+#' @noRd
+draw_edge_condition <- function(V, edge) {
+  rest <- setdiff(seq_len(NROW(V)), edge)
+  Vee <- V[edge, edge, drop = FALSE]
+  W <- tryCatch(solve(Vee, V[edge, rest, drop = FALSE]),
+                error = function(e) {
+                  ev <- eigen(Vee, symmetric = TRUE)
+                  inv <- ifelse(ev$values > max(ev$values) * 1e-12,
+                                1 / ev$values, 0)
+                  ev$vectors %*% (inv * t(ev$vectors)) %*%
+                    V[edge, rest, drop = FALSE]
+                })
+  Vc <- matrix(0, NROW(V), NROW(V), dimnames = dimnames(V))
+  Vc[rest, rest] <- V[rest, rest, drop = FALSE] -
+    crossprod(V[edge, rest, drop = FALSE], W)
+  Vc[rest, rest] <- (Vc[rest, rest] + t(Vc[rest, rest])) / 2
+  diag(Vc)[edge] <- diag(V)[edge]
+  Vc
+}
+
+#' A square root `L` of a covariance, `crossprod(L) == V`, through its
+#' symmetric root where held positions make it singular.
+#'
+#' @noRd
+draw_root <- function(V) {
+  tryCatch(chol(V), error = function(e) {
+    ev <- eigen(V, symmetric = TRUE)
+    sqrt(pmax(ev$values, 0)) * t(ev$vectors)
+  })
+}
+
+#' The draws' deviations from the estimates under a side-by-side law:
+#' the normal draw through `law$Lc` (the conditional law) or `L`, each
+#' coordinate then mapped through the law of the side it fell on.
+#'
+#' @noRd
+draw_edge_apply <- function(law, L, Z) {
+  delta <- crossprod(law$Lc %||% L, Z)
+  one <- function(v) length(v) == 1L && v == 1
+  for (j in which(!vapply(law$lo, one, TRUE) | !vapply(law$hi, one, TRUE))) {
+    x <- delta[j, ]
+    neg <- x < 0
+    x[neg] <- draw_edge_map(x[neg], law$s[j], law$lo[[j]])
+    x[!neg] <- draw_edge_map(x[!neg], law$s[j], law$hi[[j]])
+    delta[j, ] <- x
+  }
+  delta
+}
+
+#' Are the parameters the standard-error check calls "limit" the family's
+#' own limiting case (a zero inflation at 0, a precision at the binomial
+#' limit), which keeps the other standard errors? The check's own
+#' predicate decides, where the build has it (se_limit_quiet(), from the
+#' boundary rule for family parameters); without it nothing is called
+#' "limit", and this is FALSE.
+#'
+#' @noRd
+draw_limit_quiet <- function(object, lost) {
+  f <- get0("se_limit_quiet", envir = asNamespace("frmtmb"),
+            inherits = FALSE)
+  is.function(f) && isTRUE(f(object, lost))
+}
+
+#' Which "limit" parameters are a family parameter at the END of its
+#' range in a family limiting case (se_limit_draw_held(), the check's own
+#' predicate, where the build has it), named by `names(lost)`. A family
+#' parameter the limit leaves undefined (a `nu ~ x` slope at the gaussian
+#' limit) is not one: it keeps its variance 0, as the check holds it.
+#'
+#' @noRd
+draw_limit_held <- function(object, lost) {
+  f <- get0("se_limit_draw_held", envir = asNamespace("frmtmb"),
+            inherits = FALSE)
+  out <- stats::setNames(logical(length(lost)), names(lost))
+  if (!is.function(f)) return(out)
+  v <- f(object, lost)
+  out[names(v)[v %in% TRUE]] <- TRUE
+  out
+}
+
+#' A family parameter at the end of its range (draw_limit_held()) is held
+#' in `cov_fixed_prop`, variance 0, which would drop the side the data do
+#' identify. Its row of sdreport()'s own inverse is put back, where that
+#' is finite, so that draw_edge_law() decides each side of it as it does
+#' without that check. The caller has already sent any "limit" that is not
+#' the family's limiting case to the fallback.
+#'
+#' @noRd
+draw_limit_restore <- function(V, ds, object) {
+  lim <- names(ds$lost)[ds$lost == "limit"]
+  raw <- ds$raw
+  if (is.null(V) || !length(lim) || is.null(raw) ||
+        !all(dim(raw) == dim(V))) {
+    return(V)
+  }
+  held <- draw_limit_held(object, ds$lost)
+  lim <- intersect(lim, names(held)[held])
+  j <- match(lim, ds$map$names)
+  j <- j[!is.na(j)]
+  if (!length(j) || !all(is.finite(raw[j, ])) ||
+        !all(diag(raw)[j] > 0)) {
+    return(V)
+  }
+  V[j, ] <- raw[j, ]
+  V[, j] <- raw[, j]
+  V
+}
+
+#' How many standard deviations draw_edge_side() moves a parameter for
+#' its flat test, and the normal law's fall there, `k^2 / 2`: the
+#' distance about one draw in twenty passes.
+#'
+#' @noRd
+draw_edge_k <- 2
+
+#' How far, as a share of `draw_edge_k` conditional standard deviations,
+#' a side has to reach the normal law's fall before it is narrowed. A
+#' side the normal law describes reaches it at 1, a skewed one somewhat
+#' sooner; 0.5 narrows only a side that falls at least four times
+#' faster than the law says (dev/ppdraw-findings.md, "Fix round").
+#'
+#' @noRd
+draw_edge_c <- 0.5
+
+#' The largest change in log-likelihood draw_edge_side() calls flat.
+#' Fourteen estimates at the end of their range change by 1.3e-8 to
+#' 1.1e-7 on their flat side (dev/ppdraw-probe6.R); interior estimates
+#' near an end, from about 0.003 (a group log sd lme4 does not call
+#' singular). Between the two, the gain over the limit is what decides,
+#' and below 1e-4 holding that side is the honest reading of it.
+#'
+#' @noRd
+draw_edge_flat <- 1e-4
 
 #' The replicate's group effects at the levels the fit SAW, drawn from
 #' their conditional law given the data and the replicate's parameters.
