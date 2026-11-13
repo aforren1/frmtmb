@@ -39,7 +39,7 @@ brms's \code{posterior_epred()} does. The parameter is \code{lagsar}.}
 \code{e} holds independent normal residuals with standard deviation
 \code{sigma}, or for \code{student()} one multivariate-t draw with scale
 \code{sigma} and \code{nu}. The log-likelihood has the log-determinant
-\eqn{\log|I - \rho W| = \sum_i \log(1 - \rho \lambda_i)}, with
+\eqn{\log|I - \rho W| = \sum_i \log|1 - \rho \lambda_i|}, with
 \eqn{\lambda_i} the eigenvalues of \code{W}, computed once.
 }
 \section{Arguments of the term}{
@@ -52,8 +52,12 @@ is read as brms reads it (\code{spdep::listw2mat()}, and
 \code{spdep::nb2mat()} with its row-standardized default) without
 needing spdep. The rows the model drops (missing values) are
 dropped from \code{M}, as brms drops them. \code{M} is not checked for row
-standardization or symmetry, as in brms. Its eigenvalues must be
-real, with at least one negative and one positive.}
+standardization or symmetry, as in brms. Its real eigenvalues must
+include a negative and a positive one. A \code{W}
+from a directed graph, such as an asymmetric k-nearest-neighbor
+graph, has complex eigenvalues in conjugate pairs; each pair adds
+\eqn{\log|1 - \rho \lambda|^2}{log|1 - rho lambda|^2} to the
+log-determinant, which is real. brms 2.23.0 refuses such a \code{W}.}
 \item{\code{type}}{\code{"lag"} or \code{"error"}. A unique abbreviation is read
 as brms reads it (\code{match.arg()}).}
 }
@@ -63,7 +67,12 @@ as brms reads it (\code{match.arg()}).}
 
 \eqn{I - \rho W} is invertible and its determinant positive on the
 interval \eqn{(1 / \lambda_{min}, 1 / \lambda_{max})}, the default
-interval of \code{spatialreg::lagsarlm()}. frmtmb estimates \eqn{\rho} on
+interval of \code{spatialreg::lagsarlm()}. With complex eigenvalues the
+interval is read off the real eigenvalues alone, as spatialreg reads
+it: \eqn{1 - \rho \lambda}{1 - rho lambda} is zero at a real
+\eqn{\rho} only for a real \eqn{\lambda}{lambda}, and a complex pair
+adds \eqn{|1 - \rho \lambda|^2 > 0}{|1 - rho lambda|^2 > 0}, so the
+determinant stays positive on it. frmtmb estimates \eqn{\rho} on
 that interval through a logistic map, starting at 0. brms 2.23.0
 bounds \eqn{\rho} by \eqn{(\lambda_{min}, \lambda_{max})} instead.
 For a row-standardized \code{W} (\eqn{\lambda_{max} = 1}) that is a
@@ -93,9 +102,15 @@ Only \code{gaussian()} and \code{student()} take it, with a constant \code{sigma
 and \code{nu}, as in brms ("SAR models are not implemented when
 predicting 'sigma' or 'nu'"). It is written in the formula of \code{mu}.
 The likelihood is one joint density over all the rows, so
-\code{weights()}, \code{cens()}, \code{trunc()}, \code{se()}, \code{mi()}, \code{rescor = TRUE},
-mixtures and \code{quadrature} are refused, and a response carries one
-residual correlation term. Random effects work.
+\code{weights()}, \code{cens()}, \code{trunc()}, \code{se()}, \code{rescor = TRUE}, mixtures
+and \code{quadrature} are refused, and a response carries one residual
+correlation term. Random effects work. \code{mi()} on the response works,
+as in brms: a missing value is a coordinate of the joint draw, which
+\code{\link[frmtmb:frm]{frmtmb::frm()}} integrates out under the Laplace approximation, exact
+on \code{gaussian()}, and exact on \code{student()} too once frmtmb takes off its
+error, a function of \code{nu} and the numbers of rows and of missing values,
+when nothing else reads the values and no other random effect is
+integrated.
 
 \code{summary()} and \code{\link[frmtmb:confint_varcorr]{frmtmb::confint_varcorr()}} report \code{lagsar}
 or \code{errorsar} with a delta-method interval. \code{\link[=fitted]{fitted()}} and

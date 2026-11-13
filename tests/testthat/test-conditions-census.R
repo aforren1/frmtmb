@@ -23,6 +23,7 @@ census_exempt <- c(
   "R/fit.R | fit_assembled | stop(e)",
   "R/fit.R | optimizer_from_best | stop(e)",
   "R/fit.R | fit_error_context | stop(e)",
+  "R/par-template.R | nl_fit_off_saddle | message(w)",
   "R/par-template.R | nl_fit_off_saddle | warning(w)",
   "R/par-template.R | nl_fit_off_saddle | warning(w)",
   "R/par-template.R | nl_fit_off_saddle | stop(e)",

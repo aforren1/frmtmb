@@ -41,6 +41,28 @@ test_that("a scalar xi samples without divergences, every draw in support", {
   expect_true(all(is.finite(log_lik(dr))))
 })
 
+test_that("the formula route samples a scalar xi through tmp_xi too", {
+  # the chart's start read mu and sigma through frm_linpred(), which
+  # refuses the object the formula route assembles, so frm_sample()
+  # stopped with "frm_linpred() needs a fitted model" while the fit
+  # route sampled (backlogs 3215 and 4223)
+  rg <- function(n, m, s, k) m + s * (stats::rexp(n)^(-k) - 1) / k
+  set.seed(4)
+  d <- data.frame(y = rg(100, 0, 1, 0.1))
+  dr <- allow_warnings(suppressMessages(
+    frm_sample(y ~ 1, family = gen_extreme_value(), data = d, chains = 1,
+               iter = 300, seed = 1, refresh = 0)),
+    c("Effective Samples Size", "R-hat", "Rhat"))
+  dm <- as.data.frame(dr)
+  expect_true(all(c("b_Intercept", "sigma", "xi") %in% names(dm)))
+  expect_true(all(dm[["xi"]] > -1))
+  tmin <- vapply(seq_len(nrow(dm)), function(i) {
+    min(1 + dm[["xi"]][i] * (d$y - dm[["b_Intercept"]][i]) /
+          dm[["sigma"]][i])
+  }, 0)
+  expect_true(all(tmin > 0))
+})
+
 test_that("a prior on class xi is read on tmp_xi, and a cens() fit warns", {
   rg <- function(n, m, s, k) m + s * (stats::rexp(n)^(-k) - 1) / k
   set.seed(1401)

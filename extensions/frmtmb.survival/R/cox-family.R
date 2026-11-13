@@ -80,7 +80,17 @@
 #' `Boundary.knots` must cover every observed time. brms takes boundary
 #' knots inside the data and extrapolates the basis there, where the
 #' cumulative baseline hazard can be negative, so that the survivor
-#' function exceeds one. An argument name that brms drops without a
+#' function exceeds one. The upper knot must also cover every upper
+#' bound the likelihood reads: the upper bound of an interval-censored
+#' row and a `trunc(ub = )` bound. Past the upper knot the cumulative
+#' baseline hazard is held at its value there, which would say that no
+#' hazard accrues after it. The default upper knot widens to those
+#' bounds; brms's default reads the response alone. A `trunc(lb = )`
+#' bound, as in delayed entry, may lie below the lower knot: the model
+#' has no hazard there, so the cumulative hazard at the bound is 0
+#' exactly, and the default knots stay brms's.
+#'
+#' An argument name that brms drops without a
 #' message, such as `bhaz(int = FALSE)` or `bhaz(Bound = c(0, 30))`,
 #' is refused with the name that was probably meant. A shortened name
 #' that brms reads as an argument (`bhaz(d = 6)` for `df`, `kn =` for
@@ -106,8 +116,10 @@
 #'   they must be distinct and lie strictly inside the boundary knots.
 #' @param Boundary.knots The two boundary knots. The default, `NULL`,
 #'   is brms's: the range of the observed times widened by 1/50 of its
-#'   width at each end, with the lower knot not below zero. Given, they
-#'   must cover every observed time.
+#'   width at each end, with the lower knot not below zero, and the
+#'   upper knot widened further to an interval-censoring upper bound or
+#'   a `trunc(ub = )` bound past that. Given, they must cover every
+#'   observed time and every such upper bound.
 #' @param bhaz Not an argument of brms 2.23.0's `cox()`. Given, it is
 #'   refused with the spellings to use instead.
 #' @return A `frmtmb_family` object, ready for [frmtmb::frm()].
@@ -503,19 +515,40 @@ bspline_basis <- function(x, knots, order) {
 #' observed range so every observation sits strictly inside the basis
 #' (`splines2`'s default through brms's `bhaz_basis_matrix()`). Knots
 #' and boundary knots the user gave (`cox(knots =, Boundary.knots =)`,
-#' or brms's `bhaz()`) replace the ones placed here.
+#' or brms's `bhaz()`) replace the ones placed here. `reads` are the
+#' upper bounds the likelihood also reads (cox_read_bounds()): the
+#' default upper knot widens to them, and a given one must cover them.
 #'
 #' @noRd
 bhaz_spec <- function(y, df, degree, intercept, knots = NULL,
-                      boundary = NULL) {
+                      boundary = NULL, reads = numeric(0)) {
   n_int <- df - degree - as.integer(intercept)
   # cox(df =) alone reaches here unchecked (cox_build(check_df = FALSE))
   if (n_int < 0L) cox_stop_df("cox()", df, degree, intercept)
   rng <- range(y)
   d <- rng[2L] - rng[1L]
+  # Past the upper knot cox_cb_entry() holds the cumulative baseline at
+  # its value there, so an interval or truncation upper bound beyond it
+  # silently read no hazard after the knot. Through 0.81.0 both the
+  # default and the check read range(y) alone. Below the lower knot the
+  # model has no hazard for any row, so a lower bound there is exact and
+  # asks for no knot.
+  top <- max(c(rng[2L], reads))
   if (is.null(boundary)) {
-    boundary <- c(max(rng[1L] - d / 50, 0), rng[2L] + d / 50)
-  } else if (rng[1L] < boundary[1L] || rng[2L] > boundary[2L]) {
+    boundary <- c(max(rng[1L] - d / 50, 0), max(rng[2L] + d / 50, top))
+  } else if (rng[1L] < boundary[1L] || rng[2L] > boundary[2L] ||
+               top > boundary[2L]) {
+    if (rng[1L] >= boundary[1L] && rng[2L] <= boundary[2L]) {
+      frm_stop("cox(): the upper boundary knot of the baseline basis, ",
+               cox_num_text(boundary[2L]), ", must cover every time the ",
+               "likelihood reads, and the interval-censoring and ",
+               "truncation upper bounds reach ", cox_num_text(top),
+               ". Past the upper knot the cumulative baseline hazard ",
+               "would be held at its value there, which says that no ",
+               "hazard accrues after it. Widen Boundary.knots, or leave ",
+               "them out for a default that covers these bounds",
+               call. = FALSE)
+    }
     # brms extrapolates the basis past its boundary knots. With
     # Boundary.knots = c(0.5, 10) on times from 0.0044 to 14.42, 62 rows
     # lie below the lower knot and 1 above; the cumulative baseline
@@ -537,8 +570,9 @@ bhaz_spec <- function(y, df, degree, intercept, knots = NULL,
                cox_num_text(knots), ", must lie strictly inside its ",
                "boundary knots, ", cox_num_text(boundary),
                ". The default boundary knots are the range of the ",
-               "observed times widened by 1/50 of its width at each end",
-               call. = FALSE)
+               "observed times widened by 1/50 of its width at each end, ",
+               "the upper one further to any interval-censoring or ",
+               "truncation upper bound past that", call. = FALSE)
     }
     return(list(internal = knots, boundary = boundary, degree = degree,
                 intercept = intercept, df = df))
@@ -694,7 +728,8 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE,
     # from the observed times and ride with the response's addition
     # terms
     aterm_data = function(y, aterms) {
-      sp <- bhaz_spec(y, df, degree, intercept, knots, boundary)
+      sp <- bhaz_spec(y, df, degree, intercept, knots, boundary,
+                      reads = cox_read_bounds(aterms))
       out <- list(Zbhaz = mspline_design(y, sp), bhaz_spec = sp,
                   cox_cb = list(cox_cb_entry(y, sp)))
       for (nm in c("cens_y2", "trunc_lb", "trunc_ub")) {
@@ -712,6 +747,30 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE,
   )
   fam[["cox_sbhaz"]] <- sbhaz
   fam
+}
+
+#' The upper bounds other than the response at which the likelihood
+#' reads the cumulative baseline hazard: the upper bound of an
+#' interval-censored row and a finite truncation upper bound. A lower
+#' truncation bound is left out on purpose. Below the lower knot the
+#' model has no hazard for any row, so the cumulative hazard there is 0
+#' exactly, and `S(y) / S(lb)` is the model's own value. Widening the
+#' lower knot to the entry times instead moved the default away from
+#' brms's: on delayed-entry data (entry at half the time) it fitted
+#' 26.5 log-likelihood units worse, and brms's own knots were refused
+#' (dev/silent-findings.md, "Fix round").
+#'
+#' @noRd
+cox_read_bounds <- function(aterms) {
+  out <- numeric(0)
+  cen <- aterms[["cens"]]
+  y2 <- aterms[["cens_y2"]]
+  if (!is.null(cen) && !is.null(y2)) {
+    out <- c(out, as.numeric(y2)[cen == 2])
+  }
+  ub <- as.numeric(aterms[["trunc_ub"]])
+  out <- c(out, ub[is.finite(ub)])
+  out[is.finite(out)]
 }
 
 #' One cached (bound, I-spline design) pair. A bound outside the

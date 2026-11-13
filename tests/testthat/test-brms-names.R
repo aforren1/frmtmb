@@ -289,8 +289,9 @@ test_that("names pass through brms's renaming", {
   dd$y.b <- stats::rnorm(n)
   fm <- frm(mvbf(bf(y_a ~ x), bf(y.b ~ 1), rescor = TRUE) + gaussian(),
             data = dd)
+  # brms's order: every intercept first (reorder_pars())
   expect_identical(variables(fm),
-                   c("b_ya_Intercept", "b_ya_x", "b_yb_Intercept",
+                   c("b_ya_Intercept", "b_yb_Intercept", "b_ya_x",
                      "sigma_ya", "sigma_yb", "rescor__ya__yb"))
   vc <- VarCorr(fm)
   expect_named(vc, "residual__")

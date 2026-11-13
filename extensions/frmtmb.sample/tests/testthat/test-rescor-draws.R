@@ -326,7 +326,7 @@ test_that("without rescor each layer is the response's own draw", {
   set.seed(6)
   p1 <- posterior_predict(ds, resp = "y1")
   expect_identical(dim(pp), c(ndraws(ds), nrow(cs$dd), 2L))
-  expect_identical(unname(pp[, , 1L]), p1)
+  expect_identical(unname(pp[, , 1L]), unname(p1))
   e <- pp - posterior_epred(ds)
   expect_lt(abs(rc_z(rc_rowcor(e[, , 1L], e[, , 2L]),
                      rep(0, nrow(cs$dd)))), 4.5)

@@ -1,0 +1,13 @@
+frmtmb C:/Users/adf44/source/r/frmtmb-wt-boundfam/tests/testthat/test-review-v25.R
+frmtmb C:/Users/adf44/source/r/frmtmb-wt-boundfam/tests/testthat/test-v15.R
+frmtmb C:/Users/adf44/source/r/frmtmb-wt-boundfam/tests/testthat/test-thres-refit.R
+frmtmb C:/Users/adf44/source/r/frmtmb-wt-boundfam/tests/testthat/test-hurdle-nb-zoib.R
+frmtmb.eam C:/Users/adf44/source/r/frmtmb-wt-boundfam/extensions/frmtmb.eam/tests/testthat/test-lba.R
+frmtmb.learn C:/Users/adf44/source/r/frmtmb-wt-boundfam/extensions/frmtmb.learn/tests/testthat/test-engine.R
+frmtmb.latent C:/Users/adf44/source/r/frmtmb-wt-boundfam/extensions/frmtmb.latent/tests/testthat/test-hmm.R
+frmtmb.learn C:/Users/adf44/source/r/frmtmb-wt-boundfam/extensions/frmtmb.learn/tests/testthat/test-reference.R
+frmtmb.coupling C:/Users/adf44/source/r/frmtmb-wt-boundfam/extensions/frmtmb.coupling/tests/testthat/test-coherence.R
+frmtmb.sample C:/Users/adf44/source/r/frmtmb-wt-boundfam/extensions/frmtmb.sample/tests/testthat/test-default-priors-bounds.R
+frmtmb.eam C:/Users/adf44/source/r/frmtmb-wt-boundfam/extensions/frmtmb.eam/tests/testthat/test-contaminant.R
+frmtmb.eam C:/Users/adf44/source/r/frmtmb-wt-boundfam/extensions/frmtmb.eam/tests/testthat/test-variability.R
+frmtmb C:/Users/adf44/source/r/frmtmb-wt-boundfam/tests/testthat/test-latres.R

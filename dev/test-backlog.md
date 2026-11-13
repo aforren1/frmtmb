@@ -653,6 +653,9 @@ Regression tests in tests/testthat/test-osa-inference.R.
   `cens()` fit returns normally, silently. `simulate(censored = TRUE)` makes the draws comparable, but
   the point mass it puts at each censoring point is not a distribution
   DHARMa's rank transform can use, so it is not a drop-in fix.
+  CLOSED in the round of 2026-11-11 (lane silent): a censored row's
+  residual is drawn over its event through DHARMa's PIT tie rule;
+  `tests/testthat/test-dharma-cens.R`, `dev/silent-findings.md`.
 
 ## Code-review fixes, v0.22-v0.25 (2026-09-01)
 
@@ -724,6 +727,9 @@ tests in tests/testthat/test-review-v25.R.
   the same length-0 mean there. Confirmed 2026-09-07 at
   R/conditional-effects.R:14: `ce_aterms()`'s `strict` set is trials,
   se, trunc_lb and trunc_ub, and vint/vreal are not in it.
+  CLOSED in the round of 2026-11-11 (lane silent): `ce_aterms()` refuses
+  an unevaluable custom data term or `rate()`;
+  `tests/testthat/test-newdata-aterms.R`.
 - `cens()` stays refused for discrete families, so the discrete
   censored-truncated branch is reachable only through
   `build_objective()` and is tested that way. Confirmed 2026-09-07:
@@ -834,6 +840,10 @@ neither is the defect that lane fixed.
   Reproduction: `dev/skewinit-punch1c.R`. The fix is to escape BEFORE
   `quad_fit()` calibrates, or to recalibrate after it, both of which
   are changes to `quad_fit()` rather than to the escape.
+  CLOSED in the round of 2026-11-11 (lane quadseam): `quad_fit()` escapes on the
+  Laplace objective before it tapes the rule, and re-tapes after any
+  later move; the case lands 1.0e-8 from the unstalled fit
+  (`dev/quadseam-punch1c.R`).
 
 - DECIDED 2026-09-24 (user): KEEP REPORTING nonzero optimizer
   convergence codes, "I'd rather people think about their fits". The
@@ -861,6 +871,8 @@ neither is the defect that lane fixed.
   unguarded. `mixture()` was fixed in core in the same round and is
   the model to copy: build the declaration alongside `init_fns`, keyed
   by the same `paste0(dp, k)` name. Left to the extension's own lane.
+  CLOSED in the round of 2026-11-11 (lane silent): `hmm()` copies the
+  declaration per state; frmtmb.latent `test-hmm-stationary.R`.
 
 ## Added by wt-skewinit after punch round 2, 2026-09-22
 
@@ -1109,6 +1121,11 @@ the lane did not re-measure them. None is a wrong answer from the fit.
 - **Three spellings frmtmb accepts and brms refuses:** `cor` with
   `dpar = "mub"`; a bound (`lb`/`ub`) with `coef`; and class `b` with
   `coef = "Intercept"` on `y ~ 1`.
+  CLOSED in the round of 2026-11-11 (lane priortab): the first spelling only,
+  `cor` with `dpar` (and `nlpar`), refused as brms. `coef = "Intercept"` on
+  `y ~ 1` is refused already (checked on the lane build); a bound with `coef`
+  stays frmtmb's own box on frm() (`?set_prior`, Hard bounds) and refused by
+  frm_sample(), so that spelling stays open as a decision.
 - **One spelling brms accepts and frmtmb refuses:** `Intercept` with
   `coef = "2"` on `cumulative()`, brms's per-threshold intercept.
 - **`cratio()` with `disc ~ z`** is unsupported.
@@ -1293,6 +1310,7 @@ reference build, neither this lane's.
   `cs()`, and its comment points here. The fix belongs with a rank check
   over the FILLED design rather than the assembly-time one, since the
   `mo()` column is a zero placeholder at assembly.
+CLOSED in the round of 2026-11-11 (lane names): by user decision, keep fitting with the SE check naming the flat parameters; brms 2.23.0 fits it with no identification check (only sampler warnings).
 
 ### Open - minor
 
@@ -1462,6 +1480,7 @@ section and are listed here only where a user could hit them.
   one draw; the result is NaN, never a finite wrong number. Fix:
   compare each draw with itself at fill 0, at one more evaluation per
   draw. Lane sampfix, R2 (`dev/sampfix-rev-r2-01-watch.R`).
+CLOSED in the round of 2026-11-11 (lane sampfront): per-draw fills.
 - **`predict(newdata = )` with NA responses under `ar()`/`arma()` with
   `cov = FALSE`** is refused by name. brms fills a missing response with
   its predicted draws and runs the recursion over them;
@@ -1530,9 +1549,11 @@ section and are listed here only where a user could hit them.
 - **A harmless false alarm on laplace draws**: `(0 + x | g)` at
   `newdata` with `x = 0` is refused, because the probe's `NA` times 0
   is `NA`. Lane sampfix, M2 (`dev/sampfix-rev-01-probe.R`).
+CLOSED in the round of 2026-11-11 (lane sampfront): computed.
 - **REML with `laplace = TRUE`** samples an objective rebuilt without
   the REML integral over `beta`, so the draws are the ML Laplace
   posterior. Lane sampfix, item 3.
+CLOSED in the round of 2026-11-11 (lane sampfront): a message.
 - **`?frm_sample`'s `prior` says list names are "parameter names as in
   the draws"**; named-list priors resolve against the internal outer
   names (`tau_raw`, `beta`). Lane sampfix, item 4.
@@ -1542,14 +1563,17 @@ section and are listed here only where a user could hit them.
   where frmtmb refuses it. Both loud. Lane formula2, section 4.
 - **`summary()`'s Formula line** does not print `sigma1 = sigma2`, or
   any parameter formula. Lane formula2, section 4.
+CLOSED in the round of 2026-11-11 (lane names): the Formula lines print every pform, nlform and fixed dpar under the response formula, as brms's print.brmsformula().
 - **A `y ~ . - w` fit refit on data without `w`** is refused ("The
   model uses `w`"), as `y ~ x1 + w - w` is. Lane formula2, 9.2.
 - **A refusal from frmtmb.sample's draws accessors names the internal
   function**, "draws_accessor_args() has no argument `chains`", where
   the caller typed `as.array()`. Lane defects, section 7.
+CLOSED in the round of 2026-11-11 (lane sampfront): names the method.
 - **`summary()`'s `Data:` line is empty** for a fit whose data came by
   value through `do.call()`; brms records a deparse cut at 50
   characters. Lane defects, section 7.
+CLOSED in the round of 2026-11-11 (lane names): by user decision, data passed by value is named `<data.frame: rows x cols>` (class shown), with no deparse.
 - **`xbeta()` third derivatives inside the tie blend of
   `log_pbeta_ad()`** are off by up to 0.12 relative at shapes (1e6,
   3e6), against 3e-9 for plain `log(RTMB::pbeta())`. Values and first
@@ -1559,9 +1583,13 @@ section and are listed here only where a user could hit them.
 - **`posterior_average()`'s refusals** quote the variable without
   brms's quotes, and `pp_average()` and `model_weights()` are not
   exported. Lane postfit2, section 8.
+CLOSED in the round of 2026-11-11 (lane sampfront): quoted; both defined.
 - **A multivariate model's `logLik()` `nobs` attribute** counts rows
   that no response's `subset()` uses (80 where 72 rows carry data).
   `BIC()` reads it. Lane aterms2, re-check.
+  CLOSED in the round of 2026-11-11 (lane silent): `logLik()`'s `nobs`,
+  `df.residual()` and `anova()` count rows a response keeps (`nobs()`
+  stays brms's); `tests/testthat/test-subset-rate.R`.
 
 ### Upstream, listed in `dev/upstream-bugs.md` for the user to file
 
@@ -1655,6 +1683,7 @@ them, and the ledger records the ones the ported suite reaches.
 - **`frm_sample()` takes no `drop_unused_levels`**; fit with
   `frm(drop_unused_levels = FALSE)` and sample the fit. Lane
   formrobust, section 9.
+CLOSED in the round of 2026-11-11 (lane sampfront): taken.
 - **`refit(newresp = )` of a recoded bernoulli fit** takes the 0/1
   codes that `simulate()` returns and refuses the original values by
   name. Lane formrobust, section 9.
@@ -1866,6 +1895,7 @@ and the ledger, and upstream defects in `dev/upstream-bugs.md`.
   stays internal, since its block list holds `tau_raw` twice; and a
   sum-to-zero component has no class `Intercept` row, which brms
   lists. `dev/ordmix-findings.md`, "Not done, and why".
+CLOSED in the round of 2026-11-11 (lane names): insight reads every component's thresholds on fixef()'s scale under order = "mu"; the sum-to-zero Intercept row stays with the decision of 1832.
 - **fixes: F11 seed 8** (`bf(y ~ s(x1), sigma ~ s(x2))`) stops 0.142
   below rellib-r5's optimum, converged, with finite standard errors:
   sigma's smoothing SD sits at a local optimum (theta -7.99, -0.80)
@@ -1881,9 +1911,11 @@ and the ledger, and upstream defects in `dev/upstream-bugs.md`.
 - **gpby: `zgp` is not a draw name.** frmtmb samples the field and
   brms its standardized `zgp`; the map is the change of variables
   `L^-1 b`, which a column cannot be renamed into. Section 7.
+CLOSED in the round of 2026-11-11 (lane names): exact gp() draws are zgp_<term>[i] (z in the farthest-first order, documented as not elementwise brms's).
 - **gpby: the draws' column order** puts each sub-GP's `sdgp` beside
   its `lscale`; brms puts every `sdgp` first. Names match, order does
   not. Section 7.
+CLOSED in the round of 2026-11-11 (lane names): the draws list every sdgp_ before the lscale_, by brms's class order.
 - **gpby: core `predict()` holds a `gp()` curve at its mode** and draws
   neither its coefficients nor the kriging residual, so its interval
   past the positions is narrower than brms's. Section 7.
@@ -2350,6 +2382,7 @@ item. Each item this round closed is marked in place above with
   best of 10 jittered starts beats the default on 20 of 40 fits, but
   on 12 of those 20 the better point is degenerate
   (`dev/optima-ordmix-starts.R`). Lane optima, item 4c.
+  CLOSED in the round of 2026-11-11 (lane ordstart): 10 jittered starts by default (no random effects), converged runs only, ranked so that a step function never wins; 12 of 40 fits move and the degenerate warning goes from 12 fits to 5, but 2 of the 7 new points are flat points the check does not see (dev/ordstart-findings.md).
 - **`parnames.frmtmb_fit()` and `parnames.frmtmb_draws()` decide
   whether to warn from which generic the `parnames` binding resolves
   to**, not which generic dispatched; a call through a generic the
@@ -2592,6 +2625,7 @@ install 32), and the release tree took the fixes by a rerun of
   called "flat", where "a mixing parameter at its limit", in the
   boundary message that exists, explains the fit better (lane
   seflags' section below; review consolidation list).
+  CLOSED in the round of 2026-11-11 (lane boundfam): the mixing logit is named at the end of its range (-23.4, toward -Inf), and the wiener parameters as undetermined there.
 - **Read every `||` term as brms does** (moparity's r2, in its section
   below). A core parsing change; its own lane.
   CLOSED at 0.71.0 (lane dblbar): a `||` term is `(x | gr(g, cor = FALSE))`,
@@ -2712,6 +2746,7 @@ the measurements.
   decoupled row (unit-diagonal eigenvalues 0.98 to 1.01) and an
   objective rounding of about 1e-3 there; needs a limit test per family
   precision.
+  CLOSED in the round of 2026-11-11 (lane boundfam): log phi2 at 23.4 gets the boundary message and a NaN SE; the other SEs are kept.
 - **The cs() ordinal-mixture wall has no message naming its cause.**
 - **`mo(inc) * age` with the interaction's simplex at a face**
   (`dev/seflags-segapface.R`, seeds 2, 3, 5 of 6): the flat split along
@@ -2770,6 +2805,7 @@ the measurements.
   check after punch round 2, frmtmb.eam `test-defects.R:92`): the mixing
   logit at -23.44 is called "flat", and "a mixing parameter at its
   limit", in the boundary message that exists, explains the fit better.
+  CLOSED in the round of 2026-11-11 (lane boundfam): as 2591 above.
 - **frmtmb.eam's R CMD check warns "'::' or ':::' import not declared
   from: 'rstan'"**: its `test-sampling.R` calls `rstan::` and rstan is
   not in Suggests (since 5f39a6f5, 0.69.0). Seen by lane seflags'
@@ -2899,6 +2935,7 @@ See `dev/round-20261014.md`, "Found at the consolidation".
   `confint_varcorr()$block`); `term_label` is a matching key, so the
   change is not cosmetic. The class "cor" refusal names the term as
   written since 0.72.0 (lane prilabel); the tables still read it.
+CLOSED in the round of 2026-11-11 (lane names): confint_varcorr()$block shows a || term as written; term_label stays the internal key.
 - A diagonal within-level covariance for `gr(cov = )` / `gr(prec = )`
   would let a factor sit in a `||` term over a known matrix; now
   refused.
@@ -2972,6 +3009,7 @@ See `dev/round-20261014.md`, "Found at the consolidation".
 - huber() reached +1.39e5 on 400 rows on rellib-r8 (a degenerate stop
   of its density); fuzz specs with `weights(w)` and `ar1()` on beta and
   Gamma reach objectives near -1e15 on rellib-r8.
+  CLOSED in the round of 2026-11-11 (lane wcheck): neither reproduces.
 - 0.70.0's initializers read an `mi()` response's imputed zeros outside
   the least-squares rule (`bf(y | mi() ~ 1)`).
 - The wide design ends at "false convergence (8)" at lme4's maximum on
@@ -3104,6 +3142,7 @@ See `dev/round-20261020.md`, "Found at the consolidation".
   reports NA for both affected correlations. It is 0.71.0's filed
   flat-ridge item; a cheap guard would treat `se_t == 0` on a row that
   is not at its boundary as NA.
+  CLOSED in the round of 2026-11-11 (lane boundfam): a zero se gives NA bounds, and so do the correlations of a us() row past the clamp in a block of 3 or more.
 - **`summary()` prints "Method: ML (MAP)" for a fit whose prior only
   sets bounds**, which adds no density and which `drop1()` now treats
   as maximum likelihood. On 0.71.0 too.
@@ -3155,18 +3194,22 @@ See `dev/round-20261020.md`, "Found at the consolidation".
 - `ranef()` of a categorical fit is 25 x 2; brms's is 25 x 4 x 2.
   `coef()` is a list by dpar, so `coef(fit)$g` is `NULL`; brms's is
   25 x 4 x 4. Pre-existing.
+CLOSED in the round of 2026-11-11 (lane names): ranef() is one levels x coefficients matrix per factor and coef() one frame per factor with every fixef() column; the ML shape stays lme4's 2-D, not brms's levels x 4 x coefs.
 - `variables()` order on a categorical fit is `b_mua_Intercept b_mua_x
   b_muc_Intercept b_muc_x`; brms's is `b_mua_Intercept b_muc_Intercept
   b_mua_x b_muc_x`. The names agree.
+CLOSED in the round of 2026-11-11 (lane names): variables() and the draws follow brms's reorder_pars() order.
 - `default_prior()` prints a multivariate response by its raw name
   (`Y_a`) where brms prints its Stan name (`Ya`); `set_prior(resp = )`
   takes both. Pre-existing for every class.
+  CLOSED in the round of 2026-11-11 (lane priortab): default_prior() lists `Ya`, brms's Stan name.
 - `multinomial(K = )` and `categorical(K = )` keep positional `mu2`,
   `mu3` names with named columns; `categorical()` keeps unused factor
   levels where brms drops them; `insight::get_predicted()` on
   `multinomial()` returns flattened counts where brms errors; the
   observation margin of `posterior_epred()` of categorical draws is
   named where brms leaves it `NULL`.
+CLOSED in the round of 2026-11-11 (lane names): K takes named categories from the data, categorical() drops unused levels, and draws' posterior_epred() leaves the rows unnamed; insight::get_predicted() on multinomial() is not done (filed again).
 - The review's nit (check of round 2): the `tryCatch()` around the
   twin's `assemble_frame()` in `refcat_first_outer()` catches only
   `frmtmb_error`, so a base R error there would stop the fit instead of
@@ -3192,18 +3235,24 @@ See `dev/round-20261020.md`, "Found at the consolidation".
   sigma ~ (1 | ga))` with `skew_normal()` gives h, alpha g, sigma ga;
   frmtmb h, sigma ga, alpha g; `dev/prilabel-rev2-predorder.R`).
   Within a predictor the order is brms's (review R2).
+CLOSED in the round of 2026-11-11 (lane names): group ids follow the written dpar order, as brms numbers them.
 - `mm(id = )` stays refused.
 - Population-level `variables()` order: brms `b_Intercept,
   b_sigma_Intercept, b_x`; frmtmb `b_Intercept, b_x,
   b_sigma_Intercept`.
+CLOSED in the round of 2026-11-11 (lane names): population-level order is brms's, every class b intercept first.
 - `coef()` of a distributional model is keyed by dpar, then group;
   brms keys by group.
+CLOSED in the round of 2026-11-11 (lane names): coef() is keyed by group, holding every predictor's coefficients.
 - Class `cor` rows of a dpar block: frmtmb lists `cor, g, sigma` where
   brms has one `cor, g` row, and brms sorts `cor` before `sd`.
+  CLOSED in the round of 2026-11-11 (lane priortab): one `cor, g` row per group, no dpar, as brms.
 - `confint_varcorr()$block` and other tables read `term_label` (`1 + f
   | g` for a `||` term); it is the matching key.
+CLOSED in the round of 2026-11-11 (lane names): as 2897.
 - `ranef()` gives one entry per block: two blocks on one factor give
   the names `g g`; brms merges them into one `g` entry.
+CLOSED in the round of 2026-11-11 (lane names): blocks on one factor are one ranef() entry.
 - `validate_prior()` and `prior_summary()` keep `default_prior()`'s
   order for every class but `sd`; brms sorts by class, group, resp,
   dpar, nlpar and coef.
@@ -3219,6 +3268,7 @@ See `dev/round-20261020.md`, "Found at the consolidation".
   with "frm_linpred() needs a fitted model", the fit route samples
   (`dev/sampleprior-gevform.R`). Fix: compute the chart's start from
   the starting parameter list.
+CLOSED in the round of 2026-11-11 (lane sampfront): samples.
 
 #### Open - low
 
@@ -3231,6 +3281,7 @@ See `dev/round-20261020.md`, "Found at the consolidation".
   disclosure message and `prior_summary()` do not list it either.
 - The prior table's `lb`/`ub` columns, and brms's empty group `sd` row
   under the class row (frmtmb repeats the density).
+  CLOSED in the round of 2026-11-11 (lane priortab): `lb`/`ub` as brms's; group `sd` rows read (flat).
 - Draw columns other than `sd_`/`cor_` (autocor, rescor and the like)
   go through `hyp_env_vals()` once per draw, about 33 times the fast
   path's cost.
@@ -3274,9 +3325,17 @@ See `dev/round-20261020.md`, "Found at the consolidation".
   are the seam a fix would read. Of the same class: `predict()` of
   `se(s, sigma = TRUE)` with sigma near 0 overflows the draws (sd
   1.6e141).
+  CLOSED in the round of 2026-11-11 (lane ppdraw): predict() reads each
+  side of a parameter at or near the end of its range off the
+  likelihood (flat side not drawn into, steep side narrowed), for zi,
+  hu, `zi ~ x`, sigma and group sds (`frmtmb_draw_held`). The joint
+  move it does not read is filed in this round's section.
 - **`mixture(cumulative(), cumulative())` draws `NA`**: `predict(
   propagate_error = TRUE)` gives `NA` in 42.75% of draws with no
   condition (review R1-c, `dev/ndaterm-rev-r1ord.R`). Pre-existing.
+  CLOSED in the round of 2026-11-11 (lane ppdraw): the collapsed gap's
+  flat side is not drawn into (0 NA), and a non-finite simulator draw at
+  finite parameters now warns with a count.
 
 #### Open - low
 
@@ -3335,6 +3394,7 @@ See `dev/round-20261020.md`, "Found at the consolidation".
   verdict for poisson); `y | cens(cen) ~ x` with every row
   right-censored gives SEs near 4e9 with no warning (seeds 2 and 3
   lose two SEs as "flat").
+  CLOSED in the round of 2026-11-11 (lane boundfam): se_edge_limit() names the coefficients at the end of their range and those left undetermined, with NaN SEs and a warning that the MLE does not exist.
 
 #### Open - low
 
@@ -3444,9 +3504,11 @@ findings 2 to 4 and "Item 1".
     logLik 352.966; log phi 39.11, logLik 29663.6). The growth is a
     power, about `k^(excess / 2)`, and a Student-t tail is
     `k^-(nu + 1)`, so the verdict follows from `nu`.
+  CLOSED in the round of 2026-11-11 (lane wcheck): decided, with Jacobian.
 - **`mvbf()` with `(1 | obs)` per response runs away without a
   refusal** (two gaussian responses, weights summing above n: logLik
   790.247 on 0.72.0 and 0.73.0). The check runs for one response only.
+  CLOSED in the round of 2026-11-11 (lane wcheck): each response checked.
 - **The Laplace allowance for censored rows is derived, not proved.**
   Since the release review's finding 1 the check runs on the uncensored
   rows and, under the Laplace approximation, takes 1/2 off the excess
@@ -3463,6 +3525,7 @@ findings 2 to 4 and "Item 1".
   sigma -7.24 with false convergence (0, 8 and 40 censored are
   refused). A measurement of the censored rows' Laplace term would
   settle the constant.
+  CLOSED in the round of 2026-11-11 (lane wcheck): one side costs 0.
 - **Quadrature stops a runaway at a spurious maximum.** In the same
   probe, `quadrature = TRUE` stopped at log sigma -3.65 to -5.21 (conv
   0) at every excess from 2 to 32, where the exact integral has no
@@ -3471,6 +3534,12 @@ findings 2 to 4 and "Item 1".
   check treats quadrature as exact for that reason; a fit that the
   check does not reach (several responses, `se()`) gets that
   spurious maximum.
+  CLOSED in the round of 2026-11-11 (lane quadseam): `quad_settle()`
+  re-tapes the rule at the estimate until it is stationary, and warns
+  `frmtmb_quad_unsettled` on a runaway the weights check does not
+  reach: a gaussian with `mi()` stopped at log sigma -4.06 with code 0
+  (`dev/quadseam-runaway3.R`). The weighted `(1 | obs)` cases of this
+  item are refused by the weights check since lane wcheck (3447).
 
 #### Open - low
 
@@ -3479,10 +3548,15 @@ findings 2 to 4 and "Item 1".
   and the boundary message (`dev/fuzzfix-quad-boundary.R`, seed 3: sd
   4.773e-05, Est.Error 0.1355, Q2.5 -0.2654). `sdr_nan_nonpos()` and the
   boundary rule do not run on a quadrature objective.
+  CLOSED in the round of 2026-11-11 (lane quadseam): on the one-block route the
+  boundary rule probes rules taped at each sd (`se_probe_fn()`): the
+  same message and NaN SE as under Laplace. The nested route is
+  filed under "Filed in the round of 2026-11-11".
 - **Weights summing to exactly n with an observation-level effect**
   drift to a boundary dispersion (log shape 15.7 on the fuzz data;
   gaussian `scale = TRUE` log sigma -8.27). Bounded, so not refused; the
   boundary message should reach a dispersion at its limit.
+  CLOSED in the round of 2026-11-11 (lane boundfam): a dispersion at its limit is named (se_edge_limit()); a Gamma shape whose ray still rises warns that the fit stopped on the way up.
 - **`gamma(2, 1)` on a log-scale `b` of `shape ~ 0 + fac`** stops at
   "NA/NaN gradient evaluation" on 0.72.0 and 0.73.0 alike (a
   positive-support prior on a coefficient of either sign; review,
@@ -3594,6 +3668,7 @@ findings 2 to 4 and "Item 1".
 - **`posterior_linpred.frmtmb_draws()` ignores an unknown argument**
   (`posterior_linpred(ds, junk = 1)` returns the matrix): it never calls
   `frm_check_dots()`, where `posterior_epred()` refuses.
+CLOSED in the round of 2026-11-11 (lane sampfront): refused.
 - **`fit$data` is NULL on draws**: a `frmtmb_draws` holds `stanfit`,
   `draws` and `fit`, so brms code that reads `fit$data` gets NULL in
   silence (bin-2 row `brmsfit-methods:469` holds hollowly on it).
@@ -3611,11 +3686,18 @@ findings 2 to 4 and "Item 1".
   asym_laplace with 72 of 80 rows censored, still run away (with a
   false-convergence warning). The measured cost of a censored row is
   about 0.16. A tighter, proved allowance would close them.
+  CLOSED in the round of 2026-11-11 (lane wcheck): one side costs 0.
 - **A quadrature fit can stop at a false maximum on a runaway** (TMB's
   fixed Gauss-Kronrod nodes, `dev/upstream-bugs.md` TMB-3): gaussian
   `(1 | obs)` at an excess of 0.5 returns conv 0 while the exact
   likelihood keeps rising. The weights check refuses that case; other
   unbounded quadrature fits are not detected.
+  CLOSED in the round of 2026-11-11 (lane quadseam): the one-block rule
+  is taped again at the estimate until it is stationary
+  (`quad_settle()`), and an unbounded fit the weights check does not
+  reach (`mi()`, `se()`, a family outside its table) warns
+  `frmtmb_quad_unsettled`; the gaussian `(1 | obs)` case is refused by
+  the weights check.
 - **Extension families are outside the weights check.** frmtmb.eam's
   `wiener()` and `rdm()` with `cens()`, weights 1.5 and `(1 | obs)` run
   away (logLik 1782.55 and 766.21) with warnings. Each extension would
@@ -3843,14 +3925,17 @@ names the lane changed.
 - `ranef()` of a smooth-only model returns the smooth's penalized
   coefficients under the internal names `s(x).1`, ...; brms stops, and
   names them `s_sx_1[1]`, ... in `variables()`.
+CLOSED in the round of 2026-11-11 (lane names): ranef() of a model with no group-level term stops in brms's words; smooth draws are s_<label>[i].
 - `variables()` of an ML fit with `mo()` has no `simo_` entries; brms's
   has `simo_mok1[1]`, ..., and frmtmb.sample's draws have them.
+CLOSED in the round of 2026-11-11 (lane names): variables() of an ML fit lists simo_ and hypothesis() reads it.
 - The column order of `variables()` and of the draws is frmtmb's
   template order, not brms's (every centered intercept first, then
   response by response); recorded by the earlier lane
   (`dev/brmsnames-findings.md`, "Found and NOT fixed", item 1). The
   summaries follow brms since 0.75.0: `fixef()` of the fit and of the
   draws.
+CLOSED in the round of 2026-11-11 (lane names): variables() and the draws' accessors follow brms's order; x$draws keeps the template order.
 - The prior table's classes sort as brms's do since 0.75.0; `confint()`
   keeps frmtmb's internal parameter rows on purpose (brms has no
   `confint()` method).
@@ -3876,6 +3961,8 @@ Record: `dev/bhaz-findings.md`, sections 4 and 7;
   the knot, as at 0.74.0 for `cens_y2` and truncation bounds, so "must
   cover every observed time" says less than it seems to (the review's
   "Cases the lane did not test").
+  CLOSED in the round of 2026-11-11 (lane silent): the upper knot covers
+  every upper bound the likelihood reads; `test-cox-bounds.R`.
 - Without frmtmb.survival, `bhaz()` on any family says to load
   frmtmb.survival, and with it loaded the same call on gaussian is
   refused; `dec()` has the same shape with frmtmb.eam (review finding
@@ -3898,6 +3985,10 @@ Record: `dev/sarfcor-findings.md` (A6, B4, "What needs the user");
   asymmetric kNN graph, common in spdep). brms fails too; a general
   complex log-determinant (`log|1 - rho lambda|` over conjugate pairs)
   is cheap and not built.
+  CLOSED in the round of 2026-11-11 (lane arspat): `sar()` takes a W with
+  complex eigenvalues; each pair adds log|1 - rho lambda|^2, rho's interval
+  from the real eigenvalues alone, as spatialreg reads it
+  (dev/arspat-findings.md).
 - `confint_varcorr()` gives rho a delta-method interval on the raw
   scale, so its upper end can pass `1 / max eigenvalue` near the bound.
 - `sar()` with `mi()` or with `ar(cov = FALSE)`, and `newdata2`, are
@@ -4071,6 +4162,7 @@ was posted upstream.
   `dev/mocode-findings.md`, "Where frmtmb still differs from brms".
 - `variables()` of an ML fit has no `simo_` entries (filed at 0.75.0,
   still open).
+CLOSED in the round of 2026-11-11 (lane names): as 3846.
 
 ### Residual correlation priors
 
@@ -4105,20 +4197,33 @@ was posted upstream.
   non-consecutive GLOBAL levels, so a ported brms script fits the
   by-level model where brms fits the by-position one. Pre-existing.
   Record: `dev/loglik-findings.md`, Fix round 1, "Not done".
+  CLOSED in the round of 2026-11-11 (lane arspat): a message of class
+  `frmtmb_autocor_gap`; the levels reading is kept, a question for the user in
+  dev/arspat-findings.md.
 - **brms accepts `se()` and `mi()` beside `ar(cov = TRUE)`**, where
   frmtmb refuses them. Pre-existing. Record: the same.
+  CLOSED in the round of 2026-11-11 (lane arspat): `se(sigma = TRUE)` and
+  `mi()` beside the covariance form fit as in brms; L1 to 1.1e-13 and 1.7e-13
+  (dev/arspat-findings.md).
 - **The Jacobian check is literal.** `frmtmb_register_autocor(jacobian
   =)` is checked against the map entry by entry, so a slot that returns
   `O K` for an orthogonal `O`, with the same `K'K`, is refused although
   the precision it gives is right. Record: `dev/reviews/2026-10-27-loglik.md`,
   Fix round 2 check, "Still open".
+  CLOSED in the round of 2026-11-11 (lane arspat): a slot giving O K is
+  accepted by its Gram matrix and read through K'K e (`jacobian_rotated`).
 - **Optional: a documented option for the dense-fallback threshold**
   (`getOption("frmtmb.autocor_dense_max", 1000L)`, named in "The
   Jacobian"), which would also let frmtmb.spatial's `test-sar.R` set it
   instead of reading `frmtmb:::autocor_loo_dense_max`. Record: the same
   review, Fix round 2 check, item 2.
+  CLOSED in the round of 2026-11-11 (lane arspat):
+  `options(frmtmb.autocor_dense_max = )`; frmtmb.spatial's test sets it to 60.
 - `fcor()` allocates two `n x n` matrices per draw. Record:
   `dev/loglik-findings.md`, "Open items and defects".
+  CLOSED in the round of 2026-11-11 (lane arspat): fcor() reads diag(M^-1) from
+  the block: peak 34.5 Mb to 0.2 Mb and 4.0x faster per draw at n = 1500
+  (dev/arspat-fcor-cost.R).
 
 ### Found by the consolidation
 
@@ -4183,6 +4288,9 @@ was posted upstream.
   compat row and `?frmtmb-autocor` ("Divergence from brms") state the
   gap. Not checked: `mi()` beside `cov = TRUE`, which the 0.76.0 loglik
   lane noted brms accepts too.
+  CLOSED in the round of 2026-11-11 (lane arspat): fits, `D R D + diag(se^2)`
+  per group; objective, draws and pointwise log-density
+  (dev/arspat-findings.md).
 - **Saved 0.76.0 draws** of a model with one of these terms report the
   old marginal sd as `sigma` in `summary()`, `posterior_summary()`,
   `as.matrix()` and `variables()`; only the computed quantities
@@ -4225,6 +4333,7 @@ parity gap and saved 0.76.0 draws) stand.
   Pre-existing (rellib-r14 too). Review
   `dev/reviews/2026-10-27-priordraws.md`, new finding 13
   (`dev/review-priordraws-gevbase.R`).
+CLOSED in the round of 2026-11-11 (lane sampfront): with 3215.
 - **`default_prior()` fails on `rr()`**: `y ~ x + rr(0 + tf | g, d = 1)`
   stops with "arguments imply differing number of rows: 1, 0", on both
   arms. Review `dev/reviews/2026-10-27-reslot.md`, finding 6
@@ -4234,6 +4343,8 @@ parity gap and saved 0.76.0 draws) stand.
   `dev/mointerop-findings.md`, fix round 1, "Pre-existing".
 - **`drop1()` omits `mo()` terms**, both arms, also on a 4-category
   fit. Same record.
+  CLOSED in the round of 2026-11-11 (lane silent): `drop1()` and `add1()`
+  read the whole formula; `tests/testthat/test-drop1-specials.R`.
 - **`predict()` of a gap fit draws at the estimates alone** (the
   parameter uncertainty is dropped), both arms. Same record.
 - **The marginaleffects `re_formula` warning (upstream).**
@@ -4247,9 +4358,11 @@ parity gap and saved 0.76.0 draws) stand.
   leaves slopes`** when the call gives class `"b"` a prior; the prior
   applies, the line is wrong. Pre-existing (`dev/priordraws-disclosure.R`,
   `dev/priordraws-findings.md`, section 8).
+  CLOSED in the round of 2026-11-11 (lane priortab): the line reads "(flat) where your prior sets none".
 - **The sampling table shows `lb` NA on `sd` and `sigma` rows**, where
   brms's `default_prior()` shows 0, on both routes. `dev/reslot-findings.md`,
   "Not done, and why".
+  CLOSED in the round of 2026-11-11 (lane priortab): `sd` class rows `lb = 0`, `sigma` 0, as brms.
 - **`vignettes/brms-migration.Rmd`, the paragraph on prior classes**,
   still says `sdgp` and `lscale` are refused by name and that a `coef`
   on an `sd` row is refused; both have been wrong since 0.72.0 or
@@ -4280,6 +4393,7 @@ parity gap and saved 0.76.0 draws) stand.
   `test-get-prior-route.R` ("coercion drops the class and the label
   together") rules out today. `dev/round-20261028.md`, "Release fixes",
   R1 and F1.
+  CLOSED in the round of 2026-11-11 (lane priortab): "" rows read, "(flat)" rows refused.
 - **`frm()` refuses `pe[, "prior", drop = FALSE]` with the wrong
   cause.** A one-column selection of an edited fit-route table keeps
   its route since release fix F1, and `frm()` then stops with
@@ -4290,12 +4404,14 @@ parity gap and saved 0.76.0 draws) stand.
   names no slot, so a refusal that says so would be right. Release
   review, short check of release fix 2, S3
   (`dev/review-rel077-c-run/fix2-r15.txt`, seed 11).
+  CLOSED in the round of 2026-11-11 (lane priortab): refused for the dropped slot columns.
 - **`default_prior() + set_prior()` and `set_prior() + default_prior()`
   fail** in R's `Ops` dispatch ("Incompatible methods" between
   `Ops.data.frame` and `+.frmtmb_priorlist`, then "non-numeric argument
   to binary operator"), on 0.76.0 too; brms 2.23.0's `+` combines them.
   `c()` takes the table in either order since the release review
   (finding 3). Release review, `dev/review-rel077-b-run/r1c-rellib-r15.txt`.
+  CLOSED in the round of 2026-11-11 (lane priortab): `+` combines a table and set_prior(), either order.
 - **PARITY GAP: a cluster sandwich over the series of a residual
   correlation term.** Under `ar(time = t, gr = h, cov = TRUE)`,
   marginaleffects' `vcov = ~ h` is refused by `vcov_cluster()` with
@@ -4304,6 +4420,8 @@ parity gap and saved 0.76.0 draws) stand.
   series there, so `~ <the ar group>` (or a grouping that nests it)
   has a valid cluster sandwich. Release review, finding 2
   (`dev/review-rel077-b-run/x3.R`, `x3.txt`).
+  CLOSED in the round of 2026-11-11 (lane arspat): `vcov_cluster()` and `vcov =
+  ~ g` work when every series lies in one cluster; a split series is refused.
 - **A residual-correlation term of order 2 or 3 under `prior = "flat"`**:
   `prior_summary()` prints `ar` as `uniform(-2, 2)` or `uniform(-3, 3)`
   with no bounds, not as `(flat)`. The round trip gives identical draws,
@@ -4313,15 +4431,20 @@ parity gap and saved 0.76.0 draws) stand.
   specifications" for `list(sp1)` and still suggests `sp1 + sp2` there;
   `list("flat")` and `list()` get the generic message. Release review,
   finding 8 (`s1r2-rellib-r15.txt`).
+  CLOSED in the round of 2026-11-11 (lane priortab): `list(sp1)`, `list()`, `list("flat")` named.
 - **`frm(prior = "flat")` is refused with the generic message**, where
   `frm_sample()` takes the string; a pointer to `frm()`'s
   maximum-likelihood default would help. Pre-existing. Release review,
   finding 8 (`s1r2-rellib-r15.txt`, line 24).
+  CLOSED in the round of 2026-11-11 (lane priortab): the refusal points at frm_sample() and ML.
 - **`predictions(newdata =)` on an `ar(cov = FALSE)` fit stops behind
   marginaleffects' generic message** ("newdata repeats a time within a
   group"), on rellib-r14 too; and the `"HAC"` refusal says a frmtmb fit
   "does not carry" a time order, but an `ar()` fit does. Release review,
   finding 8 (`x4.txt`).
+  CLOSED in the round of 2026-11-11 (lane arspat): `get_predict()` predicts
+  marginaleffects' padding rows apart under cov = FALSE; the HAC refusal names
+  the within-group order and `~ g`.
 - **The bin-2 adapters find brms's suite through `../../brms-suite`**
   when `FRMTMB_PORT_ROOT` is unset: a stage folder at another depth
   then fails `distributions:446`, `:479`, `:527` and `:549` with "object
@@ -4370,10 +4493,12 @@ parity gap and saved 0.76.0 draws) stand.
 - **`prior_samples()` is not defined in frmtmb.sample**; brms's
   deprecated `prior_samples()` reaches `prior_draws()` while brms is
   loaded. Same record.
+CLOSED in the round of 2026-11-11 (lane sampfront): defined.
 - **`variables()` of an ML fit lacks `simo_` entries**: the hypothesis
   layout would need the simplex and its delta-method rows.
   `brmsfit-methods:978` stays a divergence anyway. `dev/mointerop-findings.md`,
   section 7.
+CLOSED in the round of 2026-11-11 (lane names): as 3846; hyp_par_cov() carries the simplex coordinates.
 - **The ported helper `brms_shim_update()` drops `sample_prior`** with
   the sampling arguments, so a ported `update(fit, sample_prior = )` row
   would not reach it. No such row is ported. `dev/priordraws-findings.md`,
@@ -4527,9 +4652,11 @@ section 7.4.
   `meanme_mexg meanme_mez meanme_mewg`, brms `meanme_mexg meanme_mewg
   meanme_mez`. `b_` and `bsp_` interleave differently on the dpar, mv
   and mi shapes. Same set of names on every shape.
+CLOSED in the round of 2026-11-11 (lane names): me() hyperparameters are listed group by group; b_ and bsp_ follow the class order.
 - **`default_prior()` gives `sigma` no `lb = 0`**, on every shape;
   brms gives `lb = 0`. The same as the 0.77.0 item on the `sd` and
   `sigma` rows of the sampling table, still open.
+  CLOSED in the round of 2026-11-11 (lane priortab): `sigma` and `sd` class rows `lb = 0`, as brms.
 - **`mi()` latent values are `miss_<k>` in draws**; brms names them
   `Ymi_<resp>[k]`.
 - **`"only"` refuses a `me()` vector with a proper prior on some terms
@@ -4574,6 +4701,7 @@ Review `dev/reviews/2026-10-28-rescorpp.md`; `dev/rescorpp-findings.md`,
   `list(NULL, NULL)`** (pre-existing nit, review finding 12): every
   `resp = first` difference on `posterior_predict`, `predictive_error`,
   `predict(summary = FALSE)` and `log_lik` in the review's layout logs.
+CLOSED in the round of 2026-11-11 (lane names): one-response draws matrices carry list(NULL, NULL).
 - **On a univariate model, `posterior_epred()` and `fitted()` with
   `resp = character(0)` stop with a raw "attempt to select less than one
   element"**, and with `resp = c("y", "y")` with "Unknown response:
@@ -4584,6 +4712,7 @@ Review `dev/reviews/2026-10-28-rescorpp.md`; `dev/rescorpp-findings.md`,
 - **`log_lik(combine = FALSE)` without rescor is refused**; brms returns
   a draws x observations x responses array. `dev/rescorpp-findings.md`,
   section 8.
+CLOSED in the round of 2026-11-11 (lane sampfront): brms's array.
 - **Two brms 2.23.0 defects**, `dev/upstream-bugs.md` brms-43 (one
   response of a student rescor model reads `nu = 1`) and brms-44 (a
   permuted `resp` stops every method that prepares several responses
@@ -4640,14 +4769,17 @@ none is a regression of this release.
   `resp`; `set_prior("lkj(5)", class = "cor", group = "g", resp = "y2")`
   is accepted on both routes and reaches only y2's block, where brms
   refuses it (`x4-r16.txt`, `x6-*.txt`).
+  CLOSED in the round of 2026-11-11 (lane priortab): rows have no resp; cor resp kept (decision 2026-09-24).
 - **`set_prior("lkj(2)", class = "rescor", coef = "y__y2")` is
   accepted** on both routes; brms refuses it (`x4`).
+  CLOSED in the round of 2026-11-11 (lane priortab): rescor with `coef` or `group` is refused, as brms.
 - **`conditional_effects()` of a multivariate model without `resp`**
   returns the first response only (`x3`, `x5`); the rescorpp item above
   has the rest.
 - **`default_prior()` table `+ set_prior()`** fails with "non-numeric
   argument to binary operator", an `Ops` method conflict; `c()` works.
   Filed at 0.77.0 too; still open.
+  CLOSED in the round of 2026-11-11 (lane priortab): `+` combines a table and set_prior(), either order.
 - **Draws depend on the order of specifications in different slots**:
   the floating-point sums differ by order, pB + pb gives 4.788349 and pb
   + pB 4.797311 (`x5`). No action needed; recorded so a bitwise
@@ -4660,6 +4792,653 @@ none is a regression of this release.
   package does not declare (inferred by the review, not run). The skip
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
+
+## Filed at the 0.82.0 release (2026-11-11)
+
+### From lane boundfam
+
+- **LOW. A joint runaway is still called flat** (dev/boundfam-findings.md,
+  "Not done"): a poisson fit whose one count is at the largest x
+  (`dev/boundfam-repro.R`, case pois1max) runs (Intercept) to -436.5
+  and x to 208.8 together, with a code-7 warning that says the stop is
+  at the maximum and the "flat" warning. glm() warns "fitted rates
+  numerically 0". The limit rule reads one coefficient at a time, and
+  each coefficient alone costs likelihood there. The verdict depends
+  on the coding (dev/reviews/2026-11-11-boundfam.md, m2): poisson
+  `y ~ g` with group a all zero gives (Intercept) -22.3 and gb 23.5
+  "flat", while `y ~ 0 + g` gives ga "limit" and the warning that the
+  maximum likelihood estimate does not exist; the zero-inflated and
+  negbinomial forms of `y ~ g` stay "flat". The treatment-coded
+  `zi ~ f` with one level all zero is silent on both builds, with SEs
+  of 5374 (dev/reviews/boundfam-short-*).
+- **MEDIUM. A zero-inflation probability sent to 1 is called the family's
+  limiting case** (dev/reviews/boundfam-short-*, m7): with
+  `zi ~ 0 + f` and one level all zero, zi_fa runs to +21.9. The
+  column has no negative rows, so `se_limit_separating()` does not
+  call it a separation, and the quiet boundary message says the
+  probability "drops that part of the model", where it goes to 1. The
+  bernoulli analogue warns of quasi-complete separation. The SEs are
+  right (zi_fa NaN, zi_fb 2.20 kept; 0.81.0 gave 4665 in silence);
+  only the class and the text are wrong. Suggested rule: an end that
+  sends zi, hu or zoi to 1 on some rows is a separation.
+- **LOW. A negbinomial shape at its limit stays "nocurv" behind a
+  convergence warning** (dev/boundfam-findings.md, "Fix round"):
+  seed 17 of poisson data, log shape 23.2, code 8 and a gradient of
+  1.35e-3 above `grad_tol`. The convergence verdict makes the stop
+  short, so the standard-error analysis is not applied, and the limit
+  rule, which would fire there, is not asked.
+- **LOW. 3022 and 3037 are family fit-end checks, not the boundary rule**
+  (dev/boundfam-findings.md, "Not done"): both stay open as filed.
+### From lane quadseam
+
+Lane record: `dev/quadseam-findings.md`.
+
+- **MEDIUM. A skew normal under `quadrature = TRUE` started at the stall can
+  end 5.5e-2 short.** wt-skewinit's acceptance seed 6 with `(1 | g)`
+  and the stall start: logLik -244.155229735 at alpha 5.008, against
+  -244.100465993 at 5.267 from the default start; the Laplace fit
+  reaches its maximum from both starts. The same on 0.81.0 and the
+  lane build; no escape fires, since the warm start does not stop on
+  alpha = 0. The one-block route has no Newton polish
+  (`newton_polish()` runs only without `integrate`), and the rule taped
+  at the stop reads a gradient below `grad_tol` there
+  (`dev/quadseam-escorder.R`, `dev/quadseam-seed6.R`).
+- **MEDIUM. The Gauss-Kronrod rule's error depends on its anchor, up to
+  1e-3.** On the review's 120 fits at the default `grad_tol` (Bernoulli
+  groups of 4 and of 2, poisson sd 1 and sd 2;
+  `dev/reviews/quadseam-review-acc.R`) the log-likelihood against
+  `stats::integrate()` per group at the fit's own estimate has a worst
+  error of 1.06e-3 with the rule taped at the estimate (4.48e-2 on
+  0.81.0); against 0.81.0 it is worse by more than 1e-6 on 19 fits and
+  better on 17. TMB's calibration takes its curvature by differences
+  with a step of 1 and stops its mode search at a gain of 1e-2
+  (`ytol`), so the rule is not equally good at every anchor.
+- **LOW. The nested quadrature route still gives no boundary verdict.** An
+  sd at zero under `(1 | ga/gb)` keeps the "flat" warning: the upward
+  check needs the rule taped at each probed sd, and the nested rule
+  needs the Laplace objective for its anchor, which the fit does not
+  keep (`se_edge_probed()`).
+- **MEDIUM. `sd_up_escape()` does not run under quadrature.** A quadrature fit
+  left with an sd near zero short of an interior maximum (the start at
+  exp(-20) of test-se-tier.R) keeps the "flat" warning or the
+  convergence warning where the Laplace fit restarts and reaches the
+  maximum. The upward probe now works on the one-block route
+  (`se_probe_fn()`); the restart would then need `quad_settle()`.
+- **MEDIUM. Cross-lane (boundfam): a coefficient that runs off under one-block
+  quadrature gets a finite SE and no warning.** Poisson with a factor
+  level whose counts are all zero, plus `(1 | g)`: under Laplace the
+  coefficient (-22.53) has SE NaN and a warning ("toward -Inf" on
+  boundfam's build, "flat" on this lane's); under `quadrature = TRUE`
+  it has SE 7471 and no word, on both builds
+  (`dev/reviews/quadseam-review-limit.R`). boundfam's
+  `se_edge_limit()` keeps its own `!isTRUE(fit$quadrature)` gate. On
+  the one-block route its direction test can read `se_probe_fn()`;
+  its curvature test (`se_limit_curv()`) takes `obj$he()` at a moved
+  point, which on the frozen rule is a read away from the anchor and
+  would need the Hessian of a rule taped at that point. For the
+  consolidation to decide; not done in either lane.
+### From lane ppdraw
+
+- **MEDIUM. `predict()` on a weakly identified mixture draws from a
+  normal law the likelihood does not support.** Lane ppdraw's sweep
+  (`dev/ppdraw-sweep.R`, seed 101, 300 rows, 1000 draws) has three
+  mixture fits whose `predict()` mean leaves `fitted()` by 7.9 to 21.9
+  Monte Carlo standard errors with no parameter at an edge:
+  `mixture(gaussian(), gaussian())` and `mixture(poisson(), poisson())`
+  on one-component data (z -21.86 and -7.88), and
+  `mixture(cumulative(), cumulative())` on two-component data (largest
+  category z 9.67). The simulator is right: against the mean of the
+  expected response at each drawn parameter vector the same draws give
+  z 0.45, 0.12 and a largest category z of 3.21 (`dev/ppdraw-probe3.R`).
+  The draw law is not: the log-likelihood falls at the draws by a median
+  of 5.68, 11 and 10.2 (99th percentile 85.8, 1182 and 156) where a
+  normal law over p parameters says chi2_p / 2, a median of 3.17, 2.18
+  and 4.17. On the zero-inflated and hurdle fits of the sweep the two
+  agree (median 1.19 against 1.18). Options, not built: importance
+  weights `exp(-drop) / normal density` over the draws (one objective
+  per draw), or a warning when the median drop exceeds the law's by a
+  set factor. Needs a user decision on whether predict() may reweight
+  its draws.
+- **LOW. `predict()`'s mean and `fitted()` differ by the plug-in gap on
+  identified fits, which is not documented.** `fitted()` is the
+  expected response at the estimates; `predict()` averages over the
+  parameter draws. On the sweep's hurdle_negbinomial and hurdle_poisson
+  interior fits the gap is 5.09 and 3.63 Monte Carlo standard errors
+  (0.4 to 1 percent of the mean), and the paired reference agrees
+  (z -0.43, 0.77 at 400 draws, `dev/ppdraw-probe3.R`). brms's
+  `fitted()` is a mean over draws, so brms has no such gap. A sentence
+  in `?predict.frmtmb_fit` would say it.
+- **LOW. predict()'s side law moves one parameter at a time.** It reads
+  each side with the other parameters at their estimates, so a joint
+  move that no single side shows is not seen: on `zi ~ x` at the
+  boundary (3269 data) the intercept's and the slope's steep sides are
+  each narrowed, yet together they still draw zi above what brms 2.23.0
+  draws (lane ppdraw's fix round, `dev/ppdraw-fix-a14.R` and
+  `dev/ppdraw-fix-brms.R`, 4000 draws): P(y = 0) 0.0126 against 0.0098,
+  and on `hu ~ x` with no zeros 0.0069 against 0.0033 (0.81.0: 0.4941
+  and 0.4907). The means are within 3.2 Monte Carlo standard errors of
+  fitted() at 400 draws. Part of the gap is brms's prior on zi. A
+  joint reading (the log-likelihood at the draws) is the
+  importance-weight question of the item above. With lane boundfam's
+  rule the slope is held instead (undefined at that limit).
+- **LOW. predict()'s side law costs an inner solve per side on a fit
+  with random effects, on its first call.** 3.27 s on a poisson GLMM
+  with 62 outer parameters and 2000 levels, where the fit took 13.0 s
+  and a second predict() 0.20 s; 1.22 s on a zinb GLMM with 8 (lane
+  ppdraw's fix round, `dev/ppdraw-fix-cost.R`). No screen was found
+  that can tell from the estimates alone that a side is not steep: the
+  standard error is in the parameter's units, and the curvature at the
+  estimate is what the normal law already reads.
+- **LOW. predict()'s side law has a cliff at `draw_edge_c`.** A side is
+  narrowed only when the log-likelihood falls by 2 within one
+  conditional sd; just past that it keeps the full normal law. On a
+  smooth family of fits (`y ~ x + (1 + x | g)`, 20 groups, the group
+  slope scaled by lambda from 0.5 to 2, `dev/reviews/ppdraw-short-cliff.R`,
+  logs `-lane.txt`, `-base.txt`), a new level's 98% predictive width at
+  x = 2 is 5.17 to 5.19 for lambda up to 1.4 (fall at 1 csd 2.08) and
+  steps to 5.56 at 1.5 (fall 1.94), against the reviewer's exact
+  reference of about 5.70. Fix route: a continuous scale, such as
+  min(1, t2 / (2 csd)) on every side, which needs `draw_edge_c` only as
+  a screen. The coverage check that confirmed the law
+  (`dev/reviews/ppdraw-short-cov-sum.txt`) has the changed fits at 0.890
+  to 0.920 coverage at 90%.
+### From lane wcheck
+
+Record: `dev/wcheck-findings.md`.
+
+- **LOW. The Laplace allowance still costs 1/2 per censored row on the
+  other side.** When no constant mean brings every censored row to
+  probability 1 (rows censored on both sides, interval rows, `trunc()`,
+  a mean formula that does not span the constant, or a prior that
+  bounds the mean), each such row takes 1/2 off the excess, and the
+  check fails open below that. The measured cost can be far less:
+  asym_laplace with 72 of 80 rows right censored and the mean held 2
+  below the bound grew with a slope of 8.00 per unit of `-log sigma`,
+  where the allowance takes 36 off; the effects' log sd ran to 12.8
+  (`dev/wcheck-cens-path.R`). The derivation at a fixed sd gives 1/2
+  per such row, so the measurement is not explained. The same with 36
+  rows left censored, 36 right and 8 uncensored
+  (`dev/reviews/wcheck-review-misc.R`, part cens): the check takes 36
+  halves off, so 8 - 18 < 0 is let through, and the objective grows at
+  8.00 per unit from log sigma -8 to -14 (quantile free or held at
+  0.5); the fit ends at logLik 39.17, log sigma -7.59, conv 1 with a
+  gradient of 1.43e6 (warned, not silent), and quadrature ends at
+  conv 1 too. Gaussian rows on the other side cost about 1/2 (slopes
+  3.7 to 3.9 at an excess of 8 with 8 such rows).
+- **MEDIUM. hurdle_lognormal and zero_inflated_beta are outside the spike table
+  and run away unrefused.** With weights 1.5 and `(1 | obs)`
+  (`dev/reviews/wcheck-review-misc.R`, part quad): `hurdle_lognormal`
+  reaches a Laplace logLik of 968.909 at log sigma -37.49 (conv 1), and
+  `zero_inflated_beta` 2.79e10 at log phi 52.87 (conv 1); under
+  `quadrature = TRUE` both stop at a false maximum at conv 0 (-33.1861,
+  120.834). Each needs a table entry with its own proof, with the
+  hurdle and zero-inflated rows treated as zero_inflated_asym_laplace's
+  zeros are (a point mass neither grows nor curves).
+- **LOW. A free treatment contrast of `sigma ~ 1 + f` under a bounding
+  Intercept prior is not decided.** frmtmb puts the Intercept prior on
+  the centered intercept, which the contrast moves too, so the check
+  returns "unknown" there. With two cells the model is unbounded
+  exactly when the mean excess of one cell exceeds the mean weight of
+  the other (`dev/reviews/2026-11-11-wcheck.md`, finding 1: weights 0.3
+  and 1.5 under `normal(0, 1)` run to logLik 612.75, conv 1, unrefused).
+  An exact rule for more cells is a linear program not derived yet.
+- **LOW. An invalid prior meets the weights refusal before its own error.**
+  `set_prior(..., class = "b", coef = "Intercept", dpar = "sigma")` on
+  a centered dispersion design is refused by frmtmb ("names an
+  intercept that this model centers"), but on a weighted model with an
+  observation-level effect `frm()` gives the weights refusal first, so
+  the user does not see what is wrong with the prior
+  (`dev/reviews/wcheck-short-attacks.R`, `wcheck-short-couple-lane.txt`).
+  The order predates the round of 2026-11-11.
+- **LOW. The observation-level warning names a multivariate term with its
+  response.** `mvbf(bf(y ~ x + (1 | obs)), ...)` warns "`y 1 | obs`
+  gives every observation its own random effect"; the formula writes
+  `(1 | obs)`. The block label carries the response prefix, which the
+  weights refusal now strips (`block_term_in_response()`).
+- **MEDIUM. asym_laplace with 72 of 80 rows right censored and `(1 | g4)` ends
+  at logLik -0 and log sigma -38.61** (conv 1) after "Starting value 0
+  for sigma is -Inf through its log link", on rellib-r20 and the lane
+  alike (`dev/wcheck-cases.R`, part cens). Not investigated; 3333 (all
+  rows censored) is near it.
+### From lane priortab
+
+- **MINOR. A user's `lb` at an end where the prior's density is 0 gives
+  a closed box with an infinite objective at the end.**
+  `set_prior("lognormal(0, 1)", class = "b", coef = "z", lb = 0)` on a
+  slope the data want negative (`yneg = y - 0.8 z`, seed 1, n = 120)
+  stops at z = 0 with objective Inf; `beta(2, 2)` with `lb = 0` the
+  same, and `gamma(0.5, 1)` at -Inf. On 0.81.0 nlminb reported code 0
+  there. The round of 2026-11-11 reports such a stop as not converged
+  (code 1, "the objective is Inf at the reported optimum"), but the
+  value is still the end, not the mode: under `beta(2, 2)` the mode is
+  129.8616523 at z = 0.006822082 (`lb = 1e-8`). The cure is a fit-route
+  transform of a bounded coefficient (lb + exp(u), a logit for two
+  bounds), which changes every bounded fit. Reproducer:
+  `dev/reviews/priortab-review-probe2.R` (B1e, B2e) and
+  `dev/reviews/priortab-review-probe3.R` (M).
+- **MINOR. A uniform on a centered intercept is not boxed to its
+  support.** `uniform(0, 0.5)` on class `"Intercept"` of `y ~ z`, or on
+  `sigma`'s Intercept under `sigma ~ x`, still ends in "NA/NaN gradient
+  evaluation". The density is on the intercept at the predictor means,
+  which no box on the stored intercept bounds; a user's `lb` there boxes
+  the stored intercept, a different number (pre-existing). Documented in
+  `?set_prior`, Hard bounds. `dev/reviews/priortab-review-probe2.R`
+  (B7, B10).
+- **LOW. S2. A box on a distributional parameter's own class can land one ulp
+  outside the support.** `internal_bound()` maps a support's end through
+  the link, and `linkinv()` of the mapped bound can return a value just
+  outside the support, where a uniform's log density is -Inf:
+  `plogis(qlogis(0.3))` is 0.30000000000000004. Through the logit 37 of
+  99 values land outside, through the log 33 of 100. `uniform(0, 0.3)`
+  on `zi` stops with code 1 at 168.6664, where a Newton step would still
+  gain 4.98; `uniform(0.35, 5)` on `sigma` fails with "NA/NaN gradient
+  evaluation". Both are loud, and an explicit `lb`/`ub` there fails the
+  same way on 0.81.0. Fix route: move the internal bound inward in
+  `internal_bound()` until `linkinv()` lands inside the support. Logs:
+  `dev/reviews/priortab-short-*` (`-ulp`, `-zi`).
+### From lane nlstop
+
+- **LOW. F11 seed 8's higher maximum is at a boundary that only a refit
+  reaches** (open since 0.70.0, item "fit_loss2 and F11 seed 8"). On
+  0.81.0 `bf(y ~ s(x1), sigma ~ s(x2))` stops at -589.023726, code 0, no
+  warning, with the sd of `s(x2)` at exp(-0.80); a refit from that log sd
+  at -10 reaches -588.881888 and stays there (`dev/nlstop-f11.R`). A
+  probe that does not refit cannot see it: the objective at log sd -10.8
+  with the rest held is 0.69 lower than the fit, and one or two Newton
+  steps in the other parameters on the fit's Hessian diverge (712.8 and
+  2.7e11, `dev/nlstop-dbg2.R`). The only test found is one refit per
+  interior sd, about one more fit each, on every model with random
+  effects. Not done: the brief prefers a warning to a costly search, and
+  there is no cheap warning (lane nlstop).
+- **LOW. The quadratic model under-reads a stop on a curved ridge tilted by a
+  weak prior.** `c0 + exp(a)^k`, `normal(0.5, 1000)` on k, a stop moved
+  along the ridge to k = 50 is 1.225e-3 short at code 0 with no warning:
+  `grad_verdict()` reads a headroom of 4.23e-4 (the reparameterized
+  Newton step), and `headroom_ritz_flat()` finds no flat column there, so
+  the Ritz-flat exception is not what keeps it quiet (`dev/nlstop-dbg3.R`,
+  `dev/nlstop-dbg4.R`). With psd 100 and k = 5 the stop is 1.012e-3 short,
+  also silent; from 3.16e-3 short every stop warns. The 1.9e-4 stop of the
+  0.81.0 Limit is below `grad_tol` and its silence is the rule. The prior's
+  gain along the ridge's tangent is exactly the shortfall here, but the
+  data-only Hessian's flattest direction carries the gradient across the
+  ridge, and a gain read along it was 2.7e7 (lane nlstop).
+- **MEDIUM. huber() with a group term stops short in silence on half the fits.**
+  `y ~ x + (1 | g)`, 100 rows, 20 groups, t3 noise, seeds 1 to 20
+  (`dev/nlstop-huber.R`, against the best of 8 jittered starts): at the
+  response scales 1 and 1e3, 11 of 20 fits are short each, 6 and 5 of them
+  with no warning, by 0.0074 to 0.272; without the group term 0 of 40. The
+  Laplace objective jumps where a residual crosses `k` (lane optrap, m6).
+  Under `quadrature = TRUE` the same rows read 0 short at scale 1 and 2
+  short at 1e3 (0.0274 and 6.7e-4, `dev/nlstop-huber-quad.R`). Either
+  say so on a huber() fit with random effects under the Laplace
+  approximation, or document `quadrature = TRUE` as its route (lane
+  nlstop). The fix round documented it in `?huber` and added no warning:
+  the review found no cheap detector (coordinate probes find 3 of 11
+  silent shorts) and a warning on every such fit would fire on 9 of 20
+  correct fits at each scale (review of lane nlstop, user question).
+- **MEDIUM. Silent short nonlinear fits left on the review's fresh rows** (425
+  rows, 335 fit from the default start; `dev/nlstop-freshsum.R`): binomial
+  `Vm * xp / (K + xp)` seeds 11 and 44 stop at code 0 with no warning at
+  -623.288529 (K -0.182532) and -626.898840 (K -0.110348), trapped
+  between poles inside the data's xp (0.1 to 5); the higher points are
+  proper interior maxima outside the covariate's range, -618.966489 at K
+  -6.0152 and -625.980024 at K -6.45313, code 0, reached from K starts
+  near -6 (8 and 9 of 24 starts), so the defaults are 4.32 and 0.92 short
+  of a real maximum (`dev/reviews/nlstop-review-pole.R`). On bernoulli mm
+  55, user starts at K = -2.5 end at code 0 with no warning at
+  -207.650719 (K -1.00) and -207.001511 (K -2.92), with a pole inside the
+  data, 1.38 and 0.73 below the linear limit. Cumulative `a * xp^b` seed
+  22 is 1.03 short at code 0; bernoulli `sig4` seed 55 is 2.8e-4 short,
+  below `grad_tol` (lane nlstop, corrected in its fix round).
+- **The limit check (`frmtmb_nl_limit`) misses two limits it describes.**
+  `a * (exp(b * x) - 1)` on linear data (n 1000, seed 2): code 0, no
+  warning, a 1.40e4, b 1.44e-4; scaling (a, b) by (1000, 1/1000) raises
+  the log-likelihood by 0.003285, above `grad_tol`, but the flattest
+  eigenvector of the differenced Hessian in log magnitudes is not exactly
+  (1, -1), and the 1000-fold move along it leaves the ridge (gain
+  -0.0200), so the check says nothing. The Hill body `Emax * x^h / (EC50^h
+  + x^h)` on step data with a gap: h times 1000 overflows to NaN, and the
+  quadratic gate reads 9.14 against 1. A fix would re-solve the stiff
+  direction after the move (one Newton step across it) and move by
+  smaller factors where the body overflows
+  (`dev/reviews/nlstop-review-fndebug.R`; review of lane nlstop, MINOR
+  1). Neither is a regression:
+  0.81.0 is silent on both (lane nlstop).
+- **LOW. `grad_headroom()` on ordinal nl fits (4793), a `frmtmb_control()`
+  switch for the sign probe (4931) and the profile at x near 1e-20
+  (4856)** were not reached in this round (lane nlstop).
+### From lane gpstop
+
+- **0.81.0's own first descent can end at a white-noise field, code 0,
+  no warning.** A field in a nonlinear body (and the additive low-count
+  poisson body of fitedge's lane96) ends with its length scale far below
+  a tenth of the median nearest-neighbour gap on 5 rows, at code 0 with
+  no warning and the same with and without the second reading
+  (`dev/gpstop-fx-margin.R`, `gpstop-out/fx-margin.txt`): exp_a
+  bernoulli n120 s2 at 5.4e-4 of the median gap, lane96 B wig 60 2 at
+  0.021, logis_a poisson n40 s1 at 0.031, logis_a bernoulli n120 s2 at
+  0.049, lane96 B wig 60 1 at 0.074. The review's MAJOR 2 showed such a field to be a Laplace
+  artifact on its row (importance sampling 4 to 11 below). The second
+  reading now refuses to move a fit there; nothing yet tells the user
+  when the first descent stops there.
+
+- **5033 re-described: `student()` with an exact `gp()` on a step field
+  is a limit of the Laplace approximation, open.** The default (st80:
+  `dev/arstep-ng.R`, seed 1, n 80) stops at the best regular maximum of
+  the Laplace objective, 68.5503, code 0, no warning, inner Hessian
+  eigenvalue 0.999. The higher Laplace values (79.545, and 207.366 on
+  n 160) are spikes: inner eigenvalue 4.17e-8 and 1.82e-5, adding 8.50
+  and 5.46, outer gradient 1.3e12 and 2.0e11, each fit warned. But the
+  marginal by importance sampling rises from 71.0 to 71.3 at the default
+  to 73.5 to 73.9 at the st80 spike (the review's four estimates and
+  `dev/gpstop-stis2.R`, 40000 draws), about 2.5 above the default, and
+  no check at the default's stop separates this from a correct fit. On
+  n 160 the importance-sampling value is lower at the spike (201.9
+  against 203.6). `dev/gpstop-findings.md`, item 2;
+  `dev/reviews/2026-11-11-gpstop.md`, MAJOR 3.
+- **An approximate `gp(x, k = )` in a nonlinear body stops at a
+  degenerate length scale, silent.** The body start and its second
+  reading at the optimum cover the exact field only, so the approximate
+  field gets no start: `a * exp(b * z)` with `a ~ gp(x, k = 20)` ended at
+  a log length scale of -12.43, code 0, no warning, outer Hessian
+  eigenvalue 1.4e-8 (the HSGP's sd and length-scale ridge), and with `b ~ gp(x, k = 20)` 1.18 below the best of 8 theta
+  starts (100.401246 against 101.584647); `pow_a` gaussian n 120 seed 2
+  with `k = 12` at -12.67 (`dev/reviews/gpstop-review-gate.R`,
+  `gpstop-review-sweep.R`; review MINOR 7). The gate was not widened.
+
+- **MEDIUM. The two exact `gp()` rows 0.80.0's Limits name beside `student()` stay
+  short, silent:** `pois_mid two 80` 1.59 and `gsigma step 40` 1.45 below
+  a theta start that ends at code 0 with no warning, on rellib-r20 and on
+  the lane alike (`dev/gpstop-ng.R`, seed 1; `dev/gpstop-findings.md`).
+  A candidate, not built or measured: read the mean's working marginal
+  again at the fit's optimum, as `gp_body_relin()` reads a body, with each
+  row's known noise there (`sigma_i^2` under `sigma ~ z`, `1 / mu_i` under
+  poisson). A t-weighted version of that read the fit's own length scale
+  on 6 `student()` rows and gained nothing (`dev/gpstop-stproto.R`).
+- **MEDIUM. `student()` beside an exact `gp()` has Laplace spikes.** Where a row
+  sits past `sqrt(nu) sigma`, one eigenvalue of the inner Hessian can
+  come near 0, and the Laplace value there gains `-log(ev_min) / 2`
+  (4.2e-8 and 1.8e-5 on the rows of 0.80.0's Limits, adding 8.5 and 5.5).
+  The fits that reach one warn (code 1, gradient 1e9 to 1e12), so it is
+  not silent; a message that names the cause (a near-singular inner
+  Hessian) would say more than the gradient warning does.
+### From lane ordstart
+
+- **LOW. The degenerate check's "collapsed" test is exact-double equality,
+  so it is path-dependent**: on cum_cum seed 5 of
+  `dev/ordstart-starts.R` the default fit (two thresholds the same
+  double, warns) and a jittered start's fit (two thresholds 1e-15
+  apart, `cover` 2.5e-16, silent) have the same logLik to 1e-10. The
+  same holds for `near > 50` along a flat threshold (cum_sratio seed
+  16: a threshold at -39.8, the log-likelihood flat to 1e-10 over a
+  shift of 10; some starts drift past 50 and warn). 10 percent of the
+  fits the rule passes have a category a component gives at most 1e-8
+  at every row (`dev/ordstart-out/base40-classes.txt`). The multi-start
+  ranks these flat boundaries with proper points for that reason
+  (`mixture_starts_pick()`); the warning itself still flags one point
+  and not its twin. A cut on `cover` would be continuous; not measured
+  for false alarms.
+  The same blind spot passes points the jittered starts move to. The
+  review's short check (dev/reviews/2026-11-11-ordstart.md, "Short
+  check", S3) found 6 of the 15 step-to-proper moves on a flat
+  direction the step test and the fit-end check both call proper:
+  cs_sr_acat seed 4 (threshold `mu2_Intercept[2]` 325.5, its cs()
+  slopes 161.3 and 204.3, all SE NaN; smallest Hessian eigenvalues
+  -3.9e-31, -4.1e-15, -2.0e-7; one category at 1.8e-85; a refit from
+  the point gains 0.4638 and ends at code 1, so it is not a maximum),
+  cs_sr_acat seed 1 (SE 8310, eigenvalue 6.9e-9, the profile 1.09
+  higher at t = 2), dpar_formula seed 4 (a threshold at -32.45 with SE
+  4443, eigenvalue 5.07e-8, cover 3.2e-8), cum_sratio 14 (SE 5.05e3,
+  eigenvalue 3.92e-8, cover 6.6e-7), cum_sratio 18 (SE 5.2e3,
+  eigenvalue 3.7e-8, cover 9.1e-9) and acat_cumcll_K7 seed 6 (SE
+  8.19e3, eigenvalue 9.8e-9, cover 1.2e-8). Measured as a stricter
+  proper test on the 40-fit table (`dev/ordstart-strict.R`,
+  `dev/ordstart-strict-sum.R`): an exact-Hessian eigenvalue floor of
+  5.1e-8 rejects all 6, but calls 11 of the 28 defaults 0.81.0 passed
+  flat (cum_cum 16 and cum_sratio 3 would lose their upward moves), and
+  the 5 upward moves (cum_cum 3, 11, 16; cum_sratio 3, 11) land on
+  points it rejects; it also rejects cum_cum 15 and cum_sratio 9, whose
+  standard errors are 1.33 and 7.55. A cover floor of 1e-8 rejects 1 of
+  the 4 of the 6 whose cover was measured (cum_sratio 14 is at 6.6e-7)
+  and calls 8 passed defaults flat. Neither separates the six from
+  sound fits on these data, so neither was built. A test on the
+  standard error in natural units (above 5e3 here, at most 43.6 on the
+  other moves) is the next candidate; not measured.
+- **MEDIUM. A flat ordinal-mixture threshold with no warning at all**: cum_sratio
+  seed 16 (n = 300, `mixture(cumulative(), sratio())`, `y ~ x + z`)
+  fits silently with component 2's first threshold at -39.8, where the
+  gradient is 3e-15 and the log-likelihood does not move over a shift
+  of 10 (`dev/ordstart-probe16.R`). Neither the degenerate check (near
+  33 < 50) nor the SE check warned. Not measured: the standard error
+  `summary()` reports for it.
+- **LOW. Ordinal mixtures with random effects run no jittered starts by
+  default**: each start is a Laplace fit, 15 to 23 times the fit in all
+  (n = 1000, 50 groups, `dev/ordstart-cost.R`), so `starts = n` opts
+  in. How often the answer moves with random effects is not measured.
+  Refits from a fit's estimates (bootstrap, `influence()`, `refit()`)
+  run none either unless `starts` is set, and `frm_allfit()` runs none.
+### From lane silent
+
+- **MINOR. The stationary-point escape is one pass, so two declared
+  dpars on their point at once leave one there.** `escape_stationary()`
+  restarts from each declared dpar moved off its point with the others
+  held, and keeps the best optimum; it does not look again. With both
+  states of `hmm(2, skew_normal())` started at alpha = 0
+  (`dev/silent-hmm-probe.R lane`, seeds 1 to 3) the escape ran 4
+  restarts and left one alpha at 0: logLik -1019.45, -985.69 and
+  -976.15, against -998.26, -960.60 and -953.59 from the default start.
+  `mixture()` of two skew normals has the same code path. The default
+  start of the probe's data stalls one state at most. Fix: repeat the
+  escape from the kept optimum while it gains and a declared dpar still
+  sits on its point, at most once per declaration.
+  (`dev/silent-findings.md`, item 857.)
+- **MINOR. An addition term whose value has the length of the new rows
+  by coincidence is read row by row.**
+  `vreal(rep_len(c(1, 3), 120))` on a 120-row fit is refused by
+  `conditional_effects()` on its default 100-row grid, but accepted at
+  `resolution = 120`, where the fitted rows' values pair with grid rows
+  they do not describe. Both `ce_aterms()` and `aterms_for_newdata()`
+  accept any value of length 1 or n, so `predict(newdata = )` on 120
+  rows reads the same way by construction (not run). A value that names
+  no column of the new data cannot follow its rows; refusing such a
+  term when it has length n and n is not 1 would close it.
+  (`dev/silent-ce-probe.R`, `dev/silent-findings.md`, item 720.)
+- **MINOR. `anova()`'s same-data check compares a count of rows, not
+  the rows.** A multivariate fit whose responses `subset()` rows 1 to 72
+  of 80 and one whose responses take rows 9 to 80 both count 72, and
+  `anova()` tests one against the other, on base and after the fix of
+  item 1562 alike (`dev/reviews/silent-review-nobs.R`, case E: "ran").
+  `loglik_nobs()` already builds the set of rows each fit reads;
+  comparing those sets instead of their lengths would close it.
+  (`dev/reviews/2026-11-11-silent.md`, MINOR 2.)
+### From lane arspat
+
+- **LOW.** `sar()` beside `ar(cov = FALSE)` is still refused, where brms 2.23.0
+  fits it (`mu[n] += Err[n, 1:Kar] * ar`, then the SAR density of `Y`;
+  `dev/arspat-out/brms-probe.txt`). A response holds one residual term
+  (`frame$autocor[[resp]]`), and 33 readers in 11 files branch on
+  `autocor_is_cond()` of that one slot, so carrying a `cov = FALSE`
+  term beside a registered one is a change of the frame's shape, not
+  of `sar()`. The `mi()` half of backlog 3903 is closed; `newdata2`
+  stays open too.
+- **LOW.** `confint_varcorr()` still gives `sar()`'s rho a raw-scale
+  delta-method interval (backlog 3901). An interval on the logit chart
+  of the term's bounds needs `lo`/`hi` carried through the five
+  places that rbind or back-transform these rows (R/confint.R,
+  R/methods-fit.R twice, R/multiple.R, R/autocor-latent.R).
+- **LOW.** On gaussian data a `student()` fit runs nu to about 1e9, where brms's
+  program and frmtmb's density part by 1e-5 nats (`se_ar_student` of
+  `dev/arspat-out/l1-all.txt`); at df 4 they agree to 1.1e-13. Likely
+  Stan's `multi_student_t` head at a large nu (frmtmb uses
+  `lgamma_shift_diff()`); not checked against an exact reference.
+  CLOSED in the round of 2026-11-11 (lane arspat): not a frmtmb defect.
+  At nu = 1e9 the naive `lgamma((nu + k)/2) - lgamma(nu/2)`, Stan's head,
+  errs by -5.3e-7 (k = 3) and -1.1e-6 (k = 6) against the asymptotic
+  series; `lgamma_shift_diff()` errs by at most 2.1e-14. One error per
+  group over 30 groups is 1.5e-5 to 3e-5, the size of the gap
+  (dev/reviews/arspat-review-se.log). Nothing goes upstream.
+- **LOW.** `skew_normal()` with `se(s, sigma = TRUE)` beside `ar(t, g)` (the
+  `cov = FALSE` latent residual) fits in frmtmb, on rellib-r20 and on the
+  lane (logLik -89.9534 on `dev/arspat-l1d.R` case `skew_se_ar_cond`),
+  where brms 2.23.0 refuses it ("Please set cov = TRUE in ARMA structures
+  when including known standard errors"). Under `cov = TRUE` both fit it
+  and the log density is identical to brms's program (2.8e-14 for
+  `ar()`, 0 for `cosy()`, three points each). Parity question: refuse it
+  as brms does, or keep it as a model brms will not write. Reported to
+  the coordinator; behavior not changed.
+- **MEDIUM.** `student()` with `fcor()` or `sar()` and `mi()`, plus a random effect
+  such as `(1 | h)`: the exact Laplace correction `c(nu, n, m)` is off
+  there (`autocor_seam_t_missing()` refuses it beside another integrated
+  block), and the error is silent again. With the random-effect sd fitted
+  at 2.9e-5, the error is -1.3614 nats, and `mi_laplace_note()` reads
+  `tk = -0.927`, under its `|tk| > 1` gate. With a real random effect
+  (sd 1.92) it reads -0.789, and the exact value is not known. Fix route:
+  a message for this case, or a lower gate. Short check of the round's
+  fix (dev/reviews/arspat-short-*).
+### From lane names
+
+- **LOW. brms's derived `err[k]` columns are not in the draws** of a latent
+  residual term (`ar(cov = FALSE)`'s states are brms's `zerr[k]` since
+  this round; other latent terms keep `latent_state[k]`). brms saves
+  `err` and not `zerr`. Adding them changes the draws' content, not a
+  name. The rest of the 5087 bundle (a corrected estimate and logLik,
+  `get_joint_cov()` on a new row's design, M7) stays open with it.
+- **LOW. `ranef()` and `coef()` of a fit keep lme4's `levels x coefs`
+  shape**, where brms's are `levels x 4 x coefs` summary arrays (the
+  draws methods already return brms's). A user decision: the ML modes
+  have no posterior summary to fill the 4, though `condVar` could fill
+  `Est.Error`.
+- **LOW. `ranef()` and `coef()` of a fit answer for an exact or approximate
+  `gp()` term** (the field) and `coef()` of a fit without group-level
+  terms returns the coefficient vectors; brms stops on both. Both are
+  documented frmtmb behavior, kept.
+- **LOW. `variables()` of a fit puts `b_Intercept` first under `0 +
+  Intercept`**: brms keeps it in its `b` vector, so on a distributional
+  model brms lists `b_sigma_Intercept` before it. Not measured; the rule
+  reads the name, not the predictor's centering.
+- **LOW. An exact `gp()`'s `zgp_<term>[i]` is not elementwise brms's**: z is
+  taken in the farthest-first order of the positions, brms's in first
+  appearance. An approximate `gp(k = )` keeps `b[i]` (its weights carry
+  the spectral density; brms's `zgp` is standardized).
+- **LOW. `insight::get_predicted()` on `multinomial()`** returns flattened
+  counts where brms errors (from 3164, not done).
+- **LOW. brms names an ordinal fit's `posterior_epred()` draw margin**
+  `"1".."S"`; frmtmb.sample's is `NULL`, and brms's categorical one is
+  `NULL` too (gated `test-sampling-ported.R`; dev/names-findings.md).
+  The observation margin is `NULL` on both sides since this round.
+### From lane sampfront
+
+- **LOW. The `loo_*()` functions refuse a subset of the fitted rows**, which
+  `log_lik()`, `loo()`, `waic()`, `psis()`, `loo_model_weights()` and
+  `pp_check()`'s `loo_*` types now take. brms computes them on
+  `newdata`. Each row's leave-one-out value depends on its own column
+  only, so the cut columns of the call without `newdata` would be the
+  answer. `dev/sampfront-findings.md`, item 1.
+- **LOW. `frm(drop_unused_levels = FALSE)` keeps an unused level in the model
+  frame only** (core). With `g` of 7 levels, 6 used, and `f` of 3, 2
+  used: brms 2.23.0 `make_standata(drop_unused_levels = FALSE)` has
+  N_1 = 7 levels of `g` and `y ~ f` has K = 3 columns (Intercept, fb,
+  fc, the last all 0); `frm()` has 7 levels of `fit$data$g` but 6
+  effects (`length(b)`, `ranef()` rows) and the coefficients Intercept
+  and fb. So brms's draws hold `r_g[7,Intercept]`, from its prior, and
+  frmtmb's do not; `frm_sample(drop_unused_levels = FALSE)` passes the
+  value to `frm()` and inherits this. `dev/review-sampfront-dul.R`,
+  `dev/sampfront-dul-probe.R`, `dev/sampfront-findings.md`, item 7b.
+- **LOW. `log_lik(newdata =)` of draws on a subset computes every fitted
+  column, then cuts**: `draws_loglik_matrix()` runs `draws_row_loglik()`
+  over all rows per draw and keeps `cols`, so `loo(newdata =
+  d[1:10, ])` on a 100,000-row fit costs the whole model per draw. brms
+  evaluates the subset rows only. The cut could move into the per-draw
+  call. Review 2026-11-11 of lane sampfront, finding 6.
+- **MEDIUM. A prediction rebuilds a group-level term's design under the
+  session's contrasts, not the fit's** (core, `pred_design()`): fitted
+  under `options(contrasts = c("contr.sum", "contr.poly"))`,
+  `y ~ f + (1 + f | g)` predicts after the option is reset with
+  "Random-effect design for `1 + f | g` does not match the fitted model
+  (columns: (Intercept), fb vs (Intercept), f1)". The fixed part reads
+  the stored `lp$contrasts`; the group-level `model.matrix()` takes no
+  `contrasts.arg`. Found by the fix round's test of
+  `test-laplace-draws.R` (case B). `dev/sampfront-findings.md`.
+- **MEDIUM. Laplace draws give `conditional_effects(method =
+  "posterior_predict")` an all-NA band** when only a distributional
+  parameter carries the group-level term: `sigma ~ (1 | h)` (gaussian,
+  student) or `shape ~ (1 | h)` (negbinomial), with `re_formula =
+  NULL`. Six "NAs produced" warnings, and no refusal, on base and lane
+  alike. The watch of that path reads the expected values, and the
+  expected value does not read `sigma` or `shape`, while
+  `posterior_predict()` on the same model refuses. Fix: watch the
+  distributional parameters in that path, as `posterior_predict()`
+  does. Reproducer and logs:
+  `dev/reviews/sampfront-short-out/ce-lane.txt`, `ce-base.txt`.
+
+### From the consolidation
+
+- **`fitted()` of a zero-inflation or hurdle predictor at its end gives NaN
+  standard errors with a warning** (MEDIUM, regression against 0.81.0;
+  merged-build conflict of lanes boundfam and ppdraw). With `zi ~ x` on
+  `zero_inflated_binomial()` (test-predict-draw-edge.R's `pde_zib_data(0)`)
+  and `hu ~ x` on `hurdle_poisson()` with no zero response, the intercept
+  runs to its limit and the slope is "undefined there". `fitted()` reads
+  NaN Est.Error on 195 of 200 and 297 of 300 rows and warns that they
+  move along a direction the fit does not determine; 0.81.0 reads 0 NaN
+  (median Est.Error 0.1385 and 0.2375). `se_null_drop_held()` keeps the
+  SEs only where every lost direction is held, and the slope is not
+  held. The same on lane boundfam's own build; lane ppdraw's build alone
+  gives 0.81.0's values. `dev/rel082-fitted-held.R`; the two warnings
+  escape at test-predict-draw-edge.R:101 in every tier.
+CLOSED at the 0.82.0 release (lane boundfam, consolidation fixes): a limit direction is NaN only where the quantity moves along it by more than 1e-6 of its standard error; `zi ~ x` and `hu ~ x` read 0 NaN, no warning.
+- **Two student() rows of lane gpstop's sweep move on lane boundfam's
+  build** (MEDIUM, to measure). `exp_a_student_n40_s2` falls from
+  10.232192 to 9.068636 (code 1 with two warnings before and after) on
+  the merged build and on boundfam's alone; `pow_a_student_n120_s2`
+  falls from 55.665287 to -4.946904 on boundfam's build alone, and the
+  merged build's second reading of the body brings it back to 55.633557
+  (0.0317 short). Every other lane's build gives 0.81.0's values.
+  `dev/rel082-log/kt/gpstop-out/attrib-sum.txt` (`dev/rel082-keytables.sh
+  gpstop-attrib`).
+CLOSED at the 0.82.0 release (lane boundfam, consolidation fixes): the quiet limit message has the subclass `frmtmb_limit_fit`, which the nonlinear-start restart counts as a flat direction; both rows read 0.81.0's values.
+- **frmtmb.eam and frmtmb.ode have tests that need frmtmb 0.82.0 and
+  floors that do not say so** (LOW). eam's test-defects.R (3 failures on
+  0.81.0, the limit rule's text) and ode's test-ode.R (1 error, the
+  `ranef()` layout) changed this round with no change to either
+  package's code, so neither was bumped; a check of either against
+  frmtmb 0.81.0 fails its tests.
+CLOSED at the 0.82.0 release: frmtmb.eam 0.13.2 and frmtmb.ode 0.7.4 need frmtmb (>= 0.82.0).
+
+- **LOW. Under `quadrature = TRUE` the stationary escape runs twice.** It
+  runs on the Laplace objective before the rule is anchored (`quad_fit()`;
+  lane quadseam measured that order as needed, item 828) and again on the
+  rule (`fit_assembled()`). The second escape's record replaced the
+  first's; since the release review the fit keeps both
+  (`stationary_escape_keep()`). The cost of the second, measured by
+  `dev/rel082-quad-escape.R` (`dev/rel082-log/quad-escape.txt`,
+  `quad-escape-stall.txt`): skew_normal() with `(1 | g)`, 200 rows,
+  `quadrature = TRUE`; on 40 symmetric data sets the Laplace escape ran on
+  4 and the rule's on 0 (0 of 26.4 s of fitting); on 10 fits started at
+  the stall (test-quadrature-defects.R's case) the Laplace escape ran on 2
+  (gain 24.3 and 23.4) and the rule's on 0. The double cost was not seen;
+  a fit whose Laplace escape returns to alpha = 0 would pay 2 restarts on
+  the rule.
+
+- **LOW. The warning on an asym_laplace `y ~ x` fit's NaN fitted values
+  misdescribes the stop.** On gaussian data the fit stops at false
+  convergence (code 8) with every parameter "nocurv"; since lane
+  boundfam's `jc_nan_lost()` its 100 of 100 NaN fitted values warn "...
+  move along a direction the fit does not determine" (0.81.0: NaN in
+  silence). A warning is right, but the curvature is unusable at a stop
+  short of the maximum, which is not a direction the fit leaves
+  undetermined. That a plain asym_laplace fit stops at code 8 is older than
+  this round. `dev/reviews/rel082-short-probe1.R`, `short-p3.log`; release
+  review, short check.
+- **LOW. `jc_nonest()`'s move test is local to the estimate.** A `zi ~ x`
+  fit at zi's end (seed 7, slope -0.32) reads `predict()` at new x = -10
+  as 0.099 with a finite standard error 0.049, but any zi slope in about
+  (-7, 7) fits the data as well, since zi is about 0 on every observed
+  row, and a slope of -3 makes the zero-inflation probability 1 at
+  x = -10: the prediction there is not determined. The 1e-6 threshold
+  reads the derivative at the estimate only. Rows at x = -30, -60 and -100
+  are NaN with the warning. 0.81.0 reads the same. Release review, short
+  check (`dev/reviews/rel082-short-probe1.R`, `short-p3.log`).
 
 ## Filed at the 0.81.0 release (2026-11-10)
 
@@ -4686,6 +5465,8 @@ records: `dev/<lane>-findings.md`, reviews
   (`vint<k>`, `vreal<k>`, `trunc_lb`, `trunc_ub`, `cens_y2`,
   `se_sigma`, `mi_sd`, `thres_gr`) (`dev/reviews/2026-11-10-compat.md`,
   round 2, R1).
+  CLOSED in the round of 2026-11-11 (lane silent): refused at
+  registration as proposed; `tests/testthat/test-parse.R`.
 
 ### From lane code8
 
@@ -4727,6 +5508,8 @@ records: `dev/<lane>-findings.md`, reviews
   `log_lik()` columns. Then the answer is those columns of the fitted
   `log_lik()`. Review `dev/reviews/2026-11-10-hollow.md`, item 3;
   `dev/hollow-findings.md`.
+CLOSED in the round of 2026-11-11 (lane sampfront): a subset is placed by row name, or else by
+  value on the fitted row equal in every variable the model reads.
 
 ### From the reviews and the lanes' records, left for later
 
@@ -4828,6 +5611,7 @@ then the reviews' items left for later. Lane records:
   (`gp_body_start()`) linearizes at the template's zeros, where the field's
   scale `J_a` is not the fit's. Designs: `dev/review-fitedge-designs.R`,
   `set.seed(52000 + 100 seed + n + 10 design + curve)`.
+CLOSED in the round of 2026-11-11 (lane gpstop): the body is linearized again at the fit's optimum (`gp_body_relin()`); E wig 120 2 and L wig 120 2 reach the best start (dev/gpstop-findings.md, item 1).
 - **`frmtmb_latres_laplace` is decided by rounding.** On 3 of 21 pairs of an
   unread `mi()` response and its weight-0 spelling, it fires on one spelling
   and not the other, every estimate equal to 7 digits (lognormal `ar(t, g)`
@@ -4853,6 +5637,7 @@ then the reviews' items left for later. Lane records:
   6203 and on both rellib-r18 and the lane's build. Not fixed: the linear
   spelling has no restart. `dev/reviews/2026-11-06-nlstart.md`, "Filed,
   not this lane's"; `dev/review-nlstart-prior.R`, rows `apbx 1e6 1000`.
+  CLOSED in the round of 2026-11-11 (lane nlstop): a coefficient more than 4 prior scales from its prior's location gets a restart there; the three rows read the body's -2462.96, -2466.22, -2457.56.
 - **Profile intervals at x near 1e-20 are `NA`** on the linear and body
   spellings and on both builds (same review).
 
@@ -4916,6 +5701,7 @@ then the reviews' items left for later. Lane records:
 - **NIT. `nl_local_message()` reads `stats::logLik()`**, which stops under
   REML with a prior on the fixed effects. It is unreachable under any
   prior (release review of 0.80.0, item 9).
+  CLOSED in the round of 2026-11-11 (lane nlstop): the message reads logLik_penalized(), which does not stop there.
 - **UPSTREAM, for the user. Ask TMB upstream to export `solveSubset()`
   and a tape-size accessor (`info()`); user will raise it later.** 0.80.0
   keeps both reads: `solveSubset()` through `get0()` with a correct
@@ -4928,6 +5714,7 @@ then the reviews' items left for later. Lane records:
   the bounds; frmtmb could set them from the uniform's support
   (dev/reviews/2026-11-06-loglik.md, short check, item 2;
   `dev/review-loglik-unifbase.R`).
+  CLOSED in the round of 2026-11-11 (lane priortab): boxed where the density is positive at the end.
 - **MINOR. A switch in `frmtmb_control()` for the nonlinear sign probe.**
   0.80.0 has `options(frmtmb.nl_sign_probe = FALSE)` only; a control entry
   would travel with the fit (nlstart decision, brief of the 0.80.0
@@ -4961,6 +5748,7 @@ then the reviews' items left for later. Lane records:
   Michaelis-Menten seed 55, 1.84 short at code 0, silent, where 0.79.1
   was 2.29 short with 2 warnings; NEWS says so
   (dev/reviews/2026-11-06-nlstart.md, third short check, MINOR 1).
+  CLOSED in the round of 2026-11-11 (lane nlstop): the fit is the linear limit (1.7e-5 below y ~ 0 + xp) and now warns (frmtmb_nl_limit); the "higher maximum" is a pole at K = -max(xp) under false convergence.
 - **QUESTION. A user `vcov =` over the coefficients alone holds the
   group-level effects fixed, with a warning** (decided for 0.80.0). The
   alternative is to carry it through `J` with the model's own
@@ -5081,6 +5869,7 @@ translator's order of the positions.
 - refuse: the `lb = 0` of the `sd` and `sigma` class rows (filed at 0.78.0); a
   translator rule for `sigma ~ s(z)` and for `tmp_xi`; class `sd` on `car()` and
   `spde()` keeps its old spelling, `sdcar` stays refused by name.
+  CLOSED in the round of 2026-11-11 (lane priortab): the `lb = 0` part only: brms's bounds on both routes.
 - impsamp: crossed factors under `importance =` stay refused; a heavy-tail guard
   for hard binary designs (sd 0.67 at 512 draws); poisson `x + 1e5` false
   convergence with NaN SEs, tape condition number 9e18; MCSE by pairs.
@@ -5088,6 +5877,7 @@ translator's order of the positions.
   and `err[n]`; a corrected estimate and logLik (Laplace + C, `theta + shift`);
   `get_joint_cov()` on a new row's design, which reads `V` of the outer parameters
   alone, and M7.
+CLOSED in the round of 2026-11-11 (lane names): the names part only: ar(cov = FALSE) states are zerr[k]; err[k], the corrected estimate, get_joint_cov() on a new row and M7 are filed again.
 - nlfix: `simulate()` on `beta_binomial()` stops if a fitted mean rounds to 0 or 1;
   `frm_allfit(start_from_mle = FALSE)` reports bobyqa "failed" on a body's fit from
   zeros; `Beta()`, `dirichlet()` and the inflated Beta forms keep raw `lgamma()`

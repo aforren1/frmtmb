@@ -190,6 +190,14 @@ test_that("vcov_cluster() runs on an ordinal fit with disc held at 1", {
 # Ordinal mixtures (lane ordmix) meet the per-threshold rows and the
 # confint() names (lane fixes) only on the merged 0.68.0 tree; these
 # pin the merge's resolution (dev/round-20261005.md, "Conflicts").
+
+# A mixture fit whose subject is names or densities at the point it
+# keeps: its jittered starts may pass over a higher step function and
+# say so (mixture_starts()).
+otn_frm <- function(...) {
+  allow_warnings(frm(...), "jittered starts reached a higher")
+}
+
 otn_mix_data <- function(seed = 20261005, n = 400) {
   set.seed(seed)
   d <- data.frame(x = rnorm(n), z = rnorm(n))
@@ -230,10 +238,10 @@ test_that("a per-threshold prior on a mixture component is its density", {
   d <- otn_mix_data()
   # order = "none", dpar = "mu2": threshold 2 of component 2 alone, on
   # brms's centered design, with the ordered map's log-Jacobian once
-  fit <- frm(bf(y ~ x), family = mixture(cumulative(), cumulative()),
-             data = d,
-             prior = set_prior("normal(-1, 0.5)", class = "Intercept",
-                               coef = "2", dpar = "mu2"))
+  fit <- otn_frm(bf(y ~ x), family = mixture(cumulative(), cumulative()),
+                 data = d,
+                 prior = set_prior("normal(-1, 0.5)", class = "Intercept",
+                                   coef = "2", dpar = "mu2"))
   est <- fit$estimates
   r2 <- est$tau_raw2
   tau2 <- c(r2[1], r2[1] + cumsum(exp(r2[-1])))
@@ -242,10 +250,10 @@ test_that("a per-threshold prior on a mixture component is its density", {
   expect_lt(abs(otn_log_prior(fit) - ref), 1e3 * .Machine$double.eps *
               abs(ref))
   # order = "mu": no dpar, the shared vector, no centering
-  fit <- frm(bf(y ~ x), family = mixture(cumulative(), sratio(),
-                                         order = "mu"), data = d,
-             prior = set_prior("normal(1, 0.5)", class = "Intercept",
-                               coef = "3"))
+  fit <- otn_frm(bf(y ~ x), family = mixture(cumulative(), sratio(),
+                                             order = "mu"), data = d,
+                 prior = set_prior("normal(1, 0.5)", class = "Intercept",
+                                   coef = "3"))
   r <- fit$estimates$tau_raw
   tau <- c(r[1], r[1] + cumsum(exp(r[-1])))
   ref <- stats::dnorm(tau[3], 1, 0.5, log = TRUE) + sum(r[-1])
@@ -255,7 +263,8 @@ test_that("a per-threshold prior on a mixture component is its density", {
 
 test_that("confint() names an ordinal mixture's thresholds", {
   d <- otn_mix_data()
-  f1 <- frm(bf(y ~ x), family = mixture(cumulative(), sratio()), data = d)
+  f1 <- otn_frm(bf(y ~ x), family = mixture(cumulative(), sratio()),
+                data = d)
   lab1 <- c("mu1_Intercept[1]",
             "log(mu1_Intercept[2] - mu1_Intercept[1])",
             "log(mu1_Intercept[3] - mu1_Intercept[2])",
@@ -266,8 +275,8 @@ test_that("confint() names an ordinal mixture's thresholds", {
                    unname(fixef(f1)["mu2_Intercept[3]", "Estimate"]))
   # order = "mu": the shared vector once, under the name brms's prior
   # row gives it, and ordered because one component is cumulative
-  f2 <- frm(bf(y ~ x), family = mixture(cumulative(), sratio(),
-                                        order = "mu"), data = d)
+  f2 <- otn_frm(bf(y ~ x), family = mixture(cumulative(), sratio(),
+                                            order = "mu"), data = d)
   expect_identical(tail(rownames(confint(f2)), 3L),
                    c("Intercept[1]", "log(Intercept[2] - Intercept[1])",
                      "log(Intercept[3] - Intercept[2])"))
@@ -276,7 +285,8 @@ test_that("confint() names an ordinal mixture's thresholds", {
 
 test_that("incl_thres on an ordinal mixture is refused in brms's words", {
   d <- otn_mix_data()
-  f1 <- frm(bf(y ~ x), family = mixture(cumulative(), sratio()), data = d)
+  f1 <- otn_frm(bf(y ~ x), family = mixture(cumulative(), sratio()),
+                data = d)
   expect_error(frmtmb:::ord_thres_linpred(f1),
                "'incl_thres' is not supported for mixture models.",
                fixed = TRUE)

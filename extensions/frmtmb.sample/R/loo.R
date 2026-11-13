@@ -296,7 +296,8 @@ draws_row_loglik <- function(fit, resp) {
 #' to combine there and returns the same matrix, as in brms.
 #' Without `rescor`, the responses are independent given the predictors
 #' and the default sums their log-densities per row; pass `resp` to get
-#' one response's contribution alone.
+#' one response's contribution alone, or `combine = FALSE` to get every
+#' response's matrix as one layer of an array, as brms does.
 #'
 #' @section Likelihoods with no per-observation column:
 #' A model whose smallest independent unit is a group has no
@@ -332,11 +333,17 @@ draws_row_loglik <- function(fit, resp) {
 #'   to when no row was dropped. Those are the rows this matrix is
 #'   for, so the result is the matrix without `newdata`, which is what
 #'   brms computes there too. Every variable the model reads must be in
-#'   it, with its fitted value. A subset of the fitted rows is refused,
-#'   though brms answers it: rows are matched by value, and a subset
-#'   cannot be placed among the fitted rows unambiguously where rows
-#'   repeat and a per-row latent value (`me()`, `mi()`) or an
-#'   autocorrelation neighbor enters.
+#'   it, with its fitted value. A subset of the fitted rows, such as
+#'   `x$data[1:10, ]`, gives the columns of those rows, in newdata's
+#'   order, as brms gives their pointwise values: a row is placed by its
+#'   row name when that names a fitted row with its values, and
+#'   otherwise on a fitted row with the same value of every variable the
+#'   model reads (a tibble has no row names). A row that equals no
+#'   fitted row is refused. A subset is refused, with the reason,
+#'   on a model with an autocorrelation term, a `me()` or `mi()` term,
+#'   responses fitted on different rows under `subset()`, or a family
+#'   whose column is a group: there brms's answer on a subset is not
+#'   the fitted column (an `ar()` row reads its neighbors in newdata).
 #' @param ndraws Number of draws to use, evenly spaced through the
 #'   matrix (default: all of them).
 #' @param draw_ids The draws to use, by row index, instead of the
@@ -346,18 +353,23 @@ draws_row_loglik <- function(fit, resp) {
 #'   joint with it (see *Multivariate models*).
 #' @param pointwise,combine,add_point_estimate,cores brms's slots, in
 #'   brms's positions. `pointwise = TRUE` (brms's function of one
-#'   observation) and `add_point_estimate = TRUE` are refused by name;
-#'   `combine = FALSE` is accepted on a univariate model, on one
-#'   response, and on a `set_rescor(TRUE)` model, where there is
-#'   nothing to combine; `cores` is accepted and unused, because the
-#'   matrix is built in this process.
+#'   observation) and `add_point_estimate = TRUE` are refused by name.
+#'   `combine = FALSE` on a multivariate model without `rescor` gives
+#'   brms's draws x observations x responses array, one layer per
+#'   response, named as brms names the responses; on a univariate model,
+#'   on one response and on a `set_rescor(TRUE)` model there is nothing
+#'   to combine, and it gives the matrix. `cores` is accepted and
+#'   unused, because the matrix is built in this process.
 #' @param point_estimate,ndraws_point_estimate brms's arguments:
 #'   collapse the draws to their `"mean"` or `"median"` first and use
 #'   that one parameter vector, repeated `ndraws_point_estimate` times.
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
 #' @return A numeric matrix with one row per draw and one column per
-#'   observation (the rows the model was fitted on).
+#'   observation (the rows the model was fitted on, or the rows of
+#'   `newdata` that is a subset of them); with `combine = FALSE` on a
+#'   multivariate model without `rescor`, an array with one layer per
+#'   response.
 #' @seealso [frmtmb::loo()], [frmtmb::waic()], [frmtmb::bayes_R2()]
 #' @examples
 #' \donttest{
@@ -425,8 +437,20 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
   alt <- paste0("Use posterior_epred(newdata =) or posterior_predict(",
                 "newdata =) for a quantity on other rows")
   # the fitted rows, given as newdata, are the rows this answers, and
-  # they are what brms's log_lik(newdata = fit$data) evaluates
+  # they are what brms's log_lik(newdata = fit$data) evaluates; a subset
+  # of them is those rows' columns
   if (draws_newdata_is_fitted(object, newdata)) newdata <- NULL
+  cols <- NULL
+  why <- NULL
+  if (!is.null(newdata)) {
+    cols <- draws_newdata_rows(object, newdata)
+    if (is.character(cols)) {
+      why <- cols
+      cols <- NULL
+    } else {
+      newdata <- NULL
+    }
+  }
   if (!is.null(newdata)) {
     fb <- draws_base_fit(object)
     if (any(vapply(names(fb$spec$responses), function(r) {
@@ -440,14 +464,14 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
   }
   draws_refuse_newdata(
     newdata, re_formula, arg_unset(), "log_lik()",
-    "the pointwise log-density runs the fitted objective's own ",
+    "The pointwise log-density runs the fitted objective's own ",
     "composition over the assembled frame, which is what carries the ",
     "response, the addition terms (cens(), trunc(), weights(), ",
     "trials()) and the case weights, for the rows the model was ",
     "fitted on; newdata supplies none of them. The density is also ",
     "CONDITIONAL on each draw's own group-level values, which is what ",
     "re_formula would remove. ", alt, ".",
-    if (!is.null(newdata)) draws_fitted_rows_note)
+    if (!is.null(newdata)) draws_fitted_rows_note, draws_subset_note(why))
   fit <- draws_base_fit(object)
   draws_require_b(object, "log_lik()")
   draws_loglik_factors(fit, "log_lik()")
@@ -460,17 +484,14 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
   if (!is.null(resp) && length(fit$spec$responses) > 1L) {
     resp <- draws_resp_set(fit, resp)
   }
-  # a set_rescor(TRUE) model has nothing to combine: a column is the
-  # joint density of the row, and brms returns that matrix either way
-  if (!combine && length(fit$spec$responses) > 1L && length(resp) != 1L &&
-        !isTRUE(fit$spec$rescor)) {
-    frm_stop("log_lik(combine = FALSE) is not supported on a multivariate ",
-             "model: brms returns one matrix per response, and this method ",
-             "returns their sum. Ask for one response with resp =",
-             call. = FALSE)
-  }
+  # without rescor brms's combine = FALSE stacks one matrix per response,
+  # draws x observations x responses; a set_rescor(TRUE) model has
+  # nothing to combine: a column is the joint density of the row, and
+  # brms returns that matrix either way
+  split <- !combine && length(fit$spec$responses) > 1L &&
+    length(resp) != 1L && !isTRUE(fit$spec$rescor)
   # subset(): the responses are fitted on different rows, so their
-  # columns do not line up to be summed; brms asks for one response
+  # columns do not line up to be summed or stacked; brms asks for one
   subset_resp_check(fit, resp, "log_lik()")
   if (!is.null(resp) && !all(resp %in% names(fit$spec$responses))) {
     frm_stop("log_lik(resp = \"", paste(resp, collapse = "\", \""),
@@ -481,6 +502,34 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
   }
   idx <- draws_index(object)
   rows <- draws_subsample(object, ndraws, draw_ids)
+  if (split) {
+    want <- resp %||% names(fit$spec$responses)
+    layers <- lapply(want, function(r) {
+      draws_loglik_matrix(object, rows, idx, r, cols)
+    })
+    return(draws_resp_stack(fit, want, layers, "log_lik()"))
+  }
+  out <- draws_loglik_matrix(object, rows, idx, resp, cols)
+  attr(out, "chain_id") <- if (identical(rows, seq_len(nrow(object$draws)))) {
+    draws_chain_id(object)
+  }
+  unit <- attr(out, "unit")
+  attr(out, "unit") <- NULL
+  # what a column IS, when it is not an observation. Carried on the
+  # matrix rather than left to the reader to infer from its width,
+  # because loo() will happily leave out a column of any meaning.
+  if (!is.null(unit) && !identical(unit, "an observation")) {
+    attr(out, "unit") <- unit
+  }
+  out
+}
+
+#' The draws x columns matrix of `log_lik()` for the draws `rows` and the
+#' responses `resp`, cut to the fitted rows `cols` (`NULL`: all), with
+#' the family's unit as the `unit` attribute.
+#'
+#' @noRd
+draws_loglik_matrix <- function(object, rows, idx, resp, cols) {
   out <- NULL
   unit <- NULL
   # core warns per draw when a residual term's density takes its dense
@@ -496,20 +545,15 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
       draws_row_loglik(draws_fit_at(object, rows[k], idx), resp),
       frmtmb_autocor_dense_fallback = once)
     if (is.null(out)) {
-      out <- matrix(NA_real_, length(rows), length(v))
+      # brms's dimnames, list(NULL, NULL) and not none
+      out <- matrix(NA_real_, length(rows), length(v),
+                    dimnames = list(NULL, NULL))
       unit <- attr(v, "unit")
     }
     out[k, ] <- v
   }
-  attr(out, "chain_id") <- if (identical(rows, seq_len(nrow(object$draws)))) {
-    draws_chain_id(object)
-  }
-  # what a column IS, when it is not an observation. Carried on the
-  # matrix rather than left to the reader to infer from its width,
-  # because loo() will happily leave out a column of any meaning.
-  if (!is.null(unit) && !identical(unit, "an observation")) {
-    attr(out, "unit") <- unit
-  }
+  if (!is.null(cols)) out <- out[, cols, drop = FALSE]
+  attr(out, "unit") <- unit
   out
 }
 
@@ -601,9 +645,10 @@ logLik.frmtmb_draws <- function(object, newdata = NULL, re_formula = NULL,
 #' @param ... Further models: for `loo()` and `waic()` the draws
 #'   objects given without a name, which brms compares in one call, and
 #'   brms's named options, refused by name where they would change the
-#'   answer (`newdata` other than the fitted rows, and the other
-#'   arguments `log_lik()` refuses,
-#'   `moment_match`, `reloo`) and passed on where they are the loo
+#'   answer (`newdata` other than the fitted rows or a subset of them,
+#'   and the other arguments `log_lik()` refuses, `moment_match`,
+#'   `reloo`), passed to `log_lik()` where it takes them (`newdata`,
+#'   `draw_ids`), and passed on where they are the loo
 #'   package's (`r_eff`, `save_psis`, `cores`). For `loo_compare()`,
 #'   further models.
 #' @return A `loo`, `waic`, `compare.loo` or `psis` object from the loo
@@ -683,19 +728,17 @@ loo_criterion <- function(x, dots, dots_expr, crit, compare, resp, ndraws,
   is_model <- !nzchar(nms)
   bad <- which(is_model & !vapply(dots, inherits, NA, "frmtmb_draws"))
   if (length(bad)) {
-    frm_stop(what, " takes models without a name, and argument ",
-             bad[1L] + 1L, " is a ",
-             paste(class(dots[[bad[1L]]]), collapse = "/"), ", not draws. ",
-             "Name the options, as ndraws = 100", call. = FALSE)
+    pa_refuse_unnamed(what, bad[1L] + 1L, dots[[bad[1L]]])
   }
   opts <- dots[!is_model]
   models <- c(list(x), dots[is_model])
   # brms's own default values ask for nothing log_lik() refuses, so a
   # call that spells them out is answered as one that leaves them out;
-  # so does newdata that holds every model's fitted rows
+  # so does newdata that holds every model's fitted rows, and a subset
+  # of them, which log_lik() answers with those rows' columns
   ll_args <- c("newdata", "re_formula", "re.form", draws_new_level_args,
                "nug")
-  hit <- Filter(function(a) loo_arg_asks(models, a, opts[[a]]),
+  hit <- Filter(function(a) loo_arg_asks(models, a, opts[[a]], TRUE),
                 intersect(names(opts), ll_args))
   if (length(hit)) {
     frm_stop(what, " cannot honor `", hit[1L], "`: the criterion is ",
@@ -705,7 +748,9 @@ loo_criterion <- function(x, dots, dots_expr, crit, compare, resp, ndraws,
              "the addition terms and the case weights), which newdata does ",
              "not supply. brms computes it on newdata; here, sample the ",
              "model on the data whose elpd you want.",
-             if (identical(hit[1L], "newdata")) draws_fitted_rows_note,
+             if (identical(hit[1L], "newdata")) {
+               c(draws_fitted_rows_note, loo_newdata_why(models, opts$newdata))
+             },
              call. = FALSE)
   }
   for (a in intersect(names(opts), c("moment_match", "reloo"))) {
@@ -734,7 +779,8 @@ loo_criterion <- function(x, dots, dots_expr, crit, compare, resp, ndraws,
       draws_stored_criterion(m, crit, ndraws, resp)
     }
     if (!is.null(st)) return(st)
-    ll <- loo_matrix(m, ndraws, resp, what, draw_ids = opts$draw_ids)
+    ll <- loo_matrix(m, ndraws, resp, what, draw_ids = opts$draw_ids,
+                     newdata = opts$newdata)
     po <- opts[intersect(names(opts), pass)]
     out <- if (identical(crit, "loo")) {
       if (is.null(po$r_eff)) po$r_eff <- loo_r_eff(ll, m)
@@ -754,9 +800,18 @@ loo_criterion <- function(x, dots, dots_expr, crit, compare, resp, ndraws,
     } else {
       resp %||% names(fit$spec$responses)
     }
-    attr(out, "yhash") <- unname(lapply(
-      rs,
-      function(r) as.numeric(draws_observed_y(fit, r))))
+    # brms hashes newdata's response; a subset's is the fitted one cut
+    sub <- if (!is.null(opts$newdata) &&
+                 !draws_newdata_is_fitted(m, opts$newdata)) {
+      draws_newdata_rows(m, opts$newdata)
+    }
+    attr(out, "yhash") <- unname(lapply(rs, function(r) {
+      y <- draws_observed_y(fit, r)
+      if (!is.null(sub)) {
+        y <- if (length(dim(y)) == 2L) y[sub, , drop = FALSE] else y[sub]
+      }
+      as.numeric(y)
+    }))
     out
   }
   if (length(models) == 1L) return(one(x))
@@ -1141,8 +1196,9 @@ loo_call_names <- function(cl, n) {
 #' @param log_ratios For `psis()`, the draws object whose negative
 #'   pointwise log-likelihood supplies the importance ratios.
 #' @param newdata For `psis()`, accepted in brms's own second position
-#'   and refused, as [frmtmb::log_lik()] refuses it: only data that
-#'   holds exactly the fitted rows is accepted, and changes nothing.
+#'   and read as [frmtmb::log_lik()] reads it: data that holds exactly
+#'   the fitted rows changes nothing, a subset of them gives the weights
+#'   of those rows, and other data is refused.
 #' @param model_name For `psis()`, brms's label for the model.
 #'   Accepted and unused: a `psis` object has nothing to label.
 #' @export
@@ -1159,10 +1215,18 @@ psis.frmtmb_draws <- function(log_ratios, newdata = NULL, resp = NULL,
   # and loo::psis has nothing to attach it to, so it is accepted and
   # unused, exactly as it is in brms.
   if (draws_newdata_is_fitted(log_ratios, newdata)) newdata <- NULL
-  draws_refuse_newdata(newdata, arg_unset(), arg_unset(), "psis()",
+  # a subset of the fitted rows reaches log_lik(), which takes it
+  sub <- !is.null(newdata) &&
+    !is.character(draws_newdata_rows(log_ratios, newdata))
+  draws_refuse_newdata(if (!sub) newdata, arg_unset(), arg_unset(),
+                       "psis()",
                        "it is built from log_lik(), which does not ",
                        "take newdata: see ?log_lik.",
-                       draws_fitted_rows_note)
+                       draws_fitted_rows_note,
+                       if (!is.null(newdata)) {
+                         draws_subset_note(draws_newdata_rows(log_ratios,
+                                                              newdata))
+                       })
   # the leave-one-out importance ratios are the NEGATIVE log-likelihood
   # (down-weighting the draws the held-out point likes), which is what
   # loo::loo.matrix smooths internally and what brms's psis.brmsfit
@@ -1172,7 +1236,8 @@ psis.frmtmb_draws <- function(log_ratios, newdata = NULL, resp = NULL,
   op <- loo_draws_opts(list(...), "psis()", character())
   rows <- draws_subsample(log_ratios, ndraws, op$draw_ids)
   resp <- loo_resp_name(draws_base_fit(log_ratios), resp, "psis()")
-  loo_draws_weights(log_ratios, rows, resp, "psis()", op$psis)$psis
+  loo_draws_weights(log_ratios, rows, resp, "psis()", op$psis,
+                    newdata = newdata)$psis
 }
 
 #' @rdname sample-loo

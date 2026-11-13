@@ -69,9 +69,9 @@ test_that("coef has reasonable ouputs", {
     paste0(
       "coef() of a fit is levels x coefficients, lme4's shape, ",
       "without brms's Est.Error and quantile layer, the policy of ",
-      "bin-1 brmsfit-methods:811; it also omits brms's ",
-      "sigma_Intercept and sigma_Trt1 columns (4 x 7 against 4 x 4 ",
-      "x 9)"),
+      "bin-1 brmsfit-methods:811; one data frame per group, ",
+      "holding every fixef() coefficient as brms's does, ",
+      "sigma_Intercept and sigma_Trt1 included (brms: 4 x 4 x 9)"),
     expect_equal(dim(coef1$visit), c(4, 4, 9))
   )
   brms_setup("brmsfit-methods:137",
@@ -86,10 +86,11 @@ test_that("coef has reasonable ouputs", {
   )
   brms_port("brmsfit-methods:140", "divergence",
     paste0(
-      "coef() of a nonlinear fit is nested by nonlinear parameter, ",
-      "coef(fit)$a and $b, each levels x coefficients (the policy ",
-      "of brmsfit-methods:136), so coef(fit2)$patient is NULL; ",
-      "brms has one patient array 10 x 4 x 4"),
+      "coef() of a nonlinear fit is one data frame per group, as ",
+      "brms keys it: coef(fit2)$patient holds every nonlinear ",
+      "parameter's coefficients, levels x coefficients (the policy ",
+      "of brmsfit-methods:136), where brms has one patient array ",
+      "10 x 4 x 4"),
     expect_equal(dim(coef2$patient), c(npatients, 4, 4))
   )
   brms_setup("brmsfit-methods:141",

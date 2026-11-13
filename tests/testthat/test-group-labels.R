@@ -43,7 +43,7 @@ test_that("nested and mm groups carry brms's labels everywhere", {
   # brms's levels of an interaction group join its parts with "_"
   expect_identical(head(rownames(ranef(fit)[["g1:g2"]]), 2),
                    c("p1_q1", "p1_q2"))
-  expect_identical(rownames(coef(fit)$mu[["g1:g2"]]),
+  expect_identical(rownames(coef(fit)[["g1:g2"]]),
                    rownames(ranef(fit)[["g1:g2"]]))
   p <- as.data.frame(default_prior(
     bf(y ~ x + (1 + x | g1/g2) + (1 | mm(m1, m2))), data = dd,

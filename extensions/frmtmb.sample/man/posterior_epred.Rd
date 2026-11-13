@@ -170,7 +170,7 @@ An ordinal family predicts a DISTRIBUTION per observation, not one
 number: each draw's \code{frm_linpred(type = "response")} is an \verb{n x K}
 matrix of category probabilities. Those stack into a 3-D
 \verb{draws x observations x categories} array. \code{dimnames} are
-\verb{list(NULL, <observation names or NULL>, <category levels>)}, so
+\verb{list(NULL, NULL, <category levels>)}, as in brms, so
 \code{ep[, , "high"]} is the draws-by-observations matrix for one
 category and \code{ep[k, , ]} is draw \code{k}'s own \verb{n x K} prediction, the
 matrix \code{frm_linpred(type = "response")} returns. Every \code{ep[k, i, ]}

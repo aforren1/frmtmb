@@ -96,6 +96,14 @@ and nothing is registered on either side: \code{s()} is a smooth, so
 one formula. Thirteen names are taken this way: \code{s}, \code{t2}, \code{mo},
 \code{mi_pred}, \code{gp_pred}, \code{cs_pred}, \code{ar}, \code{ma}, \code{arma}, \code{cosy},
 \code{unstr}, \code{mm} and \code{mmc}.
+
+A name whose keys in \code{aterms} another term already uses is refused
+too. The keys of a term are \code{name}, or \code{name1} to \code{namek} for \code{arity = k} (the name alone for an option). So \code{x2} is refused beside an
+\code{x} of three arguments, and the reverse, because both deliver a
+value under \code{x2}; \code{vint1} and \code{cens_y} with two arguments are
+refused because core delivers \code{vint()} and \code{cens()} values under
+\code{vint1} and \code{cens_y2}. Two such terms would overwrite each other's
+values without a word.
 }
 
 \examples{

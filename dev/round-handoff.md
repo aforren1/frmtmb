@@ -9,11 +9,68 @@ releases, 2026-09-30 at the 0.67.0 release, 2026-10-06 at the
 0.74.0 release, 2026-10-24 at the 0.75.0 release, 2026-10-27 at the
 0.76.0 release, 2026-10-28 at the 0.77.0 release, 2026-10-29 at the
 0.78.0 release, 2026-11-04 at the 0.79.0 release, 2026-11-07 at the
-0.80.0 release and 2026-11-10 at the 0.81.0 release. Read this, then
+0.80.0 release, 2026-11-10 at the 0.81.0 release and 2026-11-12 at the
+0.82.0 release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
 anything: the library has been lost EIGHT times, and the last three
 losses each followed processes being killed, not low disk.
+
+## The 0.82.0 round, opened 2026-11-11, consolidated 2026-11-11 to 2026-11-12
+
+`dev/round-20261111.md` is this round's record, and `dev/rel082-log.md` the
+consolidator's running log. Twelve lanes off `e8abed0a` (0.81.0, pushed), each with
+`dev/<lane>-findings.md` and `dev/reviews/2026-11-11-<lane>.md`, merged onto it in the
+order boundfam, quadseam, ppdraw, wcheck, priortab, nlstop, gpstop, ordstart, silent,
+arspat, names, sampfront (`dev/rel082-merge.sh`, `-news.R`, `-backlog.R`,
+`-release-fix.sh`). 0 conflicts. The survey's headline stays 89.7, Wald [85.2, 94.2], with
+0 verdict changes; the ported suite moves no row.
+
+Versions: frmtmb **0.82.0**; frmtmb.sample **0.29.0** and frmtmb.spatial **0.4.0**, both
+needing 0.82.0; frmtmb.survival 0.3.0 (floor 0.75.0); frmtmb.latent 0.7.4 (floor
+0.80.0); frmtmb.eam 0.13.2 and frmtmb.ode 0.7.4 (tests only, floor 0.82.0, since the
+release review). learn and coupling keep theirs. The release review
+(`dev/reviews/2026-11-12-rel082.md`, FIX) and lane boundfam's consolidation fixes are
+applied, boundfam's OpenBLAS fix (`jc_nan_lost()`) included. The
+library is
+`C:/Users/adf44/source/r/rellib-r21`; `rellib-r20` keeps 0.81.0.
+
+### What to know next time
+
+- Twelve lanes off one commit merge cleanly by hunk, but their tests meet only on the
+  merged build: three conflicts surfaced only in its tiers (a gated Stan helper reading
+  `ranef()` by block index; boundfam's limit rule against ppdraw's test; ordstart's
+  default starts against ppdraw's ordinal-mixture test). Run the gated tier before the
+  survey.
+- A lane's change that runs inside every fit (here boundfam's limit rule) moves other
+  lanes' tables: gpstop's sweep moved on boundfam's build alone. Attribute a moved row by
+  fitting it on each lane's library over the base (`dev/rel082-keytables.sh
+  gpstop-attrib`).
+- Three spellings of "the user's cold start" (nlstop, gpstop, ordstart) became one,
+  `cold_start` in `fit_assembled()`; a new search that should run only on the user's own
+  fit reads it, and `autoscale_choose()` replays only the kept fit's messages.
+- `strsplit()` of `""` is empty: an edit script that splits its lines drops every blank
+  line (`dev/rel082-backlog.R`'s first run). Keep a blank line as it is.
+- Two reviews ended in FIX and four lanes changed code after their review: read the last
+  section's verdict and the files' mtimes against the review's, not the brief's summary.
+- A subagent can rerun the key tables at one R process beside the tiers at two; the
+  scripts that hard-code a lane library run as sed copies in a gitignored folder.
+- A record a later step drops (the restart's `prior_escape`) is lost to every step that
+  returns a fresh optimizer result; take it where it is made and put it back on the
+  returned optimum, rather than trusting each later step to carry it.
+- A lane can move after the merge. `dev/rel082-commit.sh`'s drift guard stops when a
+  lane's path count differs from the merge's, when a single-lane path differs from the
+  release tree, or when a lane's copy of a shared path does not merge into the release
+  copy unchanged. `git status` can list a file whose time alone moved; porcelain
+  `git diff` would tell, but it writes the index (stat refresh) whatever
+  `GIT_OPTIONAL_LOCKS` says. Compare `git hash-object --stdin-paths` with
+  `git ls-files -s` instead, and prove a dry run read-only by touching a tracked file
+  in each tree and running it twice.
+- Re-merging a lane's late fix into a file other lanes touched: rebuild the file from
+  the base and every lane (`dev/rel082-remerge-one.sh`); a three-way merge into the
+  release copy conflicts where the lane rewrote its own earlier hunks.
+- A new test's absent case must accept both sides of a rounding-decided branch; run the
+  lanes' new tests under OpenBLAS at consolidation (boundfam's `test-se-limit.R:200`).
 
 ## The 0.81.0 round, opened 2026-11-09, consolidated 2026-11-10
 

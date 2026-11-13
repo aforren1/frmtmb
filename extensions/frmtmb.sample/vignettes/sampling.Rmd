@@ -122,7 +122,8 @@ standard deviation shrinks and one step size cannot fit both ends.
 `reparameterize = TRUE`, the default, samples `z ~ N(0, I)` and
 computes `b = L(theta) z` on the tape. Each draw is mapped back
 through its own `theta`, so every method downstream reads the same
-`b[i]` columns and cannot tell the two routes apart.
+group-level columns (`r_g[...]`, `s_...[i]`) and cannot tell the two
+routes apart.
 
 Not every block qualifies, and the call says which did not and why.
 A block is non-centered only when every parameter it has is a standard

@@ -1,6 +1,6 @@
 Package: frmtmb.latent
 Title: Latent-State Families for 'frmtmb' Models
-Version: 0.7.3
+Version: 0.7.4
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),

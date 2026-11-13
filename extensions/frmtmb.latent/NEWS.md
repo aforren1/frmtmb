@@ -1,3 +1,15 @@
+# frmtmb.latent 0.7.4
+
+* `hmm()` keeps the stationary point that its state-dependent family
+  declares, in every state's copy of the parameter, as frmtmb's
+  `mixture()` does. A state of `hmm(2, skew_normal())` that stops at
+  alpha = 0 is now refit from both sides of it. Before, the fit stayed
+  there without a word except a warning that the alpha standard errors
+  were unavailable: with the default start, one state of two skewed in
+  opposite directions stopped at alpha = 0 on two of three simulated
+  data sets, 21.2 and 25.1 log-likelihood units below the fit that
+  escapes it.
+
 # frmtmb.latent 0.7.3
 
 * `hmm_starts()` compares the refits on the value that each one maximized,

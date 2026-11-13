@@ -21,9 +21,10 @@ error naming it, rather than silently changing nothing.}
 }
 \value{
 A named list of data frames, one per grouping factor, each
-with one row per group level and one column per coefficient. When
-random effects appear in more than one linear predictor, the list is
-nested one level deeper, keyed as in \code{\link[=fixef]{fixef()}}. A fit without random
+with one row per group level and one column per coefficient. A
+group whose levels differ between two predictors (a response fitted
+on a \code{subset()} of the rows) has one data frame per predictor, the
+later ones named \verb{<predictor>: <group>}. A fit without random
 effects returns the per-predictor coefficient vectors instead.
 }
 \description{
@@ -33,12 +34,15 @@ over the group levels, with the conditional modes added to the
 matching columns. Use \code{\link[=fixef]{fixef()}} for the fixed effects alone.
 }
 \details{
-The result is a list of data frames keyed by grouping factor. When
-random effects appear in more than one dpar (or response), an outer
-layer keyed like \code{\link[=fixef]{fixef()}} is added. Smooth terms are excluded. A fit
-without random effects returns the coefficient vector of the location
-predictor (when there is one linear predictor), or one vector per
-predictor.
+The result is a list of data frames keyed by grouping factor, as in
+brms: each holds every population-level coefficient of the model,
+whatever distributional parameter or response it belongs to, with the
+group's modes added to the ones the group varies. Those come first,
+then the others in \code{\link[=fixef]{fixef()}} order, so on \code{bf(y ~ x + (1 | g), sigma ~ z + (1 | g))} the columns of \code{coef(fit)$g} are \code{Intercept},
+\code{sigma_Intercept}, \code{x} and \code{sigma_z}. Smooth terms are excluded. A
+fit without random effects returns the coefficient vector of the
+location predictor (when there is one linear predictor), or one
+vector per predictor.
 
 The coefficients are named as brms names them, which is how
 \code{\link[=fixef]{fixef()}} and \code{\link[=vcov]{vcov()}} name their rows: \code{Intercept}, not

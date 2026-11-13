@@ -65,6 +65,7 @@
 \alias{hyp_eval_in}
 \alias{hyp_expr_vars}
 \alias{brms_par_labels}
+\alias{brms_variable_sort}
 \alias{gp_brms_natural}
 \alias{mi_sampling}
 \alias{varcorr_matrices}
@@ -451,7 +452,9 @@ spelling, \code{brms_levels(bk, for_r)} its level spelling, and
 \code{brms_re_parts(fit, bk)} a block's prefixes and renamed coefficients;
 \code{brms_par_labels(fit, include_random)} labels a
 sampled parameter vector in template order, in brms's spelling where
-brms has a parameter with the same content, and
+brms has a parameter with the same content,
+\code{brms_variable_sort(fit, names)} is the permutation that puts such
+names into brms's \code{variables()} order, and
 \code{gp_brms_natural(fit)} maps the \code{theta} entries it labels \code{sdgp_}
 and \code{lscale_} to brms's scales and back. \code{mi_sampling(fit)} gives a
 fit back the \code{mi()} rows maximum likelihood left out of its objective,

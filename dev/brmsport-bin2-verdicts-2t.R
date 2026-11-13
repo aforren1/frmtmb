@@ -109,14 +109,15 @@ for (k in c(119, 121, 123)) nd(k, paste(
 add(ids(136), F, "divergence", "policy", paste(
   "coef() of a fit is levels x coefficients, lme4's shape, without",
   "brms's Est.Error and quantile layer, the policy of bin-1",
-  "brmsfit-methods:811; it also omits brms's sigma_Intercept and",
-  "sigma_Trt1 columns (4 x 7 against 4 x 4 x 9)"))
+  "brmsfit-methods:811; one data frame per group, holding every",
+  "fixef() coefficient as brms's does, sigma_Intercept and sigma_Trt1",
+  "included (brms: 4 x 4 x 9)"))
 nd(138, "coef(summary = FALSE) is refused by name on a fit (D3)")
 add(ids(140), F, "divergence", "policy", paste(
-  "coef() of a nonlinear fit is nested by nonlinear parameter, coef(fit)$a",
-  "and $b, each levels x coefficients (the policy of brmsfit-methods:136),",
-  "so coef(fit2)$patient is NULL; brms has one patient array",
-  "10 x 4 x 4"))
+  "coef() of a nonlinear fit is one data frame per group, as brms keys",
+  "it: coef(fit2)$patient holds every nonlinear parameter's",
+  "coefficients, levels x coefficients (the policy of",
+  "brmsfit-methods:136), where brms has one patient array 10 x 4 x 4"))
 add(ids(142), F, "divergence", "policy", paste(
   "coef() of a fit is levels x coefficients (brmsfit-methods:136),",
   "8 x 8 here; the fixture also drops disc ~ 1 (brmsfit-methods:142 on",

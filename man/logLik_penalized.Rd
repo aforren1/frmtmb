@@ -110,6 +110,27 @@ read through a log-Jacobian, which is not constant, so it is a
 density like any other.
 }
 
+\section{The number of observations}{
+
+One fit can give two counts, and each reader takes one of them:
+\itemize{
+\item \code{nobs(fit)} is brms's count, the rows of the data. A \code{subset()}
+that leaves rows to no response and a missing response that \code{mi()}
+leaves unread do not lower it. \code{nobs(fit, resp = )} counts the rows
+of one response of a multivariate model. \code{insight::n_obs()} gives
+this count too.
+\item \code{attr(logLik(fit), "nobs")} counts the rows that keep a density in
+the likelihood: a row counts once if any response reads it.
+\code{BIC()}, \code{df.residual()} and the same-data check of
+\link[=anova.frmtmb_fit]{anova()} read this count.
+}
+
+The two agree when every row of the data carries a response that the
+likelihood reads. With two responses that both \code{subset()} rows 1 to
+72 of 80, \code{nobs()} is 80 and the \code{nobs} attribute is 72, so \code{BIC()}
+takes \code{log(72)}.
+}
+
 \examples{
 set.seed(1)
 dd <- data.frame(x = rnorm(60), g = factor(rep(1:12, 5)))

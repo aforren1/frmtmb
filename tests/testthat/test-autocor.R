@@ -196,8 +196,12 @@ test_that("ragged groups keep the gap-aware lag (gls corAR1)", {
   set.seed(99)
   dr <- d[-sample(nrow(d), 40), ]
   for (m in c("ML", "REML")) {
-    f <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(),
-             data = dr, REML = (m == "REML"))
+    # the groups skip levels others have, which is the point here, and
+    # frm() says that brms would count them as one step
+    expect_message(
+      f <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(),
+               data = dr, REML = (m == "REML")),
+      class = "frmtmb_autocor_gap")
     g <- nlme::gls(y ~ x, data = dr,
                    correlation = nlme::corAR1(form = ~ week | subj),
                    method = m, control = gls_ctl())
@@ -209,9 +213,11 @@ test_that("ragged groups keep the gap-aware lag (gls corAR1)", {
                  tolerance = 1e-5)
   }
   # more than one pattern really is exercised
-  expect_gt(length(frm(bf(y ~ x + ar(week, subj, cov = TRUE)) +
-                         gaussian(), data = dr,
-                       dry_run = "frame")$autocor[[1L]]$patterns), 1L)
+  expect_message(
+    fr <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(), data = dr,
+              dry_run = "frame"),
+    class = "frmtmb_autocor_gap")
+  expect_gt(length(fr$autocor[[1L]]$patterns), 1L)
 })
 
 test_that("heterogeneous sigma matches gls(weights = varIdent)", {
@@ -539,14 +545,18 @@ test_that("aterms that need a per-row density are refused", {
   d$w <- 1
   d$cc <- 0
   d$sd <- 0.5
-  for (lhs in c("y | weights(w)", "y | cens(cc)", "y | trunc(lb = -99)",
-                "y | se(sd)")) {
+  for (lhs in c("y | weights(w)", "y | cens(cc)", "y | trunc(lb = -99)")) {
     expect_error(
       frm(bf(stats::as.formula(
         paste(lhs, "~ x + ar(week, subj, cov = TRUE)"))) + gaussian(),
         data = d),
       "cannot be combined with a residual correlation term")
   }
+  # se() keeps the joint density, but only beside a sigma, in brms's words
+  expect_error(
+    frm(bf(y | se(sd) ~ x + ar(week, subj, cov = TRUE)) + gaussian(),
+        data = d),
+    "needs se(..., sigma = TRUE)", fixed = TRUE)
 })
 
 test_that("cens() beside cosy() is refused on gaussian and student", {

@@ -625,13 +625,15 @@ test_that("every draws accessor speaks brms's names", {
   expect_true(all(sprintf("r_g[%s,Intercept]", levels(dd$g)) %in%
                     colnames(ds$draws)))
   expect_false(any(grepl("[()]", colnames(ds$draws))))
-  expect_equal(rownames(summary(ds)), nm)
+  # the summary, variables() and the posterior objects in brms's order:
+  # sd_ (class sd) before sigma (a dpar), theta_1 (no brms class) last
+  expect_equal(rownames(summary(ds)),
+               c("b_Intercept", "b_x", "sd_g__Intercept", "sigma", "theta_1"))
   # brms's fixef() drops the b_
   expect_equal(rownames(fixef(ds)), c("Intercept", "x"))
-  expect_equal(setdiff(variables(ds), c("lp__")),
-               setdiff(colnames(ds$draws), "lp__"))
+  expect_setequal(variables(ds), colnames(ds$draws))
   expect_equal(colnames(posterior::as_draws_matrix(as_draws(ds))),
-               colnames(ds$draws))
+               variables(ds))
 
   # the FIT side takes brms's names on vcov() too since item 2.6f, and
   # keeps the internal spelling where confint() names its rows

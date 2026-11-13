@@ -42,10 +42,12 @@ autocor_row_loglik <- function(fit, dpv, resp) {
   pt <- if (autocor_is_seam(ac)) {
     autocor_seam_loo_parts(ac, y, mu, sigma, th)
   } else {
-    # the group's covariance is D R D in the marginal sds
+    # the group's covariance is D R D in the marginal sds, plus
+    # diag(se^2) under se(), as brms's get_cov_matrix_ac() adds it
     autocor_group_loo_parts(ac, y, mu,
                             autocor_marg_sigma(rep_len(sigma, n), th, ac),
-                            th)
+                            th,
+                            se = fit$frame[["aterm_values"]][[resp]][["se"]])
   }
   nu <- if (isTRUE(ac[["student"]])) as.numeric(dp[["nu"]])[1L] else NULL
   autocor_loo_density(pt, nu)
@@ -59,7 +61,7 @@ autocor_row_loglik <- function(fit, dpv, resp) {
 #' pattern needs one `k x k` inverse for all its groups.
 #'
 #' @noRd
-autocor_group_loo_parts <- function(ac, y, mu, sigma, th) {
+autocor_group_loo_parts <- function(ac, y, mu, sigma, th, se = NULL) {
   n <- length(y)
   R <- as.matrix(autocor_cor(th, ac))
   z <- (y - mu) / sigma
@@ -71,6 +73,22 @@ autocor_group_loo_parts <- function(ac, y, mu, sigma, th) {
     kk <- pt$k
     Rp <- if (kk == ac[["d"]]) R else {
       matrix(as.vector(R)[pt$gather], kk, kk)
+    }
+    if (!is.null(se)) {
+      # a known se gives every group a covariance of its own, so each
+      # is inverted alone: Q = (D R D + diag(se^2))^-1
+      for (j in seq_len(pt$G)) {
+        ix <- pt$rows[(j - 1L) * kk + seq_len(kk)]
+        S <- Rp * outer(sigma[ix], sigma[ix]) + diag(se[ix]^2, kk)
+        Q <- chol2inv(chol(S))
+        e <- y[ix] - mu[ix]
+        gq <- as.vector(Q %*% e)
+        g[ix] <- gq
+        cbar[ix] <- diag(Q)
+        quad[ix] <- sum(e * gq)
+        k[ix] <- kk
+      }
+      next
     }
     Ri <- chol2inv(chol(Rp))
     Z <- matrix(z[pt$rows], kk, pt$G)
@@ -102,7 +120,23 @@ autocor_seam_loo_parts <- function(ac, y, mu, sigma, th) {
   # autocor_seam_B() applies it itself
   thm <- autocor_seam_theta_on(ac, th)
   u <- as.numeric(e[["whiten"]](y, mu, sg, thm, ac[["aux"]])[["u"]])
+  aux <- ac[["aux"]]
+  if (identical(ac[["struct"]], "fcor") && !is.null(aux[["diag_inv"]])) {
+    # fcor()'s K is Linv D^-1, so Q e = D^-1 Linv'u and diag(Q) is
+    # diag(M^-1) / sigma^2: one product per draw, where forming K and
+    # K * K took two n x n matrices
+    s <- rep_len(as.numeric(sg), n)
+    return(list(g = as.numeric(crossprod(aux[["Linv"]], u)) / s,
+                cbar = aux[["diag_inv"]] / s^2,
+                quad = rep(sum(u * u), n), k = rep(n, n)))
+  }
   K <- autocor_seam_jacobian(ac, e, sg, th, thm, mu)
+  if (isTRUE(ac[["jacobian_rotated"]])) {
+    # a slot giving O K, O orthogonal: K'K is right, K'u is not, so Q e is
+    # read as K'(K e), with e = y - m and m the map's mean unwhiten(0)
+    m <- as.numeric(e[["unwhiten"]](numeric(n), mu, sg, thm, ac[["aux"]]))
+    u <- as.numeric(as.matrix(K %*% (y - m)))
+  }
   if (inherits(K, "Matrix")) {
     g <- as.numeric(Matrix::crossprod(K, u))
     cbar <- as.numeric(Matrix::colSums(K * K))
@@ -122,7 +156,7 @@ autocor_seam_jacobian <- function(ac, e, sg, th, thm, mu) {
     return(e[["jacobian"]](sg, thm, ac[["aux"]]))
   }
   n <- ac[["d"]]
-  if (n > autocor_loo_dense_max) {
+  if (n > autocor_loo_dense_max()) {
     frm_warning("The '", ac[["struct"]], "' term of ", ac[["label"]],
                 " has no jacobian slot, so its pointwise log-density ",
                 "inverts a dense ", n, " x ", n, " matrix per draw, a cost ",
@@ -142,8 +176,16 @@ autocor_seam_jacobian <- function(ac, e, sg, th, thm, mu) {
 # machine (dev/loglik-fallback-cost.R) at 0.5 s and 48 Mb per draw at
 # 1000 rows, 0.56 h for 4000 draws, and 1.9 h at 2000 rows. A warning,
 # not a refusal: the values are exact, and 345 Mb per draw at 3000 rows
-# is not a memory hazard on a machine that fits such a model.
-autocor_loo_dense_max <- 1000L
+# is not a memory hazard on a machine that fits such a model. An option,
+# so that a package's test can reach the route on a small design.
+autocor_loo_dense_max <- function() {
+  v <- getOption("frmtmb.autocor_dense_max", 1000L)
+  if (!is.numeric(v) || length(v) != 1L || is.na(v) || v < 0) {
+    frm_stop("options(frmtmb.autocor_dense_max = ) must be one ",
+             "non-negative number of rows", call. = FALSE)
+  }
+  v
+}
 
 #' brms's leave-one-out conditional density from the pieces: the normal
 #' of `y_i` around `y_i - g_i / cbar_i` with variance `1 / cbar_i`, or

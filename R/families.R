@@ -1597,7 +1597,8 @@ sim_autocor_rows <- function(ctx, ac) {
   sg <- autocor_marg_sigma(rep(dp[["sigma"]], length.out = n), tac, ac)
   rep(dp[["mu"]], length.out = n) +
     autocor_draw_resid(ac, R, sg, n,
-                       nu = if (isTRUE(ac[["student"]])) dp[["nu"]][1])
+                       nu = if (isTRUE(ac[["student"]])) dp[["nu"]][1],
+                       se = ctx[["aterms"]][["se"]])
 }
 
 #' The `cov = FALSE` branch: a fresh replicate of brms's recursion.
@@ -5986,15 +5987,20 @@ mixture_mu_start <- function(y, aterms, p, bounded) {
 #' mixture to simulated data with two well-separated classes (300 or
 #' 500 rows), 22 ended there, and in 16 of the 22 the degenerate point
 #' had a higher log-likelihood than the best non-degenerate optimum
-#' found from other starts, so a better start does not move such a fit
-#' off it. The fit warns when a component ends at such a point: when
-#' doubling all its latent distances (or, with `cs()`, one threshold's)
+#' found from other starts, so the best start by the likelihood alone
+#' does not move such a fit off it. Without random effects, [frm()]
+#' therefore also fits from 10 jittered starts and keeps the best
+#' converged point without a step function, and warns when a step
+#' function it passed over was higher (see
+#' `starts` in [frmtmb_control()]). The fit warns when a component ends
+#' at such a point: when doubling all its latent distances (or, with
+#' `cs()`, one threshold's)
 #' costs the log-likelihood less than 0.1, or when no row lies within a
 #' latent distance of 50 of one of its thresholds. Strong predictors
 #' alone do not set it off: none of 167 sound fits with slopes up to 15
 #' warned, under the logit, probit, cloglog and cauchit. Compare
-#' several starts (`frm(start = )`), the more so with three or more
-#' components, and hold the components with priors on `class =
+#' more starts (`frmtmb_control(starts = )`), the more so with three or
+#' more components, and hold the components with priors on `class =
 #' "Intercept"` and `class = "b"` with `dpar = "mu<k>"`, as a brms fit
 #' does; or use fewer components. An ordinal mixture holds each
 #' interior category's probability at `exp(-692)` or above, so that a
@@ -6683,6 +6689,7 @@ mixture_build_ordinal <- function(comps, ref, order, y = NULL,
     sim = sim,
     post = list(
       fit_check = mixture_ord_fit_check,
+      start_degenerate = mixture_ord_start_class,
       start_spread = if (shared) {
         function(frame, resp, tpl) {
           mixture_ord_start_spread(frame, resp, tpl, cf)
@@ -7100,15 +7107,42 @@ mixture_ord_degenerate_check <- function(fit, resp) {
                "exp(-692)")
       }), collapse = "; "), ")")
   }, "")
+  ms <- fit$opt[["mixture_starts"]]
   frm_warning(fam[["family"]], ": ", paste(what, collapse = "; "),
               " ended at a degenerate boundary. Maximum likelihood for ",
               "an ordinal mixture often has its supremum there, so its ",
               "estimates run off and their standard errors mean ",
-              "nothing. Compare several starts (frm(start = )), hold the ",
-              "component with priors, as brms does (class Intercept and ",
-              "b with dpar = \"mu<k>\"), or use fewer components",
-              call. = FALSE)
+              "nothing. ",
+              if (is.null(ms)) {
+                "Compare several starts (frm(start = )), "
+              } else if (any(step)) {
+                paste0("None of ", ms[["starts"]], " jittered starts ",
+                       "reached a maximum without a step function. ")
+              },
+              if (is.null(ms)) "hold" else "Hold",
+              " the component with priors, as brms does (class ",
+              "Intercept and b with dpar = \"mu<k>\"), or use fewer ",
+              "components", call. = FALSE)
   invisible(NULL)
+}
+
+#' The components of a fitted ordinal mixture at a degenerate boundary,
+#' by the rule of `mixture_ord_degenerate_check()`, for
+#' `mixture_starts()`: `step`, those that are step functions of their
+#' predictors, the boundary that buys likelihood; `boundary`, the others
+#' the rule flags (a threshold no row is near, two thresholds the same
+#' number), along which the likelihood is flat. A component whose
+#' sharpening could not be measured (the doubled likelihood not finite)
+#' counts as a step function: on three cumulative components every such
+#' point had coefficients of 740 to 9.5e4 and was not a measured maximum
+#' (dev/reviews/2026-11-11-ordstart.md, finding 3).
+#'
+#' @noRd
+mixture_ord_start_class <- function(fit, resp) {
+  dg <- mixture_ord_degeneracy(fit, resp)
+  step <- !((dg$sharpen <= -0.1) %in% TRUE)
+  flat <- (dg$near > 50) %in% TRUE | dg$collapsed %in% TRUE
+  list(step = dg$component[step], boundary = dg$component[flat & !step])
 }
 
 #' How far each component of a fitted ordinal mixture has run toward a
@@ -7815,8 +7849,8 @@ categorical_levels <- function(formula, data) {
 #' The category labels of a categorical response, in the order that fixes
 #' the reference category and the dpar names. A character vector is
 #' coerced with a message naming the order it took, because that order is
-#' the model; a factor keeps its own levels; numeric codes are read in
-#' numeric order, as brms reads them.
+#' the model; a factor keeps its own levels but the ones no row takes;
+#' numeric codes are read in numeric order, as brms reads them.
 #'
 #' @noRd
 categorical_y_levels <- function(y, label) {
@@ -7830,7 +7864,10 @@ categorical_y_levels <- function(y, label) {
                 "if that is not what you want.")
     return(lv)
   }
-  if (is.factor(y)) return(levels(y))
+  # a level no row takes is no category, as in brms (its ncat counts the
+  # observed ones); kept, it was a category with no data, whose
+  # coefficients the likelihood pushes to minus infinity
+  if (is.factor(y)) return(levels(droplevels(y)))
   # Numeric codes are categories too, in numeric order, as brms reads
   # them: 11:20 is ten categories with 11 the reference. This returned
   # NULL once, and the caller then claimed "fewer than two categories"
@@ -8200,7 +8237,35 @@ fam_multinomial <- function(link = "logit", refcat = NULL, K = NULL) {
   if (is.null(K)) return(fam_multinomial_deferred(link, refcat))
   refcat <- check_simplex_refcat(refcat, "multinomial", allow_na = TRUE)
   K <- check_ncat_arg(K, "multinomial")
-  fam_multinomial_impl(as.character(seq_len(K)), refcat, link)
+  fam <- fam_multinomial_impl(as.character(seq_len(K)), refcat, link)
+  # named response columns name the dpars, muy2 and not mu2, as brms
+  # names them
+  fam[["defer"]] <- k_defer(fam, K, function(formula, data) {
+    cats <- tryCatch(multinomial_categories(formula, data),
+                     error = function(e) NULL)
+    if (length(cats) == K) fam_multinomial_impl(cats, refcat, link)
+  })
+  fam
+}
+
+#' The `defer` slot of a family built from `K =`: `resolve()` gives the
+#' family the data's own category names, or `NULL` when the data have
+#' another number of categories or none to read, and then the family
+#' built from `K` stays, without the slot, so the frame's own check
+#' reports the mismatch.
+#'
+#' @noRd
+k_defer <- function(fam, K, resolve) {
+  force(fam)
+  force(K)
+  function(formula, data) {
+    out <- resolve(formula, data)
+    if (is.null(out)) {
+      fam[["defer"]] <- NULL
+      return(fam)
+    }
+    out
+  }
 }
 
 #' The registry's dirichlet_multinomial constructor, which
@@ -8215,7 +8280,16 @@ fam_dirichlet_multinomial <- function(link = "logit", link_phi = "log",
   if (is.null(K)) return(fam_multinomial_deferred(link, refcat, link_phi))
   refcat <- check_simplex_refcat(refcat, fname, allow_na = TRUE)
   K <- check_ncat_arg(K, fname)
-  fam_multinomial_impl(as.character(seq_len(K)), refcat, link, link_phi)
+  fam <- fam_multinomial_impl(as.character(seq_len(K)), refcat, link,
+                              link_phi)
+  fam[["defer"]] <- k_defer(fam, K, function(formula, data) {
+    cats <- tryCatch(multinomial_categories(formula, data, fname),
+                     error = function(e) NULL)
+    if (length(cats) == K) {
+      fam_multinomial_impl(cats, refcat, link, link_phi)
+    }
+  })
+  fam
 }
 
 #' The categories of a multinomial response: its column names, or `1..K`
@@ -8680,13 +8754,21 @@ as_frmtmb_family <- function(x) {
 #' sampler does not converge on this model.
 #'
 #' The categories come from the data, so `frm()` reads them off the
-#' response before it parses the formula. Constructing the family away
+#' response before it parses the formula. A factor level that no row
+#' takes is not a category, as in brms. Constructing the family away
 #' from a data set (to inspect it, or to reach the parser through
 #' another entry point) needs them stated: `categorical(levels = c("a",
 #' "b", "c"))`, or `categorical(K = 3)` for a response already coded
-#' `1..K`, which names the dpars `mu2 ... muK`. A character or logical
-#' response is coerced to a factor with a message naming the level
-#' order, because that order is the model.
+#' `1..K`, which names the dpars `mu2 ... muK`.
+#'
+#' Given to `frm()` with data, `K` does not fix the names: the dpars take
+#' the data's category names, as brms names them. A factor `a, b, c`
+#' gives `mub` and `muc`, and a dpar formula or a prior then names those,
+#' `bf(y ~ x, mub ~ z)` and `set_prior(..., dpar = "mub")`; `mu2` does
+#' not apply to factor data and is refused. Numeric codes give their own
+#' names, so codes `2, 3, 4` give `mu3` and `mu4`. A character or
+#' logical response is coerced to a factor with a message naming the
+#' level order, because that order is the model.
 #'
 #' `fitted()` returns brms's `n x 4 x K` array of category
 #' probabilities, one layer per category named `P(Y = <level>)`, and
@@ -8711,7 +8793,9 @@ as_frmtmb_family <- function(x) {
 #' for `categorical()`. `fitted()` returns brms's `n x 4 x K` array of
 #' expected COUNTS, probability times trials, which brms labels
 #' `P(Y = <category>)` too. `multinomial(K = 3)` builds the family away
-#' from the data, with the categories `1..K`. A one-hot matrix with one
+#' from the data, with the categories `1..K`; given data whose response
+#' matrix has `K` named columns, the dpars take the column names, as
+#' they do without `K`. A one-hot matrix with one
 #' trial a row gives the log-likelihood of `categorical()`.
 #'
 #' `dirichlet_multinomial()` is brms's overdispersed multinomial. The
@@ -9237,6 +9321,12 @@ zero_inflated_asym_laplace <- function(link = "identity", link_sigma = "log",
 #'   units of `sigma` where the density stops being gaussian and becomes
 #'   Laplace. It is FIXED, not estimated - the default 1.345 is
 #'   `MASS::rlm()`'s, which gives 95% efficiency against a gaussian.
+#' @details For `huber()` with group-level terms: the Laplace approximation
+#'   of the marginal likelihood changes in steps where a residual crosses
+#'   `k`, so the optimizer can stop on a lower piece of it, at code 0 and
+#'   with no warning. For such a model, fit with `quadrature = TRUE` where
+#'   the model allows it (scalar group-level terms), which integrates the
+#'   density itself, or compare fits from several starts.
 #' @export
 huber <- function(link = "identity", k = 1.345, link_sigma = "log") {
   link <- link_arg_value(substitute(link), link,
@@ -9300,8 +9390,17 @@ categorical <- function(link = "logit", refcat = NULL, levels = NULL,
   }
   if (!is.null(K)) {
     K <- check_ncat_arg(K, "categorical")
-    return(fam_categorical_impl(as.character(seq_len(K)), refcat, link,
-                                levels = NULL))
+    fam <- fam_categorical_impl(as.character(seq_len(K)), refcat, link,
+                                levels = NULL)
+    # K builds the family away from the data; given data with K named
+    # categories, the dpars take the categories' names, as brms (which
+    # has no K) names them: muB, not mu2
+    fam[["defer"]] <- k_defer(fam, K, function(formula, data) {
+      lv <- tryCatch(categorical_levels(formula, data),
+                     error = function(e) NULL)
+      if (length(lv) == K) fam_categorical_impl(lv, refcat, link = link)
+    })
+    return(fam)
   }
   fam_categorical_deferred(link, refcat)
 }

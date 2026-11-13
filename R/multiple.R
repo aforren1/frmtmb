@@ -158,7 +158,9 @@ frm_multiple <- function(formula, data, level = 0.95, ...) {
     pv <- rubin_pool(Q, U, dfcom)
     tq <- stats::qt(1 - (1 - level) / 2, pv$df)
     pooled_varcorr <- data.frame(
-      grp = vc[[1]]$block, term = vc[[1]]$term, type = vc[[1]]$type,
+      # a `||` block as written, as confint_varcorr() shows it
+      grp = block_display_label(fits[[1]], vc[[1]]$block),
+      term = vc[[1]]$term, type = vc[[1]]$type,
       estimate = varcorr_untrans(vc[[1]]$type, pv$estimate),
       lwr = varcorr_untrans(vc[[1]]$type, pv$estimate - tq * pv$se),
       upr = varcorr_untrans(vc[[1]]$type, pv$estimate + tq * pv$se),
@@ -388,8 +390,8 @@ pooled_order <- function(a, b) {
   }
   # Same guard as anova.frmtmb_fit, applied imputation by imputation:
   # likelihoods computed on different data are not on a common scale.
-  na <- vapply(a$fits, function(f) as.integer(f$frame[["n_obs"]]), 0L)
-  nb <- vapply(b$fits, function(f) as.integer(f$frame[["n_obs"]]), 0L)
+  na <- vapply(a$fits, function(f) as.integer(loglik_nobs(f$frame)), 0L)
+  nb <- vapply(b$fits, function(f) as.integer(loglik_nobs(f$frame)), 0L)
   if (!identical(na, nb)) {
     frm_stop("anova() needs both fits fit to the same imputed datasets; ",
              "imputation ", which(na != nb)[1], " has ", na[which(na != nb)[1]],
@@ -1027,6 +1029,7 @@ summary.frmtmb_multiple <- function(object, priors = FALSE, prob = 0.95,
   }
   structure(list(m = object$m, family = s1$family, links = s1$links,
                  formula = s1$formula, formulas = s1$formulas,
+                 formula_lines = s1$formula_lines,
                  data_name = "the imputed data sets", nobs = s1$nobs,
                  ngrps = s1$ngrps, fixed = fixed, spec_pars = spec,
                  varcorr = object$pooled_varcorr, level = object$level,
@@ -1045,12 +1048,7 @@ print.summary.frmtmb_multiple <- function(x, digits = 2, ...) {
     cat(" Family:", x$family[["family"]], "\n")
   }
   cat_family_links(x$links %||% family_link_str(x$family))
-  if (length(mv_forms) > 1L) {
-    cat("Formula: ", paste(vapply(mv_forms, deparse1, ""),
-                           collapse = " \n         "), " \n", sep = "")
-  } else {
-    cat("Formula:", deparse1(x$formula), "\n")
-  }
+  cat_formula_lines(x)
   cat("   Data:", x$data_name,
       paste0("(Number of observations: ", x$nobs, ")"), "\n")
   cat(" Method: ML on each of ", x$m, " imputations, pooled by Rubin's ",

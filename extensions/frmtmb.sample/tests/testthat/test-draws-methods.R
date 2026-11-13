@@ -49,7 +49,9 @@ test_that("as.array() keeps the chains apart, in draws order", {
   cs <- dm_case()
   a <- as.array(cs$ds)
   expect_equal(dim(a), c(niterations(cs$ds), 2L, nvariables(cs$ds)))
-  expect_equal(dimnames(a)[[3L]], colnames(cs$ds$draws))
+  # in brms's order, which is variables()'s, over the stored columns
+  expect_equal(dimnames(a)[[3L]], variables(cs$ds))
+  expect_setequal(dimnames(a)[[3L]], colnames(cs$ds$draws))
   # frm_sample() rbinds the chains in order, so chain 2 is the second
   # half of the matrix; a wrong reshape here would silently make every
   # convergence diagnostic meaningless
@@ -78,8 +80,17 @@ test_that("as.array() and as.matrix() take brms's chain and iteration", {
   m1 <- as.matrix(cs$ds, iteration = 1:10, chain = 1)
   expect_identical(unname(m1[, "b_x"]), unname(a[1:10, 1L, "b_x"]))
   expect_identical(nrow(as.data.frame(cs$ds, chain = 1)), k)
-  # the dots are still refused past the two names brms passes on
-  expect_error(as.array(cs$ds, chains = 1), "chains")
+  # the dots are still refused past the two names brms passes on, by the
+  # function the caller called; the refusal named draws_accessor_args()
+  # (backlog 1547)
+  expect_error(as.array(cs$ds, chains = 1),
+               "as.array() has no argument `chains`", fixed = TRUE)
+  expect_error(as.matrix(cs$ds, chains = 1),
+               "as.matrix() has no argument `chains`", fixed = TRUE)
+  expect_error(as.data.frame(cs$ds, chains = 1),
+               "as.data.frame() has no argument `chains`", fixed = TRUE)
+  e <- tryCatch(as.array(cs$ds, chains = 1), error = conditionMessage)
+  expect_no_match(e, "draws_accessor_args", fixed = TRUE)
 })
 
 test_that("the posterior converters all round-trip the same draws", {
@@ -105,7 +116,8 @@ test_that("the posterior converters all round-trip the same draws", {
   expect_true("b_x" %in% names(rv))
 
   # brms's as.matrix(): the same numbers with draw/variable margins
-  expect_equal(unname(unclass(as.matrix(cs$ds))), unname(cs$ds$draws),
+  expect_equal(unname(unclass(as.matrix(cs$ds))),
+               unname(cs$ds$draws[, variables(cs$ds)]),
                ignore_attr = "nchains")
   expect_identical(attr(as.matrix(cs$ds), "nchains"), 2L)
   expect_named(dimnames(as.matrix(cs$ds)), c("draw", "variable"))
@@ -127,7 +139,7 @@ test_that("as.mcmc() gives coda one component per chain", {
   m <- as.mcmc(cs$ds)
   expect_s3_class(m, "mcmc.list")
   expect_length(m, 2L)
-  expect_equal(colnames(m[[1L]]), colnames(cs$ds$draws))
+  expect_equal(colnames(m[[1L]]), variables(cs$ds))
   expect_equal(nrow(m[[1L]]), niterations(cs$ds))
   expect_true(is.finite(coda::gelman.diag(m[, "b_x"])$psrf[1L, 1L]))
 

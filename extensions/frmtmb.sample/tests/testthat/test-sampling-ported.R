@@ -188,10 +188,10 @@ test_that("posterior_epred returns a draws x obs x category array", {
               5 * max(ep_sd) + 1e-8)
   }
 
-  # without newdata the observation margin carries the data rownames
+  # without newdata the observation margin is unnamed too, as brms's
   ep0 <- posterior_epred(ds, ndraws = 4)
   expect_equal(dim(ep0), c(4L, nrow(dd), 3L))
-  expect_equal(dimnames(ep0)[[2]], rownames(dd))
+  expect_null(dimnames(ep0)[[2]])
   expect_equal(dimnames(ep0)[[3]], levels(dd$y))
 
   # the other two draws methods are statements about one number per
@@ -646,11 +646,13 @@ test_that("ordinal posterior_epred has brms's draws x obs x category shape", {
   expect_length(dim(ep), 3L)
   expect_equal(dim(ep)[2:3], dim(bep)[2:3])
   # brms names the category margin by the response's own levels and
-  # leaves the observation margin unnamed; we name the observation
-  # margin when the rows have names, which is additive
+  # leaves the observation margin unnamed, and so do the draws
   expect_equal(dimnames(ep)[[3]], levels(dd$y))
   expect_equal(dimnames(bep)[[3]], levels(dd$y))
   expect_null(dimnames(ep)[[1]])
+  # brms names an ordinal fit's draw margin "1".."S"; the observation
+  # margin is unnamed on both sides
+  expect_identical(dimnames(ep)[[2]], dimnames(bep)[[2]])
   expect_vector_equal(as.vector(apply(ep, c(2L, 3L), mean)),
                       as.vector(apply(bep, c(2L, 3L), mean)), tol = 0.1)
 })

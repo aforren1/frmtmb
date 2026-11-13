@@ -1340,13 +1340,18 @@ me_comps <- function(fit) {
 #' brms's names and values of the `me()` hyperparameters at one
 #' parameter vector: `meanme_<coef>` and `sdme_<coef>` per call, then
 #' `corme__<coef1>__<coef2>` (`corme_<gr>__...` for a grouped term) per
-#' correlated pair, which is brms's `rename_Xme()` spelling.
+#' correlated pair, which is brms's `rename_Xme()` spelling. The calls
+#' are listed group by group, brms's `meanme_1`, `meanme_2` order, and
+#' not in the order the formula writes them: on `me(xg, gr = g) + me(z)
+#' + me(wg, gr = g)` brms has `meanme_mexg meanme_mewg meanme_mez`.
 #'
 #' @noRd
 me_hyper_values <- function(me, meanme, logsdme, thetame) {
   coefs <- vapply(me$terms, `[[`, "", "coef")
-  out <- c(stats::setNames(meanme, paste0("meanme_", coefs)),
-           stats::setNames(exp(logsdme), paste0("sdme_", coefs)))
+  ord <- unlist(lapply(me$groups, `[[`, "K"), use.names = FALSE)
+  if (length(ord) != length(coefs)) ord <- seq_along(coefs)
+  out <- c(stats::setNames(meanme[ord], paste0("meanme_", coefs[ord])),
+           stats::setNames(exp(logsdme[ord]), paste0("sdme_", coefs[ord])))
   for (g in me$groups) {
     if (!g$cor) next
     M <- length(g$K)

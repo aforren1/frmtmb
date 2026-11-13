@@ -42,11 +42,13 @@ test_that("categorical() equals multinomial() on the one-hot response", {
   # one trial per row, so the multinomial coefficient is log(1) = 0 and
   # the two log-likelihoods are the same number, not merely proportional
   expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(fm))), 1e-8)
+  # the columns are named by the levels, so the dpars are categorical()'s
+  expect_identical(names(fixef_by_dpar(fm)), c("mub", "muc"))
   expect_vector_equal(unname(fixef_by_dpar(fit)$mub),
-                      unname(fixef_by_dpar(fm)$mu2),
+                      unname(fixef_by_dpar(fm)$mub),
                       tol = 1e-6)
   expect_vector_equal(unname(fixef_by_dpar(fit)$muc),
-                      unname(fixef_by_dpar(fm)$mu3),
+                      unname(fixef_by_dpar(fm)$muc),
                       tol = 1e-6)
 })
 
@@ -166,8 +168,9 @@ test_that("categorical() validation", {
                    data = dd),
                "not among the family's categories")
   dd$const <- factor(rep("a", nrow(dd)), levels = c("a", "b"))
+  # the unused level is no category, as in brms, which leaves one
   expect_error(frm(bf(const ~ x), family = categorical(), data = dd),
-               "only one value")
+               "fewer than two categories")
 })
 
 # ------------------------------------------------------------ von Mises

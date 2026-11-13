@@ -283,6 +283,151 @@ test_that("a draw that reads an integrated value after the first is refused", {
                    })
 })
 
+test_that("a first draw NaN for its own reason does not hide a later read", {
+  # Backlog 1456 (dev/sampfix-rev-r2-01-watch.R, data seed 77): with
+  # c1 = -1 and k = 0 on draw 1, log(c1) is NaN at every fill, so the
+  # watch took draw 1's all-NA pattern as its reference and returned 480
+  # of 480 cells NaN where the full draws have 80. Each draw is now
+  # compared with itself at two finite fills.
+  set.seed(77)
+  G <- 8
+  dn <- data.frame(g = factor(rep(seq_len(G), each = 10)))
+  dn$x <- stats::rnorm(nrow(dn))
+  u <- stats::rnorm(G, 0, 0.6)[dn$g]
+  dn$yn <- 0.5 * dn$x + exp(0.3 + u)^0.8 + stats::rnorm(nrow(dn), 0, 0.3)
+  fnl <- suppressWarnings(suppressMessages(
+    frm(bf(yn ~ log(c1) * x + exp(a)^k, c1 ~ 1, a ~ 1 + (1 | g), k ~ 1,
+           nl = TRUE), family = gaussian(), data = dn,
+        prior = set_prior("normal(1.6, 1)", nlpar = "c1"))))
+  p <- lap_pair(fnl)
+  for (k in c("lap", "full")) {
+    p[[k]]$draws[1L, "b_c1_Intercept"] <- -1
+    p[[k]]$draws[1L, "b_k_Intercept"] <- 0
+  }
+  nan <- "NaNs produced"
+  full <- allow_warnings(posterior_epred(p$full), nan)
+  expect_true(all(is.nan(full[1L, ])))
+  expect_true(all(is.finite(full[-1L, ])))
+  expect_error(allow_warnings(posterior_epred(p$lap), nan),
+               "posterior_epred() needs", fixed = TRUE)
+  expect_error(allow_warnings(posterior_linpred(p$lap), nan),
+               "posterior_linpred() needs", fixed = TRUE)
+  expect_error(allow_warnings(posterior_predict(p$lap), nan),
+               "posterior_predict() needs", fixed = TRUE)
+  # the guard's condition absent: the same NaN first draw on a quantity
+  # the integrated values do not reach is returned, NaN and all
+  expect_identical(allow_warnings(posterior_epred(p$lap, dpar = "sigma"),
+                                  nan),
+                   allow_warnings(posterior_epred(p$full, dpar = "sigma"),
+                                  nan))
+})
+
+test_that("a group-level slope at a covariate of 0 reads no group value", {
+  # Backlog 1530: (0 + x | g) at x = 0 contributes b * 0, which is NA * 0
+  # = NA at the probe's NA fill and 0 at every finite one, so the call
+  # was refused though it reads no group-level value
+  dd <- lap_data()
+  fit <- frm(bf(y ~ x + (0 + x | g)), family = gaussian(), data = dd)
+  p <- lap_pair(fit)
+  nd0 <- data.frame(x = c(0, 0), g = factor(c(1, 2), levels = 1:6))
+  for (f in list(posterior_epred, posterior_linpred)) {
+    expect_identical(f(p$lap, newdata = nd0), f(p$full, newdata = nd0))
+  }
+  set.seed(3)
+  a <- posterior_predict(p$lap, newdata = nd0)
+  set.seed(3)
+  expect_identical(a, posterior_predict(p$full, newdata = nd0))
+  # a row at x = 0 beside a row that reads the slope is still refused
+  nd1 <- data.frame(x = c(0, 1), g = factor(c(1, 2), levels = 1:6))
+  expect_error(posterior_epred(p$lap, newdata = nd1),
+               "posterior_epred() needs", fixed = TRUE)
+  expect_error(posterior_epred(p$lap), "posterior_epred() needs",
+               fixed = TRUE)
+  # a missing covariate stays NA at every fill, and is not a read
+  ndm <- data.frame(x = c(0, NA), g = factor(c(1, 2), levels = 1:6))
+  expect_identical(posterior_epred(p$lap, newdata = ndm, re_formula = NA),
+                   posterior_epred(p$full, newdata = ndm, re_formula = NA))
+})
+
+test_that("a group-level design that cancels or a step() still refuses", {
+  # Review 2026-11-11 of lane sampfront, finding 1: a second scalar fill
+  # let these through with every effect at 0 (max |laplace - full| 1.01,
+  # 1.74, 1.01, 0.30 and 0.93 in dev/review-sampfront-probe.R). Only a
+  # design entry that is exactly 0 lets a cell skip the effects.
+  set.seed(77)
+  G <- 8
+  n <- 12
+  dd <- data.frame(g = factor(rep(seq_len(G), each = n)))
+  dd$x <- stats::rnorm(nrow(dd))
+  dd$f <- factor(rep(c("a", "b"), length.out = nrow(dd)))
+  u0 <- stats::rnorm(G, 0, 0.8)
+  u1 <- stats::rnorm(G, 0, 0.8)
+  dd$y <- 0.5 + 0.4 * dd$x + u0[dd$g] + u1[dd$g] * dd$x +
+    stats::rnorm(nrow(dd), 0, 0.5)
+  q <- function(...) suppressWarnings(suppressMessages(frm(...)))
+  msg <- "frm_sample(laplace = TRUE), which integrates them out"
+  g1 <- data.frame(g = factor(1, levels = 1:G))
+  # A: (1 + x | g) at x = -1, where the two entries are 1 and -1
+  pa <- lap_pair(q(bf(y ~ x + (1 + x | g)), family = gaussian(), data = dd))
+  nda <- data.frame(x = -1, g = factor(c(1, 2), levels = 1:G))
+  expect_error(posterior_epred(pa$lap, newdata = nda), msg, fixed = TRUE)
+  expect_error(posterior_linpred(pa$lap, newdata = nda), msg, fixed = TRUE)
+  expect_error(posterior_predict(pa$lap, newdata = nda), msg, fixed = TRUE)
+  expect_error(conditional_effects(pa$lap, effects = "x", re_formula = NULL,
+                                   int_conditions = list(x = -1),
+                                   conditions = g1),
+               "conditional_effects() needs", fixed = TRUE)
+  expect_error(conditional_effects(pa$lap, effects = "x", re_formula = NULL,
+                                   method = "posterior_predict",
+                                   int_conditions = list(x = -1),
+                                   conditions = g1),
+               "conditional_effects() needs", fixed = TRUE)
+  # B: a sum-coded factor's second level, design row (1, -1)
+  # (the design of the group-level term is rebuilt under the session's
+  # contrasts, as at fit time, so they stay set for the prediction)
+  withr::with_options(list(contrasts = c("contr.sum", "contr.poly")), {
+    pb <- lap_pair(q(bf(y ~ f + (1 + f | g)), family = gaussian(),
+                     data = dd))
+    ndb <- data.frame(f = factor("b", levels = c("a", "b")),
+                      g = factor(1:3, levels = 1:G))
+    expect_error(posterior_epred(pb$lap, newdata = ndb), msg, fixed = TRUE)
+    # the guard's condition absent: the full draws answer this row
+    expect_true(all(is.finite(posterior_epred(pb$full, newdata = ndb))))
+  })
+  # C: (1 + x || g) at x = -1
+  pc <- lap_pair(q(bf(y ~ x + (1 + x || g)), family = gaussian(), data = dd))
+  expect_error(posterior_epred(pc$lap, newdata = nda), msg, fixed = TRUE)
+  # D2: below the population's breakpoint and above the group's, where
+  # step() is 0 at fills 0 and 0.5772 alike; a nonlinear body reads its
+  # parameters' design only through the body, so it keeps the refusal
+  dd$yb <- 1 + 0.8 * pmax(dd$x - (0.2 + u0[dd$g] * 0.5), 0) +
+    stats::rnorm(nrow(dd), 0, 0.2)
+  fd <- q(bf(yb ~ a + bb * (x - om) * step(x - om), a ~ 1, bb ~ 1,
+             om ~ 1 + (1 | g), nl = TRUE), family = gaussian(), data = dd,
+          prior = c(set_prior("normal(0, 2)", nlpar = "a"),
+                    set_prior("normal(0, 2)", nlpar = "bb"),
+                    set_prior("normal(0, 2)", nlpar = "om")))
+  pd <- lap_pair(fd)
+  beta <- unlist(fd$estimates$beta)
+  om0 <- beta[grep("om", names(beta))][1L]
+  gmin <- which.min(fd$estimates$b)
+  ndd <- data.frame(x = om0 - 0.25, g = factor(gmin, levels = 1:G))
+  expect_error(posterior_epred(pd$lap, newdata = ndd), msg, fixed = TRUE)
+  # the guard's condition absent: where every entry is 0 the same calls
+  # answer, exactly as the full draws do
+  pz <- lap_pair(q(bf(y ~ x + (0 + x | g)), family = gaussian(), data = dd))
+  nd0 <- data.frame(x = 0, g = factor(c(1, 2), levels = 1:G))
+  expect_identical(posterior_epred(pz$lap, newdata = nd0),
+                   posterior_epred(pz$full, newdata = nd0))
+  ce <- function(d) {
+    set.seed(4)
+    conditional_effects(d, effects = "x", re_formula = NULL,
+                        method = "posterior_predict",
+                        int_conditions = list(x = 0), conditions = g1)
+  }
+  expect_identical(ce(pz$lap)[[1L]]$estimate__, ce(pz$full)[[1L]]$estimate__)
+})
+
 ## ---- frm_sample() itself --------------------------------------------
 
 test_that("laplace = TRUE with nothing to integrate samples the model", {
@@ -332,12 +477,26 @@ test_that("laplace = TRUE refuses where a REML objective holds beta too", {
       frm_sample(fr, chains = 1, iter = 200, refresh = 0, seed = 3,
                  laplace = TRUE, .diagnostic = TRUE)), "flat"),
     "would integrate the population-level coefficients", fixed = TRUE)
-  # the default priors rebuild the objective with beta sampled
-  ds <- allow_warnings(suppressMessages(
-    frm_sample(fr, chains = 1, iter = 200, refresh = 0, seed = 3,
-               laplace = TRUE)),
-    c("Effective Samples Size", "R-hat", "Rhat", "lp__"))
-  expect_true(all(c("b_Intercept", "b_x") %in% colnames(ds$draws)))
+  # the default priors rebuild the objective with beta sampled, and say
+  # that REML's integral over beta is not in it (backlog 1533)
+  said <- function(f) {
+    ms <- character()
+    ds <- allow_warnings(withCallingHandlers(
+      frm_sample(f, chains = 1, iter = 200, refresh = 0, seed = 3,
+                 laplace = TRUE),
+      message = function(m) {
+        ms <<- c(ms, conditionMessage(m))
+        invokeRestart("muffleMessage")
+      }), c("Effective Samples Size", "R-hat", "Rhat", "lp__"))
+    list(ds = ds, reml = any(grepl("on a REML model samples the ",
+                                   ms, fixed = TRUE)))
+  }
+  r <- said(fr)
+  expect_true(all(c("b_Intercept", "b_x") %in% colnames(r$ds$draws)))
+  expect_true(r$reml)
+  # the absent case: a maximum-likelihood fit is not told
+  expect_false(said(frm(bf(y ~ x + (1 | g)), family = gaussian(),
+                        data = dd))$reml)
 })
 
 test_that("a one-parameter model samples from its mode", {

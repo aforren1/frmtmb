@@ -202,7 +202,15 @@ A vector is the diagonal. \code{M} must be symmetric and positive
 definite. brms 2.23.0 checks the second with
 \code{min(eigen(M)$values <= 0)}, which refuses only a matrix whose
 eigenvalues are all non-positive; frmtmb refuses every matrix that is
-not positive definite.
+not positive definite. \code{se()} is refused beside it, as brms refuses it
+("Invalid addition arguments for this model"). \code{mi()} on the response
+works, as in brms: each missing value is a latent coordinate of the
+joint draw, integrated out under the Laplace approximation, which on
+\code{gaussian()} is exact and gives the fit over the observed rows with
+\code{M} cut to them. On \code{student()} the Laplace error is a function of
+\code{nu} and the numbers of rows and of missing values alone, and the
+objective takes it off, so the fit is exact there too when no other
+density reads the values and no other random effect is integrated.
 
 The term has no parameter, and the mean of the response is \code{mu}.
 \code{\link[=fitted]{fitted()}}, \code{\link[=predict]{predict()}} and \code{\link[=simulate]{simulate()}} take \code{newdata} with one row
@@ -236,7 +244,12 @@ down; brms instead indexes \code{ar()}/\code{ma()}/\code{arma()}/\code{cosy()} b
 position within the group and treats a missing row as no gap (only
 its \code{unstr()} carries a time index). On complete balanced groups the
 two coincide. Time levels that are whole numbers but not consecutive
-warn, because the lag is then not the one the labels suggest.
+warn, because the lag is then not the one the labels suggest. Under
+\code{ar()}, \code{ma()} and \code{arma()}, a group that skips a level other groups
+have gives a message of class \code{frmtmb_autocor_gap}, since a brms fit
+of the same formula counts that gap as one step. For brms's model,
+use each row's position within its group, in time order, as the time
+variable.
 
 Groups of different sizes are handled by construction: the density is
 evaluated one PATTERN at a time (a pattern being a distinct set of
@@ -248,17 +261,39 @@ Duplicate \verb{(gr, time)} pairs are refused, as they are in brms.
 \section{What cannot be combined with it}{
 
 The likelihood is a joint density over each group, so it no longer
-factorizes into per-row contributions. \code{weights()}, \code{cens()},
-\code{trunc()}, \code{se()} and \code{mi()} on the same response are therefore
-refused, as are \code{rescor = TRUE}, mixture families,
-\code{quadrature = TRUE}, \code{frm_simulate()} and
-\code{residuals(type = "osa")}. brms refuses \code{weights()}, \code{cens()},
-\code{trunc()} and \code{rescor = TRUE} too; it fits \code{se()} here (see
-"Divergence from brms"). Random
+factorizes into per-row contributions. \code{weights()}, \code{cens()} and
+\code{trunc()} on the same response are therefore refused, as are
+\code{rescor = TRUE}, mixture families, \code{quadrature = TRUE},
+\code{frm_simulate()} and \code{residuals(type = "osa")}. brms refuses
+\code{weights()}, \code{cens()}, \code{trunc()} and \code{rescor = TRUE} too. Random
 effects ARE allowed and are the point of the feature: the marginal
 likelihood is a Laplace approximation over the modes with the
 correlated residual density inside, which reproduces
 \code{nlme::lme(random = ~ 1 | subj, correlation = corAR1())}.
+
+Two addition terms keep the joint density, as in brms 2.23.0:
+\itemize{
+\item \code{se(s, sigma = TRUE)} adds \eqn{s_i^2}{s_i^2} to the diagonal of
+each group's covariance, \eqn{D R D + \mathrm{diag}(s^2)}{D R D +
+    diag(s^2)}, as brms's \code{normal_time_hom_se_lpdf()} and its relatives
+do. \code{sigma} stays the innovation sd under \code{ar()}, \code{ma()} and
+\code{arma()}. Each group then has a covariance of its own, so the
+density costs one factorization per group rather than one per
+pattern. \code{se()} without \code{sigma = TRUE} is refused, as brms refuses
+it: the covariance would be \code{diag(s^2)} alone, which the
+correlation does not enter. \code{\link[=simulate]{simulate()}} and \code{\link[=predict]{predict()}} add the
+known error to each draw, and the pointwise log-density reads the
+summed covariance.
+\item \code{mi()} on the response makes a missing value a coordinate of its
+group's draw. A missing value that no other density reads
+integrates out exactly: the density of the observed rows is the
+margin of the joint one, the same block over the time points the
+group still has, on \code{student()} as on \code{gaussian()}. One that another
+density reads (\code{mi(y)} as a predictor) stays latent, under the
+Laplace approximation, which is exact on \code{gaussian()}.
+\code{frmtmb.sample::frm_sample()} samples every missing value, as brms
+does.
+}
 }
 
 \section{Latent residuals}{
@@ -300,10 +335,13 @@ coordinates that leave the approximation unchanged, so a long series costs
 a banded inner Hessian and not a dense one. They are not random effects
 of a group: \code{\link[=ranef]{ranef()}} and \code{\link[=VarCorr]{VarCorr()}} do not list them, and \code{re_formula = NA} keeps them, as brms keeps \code{err}. \code{\link[=summary]{summary()}} and \code{\link[=confint_varcorr]{confint_varcorr()}}
 report \code{sderr} and the coefficients, and \code{\link[=variables]{variables()}} names them as brms
-does. Under \code{frm_sample()} the draws of the latents are named
-\code{latent_state[k]}. These are the chain's own states and not \code{err}: \code{ma()},
-\code{arma()} and \code{cosy()} have one extra state per group, so 60 rows in 12 groups
-have 72 states.
+does. Under \code{frm_sample()} the draws of the latents of \code{ar(cov = FALSE)}
+are brms's \code{zerr[k]}, one standard normal per row in row order, which
+brms's program declares and does not save. Under any other term they
+are named \code{latent_state[k]}: these are the chain's own states and not
+\code{err} or \code{zerr}, and \code{ma()}, \code{arma()} and \code{cosy()} have one extra state
+per group, so 60 rows in 12 groups have 72 states. brms's derived
+\code{err[k]} columns are not in the draws.
 
 After the fit, \code{\link[=fitted]{fitted()}}, \code{\link[=frm_linpred]{frm_linpred()}}, \code{\link[=residuals]{residuals()}}, \code{\link[=predict]{predict()}} and
 \code{\link[=simulate]{simulate()}} read the conditional mode of \code{err} on the fitted rows. On new
@@ -529,10 +567,7 @@ brms's \code{conditional_effects()} drops every autocorrelation term.
 brms limits \code{cov = TRUE} to order one ("Covariance formulation of
 ARMA structures is only possible for effects of maximal order one");
 higher \code{p} and \code{q} are supported here, with \code{sigma} the innovation sd
-there too. brms 2.23.0 fits \code{se()} beside a \code{cov = TRUE} term, adding
-\eqn{se_i^2}{se_i^2} to the diagonal of each group's covariance
-(\code{normal_time_hom_se_lpdf()} and its relatives); frmtmb refuses that
-combination.
+there too.
 
 On a nonlinear body with \code{cov = FALSE}, brms 2.23.0's post-processing does
 not follow its own model. Its Stan program carries the ARMA term in \code{mu},

@@ -70,7 +70,9 @@ allfit_optimizers <- function() {
 #' prior places on a nonlinear parameter. A nonlinear model is rarely
 #' defined at the default start of zero, so refits from there fail or
 #' stop somewhere else, and their disagreement then says nothing about
-#' the original fit.
+#' the original fit. The refits run no jittered starts of a mixture
+#' (`starts` in [frmtmb_control()]), so each shows its own optimizer's
+#' point.
 #'
 #' The printed table compares each refit with the best log-likelihood
 #' any fit reached, the original included. An optimizer that reports
@@ -111,6 +113,11 @@ frm_allfit <- function(fit, optimizers = NULL, start_from_mle = TRUE, ...) {
   # print.frmtmb_allfit() already reports the per-optimizer timings, so
   # a verbose original fit must not make every refit narrate itself
   ctl0$verbose <- FALSE
+  # each optimizer's own point is what the table compares: a mixture's
+  # jittered starts inside every refit made all optimizers agree where
+  # 0.81.0 showed a log-likelihood spread of 0.893, and cost 10 times
+  # the time (dev/reviews/2026-11-11-ordstart.md, finding 6)
+  ctl0$starts <- 0L
   fits <- list()
   errors <- rep(NA_character_, length(optimizers))
   times <- numeric(length(optimizers))

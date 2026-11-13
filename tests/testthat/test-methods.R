@@ -111,25 +111,39 @@ test_that("blocks sharing a grouping factor are addressed by their term label",
           {
   fit <- ranef_multi_fit()
   re <- ranef(fit)
-  expect_named(re, c("id", "id"))
-  # the label reaches its own block, and they are different blocks
+  # one entry for the factor, as brms and lme4 give it, with both blocks'
+  # columns
+  expect_named(re, "id")
+  expect_identical(colnames(re$id), c("apo_Intercept", "chi_Intercept"))
+  expect_identical(attr(re$id, "term"), c("apo: 1 | id", "chi: 1 | id"))
+  # the label reaches its own block's columns, and they are different
   a <- re[["apo: 1 | id"]]
   c2 <- re[["chi: 1 | id"]]
   expect_equal(dim(a), c(10L, 1L))
   expect_false(isTRUE(all.equal(as.vector(a), as.vector(c2))))
-  # which is what positional indexing gives, unchanged
-  expect_identical(a, re[[1]])
-  expect_identical(c2, re[[2]])
+  expect_identical(unname(a[, 1]), unname(re$id[, "apo_Intercept"]))
+  expect_identical(unname(c2[, 1]), unname(re$id[, "chi_Intercept"]))
   # `$` takes the label too
   expect_identical(re$`chi: 1 | id`, c2)
 })
 
-test_that("an ambiguous grouping factor is refused, not answered with the first block", {
+test_that("blocks on one factor with other levels stay apart and refused", {
+  # two blocks are kept apart only when their levels differ; with the
+  # same levels the factor name answers with the merged matrix
   fit <- ranef_multi_fit()
   re <- ranef(fit)
-  expect_error(re[["id"]], "2 random-effect blocks on grouping factor 'id'")
-  expect_error(re[["id"]], "apo: 1 \\| id")
-  expect_error(re$id, "Address a block by its term label")
+  expect_identical(re[["id"]], re[[1]])
+  y <- structure(list(a = matrix(1, 2, 1, dimnames = list(c("p", "q"), "u")),
+                      b = matrix(2, 3, 1,
+                                 dimnames = list(c("p", "q", "r"), "v"))),
+                 names = c("id", "id"))
+  attr(y[[1]], "term") <- "1 | id"
+  attr(y[[2]], "term") <- "sigma: 1 | id"
+  re2 <- structure(ranef_merge_groups(y), class = "ranef_frmtmb")
+  expect_named(re2, c("id", "id"))
+  expect_error(re2[["id"]], "2 random-effect blocks on grouping factor 'id'")
+  expect_error(re2$id, "Address a block by its term label")
+  expect_identical(colnames(re2[["sigma: 1 | id"]]), "v")
 })
 
 test_that("one block per factor keeps the 0.52.0 key, and gains the label", {
@@ -174,12 +188,12 @@ test_that("two bars on one factor are two blocks, and || is one", {
   fit2 <- suppressWarnings(frm(bf(y ~ x + (1 | g) + (0 + x | g)) + gaussian(),
                                data = d))
   re2 <- ranef(fit2)
-  expect_named(re2, c("g", "g"))
-  expect_identical(unname(vapply(re2, function(m) attr(m, "term"), "")),
-                   c("1 | g", "0 + x | g"))
-  expect_error(re2$g, "2 random-effect blocks on grouping factor 'g'")
-  expect_identical(re2[["1 | g"]], re2[[1]])
-  expect_identical(re2[["0 + x | g"]], re2[[2]])
+  # brms's one g entry, with both blocks' columns
+  expect_named(re2, "g")
+  expect_identical(attr(re2$g, "term"), c("1 | g", "0 + x | g"))
+  expect_identical(colnames(re2$g), c("Intercept", "x"))
+  expect_identical(colnames(re2[["1 | g"]]), "Intercept")
+  expect_identical(colnames(re2[["0 + x | g"]]), "x")
 
   # an uncorrelated slope is ONE block with independent sds, as in
   # brms, so its factor addresses it; it was lme4's two blocks, the
@@ -189,7 +203,7 @@ test_that("two bars on one factor are two blocks, and || is one", {
   expect_named(re, "g")
   expect_identical(colnames(re$g), c("Intercept", "x"))
   expect_equal(unname(cbind(re$g[, 1], re$g[, 2])),
-               unname(cbind(re2[[1]][, 1], re2[[2]][, 1])),
+               unname(cbind(re2$g[, 1], re2$g[, 2])),
                tolerance = 1e-6)
 })
 
@@ -198,12 +212,10 @@ test_that("a random effect on a second dpar puts two blocks on one factor", {
   fit <- suppressWarnings(frm(bf(y ~ x + (1 | g), sigma ~ (1 | g)) +
                                 gaussian(), data = d))
   re <- ranef(fit)
-  expect_named(re, c("g", "g"))
+  expect_named(re, "g")
   # the dpar rides in the label, which is what tells the two apart
-  expect_identical(unname(vapply(re, function(m) attr(m, "term"), "")),
-                   c("1 | g", "sigma: 1 | g"))
-  expect_error(re$g, "2 random-effect blocks on grouping factor 'g'")
-  expect_identical(re[["sigma: 1 | g"]], re[[2]])
+  expect_identical(attr(re$g, "term"), c("1 | g", "sigma: 1 | g"))
+  expect_identical(colnames(re$g), c("Intercept", "sigma_Intercept"))
   expect_equal(dim(re[["sigma: 1 | g"]]), c(20L, 1L))
 })
 

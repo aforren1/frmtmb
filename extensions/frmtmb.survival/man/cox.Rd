@@ -35,8 +35,10 @@ they must be distinct and lie strictly inside the boundary knots.}
 
 \item{Boundary.knots}{The two boundary knots. The default, \code{NULL},
 is brms's: the range of the observed times widened by 1/50 of its
-width at each end, with the lower knot not below zero. Given, they
-must cover every observed time.}
+width at each end, with the lower knot not below zero, and the
+upper knot widened further to an interval-censoring upper bound or
+a \code{trunc(ub = )} bound past that. Given, they must cover every
+observed time and every such upper bound.}
 
 \item{bhaz}{Not an argument of brms 2.23.0's \code{cox()}. Given, it is
 refused with the spellings to use instead.}
@@ -126,7 +128,17 @@ own, or let \code{g} shift the one baseline by adding it to the formula.
 \code{Boundary.knots} must cover every observed time. brms takes boundary
 knots inside the data and extrapolates the basis there, where the
 cumulative baseline hazard can be negative, so that the survivor
-function exceeds one. An argument name that brms drops without a
+function exceeds one. The upper knot must also cover every upper
+bound the likelihood reads: the upper bound of an interval-censored
+row and a \code{trunc(ub = )} bound. Past the upper knot the cumulative
+baseline hazard is held at its value there, which would say that no
+hazard accrues after it. The default upper knot widens to those
+bounds; brms's default reads the response alone. A \code{trunc(lb = )}
+bound, as in delayed entry, may lie below the lower knot: the model
+has no hazard there, so the cumulative hazard at the bound is 0
+exactly, and the default knots stay brms's.
+
+An argument name that brms drops without a
 message, such as \code{bhaz(int = FALSE)} or \code{bhaz(Bound = c(0, 30))},
 is refused with the name that was probably meant. A shortened name
 that brms reads as an argument (\code{bhaz(d = 6)} for \code{df}, \verb{kn =} for

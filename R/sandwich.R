@@ -184,15 +184,15 @@ cluster_guard <- function(fit, cl) {
              "penalized estimator. Refit without priors, or use ",
              "frm_bootstrap()", call. = FALSE)
   }
-  if (length(frame[["autocor"]] %||% list())) {
-    frm_stop("vcov_cluster() does not support the residual correlation ",
-             "term ", frame[["autocor"]][[1L]]$label,
-             ": its density is a joint ",
-             "one over each group rather than a product over rows (cov = ",
-             "TRUE), or each row's mean reads the residuals of earlier ",
-             "rows (cov = FALSE), so a cluster's weight does not reach ",
-             "all of its contribution. Use frm_bootstrap()",
-             call. = FALSE)
+  for (ac in frame[["autocor"]] %||% list()) {
+    # a registered term (fcor(), sar()) is one joint density over every
+    # row, so no clustering with two levels holds it whole
+    if (autocor_is_seam(ac)) {
+      frm_stop("vcov_cluster() does not support the residual correlation ",
+               "term ", ac[["label"]], ": its density is one joint ",
+               "density over all the rows, so it belongs to no cluster. ",
+               "Use frm_bootstrap()", call. = FALSE)
+    }
   }
   # A structured family says for itself whether a per-cluster score
   # exists. A group-level mixture's does, once every group sits inside
@@ -246,6 +246,23 @@ cluster_guard <- function(fit, cl) {
                  "Cluster at a factor that every random effect is nested ",
                  "in, or use frm_bootstrap()", call. = FALSE)
       }
+    }
+  }
+  # a residual correlation term of the ar() family: a group's density is
+  # joint (cov = TRUE), or its rows' means read the group's earlier
+  # residuals (cov = FALSE), so the likelihood factors over clusters
+  # exactly when every group sits inside one cluster
+  for (ac in frame[["autocor"]] %||% list()) {
+    gr <- autocor_row_groups(ac, length(ci))
+    ok <- !is.na(gr)
+    pairs <- unique(cbind(gr[ok], ci[ok]))
+    if (anyDuplicated(pairs[, 1L]) > 0L) {
+      frm_stop("the residual correlation term ", ac[["label"]], " crosses ",
+               "`cluster`: one of its series has rows in more than one ",
+               "cluster, so its density does not factor over clusters and ",
+               "a per-cluster score is not defined. Cluster at the term's ",
+               "grouping variable or at one it is nested in, or use ",
+               "frm_bootstrap()", call. = FALSE)
     }
   }
   # group-level (latent-class) mixtures: same condition on the
@@ -397,8 +414,10 @@ cluster_scores_at <- function(fit, cl) {
 #' condition are refused with the reason: a random effect whose level
 #' spans two clusters (including crossed effects, `mm()` pooled levels,
 #' a global smooth, `gp()`, `car()` and the SPDE), a group-level
-#' mixture whose groups span clusters, an `autocor()` residual, a
-#' family whose structure does not declare `cluster_robust`,
+#' mixture whose groups span clusters, a residual correlation term
+#' (`ar()`, `ma()`, `arma()`, `cosy()`, `unstr()`) one of whose series
+#' spans clusters, `fcor()` and `sar()`, whose density is one over every
+#' row, a family whose structure does not declare `cluster_robust`,
 #' `rescor = TRUE`, `mi()`/`me()`, `REML = TRUE`, `profile = TRUE`,
 #' `quadrature = TRUE`, and any fit made with priors. [frm_bootstrap()]
 #' is the fallback in every one of those cases.

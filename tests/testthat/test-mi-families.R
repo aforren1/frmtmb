@@ -58,9 +58,11 @@ test_that("a value no density reads is the complete-case fit, exactly", {
     expect_lt(abs(la - lb) / abs(lb), 1e-7, label = fam)
     expect_lt(abs(AIC(a) - AIC(b)) / abs(AIC(b)), 1e-7, label = fam)
     expect_lt(abs(BIC(a) - BIC(b)) / abs(BIC(b)), 1e-7, label = fam)
-    # the rows stay in the frame, and predict like any other
+    # the rows stay in the frame, and predict like any other. A kink
+    # (asym_laplace's location) has no standard error, so its fitted
+    # values have none either, and say so
     expect_null(a$estimates$miss)
-    ft <- fitted(a)
+    ft <- allow_warnings(fitted(a), "predictions move along a direction")
     expect_identical(nrow(ft), nrow(dd))
     expect_true(all(is.finite(ft[, "Estimate"])), info = fam)
     # the coefficient vector, in its own size: a kink has no standard error

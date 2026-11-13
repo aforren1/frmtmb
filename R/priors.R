@@ -45,8 +45,8 @@
 #' - `"cor"`: the CORRELATION of a random-effect block, as a whole.
 #'   `lkj(eta)` only, and it addresses a BLOCK the way class `"sd"`
 #'   does, by `group`; `set_prior("lkj(2)", class = "cor")` covers every
-#'   correlated block of the model, which is brms's spelling. See
-#'   The LKJ prior below.
+#'   correlated block of the model, which is brms's spelling. It takes
+#'   no `dpar` and no `nlpar`, as in brms. See The LKJ prior below.
 #' - `"ar"`, `"ma"`, `"cosy"`, `"cortime"`: the R-side residual
 #'   correlation of an `ar()`, `ma()`, `arma()`, `cosy()` or `unstr()`
 #'   term, under brms's own class names. `"ar"`, `"ma"` and `"cosy"`
@@ -56,7 +56,7 @@
 #'   one response with `resp`. See Residual correlation below.
 #' - `"rescor"`: the residual correlation BETWEEN responses of a
 #'   multivariate model (`set_rescor(TRUE)`), as a whole. `lkj(eta)`
-#'   only, as brms spells it, and no `resp`.
+#'   only, as brms spells it, and no `resp`, `coef` or `group`.
 #' - `"lncor"`: the correlation matrix of the log ratios of a
 #'   [logistic_normal()] response with three or more categories, as a
 #'   whole, brms's class of the same name. `lkj(eta)` only.
@@ -119,7 +119,9 @@
 #' response, `resp` is refused, as in brms.
 #'
 #' Two spellings are frmtmb's own, and brms refuses both: `"cor"` with
-#' `resp`, which narrows the prior to that response's blocks, and
+#' `resp`, which narrows the prior to that response's blocks
+#' ([default_prior()] lists one `"cor"` row per group, with no `resp`,
+#' as brms does), and
 #' `"Intercept"` with `nlpar`, which is stored as brms's slot of the same
 #' parameter, class `"b"` with `coef = "Intercept"` and that `nlpar`
 #' (see Nonlinear parameters). A centered intercept has one slot, class
@@ -262,6 +264,21 @@
 #' `frmtmb.sample::frm_sample()`, which samples brms's model: there a
 #' bound goes on the class row.
 #'
+#' A density with a bounded support that is positive at the end of it
+#' (`uniform()`, `exponential()` at 0) and no bound of its own is boxed
+#' to that support, because the density is zero outside it. This covers
+#' a slope (class `"b"`), an intercept that is not centered, and a
+#' distributional parameter's own class (`class = "sigma"`), each on
+#' the scale of its density; it does not cover a centered intercept
+#' (class `"Intercept"`, of `mu` or of a distributional parameter's
+#' formula), whose density is about the intercept at the predictor
+#' means. brms warns about such a prior and asks for `lb` and `ub`;
+#' frmtmb gives the same warning and the fit those bounds give. A
+#' density that is zero or infinite at the end (`beta(2, 2)`,
+#' `lognormal()`, `gamma(0.5, 1)`) is not boxed: give `lb` and `ub`
+#' just inside its support, as `lb = 1e-8`. A fit that stops where the
+#' objective is not finite is reported as not converged.
+#'
 #' The scale is the parameter's own: class `"sd"` bounds a standard
 #' deviation on the sd scale (frmtmb stores its log), classes `"ar"`,
 #' `"ma"` and `"cosy"` bound the natural coefficient of a residual
@@ -372,8 +389,9 @@
 #' `class = "Intercept", nlpar = "ult"`, which frmtmb stores as that
 #' same slot, class `"b"` with `coef = "Intercept"`, so the two
 #' spellings are one slot; brms does not take the second. `nlpar` narrows
-#' classes `"sd"` and `"cor"` to the random-effect blocks of that
-#' parameter as well.
+#' class `"sd"` to the random-effect blocks of that parameter as well.
+#' Class `"cor"` takes no `nlpar` and no `dpar`, as in brms: a
+#' correlation prior is keyed by `group` alone.
 #'
 #' A class `"b"` or `"Intercept"` specification without `nlpar` does not
 #' reach a nonlinear parameter. On a model whose location is nonlinear,
@@ -1058,8 +1076,10 @@ as_priorlist <- function(x) {
   # package's vocabulary, so it is read as written rather than
   # translated; brms passes its own table back to brm() the same way
   if (inherits(x, "frmtmb_prior_rows")) {
+    check_table_slot_columns(x)
     return(with_prior_route(
-      priorlist_from_rows(as.data.frame(x), what = "the prior table"),
+      priorlist_from_rows(as.data.frame(x), what = "the prior table",
+                          mark = TRUE),
       attr(x, "route")))
   }
   if (is.null(x) || inherits(x, "frmtmb_priorlist")) return(x)
@@ -1152,7 +1172,13 @@ as_priorlist <- function(x) {
     # `natural` is set by set_prior(), which read the same class this
     # row carries: the translation is now a pass-through rather than a
     # second rule that could drift from the first
-    out[[length(out) + 1L]] <- unclass(one)[[1L]]
+    one <- unclass(one)[[1L]]
+    # a bound on a flat row of brms's own table is brms restating the
+    # declared interval (priorlist_from_rows())
+    if (!nzchar(dist) && identical(chr("source", i), "default")) {
+      one$from_table <- TRUE
+    }
+    out[[length(out) + 1L]] <- one
   }
   bad <- acc$bad
   if (length(bad)) {
@@ -1167,6 +1193,30 @@ as_priorlist <- function(x) {
   structure(out, class = "frmtmb_priorlist")
 }
 
+#' Refuse a [default_prior()] or [validate_prior()] table whose column
+#' selection dropped a column that names the slot of its rows.
+#'
+#' Read as written, a missing column takes `set_prior()`'s default, so
+#' `pe[, "prior", drop = FALSE]` read every row as class `"b"` and was
+#' refused as a duplicated slot, a cause the user never wrote. A plain
+#' data frame keeps those defaults (`as.brmsprior()`'s documented
+#' reading); a table from this package always has the six columns, so
+#' one without them has lost what its rows mean.
+#'
+#' @noRd
+check_table_slot_columns <- function(x) {
+  slot_cols <- c("class", "coef", "group", "resp", "dpar", "nlpar")
+  gone <- setdiff(slot_cols, names(x))
+  if (!length(gone)) return(invisible(x))
+  frm_stop("prior = got a default_prior() table without the column",
+           if (length(gone) > 1L) "s", " ",
+           paste0("`", gone, "`", collapse = ", "), ", so its rows name ",
+           "no slot: a row is addressed by its class, coef, group, resp, ",
+           "dpar and nlpar. Select rows rather than columns, as in ",
+           "pe[pe$class == \"b\", ], and keep every column of the table",
+           call. = FALSE)
+}
+
 #' The specifications that name a slot and apply nothing on frm()'s
 #' route (no density, no bound), dropped; `NULL` when none is left.
 #' Attributes that `update()` sets travel with the rest.
@@ -1178,6 +1228,46 @@ drop_flat_slots <- function(prior) {
   attr(prior, "route") <- NULL
   keep <- vapply(unclass(prior), function(s) {
     !is.null(s$dist) || !is.na(s$lb %||% NA) || !is.na(s$ub %||% NA)
+  }, NA)
+  if (all(keep)) return(prior)
+  if (!any(keep)) return(NULL)
+  at <- attributes(prior)
+  out <- unclass(prior)[keep]
+  st <- at[["update_strict"]]
+  if (length(st) == length(keep)) at[["update_strict"]] <- st[keep]
+  at$names <- NULL
+  attributes(out) <- at
+  out
+}
+
+#' The bounds-only specifications that box nothing on this model,
+#' dropped as [drop_flat_slots()] drops the flat ones; `NULL` when none
+#' is left.
+#'
+#' A prior table restates each parameter's interval in `lb` and `ub`
+#' (`lb = 0` on `sd` and `sigma`, as brms prints it), and a bound at an
+#' end of the parameter's own support maps to an infinite bound on the
+#' internal one (`internal_bound()`). Kept, such a row made a table
+#' passed back as `prior =` turn an ML fit into a penalized one by
+#' label: `prior_summary()` listed it, and `vcov_cluster()` refused the
+#' fit. Only a row a table restated (`from_table`, set where a table is
+#' read) is dropped: each is resolved alone, and one that writes a finite
+#' bound, or that does not resolve alone, is kept. A specification the
+#' user wrote is never dropped.
+#'
+#' @noRd
+drop_unbounding_slots <- function(prior, spec, frame) {
+  if (!inherits(prior, "frmtmb_priorlist")) return(prior)
+  design <- list(spec = spec, frame = frame)
+  keep <- vapply(unclass(prior), function(s) {
+    # a specification the user wrote is kept whatever it boxes: brms
+    # reads set_prior("", class = "sd", lb = 0) as (flat) on that slot,
+    # and frm_sample(fit) stacks fit$prior over its defaults
+    if (!isTRUE(s$from_table) || !is.null(s$dist)) return(TRUE)
+    one <- structure(list(s), class = "frmtmb_priorlist")
+    ri <- tryCatch(resolve_priorlist(design, one), error = function(e) NULL)
+    if (is.null(ri)) return(TRUE)
+    any(is.finite(c(ri$lower, ri$upper)))
   }, NA)
   if (all(keep)) return(prior)
   if (!any(keep)) return(NULL)
@@ -1227,10 +1317,40 @@ prior_input_refusal <- function(x) {
   }
   if (is.list(x) && length(x) && !is.data.frame(x) &&
         all(vapply(x, inherits, NA, "frmtmb_priorlist"))) {
+    if (length(x) == 1L) {
+      return(paste0(
+        "prior = got a list holding one set_prior() specification, which ",
+        "frmtmb does not read as a prior; brms refuses it too (\"Argument ",
+        "'prior' must be a 'brmsprior' object\"). Pass the specification ",
+        "itself, prior = sp1, not list(sp1)"))
+    }
     return(paste0(
       "prior = got a list of ", length(x), " set_prior() specifications, ",
       "which frmtmb does not read as one prior. Combine them with + or ",
       "c(), as in brms: sp1 + sp2, or c(sp1, sp2)"))
+  }
+  if (is.list(x) && !length(x) && !is.data.frame(x)) {
+    return(paste0(
+      "prior = got an empty list. For no prior, leave prior = out (frm() ",
+      "is maximum likelihood) or pass empty_prior(); for priors, pass ",
+      "set_prior() specifications combined with + or c()"))
+  }
+  # frm_sample()'s spelling of brms's (flat) in every slot; frm() is
+  # maximum likelihood and is flat in every slot already
+  is_flat <- function(v) is.character(v) && length(v) == 1L && !is.na(v) &&
+    identical(v, "flat")
+  if (is_flat(x) || (is.list(x) && length(x) == 1L && is_flat(x[[1L]]))) {
+    return(paste0(
+      "prior = \"flat\" is frmtmb.sample::frm_sample()'s spelling of brms's ",
+      "(flat) in every slot. frm() is maximum likelihood, which is flat in ",
+      "every slot until a prior is set, so leave prior = out for that fit"))
+  }
+  if (is.character(x) && length(x) == 1L && !is.na(x) && nzchar(x)) {
+    return(paste0(
+      "`prior` must be a set_prior() specification, a brms prior or a ",
+      "default_prior() table, not the string \"", x, "\". A density string ",
+      "names no parameter; put it on a class with set_prior(), e.g. ",
+      "set_prior(\"", x, "\", class = \"b\")"))
   }
   paste0("`prior` must be a set_prior() specification, a brms prior or a ",
          "default_prior() table, not ", arg_desc(x))
@@ -1500,6 +1620,14 @@ prior_dist_location <- function(dist) {
 
 #' @export
 "+.frmtmb_priorlist" <- function(e1, e2) {
+  # a default_prior() or validate_prior() table is read as c() reads it,
+  # its route kept: brms's `+` of a prior table and a brmsprior combines
+  # the rows in either order
+  as_rows <- function(e) {
+    if (inherits(e, "frmtmb_prior_rows")) as.brmsprior(e) else e
+  }
+  e1 <- as_rows(e1)
+  e2 <- as_rows(e2)
   for (e in list(e1, e2)) {
     if (!inherits(e, "frmtmb_priorlist")) {
       frm_stop("`+` combines prior specifications made by set_prior(), ",
@@ -1512,6 +1640,15 @@ prior_dist_location <- function(dist) {
                              class = "frmtmb_priorlist"),
                    combined_prior_route(list(e1, e2)))
 }
+
+# The SAME function object on the table's class. R's group dispatch
+# takes a `+` method from each operand's class and, where the two
+# differ, warns "Incompatible methods" and adds the operands as
+# numbers; a table carries Ops.data.frame, so table + set_prior() failed
+# that way. Two identical methods dispatch.
+#' @method + frmtmb_prior_rows
+#' @export
+"+.frmtmb_prior_rows" <- `+.frmtmb_priorlist`
 
 #' @export
 c.frmtmb_priorlist <- function(...) {
@@ -1762,6 +1899,7 @@ as.brmsprior <- function(x) {
     return(as_priorlist(x) %||% empty_prior())
   }
   route <- if (inherits(x, "frmtmb_prior_rows")) attr(x, "route")
+  if (inherits(x, "frmtmb_prior_rows")) check_table_slot_columns(x)
   x <- as.data.frame(x, stringsAsFactors = FALSE)
   if (!"prior" %in% names(x)) {
     frm_stop("as.brmsprior() needs a `prior` column", call. = FALSE)
@@ -1773,8 +1911,9 @@ as.brmsprior <- function(x) {
   if (is.null(route) && any(x[["prior"]] %in% "(flat)")) {
     route <- "table"
   }
-  with_prior_route(priorlist_from_rows(x, what = "the table") %||%
-                     empty_prior(), route)
+  with_prior_route(priorlist_from_rows(x, what = "the table",
+                                       mark = TRUE) %||% empty_prior(),
+                   route)
 }
 
 #' A priorlist marked with the route of the default_prior() table it was
@@ -1810,8 +1949,19 @@ combined_prior_route <- function(parts) {
 #' message, as `as_priorlist()` does for a brms table, because a table is
 #' edited as a whole.
 #'
+#' With `mark = TRUE` (a table read as a prior, not a column edit of a
+#' specification) each specification records where it came from:
+#' `from_table` on a row with no density whose `source` is `"default"`,
+#' whose bounds are the table restating the parameter's interval
+#' (`drop_unbounding_slots()`; a row with no `source`, written by hand,
+#' and one marked `"user"` are the user's and kept), and
+#' `printed_flat` on a row that holds frmtmb's printed `"(flat)"`, which
+#' brms never writes, whatever its `source` says (a coerced `route = "fit"`
+#' table relabelled `"user"` is still frm()'s defaults); frmtmb.sample
+#' checks these rows of a coerced table.
+#'
 #' @noRd
-priorlist_from_rows <- function(x, what) {
+priorlist_from_rows <- function(x, what, mark = FALSE) {
   defaults <- list(class = "b", coef = "", group = "", resp = "",
                    dpar = "", nlpar = "", lb = NA, ub = NA)
   cell <- function(nm, i) {
@@ -1835,9 +1985,21 @@ priorlist_from_rows <- function(x, what) {
       next
     }
     pr <- cell("prior", i)
-    if (identical(pr, "(flat)")) pr <- ""
+    printed <- identical(pr, "(flat)")
+    if (printed) pr <- ""
     lb <- cell("lb", i)
     ub <- cell("ub", i)
+    src <- if ("source" %in% names(x)) as.character(x[["source"]][[i]])
+    restated <- mark && !nzchar(pr) && identical(src, "default")
+    mark_spec <- function(one) {
+      if (is.null(one)) return(NULL)
+      one <- unclass(one)
+      if (mark && printed) {
+        one[[1L]]$printed_flat <- TRUE
+      }
+      if (restated) one[[1L]]$from_table <- TRUE
+      one
+    }
     # a (flat) row with no bound is brms's (flat) on its slot: frm()
     # applies nothing there and frm_sample() reads it as brms's (flat) in
     # place of its default. A row set_prior() cannot spell is left out
@@ -1847,7 +2009,7 @@ priorlist_from_rows <- function(x, what) {
                   group = cell("group", i), resp = cell("resp", i),
                   dpar = cell("dpar", i), nlpar = cell("nlpar", i)),
         error = function(e) NULL)
-      if (!is.null(one)) out <- c(out, unclass(one))
+      if (!is.null(one)) out <- c(out, mark_spec(one))
       next
     }
     one <- tryCatch(
@@ -1862,7 +2024,7 @@ priorlist_from_rows <- function(x, what) {
                                         conditionMessage(one))
       one <- NULL
     }
-    if (!is.null(one)) out <- c(out, unclass(one))
+    if (!is.null(one)) out <- c(out, mark_spec(one))
   }
   if (length(bad)) {
     frm_stop("Cannot read ", length(bad),
@@ -1877,9 +2039,10 @@ priorlist_from_rows <- function(x, what) {
 #'
 #' brms's `default_prior()`, and `get_prior()`, which brms has kept as
 #' its alias since 2.20.14: one row per slot a prior can target, with
-#' the class/coef/dpar/group values to pass to [set_prior()]. Classes
-#' `"sd"` and `"cor"` are targeted by `group` and `nlpar`, and class
-#' `"sd"` lists a row per coefficient of each group, as brms does; the
+#' the class/coef/dpar/group values to pass to [set_prior()]. Class
+#' `"sd"` is targeted by `group` and `nlpar`, and lists a row per
+#' coefficient of each group, as brms does; class `"cor"` has one row
+#' per grouping factor, targeted by `group` alone, as in brms; the
 #' residual-correlation classes (`"ar"`, `"ma"`, `"cosy"`, `"cortime"`)
 #' by `resp`, with `lb` and `ub` where the parameter lives on an
 #' interval (brms's -1 and 1 on a first-order `cov = TRUE` `ar` or `ma`;
@@ -1925,6 +2088,15 @@ priorlist_from_rows <- function(x, what) {
 #'
 #' A flat slot reads `"(flat)"` in the `prior` column, where brms stores
 #' an empty string and prints `(flat)`.
+#'
+#' The `lb` and `ub` of a distributional parameter's own class row are
+#' the ends brms declares where frmtmb's link holds the parameter (a log
+#' link gives `lb = 0`, student()'s `nu` `lb = 1`, a logit link 0 and
+#' 1). The values are frmtmb's, so a row passed back as `prior =` boxes
+#' nothing on [frm()]'s route; a link that leaves the parameter
+#' unbounded, such as an identity link on `sigma`, leaves the column
+#' `NA`. A response is listed by its Stan name (`Ya` for `Y_a`), as in
+#' brms.
 #'
 #' @section Which route the defaults describe:
 #' Every column but `prior` is a property of the design, and the design
@@ -2134,6 +2306,9 @@ fill_prior_table <- function(tab, pl) {
                                   class = "frmtmb_priorlist"))
   for (i in seq_len(nrow(user))) {
     u <- user[i, ]
+    # the table lists a response by its Stan name (Ya for Y_a), and a
+    # specification may use either
+    if (nzchar(u$resp)) u$resp <- brms_stan_name(u$resp)
     hit <- tab$class == u$class & tab$group == u$group &
       covers(u$resp, u$dpar, u$nlpar, u$class, tab) &
       (tab$coef == u$coef | bare(tab$coef) == bare(u$coef))
@@ -2318,11 +2493,14 @@ prior_table <- function(spec, frame, route) {
       defs[[slot]]
     }
     # brms's column order, so a table read by position lines up with
-    # the one brms returns
+    # the one brms returns. A response is listed by its Stan name, Ya for
+    # Y_a, as brms lists it; set_prior(resp =) takes either
     acc$rows[[length(acc$rows) + 1L]] <- data.frame(
-      prior = d %||% dflt %||% "(flat)", class = class, coef = coef,
+      prior = as.vector(d %||% dflt %||% "(flat)"), class = class,
+      coef = coef,
       group = group,
-      resp = resp, dpar = dpar, nlpar = nlpar, lb = lb,
+      resp = if (nzchar(resp)) brms_stan_name(resp) else "",
+      dpar = dpar, nlpar = nlpar, lb = lb,
       ub = ub, source = "default"
     )
   }
@@ -2446,7 +2624,17 @@ prior_table <- function(spec, frame, route) {
       # nothing can fill is worse than leaving it out, and a flat row
       # for an unnameable class is already left out one branch above
       if (!is.null(brms_prior_class_refusal(lp[["dpar"]]))) next
-      if (length(cn)) add(lp[["dpar"]], resp = resp_lab)
+      if (length(cn)) {
+        # brms prints the parameter's declared interval here (sigma
+        # lb = 0, zi 0 to 1). The interval is the route's: the support
+        # frm()'s link gives the parameter, and on the sampling route
+        # any bound the default adds to it (brms's nu above 1 under a
+        # log link), so a table passed back as prior = keeps the model
+        bd <- dpar_row_bounds(lp[["dpar"]], lp[["link"]], route,
+                              defs[[prior_slot_key(lp[["dpar"]], "", "",
+                                                   resp_lab)]])
+        add(lp[["dpar"]], resp = resp_lab, lb = bd[[1L]], ub = bd[[2L]])
+      }
       next
     }
     icpt_b <- isFALSE(lp[["center"]])
@@ -2532,16 +2720,21 @@ prior_table <- function(spec, frame, route) {
     wide <- wide[with(wide, order(resp, dpar, nlpar, group, coef)), ,
                  drop = FALSE]
     for (i in seq_len(nrow(wide))) {
+      # brms bounds the class row below by 0 and leaves the group and
+      # coefficient rows without one, as for sds; frmtmb holds every
+      # standard deviation on the log scale, so the bound restates it
+      cw <- !nzchar(wide$group[i]) && !nzchar(wide$coef[i])
       add("sd", coef = wide$coef[i], group = wide$group[i],
-          dpar = wide$dpar[i], nlpar = wide$nlpar[i], resp = wide$resp[i])
+          dpar = wide$dpar[i], nlpar = wide$nlpar[i], resp = wide$resp[i],
+          lb = if (cw) 0 else NA_real_)
     }
   }
   if (length(cor_rows)) {
     add("cor")
-    for (k in cor_rows) {
-      add("cor", group = k$group, dpar = k$dpar, nlpar = k$nlpar,
-          resp = k$resp)
-    }
+    # brms keys a correlation row by group alone, one row however many
+    # predictors or responses have a correlated block on that factor;
+    # the duplicates go with unique() below
+    for (k in cor_rows) add("cor", group = k$group)
   }
   # brms lists lscale before sdgp, each class-wide and then per sub-GP,
   # bounded below by 0
@@ -2670,6 +2863,67 @@ prior_table <- function(spec, frame, route) {
   attr(out, "route") <- route
   class(out) <- c("frmtmb_prior_rows", "data.frame")
   out
+}
+
+#' The `lb` and `ub` of a distributional parameter's own class row.
+#'
+#' On either route, at the ends brms declares a bound on, the ends of
+#' the link's image: a log link holds the
+#' parameter above 0 and a logit link inside (0, 1), and student()'s
+#' logm1 holds nu above 1. Those are restatements: passed back as
+#' `prior =`, they map to an infinite internal bound and box nothing
+#' (`internal_bound()`). On the sampling route a bound that the default
+#' itself carries is added, because frm_sample() samples the parameter
+#' inside it (brms's nu above 1 under a log link, `ndt` below the
+#' smallest response).
+#'
+#' @noRd
+dpar_row_bounds <- function(dpar, link, route, dflt = NULL) {
+  # only the ends brms declares (dpar_bounds()): xi's link keeps it above
+  # -1, and brms prints no bound there, since it samples xi through tmp_xi
+  own <- prior_class_bounds(list(natural = TRUE, dpar = dpar))
+  img <- link_image(link)
+  bd <- c(lb = if (own[["lb"]] && is.finite(img[1L])) img[1L] else NA_real_,
+          ub = if (own[["ub"]] && is.finite(img[2L])) img[2L] else NA_real_)
+  if (identical(route, "sample") && !is.null(dflt)) {
+    dl <- attr(dflt, "lb") %||% NA_real_
+    du <- attr(dflt, "ub") %||% NA_real_
+    if (!is.na(dl) && (is.na(bd[["lb"]]) || dl > bd[["lb"]])) bd[["lb"]] <- dl
+    if (!is.na(du) && (is.na(bd[["ub"]]) || du < bd[["ub"]])) bd[["ub"]] <- du
+  }
+  bd
+}
+
+#' The ends of a link's image, `linkinv(-Inf)` and `linkinv(Inf)`, with
+#' `-Inf`/`Inf` for an end that is unbounded or that the inverse cannot
+#' evaluate. An end is read far out as well, where `linkinv()` cannot
+#' take an infinite argument: two distant points that agree are an end.
+#'
+#' @noRd
+link_image <- function(link) {
+  inv <- link$linkinv
+  if (!is.function(inv)) return(c(-Inf, Inf))
+  at <- function(x) {
+    v <- tryCatch(suppressWarnings(as.numeric(inv(x))),
+                  error = function(e) NaN)
+    if (length(v) != 1L) NaN else v
+  }
+  end <- function(s) {
+    v <- at(s * Inf)
+    if (!is.nan(v)) return(v)
+    a <- at(s * 700)
+    b <- at(s * 1400)
+    c4 <- at(s * 2800)
+    if (!all(is.finite(c(a, b, c4)))) return(s * Inf)
+    if (identical(a, b)) return(a)
+    # a link whose inverse cannot take an infinite argument but decays
+    # to 0 there (softplus, squareplus: (-Inf + Inf) / 2 is NaN): two
+    # doublings of the argument that each shrink the value by a third
+    # or more go to 0, where a limit other than 0 would hold the value
+    if (abs(b) <= abs(a) / 1.5 && abs(c4) <= abs(b) / 1.5) return(0)
+    s * Inf
+  }
+  c(end(-1), end(1))
 }
 
 #' @export
@@ -2832,9 +3086,11 @@ block_resp <- function(frame, bk) {
 }
 
 #' Whether a class `"cor"` specification addresses this block.
-#' `group` has always narrowed here; `resp`, `dpar` and `nlpar` narrow
-#' the same way. Class `"sd"` is resolved per standard deviation by
-#' `sd_spec_reach()` instead.
+#' `group` has always narrowed here; `resp` narrows the same way. A
+#' `dpar` or `nlpar` is refused before this is asked (brms refuses
+#' both), and is read here only for a caller that has not refused it.
+#' Class `"sd"` is resolved per standard deviation by `sd_spec_reach()`
+#' instead.
 #'
 #' @noRd
 block_addressed <- function(spec, frame, bk, s) {
@@ -3159,10 +3415,14 @@ sd_prefix_hint <- function(spec, frame) {
 #' @noRd
 spec_target <- function(s) {
   sp <- spec_spelling(s)
+  # a response by its Stan name (Ya for Y_a), as the table lists it, so
+  # a table row and a default for one slot read as one target
+  rs <- s$resp %||% ""
+  if (nzchar(rs)) rs <- brms_stan_name(rs)
   paste0("class=", sp$class,
          if (nzchar(s$coef)) paste0(", coef=", s$coef),
          if (nzchar(s$group)) paste0(", group=", s$group),
-         if (nzchar(s$resp %||% "")) paste0(", resp=", s$resp),
+         if (nzchar(rs)) paste0(", resp=", rs),
          if (nzchar(sp$dpar)) paste0(", dpar=", sp$dpar),
          if (nzchar(s$nlpar %||% "")) paste0(", nlpar=", s$nlpar))
 }
@@ -3265,8 +3525,12 @@ prior_slot_label <- function(s) {
 #' @noRd
 prior_spec_slot <- function(s) {
   sp <- spec_spelling(s)
+  # a response named by frmtmb (Y_a) or by its Stan name (Ya) is one
+  # slot; as two, both were accepted and one was dropped in silence
+  rs <- s$resp %||% ""
+  if (nzchar(rs)) rs <- brms_stan_name(rs)
   paste(sp$class, prior_coef_brms(s$coef %||% ""), s$group %||% "",
-        s$resp %||% "", sp$dpar, s$nlpar %||% "", sep = "\r")
+        rs, sp$dpar, s$nlpar %||% "", sep = "\r")
 }
 
 #' Drop the specifications of a stored prior that the updated model
@@ -4067,6 +4331,17 @@ resolve_priorlist <- function(fit, pl) {
                "and lkj() is a density on the whole matrix. Drop resp = \"",
                s$resp, "\", as brms requires", call. = FALSE)
     }
+    # the same for a coef or a group: they named nothing, and the prior
+    # went on the whole matrix while the table listed a row of its own
+    # (brms: "Lrescor_y__y2", "Lrescor_g")
+    for (f in c("coef", "group")) {
+      v <- s[[f]] %||% ""
+      if (!nzchar(v)) next
+      frm_stop("class = \"rescor\" takes no ", f, ": the residual ",
+               "correlation is one matrix across all responses, and lkj() ",
+               "is a density on the whole matrix. Drop ", f, " = \"", v,
+               "\", as brms requires", call. = FALSE)
+    }
     n_r <- length(frame[["par_template"]][["thetar"]] %||% numeric(0))
     if (!n_r) {
       frm_stop("No residual correlation matches ", spec_target(s),
@@ -4505,6 +4780,7 @@ resolve_priorlist <- function(fit, pl) {
         # log(0) = -Inf, not a floor of 1 (see R3 of the punch re-check)
         if (!is.na(s$lb)) st$lower[tg$name] <- internal_bound(s$lb, pm, "lb")
         if (!is.na(s$ub)) st$upper[tg$name] <- internal_bound(s$ub, pm, "ub")
+        st$box[[key]] <- tg$name
       }
     } else if (s$class %in% c("sd", "sds")) {
       is_sd <- identical(s$class, "sd")
@@ -4583,6 +4859,21 @@ resolve_priorlist <- function(fit, pl) {
     } else if (s$class %in% c("sdgp", "lscale")) {
       resolve_gp_class(s)
     } else if (s$class == "cor") {
+      # brms keys a correlation prior by group alone and refuses a dpar
+      # or an nlpar on it (L_mub, L_a), so a script that names one would
+      # fit a model brms does not have. `resp` stays accepted, frmtmb's
+      # own spelling (the user's decision of 2026-09-24)
+      for (f in c("dpar", "nlpar")) {
+        v <- s[[f]] %||% ""
+        if (!nzchar(v)) next
+        frm_stop("class = \"cor\" takes no ", f, ": brms keys a ",
+                 "correlation prior by group alone, so ", f, " = \"", v,
+                 "\" names a prior brms refuses (\"The following priors ",
+                 "do not correspond to any model parameter\"). Drop ", f,
+                 "; group = selects the grouping factor, and a prior ",
+                 "without one covers every correlated block",
+                 call. = FALSE)
+      }
       hit <- FALSE
       refused <- character(0)
       for (bk in frame[["re_blocks"]]) {
@@ -4733,7 +5024,76 @@ resolve_priorlist <- function(fit, pl) {
       }
     }
   }
+  support_box(st)
   list(entries = unname(st$assigned), lower = st$lower, upper = st$upper)
+}
+
+#' Box a parameter to the support of its density where no bound says
+#' otherwise and the density is finite at that end of its support.
+#'
+#' `uniform(0, 0.2)` on a slope with no `lb`/`ub` is NaN outside
+#' (0, 0.2) (`prior_base_logdens()`), so the optimizer's first step out
+#' of the support ended the fit with "NA/NaN gradient evaluation". brms
+#' warns about the same prior and asks for the bounds. A uniform, or an
+#' exponential at 0, is positive at its closed end, so the box gives the
+#' mode the density has, at the end or inside. `beta(2, 2)`,
+#' `lognormal()` or `gamma(0.5, 1)` is zero or infinite at the end, and
+#' a closed box there let the optimizer stop at an infinite objective
+#' and report convergence. Such a prior gets no box, as before: a fit
+#' whose mode is inside its support stays inside (beta(2, 2) on a slope
+#' the data put at 0.26), and one the data push out of it fails with the
+#' optimizer's error. Refusing it would refuse the first. A user's own
+#' bound at such an end still gives a closed box; a stop there at an
+#' infinite objective is reported as not converged
+#' (`nonfinite_not_converged()`).
+#'
+#' It covers what class `"b"` and `"Intercept"` specifications reach: a
+#' slope, an uncentered intercept, and a distributional parameter's own
+#' class, each on the scale of its density (`internal_bound()`). A
+#' centered intercept is not covered: its density is about the intercept
+#' at the predictor means, which no box on the stored intercept bounds.
+#' Where the parameter's own range ends at the support's end (a
+#' log-linked sigma under `gamma()`), nothing is needed and nothing is
+#' done. `st` is the resolver's state, an environment, changed in place.
+#'
+#' @noRd
+support_box <- function(st) {
+  for (key in names(st$box)) {
+    e <- st$assigned[[key]]
+    if (is.null(e)) next
+    off <- e$offset
+    if (!is.null(off) && !(is.numeric(off) && all(off == 0))) next
+    sup <- prior_dist_support(e$dist)
+    nm <- st$box[[key]]
+    pm <- list(scale = e$scale, link = e$link)
+    for (k in 1:2) {
+      side <- c("lb", "ub")[k]
+      have <- (if (k == 1L) st$lower else st$upper)[nm]
+      if (!is.finite(sup[k]) || isTRUE(is.finite(have))) next
+      b <- internal_bound(sup[k], pm, side)
+      if (!is.finite(b)) next
+      # a density that is 0 or infinite at the end is left unboxed, as
+      # before: its fit either stays inside (an interior mode) or fails
+      # loudly, where a closed box let it stop at the end with an
+      # infinite objective
+      at_end <- suppressWarnings(prior_base_logdens(sup[k], e$dist))
+      if (!isTRUE(is.finite(at_end))) next
+      if (k == 1L) st$lower[nm] <- b else st$upper[nm] <- b
+    }
+  }
+  invisible(NULL)
+}
+
+#' The closed support of a prior density, `c(-Inf, Inf)` for one on the
+#' whole line.
+#'
+#' @noRd
+prior_dist_support <- function(dist) {
+  switch(dist$kind %||% "",
+    uniform = c(dist$lower, dist$upper),
+    beta = c(0, 1),
+    exponential = , gamma = , inv_gamma = , lognormal = c(0, Inf),
+    c(-Inf, Inf))
 }
 
 #' The `mo()` simplexes a class `"simo"` specification names: brms's

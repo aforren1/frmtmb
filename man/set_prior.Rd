@@ -100,8 +100,8 @@ takes over its own.
 \item \code{"cor"}: the CORRELATION of a random-effect block, as a whole.
 \code{lkj(eta)} only, and it addresses a BLOCK the way class \code{"sd"}
 does, by \code{group}; \code{set_prior("lkj(2)", class = "cor")} covers every
-correlated block of the model, which is brms's spelling. See
-The LKJ prior below.
+correlated block of the model, which is brms's spelling. It takes
+no \code{dpar} and no \code{nlpar}, as in brms. See The LKJ prior below.
 \item \code{"ar"}, \code{"ma"}, \code{"cosy"}, \code{"cortime"}: the R-side residual
 correlation of an \code{ar()}, \code{ma()}, \code{arma()}, \code{cosy()} or \code{unstr()}
 term, under brms's own class names. \code{"ar"}, \code{"ma"} and \code{"cosy"}
@@ -111,7 +111,7 @@ map's Jacobian applied, as class \code{"sd"} does; \code{"cortime"} takes
 one response with \code{resp}. See Residual correlation below.
 \item \code{"rescor"}: the residual correlation BETWEEN responses of a
 multivariate model (\code{set_rescor(TRUE)}), as a whole. \code{lkj(eta)}
-only, as brms spells it, and no \code{resp}.
+only, as brms spells it, and no \code{resp}, \code{coef} or \code{group}.
 \item \code{"lncor"}: the correlation matrix of the log ratios of a
 \code{\link[=logistic_normal]{logistic_normal()}} response with three or more categories, as a
 whole, brms's class of the same name. \code{lkj(eta)} only.
@@ -175,7 +175,9 @@ it: write one specification per response. Classes \code{"rescor"} and
 response, \code{resp} is refused, as in brms.
 
 Two spellings are frmtmb's own, and brms refuses both: \code{"cor"} with
-\code{resp}, which narrows the prior to that response's blocks, and
+\code{resp}, which narrows the prior to that response's blocks
+(\code{\link[=default_prior]{default_prior()}} lists one \code{"cor"} row per group, with no \code{resp},
+as brms does), and
 \code{"Intercept"} with \code{nlpar}, which is stored as brms's slot of the same
 parameter, class \code{"b"} with \code{coef = "Intercept"} and that \code{nlpar}
 (see Nonlinear parameters). A centered intercept has one slot, class
@@ -325,6 +327,21 @@ not be specified when using boundaries."), and so does
 \code{frmtmb.sample::frm_sample()}, which samples brms's model: there a
 bound goes on the class row.
 
+A density with a bounded support that is positive at the end of it
+(\code{uniform()}, \code{exponential()} at 0) and no bound of its own is boxed
+to that support, because the density is zero outside it. This covers
+a slope (class \code{"b"}), an intercept that is not centered, and a
+distributional parameter's own class (\code{class = "sigma"}), each on
+the scale of its density; it does not cover a centered intercept
+(class \code{"Intercept"}, of \code{mu} or of a distributional parameter's
+formula), whose density is about the intercept at the predictor
+means. brms warns about such a prior and asks for \code{lb} and \code{ub};
+frmtmb gives the same warning and the fit those bounds give. A
+density that is zero or infinite at the end (\code{beta(2, 2)},
+\code{lognormal()}, \code{gamma(0.5, 1)}) is not boxed: give \code{lb} and \code{ub}
+just inside its support, as \code{lb = 1e-8}. A fit that stops where the
+objective is not finite is reported as not converged.
+
 The scale is the parameter's own: class \code{"sd"} bounds a standard
 deviation on the sd scale (frmtmb stores its log), classes \code{"ar"},
 \code{"ma"} and \code{"cosy"} bound the natural coefficient of a residual
@@ -441,8 +458,9 @@ than on nothing. Narrow to one column with \code{coef} (\code{"Intercept"} and
 \verb{class = "Intercept", nlpar = "ult"}, which frmtmb stores as that
 same slot, class \code{"b"} with \code{coef = "Intercept"}, so the two
 spellings are one slot; brms does not take the second. \code{nlpar} narrows
-classes \code{"sd"} and \code{"cor"} to the random-effect blocks of that
-parameter as well.
+class \code{"sd"} to the random-effect blocks of that parameter as well.
+Class \code{"cor"} takes no \code{nlpar} and no \code{dpar}, as in brms: a
+correlation prior is keyed by \code{group} alone.
 
 A class \code{"b"} or \code{"Intercept"} specification without \code{nlpar} does not
 reach a nonlinear parameter. On a model whose location is nonlinear,

@@ -184,8 +184,12 @@ test_that("predict() is NA only where the estimate crosses", {
     nd <- data.frame(x = c(0, 0.9 * x0, 3 * x0))
     fe <- fitted(fit, newdata = nd)[, "Estimate", ]
     expect_identical(unname(rowSums(is.nan(fe)) > 0), c(FALSE, FALSE, TRUE))
+    # the raw draws say how many cells are NA, as the summary does: 0.81.0
+    # returned them in silence
     set.seed(2)
-    raw <- predict(fit, newdata = nd, ndraws = 400, summary = FALSE)
+    raw <- allow_warnings(
+      predict(fit, newdata = nd, ndraws = 400, summary = FALSE),
+      "simulator returned no finite response", require = "rows 2 (")
     nas <- unname(colSums(is.na(raw)))
     expect_identical(nas[1L], 0)
     expect_gt(nas[2L], 0)

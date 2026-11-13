@@ -22,7 +22,8 @@ frmtmb_control(
   mo_search = TRUE,
   verbose = NULL,
   quad_nodes = c(11L, 15L),
-  quad_max_gb = 4
+  quad_max_gb = 4,
+  starts = NULL
 )
 }
 \arguments{
@@ -302,6 +303,83 @@ measured peak. A family not measured is predicted with the largest
 measured cost, so its prediction can be several times its peak. At
 the default nodes, 3000 Bernoulli rows took about 0.5 GB, 3000
 Student rows 5.3 GB, and 40 censored Beta rows 3.7 GB.}
+
+\item{starts}{The number of jittered starts for a \code{\link[=mixture]{mixture()}} of
+ordinal families, or \code{NULL} (default) for 10 on a fit with no \code{start}
+of your own and no random effects, and none otherwise. After the fit
+from the default start, the model is refitted from each start, every
+outer parameter moved by a normal draw with standard deviation 0.5
+(a coefficient by 0.5 over the root mean square of its column). The
+fit keeps the best of these converged points at which no component
+is a step function of its predictors. Maximum likelihood for an ordinal
+mixture often has its supremum at such a step function, a degenerate
+boundary where the component's slopes and thresholds run off, so the
+best start ranked by the likelihood alone picks it more often than it
+escapes it. Only runs that the optimizer calls converged are ranked.
+The rule:
+\itemize{
+\item A fit from the default start with no degenerate component is
+replaced only by a better maximum, by more than \code{grad_tol} in
+log-likelihood, with no degenerate component either.
+\item A fit at a flat degenerate boundary only (collapsed thresholds, a
+threshold no row is near) is kept as it is, and no starts run.
+\item A step function, or a component whose sharpening cannot be
+measured, is replaced by the best converged point without one,
+whatever its likelihood. When the optimizer did not call the
+default fit converged, only a point the degenerate check passes
+replaces it, and a fit with no step function that did not converge
+is kept as it is.
+\item When a start reached a step function above the point returned,
+\code{\link[=frm]{frm()}} warns with class \code{frmtmb_mixture_step_start}. \code{logLik()}
+and the information criteria are those of the point returned.
+}
+
+A point the degenerate check passes is not always a clean maximum:
+the check does not see a direction along which the likelihood is
+flat, such as a threshold that drifts with a standard error in the
+thousands or a category a component gives a probability near 1e-8.
+Check the standard errors of a fit that moved.
+
+On two-class data with 300 rows, 20 seeds each of
+\code{mixture(cumulative(), cumulative())} and
+\code{mixture(cumulative(), sratio())}, the default starts moved 12 of 40
+fits: 5 to a higher maximum (by 0.12 to 2.4) and 7 from a step
+function to a point the degenerate check passes (2.7 to 10.4 lower),
+so its warning fell from 12 fits to 5. Of those 7 points, 2 are clean
+maxima, 3 have a category near 1e-8 to 1e-7, and 2 lie on a flat
+direction with a standard error above 5000. On 107 fits of 14 other designs
+(other links and families, three components, \code{cs()}, a free \code{disc},
+\code{order = "mu"}, priors on \code{b}, 22 predictors) 18 moved, 10 up and 8
+off a step function (4 of those 8 points flat in the same way, one
+of the 4 not a maximum), and none that 0.81.0 passed lost likelihood
+or gained the degenerate warning; with 38 steep and one-class designs
+added, 23 of 145 moved. On the two-class data the starts moved 9 of
+40 fits at 1000 rows (all up), 1 of 40 at 3000 rows and 0 of 40 at
+20000 rows, where they took 8 times as long (46 s against 5.7 s a
+fit); one steep design with 20000 rows gained 8.8. The answer is the
+best of the points these 10 starts reach, not the best there is: 20
+starts moved 6 of the 40 fits higher than 10 did, by 0.21 to 3.07,
+for 1.8 times the time. Under brms 2.23.0's default priors, the
+posterior density at two of the step functions was 53 to 56 units
+below that at the point returned, and \code{rstan::optimizing()} reached a
+posterior mode near that point, not at it, from each of 10
+random starts.
+
+The starts cost 5 to 10 times the fit's optimization at 300 and 3000
+rows (minimum of 3 runs; up to 15 to 20 times in single runs), and 15
+to 23 times with a random intercept over 50 groups (1000 rows), where
+each start is a Laplace fit: that is why a model with random effects
+does not run them by default. Refits that warm-start from a fit,
+\code{\link[=frm_bootstrap]{frm_bootstrap()}} and \code{\link[=refit]{refit()}} among them, run no starts unless
+\code{starts} is a number, so their replicates start from the chosen
+point and can end at a step function; \code{\link[=frm_allfit]{frm_allfit()}} runs none, so
+that its optimizers' spread still shows a second maximum. Under
+\code{autoscale} they run in the fit that is reported, not in its
+pre-fit. The
+draws come from a private stream with a named generator and a fixed
+seed, so a fit neither reads nor changes the session's random state,
+and the same call gives the same fit under any \code{\link[=RNGkind]{RNGkind()}}. \code{0}
+turns the starts off. A model of other families is not affected.}
 }
 \value{
 A list of control settings.

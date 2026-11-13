@@ -854,7 +854,13 @@ mo_sample_pars <- function(fit, pars) {
   for (tm in simplex_frame_terms(fit)) {
     pars[[tm$zeta]] <- mo_coords(mo_simplex(pars[[tm$zeta]]), "softmax")
   }
-  gev_xi_chart_start(fit, gev_xi_chart_terms(fit), pars)
+  # the chart's start reads mu and sigma at the fit's estimates, which on
+  # the formula route are the starting values; frm_linpred() refuses the
+  # unfitted object by its class, which said nothing about that start
+  # (backlog 3215)
+  at <- fit
+  class(at) <- setdiff(class(at), "frmtmb_unfitted")
+  gev_xi_chart_start(at, gev_xi_chart_terms(fit), pars)
 }
 
 #' The `mo()` simplexes (their `zeta` components) a fit's own prior puts
@@ -1342,7 +1348,8 @@ dev_namespaces_of <- function(fit) {
 #'
 #' @noRd
 sample_assemble <- function(formula, data, family, data2, start,
-                            fit_control, na.action, REML) {
+                            fit_control, na.action, REML,
+                            drop_unused_levels = TRUE) {
   if (!inherits(formula, c("formula", "frmtmb_formula",
                            "frmtmb_mvformula"))) {
     frm_stop("frm_sample() takes a frmtmb fit or a formula; got an object ",
@@ -1358,7 +1365,8 @@ sample_assemble <- function(formula, data, family, data2, start,
   # Stan is given is resolved from the prior further down
   frm(formula, data, family = family, REML = REML, start = start,
       control = fit_control, na.action = na.action,
-      data2 = data2, dry_run = "objective")
+      data2 = data2, drop_unused_levels = drop_unused_levels,
+      dry_run = "objective")
 }
 
 # --- default priors for frm_sample() -----------------------------------
@@ -2454,34 +2462,82 @@ prior_rows_as_written <- function(pl) {
   out
 }
 
-#' The classes of brms's proper defaults whose every position the
-#' effective prior `ri` leaves (flat): what the (flat) rows of a coerced
-#' frmtmb table replaced. A default that is already flat (on an interval,
-#' a flat LKJ) or dirichlet(1), which brms's (flat) on a simplex is, is
-#' no loss.
+#' The rows of a coerced prior table that hold frmtmb's printed
+#' `"(flat)"` in a slot where brms has a proper default, each named as
+#' its target; empty when there are none.
+#'
+#' The check is per row. `as.data.frame()` drops a table's route, and a
+#' `route = "fit"` table lists frm()'s defaults as `"(flat)"`, which read
+#' here would replace brms's default in that slot with (flat), silently.
+#' brms writes its (flat) as `""` and never as `"(flat)"`, so a row with
+#' `""`, a row given with `set_prior("", ...)`, and a row with a density
+#' are the user's on purpose and are read as written. Through the 0.81.0
+#' release the whole frame was refused when any (flat) row replaced a
+#' default, so a coerced sampling table edited to `""` on `sd` was
+#' refused; for one round after, the whole frame was accepted when any
+#' row kept a default, so a coerced fit table with one row set to brms's
+#' default had its other (flat) rows read as brms's (flat).
 #'
 #' @noRd
-table_flat_lost <- function(fit, ri, defs) {
-  is_flat <- function(e) {
-    identical(e[["dist"]][["kind"]], "flat") ||
-      isTRUE(e[["dist"]][["flat"]])
+table_flat_rows <- function(user_pl, defs) {
+  slot <- function(s) {
+    sp <- spec_spelling(s)
+    # the table lists a response by its Stan name (Ya for Y_a)
+    rs <- s$resp %||% ""
+    if (nzchar(rs)) rs <- brms_stan_name(rs)
+    paste(sp$class, sp$dpar, s$coef %||% "", s$group %||% "", rs,
+          s$nlpar %||% "", sep = "\r")
   }
-  key <- function(es) {
-    unlist(lapply(es, function(e) paste(e[["comp"]], e[["idx"]])))
-  }
-  flat <- key(Filter(is_flat, ri[["entries"]] %||% list()))
-  out <- character(0)
-  for (d in unclass(defs %||% list())) {
+  # a default already flat on brms's parameter (on an interval, a flat
+  # LKJ) or dirichlet(1), brms's (flat) on a simplex, is no loss
+  proper <- Filter(function(d) {
     dd <- d[["dist"]]
-    if (is.null(dd) || isTRUE(d[["flat_interval"]]) ||
-          dd[["kind"]] %in% c("flat", "dirichlet") ||
-          isTRUE(dd[["flat"]])) next
-    di <- resolve_prior_input(fit, structure(list(d),
-                                             class = "frmtmb_priorlist"))
-    k <- key(di[["entries"]])
-    if (length(k) && all(k %in% flat)) out <- c(out, spec_spelling(d)$class)
+    !is.null(dd) && !isTRUE(d[["flat_interval"]]) &&
+      !dd[["kind"]] %in% c("flat", "dirichlet") && !isTRUE(dd[["flat"]])
+  }, unclass(defs %||% list()))
+  if (!length(proper)) return(character(0))
+  d_slots <- vapply(proper, slot, "")
+  rows <- Filter(function(s) isTRUE(s$printed_flat) && slot(s) %in% d_slots,
+                 unclass(user_pl %||% list()))
+  unique(vapply(rows, spec_target, ""))
+}
+
+#' How many population-level slopes no prior in `ri` reaches, for the
+#' announcement's line about flat slopes; `NA` where it was not counted
+#' (no class `"b"` density among the user's rows, or a model the count
+#' does not read).
+#'
+#' The slopes are the positions a class `"b"` density reaches on each
+#' class `"b"` row `default_prior()` lists (one per response, dpar and
+#' nlpar), resolved as frm_sample() resolves its prior.
+#'
+#' @noRd
+flat_slope_count <- function(fit, ri, user_pl) {
+  own_b <- any(vapply(unclass(user_pl %||% list()), function(s) {
+    identical(s$class, "b") && !is.null(s$dist) &&
+      !identical(s$dist$kind, "flat")
+  }, NA))
+  if (!own_b || is.null(ri)) return(NA_integer_)
+  key <- function(es) {
+    unlist(lapply(es, function(e) paste0(e$comp, ".", e$idx)))
   }
-  unique(out)
+  got <- key(Filter(function(e) !identical(e$dist$kind, "flat"),
+                    ri$entries))
+  tab <- tryCatch(as.data.frame(default_prior(structure(
+    list(spec = fit$spec, frame = fit$frame), class = "frmtmb_fit"))),
+    error = function(e) NULL)
+  if (is.null(tab)) return(NA_integer_)
+  rows <- tab[tab$class == "b" & !nzchar(tab$coef), , drop = FALSE]
+  slopes <- character(0)
+  for (i in seq_len(nrow(rows))) {
+    probe <- set_prior("normal(0, 1)", class = "b", resp = rows$resp[i],
+                       dpar = rows$dpar[i], nlpar = rows$nlpar[i])
+    e <- tryCatch(resolve_prior_input(fit, probe)$entries,
+                  error = function(e) NULL)
+    if (is.null(e)) return(NA_integer_)
+    slopes <- c(slopes, key(e))
+  }
+  as.integer(sum(!unique(slopes) %in% got))
 }
 
 #' What a user's specification of a slot keeps from brms's default
@@ -2546,8 +2602,14 @@ keep_default_bounds <- function(user, defs) {
 #' silence. `message()` rather than `warning()`: this is information,
 #' not a fault, and `suppressMessages()` turns it off.
 #'
+#' `user_pl` is the caller's own prior: where it gives class `"b"` a
+#' density, the line about flat slopes says that only the slopes it
+#' leaves are flat, and it is left out when `flat_slopes`
+#' (`flat_slope_count()`) is 0.
+#'
 #' @noRd
-announce_default_priors <- function(pl, notes) {
+announce_default_priors <- function(pl, notes, user_pl = NULL,
+                                    flat_slopes = NA_integer_) {
   msg <- paste0("frm_sample(): default priors (brms 2.23 defaults; ",
                 "prior = \"flat\" puts brms's (flat) in every slot)")
   for (s in unclass(pl %||% list())) {
@@ -2615,7 +2677,18 @@ announce_default_priors <- function(pl, notes) {
                           else if (s$class %in% c("cor", "corme"))
                             "  [correlation matrix]" else ""))
   }
-  msg <- c(msg, "  b                  (flat), as brms leaves slopes")
+  # a slope the caller's prior reaches is not flat, and the line said
+  # it was whenever the call gave class "b" a density
+  own_b <- any(vapply(unclass(user_pl %||% list()), function(s) {
+    identical(s$class, "b") && !is.null(s$dist) &&
+      !identical(s$dist$kind, "flat")
+  }, NA))
+  if (!own_b) {
+    msg <- c(msg, "  b                  (flat), as brms leaves slopes")
+  } else if (!identical(flat_slopes, 0L)) {
+    msg <- c(msg, paste0("  b                  (flat) where your prior ",
+                         "sets none, as brms leaves slopes"))
+  }
   for (nt in notes) {
     msg <- c(msg, paste0("  ", nt, " - see ?frm_sample"))
   }
@@ -2753,13 +2826,16 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
   }
   ri <- if (!is.null(eff)) resolve_prior_input(fit, eff)
   if (table_mark && defaults) {
-    lost <- table_flat_lost(fit, ri, defs_all)
+    lost <- table_flat_rows(user_pl, defs_all)
     if (length(lost)) {
       frm_stop("prior = was read from a default_prior() or validate_prior() ",
                "table that as.data.frame() turned into a plain data frame, ",
                "which drops its route, and its (flat) rows would replace ",
-               "brms's default on ", paste(lost, collapse = ", "),
-               " with (flat). A table of route = \"fit\", the default, ",
+               "brms's default with (flat) on the rows ",
+               paste0("(", lost, ")", collapse = ", "),
+               ". brms writes its (flat) as \"\", never as \"(flat)\", ",
+               "so a \"\" row is read as yours. A table of route = \"fit\", ",
+               "the default, ",
                "lists frm()'s defaults as (flat). For brms's defaults with ",
                "your rows edited in, pass the table itself or start from ",
                "default_prior(..., route = \"sample\"); for brms's (flat) ",
@@ -2773,7 +2849,9 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
   if (defaults) {
     announce_default_priors(defs, c(default_prior_notes(fit, user_pl),
                                     unreached_prior_notes(fit, user_pl,
-                                                          ri)))
+                                                          ri)),
+                            user_pl = user_pl,
+                            flat_slopes = flat_slope_count(fit, ri, user_pl))
   }
   # brms's dirichlet(1) on a mixture's weights is a density on the whole
   # simplex, which no set_prior() class names here (class "theta" is
@@ -2979,10 +3057,13 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' it suggests `re_formula = NA` only where that function takes it and
 #' it computes on the model. Whether a call reads an integrated value is
 #' found out by evaluating it at one draw with those values set to `NA`
-#' and to `0`: a result that changes read them. A draw whose result has
-#' non-finite values where the first draw's has none is refused the same
-#' way, so a value that vanishes at the first draw only cannot slip
-#' through as NaN.
+#' and to `0`: a result that changes read them, unless every value that
+#' changes is at a row where each design entry multiplying an integrated
+#' value is exactly 0, as `(0 + x | g)` at `x = 0` is (frmtmb's
+#' `integrated_design_zero()`). Entries that cancel, `(1 + x | g)` at
+#' `x = -1`, still refuse. Every draw whose result has missing values is
+#' evaluated at `0` too, and refused the same way, so a value that
+#' vanishes at the first draw only cannot slip through as NaN.
 #'
 #' *Why they refuse rather than fill the values in.* `laplace = TRUE`
 #' samples an approximate posterior, and its use is to check that
@@ -2998,13 +3079,16 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' `posterior_epred()` depend on the random seed and disagree with
 #' `log_lik()` and `ranef()` about what a draw contains.
 #'
-#' *Two edge cases.* On a model with nothing to integrate out,
+#' *Three edge cases.* On a model with nothing to integrate out,
 #' `laplace = TRUE` is the model itself, so the call says so and samples
 #' it on the full route, with draws identical to a call without the
 #' argument. On a REML fit whose objective is sampled as it stands
 #' ([check_laplace()]), the objective integrates the coefficients out
 #' too, and that combination is refused: the draws would hold no
-#' coefficient.
+#' coefficient. On a REML model with priors (the default), the sampled
+#' objective is rebuilt from the likelihood without REML's integral
+#' over the coefficients, and the coefficients are sampled: the density
+#' is the one a maximum-likelihood fit gives, and a message says so.
 #'
 #' @section Default priors:
 #' Both routes default to brms 2.23's own weakly-informative
@@ -3262,13 +3346,18 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' @param family Family, when `fit` is a plain formula that does not
 #'   carry one (`frm_sample(bf(y ~ x), data = dd, family = poisson())`;
 #'   the `+` spelling `bf(y ~ x) + poisson()` works too).
-#' @param data2,start,fit_control,na.action,REML As in [frmtmb::frm()]
-#'   (`fit_control` is that function's `control`). They belong to the
-#'   formula path, where they assemble the model this function samples,
-#'   and on a fitted object they are refused by name rather than
-#'   accepted and discarded: the model is already assembled, so nothing
-#'   would read them. `fit_control` is not the sampler's control list;
-#'   `control` is.
+#' @param data2,start,fit_control,na.action,REML,drop_unused_levels
+#'   Passed to [frmtmb::frm()] (`fit_control` is that function's
+#'   `control`). They belong to the formula path, where they assemble the
+#'   model this function samples, and on a fitted object they are
+#'   refused by name rather than accepted and discarded: the model is
+#'   already assembled, so nothing would read them. `fit_control` is not
+#'   the sampler's control list; `control` is. `drop_unused_levels =
+#'   FALSE` today keeps an unused factor level in the model frame
+#'   (`draws$data`) only: `frm()` gives it no group-level effect and no
+#'   column of the fixed-effect design, so the sampled model is the one
+#'   without the level. brms 2.23.0 keeps it in both, and its draws hold
+#'   that level's effect, drawn from its prior.
 #' @param control The SAMPLER's control list, brms's spelling and
 #'   brms's meaning: `control = list(adapt_delta = 0.99,
 #'   max_treedepth = 12)` reaches [tmbstan::tmbstan()] and then rstan
@@ -3400,6 +3489,14 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   in the `stanfit` to the draws' columns (and the prior draws of its
 #'   rows), the `sample_prior` setting and the arguments of the call,
 #'   which [update()][update.frmtmb_draws] reads.
+#'
+#'   The draws matrix `x$draws` holds its columns in an internal order,
+#'   the order of the model's parameter vector, which the package's own
+#'   methods read by position. It is NOT the order of
+#'   [frmtmb::variables()]:
+#'   `variables()`, `as.matrix()`, `as_draws_df()` and the other
+#'   accessors list the columns in brms's order. Select a column of
+#'   `x$draws` by name, `x$draws[, "b_x"]`, never by position.
 #' @section Prior draws:
 #'   `sample_prior = "yes"` draws from the priors as brms does. Each
 #'   prior statement of brms's Stan program for the model is one column
@@ -3576,6 +3673,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                        control = NULL,
                        fit_control = frmtmb_control(),
                        na.action = stats::na.omit, REML = FALSE,
+                       drop_unused_levels = TRUE,
                        .diagnostic = FALSE) {
   if (inherits(fit, "frmtmb_multiple")) {
     return(sample_multiple(fit, match.call(), parent.frame()))
@@ -3621,7 +3719,8 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                if (!missing(start)) "start",
                if (!missing(data2)) "data2",
                if (!missing(na.action)) "na.action",
-               if (!missing(REML)) "REML")
+               if (!missing(REML)) "REML",
+               if (!missing(drop_unused_levels)) "drop_unused_levels")
     if (length(inert)) {
       frm_stop("frm_sample(", paste0(inert, " =", collapse = ", "),
                ") belongs to the formula interface: those arguments ",
@@ -3659,7 +3758,8 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   if (from_formula) {
     fit <- sample_assemble(fit, data, family, data2 = data2,
                            start = start, fit_control = fit_control,
-                           na.action = na.action, REML = REML)
+                           na.action = na.action, REML = REML,
+                           drop_unused_levels = drop_unused_levels)
     # laplace = TRUE integrates the values out as frm() does, and has its
     # error on a value nothing reads unless that row leaves the objective
     if (isTRUE(list(...)$laplace)) fit <- mi_sampling(fit, "laplace")
@@ -3842,6 +3942,16 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
              "effects, and the draws would hold no coefficient at all. ",
              "Sample a maximum-likelihood fit (REML = FALSE) with ",
              "laplace = TRUE, or this fit without it", call. = FALSE)
+  }
+  if (laplace && isTRUE(fit$REML)) {
+    # the rebuilt objective has no REML integral over beta, and nothing
+    # said so (backlog 1533)
+    frm_message("frm_sample(laplace = TRUE) on a REML model samples the ",
+                "population-level coefficients: the density is the ",
+                "likelihood with the random effects integrated out, and the ",
+                "priors, as for a maximum-likelihood fit (REML = FALSE). ",
+                "REML's integral over the coefficients is not in it; the ",
+                "draws of the coefficients take its place.")
   }
   bounds <- if (length(lower) || length(upper)) {
     resolve_bounds(fit, unlist(lower), unlist(upper))
@@ -4149,6 +4259,7 @@ as.matrix.frmtmb_draws <- function(x, pars = NA, variable = NULL,
   # brms:::as.matrix.brmsfit: an unclassed draws_matrix, so the margins
   # are named `draw` and `variable` and the chain count rides along.
   # `x$draws` is the plain matrix, for anyone who wants that
+  frm_check_dots(..., .allow = draws_accessor_dots)
   unclass(draws_accessor_args(x, pars, variable, draw, subset,
                               "as.matrix()",
                               format = posterior::as_draws_matrix, ...))

@@ -130,7 +130,10 @@ test_that("cs() and thres(gr = ) reach each component, as brms reads them", {
   skip_unless_brms()
   d <- omx_data(20261006)
   # cs(): each component its own coefficients, off its own thresholds
-  fit <- frm(bf(y ~ cs(x)), family = mixture(sratio(), acat()), data = d)
+  # the density is compared at the point the fit keeps, whichever it is;
+  # a start may pass over a higher step function and say so
+  fit <- allow_warnings(frm(bf(y ~ cs(x)), family = mixture(sratio(), acat()),
+                            data = d), "jittered starts reached a higher")
   expect_true(all(c("bcs_mu1_x[1]", "bcs_mu2_x[3]") %in% variables(fit)))
   for (move in c(0, 0.1)) {
     est <- fit$obj$env$parList(omx_par(fit, move))
@@ -569,6 +572,11 @@ test_that("the flat-direction warnings stay off identified mixtures", {
                          fixed = TRUE)))
 })
 
+# The fit-end check is tested at the default start's point: whether any
+# of the jittered starts (mixture_starts(), test-mixture-starts.R)
+# leaves a step function depends on the rounding path
+omx_one_start <- frmtmb_control(starts = 0)
+
 test_that("a component run off to a degenerate boundary warns", {
   # Punch round 1, B2: the review's data-generating process (seeds 1..40,
   # dev/ordmix-rev-degen.R); seed 19 at n = 300 is one of its degenerate
@@ -583,12 +591,12 @@ test_that("a component run off to a degenerate boundary warns", {
   }
   w <- omx_warnings(frm(bf(y ~ x), family = mixture(cumulative(),
                                                     cumulative()),
-                        data = gen(19)))
+                        data = gen(19), control = omx_one_start))
   expect_true(any(grepl("degenerate boundary", w, fixed = TRUE)))
   # absent: an identified fit of the same process (seed 3, distance 6.3)
   w <- omx_warnings(frm(bf(y ~ x), family = mixture(cumulative(),
                                                     cumulative()),
-                        data = gen(3)))
+                        data = gen(3), control = omx_one_start))
   expect_false(any(grepl("degenerate boundary", w, fixed = TRUE)))
 })
 
@@ -614,13 +622,15 @@ test_that("strong predictors are not a degenerate boundary", {
   # (dev/ordmix-p2-crit-log/margin_logit_10_500.txt).
   w <- omx_warnings(frm(bf(y ~ x), family = mixture(cumulative(),
                                                     cumulative()),
-                        data = omx_margin_data(1, "logit", 10, 500)))
+                        data = omx_margin_data(1, "logit", 10, 500),
+                        control = omx_one_start))
   expect_false(any(grepl("degenerate boundary", w, fixed = TRUE)))
   # a cauchit step function: latent distance 2.4e5, doubling its
   # discrimination gains 0.0025 in log-likelihood
   w <- omx_warnings(frm(bf(y ~ x), family = mixture(cumulative("cauchit"),
                                                     cumulative("cauchit")),
-                        data = omx_margin_data(4, "cauchit", 1, 500)))
+                        data = omx_margin_data(4, "cauchit", 1, 500),
+                        control = omx_one_start))
   expect_true(any(grepl("a step function of its predictors", w,
                         fixed = TRUE)))
 })
@@ -710,7 +720,7 @@ test_that("constant weights do not change the degenerate verdict", {
   f <- function(seed, n, w) {
     frm(bf(y | weights(w) ~ x), family = mixture(cumulative(),
                                                  cumulative()),
-        data = omx_wdata(seed, n, w))
+        data = omx_wdata(seed, n, w), control = omx_one_start)
   }
   w <- omx_warnings(f(3, 500, 1 / 500))
   expect_false(any(grepl("degenerate boundary", w, fixed = TRUE)))
@@ -762,7 +772,8 @@ test_that("the degenerate check says only what it found", {
                   x = x)
   allow_warnings(
     frm(bf(y ~ x), family = mixture(cumulative(), cumulative(),
-                                    cumulative()), data = d),
+                                    cumulative()), data = d,
+        control = omx_one_start),
     c("degenerate boundary", "Optimizer did not report convergence"),
     require = "degenerate boundary")
 })

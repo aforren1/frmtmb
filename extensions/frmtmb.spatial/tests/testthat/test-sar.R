@@ -300,14 +300,8 @@ test_that("sar() is refused where brms refuses it, and where W gives no
      "must be equal to the number of observations")
   fe(frm(ylag ~ x + sar(Wd), data = d,
          data2 = list(Wd = as.data.frame(W))), "must be of class")
-  # a directed cycle: complex eigenvalues, so log|I - rho W| has no real
-  # form over them
-  Cc <- matrix(0, s$n, s$n)
-  Cc[cbind(seq_len(s$n), c(2:s$n, 1))] <- 1
-  fe(frm(ylag ~ x + sar(Cc), data = d, data2 = list(Cc = Cc)),
-     "eigenvalues of 'M' are complex")
   fe(frm(ylag ~ x + sar(I), data = d, data2 = list(I = diag(s$n))),
-     "needs a negative and a positive eigenvalue")
+     "needs a negative and a positive real eigenvalue")
   # the absent case: a row-standardized W, whose eigen() values carry a
   # rounding imaginary part, is not refused, and sar()'s map passes
   # core's check of whiten() against unwhiten() at the frame, dense or
@@ -318,6 +312,170 @@ test_that("sar() is refused where brms refuses it, and where W gives no
   Wm <- Matrix::Matrix(W, sparse = TRUE)
   expect_s3_class(frm(yerr ~ x + sar(Wm, type = "error"), data = d,
                       data2 = list(Wm = Wm)), "frmtmb_fit")
+})
+
+test_that("a W with complex eigenvalues takes log|1 - rho lambda| over
+           them", {
+  # a row-standardized nearest-neighbor graph on scattered points is
+  # directed (i's nearest need not have i as its nearest), so its
+  # eigenvalues come in complex pairs; and a directed cycle, whose
+  # determinant |I - rho C| = 1 - rho^n is known in closed form
+  set.seed(21)
+  n <- 40
+  xy <- cbind(stats::runif(n), stats::runif(n))
+  D <- as.matrix(stats::dist(xy))
+  diag(D) <- Inf
+  K <- t(apply(D, 1, function(r) as.numeric(rank(r) <= 3)))
+  W <- K / rowSums(K)
+  ev <- eigen(W, only.values = TRUE)$values
+  expect_gt(max(abs(Im(ev))), 0.01)
+  d <- data.frame(x = stats::rnorm(n))
+  A0 <- diag(n) - 0.4 * W
+  d$ylag <- as.vector(solve(A0, 1 + 0.5 * d$x + stats::rnorm(n, 0, 0.7)))
+  d$yerr <- 1 + 0.5 * d$x + as.vector(solve(A0, stats::rnorm(n, 0, 0.7)))
+  for (ty in c("lag", "error")) {
+    yv <- if (ty == "lag") d$ylag else d$yerr
+    fit <- frm(stats::as.formula(paste0(if (ty == "lag") "ylag" else "yerr",
+                                        " ~ x + sar(W, type = '", ty, "')")),
+               data = d, data2 = list(W = W))
+    expect_identical(fit$opt$convergence, 0L)
+    rho <- sar_rho_of(fit)
+    # the interval is read off the real eigenvalues, as spatialreg reads it
+    evr <- Re(ev[abs(Im(ev)) <= 1e-8 * max(Mod(ev))])
+    expect_gt(rho, 1 / min(evr))
+    expect_lt(rho, 1 / max(evr))
+    A <- diag(n) - rho * W
+    eta <- frm_linpred(fit)
+    m <- if (ty == "lag") as.vector(solve(A, eta)) else eta
+    S <- sigma(fit)^2 * solve(crossprod(A))
+    ll <- as.numeric(logLik(fit))
+    expect_lt(abs(ll - dense_mvn(yv, m, S)) / abs(ll), 1e-10)
+  }
+  # on a cycle of 6, where rho^6 is not lost to rounding; the scale of
+  # the sum is that of its terms, each log|1 - rho lambda|
+  nc <- 6L
+  Cc <- matrix(0, nc, nc)
+  Cc[cbind(seq_len(nc), c(2:nc, 1))] <- 1
+  aux <- frmtmb.spatial:::sar_build(list(M = quote(Cc), type = "lag"),
+                                    seq_len(nc), nc, function(e, w) Cc)
+  evc <- eigen(Cc, only.values = TRUE)$values
+  for (rho in c(-0.7, 0.3, 0.95)) {
+    scale <- sum(abs(log(Mod(1 - rho * evc))))
+    expect_lt(abs(as.numeric(frmtmb.spatial:::sar_logdet(rho, aux)) -
+                    log1p(-rho^nc)) / scale, 1e-12)
+  }
+  # spatialreg's interval, 1 / range of the REAL eigenvalues, where a
+  # complex real part is more extreme than every real eigenvalue: a
+  # directed 3-cycle (1, -0.5 +/- 0.87i) beside 0.2 times an edge
+  # (+/- 0.2) gives (-5, 1), where the real parts would give (-2, 1)
+  blk <- matrix(0, 5, 5)
+  blk[cbind(1:3, c(2, 3, 1))] <- 1
+  blk[4, 5] <- blk[5, 4] <- 0.2
+  Wb <- kronecker(diag(4), blk)
+  nb <- nrow(Wb)
+  ab <- frmtmb.spatial:::sar_build(list(M = quote(Wb), type = "lag"),
+                                   seq_len(nb), nb, function(e, w) Wb)
+  expect_lt(abs(ab$lo - (-5)) / 5, 1e-12)
+  expect_lt(abs(ab$hi - 1), 1e-12)
+  evb <- eigen(Wb, only.values = TRUE)$values
+  for (rho in c(ab$lo * (1 - 1e-6), -4, -1, 0.5, ab$hi * (1 - 1e-6))) {
+    dt <- determinant(diag(nb) - rho * Wb)
+    expect_identical(as.numeric(dt$sign), 1)
+    scale <- sum(abs(log(Mod(1 - rho * evb))))
+    expect_lt(abs(as.numeric(frmtmb.spatial:::sar_logdet(rho, ab)) -
+                    as.numeric(dt$modulus)) / scale, 1e-10)
+  }
+})
+
+test_that("mi() beside sar() integrates the missing values out", {
+  s <- sar_data(seed = 6)
+  d <- s$d
+  W <- s$W
+  miss <- c(5, 18, 31, 44)
+  for (ty in c("lag", "error")) {
+    dm <- d
+    yn <- if (ty == "lag") "ylag" else "yerr"
+    dm[[yn]][miss] <- NA
+    fit <- frm(stats::as.formula(paste0(yn, " | mi() ~ x + sar(W, type = '",
+                                        ty, "')")),
+               data = dm, data2 = list(W = W))
+    expect_length(fit$estimates$miss, length(miss))
+    # on gaussian the Laplace marginal over the missing values is exact:
+    # the dense normal of the observed rows, whose covariance is the
+    # observed block of sigma^2 (A'A)^-1
+    rho <- sar_rho_of(fit)
+    A <- diag(s$n) - rho * W
+    eta <- frm_linpred(fit)
+    m <- if (ty == "lag") as.vector(solve(A, eta)) else eta
+    S <- sigma(fit)^2 * solve(crossprod(A))
+    ok <- -miss
+    ref <- dense_mvn(dm[[yn]][ok], m[ok], S[ok, ok])
+    ll <- as.numeric(logLik(fit))
+    expect_lt(abs(ll - ref) / abs(ref), 1e-7)
+  }
+})
+
+test_that("mi() beside sar() on student() integrates out exactly", {
+  # the dense multivariate t, written here as dense_mvn() is
+  dense_mvt <- function(y, m, S, nu) {
+    R <- chol(S)
+    z <- backsolve(R, y - m, transpose = TRUE)
+    k <- length(y)
+    lgamma((nu + k) / 2) - lgamma(nu / 2) - 0.5 * k * log(nu * pi) -
+      sum(log(diag(R))) - 0.5 * (nu + k) * log1p(sum(z^2) / nu)
+  }
+  # nu held, every other parameter at its maximum: one t vector does not
+  # pin nu, which runs off under ML
+  held <- function(nu) {
+    function(par, fn, gr, lower, upper, control) {
+      inu <- which(names(par) == "betad")[2L]
+      fx <- function(q) {
+        p <- numeric(length(par))
+        p[-inu] <- q
+        p[inu] <- log(nu - 1)
+        p
+      }
+      r <- stats::nlminb(par[-inu], function(q) fn(fx(q)),
+                         function(q) gr(fx(q))[-inu])
+      p <- par
+      p[] <- fx(r$par)
+      list(par = p, objective = fn(p), convergence = 0L, message = "held")
+    }
+  }
+  s <- sar_data(seed = 6)
+  W <- s$W
+  n <- s$n
+  set.seed(8)
+  tsc <- sqrt(4 / stats::rchisq(1, 4))
+  for (ty in c("lag", "error")) {
+    yn <- if (ty == "lag") "ylag" else "yerr"
+    for (m in c(3, 10, 20)) {
+      dm <- s$d
+      dm[[yn]] <- dm$x + (dm[[yn]] - dm$x) * tsc
+      miss <- sort(sample(n, m))
+      dm[[yn]][miss] <- NA
+      ok <- -miss
+      fo <- stats::as.formula(paste0(yn, " | mi() ~ x + sar(W, type = '",
+                                     ty, "')"))
+      for (nu in c(3, 10)) {
+        # nu held off its maximum leaves its gradient, which frm() reports
+        fit <- allow_warnings(
+          frm(fo, family = student(), data = dm, data2 = list(W = W),
+              control = frmtmb_control(optimizer = held(nu), restarts = 0,
+                                       check_se = "ignore")),
+          "Large maximum absolute gradient")
+        dp <- frmtmb::eval_dpars(fit)[[1L]]
+        expect_lt(abs(dp$nu[1] - nu) / nu, 1e-12)
+        rho <- sar_rho_of(fit)
+        A <- diag(n) - rho * W
+        eta <- frm_linpred(fit)
+        mu <- if (ty == "lag") as.vector(solve(A, eta)) else eta
+        S <- dp$sigma[1]^2 * solve(crossprod(A))
+        ref <- dense_mvt(dm[[yn]][ok], mu[ok], S[ok, ok], nu)
+        expect_lt(abs(as.numeric(logLik(fit)) - ref) / abs(ref), 1e-9)
+      }
+    }
+  }
 })
 
 test_that("a W whose extreme eigenvalue repeats warns that rho runs to
@@ -708,9 +866,12 @@ test_that("sar() reads its precision off its sparse jacobian slot, not the
   # the route tells them apart: the slot gives a sparse matrix, and a
   # sar() above core's dense-route threshold raises no warning where the
   # same map without the slot warns that it inverts a dense matrix. The
-  # lattice is built from the threshold, so a change to it cannot turn
+  # threshold is core's option, set low so that a small lattice is above
+  # it, and the lattice is built from it, so a change to it cannot turn
   # this into a case below it
-  lim <- frmtmb:::autocor_loo_dense_max
+  old <- options(frmtmb.autocor_dense_max = 60L)
+  on.exit(options(old), add = TRUE)
+  lim <- getOption("frmtmb.autocor_dense_max")
   s <- sar_data(k = ceiling(sqrt(lim + 1)))
   expect_gt(s$n, lim)
   aux <- sar_build(list(M = quote(W), type = "lag"), seq_len(s$n), s$n,

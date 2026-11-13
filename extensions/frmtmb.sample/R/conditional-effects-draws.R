@@ -203,11 +203,28 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
       }
     }), use.names = FALSE)
   }
+  lap <- draws_is_laplace(x)
+  # the cells whose grid row's design reads no group-level value, one per
+  # cell of the curves (a level plan places the same rows, and a new
+  # level's effect meets the same design); a grid that does not build
+  # skips none
+  skip <- if (lap) {
+    tryCatch({
+      f0 <- draws_fit_at(x, rows[1L], idx, 0)
+      unlist(lapply(gb$grids, function(g) {
+        len <- length(ce_boot_one(f0, g$nd, poly, resp, pred_dpar,
+                                  re_formula, anl))
+        s <- draws_design_skip(x, g$nd, resp)
+        k <- len %/% max(length(s), 1L)
+        if (length(s) && k * length(s) == len) rep(s, k) else rep(FALSE, len)
+      }), use.names = FALSE)
+    }, error = function(e) NULL)
+  }
   draws_laplace_probe(x, "conditional_effects()",
                       function(fill) ce_at(fill, re_formula),
-                      function(fill) ce_at(fill, NA))
+                      function(fill) ce_at(fill, NA), skip)
   watch <- draws_laplace_watch(x, "conditional_effects()",
-                               function(fill) ce_at(fill, NA))
+                               function(fill) ce_at(fill, NA), skip)
   f1 <- draws_fit_at(x, rows[1L], idx)
   cats <- if (poly) {
     colnames(frm_linpred(f1, newdata = gb$grids[[1L]]$nd,
@@ -224,22 +241,33 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   sim_one <- if (predict) {
     function(fit, nd) ce_sim_one(fit, nd, resp, re_formula, anl)
   }
+  # on laplace draws the watch reads the expected values, which the
+  # probe read too: whether a simulated value is missing says less about
+  # what it read
   M <- matrix(NA_real_, length(rows), sum(lens))
   for (i in seq_along(rows)) {
-    fi <- if (i == 1L) f1 else draws_fit_at(x, rows[i], idx)
-    # one draw per new level per posterior draw, shared by the panels
-    cache <- new.env(parent = emptyenv())
-    M[i, ] <- unlist(lapply(seq_along(gb$grids), function(gi) {
-      if (is.null(plan)) {
-        if (predict) return(sim_one(fi, gb$grids[[gi]]$nd))
-        ce_boot_one(fi, gb$grids[[gi]]$nd, poly, resp, pred_dpar,
-                    re_formula, anl)
-      } else {
-        ce_plan_eval(fi, plan, gi, cache, poly, resp, pred_dpar,
-                     re_formula, anl, one = sim_one)
+    one <- watch(function(fill) {
+      fi <- if (i == 1L && is.na(fill)) f1 else {
+        draws_fit_at(x, rows[i], idx, fill)
       }
-    }), use.names = FALSE)
-    watch(M[i, ])
+      # one draw per new level per posterior draw, shared by the panels
+      cache <- new.env(parent = emptyenv())
+      grid_vals <- function(sim) {
+        unlist(lapply(seq_along(gb$grids), function(gi) {
+          if (is.null(plan)) {
+            if (!is.null(sim)) return(sim(fi, gb$grids[[gi]]$nd))
+            ce_boot_one(fi, gb$grids[[gi]]$nd, poly, resp, pred_dpar,
+                        re_formula, anl)
+          } else {
+            ce_plan_eval(fi, plan, gi, cache, poly, resp, pred_dpar,
+                         re_formula, anl, one = sim)
+          }
+        }), use.names = FALSE)
+      }
+      list(val = grid_vals(sim_one),
+           ev = if (lap && predict) grid_vals(NULL))
+    }, function(o) if (predict) o$ev else o$val)
+    M[i, ] <- one$val
   }
   # brms hands `transform` to posterior_predict(), which applies it to
   # the predicted draws before they are summarized

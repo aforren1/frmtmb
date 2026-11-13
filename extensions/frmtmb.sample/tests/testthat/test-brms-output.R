@@ -80,7 +80,9 @@ bo_brms_order <- function(M) {
 test_that("the accessors and summaries are brms's, identical()", {
   cs <- bo_case()
   ds <- cs$ds
-  M <- ds$draws
+  # brms stores its draws in reorder_pars()'s order, which is the order
+  # variables() lists; ds$draws keeps the template order
+  M <- ds$draws[, variables(ds), drop = FALSE]
   sh <- bo_shim(cs, M)
   # the names themselves, which a shim built from these draws cannot
   # check: brms's b_ and r_ spellings (dev/brmsnames-naming.R derives

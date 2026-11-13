@@ -123,16 +123,23 @@ The other strings that marginaleffects knows are refused, each with
 its reason. \code{"HC2"} to \code{"HC5"} and \code{"robust"} (which
 marginaleffects maps to HC3) weight each row by its leverage, the
 diagonal of a hat matrix, which frmtmb does not compute. \code{"HAC"},
-\code{"NeweyWest"} and \code{"kernHAC"} need a time order of the rows.
+\code{"NeweyWest"} and \code{"kernHAC"} need one time order over all the rows,
+and the time variable of \code{ar()}, \code{ma()} or \code{arma()} orders the rows
+within each group only; with such a term, \code{~ g} over its grouping
+variable is the sandwich robust to dependence within each series.
 \code{"satterthwaite"} and \code{"kenward-roger"} are denominator degrees of
 freedom for a linear mixed model fitted by REML. \code{vcov_cluster()}
 refuses a fit whose random effects cross the clusters, and so
-\code{"HC0"} and \code{"HC1"} refuse such a fit too. It also refuses a
-residual correlation term (\code{ar()}, \code{ma()} or \code{arma()}, either form,
-and the other residual covariance terms), whose density is joint over
-each group: under one, \code{"HC0"}, \code{"HC1"}, \code{"stata"} and a cluster
-formula are refused, \code{vcov = TRUE} gives the model-based standard
-errors, and \code{\link[=frm_bootstrap]{frm_bootstrap()}} is the route to a robust one.
+\code{"HC0"} and \code{"HC1"} refuse such a fit too. Under a residual
+correlation term (\code{ar()}, \code{ma()}, \code{arma()}, either form, \code{cosy()} or
+\code{unstr()}) the density of a series is joint, or its rows' means read
+its earlier residuals, so a series must sit inside one cluster:
+\code{~ g} over the term's grouping variable, or over one it is nested in,
+works, and \code{"HC0"}, \code{"HC1"}, \code{"stata"} and a clustering that splits a
+series are refused. \code{fcor()} and \code{sar()} are one density over every
+row, so every sandwich is refused under them; \code{vcov = TRUE} gives the
+model-based standard errors, and \code{\link[=frm_bootstrap]{frm_bootstrap()}} is the route to a
+robust one.
 }
 
 \section{What the standard error holds}{

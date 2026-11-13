@@ -637,7 +637,11 @@ test_that("log_lik(newdata =) names only an alternative that answers", {
   # the guard absent: without the residual term both are named as well
   f2 <- frm(y ~ x, data = d, dry_run = "objective")
   ds2 <- lla_draws(f2, list(b_Intercept = b0, b_x = b1, sigma = sg))
-  e2 <- tryCatch(log_lik(ds2, newdata = d[-1, ]), error = identity)
+  # rows other than the fitted ones: without the term a subset of the
+  # fitted rows is taken (test-loo-newdata-subset.R)
+  moved <- d[-1, ]
+  moved$x <- moved$x + 1
+  e2 <- tryCatch(log_lik(ds2, newdata = moved), error = identity)
   expect_s3_class(e2, "frmtmb_error")
   expect_match(conditionMessage(e2),
                "Use posterior_epred(newdata =) or posterior_predict(",

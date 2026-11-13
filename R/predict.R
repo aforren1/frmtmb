@@ -202,6 +202,9 @@ joint_cov_repair_meta <- function(fit, sdr, p, r, f) {
     null <- matrix(0, p, NCOL(sdr$se_null))
     null[f, ] <- sdr$se_null
     null <- gp_null_at_field(fit, null, r, f)
+    # which columns are a limit's (se_null_drop_held(), jc_nonest())
+    lim <- attr(sdr$se_null, "limit")
+    if (length(lim) == NCOL(null)) attr(null, "limit") <- lim
   }
   units <- rep(1, p)
   units[f] <- fit$par_units %||% 1
@@ -5470,8 +5473,8 @@ osa_cens_domain <- function(av, y, discrete = FALSE) {
              "[lo + 1, hi] rather than the [lo, hi] ",
              "the one-step window is built on, and no reference has ",
              "measured the shifted window. Every other residual type ",
-             "works, and dharma_residuals() covers the same ground through ",
-             "simulate(censored = TRUE)", call. = FALSE)
+             "works, and dharma_residuals() scores each censored row on ",
+             "the event it observes", call. = FALSE)
   }
   if (any(cen == 2)) {
     frm_stop("residuals(type = \"osa\") does not support interval censoring ",
@@ -5492,12 +5495,10 @@ osa_cens_domain <- function(av, y, discrete = FALSE) {
                "(type-I censoring); got ", length(p), " distinct points. ",
                "With row-varying censoring times the distribution of an ",
                "uncensored response is not identified without a model for ",
-               "the censoring process. dharma_residuals() is not an ",
-               "alternative: simulate() draws the LATENT uncensored ",
-               "response, so its draws are not comparable with the ",
-               "observed censored values, and simulate(censored = TRUE) ",
-               "needs the same single censoring point this message is ",
-               "about", call. = FALSE)
+               "the censoring process. dharma_residuals() needs no such ",
+               "model: it scores each censored row on the event it ",
+               "observes, which is uniform under the model whatever the ",
+               "censoring times", call. = FALSE)
     }
     p
   }
@@ -5595,13 +5596,10 @@ residuals_unsupported <- c(
 #' `[lo, hi]` this window is built on, and no reference has measured
 #' the shifted window. Every other
 #' residual type works there.
-#' `dharma_residuals()` is not a substitute on a
-#' censored fit, because [simulate.frmtmb_fit()] draws the latent
-#' uncensored response by default (as brms's `posterior_predict()`
-#' does) and those draws are not comparable with the observed censored
-#' values; `simulate(censored = TRUE)` makes them comparable, but the
-#' resulting point mass at each censoring point is not a distribution
-#' DHARMa's rank transform can use.
+#' [dharma_residuals()] covers what is refused here: it scores each
+#' censored row on the event it observes, with any censoring times, an
+#' interval and a discrete family included (see its section "Censored
+#' responses").
 #'
 #' @section Ordinal and other category responses:
 #' `"response"` (`"ordinary"`) and `"pearson"` are refused for an
@@ -6809,8 +6807,8 @@ apply_censoring <- function(y, win) {
 #' matches brms, whose `posterior_predict()` also ignores `cens()` (and
 #' whose `pp_check()` therefore drops the censored rows). The draws are
 #' then not comparable with the observed values on censored rows, which
-#' is why `dharma_residuals()` and `residuals(type = "osa")` refuse or
-#' skip them.
+#' is why `residuals(type = "osa")` refuses or skips them and
+#' `dharma_residuals()` scores each one on the event it observes.
 #'
 #' `censored = TRUE` applies the fitted censoring mechanism to each
 #' draw instead, so the draws are directly comparable with the observed

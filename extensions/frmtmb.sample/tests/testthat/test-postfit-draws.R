@@ -120,6 +120,90 @@ test_that("posterior_average() takes draws in proportion to the weights", {
                "averages draws objects")
 })
 
+test_that("posterior_average()'s refusals quote the names, as brms's do", {
+  # brms 2.23.0: "Parameters 'b_x', 'nope' cannot be found in all of the
+  # models." (dev/sampfront-brms-probe.R, backlog 1559)
+  cs <- pf_case()
+  expect_error(posterior_average(cs$d1, cs$d2, variable = c("b_z", "nope"),
+                                 weights = c(1, 1)),
+               paste("Parameters 'b_z', 'nope' cannot be found in all of",
+                     "the models."), fixed = TRUE)
+  expect_error(posterior_average(cs$d1, cs$d2, variable = "nope",
+                                 missing = 0, weights = c(1, 1)),
+               "Parameters 'nope' cannot be found in any of the models.",
+               fixed = TRUE)
+  expect_error(posterior_average(cs$d1, cs$d2, variable = "b_z",
+                                 missing = list(other = 0),
+                                 weights = c(1, 1)),
+               "Argument 'missing' has no value for parameters 'b_z'.",
+               fixed = TRUE)
+})
+
+test_that("model_weights() on draws is brms's, normalized and named", {
+  skip_if_not_installed("loo")
+  cs <- pf_case()
+  q <- function(expr) suppressWarnings(expr)
+  # brms's Akaike weights over the information criterion
+  ics <- c(q(waic(cs$d1))$estimates[3, 1], q(waic(cs$d2))$estimates[3, 1])
+  ak <- exp(-(ics - min(ics)) / 2)
+  w <- q(model_weights(cs$d1, cs$d2, weights = "waic"))
+  expect_identical(names(w), c("cs$d1", "cs$d2"))
+  expect_equal(unname(w), ak / sum(ak))
+  expect_equal(sum(w), 1)
+  # stacking is loo_model_weights()'s, as brms's is
+  st <- q(model_weights(cs$d1, b = cs$d2))
+  ref <- q(loo_model_weights(cs$d1, cs$d2))
+  expect_identical(names(st), c("cs$d1", "b"))
+  expect_equal(unname(st), as.numeric(ref) / sum(as.numeric(ref)))
+  expect_identical(names(q(model_weights(cs$d1, cs$d2, weights = "loo",
+                                         model_names = c("m1", "m2")))),
+                   c("m1", "m2"))
+  expect_error(model_weights(cs$d1, cs$d2, weights = "kfold"),
+               "weights = \"kfold\"", fixed = TRUE)
+  expect_error(model_weights(cs$d1, cs$d2, model_names = "m1"),
+               "Number of model names is not equal to the number of models",
+               fixed = TRUE)
+  expect_error(model_weights(cs$d1, cs$f1), "takes models without a name")
+})
+
+test_that("pp_average() on draws stacks each model's draws by weight", {
+  cs <- pf_case()
+  nd <- cs$dd[1:4, ]
+  pa <- pp_average(cs$d1, cs$d2, weights = c(0.3, 0.7), seed = 5,
+                   method = "posterior_epred", newdata = nd,
+                   summary = FALSE)
+  n <- ndraws(cs$d1)
+  nd_k <- attr(pa, "ndraws")
+  expect_equal(unname(nd_k), c(round(0.3 * n), n - round(0.3 * n)))
+  expect_identical(names(nd_k), c("cs$d1", "cs$d2"))
+  expect_equal(unname(attr(pa, "weights")), c(0.3, 0.7))
+  # the rows are each model's random draws, in the order drawn, as
+  # brms's validate_draw_ids() takes them
+  set.seed(5)
+  i1 <- sample(seq_len(n), nd_k[1])
+  i2 <- sample(seq_len(ndraws(cs$d2)), nd_k[2])
+  ref <- rbind(posterior_epred(cs$d1, newdata = nd, draw_ids = i1),
+               posterior_epred(cs$d2, newdata = nd, draw_ids = i2))
+  expect_identical(pa, structure(ref, weights = attr(pa, "weights"),
+                                 ndraws = nd_k))
+  # brms's summary: one row per observation
+  ps <- pp_average(cs$d1, cs$d2, weights = c(0.3, 0.7), seed = 5,
+                   method = "fitted", newdata = nd)
+  expect_identical(colnames(ps), c("Estimate", "Est.Error", "Q2.5", "Q97.5"))
+  expect_identical(nrow(ps), 4L)
+  expect_error(pp_average(cs$d1, cs$d2, weights = c(1, 1), draw_ids = 1:3),
+               "Cannot use argument 'draw_ids' in pp_average.", fixed = TRUE)
+  expect_error(pp_average(cs$d1, cs$d2, weights = c(1, 1), method = "x"),
+               "Posterior predictive method 'x' is not supported.",
+               fixed = TRUE)
+  # a model of another response is refused, in brms's words
+  dz <- cs$d2
+  dz$fit$frame$y[[1L]] <- dz$fit$frame$y[[1L]] + 1
+  expect_error(pp_average(cs$d1, dz, weights = c(1, 1)),
+               "Can only average models predicting the same response.",
+               fixed = TRUE)
+})
+
 test_that("posterior_average()'s stacking weights are loo's", {
   skip_if_not_installed("loo")
   cs <- pf_case()

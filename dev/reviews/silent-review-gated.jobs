@@ -1,0 +1,12 @@
+lane frmtmb tests/testthat/test-brms-methods.R
+lane frmtmb tests/testthat/test-brms-suite-methods.R
+lane frmtmb tests/testthat/test-ce-aterms.R
+lane frmtmb tests/testthat/test-ce-predict-median.R
+lane frmtmb tests/testthat/test-offset-grid.R
+lane frmtmb tests/testthat/test-brms-agreement.R
+lane frmtmb tests/testthat/test-brms-postfit.R
+lane frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-brms-suite-methods.R
+lane frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-loo.R
+lane frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-sampling-ported.R
+lane frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-conditional-effects-draws.R
+lane frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-draws-methods.R

@@ -293,8 +293,9 @@ test_that("fitted() carries the latent residual, under re_formula = NA too", {
   # a standard error reads the latent's own uncertainty, through the chain
   se <- frm_linpred(fit, se.fit = TRUE)$se.fit
   expect_true(all(is.finite(se) & se > 0))
-  # it is an autocorrelation term and not a group-level one
-  expect_length(ranef(fit), 0L)
+  # it is an autocorrelation term and not a group-level one: ranef() stops
+  # in brms's words, as brms's does on the same model
+  expect_error(ranef(fit), "does not contain group-level effects")
   expect_null(ngrps(fit))
 })
 

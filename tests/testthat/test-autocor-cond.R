@@ -325,8 +325,11 @@ test_that("the sampling seam reports brms's one-step mean", {
 
   # a covariance block is not this form, and a model with no block at
   # all is left alone: the extension calls this unconditionally
-  fc <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)), data = d,
-            family = gaussian())
+  # cond_data() is ragged, so the covariance form says how brms differs
+  expect_message(
+    fc <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)), data = d,
+              family = gaussian()),
+    class = "frmtmb_autocor_gap")
   expect_identical(arma_cond_resp(fc), character(0))
   expect_identical(arma_cond_dpars(fc, eval_dpars(fc)), eval_dpars(fc))
   fp <- frm(bf(y ~ x), data = d, family = gaussian())

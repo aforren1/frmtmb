@@ -552,8 +552,11 @@ brms_check_re_dups <- function(fit) {
 #'   whose draws frmtmb.sample stores on that scale.
 #' - `b`: `r_<group>[<level>,<coef>]`, with brms's `__<prefix>` after the
 #'   group for a non-`mu` or multivariate component, for every block
-#'   `brms_block_has_r()` accepts. Any other block keeps `b[<i>]`, the
-#'   name the `stanfit` itself carries.
+#'   `brms_block_has_r()` accepts; a smooth's weights `s_<label>_<k>[i]`
+#'   and an exact `gp()`'s `zgp_<term>[i]` (`brms_basis_labels()`); the
+#'   states of `ar(cov = FALSE)` `zerr[i]`, of any other latent term
+#'   `latent_state[i]`. Any other block keeps `b[<i>]`, the name the
+#'   `stanfit` itself carries.
 #' - `miss`: `miss_<i>` for an `mi()` value and brms's
 #'   `Xme_<coef>[<i>]` for a `me()` latent value.
 #' - `theta` of a `gp()` block: brms's `sdgp_<term>` and
@@ -644,7 +647,15 @@ brms_miss_labels <- function(fit) {
 brms_r_labels <- function(fit) {
   n_b <- length(fit$frame[["par_template"]][["b"]])
   lab <- paste0("b[", seq_len(n_b), "]")
-  for (bk in fit$frame[["re_blocks"]]) {
+  blocks <- fit$frame[["re_blocks"]]
+  # a smooth's basis weights are brms's s_<label>_<k>, the coefficients
+  # sds_<label>_<k> scales; an exact gp()'s are z, brms's zgp_<term>
+  # (brms_basis_labels())
+  bl <- brms_basis_labels(fit)
+  for (bi in seq_along(blocks)) {
+    if (!is.null(bl[[bi]])) lab[blocks[[bi]][["b_idx"]]] <- bl[[bi]]
+  }
+  for (bk in blocks) {
     # one latent per row and, under ma(), arma() and cosy(), one per group: the
     # chain's own states, which are not err, and `b[k]` in brms is a slope
     if (identical(bk[["covstruct"]], "latres")) {
@@ -653,7 +664,12 @@ brms_r_labels <- function(fit) {
       rs <- if (length(fit$spec$responses) > 1L) {
         paste0("_", brms_stan_name(bk[["aux"]][["ac"]][["resp"]]))
       }
-      lab[bk[["b_idx"]]] <- paste0("latent_state", rs, "[", k, "]")
+      # under ar(cov = FALSE) the states are one standard normal per row,
+      # in row order: brms's own zerr, which its program declares and
+      # scales into err
+      st <- if (identical(bk[["aux"]][["kind"]], "condar")) "zerr" else
+        "latent_state"
+      lab[bk[["b_idx"]]] <- paste0(st, rs, "[", k, "]")
       next
     }
     if (!brms_block_has_r(bk)) next
@@ -698,6 +714,200 @@ brms_sds_names <- function(fit) {
                         fixed = TRUE))
     seen <- c(seen, base)
     out[bi] <- paste0(base, "_", sum(seen == base))
+  }
+  out
+}
+
+#' brms's names for the `b` segment of a block brms keeps as basis
+#' weights rather than `r_` coefficients, one character vector per
+#' block (`NULL` for any other block):
+#'
+#' - a smooth: `s_<prefix>_<label>_<k>[i]`, the coefficients on the
+#'   random part of the basis, which `sds_<prefix>_<label>_<k>` scales
+#'   (brms's `s_1_1`, renamed by `rename_sm()`);
+#' - an exact `gp()`: `zgp_<prefix>_<term>[i]`, the standardized values
+#'   (brms's `zgp_1_1`, renamed by `rename_gp()`). Position `i` is the
+#'   block's farthest-first order and not brms's first appearance, and
+#'   the Cholesky factor that maps z to the field follows that order, so
+#'   `zgp[i]` is not elementwise brms's `zgp[i]`; see the "The order of
+#'   the field" section of `?frmtmb-gp`.
+#'
+#' An approximate `gp(k = )` keeps `b[i]`: its weights carry the
+#' spectral density, where brms's `zgp` is standardized.
+#'
+#' @noRd
+brms_basis_labels <- function(fit) {
+  blocks <- fit$frame[["re_blocks"]] %||% list()
+  out <- vector("list", length(blocks))
+  sds <- brms_sds_names(fit)
+  for (bi in which(!is.na(sds))) {
+    n <- length(blocks[[bi]][["b_idx"]])
+    out[[bi]] <- paste0(sub("^sds_", "s_", sds[bi]), "[", seq_len(n), "]")
+  }
+  for (e in gp_brms_terms(fit)) {
+    for (k in seq_along(e$blocks)) {
+      bk <- blocks[[e$blocks[k]]]
+      if (!identical(bk[["covstruct"]], "gp")) next
+      n <- length(bk[["b_idx"]])
+      base <- sub("^sdgp_", "zgp_", e$sdgp[k])
+      out[[e$blocks[k]]] <- paste0(base, "[", seq_len(n), "]")
+    }
+  }
+  out
+}
+
+#' The random-effect blocks in brms's group-id order: response by
+#' response, and within a response the distributional and nonlinear
+#' parameters in the order the formula writes them, `mu` (the main
+#' formula) first. brms numbers its ids that way (`sd_1`, `sd_2`, ...),
+#' while it declares the predictors themselves in the family's order:
+#' `bf(y ~ (1 | h), alpha ~ (1 | g), sigma ~ (1 | ga))` with
+#' `skew_normal()` gives `sd_h`, `sd_g__alpha`, `sd_ga__sigma` but
+#' `b_Intercept`, `b_sigma_Intercept`, `b_alpha_Intercept`
+#' (dev/names-findings.md, item 1). Ties keep the frame's order, which is
+#' the formula's within one predictor.
+#'
+#' @noRd
+brms_block_order <- function(fit) {
+  blocks <- fit$frame[["re_blocks"]] %||% list()
+  order(brms_block_keys(fit, blocks), seq_along(blocks))
+}
+
+#' The sort key of each of `blocks` (the frame's, or
+#' `by_merged_blocks()` of them) in brms's id order; see
+#' `brms_block_order()`.
+#'
+#' @noRd
+brms_block_keys <- function(fit, blocks) {
+  if (!length(blocks)) return(numeric(0))
+  rs <- names(fit$spec$responses)
+  bform <- fit$bform
+  forms <- if (inherits(bform, "frmtmb_mvformula")) bform$forms else
+    list(bform)
+  key <- vapply(blocks, function(bk) {
+    best <- Inf
+    for (cp in bk[["components"]]) {
+      lp <- fit$frame[["linpreds"]][[cp[["lp_key"]]]]
+      if (is.null(lp)) next
+      ri <- match(lp[["resp"]] %||% rs[1L], rs)
+      if (is.na(ri)) ri <- 1L
+      f <- if (ri <= length(forms)) forms[[ri]]
+      dp <- lp[["dpar"]]
+      # a nonlinear parameter belongs to mu, which brms takes first
+      at <- match(dp, names(f$nlforms))
+      pos <- if (!is.na(at)) at / 1000 else {
+        at <- match(dp, names(f$pforms))
+        if (is.na(at)) 0 else at
+      }
+      best <- min(best, ri * 1e6 + pos)
+    }
+    if (is.finite(best)) best else 0
+  }, 0)
+  key
+}
+
+#' brms's parameter classes in `reorder_pars()`'s order, which is the
+#' order of `variables()` and of the draws' columns. `.dpar` stands for
+#' the model's distributional parameters, `.other` for a name brms has
+#' no counterpart of (`theta_1`, `latent_state[k]`, `b[i]`).
+#'
+#' @noRd
+brms_class_levels <- c(
+  "b", "bs", "bsp", "bcs", "ar", "ma", "sderr", "lagsar", "errorsar",
+  "car", "rhocar", "sdcar", "cosy", "cortime", "sd", "cor", "df", "sds",
+  "sdgp", "lscale", ".dpar", "hs", "R2D2", "sdb", "sdbsp", "sdbs", "sdar",
+  "sdma", "lncor", "Intercept", "tmp", "rescor", "delta", "simo", "r",
+  "s", "zgp", "rcar", "sbhaz", "Ymi", "Yl", "meanme", "sdme", "corme",
+  "Xme", ".other", "prior", "lprior", "lp"
+)
+
+#' The permutation that puts brms names into brms's order
+#' (`brms:::reorder_pars()`): by class (`brms_class_levels`), a class
+#' `b` intercept before the other coefficients, then by the order brms
+#' declares the parameters in. That last key is the order of `nm`
+#' itself, except where brms's differs from the frame's:
+#'
+#' - `r_` coefficients: block by block in brms's id order
+#'   (`brms_block_order()`), and within a block coefficient by
+#'   coefficient, every level of one before the next (`r_1_1`,
+#'   `r_1_2`), where the frame holds them level by level;
+#' - the `me()` hyperparameters: group by group (`me_hyper_values()`).
+#'
+#' The `sd_` and `cor_` names come out of `hyp_env_vals()` in id order
+#' already. The distributional parameters are ranked by the families'
+#' own order, which is brms's `valid_dpars()`: `sigma_y`, `sigma_y2`
+#' before `nu_y`.
+#'
+#' @noRd
+brms_variable_sort <- function(fit, nm) {
+  if (!length(nm)) return(integer(0))
+  cl <- sub("[_[].*$", "", nm)
+  # brms's class b is always b_<...>; the stanfit's `b[i]` is a block
+  # brms has no counterpart of
+  cl[cl == "b" & !startsWith(nm, "b_")] <- ".other"
+  dps <- unique(c(
+    unlist(lapply(fit$spec$responses, function(r) r[["family"]][["dpars"]])),
+    unlist(lapply(fit$frame[["linpreds"]], `[[`, "dpar"))))
+  is_dp <- (cl %in% dps | grepl("^theta[0-9]+$", cl)) &
+    !cl %in% brms_class_levels
+  rk <- match(cl, brms_class_levels)
+  rk[is_dp] <- match(".dpar", brms_class_levels)
+  rk[is.na(rk)] <- match(".other", brms_class_levels)
+  dk <- integer(length(nm))
+  dk[is_dp] <- match(cl[is_dp], c(dps, unique(cl[is_dp])))
+  # a nonlinear parameter's intercept is an ordinary column of its b_
+  # vector in brms's program, not a centered intercept, so it keeps its
+  # place: b_a_Intercept, b_a_z, b_b_Intercept
+  nl_int <- unlist(lapply(fit$frame[["linpreds"]], function(lp) {
+    nlp <- if (!is.null(lp[["resp"]])) {
+      fit$spec$responses[[lp[["resp"]]]][["nlpars"]]
+    }
+    if (lp[["dpar"]] %in% nlp) {
+      paste0("b_", brms_usc(brms_lp_prefix(fit, lp), "Intercept"))
+    }
+  }), use.names = FALSE)
+  int <- cl == "b" & grepl("_Intercept([[][^]]*[]])?$", nm) &
+    !nm %in% nl_int
+  k1 <- k2 <- k3 <- rep(0, length(nm))
+  rr <- brms_r_keys(fit)
+  m <- match(nm, rr$label)
+  hit <- !is.na(m)
+  k1[hit] <- rr$block[m[hit]]
+  k2[hit] <- rr$coef[m[hit]]
+  k3[hit] <- rr$level[m[hit]]
+  me <- fit$frame[["me"]]
+  if (!is.null(me)) {
+    n <- length(me$terms)
+    mn <- names(me_hyper_values(me, numeric(n), numeric(n),
+                                numeric(me$n_thetame %||% 0L)))
+    mm <- match(nm, mn)
+    k1[!is.na(mm)] <- mm[!is.na(mm)]
+  }
+  order(rk, dk, !int, k1, k2, k3, seq_along(nm))
+}
+
+#' The sort keys of every `r_` label of a fit (`brms_r_labels()`): the
+#' block's rank in brms's id order, the coefficient within the block and
+#' the level.
+#'
+#' @noRd
+brms_r_keys <- function(fit) {
+  blocks <- fit$frame[["re_blocks"]] %||% list()
+  lab <- brms_r_labels(fit)
+  rank <- match(seq_along(blocks), brms_block_order(fit))
+  out <- list(label = character(0), block = integer(0), coef = integer(0),
+              level = integer(0))
+  for (bi in seq_along(blocks)) {
+    bk <- blocks[[bi]]
+    if (!brms_block_has_r(bk) || identical(bk[["covstruct"]], "latres")) {
+      next
+    }
+    D <- bk[["dim"]]
+    k <- seq_along(bk[["b_idx"]]) - 1L
+    out$label <- c(out$label, lab[bk[["b_idx"]]])
+    out$block <- c(out$block, rep(rank[bi], length(k)))
+    out$coef <- c(out$coef, k %% D + 1L)
+    out$level <- c(out$level, k %/% D + 1L)
   }
   out
 }

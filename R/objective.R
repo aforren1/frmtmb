@@ -698,6 +698,9 @@ build_objective <- function(frame) {
   ac_ents <- lapply(acs, function(ac) {
     if (autocor_is_seam(ac)) ac_block_entry(ac)
   })
+  # missing values a registered term's student() density alone integrates
+  # out, whose Laplace error is a constant the objective takes off
+  seam_t_m <- autocor_seam_t_missing(frame)
 
   # the latent residuals that act on mu after the inverse link: brms's AR
   # part there, and the support of a mean they can push out of it
@@ -718,8 +721,9 @@ build_objective <- function(frame) {
   # ordinary fit and is only ever set on a private copy of the frame,
   # never on the one stored in the fit. vcov_cluster() refuses every
   # likelihood whose contribution is not the per-row `sum(w * ll)`
-  # below (autocor, hmm, mixtures, rescor), so this is the only place a
-  # cluster weight has to enter.
+  # below (hmm, mixtures, rescor, fcor(), sar()), so a cluster weight
+  # enters there and in the residual correlation block of the ar()
+  # family, once per group, which vcov_cluster() keeps in one cluster.
   clw_idx <- frame[["cluster_w"]]
   # rows the maximum-likelihood route takes out, as a weight (mi_ml_frame())
   mi_gone <- list()
@@ -729,6 +733,11 @@ build_objective <- function(frame) {
     keep <- rep(1, NROW(y[[vn]]))
     keep[gone] <- 0
     mi_gone[[vn]] <- keep
+    # a joint residual block integrates such a row out by leaving it out
+    # of its patterns: the margin of the rows that remain
+    if (!is.null(acs[[vn]])) {
+      acs[[vn]] <- autocor_drop_rows(acs[[vn]], gone)
+    }
   }
 
   # brms's sample_prior = "only": the response densities are left out,
@@ -969,14 +978,21 @@ build_objective <- function(frame) {
           # aterm that would reshape a per-row contribution was refused
           # at frame assembly, so nothing below this point applies.
           ac <- acs[[r]]
+          # under mi() the joint draw is of the observed-or-latent values,
+          # brms's Yl
+          yl <- mivals[[r]] %||% y[[r]]
           if (autocor_is_seam(ac)) {
             # a registry term (fcor(), sar()): the density of its map
             mu_r <- dparv[[r]]$mu
             if (length(mu_r) == 1L) mu_r <- mu_r + numeric(n)
             nu <- if (isTRUE(ac[["student"]])) dparv[[r]]$nu[1] else NULL
             nll <- nll - autocor_seam_loglik(
-              ac_ents[[r]], y[[r]], mu_r, dparv[[r]]$sigma,
+              ac_ents[[r]], yl, mu_r, dparv[[r]]$sigma,
               pars[["thetaac"]][ac[["theta_idx"]]], ac, nu)
+            if (!is.null(seam_t_m[[r]])) {
+              nll <- nll + autocor_seam_t_laplace(nu, length(yl),
+                                                  seam_t_m[[r]])
+            }
             next
           }
           tac <- pars[["thetaac"]][ac[["theta_idx"]]]
@@ -984,10 +1000,24 @@ build_objective <- function(frame) {
           # D R D with D the marginal sds; under ar(), ma() and arma()
           # sigma is the innovation sd, as in brms
           sg <- autocor_marg_sigma(dparv[[r]]$sigma, tac, ac)
-          z <- (y[[r]] - dparv[[r]]$mu) / sg
-          lsig <- if (length(sg) == 1L) n * log(sg) else sum(log(sg))
           nu <- if (isTRUE(ac[["student"]])) dparv[[r]]$nu[1] else NULL
-          nll <- nll - autocor_loglik(z, R, ac, lsig, nu)
+          # a cluster weight per row (vcov_cluster() keeps each group in
+          # one cluster), and 0 on a row left out of the patterns
+          wr <- if (!is.null(clw_idx)) pars[["clw"]][clw_idx[[r]]]
+          if (length(mi_gone[[r]])) {
+            wr <- if (is.null(wr)) mi_gone[[r]] else wr * mi_gone[[r]]
+          }
+          res <- yl - dparv[[r]]$mu
+          se_r <- atv[[r]][["se"]]
+          if (!is.null(se_r)) {
+            nll <- nll - autocor_loglik_se(res, sg, se_r^2, R, ac, nu, wr)
+            next
+          }
+          z <- res / sg
+          lsig <- if (!is.null(wr)) {
+            sum(wr * log(sg + numeric(n)))
+          } else if (length(sg) == 1L) n * log(sg) else sum(log(sg))
+          nll <- nll - autocor_loglik(z, R, ac, lsig, nu, wr)
           next
         }
         # A structure that supplies `loglik` REPLACES the rowwise

@@ -150,13 +150,10 @@ uncensored count's support is \verb{[lo + 1, hi]} rather than the
 \verb{[lo, hi]} this window is built on, and no reference has measured
 the shifted window. Every other
 residual type works there.
-\code{dharma_residuals()} is not a substitute on a
-censored fit, because \code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}} draws the latent
-uncensored response by default (as brms's \code{posterior_predict()}
-does) and those draws are not comparable with the observed censored
-values; \code{simulate(censored = TRUE)} makes them comparable, but the
-resulting point mass at each censoring point is not a distribution
-DHARMa's rank transform can use.
+\code{\link[=dharma_residuals]{dharma_residuals()}} covers what is refused here: it scores each
+censored row on the event it observes, with any censoring times, an
+interval and a discrete family included (see its section "Censored
+responses").
 }
 \section{Ordinal and other category responses}{
 

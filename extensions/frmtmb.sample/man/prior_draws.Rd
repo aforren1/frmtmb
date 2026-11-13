@@ -3,11 +3,14 @@
 \name{prior_draws}
 \alias{prior_draws}
 \alias{prior_draws.frmtmb_draws}
+\alias{prior_samples}
 \title{Prior draws}
 \usage{
 prior_draws(x, ...)
 
 \method{prior_draws}{frmtmb_draws}(x, variable = NULL, pars = NULL, ...)
+
+prior_samples(x, ...)
 }
 \arguments{
 \item{x}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}.}
@@ -57,6 +60,9 @@ The draws are made directly from each prior with R's random number
 generators, as brms makes them in Stan's generated quantities, so they
 are independent and do not depend on the likelihood. With \code{seed}
 given to \code{\link[=frm_sample]{frm_sample()}} they are reproducible.
+
+\code{prior_samples()} is brms's deprecated name of
+\code{prior_draws()}: it warns as brms warns and returns \code{prior_draws()}.
 }
 \examples{
 \donttest{

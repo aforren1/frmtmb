@@ -1,3 +1,9 @@
+# frmtmb.eam 0.13.2
+
+Needs frmtmb 0.82.0: a test reads the message of frmtmb's standard-error
+check for a parameter at the end of its range. No change to the
+package's code.
+
 # frmtmb.eam 0.13.1
 
 ## Other changes

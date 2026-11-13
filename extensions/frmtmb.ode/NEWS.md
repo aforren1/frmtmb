@@ -1,3 +1,8 @@
+# frmtmb.ode 0.7.4
+
+Needs frmtmb 0.82.0: a test reads `ranef()` as one matrix per grouping
+factor. No change to the package's code.
+
 # frmtmb.ode 0.7.3
 
 * The package code does not use the global assignment operator `<<-`,

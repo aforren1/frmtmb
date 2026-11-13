@@ -508,13 +508,12 @@ test_that("ranef and coef key their lists the same way, as brms does", {
 
   # and brms broadcasts EVERY dpar's fixed effects over every grouping
   # factor, so its coef() carries two columns that do not vary across
-  # levels; frmtmb carries the two that do
+  # levels, and so does frmtmb's
   expect_identical(dimnames(coef(s$brmsfit)$Subject)[[3]],
                    c("Intercept", "Days", "sigma_Intercept",
                      "sigma_Days"))
-  # frmtmb's two carry brms's names since the shapes lane
   expect_identical(colnames(coef(s$fit)$Subject),
-                   c("Intercept", "Days"))
+                   dimnames(coef(s$brmsfit)$Subject)[[3]])
   const <- coef(s$brmsfit)$Subject[, "Estimate", "sigma_Intercept"]
   expect_lt(diff(range(const)), 1e-12)
 })
@@ -551,11 +550,13 @@ test_that("coef() is the same generic for two different contracts", {
   }
 
   # and brms answers only the third of the three: with no group-level
-  # effects it refuses rather than returning an empty list
+  # effects it refuses rather than returning an empty list, and so does
+  # frmtmb's ranef()
   expect_error(brms::ranef(brms_shape("rfac")$brmsfit),
                "does not contain group-level effects")
   expect_length(brms::ranef(brms_shape("rC0")$brmsfit), 1)
-  expect_length(ranef(brms_shape("rfac")$fit), 0)
+  expect_error(ranef(brms_shape("rfac")$fit),
+               "does not contain group-level effects")
 })
 
 test_that("VarCorr standard deviations agree", {

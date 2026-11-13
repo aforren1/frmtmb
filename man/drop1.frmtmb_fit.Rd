@@ -2,17 +2,21 @@
 % Please edit documentation in R/confint.R
 \name{drop1.frmtmb_fit}
 \alias{drop1.frmtmb_fit}
+\alias{add1.frmtmb_fit}
 \title{Single-term deletions}
 \usage{
 \method{drop1}{frmtmb_fit}(object, scope, test = c("none", "Chisq"), k = 2, ...)
+
+\method{add1}{frmtmb_fit}(object, scope, ...)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit} from an ML fit (\code{REML = FALSE}) of a
 univariate model.}
 
 \item{scope}{Terms to drop: a character vector or a right-hand-side
-formula. Defaults to all fixed-effect terms that marginality
-allows (\code{\link[stats:drop.scope]{stats::drop.scope()}}).}
+formula. Defaults to all terms in the scope above that marginality
+allows (\code{\link[stats:drop.scope]{stats::drop.scope()}}). For \code{add1()}, the terms to add, as
+in \code{\link[stats:add1]{stats::add1()}}.}
 
 \item{test}{\code{"Chisq"} adds likelihood-ratio tests.}
 
@@ -25,13 +29,28 @@ error naming it, rather than silently changing nothing.}
 An \code{anova} table with one row per dropped term.
 }
 \description{
-Drops each fixed-effect term of the primary (\code{mu}) formula in turn,
-refits, and tabulates AIC (and likelihood-ratio tests with
-\code{test = "Chisq"}), following \code{\link[stats:drop1]{stats::drop1()}} and lme4's
-\code{drop1.merMod}. Random-effect, smooth, and \code{mo()}/\code{mi()} terms are
-not part of the deletion scope.
+Drops each term of the primary (\code{mu}) formula in turn, refits, and
+tabulates AIC (and likelihood-ratio tests with \code{test = "Chisq"}),
+following \code{\link[stats:drop1]{stats::drop1()}} and lme4's \code{drop1.merMod}. The scope holds
+every term of the formula except the random-effect and
+autocorrelation terms, so a \code{mo()}, \code{me()}, \code{cs()}, \code{gp()} or smooth
+term is dropped as a whole, as a plain covariate is. Dropping a
+smooth drops its penalized part and its unpenalized part together.
 }
 \details{
+A row whose refit leaves out a \code{me()} call has \code{NA} statistics, and a
+message names it: a \code{me()} term puts the measurements of its noisy
+variable into the likelihood, so that refit is a likelihood of other
+data, which \code{\link[=anova.frmtmb_fit]{anova.frmtmb_fit()}} refuses too. A \code{me()} term that
+another term still uses (\code{me(x, sdx) + me(x, sdx):z}, dropping the
+interaction) keeps its measurements and gets its statistics. The
+same holds for \code{\link[stats:add1]{stats::add1()}}: a row that adds a \code{me()} call is
+\code{NA}. \code{add1()} reads the fit's whole formula for the terms it has, so
+a \code{mo()}, \code{me()} or smooth term of the fit is not offered again, and
+an interaction with one is offered when marginality allows it. A
+random-effect term it adds is written in parentheses, \code{(1 | g)}, in
+the row name and in the refit.
+
 A family without a \code{mu} gives the main formula to every location
 predictor that has no formula of its own: each category of
 \code{\link[=categorical]{categorical()}}, \code{\link[=multinomial]{multinomial()}}, \code{\link[=dirichlet]{dirichlet()}} and

@@ -145,10 +145,11 @@ omb_check <- function(f_frm, f_brm, fam_frm, fam_brm, data,
   # with a component at a degenerate boundary (mixture(sratio(), acat())
   # with cs(x) here), neither of which is what this checks: the density
   # is compared at whatever point the fit reached; brms says cs() is
-  # experimental
+  # experimental; a jittered start may pass over a higher step function
   fit <- allow_warnings(frm(f_frm, family = fam_frm, data = data),
                         c("singular convergence", "degenerate boundary",
-                          "Category specific effects for this family"))
+                          "Category specific effects for this family",
+                          "jittered starts reached a higher"))
   quiet <- function(e) {
     allow_warnings(suppressMessages(e),
                    "Category specific effects for this family")

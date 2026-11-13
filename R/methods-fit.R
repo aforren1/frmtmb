@@ -305,6 +305,7 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
            lapply(object$bform$forms, `[[`, "formula")
          },
          ngrps = ngrps(object),
+         formula_lines = summary_formula_lines(object),
          data_name = summary_data_name(object),
          group = names(ngrps(object) %||% list()),
          # the (MAP) marker says the fit was penalized by a prior, which
@@ -398,6 +399,49 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
   )
 }
 
+#' The lines brms's `summary()` prints after `Formula:`
+#' (`print.brmsformula()`): each response's formula, then its
+#' distributional and nonlinear parameter formulas, then its fixed
+#' parameters as `nu = 3` or `sigma1 = sigma2`. The `Formula:` line
+#' used to show the response formula alone, so `sigma ~ z` was nowhere
+#' in the print. A response's own line ends in a space, as brms's does.
+#'
+#' @noRd
+summary_formula_lines <- function(object) {
+  bfo <- object$bform
+  if (is.null(bfo)) return(NULL)
+  forms <- if (inherits(bfo, "frmtmb_mvformula")) bfo$forms else list(bfo)
+  unlist(lapply(forms, function(f) {
+    fix <- vapply(f$pfix %||% list(), function(v) {
+      if (is.numeric(v)) format(round(v, 2)) else paste(as.character(v),
+                                                        collapse = " ")
+    }, "")
+    c(paste0(deparse1(f$formula), " "),
+      vapply(f$pforms %||% list(), deparse1, ""),
+      vapply(f$nlforms %||% list(), deparse1, ""),
+      if (length(fix)) paste(names(fix), "=", fix))
+  }), use.names = FALSE)
+}
+
+#' Print the `Formula:` block of a summary, indented as brms indents it.
+#'
+#' @noRd
+cat_formula_lines <- function(x) {
+  fl <- x$formula_lines
+  if (length(fl)) {
+    cat("Formula: ", paste(fl, collapse = "\n         "), "\n", sep = "")
+    return(invisible(NULL))
+  }
+  mv_forms <- x$formulas %||% list()
+  if (length(mv_forms) > 1L) {
+    cat("Formula: ", paste(vapply(mv_forms, deparse1, ""),
+                           collapse = " \n         "), " \n", sep = "")
+  } else {
+    cat("Formula:", deparse1(x$formula), "\n")
+  }
+  invisible(NULL)
+}
+
 #' The name brms prints on its `Data:` line: the expression the fit was
 #' given, not the frame itself.
 #'
@@ -406,11 +450,31 @@ summary_data_name <- function(object) {
   dn <- attr(object[["data"]], "data_name")
   if (!is.null(dn)) return(dn)
   d <- object$call[["data"]]
-  # a data frame passed by value through do.call() deparsed to its
-  # whole contents, one line of it per summary; brms records the
-  # spelling only, cut at 50 characters
-  if (!is.name(d) && !is.call(d)) return("")
-  substr(deparse1(d), 1L, 50L)
+  data_name_of(d, d)
+}
+
+#' The `data_name` frmtmb records for the data argument `expr`, whose
+#' value is `value`: brms's spelling of a name or a call, cut at 50
+#' characters. A value with no spelling, a data frame passed through
+#' `do.call()`, gets a descriptor of the value, `<data.frame: 300 x 4>`
+#' (`<tibble: ...>`, `<data.table: ...>` for those classes), where brms
+#' deparses the whole frame and cuts the result. Deparsing would cost
+#' time in proportion to the rows, the descriptor does not; it used to
+#' record nothing, and the summary's `Data:` line was empty.
+#'
+#' @noRd
+data_name_of <- function(expr, value) {
+  if (is.name(expr) || is.call(expr)) {
+    return(substr(deparse1(expr), 1L, 50L))
+  }
+  if (is.null(value)) return("")
+  cls <- class(value)[1L]
+  if (identical(cls, "tbl_df")) cls <- "tibble"
+  d <- dim(value)
+  if (length(d) == 2L) {
+    return(sprintf("<%s: %d x %d>", cls, d[1L], d[2L]))
+  }
+  sprintf("<%s>", cls)
 }
 
 #' The two interval column names brms writes at coverage `prob`.
@@ -835,12 +899,7 @@ print.summary.frmtmb_fit <- function(x, ...) {
     cat(" Family:", x$family[["family"]], "\n")
   }
   cat_family_links(x$links %||% family_link_str(x$family))
-  if (length(mv_forms) > 1L) {
-    cat("Formula: ", paste(vapply(mv_forms, deparse1, ""),
-                           collapse = " \n         "), " \n", sep = "")
-  } else {
-    cat("Formula:", deparse1(x$formula), "\n")
-  }
+  cat_formula_lines(x)
   cat("   Data:", x$data_name,
       paste0("(Number of observations: ", x$nobs, ")"), "\n")
   if (is.null(x$log_prior)) {
@@ -1140,6 +1199,24 @@ frame_n_outer <- function(frame, object) {
 #' read through a log-Jacobian, which is not constant, so it is a
 #' density like any other.
 #'
+#' @section The number of observations:
+#' One fit can give two counts, and each reader takes one of them:
+#'
+#' * `nobs(fit)` is brms's count, the rows of the data. A `subset()`
+#'   that leaves rows to no response and a missing response that `mi()`
+#'   leaves unread do not lower it. `nobs(fit, resp = )` counts the rows
+#'   of one response of a multivariate model. `insight::n_obs()` gives
+#'   this count too.
+#' * `attr(logLik(fit), "nobs")` counts the rows that keep a density in
+#'   the likelihood: a row counts once if any response reads it.
+#'   `BIC()`, `df.residual()` and the same-data check of
+#'   [anova()][anova.frmtmb_fit] read this count.
+#'
+#' The two agree when every row of the data carries a response that the
+#' likelihood reads. With two responses that both `subset()` rows 1 to
+#' 72 of 80, `nobs()` is 80 and the `nobs` attribute is 72, so `BIC()`
+#' takes `log(72)`.
+#'
 #' @param object A `frmtmb_fit`.
 #' @param ... For `AIC()` and `BIC()`, more fitted models, as in
 #'   [stats::AIC()]. Refused otherwise.
@@ -1341,8 +1418,9 @@ logLik.frmtmb_fit <- function(object, ...) {
             df = as.vector(df),
             df_why = attr(df, "df_why"),
             # a row a missing response took out of the objective is no
-            # observation for BIC, which is then the complete-case one
-            nobs = object$frame[["n_obs"]] - mi_rows_gone(object$frame),
+            # observation for BIC, which is then the complete-case one,
+            # and neither is a row no response's subset() keeps
+            nobs = loglik_nobs(object$frame),
             REML = object$REML,
             class = "logLik")
 }
@@ -1375,7 +1453,8 @@ nobs.frmtmb_fit <- function(object, ..., resp = NULL) {
 #' @export
 df.residual.frmtmb_fit <- function(object, ...) {
   frm_check_dots(...)
-  object$frame[["n_obs"]] - as.vector(loglik_df(object))
+  # the rows BIC() counts, so that the two never disagree on n
+  loglik_nobs(object$frame) - as.vector(loglik_df(object))
 }
 
 #' @export
@@ -1685,12 +1764,16 @@ vcov_brms_block <- function(object, V, model_based = TRUE) {
 #' over the group levels, with the conditional modes added to the
 #' matching columns. Use [fixef()] for the fixed effects alone.
 #'
-#' The result is a list of data frames keyed by grouping factor. When
-#' random effects appear in more than one dpar (or response), an outer
-#' layer keyed like [fixef()] is added. Smooth terms are excluded. A fit
-#' without random effects returns the coefficient vector of the location
-#' predictor (when there is one linear predictor), or one vector per
-#' predictor.
+#' The result is a list of data frames keyed by grouping factor, as in
+#' brms: each holds every population-level coefficient of the model,
+#' whatever distributional parameter or response it belongs to, with the
+#' group's modes added to the ones the group varies. Those come first,
+#' then the others in [fixef()] order, so on `bf(y ~ x + (1 | g), sigma
+#' ~ z + (1 | g))` the columns of `coef(fit)$g` are `Intercept`,
+#' `sigma_Intercept`, `x` and `sigma_z`. Smooth terms are excluded. A
+#' fit without random effects returns the coefficient vector of the
+#' location predictor (when there is one linear predictor), or one
+#' vector per predictor.
 #'
 #' The coefficients are named as brms names them, which is how
 #' [fixef()] and [vcov()] name their rows: `Intercept`, not
@@ -1708,9 +1791,10 @@ vcov_brms_block <- function(object, V, model_based = TRUE) {
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
 #' @return A named list of data frames, one per grouping factor, each
-#'   with one row per group level and one column per coefficient. When
-#'   random effects appear in more than one linear predictor, the list is
-#'   nested one level deeper, keyed as in [fixef()]. A fit without random
+#'   with one row per group level and one column per coefficient. A
+#'   group whose levels differ between two predictors (a response fitted
+#'   on a `subset()` of the rows) has one data frame per predictor, the
+#'   later ones named `<predictor>: <group>`. A fit without random
 #'   effects returns the per-predictor coefficient vectors instead.
 #'
 #' @srrstats {RE4.2} Model coefficients are returned by `coef()`, in the
@@ -1782,7 +1866,13 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   }
   cvec <- coef_b(object)
   out <- list()
-  for (bk in by_merged_blocks(object$frame[["re_blocks"]])) {
+  # the columns each group's modes reach, in brms's id order, which is
+  # where brms puts them: before the population-level ones
+  re_cols <- list()
+  blocks <- by_merged_blocks(object$frame[["re_blocks"]])
+  blocks <- blocks[order(brms_block_keys(object, blocks),
+                         seq_along(blocks))]
+  for (bk in blocks) {
     # brms's latent residuals are autocorrelation terms, not group-level ones
     if (bk[["covstruct"]] %in% c("smooth", "latres")) next
     bmat <- t(matrix(cvec[bk[["c_idx"]]], nrow = bk[["dim"]]))
@@ -1826,6 +1916,7 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
           # a stray `(Intercept)` column holding the mode alone beside
           # thresholds repeated unchanged across groups.
           df <- coef_shift_thresholds(df, thr[[1L]]$names, bv, ob$fam)
+          re_cols[[gname]] <- c(re_cols[[gname]], thr[[1L]]$names)
           next
         }
         # a random-effect column the fixed part does not have (an
@@ -1841,6 +1932,7 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
         } else {
           df[[cn]] <- bv
         }
+        re_cols[[gname]] <- c(re_cols[[gname]], cn)
       }
       out[[key]][[gname]] <- df
     }
@@ -1860,7 +1952,56 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
     }
     return(fe)
   }
-  if (length(out) == 1L) out[[1L]] else out
+  coef_merge_groups(out, fe, rows$names, re_cols)
+}
+
+#' brms's `coef()` layout: one data frame per grouping factor, whatever
+#' predictors its terms are on, holding EVERY population-level
+#' coefficient of the model with that group's modes added where it has
+#' them. The columns the group varies come first, in brms's id order,
+#' then the rest in [fixef()] order: on `bf(y ~ x + (1 | g), sigma ~ z +
+#' (1 | g))` that is `Intercept`, `sigma_Intercept`, `x`, `sigma_z`.
+#' This used to be one list per predictor, keyed like [fixef()], each
+#' with its own coefficients only, so `coef(fit)$g` was `NULL`.
+#'
+#' `out` is the per-predictor list the modes were added in, keyed by
+#' `coef_block_key()` and then by group. A group whose levels differ
+#' between predictors (a `subset()` response) keeps one frame per
+#' predictor, the later ones named `<predictor>: <group>`.
+#'
+#' @noRd
+coef_merge_groups <- function(out, fe, fe_order, re_cols) {
+  # fixef()'s rows only: an unmodeled sigma is brms's dpar, no
+  # population-level coefficient
+  all_fe <- unlist(unname(fe))
+  all_fe <- all_fe[names(all_fe) %in% fe_order]
+  all_fe <- all_fe[order(match(names(all_fe), fe_order))]
+  groups <- unique(c(names(re_cols), unlist(lapply(out, names))))
+  res <- list()
+  for (g in groups) {
+    dfs <- Filter(Negate(is.null), lapply(out, `[[`, g))
+    if (!length(dfs)) next
+    lv <- rownames(dfs[[1L]])
+    same <- all(vapply(dfs, function(d) identical(rownames(d), lv), TRUE))
+    if (!same) {
+      for (k in seq_along(dfs)) {
+        res[[if (k == 1L) g else paste0(names(dfs)[k], ": ", g)]] <- dfs[[k]]
+      }
+      next
+    }
+    cols <- list()
+    for (d in dfs) {
+      for (cn in names(d)) if (is.null(cols[[cn]])) cols[[cn]] <- d[[cn]]
+    }
+    for (cn in names(all_fe)) {
+      if (is.null(cols[[cn]])) cols[[cn]] <- rep(unname(all_fe[[cn]]),
+                                                 length(lv))
+    }
+    rc <- unique(re_cols[[g]])
+    ord <- unique(c(rc, setdiff(names(all_fe), rc), names(cols)))
+    res[[g]] <- data.frame(cols[ord], row.names = lv, check.names = FALSE)
+  }
+  res
 }
 
 #' Move an ordinal predictor's thresholds by a group's random intercept,
@@ -2084,27 +2225,27 @@ fixef_by_dpar <- function(object) {
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
 #' @return A named list of levels-by-coefficients matrices, one per
-#'   random-effect term, KEYED BY THE GROUPING FACTOR as brms and lme4
-#'   key it (so `ranef(fit)$g` and `coef(fit)$g` name the same group).
-#'   Each matrix carries its block label in a `"term"` attribute, which
-#'   is also the `grp` column of `as.data.frame()`. That long form
-#'   (with a `condsd` column when
-#'   `condVar = TRUE` was used) is what broom.mixed-style code reads.
+#'   grouping factor, KEYED BY THE GROUPING FACTOR as brms and lme4 key
+#'   it (so `ranef(fit)$g` and `coef(fit)$g` name the same group), in
+#'   brms's order. The columns use brms's coefficient names. Each matrix
+#'   carries the labels of its blocks in a `"term"` attribute, and
+#'   `as.data.frame()` puts the block of each row in its `grp` column.
+#'   That long form (with a `condsd` column when `condVar = TRUE` was
+#'   used) is what broom.mixed-style code reads.
 #'
-#'   Several terms on ONE grouping factor give several entries under one
-#'   name, and `$` and `[[` then take the block label instead:
-#'   `ranef(fit)[["chi: 1 | id"]]`. The bare factor name is refused
-#'   there, and names the labels, rather than returning the first block.
-#'   Positional indexing reaches every block either way.
-#'
-#'   Two ordinary spellings put more than one block on one factor, so
-#'   this is not a nonlinear-model corner: two bars written out on the
-#'   same factor, `(1 | g) + (0 + x | g)`; and a random effect on more
-#'   than one distributional or nonlinear parameter, such as
-#'   `bf(y ~ x + (1 | g), sigma ~ (1 | g))` (`1 | g` and
-#'   `sigma: 1 | g`) or `(1 | id)` on three nonlinear parameters. A
-#'   slope `(1 + x | g)` is one block, and so is an uncorrelated slope
-#'   `(1 + x || g)`, as in brms; each is addressed by the factor name.
+#'   Several terms on ONE grouping factor are one matrix, as in brms and
+#'   lme4, with the columns of each block side by side: `(1 | g) + (0 +
+#'   x | g)` gives one `g` matrix with columns `Intercept` and `x`, and
+#'   `bf(y ~ x + (1 | g), sigma ~ (1 | g))` one with `Intercept` and
+#'   `sigma_Intercept`. `$` and `[[` also take a block label and then
+#'   return that block's columns: `ranef(fit)[["sigma: 1 | g"]]`. Blocks
+#'   on one factor whose levels differ (a response fitted on a
+#'   `subset()` of the rows) stay separate entries under the factor's
+#'   name; the bare name is then refused, and names the labels, rather
+#'   than returning the first block. Positional indexing reaches every
+#'   entry. A model without group-level terms (a smooth's penalized
+#'   coefficients are brms's `s_` parameters, not group-level effects)
+#'   is refused in brms's words.
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
@@ -2187,10 +2328,21 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   out <- list()
   # a gr(g, by = f) term is one entry over all levels of g, as in brms
   blocks <- by_merged_blocks(object$frame[["re_blocks"]])
-  # brms's latent residuals are autocorrelation terms, not group-level ones
+  # brms's latent residuals are autocorrelation terms, not group-level
+  # ones, and a smooth's penalized coefficients are brms's s_ parameters,
+  # which its ranef() does not list either
   blocks <- Filter(function(bk) {
-    !identical(bk[["covstruct"]], "latres")
+    !bk[["covstruct"]] %in% c("latres", "smooth")
   }, blocks)
+  if (!length(blocks)) {
+    # brms's words; this used to answer a smooth-only model with the
+    # basis weights under the internal names s(x).1, ...
+    frm_stop("The model does not contain group-level effects.",
+             call. = FALSE)
+  }
+  # brms's id order, which the merge by grouping factor below keeps
+  blocks <- blocks[order(brms_block_keys(object, blocks),
+                         seq_along(blocks))]
   if (!is.null(groups)) {
     # brms's `groups`: the grouping factors to keep; a name that is none
     # of them keeps nothing, and brms returns the empty list
@@ -2267,7 +2419,76 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   names(out) <- vapply(blocks[keep_block], function(bk) {
     bk[["group_name"]] %||% bk[["term_label"]]
   }, "")
-  structure(out, class = "ranef_frmtmb")
+  structure(ranef_merge_groups(out), class = "ranef_frmtmb")
+}
+
+#' One matrix per grouping factor, as brms's `ranef()` and lme4's give
+#' it: the blocks on one factor (`(1 | g) + (0 + x | g)`, or `(1 | g)` in
+#' `mu` and in `sigma`) side by side, columns in brms's id order. This
+#' used to be one entry per block, so `ranef(fit)$g` of a distributional
+#' model was refused as ambiguous where brms answers it.
+#'
+#' The merged matrix keeps every block's label in its `"term"`
+#' attribute and the number of columns each contributes in
+#' `"term_ncol"`, so `[["sigma: 1 | g"]]` still reaches one block
+#' (`ranef_pick()`) and `as.data.frame()` still names the block of each
+#' row. Blocks whose levels differ (a `subset()` response) or whose
+#' columns would share a name stay apart, under the factor's name.
+#'
+#' @noRd
+ranef_merge_groups <- function(out) {
+  nm <- names(out)
+  res <- list()
+  rn <- character(0)
+  for (g in unique(nm)) {
+    idx <- which(nm == g)
+    mats <- out[idx]
+    lv <- rownames(mats[[1L]])
+    cn <- unlist(lapply(mats, colnames), use.names = FALSE)
+    same <- all(vapply(mats, function(M) identical(rownames(M), lv), TRUE))
+    if (length(idx) == 1L || !same || anyDuplicated(cn)) {
+      res <- c(res, unname(mats))
+      rn <- c(rn, nm[idx])
+      next
+    }
+    tl <- vapply(mats, function(M) attr(M, "term") %||% NA_character_, "")
+    S <- lapply(mats, function(M) attr(M, "condSD"))
+    M <- do.call(cbind, lapply(mats, function(M) {
+      attr(M, "condSD") <- NULL
+      attr(M, "term") <- NULL
+      M
+    }))
+    if (!any(vapply(S, is.null, TRUE))) attr(M, "condSD") <- do.call(cbind, S)
+    attr(M, "term") <- unname(tl)
+    attr(M, "term_ncol") <- unname(vapply(mats, ncol, 1L))
+    res[[length(res) + 1L]] <- M
+    rn <- c(rn, g)
+  }
+  names(res) <- rn
+  res
+}
+
+#' The block label of each column of one `ranef()` matrix.
+#'
+#' @noRd
+ranef_col_terms <- function(M) {
+  tl <- attr(M, "term")
+  if (is.null(tl)) return(NULL)
+  rep(tl, attr(M, "term_ncol") %||% ncol(M))
+}
+
+#' The columns of one block of a merged `ranef()` matrix.
+#'
+#' @noRd
+ranef_block_cols <- function(M, label) {
+  ct <- ranef_col_terms(M)
+  keep <- which(ct == label)
+  S <- attr(M, "condSD")
+  out <- M[, keep, drop = FALSE]
+  attr(out, "term_ncol") <- NULL
+  if (!is.null(S)) attr(out, "condSD") <- S[, keep, drop = FALSE]
+  attr(out, "term") <- label
+  out
 }
 
 #' Blocks that share a grouping factor stay addressable.
@@ -2283,25 +2504,33 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
 #' So the KEY grows a second accepted form rather than the list changing
 #' shape: the block label, which is what `attr(blk, "term")` carries,
 #' and what `as.data.frame()` puts in `grp`.
-#' A grouping factor with one block is addressed as before; a factor
-#' with several is either addressed by its block label or refused by
-#' name. Positional indexing is untouched, so `print()`,
-#' `as.data.frame()` and frmtmb.sample's `ranef.frmtmb_draws()` - all of
-#' which index by position on purpose - go through the fast path.
+#' A grouping factor is addressed as before. Since the blocks on one
+#' factor are merged into one matrix (`ranef_merge_groups()`), a block
+#' label returns that block's columns; a factor still left with several
+#' entries (blocks whose levels differ) is refused by name. Positional
+#' indexing is untouched, so `print()`, `as.data.frame()` and
+#' frmtmb.sample's `ranef.frmtmb_draws()` - all of which index by
+#' position on purpose - go through the fast path.
 #'
 #' @noRd
 ranef_pick <- function(x, i) {
   y <- unclass(x)
   hit <- which(names(y) == i)
   if (length(hit) == 1L) return(list(found = TRUE, value = y[[hit]]))
-  tl <- vapply(y, function(m) attr(m, "term") %||% NA_character_, "")
-  ti <- which(tl == i)
-  if (length(ti) == 1L) return(list(found = TRUE, value = y[[ti]]))
+  ti <- which(vapply(y, function(m) i %in% attr(m, "term"), TRUE))
+  if (length(ti) == 1L) {
+    M <- y[[ti]]
+    if (length(attr(M, "term")) > 1L) M <- ranef_block_cols(M, i)
+    return(list(found = TRUE, value = M))
+  }
   if (length(hit) > 1L) {
+    tl <- vapply(y[hit], function(m) {
+      paste(attr(m, "term") %||% NA_character_, collapse = "\", \"")
+    }, "")
     frm_stop("ranef() has ", length(hit), " random-effect blocks on ",
              "grouping factor '", i, "', so '", i, "' does not name one of ",
              "them. Address a block by its term label - ",
-             paste0("[[\"", tl[hit], "\"]]", collapse = ", "),
+             paste0("[[\"", tl, "\"]]", collapse = ", "),
              " - or by position. The label is also each block's \"term\" ",
              "attribute and the `grp` column of as.data.frame()",
              call. = FALSE)
@@ -2335,9 +2564,12 @@ print.ranef_frmtmb <- function(x, ...) {
   frm_check_dots(...)
   for (i in seq_along(x)) {           # by position: names can repeat
     tl <- attr(x[[i]], "term")
-    cat("$", names(x)[i], if (!is.null(tl)) paste0("   (", tl, ")"),
+    cat("$", names(x)[i],
+        if (!is.null(tl)) paste0("   (", paste(tl, collapse = ", "), ")"),
         "\n", sep = "")
-    print(`attr<-`(`attr<-`(x[[i]], "condSD", NULL), "term", NULL))
+    M <- x[[i]]
+    attr(M, "condSD") <- attr(M, "term") <- attr(M, "term_ncol") <- NULL
+    print(M)
     cat("\n")
   }
   invisible(x)
@@ -2351,11 +2583,11 @@ as.data.frame.ranef_frmtmb <- function(x, ...) {
     # `grp` names the BLOCK, which is what tells two terms on one factor
     # apart; the list itself is keyed by the factor, brms's and lme4's
     # key, so the two are not the same string any more
-    nm <- attr(M, "term") %||% names(x)[i]
+    nm <- ranef_col_terms(M) %||% rep(names(x)[i], ncol(M))
     S <- attr(M, "condSD")
     lv <- rownames(M) %||% as.character(seq_len(nrow(M)))
     df <- data.frame(
-      grp = nm,
+      grp = rep(nm, each = nrow(M)),
       term = rep(colnames(M), each = nrow(M)),
       level = rep(lv, ncol(M)),
       condval = as.vector(M)
@@ -2464,7 +2696,9 @@ varcorr_matrices <- function(fit, theta = fit$estimates[["theta"]]) {
 #' @noRd
 varcorr_layout <- function(fit) {
   groups <- list()
-  for (bi in seq_along(fit$frame[["re_blocks"]])) {
+  # brms's id order, so the groups come as brms lists them (and the
+  # draws' ranef(), which reads this layout, too)
+  for (bi in brms_block_order(fit)) {
     bk <- fit$frame[["re_blocks"]][[bi]]
     if (cs_is_field(bk)) {
       next

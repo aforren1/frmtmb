@@ -93,6 +93,17 @@ test_that("bayesplot receives loo's PSIS weights of log_lik()", {
   }
   allow_warnings(expect_weights(NULL), ppc_ok_warnings)
   allow_warnings(expect_weights(seq(1L, 200L, by = 3L)), ppc_ok_warnings)
+  # a subset of the fitted rows: the weights are those rows' columns of
+  # log_lik(), and the response is theirs (backlog 4717)
+  sub <- dd[-c(1, 7), ]
+  ll <- log_lik(ds)[, -c(1, 7)]
+  ps <- allow_warnings(loo::psis(-ll, r_eff = loo::relative_eff(
+    exp(ll), chain_id = rep(1L, nrow(ll)))), ppc_ok_warnings)
+  a <- allow_warnings(suppressMessages(
+    pp_check(ds, type = "loo_pit_overlay", newdata = sub)), ppc_ok_warnings)
+  expect_identical(a$lw, stats::weights(ps, log = TRUE))
+  expect_identical(a$y, sub$y)
+  expect_identical(ncol(a$yrep), nrow(sub))
 })
 
 test_that("the weights use the chain structure only when every draw is used", {
@@ -133,8 +144,11 @@ test_that("the loo_* types refuse where log_lik() refuses, naming both", {
   fit <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd,
              dry_run = "objective")
   ds <- ppc_draws(fit)
+  # rows the model was not fitted on
+  moved <- dd[-1, ]
+  moved$x <- moved$x + 1
   expect_error(suppressMessages(
-    pp_check(ds, type = "loo_pit_overlay", newdata = dd[-1, ])),
+    pp_check(ds, type = "loo_pit_overlay", newdata = moved)),
     "pp_check(type = 'loo_pit_overlay') weights the draws", fixed = TRUE)
   lap <- ds
   lap$draws <- ds$draws[, !startsWith(colnames(ds$draws), "r_"),

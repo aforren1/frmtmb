@@ -1,0 +1,4 @@
+frmtmb.sample C:/Users/adf44/source/r/frmtmb-wt-boundfam/extensions/frmtmb.sample/tests/testthat/test-default-priors-bounds.R
+frmtmb.coupling C:/Users/adf44/source/r/frmtmb-wt-boundfam/extensions/frmtmb.coupling/tests/testthat/test-coherence.R
+frmtmb.latent C:/Users/adf44/source/r/frmtmb-wt-boundfam/extensions/frmtmb.latent/tests/testthat/test-hmm.R
+frmtmb.learn C:/Users/adf44/source/r/frmtmb-wt-boundfam/extensions/frmtmb.learn/tests/testthat/test-reference.R

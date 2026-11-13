@@ -8,18 +8,24 @@
 #' expression bound such as `min(y) - 1` at its value on the grid, where
 #' `y` is the response's mean, so `mean(y) - 1`
 #' (dev/fixes-ce-brms.R). `trials()` variables are held at 1 before
-#' this, as in brms. Literal bounds apply as written, and anything else
-#' (`vint`/`vreal` payloads a custom family needs) is evaluated against
-#' the grid when it can be. A registered term and `thres(gr = )` are
-#' coded as `aterms_for_newdata()` codes them (`aterm_coerce()`).
+#' this, as in brms. Literal bounds apply as written. A registered term
+#' and `thres(gr = )` are coded as `aterms_for_newdata()` codes them
+#' (`aterm_coerce()`). A term that cannot be evaluated on the grid is
+#' refused, as `aterms_for_newdata()` refuses it, when a draw or a mean
+#' reads it: every term but a `thres()` count, which lives on the family.
 #'
 #' @noRd
 ce_aterms <- function(rspec, nd, n) {
   skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights",
             row_aterms)
   # thres(gr = ) picks the thresholds a row is drawn from, so a grid row
-  # without its group has no draw
-  strict <- c("trials", "se", "trunc_lb", "trunc_ub", "thres_gr")
+  # without its group has no draw. A vint()/vreal() payload or a
+  # registered term is data a custom family reads; through 0.81.0 it
+  # was dropped here without a word, and ce_sim_one(), the seam
+  # frmtmb.sample's method = "predict" draws through, drew 100 NA
+  # responses on a 100-row grid (dev/silent-findings.md, item 720).
+  # rate() scales the mean, as aterms_for_newdata() says.
+  strict <- c("trials", "se", "trunc_lb", "trunc_ub", "thres_gr", "rate")
   av <- list()
   for (nm in setdiff(names(rspec$aterms), skip)) {
     ex <- rspec$aterms[[nm]]
@@ -28,7 +34,7 @@ ce_aterms <- function(rspec, nd, n) {
     v <- tryCatch(aterm_coerce(nm, eval(ex, nd, rspec$formula_env), rspec),
                   error = function(e) NULL)
     if (!is.null(v) && !length(v) %in% c(1L, n)) v <- NULL
-    if (is.null(v) && nm %in% strict) {
+    if (is.null(v) && (nm %in% strict || is_custom_data_aterm(nm))) {
       frm_stop("conditional_effects() could not evaluate ",
                aterm_label(nm, ex), " on the effect grid",
                call. = FALSE)

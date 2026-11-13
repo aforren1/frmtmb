@@ -42,27 +42,26 @@ matrix, in matching layout.}
 }
 \value{
 A named list of levels-by-coefficients matrices, one per
-random-effect term, KEYED BY THE GROUPING FACTOR as brms and lme4
-key it (so \code{ranef(fit)$g} and \code{coef(fit)$g} name the same group).
-Each matrix carries its block label in a \code{"term"} attribute, which
-is also the \code{grp} column of \code{as.data.frame()}. That long form
-(with a \code{condsd} column when
-\code{condVar = TRUE} was used) is what broom.mixed-style code reads.
+grouping factor, KEYED BY THE GROUPING FACTOR as brms and lme4 key
+it (so \code{ranef(fit)$g} and \code{coef(fit)$g} name the same group), in
+brms's order. The columns use brms's coefficient names. Each matrix
+carries the labels of its blocks in a \code{"term"} attribute, and
+\code{as.data.frame()} puts the block of each row in its \code{grp} column.
+That long form (with a \code{condsd} column when \code{condVar = TRUE} was
+used) is what broom.mixed-style code reads.
 
-Several terms on ONE grouping factor give several entries under one
-name, and \code{$} and \code{[[} then take the block label instead:
-\code{ranef(fit)[["chi: 1 | id"]]}. The bare factor name is refused
-there, and names the labels, rather than returning the first block.
-Positional indexing reaches every block either way.
-
-Two ordinary spellings put more than one block on one factor, so
-this is not a nonlinear-model corner: two bars written out on the
-same factor, \code{(1 | g) + (0 + x | g)}; and a random effect on more
-than one distributional or nonlinear parameter, such as
-\code{bf(y ~ x + (1 | g), sigma ~ (1 | g))} (\code{1 | g} and
-\code{sigma: 1 | g}) or \code{(1 | id)} on three nonlinear parameters. A
-slope \code{(1 + x | g)} is one block, and so is an uncorrelated slope
-\code{(1 + x || g)}, as in brms; each is addressed by the factor name.
+Several terms on ONE grouping factor are one matrix, as in brms and
+lme4, with the columns of each block side by side: \code{(1 | g) + (0 + x | g)} gives one \code{g} matrix with columns \code{Intercept} and \code{x}, and
+\code{bf(y ~ x + (1 | g), sigma ~ (1 | g))} one with \code{Intercept} and
+\code{sigma_Intercept}. \code{$} and \code{[[} also take a block label and then
+return that block's columns: \code{ranef(fit)[["sigma: 1 | g"]]}. Blocks
+on one factor whose levels differ (a response fitted on a
+\code{subset()} of the rows) stay separate entries under the factor's
+name; the bare name is then refused, and names the labels, rather
+than returning the first block. Positional indexing reaches every
+entry. A model without group-level terms (a smooth's penalized
+coefficients are brms's \code{s_} parameters, not group-level effects)
+is refused in brms's words.
 }
 \description{
 Extract random-effect modes

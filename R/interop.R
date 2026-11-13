@@ -228,16 +228,23 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 #' its reason. `"HC2"` to `"HC5"` and `"robust"` (which
 #' marginaleffects maps to HC3) weight each row by its leverage, the
 #' diagonal of a hat matrix, which frmtmb does not compute. `"HAC"`,
-#' `"NeweyWest"` and `"kernHAC"` need a time order of the rows.
+#' `"NeweyWest"` and `"kernHAC"` need one time order over all the rows,
+#' and the time variable of `ar()`, `ma()` or `arma()` orders the rows
+#' within each group only; with such a term, `~ g` over its grouping
+#' variable is the sandwich robust to dependence within each series.
 #' `"satterthwaite"` and `"kenward-roger"` are denominator degrees of
 #' freedom for a linear mixed model fitted by REML. `vcov_cluster()`
 #' refuses a fit whose random effects cross the clusters, and so
-#' `"HC0"` and `"HC1"` refuse such a fit too. It also refuses a
-#' residual correlation term (`ar()`, `ma()` or `arma()`, either form,
-#' and the other residual covariance terms), whose density is joint over
-#' each group: under one, `"HC0"`, `"HC1"`, `"stata"` and a cluster
-#' formula are refused, `vcov = TRUE` gives the model-based standard
-#' errors, and [frm_bootstrap()] is the route to a robust one.
+#' `"HC0"` and `"HC1"` refuse such a fit too. Under a residual
+#' correlation term (`ar()`, `ma()`, `arma()`, either form, `cosy()` or
+#' `unstr()`) the density of a series is joint, or its rows' means read
+#' its earlier residuals, so a series must sit inside one cluster:
+#' `~ g` over the term's grouping variable, or over one it is nested in,
+#' works, and `"HC0"`, `"HC1"`, `"stata"` and a clustering that splits a
+#' series are refused. `fcor()` and `sar()` are one density over every
+#' row, so every sandwich is refused under them; `vcov = TRUE` gives the
+#' model-based standard errors, and [frm_bootstrap()] is the route to a
+#' robust one.
 #'
 #' @section What the standard error holds:
 #' marginaleffects forms a standard error from the parameters `get_coef()`
@@ -1407,7 +1414,12 @@ interop_vcov_refusal <- function(vcov) {
              " (marginaleffects maps \"robust\" to \"HC3\" for lm())"
            })
   } else if (v %in% c("HAC", "NEWEYWEST", "KERNHAC")) {
-    "It needs a time order of the rows, which a frmtmb fit does not carry"
+    paste0("It weights the products of row scores by their distance in ",
+           "ONE time order over all the rows, and frmtmb keeps no such ",
+           "order: the time variable of ar(), ma() or arma() orders the ",
+           "rows within each group only. With such a term, a cluster ",
+           "formula over its grouping variable, vcov = ~ g, gives the ",
+           "sandwich that is robust to dependence within each series")
   } else if (v %in% c("SATTERTHWAITE", "KENWARD-ROGER")) {
     paste0("It is a denominator degrees of freedom for a linear mixed ",
            "model fitted by REML, which frmtmb does not compute")
@@ -1466,6 +1478,27 @@ cov_routes_right <- function() {
          "Wald rules of anova() on frm_multiple() fits")
 }
 
+#' `predict_on()` run on the rows asked for and on marginaleffects'
+#' padding rows apart, the two put back in the rows' order: a vector, or
+#' a matrix with one row per row.
+#'
+#' @noRd
+me_pad_apart <- function(predict_on, newdata, asked) {
+  pa <- predict_on(newdata[asked, , drop = FALSE])
+  pp <- predict_on(newdata[!asked, , drop = FALSE])
+  if (is.matrix(pa)) {
+    out <- matrix(NA_real_, nrow(newdata), ncol(pa),
+                  dimnames = list(NULL, colnames(pa)))
+    out[asked, ] <- pa
+    out[!asked, ] <- pp
+    return(out)
+  }
+  out <- numeric(nrow(newdata))
+  out[asked] <- pa
+  out[!asked] <- pp
+  out
+}
+
 #' @exportS3Method marginaleffects::get_predict
 get_predict.frmtmb_fit <- function(model, newdata, type = "response",
                                    ...) {
@@ -1481,32 +1514,48 @@ get_predict.frmtmb_fit <- function(model, newdata, type = "response",
   dots["resp"] <- list(resp_read(model, dots[["resp"]]))
   dpar <- dots[["dpar"]] %||% dots[["nlpar"]]
   latres_refuse_newdata(model, newdata)
-  p <- frm_linpred(model, newdata = newdata, type = type,
-                   dpar = dpar, resp = dots[["resp"]],
-                   re_formula = dots[["re_formula"]],
-                   allow_new_levels = isTRUE(dots[["allow_new_levels"]]))
-  # the expected response over a new row's me() value and latent residual,
-  # as fitted() and brms's posterior_epred() read it
-  if (type == "response") {
-    read_mean <- function(r, value) {
-      anl <- isTRUE(dots[["allow_new_levels"]])
-      mm <- fitted_me_moments(model, newdata, dots[["re_formula"]], r, dpar, anl,
-                              mean_only = TRUE)
-      if (is.null(mm)) {
-        return(latres_fitted_mean(model, newdata, dots[["re_formula"]], r, dpar,
-                                  anl, value))
+  predict_on <- function(newdata) {
+    p <- frm_linpred(model, newdata = newdata, type = type,
+                     dpar = dpar, resp = dots[["resp"]],
+                     re_formula = dots[["re_formula"]],
+                     allow_new_levels = isTRUE(dots[["allow_new_levels"]]))
+    # the expected response over a new row's me() value and latent
+    # residual, as fitted() and brms's posterior_epred() read it
+    if (type == "response") {
+      read_mean <- function(r, value) {
+        anl <- isTRUE(dots[["allow_new_levels"]])
+        mm <- fitted_me_moments(model, newdata, dots[["re_formula"]], r, dpar,
+                                anl, mean_only = TRUE)
+        if (is.null(mm)) {
+          return(latres_fitted_mean(model, newdata, dots[["re_formula"]], r,
+                                    dpar, anl, value))
+        }
+        attributes(mm$mean) <- attributes(value)
+        mm$mean
       }
-      attributes(mm$mean) <- attributes(value)
-      mm$mean
+      # with no `resp` the frame holds every response, and each has its
+      # own load
+      rns <- names(model$spec$responses)
+      if (is.null(dots[["resp"]]) && length(rns) > 1L &&
+            identical(colnames(p), rns)) {
+        for (r in rns) p[, r] <- read_mean(r, p[, r])
+      } else {
+        p <- read_mean(dots[["resp"]], p)
+      }
     }
-    # with no `resp` the frame holds every response, and each has its own load
-    rns <- names(model$spec$responses)
-    if (is.null(dots[["resp"]]) && length(rns) > 1L &&
-          identical(colnames(p), rns)) {
-      for (r in rns) p[, r] <- read_mean(r, p[, r])
-    } else {
-      p <- read_mean(dots[["resp"]], p)
-    }
+    p
+  }
+  # Under cov = FALSE the mean of a new row reads the rows before it in
+  # its group, and marginaleffects' padding (below) copies one row's time
+  # into a row per factor level, so with the factor as the term's group
+  # the padded rows repeat a time of the rows asked for, and the series
+  # they form would be read as one. The padding is predicted on its own.
+  rid0 <- newdata[["rowid"]]
+  p <- if (length(arma_cond_resp(model)) && is.numeric(rid0) &&
+             any(rid0 < 0) && any(rid0 > 0)) {
+    me_pad_apart(predict_on, newdata, rid0 > 0)
+  } else {
+    predict_on(newdata)
   }
   # marginaleffects pads new data with a row for each level of a factor
   # and marks those rows with a negative rowid, which it drops again by

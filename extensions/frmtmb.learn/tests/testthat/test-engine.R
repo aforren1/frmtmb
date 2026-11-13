@@ -114,12 +114,18 @@ test_that("a subject's value store does not leak into the next subject", {
   d1 <- ln_toy(ns = 1L, nt = 25L, seed = 44L)
   d2 <- rbind(d1, transform(d1, id = factor(2)))
   d2$id <- factor(d2$id)
-  f1 <- frmtmb::frm(
+  # 25 trials leave tau no maximum: its profile is level at
+  # log(1/4) from a log tau of 4 up, and frmtmb's standard-error check
+  # says so; the log-likelihoods are the point here
+  no_max <- "Standard errors are not available"
+  f1 <- allow_warnings(frmtmb::frm(
     frmtmb::bf(choice | reward(pay1, pay2) ~ 1, tau ~ 1),
-    family = bandit2arm_delta(subject = id, trial = trial), data = d1)
-  f2 <- frmtmb::frm(
+    family = bandit2arm_delta(subject = id, trial = trial), data = d1),
+    no_max)
+  f2 <- allow_warnings(frmtmb::frm(
     frmtmb::bf(choice | reward(pay1, pay2) ~ 1, tau ~ 1),
-    family = bandit2arm_delta(subject = id, trial = trial), data = d2)
+    family = bandit2arm_delta(subject = id, trial = trial), data = d2),
+    no_max)
   expect_equal(2 * as.numeric(stats::logLik(f1)),
                as.numeric(stats::logLik(f2)), tolerance = 1e-6)
 })

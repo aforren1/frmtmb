@@ -616,7 +616,8 @@ test_that("multinomial: count-vector draws agree with the family's own density",
   n <- 2L * SIM_N
   Y <- matrix(0L, n, K)
   Y[, 1L] <- size
-  colnames(Y) <- paste0("c", seq_len(K))
+  # unnamed columns, whose categories are 1..K as the family's: named
+  # ones would name the dpars (muc2), as brms names them
   dd <- data.frame(g = factor(rep(c("a", "b"), each = SIM_N)),
                    k = rep(size, n))
   dd[["y"]] <- Y
@@ -665,7 +666,7 @@ test_that(paste("dirichlet_multinomial: count-vector draws agree with the",
   n <- 2L * SIM_N
   Y <- matrix(0L, n, K)
   Y[, 1L] <- size
-  colnames(Y) <- paste0("c", seq_len(K))
+  # unnamed columns: the categories 1..K of dirichlet_multinomial(K = )
   d2 <- data.frame(g = factor(rep(c("a", "b"), each = SIM_N)),
                    k = rep(size, n))
   d2[["Y"]] <- Y

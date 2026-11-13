@@ -26,7 +26,12 @@ A component sitting on the boundary of its parameter space - a
 standard deviation collapsed to zero, or a correlation at \verb{+/-1} -
 has no interval on these scales, because the transform is infinite
 there. Those rows report the estimate with \code{NA} bounds and warn,
-rather than a zero-width interval at an arbitrary clamp. A
+rather than a zero-width interval at an arbitrary clamp. In an
+unstructured block of three or more terms the same holds for the
+correlations of a term that is, to within that clamp, a linear
+combination of the terms before it (a singular correlation matrix),
+and a component whose standard error comes out as zero gets \code{NA}
+bounds too. A
 bootstrap (\code{\link[=hypothesis]{hypothesis()}} with \code{method = "boot"}) or a likelihood
 profile of the underlying \code{theta} is the alternative.
 }

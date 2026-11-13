@@ -389,7 +389,7 @@ test_that("a flat ar(cov = TRUE) run passes its prior_summary() back", {
   p <- default_prior(y ~ x + ar(t, g, cov = TRUE), data = d)
   expect_error(fp_rp(fit, p), "table of route = \"fit\"", fixed = TRUE)
   expect_error(fp_rp(fit, as.brmsprior(as.data.frame(p))),
-               "brms's default on Intercept, sigma with (flat)", fixed = TRUE)
+               "(class=Intercept), (class=sigma)", fixed = TRUE)
 })
 
 test_that("(flat) on a mo() simplex is brms's dirichlet(1)", {

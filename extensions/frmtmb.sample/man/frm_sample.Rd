@@ -20,6 +20,7 @@ frm_sample(
   fit_control = frmtmb_control(),
   na.action = stats::na.omit,
   REML = FALSE,
+  drop_unused_levels = TRUE,
   .diagnostic = FALSE
 )
 }
@@ -125,13 +126,16 @@ starts at the ML mode: it is mapped through
 routes, so \code{reparameterize = FALSE} is also the way to reproduce a
 run made before this default existed.}
 
-\item{data2, start, fit_control, na.action, REML}{As in \code{\link[frmtmb:frm]{frmtmb::frm()}}
-(\code{fit_control} is that function's \code{control}). They belong to the
-formula path, where they assemble the model this function samples,
-and on a fitted object they are refused by name rather than
-accepted and discarded: the model is already assembled, so nothing
-would read them. \code{fit_control} is not the sampler's control list;
-\code{control} is.}
+\item{data2, start, fit_control, na.action, REML, drop_unused_levels}{Passed to \code{\link[frmtmb:frm]{frmtmb::frm()}} (\code{fit_control} is that function's
+\code{control}). They belong to the formula path, where they assemble the
+model this function samples, and on a fitted object they are
+refused by name rather than accepted and discarded: the model is
+already assembled, so nothing would read them. \code{fit_control} is not
+the sampler's control list; \code{control} is. \code{drop_unused_levels = FALSE} today keeps an unused factor level in the model frame
+(\code{draws$data}) only: \code{frm()} gives it no group-level effect and no
+column of the fixed-effect design, so the sampled model is the one
+without the level. brms 2.23.0 keeps it in both, and its draws hold
+that level's effect, drawn from its prior.}
 
 \item{control}{The SAMPLER's control list, brms's spelling and
 brms's meaning: \code{control = list(adapt_delta = 0.99, max_treedepth = 12)} reaches \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} and then rstan
@@ -181,6 +185,14 @@ prior draws. The object also holds what converts the saved warmup
 in the \code{stanfit} to the draws' columns (and the prior draws of its
 rows), the \code{sample_prior} setting and the arguments of the call,
 which \link[=update.frmtmb_draws]{update()} reads.
+
+The draws matrix \code{x$draws} holds its columns in an internal order,
+the order of the model's parameter vector, which the package's own
+methods read by position. It is NOT the order of
+\code{\link[frmtmb:variables]{frmtmb::variables()}}:
+\code{variables()}, \code{as.matrix()}, \code{as_draws_df()} and the other
+accessors list the columns in brms's order. Select a column of
+\code{x$draws} by name, \code{x$draws[, "b_x"]}, never by position.
 }
 \description{
 Runs \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} on the model's objective and returns the
@@ -380,10 +392,13 @@ refusal names the function you called and says what to do instead;
 it suggests \code{re_formula = NA} only where that function takes it and
 it computes on the model. Whether a call reads an integrated value is
 found out by evaluating it at one draw with those values set to \code{NA}
-and to \code{0}: a result that changes read them. A draw whose result has
-non-finite values where the first draw's has none is refused the same
-way, so a value that vanishes at the first draw only cannot slip
-through as NaN.
+and to \code{0}: a result that changes read them, unless every value that
+changes is at a row where each design entry multiplying an integrated
+value is exactly 0, as \code{(0 + x | g)} at \code{x = 0} is (frmtmb's
+\code{integrated_design_zero()}). Entries that cancel, \code{(1 + x | g)} at
+\code{x = -1}, still refuse. Every draw whose result has missing values is
+evaluated at \code{0} too, and refused the same way, so a value that
+vanishes at the first draw only cannot slip through as NaN.
 
 \emph{Why they refuse rather than fill the values in.} \code{laplace = TRUE}
 samples an approximate posterior, and its use is to check that
@@ -399,13 +414,16 @@ conditional matched the full draws there, but it would make
 \code{posterior_epred()} depend on the random seed and disagree with
 \code{log_lik()} and \code{ranef()} about what a draw contains.
 
-\emph{Two edge cases.} On a model with nothing to integrate out,
+\emph{Three edge cases.} On a model with nothing to integrate out,
 \code{laplace = TRUE} is the model itself, so the call says so and samples
 it on the full route, with draws identical to a call without the
 argument. On a REML fit whose objective is sampled as it stands
 (\code{\link[=check_laplace]{check_laplace()}}), the objective integrates the coefficients out
 too, and that combination is refused: the draws would hold no
-coefficient.
+coefficient. On a REML model with priors (the default), the sampled
+objective is rebuilt from the likelihood without REML's integral
+over the coefficients, and the coefficients are sampled: the density
+is the one a maximum-likelihood fit gives, and a message says so.
 }
 
 \section{Default priors}{

@@ -82,8 +82,8 @@ test_that("frm_sample() fits the forms frm() refuses", {
                chains = 1, iter = 200, warmup = 100, seed = 11, refresh = 0)))
   vars <- variables(dr)
   expect_true(all(c("b_Intercept", "b_x", "ar[1]", "sderr") %in% vars))
-  # the states are named for what they are, and b[k] is left to brms's slopes
-  expect_identical(sum(grepl("^latent_state\\[", vars)), nrow(d))
+  # cov = FALSE's states are brms's zerr, and b[k] is left to brms's slopes
+  expect_identical(sum(grepl("^zerr\\[", vars)), nrow(d))
   expect_false(any(grepl("^b\\[", vars)))
 })
 

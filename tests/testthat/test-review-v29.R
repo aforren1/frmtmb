@@ -567,12 +567,14 @@ test_that("blocks sharing a grouping factor are all reported, not the first twic
   expect_equal(nrow(vdf), 2L)
   expect_equal(length(unique(vdf$sdcor)), 2L)
 
-  # ranef() keys both blocks by the factor, so the name repeats; it used
-  # to lose a block outright, because out[[label]] <- M overwrites
+  # ranef() holds both blocks under the factor, one column each, as brms
+  # does; it used to lose a block outright, because out[[label]] <- M
+  # overwrites
   re <- ranef(fit)
-  expect_length(re, 2L)
-  expect_identical(names(re), c("g", "g"))
-  expect_false(isTRUE(all.equal(unname(re[[1]]), unname(re[[2]]))))
+  expect_length(re, 1L)
+  expect_identical(names(re), "g")
+  expect_identical(colnames(re$g), c("Intercept", "sigma_Intercept"))
+  expect_false(isTRUE(all.equal(unname(re$g[, 1]), unname(re$g[, 2]))))
   expect_equal(nrow(as.data.frame(re)), 2L * ng)
 
   # confint_varcorr() reports both blocks as well

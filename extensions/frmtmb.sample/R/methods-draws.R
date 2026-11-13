@@ -88,17 +88,16 @@ draws_caller_takes_re <- function(own) {
 #' smooth), so it is measured rather than predicted from the layout:
 #' `at(fill)` evaluates the quantity at one draw with the integrated
 #' components set to `fill`, and a result that changes between `NA` and
-#' `0` read them. `NA` if both fills fail, which is an error about
-#' something else; the error rides along as the `error` attribute.
+#' `0` read them, unless `draws_fill_cells()` finds that every cell that
+#' changes is one the design says reads nothing (`skip`). `NA` if both
+#' fills fail, which is an error about something else; the error rides
+#' along as the `error` attribute.
 #'
 #' @noRd
-draws_probe_reads <- function(at) {
+draws_probe_reads <- function(at, skip = NULL) {
   # both evaluations see the same random numbers (a new group level is
   # drawn per draw), and the caller's stream is left where it was
-  if (!exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
-    stats::runif(1L)
-  }
-  seed <- get(".Random.seed", envir = globalenv(), inherits = FALSE)
+  seed <- draws_seed_now()
   on.exit(assign(".Random.seed", seed, envir = globalenv()), add = TRUE)
   # a warning here belongs to the probe's fill, and the computation
   # that follows raises any warning of its own again
@@ -108,11 +107,69 @@ draws_probe_reads <- function(at) {
   if (inherits(a, "error") && inherits(b, "error")) {
     return(structure(NA, error = a))
   }
-  inherits(a, "error") || inherits(b, "error") || !identical(a, b)
+  if (inherits(a, "error") || inherits(b, "error")) return(TRUE)
+  if (identical(a, b)) return(FALSE)
+  !draws_fill_cells(a, b, skip)
+}
+
+#' The random-number state, created if the session has none yet, for the
+#' fills to share.
+#'
+#' @noRd
+draws_seed_now <- function() {
+  if (!exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+    stats::runif(1L)
+  }
+  get(".Random.seed", envir = globalenv(), inherits = FALSE)
+}
+
+#' Whether the values `a` and `b` of one quantity at the fills `NA` and
+#' `0` show that it reads nothing the fill stands for. A cell finite at
+#' `NA` must be the same at `0`. A cell `NA` at `NA` reads nothing when
+#' it is `NA` at `0` too (`NA` for its own reason, a missing covariate),
+#' or when `skip`, from `integrated_design_zero()`, says that every
+#' design entry multiplying an integrated value at its row is exactly 0:
+#' `(0 + x | g)` at `x = 0`, where `NA * 0` is `NA` (backlog 1530).
+#' Nothing else is taken from the values. A second scalar fill passed
+#' cells whose effects cancel, `(1 + x | g)` at `x = -1`, or that a
+#' `step()` hides, and returned their value with every effect 0
+#' (review 2026-11-11 of lane sampfront, finding 1). Two missing values
+#' count as the same, whether `NA` or `NaN`.
+#'
+#' `skip` is per row of the call's data, or `NULL` for none; a cell takes
+#' its row's value (`draws_cell_skip()`).
+#'
+#' @noRd
+draws_fill_cells <- function(a, b, skip = NULL) {
+  va <- unlist(a, use.names = FALSE)
+  vb <- unlist(b, use.names = FALSE)
+  if (length(va) != length(vb)) return(FALSE)
+  eqv <- function(p, q) {
+    (is.na(p) & is.na(q)) | (!is.na(p) & !is.na(q) & p == q)
+  }
+  na <- is.na(va)
+  sk <- draws_cell_skip(a, skip)
+  all(eqv(va, vb)[!na]) && all((is.na(vb) | sk)[na])
+}
+
+#' `skip`, one element per row, carried to the cells of `v`: an element
+#' of `v` whose length is a multiple of the row count holds its rows
+#' first (a vector, a rows x categories matrix, a distributional
+#' parameter), and any other element takes no skip.
+#'
+#' @noRd
+draws_cell_skip <- function(v, skip) {
+  n <- length(skip)
+  leaf <- function(x) {
+    if (is.list(x)) return(unlist(lapply(x, leaf), use.names = FALSE))
+    len <- length(x)
+    if (n && len %% n == 0L) rep(skip, len %/% n) else rep(FALSE, len)
+  }
+  leaf(v)
 }
 
 #' Refuse a quantity that reads what `frm_sample(laplace = TRUE)`
-#' integrated out, when `draws_probe_reads(at)` says it does.
+#' integrated out, when `draws_probe_reads(at, skip)` says it does.
 #'
 #' `at_na` is the same quantity at `re_formula = NA`, or `NULL` where the
 #' call has no such form. The refusal suggests `re_formula = NA` only
@@ -127,15 +184,26 @@ draws_probe_reads <- function(at) {
 #' 2026-09-29; dev/sampfix-findings.md).
 #'
 #' @noRd
-draws_laplace_probe <- function(x, what, at, at_na = NULL) {
+draws_laplace_probe <- function(x, what, at, at_na = NULL, skip = NULL) {
   if (!draws_is_laplace(x)) return(invisible(NULL))
-  r <- draws_probe_reads(at)
+  r <- draws_probe_reads(at, skip)
   # an error at both fills is the call's own, and the first draw of the
   # computation would raise it anyway; raising it here keeps a probe that
   # fails on its own account from waving the call through
   if (is.na(r)) frm_stop(attr(r, "error"))
   if (!r) return(invisible(NULL))
   draws_laplace_refuse(x, what, at_na)
+}
+
+#' The rows of `newdata` at which the design of response `resp` reads no
+#' integrated value (core's `integrated_design_zero()`), for laplace
+#' draws; `NULL` otherwise. The design is the same at every draw, so it
+#' is read at the first, with the integrated values at 0.
+#'
+#' @noRd
+draws_design_skip <- function(x, newdata, resp = NULL) {
+  if (!draws_is_laplace(x) || !is.data.frame(newdata)) return(NULL)
+  integrated_design_zero(draws_fit_at(x, 1L, fill = 0), newdata, resp)
 }
 
 #' The refusal itself, for `draws_laplace_probe()` and
@@ -167,16 +235,23 @@ is_na_re_form <- function(re_form) {
     is.na(re_form)
 }
 
-#' A check on every draw's result, after `draws_laplace_probe()` let the
-#' call through on the first draw.
+#' Every draw's result, checked after `draws_laplace_probe()` let the
+#' call through on the first draw: `watch(at_k, part, skip)` evaluates
+#' the draw (`at_k(fill)`) and returns the value to use; `part(value)` is
+#' what is checked, and `skip` (by default the one the watch was made
+#' with) is `draws_fill_cells()`'s.
 #'
 #' The probe can pass where the integrated value vanishes at that one
 #' draw only: in `c0 + exp(a)^k` with `k = 0` on draw 1, `NA^0` is 1 and
-#' draws 2 to 6 were NaN. So on laplace draws each draw's `NA` cells
-#' must be the first draw's; a draw with others read an integrated
-#' value, and the call is refused rather than returning NaN. The first
-#' draw's pattern is the reference, not "none", so a row that is `NA` at
-#' every draw (a missing covariate) is not taken for one.
+#' draws 2 to 6 were NaN. So on laplace draws a draw with `NA` cells is
+#' evaluated again at fill 0 and compared with itself, and refused when
+#' `draws_fill_cells()` says it read an integrated value. Until backlog
+#' 1456 the reference was the first draw's pattern of `NA` cells, so a
+#' first draw that is NaN for its own reason in every cell let every
+#' later read through: 480 of 480 cells NaN where the full draws have
+#' 80. A cell `NA` at both fills stays `NA`; a cell the design skips
+#' takes its value at 0, which is its value at every fill. A draw with
+#' no `NA` cell costs no second evaluation.
 #'
 #' `is.na()`, not `!is.finite()`: a read of the `NA` fill came out `NA`
 #' or NaN on every watched path and never `Inf` (38 path and model
@@ -186,19 +261,53 @@ is_na_re_form <- function(re_form) {
 #' the watch's cost, about as much as the prediction itself.
 #'
 #' @noRd
-draws_laplace_watch <- function(x, what, at_na = NULL) {
-  if (!draws_is_laplace(x)) return(function(v) invisible(NULL))
-  seen <- new.env(parent = emptyenv())
-  seen$first <- NULL
-  function(v) {
-    nf <- is.na(unlist(v, use.names = FALSE))
-    if (is.null(seen$first)) {
-      seen$first <- nf
-    } else if (!identical(nf, seen$first)) {
+draws_laplace_watch <- function(x, what, at_na = NULL, skip = NULL) {
+  if (!draws_is_laplace(x)) {
+    return(function(at_k, part = identity, skip = NULL) at_k(NA_real_))
+  }
+  skip0 <- skip
+  function(at_k, part = identity, skip = skip0) {
+    # both evaluations see the same random numbers, and the stream goes
+    # on from the evaluation whose value is returned. Each one's warnings
+    # are held back and only the returned one's are raised: a simulator
+    # drawing at an NA fill warns "NAs produced" about the fill itself
+    seed <- draws_seed_now()
+    v <- draws_held_warnings(at_k(NA_real_))
+    if (!anyNA(unlist(part(v$value), use.names = FALSE))) {
+      return(draws_raise_held(v))
+    }
+    assign(".Random.seed", seed, envir = globalenv())
+    v0 <- tryCatch(draws_held_warnings(at_k(0)), error = function(e) e)
+    if (inherits(v0, "error") ||
+          !draws_fill_cells(part(v$value), part(v0$value), skip)) {
       draws_laplace_refuse(x, what, at_na)
     }
-    invisible(NULL)
+    draws_raise_held(v0)
   }
+}
+
+#' The value of `expr` and the warnings it raised, held back
+#' (`draws_raise_held()` raises them).
+#'
+#' @noRd
+draws_held_warnings <- function(expr) {
+  held <- new.env(parent = emptyenv())
+  held$w <- list()
+  value <- withCallingHandlers(expr, warning = function(w) {
+    held$w[[length(held$w) + 1L]] <- w
+    invokeRestart("muffleWarning")
+  })
+  list(value = value, warnings = held$w)
+}
+
+#' Raise the warnings `draws_held_warnings()` held, in order, and return
+#' its value.
+#'
+#' @noRd
+draws_raise_held <- function(h) {
+  # the condition itself, its class kept; frm_warning() adds the package's
+  for (w in h$warnings) frm_warning(w)
+  h$value
 }
 
 #' The originating fit stripped of the "no maximum-likelihood estimate"
@@ -359,7 +468,9 @@ summary.frmtmb_draws <- function(object, priors = FALSE, prob = 0.95,
     frm_stop("summary() on draws needs the 'posterior' package: its ",
              "columns are brms's, which posterior computes", call. = FALSE)
   }
+  # in brms's order, which variables() lists
   keep <- draws_outer_cols(object)
+  keep <- keep[order(match(keep, variables(object)))]
   probs <- c((1 - prob) / 2, 1 - (1 - prob) / 2)
   # brms:::summary.brmsfit's own `.summary()`, measure for measure and
   # in its column order, so a column carries brms's definition under
@@ -654,14 +765,13 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
     }
     vapply(exs, function(ex) hyp_eval_in(ex, vals), numeric(1))
   }
-  watch <- function(v) invisible(NULL)
+  watch <- function(at_k) at_k(NA_real_)
   if (need_env) {
     draws_laplace_probe(x, "hypothesis()", function(fill) at(1L, fill))
     watch <- draws_laplace_watch(x, "hypothesis()")
   }
   for (i in seq_len(n)) {
-    draws[i, ] <- at(i)
-    watch(draws[i, ])
+    draws[i, ] <- watch(function(fill) at(i, fill))
   }
   # A POINT null is the spelling that carries "=". The bare-quantity
   # spelling this package also accepts parses `two.sided` as well, and
@@ -704,7 +814,7 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #' number: each draw's `frm_linpred(type = "response")` is an `n x K`
 #' matrix of category probabilities. Those stack into a 3-D
 #' `draws x observations x categories` array. `dimnames` are
-#' `list(NULL, <observation names or NULL>, <category levels>)`, so
+#' `list(NULL, NULL, <category levels>)`, as in brms, so
 #' `ep[, , "high"]` is the draws-by-observations matrix for one
 #' category and `ep[k, , ]` is draw `k`'s own `n x K` prediction, the
 #' matrix `frm_linpred(type = "response")` returns. Every `ep[k, i, ]`
@@ -994,14 +1104,15 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
                 re_formula = rf, type = "response")
   }
   at_na <- function(fill) at(rows[1L], fill, NA)
+  # the rows whose design reads no group-level value, by the design alone
+  skip <- draws_design_skip(object, newdata, rn)
   draws_laplace_probe(object, "posterior_epred()",
-                      function(fill) at(rows[1L], fill), at_na)
-  watch <- draws_laplace_watch(object, "posterior_epred()", at_na)
+                      function(fill) at(rows[1L], fill), at_na, skip)
+  watch <- draws_laplace_watch(object, "posterior_epred()", at_na, skip)
   out <- NULL
   cat_out <- FALSE
   for (k in seq_along(rows)) {
-    p <- at(rows[k])
-    watch(p)
+    p <- watch(function(fill) at(rows[k], fill))
     if (is.null(out)) {
       # A categorical outcome predicts a matrix per draw (an ordinal
       # family's n x K category probabilities), so the draws stack into
@@ -1010,9 +1121,11 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
       # brms's posterior_epred() return for polytomous families, and it
       # keeps ep[, , "cat"] and ep[k, , ] addressable directly.
       cat_out <- is.matrix(p)
+      # the observation margin unnamed, as brms leaves it (brms 2.23.0
+      # on a categorical fit: list(NULL, NULL, c("a", "b", "c")))
       out <- if (cat_out) {
         array(NA_real_, c(length(rows), nrow(p), ncol(p)),
-              dimnames = list(NULL, rownames(p), colnames(p)))
+              dimnames = list(NULL, NULL, colnames(p)))
       } else {
         matrix(NA_real_, length(rows), length(p))
       }
@@ -1051,6 +1164,8 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
                                            ndraws_point_estimate = 1, ...) {
   object <- draws_me_stores(object)
   resp <- draws_resp_read(object, resp)
+  # as posterior_epred() refuses them: `junk = 1` returned the matrix
+  frm_check_dots(..., .allow = draws_new_level_args)
   re_form <- re_form_arg(re_formula, re.form, "posterior_linpred()")
   object <- draws_refuse_new_levels(object, newdata, list(...),
                                     "posterior_linpred()", re_form)
@@ -1129,13 +1244,13 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
                 type = if (transform) "response" else "link")
   }
   at_na <- function(fill) at(rows[1L], fill, NA)
+  skip <- draws_design_skip(object, newdata, rn_lat)
   draws_laplace_probe(object, "posterior_linpred()",
-                      function(fill) at(rows[1L], fill), at_na)
-  watch <- draws_laplace_watch(object, "posterior_linpred()", at_na)
+                      function(fill) at(rows[1L], fill), at_na, skip)
+  watch <- draws_laplace_watch(object, "posterior_linpred()", at_na, skip)
   out <- NULL
   for (k in seq_along(rows)) {
-    p <- at(rows[k])
-    watch(p)
+    p <- watch(function(fill) at(rows[k], fill))
     if (incl) {
       # brms's shape: draws x observations x thresholds, the draws and
       # the thresholds numbered, the observations not
@@ -1265,7 +1380,11 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
     draws_pp_setup(object, fit, r, newdata, re_form, rows, idx)
   })
   out <- if (length(want) == 1L) {
-    draws_pp_one(object, sets[[1L]], rows, idx)
+    # brms's dimnames on one response's matrix: list(NULL, NULL), not
+    # none, which identical() against brms's draws reads
+    m <- draws_pp_one(object, sets[[1L]], rows, idx)
+    if (is.matrix(m) && is.null(dimnames(m))) dimnames(m) <- list(NULL, NULL)
+    m
   } else if (isTRUE(fit$spec$rescor)) {
     draws_pp_joint(object, sets, rows, idx)
   } else {
@@ -1494,12 +1613,14 @@ draws_pp_setup <- function(object, fit, resp, newdata, re_form, rows, idx) {
     list(sh = sh, dp = dp_at(sh, rf))
   }
   at_na <- function(fill) idx_at(rows[1L], fill, NA)$dp
+  skip <- draws_design_skip(object, newdata, resp)
   draws_laplace_probe(object, "posterior_predict()",
-                      function(fill) idx_at(rows[1L], fill)$dp, at_na)
+                      function(fill) idx_at(rows[1L], fill)$dp, at_na, skip)
   list(resp = resp, rspec = rspec, av = av, arma_cond = arma_cond,
        fast = is.null(newdata) && is.null(re_form),
-       dp_at = dp_at, idx_at = idx_at,
-       watch = draws_laplace_watch(object, "posterior_predict()", at_na))
+       dp_at = dp_at, idx_at = idx_at, skip = skip,
+       watch = draws_laplace_watch(object, "posterior_predict()", at_na,
+                                   skip))
 }
 
 #' One response's predictive draws, through its family's simulator.
@@ -1509,10 +1630,10 @@ draws_pp_one <- function(object, s, rows, idx) {
   out <- NULL
   arr <- FALSE
   for (k in seq_along(rows)) {
-    one <- s$idx_at(rows[k], NA_real_)
+    one <- s$watch(function(fill) s$idx_at(rows[k], fill),
+                   function(o) o$dp)
     sh <- one$sh
     dp <- one$dp
-    s$watch(dp)
     ctx <- sim_context(sh, s$rspec, dp, aterms = s$av, n = length(dp[[1L]]),
                        extra = fit_extras(sh))
     if (s$arma_cond) ctx[["autocor"]] <- NULL
@@ -1557,18 +1678,22 @@ draws_pp_joint <- function(object, sets, rows, idx) {
   rspecs <- stats::setNames(lapply(sets, `[[`, "rspec"), want)
   out <- NULL
   ok <- NULL
+  # a row the design of every response skips, as each response reads it
+  skips <- lapply(sets, `[[`, "skip")
+  skip <- if (all(!vapply(skips, is.null, NA))) Reduce(`&`, skips)
   for (k in seq_along(rows)) {
     # one parameter vector per draw for every response, so the means,
-    # the scales and the correlation are those of the same draw
-    sh <- draws_fit_at(object, rows[k], idx, NA_real_)
-    # eval_dpars() answers for every response at once, so it runs
-    # once per draw rather than once per response
-    ev <- if (sets[[1L]]$fast) eval_dpars(sh)
-    dps <- lapply(sets, function(s) {
-      dp <- s$dp_at(sh, ev = ev)
-      s$watch(dp)
-      dp
-    })
+    # the scales and the correlation are those of the same draw; one
+    # watch for the draw, whose refusal is the same for every response
+    one <- sets[[1L]]$watch(function(fill) {
+      sh <- draws_fit_at(object, rows[k], idx, fill)
+      # eval_dpars() answers for every response at once, so it runs
+      # once per draw rather than once per response
+      ev <- if (sets[[1L]]$fast) eval_dpars(sh)
+      list(sh = sh, dps = lapply(sets, function(s) s$dp_at(sh, ev = ev)))
+    }, function(o) o$dps, skip)
+    sh <- one$sh
+    dps <- one$dps
     if (is.null(out)) {
       n <- max(vapply(dps, function(d) length(d[["mu"]]), 1L))
       ok <- rep(TRUE, n)
@@ -1893,7 +2018,21 @@ as_draws.frmtmb_draws <- function(x, variable = NULL, regex = FALSE,
 #' @export
 variables.frmtmb_draws <- function(x, ...) {
   frm_check_dots(...)
-  colnames(x$draws)
+  colnames(x$draws)[draws_brms_order(x)]
+}
+
+#' The permutation of the draws' columns into brms's order
+#' (`brms_variable_sort()` in core): what `variables()` lists and the
+#' order the `as_draws_*()` objects, `as.matrix()` and `as.data.frame()`
+#' hand out. `x$draws` itself keeps the template order every positional
+#' reader in this package relies on.
+#'
+#' @noRd
+draws_brms_order <- function(x) {
+  cn <- colnames(x$draws)
+  fit <- x$fit
+  if (is.null(fit) || is.null(fit$frame)) return(seq_along(cn))
+  brms_variable_sort(fit, cn)
 }
 
 #' @rdname sample-as_draws
@@ -1901,6 +2040,7 @@ variables.frmtmb_draws <- function(x, ...) {
 as.data.frame.frmtmb_draws <- function(x, row.names = NULL, optional = TRUE,
                                        pars = NA, variable = NULL,
                                        draw = NULL, subset = NULL, ...) {
+  frm_check_dots(..., .allow = draws_accessor_dots)
   a <- draws_accessor_args(x, pars, variable, draw, subset,
                            "as.data.frame()",
                            format = posterior::as_draws_df, ...)
@@ -1916,6 +2056,7 @@ as.data.frame.frmtmb_draws <- function(x, row.names = NULL, optional = TRUE,
 #' @export
 as.array.frmtmb_draws <- function(x, pars = NA, variable = NULL,
                                   draw = NULL, subset = NULL, ...) {
+  frm_check_dots(..., .allow = draws_accessor_dots)
   unclass(draws_accessor_args(x, pars, variable, draw, subset,
                               "as.array()", ...))
 }
@@ -2011,7 +2152,7 @@ as.mcmc.frmtmb_draws <- function(x, pars = NA, fixed = FALSE,
   }
   sel <- draws_select_variables(x, pars, NULL, FALSE, fixed, "as.mcmc()")
   if (combine_chains) {
-    m <- x$draws
+    m <- x$draws[, draws_brms_order(x), drop = FALSE]
     if (!is.null(sel)) m <- m[, sel, drop = FALSE]
     return(coda::as.mcmc(m))
   }
@@ -2196,7 +2337,8 @@ draws_extract_pars <- function(pars, all_pars, fixed = FALSE) {
 draws_select_variables <- function(x, pars = NA, variable = NULL,
                                    regex = FALSE, fixed = FALSE,
                                    what = "this function") {
-  all_pars <- colnames(x$draws)
+  # in variables() order, so a `pars =` regex selects in brms's order
+  all_pars <- variables(x)
   if (!(is.logical(pars) && length(pars) == 1L && is.na(pars))) {
     return(draws_extract_pars(pars, all_pars, fixed = fixed))
   }
@@ -2952,8 +3094,9 @@ pp_mixture.frmtmb_draws <- function(x, newdata = NULL,
   watch <- draws_laplace_watch(x, "pp_mixture()")
   out <- NULL
   for (k in seq_along(rows)) {
-    P <- mixture_probs(pick(draws_fit_at(x, rows[k], idx)))
-    watch(P)
+    P <- watch(function(fill) {
+      mixture_probs(pick(draws_fit_at(x, rows[k], idx, fill)))
+    })
     if (is.null(out)) {
       out <- array(NA_real_, c(length(rows), nrow(P), ncol(P)),
                    dimnames = list(NULL, rownames(P), colnames(P)))
@@ -3056,36 +3199,216 @@ draws_newdata_is_fitted <- function(x, newdata) {
   }
   # the frame itself: it is the fitted rows by construction
   if (identical(newdata, mf)) return(TRUE)
-  same <- function(a, b) {
-    if (is.null(a) || is.null(b)) return(FALSE)
-    lab_a <- is.factor(a) || is.character(a)
-    lab_b <- is.factor(b) || is.character(b)
-    # a factor's level set is the frame's business, not the rows'; a
-    # label against a number is another design
-    if (lab_a || lab_b) {
-      return(lab_a && lab_b && identical(as.character(a), as.character(b)))
-    }
-    if (is.logical(a) != is.logical(b) ||
-          !identical(oldClass(a), oldClass(b))) {
-      return(FALSE)
-    }
-    isTRUE(all.equal(unclass(a), unclass(b), tolerance = 0,
-                     check.attributes = FALSE))
-  }
+  draws_newdata_matches(fit, newdata, NULL)
+}
+
+#' The pairs of columns the fitted-rows checks compare: every variable
+#' the model reads (`draws_newdata_is_fitted()` says which), as `newdata`
+#' holds it and as the fit stored it, and every frame column `newdata`
+#' holds. The name of a variable `newdata` lacks rides along as the
+#' `missing` attribute of an empty list.
+#'
+#' @noRd
+draws_newdata_cols <- function(fit, newdata) {
+  mf <- fit[["data"]]
   raw <- fit$frame[["raw_vars"]]
   if (!is.data.frame(raw)) raw <- NULL
   tt <- attr(mf, "terms")
   vars <- union(union(union(fit$frame[["data_vars"]], names(raw)),
                       if (!is.null(tt)) all.vars(attr(tt, "variables"))),
                 names(mf)[make.names(names(mf)) == names(mf)])
-  if (!length(vars) || !all(vars %in% names(newdata))) return(FALSE)
-  ok_var <- vapply(vars, function(v) {
-    ref <- if (v %in% names(mf)) mf[[v]] else raw[[v]]
-    same(newdata[[v]], ref)
-  }, NA)
+  lack <- setdiff(vars, names(newdata))
+  if (!length(vars) || length(lack)) {
+    return(structure(list(), missing = lack[1L] %||% NA_character_))
+  }
+  out <- lapply(vars, function(v) {
+    list(new = newdata[[v]], ref = if (v %in% names(mf)) mf[[v]] else
+      raw[[v]])
+  })
   held <- intersect(names(mf), names(newdata))
-  ok_col <- vapply(held, function(v) same(newdata[[v]], mf[[v]]), NA)
-  all(ok_var) && all(ok_col)
+  c(stats::setNames(out, vars),
+    stats::setNames(lapply(held, function(v) {
+      list(new = newdata[[v]], ref = mf[[v]])
+    }), held))
+}
+
+#' Whether two columns hold the same values: labels as text (a factor's
+#' level set is the frame's business, not the rows'), a label against a
+#' number never, and otherwise the same class and exactly the same
+#' numbers.
+#'
+#' @noRd
+draws_same_col <- function(a, b) {
+  if (is.null(a) || is.null(b)) return(FALSE)
+  lab_a <- is.factor(a) || is.character(a)
+  lab_b <- is.factor(b) || is.character(b)
+  if (lab_a || lab_b) {
+    return(lab_a && lab_b && identical(as.character(a), as.character(b)))
+  }
+  if (is.logical(a) != is.logical(b) ||
+        !identical(oldClass(a), oldClass(b))) {
+    return(FALSE)
+  }
+  isTRUE(all.equal(unclass(a), unclass(b), tolerance = 0,
+                   check.attributes = FALSE))
+}
+
+#' The fitted rows `rows` of a column, cut as `[.data.frame` cuts
+#' newdata's, so a matrix column of a frame's subset (`poly(x, 2)`) keeps
+#' the class it has there; `NULL` rows is every row, in order.
+#'
+#' @noRd
+draws_cut_rows <- function(v, rows) {
+  if (is.null(rows) || is.null(v)) return(v)
+  if (length(dim(v)) == 2L) v[rows, , drop = FALSE] else v[rows]
+}
+
+#' Whether every variable the model reads is in `newdata` and equals its
+#' value in the fitted rows `rows` (`NULL`: all of them, in order), row
+#' for row. With `which = TRUE`, the name of the first column that does
+#' not, `NA` when every one does.
+#'
+#' @noRd
+draws_newdata_matches <- function(fit, newdata, rows, which = FALSE) {
+  pairs <- draws_newdata_cols(fit, newdata)
+  if (!length(pairs)) {
+    return(if (which) attr(pairs, "missing") %||% NA_character_ else FALSE)
+  }
+  ok <- vapply(pairs, function(p) {
+    draws_same_col(p$new, draws_cut_rows(p$ref, rows))
+  }, NA)
+  if (which) return(if (all(ok)) NA_character_ else names(pairs)[!ok][1L])
+  all(ok)
+}
+
+#' A key per row of a column that two rows share exactly when they hold
+#' the same value: labels as text, numbers in their exact hexadecimal
+#' form, a matrix column by all its columns.
+#'
+#' @noRd
+draws_row_key <- function(v) {
+  if (length(dim(v)) == 2L) {
+    return(do.call(paste, c(lapply(seq_len(ncol(v)), function(j) {
+      draws_row_key(v[, j])
+    }), sep = "\t")))
+  }
+  if (is.factor(v) || is.character(v)) return(paste0("L", as.character(v)))
+  if (is.logical(v)) return(paste0("B", as.character(v)))
+  sprintf("%a", as.numeric(unclass(v)))
+}
+
+#' The fitted rows a SUBSET of them given as `newdata` holds, for
+#' `log_lik()` and the criteria on its matrix: brms answers such newdata
+#' with those rows' pointwise values (brms 2.23.0: 0 difference from the
+#' fitted columns on a model without autocorrelation,
+#' dev/sampfront-brms-probe.R), and here they are those columns.
+#'
+#' The rows are placed by their row names, which `fit$data[1:10, ]` and
+#' a subset of the data keep and which the model frame keeps from the
+#' data, and every variable is compared with its fitted value
+#' (`draws_newdata_matches()`). Where the names do not place them (a
+#' tibble has none, and dplyr's verbs number the rows anew), each row is
+#' placed on a fitted row that holds the same value of every variable
+#' the model reads. On the models this serves, two such rows have the
+#' same column: the refused ones are those where a column reads more than
+#' its own row. A row that equals no fitted row is refused, by its
+#' position. Refused, with the reason, where a column of the matrix is
+#' not a function of its own row alone, so that brms's answer on the
+#' subset is not the fitted column: an autocorrelation term, whose
+#' density brms takes over newdata's own neighbors (0.46 from the fitted
+#' columns on the rows with `t >= 3` of an `ar()` model, the same probe),
+#' a `me()` or `mi()` term, whose latent value per row brms does not
+#' have for newdata, a family whose column is a group, and responses
+#' fitted on different rows under `subset()`.
+#'
+#' @return The row positions in the fitted frame, or one string: why
+#'   they cannot be found.
+#' @noRd
+draws_newdata_rows <- function(x, newdata) {
+  fit <- draws_base_fit(x)
+  mf <- fit[["data"]]
+  if (!is.data.frame(newdata) || !nrow(newdata) || !is.data.frame(mf)) {
+    return("it is not a data frame of rows")
+  }
+  why <- draws_subset_blocker(fit)
+  if (!is.null(why)) return(why)
+  rn <- rownames(newdata)
+  rows <- match(rn, rownames(mf))
+  # a repeated row, x$data[c(3, 3), ], is named "3.1" by make.unique()
+  miss <- is.na(rows)
+  rows[miss] <- match(sub("[.][0-9]+$", "", rn[miss]), rownames(mf))
+  if (!anyNA(rows) && draws_newdata_matches(fit, newdata, rows)) {
+    return(rows)
+  }
+  pairs <- draws_newdata_cols(fit, newdata)
+  if (!length(pairs)) {
+    return(paste0("it does not hold the variable ",
+                  attr(pairs, "missing"), ", which the model reads"))
+  }
+  key <- function(side) {
+    do.call(paste, c(lapply(pairs, function(p) draws_row_key(p[[side]])),
+                     sep = "\r"))
+  }
+  rows <- match(key("new"), key("ref"))
+  if (anyNA(rows)) {
+    bad <- which(is.na(rows))
+    return(paste0(if (length(bad) > 1L) "its rows " else "its row ",
+                  paste(utils::head(bad, 3L), collapse = ", "),
+                  if (length(bad) > 3L) ", ...",
+                  if (length(bad) > 1L) " equal" else " equals",
+                  " no fitted row in every variable the model reads"))
+  }
+  v <- draws_newdata_matches(fit, newdata, rows, which = TRUE)
+  if (!is.na(v)) {
+    return(paste0("its column ", v, " is not of the type the model was ",
+                  "fitted on"))
+  }
+  rows
+}
+
+#' Why a subset of the fitted rows cannot be read off the fitted
+#' `log_lik()` columns of this model, naming the term; `NULL` when it
+#' can. See `draws_newdata_rows()`.
+#'
+#' @noRd
+draws_subset_blocker <- function(fit) {
+  fr <- fit$frame
+  ac <- unique(unlist(lapply(fr[["autocor"]] %||% list(), `[[`, "label")))
+  if (length(ac)) {
+    return(paste0("the model has the autocorrelation term ", ac[1L],
+                  ", and brms then takes a row's density over the rows of ",
+                  "newdata around it, which a subset changes"))
+  }
+  me <- unique(unlist(lapply(fr[["linpreds"]], function(lp) {
+    # as written, me(x, sdx), and not the column label mexsdx
+    vapply(lp[["me"]] %||% list(), function(mt) {
+      mt[["written"]] %||% mt[["label"]] %||% ""
+    }, "")
+  })))
+  if (length(me)) {
+    return(paste0("the model has the term ", me[1L], ", whose latent value ",
+                  "per row brms does not carry to newdata"))
+  }
+  mi <- names(fr[["mi_map"]] %||% list())
+  if (length(mi)) {
+    return(paste0("the model imputes ", mi[1L], " with mi(), a latent value ",
+                  "per row that brms does not carry to newdata"))
+  }
+  if (length(fr[["subset_rows"]])) {
+    return("its responses are fitted on different rows under subset()")
+  }
+  for (r in fit$spec$responses) {
+    st <- r$family[["structure"]]
+    # draws_row_loglik() takes a declared group over a declared row
+    if (is.null(st[["loglik"]]) || (!is.null(st[["loglik_row"]]) &&
+                                      is.null(st[["loglik_group"]]))) {
+      next
+    }
+    return(paste0("the '", r$family[["family"]], "' family's likelihood ",
+                  "has no column per row: its unit is ",
+                  st[["unit"]] %||% "a group"))
+  }
+  NULL
 }
 
 #' The sentence a leave-one-out refusal of `newdata` ends with.
@@ -3093,11 +3416,21 @@ draws_newdata_is_fitted <- function(x, newdata) {
 #' @noRd
 draws_fitted_rows_note <- paste0(
   " Newdata that holds exactly the rows the model was fitted on (x$data) ",
-  "is accepted, and gives the answer without newdata. A subset of those ",
-  "rows is refused: rows are matched by value, and a subset cannot be ",
-  "placed among the fitted rows unambiguously where rows repeat and a ",
-  "per-row latent value (me(), mi()) or an autocorrelation neighbor ",
-  "enters.")
+  "is accepted, and gives the answer without newdata. log_lik(), loo(), ",
+  "waic(), psis(), loo_model_weights() and the loo_* types of pp_check() ",
+  "also take rows that are fitted rows with their fitted values, such as ",
+  "x$data[1:10, ] or a tibble of them, and give those rows' columns; the ",
+  "loo_*() functions do not.")
+
+#' The sentence that says why `newdata` is not a subset of the fitted
+#' rows, from `draws_newdata_rows()`; `NULL` without a reason.
+#'
+#' @noRd
+draws_subset_note <- function(why) {
+  if (!is.character(why)) return(NULL)
+  paste0(" This newdata is not taken as a subset of the fitted rows: ", why,
+         ".")
+}
 
 #' The refusal the methods that carry brms's `newdata` and
 #' `re_formula` slots without supporting them share.
@@ -3362,6 +3695,7 @@ update.frmtmb_draws <- function(object, formula., newdata = NULL,
   }
   model <- intersect(nm, c("fit", "data", "family", "data2", "start",
                            "fit_control", "na.action", "REML",
+                           "drop_unused_levels",
                            ".diagnostic"))
   if (length(model)) {
     frm_stop("update(", paste0(model, " =", collapse = ", "), ") changes ",

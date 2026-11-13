@@ -278,6 +278,10 @@ autoscale_prefit <- function(spec, frame, bform, cl, REML, start,
   # pre-fit" line; a nested copy of every stage line would only
   # interleave with the fit that is actually reported
   ctl$verbose <- FALSE
+  # the jittered starts of a mixture run once, in the fit that is
+  # reported, where their warning is heard; in the pre-fit they ran
+  # twice and the warning was muffled (mixture_starts())
+  ctl$starts <- 0L
   if (!is.null(start)) {
     # through make_start(), so a partially NAMED start leaves the
     # entries it does not address at the defaults the pre-fit would
@@ -433,9 +437,11 @@ autoscale_prefit_verdict <- function(pre, control, vb = 0L) {
 #' case: there the plain fit's only warning is about its own stall,
 #' 9.6 to 14.5 units short, and the seeded fit is a clean optimum. A
 #' separated fit is never sound, so it keeps the plain fit and its
-#' warning. The reported fit's own warnings are replayed, and the plain
-#' fit's messages (where a start came from) are shown once. Only a
-#' questionable pre-fit pays for the two extra fits.
+#' warning. The reported fit's own warnings and messages are replayed, and
+#' only those: a message such as the restart's `frmtmb_prior_multistart`
+#' reports a point of the fit it came from. The seeded fit says where the
+#' model's start came from, as the plain fit does (fit_assembled()). Only
+#' a questionable pre-fit pays for the two extra fits.
 #'
 #' @noRd
 autoscale_choose <- function(run, control, template, vb = 0L) {
@@ -460,14 +466,29 @@ autoscale_choose <- function(run, control, template, vb = 0L) {
   seeded <- capture(run(control, template))
   obj <- function(r) if (r$error) Inf else r$value$opt$objective
   tol <- 1e-8 * max(1, abs(obj(plain)[is.finite(obj(plain))]))
-  pick_seeded <- !seeded$error &&
-    (plain$error || (obj(seeded) < obj(plain) - tol &&
-                       (length(seeded$warnings) >= length(plain$warnings) ||
-                          (!length(seeded$warnings) &&
-                             autoscale_fit_sound(seeded$value)))))
-  # replayed as the condition objects they were, class and call kept
-  for (x in plain$messages) frm_message(x)
+  # A mixture's jittered starts can leave a higher point on purpose
+  # (mixture_starts() leaves a step function for a proper maximum), so
+  # when they ran, the tier of the point kept decides before the
+  # objective; comparing objectives alone handed the step function back
+  tier <- function(r) {
+    ms <- if (!r$error) r$value$opt$mixture_starts
+    if (is.null(ms) || is.na(ms["tier"])) NA_real_ else ms[["tier"]]
+  }
+  tp <- tier(plain)
+  ts <- tier(seeded)
+  pick_seeded <- if (!is.na(tp) || !is.na(ts)) {
+    !is.na(ts) && (is.na(tp) || ts < tp ||
+                     (ts == tp && obj(seeded) < obj(plain) - tol))
+  } else {
+    !seeded$error &&
+      (plain$error || (obj(seeded) < obj(plain) - tol &&
+                         (length(seeded$warnings) >= length(plain$warnings) ||
+                            (!length(seeded$warnings) &&
+                               autoscale_fit_sound(seeded$value)))))
+  }
   chosen <- if (pick_seeded) seeded else plain
+  # replayed as the condition objects they were, class and call kept
+  for (x in chosen$messages) frm_message(x)
   if (vb) {
     vb_say("kept the fit ", if (pick_seeded) "from the pre-fit" else
              "without the pre-fit")

@@ -812,13 +812,16 @@ gp_marginal_kappa_max <- 1e6
 #' does: from a far start the body read a field of sd 1e-11 and stopped 26 and
 #' 125 nats below 0.79.1 (dev/reviews/2026-11-06-fitedge.md, B1).
 #'
+#' `mu = FALSE` leaves out the blocks of the mean, whose start does not
+#' depend on `tpl`.
+#'
 #' @return `list(idx, theta, alts, body)`: the positions in the template's
 #'   `theta`, their values, the full `theta` vectors at each other local
 #'   maximum the working marginal reached (gp_marginal_alts()), and which of
 #'   the positions the body start set, or `NULL`.
 #' @noRd
 gp_start_working <- function(frame, tpl = frame[["par_template"]],
-                             body = TRUE) {
+                             body = TRUE, mu = TRUE) {
   blocks <- Filter(function(bk) identical(bk[["covstruct"]], "gp"),
                    frame[["re_blocks"]] %||% list())
   keys <- vapply(blocks, gp_block_lp, "", frame = frame)
@@ -850,6 +853,7 @@ gp_start_working <- function(frame, tpl = frame[["par_template"]],
       from_body <- c(from_body, from)
       next
     }
+    if (!mu) next
     yw <- gp_working_y(frame, lp)
     if (is.null(yw)) next
     off <- as.numeric(lp[["offset"]] %||% 0)
@@ -1039,11 +1043,13 @@ gp_finite <- function(v) {
 #' `to_beta` carries a natural `beta` to the coordinates the tape holds it in.
 #' `body = FALSE` turns off the start of a block in a nonlinear body
 #' (gp_body_start()), for a caller's own `start`. A restart from a saddle is
-#' not the caller's, and keeps it.
+#' not the caller's, and keeps it. `relin` leaves the body's second reading
+#' at the fit's optimum (gp_body_relin()) to gp_second_descent(); the fit
+#' asks it only on the user's own cold start.
 #'
 #' @noRd
 gp_start_scan <- function(obj, template, frame, start, to_beta = identity,
-                          body = TRUE) {
+                          body = TRUE, relin = body) {
   bks <- Filter(function(bk) identical(bk[["covstruct"]], "gp"),
                 frame[["re_blocks"]] %||% list())
   if (!length(bks) || !is.null(start[["theta"]])) return(obj)
@@ -1091,6 +1097,11 @@ gp_start_scan <- function(obj, template, frame, start, to_beta = identity,
     }
   }
   out <- gp_start_scan_units(obj, template, frame, val, covered)
+  if (relin && gp_body_relin_applies(frame, template, to_beta)) {
+    out$env$.frmtmb_gp_relin <- list(
+      start = function(obj, par) gp_body_relin(obj, frame, par),
+      regular = function(obj, o, tol) gp_relin_regular(obj, frame, o, tol))
+  }
   body <- intersect(covered, w[["body"]])
   if (!length(covered) || (!length(w$alts) && !length(body))) {
     return(out)
@@ -1128,27 +1139,59 @@ gp_start_scan <- function(obj, template, frame, start, to_beta = identity,
 gp_second_descent <- function(obj, opt, control, bounds, par_units = NULL,
                               verbose = 0L, tally = NULL) {
   alt <- obj$env$.frmtmb_gp_alt
-  if (!length(alt)) return(opt)
-  rm(".frmtmb_gp_alt", envir = obj$env)
+  relin <- obj$env$.frmtmb_gp_relin
+  if (!length(alt) && is.null(relin)) return(opt)
+  rm(list = intersect(c(".frmtmb_gp_alt", ".frmtmb_gp_relin"),
+                      ls(obj$env, all.names = TRUE)),
+     envir = obj$env)
   if (!all(is.finite(opt$par)) || !is.finite(opt$objective)) return(opt)
   saved <- obj_state_save(obj)
   best <- opt
+  better <- function(o) {
+    !is.null(o) && all(is.finite(o$par)) && is.finite(o$objective) &&
+      best$objective - o$objective > 1e-10 * max(1, abs(best$objective))
+  }
+  descend <- function(p) {
+    tryCatch(optimize_obj(obj, control, bounds, par_units, start_par = p,
+                          tally = tally),
+             error = function(e) NULL)
+  }
+  runs <- 0L
   for (p in alt) {
-    o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
-                               start_par = p, tally = tally),
-                  error = function(e) NULL)
-    if (!is.null(o) && all(is.finite(o$par)) && is.finite(o$objective) &&
-          best$objective - o$objective > 1e-10 * max(1, abs(best$objective))) {
-      best <- o
+    o <- descend(p)
+    runs <- runs + 1L
+    if (better(o)) best <- o
+  }
+  # each new optimum moves the body's derivatives, so the linearization is
+  # read again from it, a few times at most
+  for (k in seq_len(if (is.null(relin)) 0L else gp_body_relin_rounds)) {
+    p <- tryCatch(relin$start(obj, best$par), error = function(e) NULL)
+    if (is.null(p)) break
+    # the first descent's own NaN steps are muffled the same way
+    # (fit_error_context()), and this one is never a caller's start
+    o <- withCallingHandlers(descend(p), warning = function(w) {
+      if (grepl("NA/NaN", conditionMessage(w), fixed = TRUE)) {
+        invokeRestart("muffleWarning")
+      }
+    })
+    runs <- runs + 1L
+    # a higher objective is not enough: off the gaussian the Laplace value
+    # rises without a maximum where the inner Hessian is near singular or
+    # the field is white noise, and a descent can end there
+    tol <- control[["grad_tol"]] %||% 1e-3
+    if (!better(o) || !isTRUE(tryCatch(relin$regular(obj, o, tol),
+                                       error = function(e) FALSE))) {
+      break
     }
+    best <- o
   }
   obj_settle(obj, opt, best, saved)
   gain <- opt$objective - best$objective
   if (verbose) {
-    vb_say("exact gp(): ", length(alt), " more start(s), gained ",
+    vb_say("exact gp(): ", runs, " more start(s), gained ",
            format(gain, digits = 3), " in log-likelihood")
   }
-  best$gp_second <- c(runs = length(alt), gain = gain)
+  best$gp_second <- c(runs = runs, gain = gain)
   # every optimizer run is in the count, the lost one too: se_check_at_fit()
   # weighs the fit-time Hessian against it
   if (!is.null(tally)) {
@@ -1157,6 +1200,177 @@ gp_second_descent <- function(obj, opt, control, bounds, par_units = NULL,
   }
   best
 }
+
+#' Whether a fit gets a start from its body linearized at its own optimum
+#' (gp_body_relin()): an exact gp() in a parameter of a nonlinear body, and
+#' a `beta` that the tape holds in its natural coordinates, which the body
+#' reads.
+#'
+#' @noRd
+gp_body_relin_applies <- function(frame, template, to_beta = identity) {
+  b0 <- template[["beta"]]
+  if (length(b0)) {
+    probe <- seq_along(b0) + 0.5
+    if (!isTRUE(all.equal(to_beta(probe), probe, tolerance = 0))) {
+      return(FALSE)
+    }
+  }
+  for (bk in frame[["re_blocks"]] %||% list()) {
+    if (!identical(bk[["covstruct"]], "gp")) next
+    lp <- frame[["linpreds"]][[gp_block_lp(bk, frame)]]
+    if (is.null(lp) || identical(lp[["dpar"]], "mu")) next
+    nl <- frame[["spec"]]$responses[[lp[["resp"]]]]$nlpars %||% character(0)
+    if (lp[["dpar"]] %in% nl) return(TRUE)
+  }
+  FALSE
+}
+
+#' A start for the exact gp() blocks of a nonlinear body's parameters, from
+#' the body linearized at the fit's optimum `par` (gp_body_start() at its
+#' coefficients), or `NULL` where it reads no other length scale.
+#'
+#' The body start linearizes at the template, where a multiplicative body
+#' scales the field by a derivative that is not the fit's: `a * exp(b *
+#' z)` with `a ~ gp(x)` reads `J_a = 1` at `b = 0`, and `b ~ gp(x)` reads
+#' `J_b = 0` at `a = 0`, so no start at all. The descent still finds the
+#' coefficients and stops at a long field, 36.5 and 5.24 nats short with
+#' conv 0 and no warning (dev/gpstop-findings.md, item 1).
+#'
+#' @noRd
+gp_body_relin <- function(obj, frame, par) {
+  pl <- obj$env$parList(par)
+  # parList() and outer_from_template() must read one layout, or the
+  # start would land elsewhere than the fit's coefficients
+  p0 <- outer_from_template(pl, obj, frame)
+  if (is.null(p0) || !isTRUE(all.equal(unname(p0), unname(par),
+                                       tolerance = 1e-12))) {
+    return(NULL)
+  }
+  w <- gp_start_working(frame, pl, body = TRUE, mu = FALSE)
+  if (is.null(w) || !length(w$idx)) return(NULL)
+  th <- as.numeric(pl[["theta"]])
+  th[w$idx] <- w$theta
+  li <- unlist(lapply(frame[["re_blocks"]], function(bk) {
+    if (identical(bk[["covstruct"]], "gp") &&
+          any(bk[["theta_idx"]] %in% w$idx)) bk[["theta_idx"]][-1L]
+  }))
+  if (!length(li) ||
+        max(abs(th[li] - as.numeric(pl[["theta"]])[li])) <= log(1.1)) {
+    return(NULL)
+  }
+  pl[["theta"]][] <- th
+  p <- outer_from_template(pl, obj, frame)
+  if (is.null(p) || !all(is.finite(p))) return(NULL)
+  p
+}
+
+#' Whether a relinearized descent `o` ended at a regular maximum: code 0,
+#' its gradient within `tol`, an inner Hessian whose smallest eigenvalue
+#' is not near 0, and each length scale between half the median distance
+#' from a position to its nearest neighbour (`gp_relin_ls_min`) and ten
+#' times the positions' range. Off the gaussian the objective can rise
+#' where it is not a maximum. On logistic `a ~ gp(x)` the descent ended at
+#' a student() spike (inner eigenvalue 1.97e-7, gradient 1.2e13, code 1),
+#' and on bernoulli at a white-noise field, code 0 and no warning; importance
+#' sampling read both below the first descent's point
+#' (dev/reviews/2026-11-11-gpstop.md, MAJOR 1 and 2). The white-noise field
+#' is log-concave, so only its length scale tells it apart, and it is a
+#' stationary point at 0.67 of the smallest gap too, or 52 times it beside
+#' one near tie, so the bound is read from the median gap, which one close
+#' pair does not move (review, short check S1).
+#'
+#' @noRd
+gp_relin_regular <- function(obj, frame, o, tol) {
+  if (!identical(as.integer(o$convergence), 0L)) return(FALSE)
+  g <- obj$gr(o$par)
+  if (!all(is.finite(g)) || max(abs(g)) > tol) return(FALSE)
+  pl <- obj$env$parList(o$par)
+  th <- as.numeric(pl[["theta"]])
+  for (bk in frame[["re_blocks"]] %||% list()) {
+    if (!identical(bk[["covstruct"]], "gp")) next
+    D <- sqrt(Reduce(`+`, bk[["aux_D2"]]))
+    if (NROW(D) < 2L || !any(D > 0)) next
+    # a repeated position is no neighbour of its own
+    D[D <= 0] <- Inf
+    nn <- stats::median(apply(D, 1L, min))
+    ls <- exp(th[bk[["theta_idx"]][-1L]])
+    if (!all(is.finite(ls)) || any(ls < gp_relin_ls_min * nn) ||
+          any(ls > 10 * max(D[is.finite(D)]))) {
+      return(FALSE)
+    }
+  }
+  gp_inner_pd(obj, o$par, gp_relin_inner_ev_min)
+}
+
+#' Whether every eigenvalue of the inner Hessian at outer point `par`
+#' exceeds `cut`, by a sparse Cholesky factor of `H - cut I`, which exists
+#' exactly then; `TRUE` for a fit with no random effects. A dense
+#' eigendecomposition took 12.75 s and 122 MB beside 4000 random effects
+#' (review, short check).
+#'
+#' @noRd
+gp_inner_pd <- function(obj, par, cut) {
+  env <- obj$env
+  q <- length(env$random)
+  if (!q) return(TRUE)
+  obj$fn(par)
+  H <- env$spHess(env$last.par, random = TRUE)
+  A <- Matrix::forceSymmetric(methods::as(H, "CsparseMatrix")) -
+    Matrix::Diagonal(q, cut)
+  gp_chol_pd(A)
+}
+
+#' Whether a sparse symmetric matrix is positive definite, by its sparse
+#' Cholesky factor.
+#'
+#' CHOLMOD factorizes a matrix with a NaN or an infinite entry without a
+#' word (Matrix 1.7.6), so such a matrix answers FALSE before the factor.
+#' On a finite matrix that is not positive definite it warns "not positive
+#' definite" and then stops ("leading principal minor ... is not
+#' positive"); only those two are a FALSE verdict. Any other warning or
+#' error reaches the caller, so a new warning from Matrix cannot switch
+#' the check off on every fit without a sign (release review of 0.82.0,
+#' minor 1).
+#'
+#' @noRd
+gp_chol_pd <- function(A) {
+  if (!all(is.finite(A@x))) return(FALSE)
+  # a matching condition is turned into one of class gp_not_pd, which
+  # unwinds to the verdict; any other one goes on as it came
+  to_verdict <- function(cnd) {
+    if (grepl("not positive", conditionMessage(cnd), fixed = TRUE)) {
+      signalCondition(structure(class = c("gp_not_pd", "condition"),
+                                list(message = conditionMessage(cnd),
+                                     call = NULL)))
+    }
+  }
+  tryCatch(withCallingHandlers({
+    Matrix::Cholesky(A, LDL = FALSE, perm = TRUE)
+    TRUE
+  }, warning = to_verdict, error = to_verdict),
+  gp_not_pd = function(cnd) FALSE)
+}
+
+# The shortest length scale a relinearized descent may end at, as a share
+# of the median nearest-neighbour distance. The descents kept on fitedge's
+# 192 rows and the review's 122 read 1.84 and up; the white-noise
+# stationary points of the review's short check read 0.141 and, beside a
+# near tie, 0.079; a tenth of the median gap kept the first
+# (dev/gpstop-findings.md, fix round, short check).
+gp_relin_ls_min <- 0.5
+
+# The smallest eigenvalue of the inner Hessian a relinearized descent may
+# end at. A field's coefficients have a unit prior, so where the likelihood
+# is log-concave in them the eigenvalue is at least about 1. Over the
+# descents of a 122-row sweep that rose, the regular ones read 0.997 to 1,
+# the warned stops 1.9e-5 to 5.2e-4, and the spikes of the review 4e-8 to
+# 7e-4 (dev/gpstop-findings.md, fix round).
+gp_relin_inner_ev_min <- 1e-2
+
+# How many times the body is linearized again at a new optimum. Each round
+# costs a working marginal and a descent, and runs only after a round
+# that raised the log-likelihood.
+gp_body_relin_rounds <- 3L
 
 #' Whether the objective at the marginal's maximum reads the marginal's value,
 #' to `1e-6` relative: a gaussian field integrates out exactly, so the two

@@ -859,10 +859,22 @@ varcorr_trans_rows <- function(fit) {
       # clamp touches has a zero jacobian row and would otherwise report
       # a zero-width interval AT the clamp
       bd <- c(bd, abs(r0) >= varcorr_cor_clamp)
+      # the same boundary in a wider block: a row whose variable is a
+      # combination of those before it to within the clamp, with no one
+      # correlation at +/-1 (varcorr_us_row_edge())
+      if (identical(bk[["covstruct"]], "us") && isTRUE(d >= 3L)) {
+        bd[-seq_len(length(sds0))] <- bd[-seq_len(length(sds0))] |
+          varcorr_us_row_edge(t0, d)
+      }
     }
     # A non-finite se (an inverted Hessian that did not invert) is no
-    # more usable than a boundary estimate; both become NA bounds.
-    se_g[bd | !is.finite(est0) | !is.finite(se_g)] <- NA_real_
+    # more usable than a boundary estimate; both become NA bounds. Nor is
+    # a zero one, which no estimated component has: the delta method gave
+    # it where the jacobian row is flat or the quadratic form rounded to
+    # zero or below, and seed 7 of the 0.72.0 review's three-dimensional
+    # us() design reported cor(x,z) as [-0.122416, -0.122416] that way
+    # (dev/test-backlog.md, the item of the 0.72.0 release review)
+    se_g[bd | !is.finite(est0) | !is.finite(se_g) | !(se_g > 0)] <- NA_real_
 
     n_sd <- length(g0) - if (has_cor) d * (d - 1) / 2 else 0
     for (i in seq_len(n_sd)) {
@@ -887,6 +899,36 @@ varcorr_trans_rows <- function(fit) {
   }
   rownames(out) <- NULL
   out
+}
+
+#' For a `us()` block of dimension `d` at theta `t` (log sds, then the
+#' unit-diagonal Cholesky factor's lower triangle column by column), one
+#' logical per correlation in `lower.tri()` order: does the correlation
+#' sit in a row whose variable is, to within the clamp, a combination of
+#' the variables before it? Row `i` of the factor is
+#' `(L[i, 1], ..., L[i, i - 1], 1)`, and the multiple correlation of
+#' variable `i` with the earlier ones is `sqrt(S / (1 + S))`, `S` the
+#' squared length of the row's off-diagonal part, so the test
+#' `S >= c^2 / (1 - c^2)` is the multiple correlation at or past
+#' `varcorr_cor_clamp`, which in dimension 2 is the one correlation's own
+#' test. The block's correlation matrix is singular there, on the boundary
+#' of its space, though no single correlation is near +/-1, and a Wald
+#' interval for those correlations has no meaning: on a code-1 stop with
+#' the row at (1771, -2271) cor(z,(Intercept)) had a Fisher-z standard
+#' error of 9.2e-4 (dev/boundfam-findings.md).
+#'
+#' @noRd
+varcorr_us_row_edge <- function(t, d) {
+  off <- t[-seq_len(d)]
+  np <- d * (d - 1L) / 2L
+  if (length(off) != np) return(logical(np))
+  lt <- matrix(0L, d, d)
+  lt[lower.tri(lt)] <- seq_len(np)
+  tc2 <- varcorr_cor_clamp^2 / (1 - varcorr_cor_clamp^2)
+  edge <- vapply(seq_len(d), function(i) {
+    i > 1L && sum(off[lt[i, seq_len(i - 1L)]]^2) >= tc2
+  }, NA)
+  edge[which(lower.tri(diag(d)), arr.ind = TRUE)[, 1L]]
 }
 
 #' Back-transform to the natural scale (elementwise over types): log for
@@ -914,7 +956,12 @@ varcorr_untrans <- function(type, v) {
 #' standard deviation collapsed to zero, or a correlation at `+/-1` -
 #' has no interval on these scales, because the transform is infinite
 #' there. Those rows report the estimate with `NA` bounds and warn,
-#' rather than a zero-width interval at an arbitrary clamp. A
+#' rather than a zero-width interval at an arbitrary clamp. In an
+#' unstructured block of three or more terms the same holds for the
+#' correlations of a term that is, to within that clamp, a linear
+#' combination of the terms before it (a singular correlation matrix),
+#' and a component whose standard error comes out as zero gets `NA`
+#' bounds too. A
 #' bootstrap ([hypothesis()] with `method = "boot"`) or a likelihood
 #' profile of the underlying `theta` is the alternative.
 #'
@@ -944,13 +991,16 @@ confint_varcorr <- function(fit, level = 0.95) {
   tr <- varcorr_trans_rows(fit)
   if (is.null(tr)) return(NULL)
   z <- stats::qnorm(1 - (1 - level) / 2)
+  # the block as written: a `||` term's label is the correlated
+  # `1 + f | g`, the term it is not (block_display_label())
+  shown <- block_display_label(fit, tr$block)
   out <- data.frame(
-    block = tr$block, term = tr$term, type = tr$type,
+    block = shown, term = tr$term, type = tr$type,
     estimate = varcorr_untrans(tr$type, tr$est_t),
     lwr = varcorr_untrans(tr$type, tr$est_t - z * tr$se_t),
     upr = varcorr_untrans(tr$type, tr$est_t + z * tr$se_t)
   )
-  label <- function(i) paste0(tr$block[i], " ", tr$term[i])
+  label <- function(i) paste0(shown[i], " ", tr$term[i])
   bad <- which(is.na(tr$se_t))
   # a block the fit's boundary message already named (se_boundary_act())
   # gets its NA bounds without a second warning
@@ -959,7 +1009,9 @@ confint_varcorr <- function(fit, level = 0.95) {
     frm_warning("No interval for ", length(bad), " component",
                 if (length(bad) > 1L) "s" else "",
                 " on the boundary of the parameter space (a standard ",
-                "deviation at zero, or a correlation at +/-1). The interval ",
+                "deviation at zero, a correlation at +/-1, or a singular ",
+                "correlation matrix) or with a standard error of zero. ",
+                "The interval ",
                 "is a Wald interval on the log / Fisher-z scale, which is ",
                 "infinite there, so it is reported as NA rather than as a ",
                 "zero-width interval at an arbitrary clamp. The estimates ",
@@ -989,6 +1041,28 @@ confint_varcorr <- function(fit, level = 0.95) {
                 paste(vapply(wide, label, ""), collapse = "; "),
                 call. = FALSE)
   }
+  out
+}
+
+#' The label a table shows for each block label in `labels`: a `||` or
+#' `gr(cor = FALSE)` term as it was written, `1 + f || g`, and any other
+#' block by its `term_label`. The `term_label` stays the matching key
+#' every reader inside the package uses; only the shown column changes.
+#'
+#' @noRd
+block_display_label <- function(fit, labels) {
+  map <- character(0)
+  for (bk in fit$frame[["re_blocks"]] %||% list()) {
+    wt <- unique(unlist(lapply(bk[["components"]] %||% list(), function(cp) {
+      cp[["written_text"]]
+    })))
+    if (!length(wt)) next
+    wt <- sub("^[(](.*)[)]$", "\\1", wt)
+    map[bk[["term_label"]]] <- paste(wt, collapse = " + ")
+  }
+  out <- labels
+  hit <- labels %in% names(map)
+  out[hit] <- unname(map[labels[hit]])
   out
 }
 
@@ -2158,7 +2232,10 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
   # false-positives on identical frames and misses NA-dropped rows;
   # comparing the response actually used catches the real cases.
   # [lme4#622]
-  nobs_all <- vapply(fits, function(f) as.integer(f$frame[["n_obs"]]), 0L)
+  # The rows that keep a density, as BIC() counts them: a multivariate
+  # subset() fit on 72 of 80 rows has n_obs 80, and through 0.81.0 it
+  # was compared with an 80-row fit.
+  nobs_all <- vapply(fits, function(f) as.integer(loglik_nobs(f$frame)), 0L)
   if (length(unique(nobs_all)) > 1L) {
     frm_stop("anova() needs fits with the same number of observations (got ",
              paste(unique(nobs_all), collapse = ", "),
@@ -2210,11 +2287,26 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
 
 #' Single-term deletions
 #'
-#' Drops each fixed-effect term of the primary (`mu`) formula in turn,
-#' refits, and tabulates AIC (and likelihood-ratio tests with
-#' `test = "Chisq"`), following [stats::drop1()] and lme4's
-#' `drop1.merMod`. Random-effect, smooth, and `mo()`/`mi()` terms are
-#' not part of the deletion scope.
+#' Drops each term of the primary (`mu`) formula in turn, refits, and
+#' tabulates AIC (and likelihood-ratio tests with `test = "Chisq"`),
+#' following [stats::drop1()] and lme4's `drop1.merMod`. The scope holds
+#' every term of the formula except the random-effect and
+#' autocorrelation terms, so a `mo()`, `me()`, `cs()`, `gp()` or smooth
+#' term is dropped as a whole, as a plain covariate is. Dropping a
+#' smooth drops its penalized part and its unpenalized part together.
+#'
+#' A row whose refit leaves out a `me()` call has `NA` statistics, and a
+#' message names it: a `me()` term puts the measurements of its noisy
+#' variable into the likelihood, so that refit is a likelihood of other
+#' data, which [anova.frmtmb_fit()] refuses too. A `me()` term that
+#' another term still uses (`me(x, sdx) + me(x, sdx):z`, dropping the
+#' interaction) keeps its measurements and gets its statistics. The
+#' same holds for [stats::add1()]: a row that adds a `me()` call is
+#' `NA`. `add1()` reads the fit's whole formula for the terms it has, so
+#' a `mo()`, `me()` or smooth term of the fit is not offered again, and
+#' an interaction with one is offered when marginality allows it. A
+#' random-effect term it adds is written in parentheses, `(1 | g)`, in
+#' the row name and in the refit.
 #'
 #' A family without a `mu` gives the main formula to every location
 #' predictor that has no formula of its own: each category of
@@ -2238,8 +2330,9 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
 #' @param object A `frmtmb_fit` from an ML fit (`REML = FALSE`) of a
 #'   univariate model.
 #' @param scope Terms to drop: a character vector or a right-hand-side
-#'   formula. Defaults to all fixed-effect terms that marginality
-#'   allows ([stats::drop.scope()]).
+#'   formula. Defaults to all terms in the scope above that marginality
+#'   allows ([stats::drop.scope()]). For `add1()`, the terms to add, as
+#'   in [stats::add1()].
 #' @param test `"Chisq"` adds likelihood-ratio tests.
 #' @param k AIC penalty per parameter.
 #' @param ... Refused: an argument the method does not have is an
@@ -2295,7 +2388,7 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
     }
     dp_main <- loc[1L]
   }
-  tt <- terms(object, dpar = dp_main)
+  tt <- drop1_terms(object, dp_main)
   labs <- attr(tt, "term.labels")
   if (missing(scope)) {
     scope <- stats::drop.scope(tt)
@@ -2344,6 +2437,8 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
                importance = object$importance$draws %||% 0L,
                drop_unused_levels =
                  object$frame[["drop_unused_levels"]] %||% TRUE)
+  me0 <- fit_me_keys(object)
+  me_gone <- character(0)
   for (i in seq_len(n_sc)) {
     nb <- object$bform
     nf <- stats::update.formula(nb$formula,
@@ -2352,6 +2447,12 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
     nb$formula <- nf
     if (held) args$data <- refit_channel(rd, formula = nb, fit = object)
     fit_i <- do.call(frm, c(list(formula = nb), args), quote = TRUE)
+    # a refit without a me() call has lost that variable's measurements
+    # from its likelihood, which is then of other data
+    if (!identical(fit_me_keys(fit_i), me0)) {
+      me_gone <- c(me_gone, scope[i])
+      next
+    }
     ll_i <- logLik(fit_i)
     df_i <- loglik_df(fit_i)
     if (is.na(df_i)) {
@@ -2366,6 +2467,7 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
     aic[i] <- -2 * as.numeric(ll_i) + k * as.vector(df_i)
     lrt[i] <- 2 * (as.numeric(ll0) - as.numeric(ll_i))
   }
+  if (length(me_gone)) me_rows_message("drop1()", me_gone, "leaves out")
   tab <- data.frame(Df = c(NA, ddf), AIC = c(aic0, aic),
                     row.names = c("<none>", scope), check.names = FALSE)
   if (test == "Chisq") {
@@ -2375,6 +2477,121 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
   structure(tab, class = c("anova", "data.frame"),
             heading = c("Single term deletions\n",
                         paste("Model:", model_label(object)), ""))
+}
+
+#' The terms drop1() deletes: every term of the main formula but the
+#' random-effect and autocorrelation terms. `terms(fit)` is the terms of
+#' the fixed design only, which the parser builds after it has taken
+#' `mo()`, `me()`, `cs()`, `gp()` and the smooths out, so through 0.81.0
+#' `y ~ mo(k) + z` listed only `z` and said nothing. A nonlinear formula,
+#' or one terms() cannot read alone, keeps the fixed design's terms.
+#'
+#' @noRd
+drop1_terms <- function(object, dpar) {
+  fixed <- function() terms(object, dpar = dpar)
+  f <- object$bform[["formula"]]
+  if (!inherits(f, "formula") || isTRUE(object$bform[["nl"]]) ||
+        length(object$bform[["nlforms"]])) {
+    return(fixed())
+  }
+  tt <- tryCatch(stats::terms(reformulas::nobars(f)),
+                 error = function(e) NULL)
+  if (is.null(tt)) return(fixed())
+  labs <- attr(tt, "term.labels")
+  ac <- vapply(labs, function(l) {
+    length(called_functions(str2lang(l), autocor_term_names())) > 0L
+  }, NA)
+  if (!any(ac)) return(tt)
+  if (all(ac)) {
+    return(stats::terms(stats::update.formula(stats::formula(tt), . ~ 1)))
+  }
+  stats::drop.terms(tt, which(ac), keep.response = TRUE)
+}
+
+#' The `me()` calls a fit's likelihood holds measurements for, as
+#' anova() compares them.
+#'
+#' @noRd
+fit_me_keys <- function(fit) {
+  sort(vapply(fit$frame[["me"]]$terms %||% list(), `[[`, "", "key"))
+}
+
+#' The `me()` calls written in one term label.
+#'
+#' @noRd
+me_keys_in <- function(e) {
+  if (is_me_call(e)) return(deparse1(e))
+  if (!is.call(e)) return(character(0))
+  out <- character(0)
+  for (i in seq_along(e)[-1L]) {
+    if (identical(e[[i]], quote(expr = ))) next
+    out <- c(out, me_keys_in(e[[i]]))
+  }
+  out
+}
+
+#' Say which rows of a drop1() or add1() table are NA because their
+#' refit changes the me() calls, and so the data, of the likelihood.
+#'
+#' @noRd
+me_rows_message <- function(what, rows, verb) {
+  frm_message(what, ": no statistics for ",
+              paste0("`", rows, "`", collapse = ", "), ". The refit ",
+              verb, " a me() call, and a me() term puts the measurements ",
+              "of its noisy variable into the likelihood, so that refit ",
+              "is a likelihood of other data, as anova() says. Test a ",
+              "me() coefficient with its Wald test in summary() or with ",
+              "confint(method = \"profile\")")
+}
+
+#' @rdname drop1.frmtmb_fit
+#' @export
+add1.frmtmb_fit <- function(object, scope, ...) {
+  # stats::add.scope() reads terms(object), the fixed design's terms, so
+  # a mo(), me() or smooth term the fit has looked absent: through 0.81.0
+  # `~ . + me(x, sdx):z` on y ~ me(x, sdx) + z offered me(x, sdx) again,
+  # with Df 0, and never the interaction. The fit's whole formula, its
+  # random-effect terms included, is what a term is added to.
+  f <- object$bform[["formula"]]
+  if (!missing(scope) && !is.null(scope) && !is.character(scope) &&
+        inherits(f, "formula") && !isTRUE(object$bform[["nl"]]) &&
+        !length(object$bform[["nlforms"]])) {
+    tt <- tryCatch(stats::terms(f), error = function(e) NULL)
+    if (!is.null(tt)) {
+      scope <- stats::add.scope(tt, stats::update.formula(f, scope))
+    }
+  }
+  # a nonlinear fit keeps stats' own reading, made here so that its
+  # labels pass through the bar-term repair below too
+  if (!missing(scope) && !is.null(scope) && !is.character(scope)) {
+    scope <- stats::add.scope(object, stats::update.formula(object, scope))
+  }
+  # add1.default() refits update(fit, ~ . + <label>), and the label of a
+  # bar term has no parentheses: `~ . + 1 | g` parses as `(. + 1) | g`,
+  # so through 0.81.0 the refit was y ~ (x + 1 | g), a random slope in
+  # place of the fixed one (LRT 128.62 on Df 2, where y ~ x + (1 | g)
+  # gives 133.54 on Df 1). step() passes the labels as characters.
+  if (!missing(scope) && is.character(scope)) {
+    bar <- grepl("|", scope, fixed = TRUE) &
+      !vapply(scope, function(l) {
+        e <- tryCatch(str2lang(l), error = function(err) NULL)
+        is.call(e) && identical(e[[1L]], as.name("("))
+      }, NA)
+    scope[bar] <- paste0("(", scope[bar], ")")
+  }
+  tab <- utils::getS3method("add1", "default")(object, scope, ...)
+  me0 <- fit_me_keys(object)
+  new_me <- vapply(rownames(tab), function(l) {
+    if (identical(l, "<none>")) return(FALSE)
+    e <- tryCatch(str2lang(l), error = function(err) NULL)
+    !is.null(e) && length(setdiff(me_keys_in(e), me0)) > 0L
+  }, NA)
+  if (any(new_me)) {
+    cols <- intersect(names(tab), c("Df", "AIC", "LRT", "Pr(>Chi)"))
+    tab[new_me, cols] <- NA
+    me_rows_message("add1()", rownames(tab)[new_me], "adds")
+  }
+  tab
 }
 
 #' Does a formula carry a `.` term, which is what makes it a delta
@@ -3065,7 +3282,49 @@ hyp_vals_only <- function(fit) {
     vals <- c(vals, v)
     comp <- c(comp, rep(cp, length(v)))
   }
+  # the mo() simplexes, which brms reports as simo_ variables; without
+  # them variables() of a fit had none and the draws had them all
+  for (cp in mo_extra_comps(fit)) {
+    v <- est[[cp]]
+    vals <- c(vals, v)
+    comp <- c(comp, rep(cp, length(v)))
+  }
   list(vals = vals, comp = comp)
+}
+
+#' The parameter-template components that hold the coordinates of the
+#' `mo()` simplexes (`zeta<j>`), in template order.
+#'
+#' @noRd
+mo_extra_comps <- function(fit) {
+  tpl <- fit$frame[["par_template"]]
+  z <- unlist(lapply(fit$frame[["linpreds"]], function(lp) {
+    vapply(lp[["mo"]] %||% list(), function(mi) mi[["zeta"]] %||% "", "")
+  }), use.names = FALSE)
+  z <- intersect(unique(z[nzchar(z)]), names(tpl))
+  z[lengths(tpl[z]) > 0L]
+}
+
+#' Put the `mo()` simplexes under brms's names, `simo_<label>1[k]`, for
+#' `hyp_env_vals()`. A two-category term has one weight, fixed at 1, as
+#' brms reports it.
+#'
+#' @noRd
+mo_put_simplex <- function(fit, vals, comp, put) {
+  for (lp in fit$frame[["linpreds"]]) {
+    pre <- brms_lp_prefix(fit, lp)
+    for (mi in lp[["mo"]] %||% list()) {
+      if (!isTRUE(mi[["D"]] >= 1L)) next
+      lab <- brms_rename(mi[["label"]])
+      nm <- paste0("simo", if (nzchar(pre)) paste0("_", pre), "_", lab,
+                   "1[", seq_len(mi[["D"]]), "]")
+      z <- vals[comp == (mi[["zeta"]] %||% "")]
+      w <- if (mi[["D"]] == 1L) 1 else mo_simplex(z, mi[["chart"]])
+      if (length(w) != length(nm)) next
+      for (k in seq_along(nm)) put(nm[k], w[k])
+    }
+  }
+  invisible(NULL)
 }
 
 #' The parameter-template components that hold an ordinal fit's
@@ -3125,7 +3384,7 @@ hyp_par_cov <- function(fit, extra = character(0)) {
   # covariance of (interop_vcov(): the mo() simplexes)
   comps <- c("beta", "betad", "theta", "thetaac", "thetar",
              ord_extra_comps(fit), me_comps(fit), simplex_extra_comps(fit),
-             extra)
+             mo_extra_comps(fit), extra)
   if (!fit$REML && !isTRUE(fit$control$profile)) {
     sdr <- sdr_of(fit)
     V <- sdr$cov.fixed
@@ -3281,7 +3540,9 @@ hyp_env_vals <- function(fit, vals, comp) {
   # and a smooth's sds_ follows them, brms's order sd, cor, sds, sdgp,
   # lscale (reorder_pars(); dev/prilabel-rev-log/order-brms.txt)
   sds_at <- integer(0)
-  for (bi in seq_along(fit$frame[["re_blocks"]])) {
+  # in brms's id order, which is the order the dpar formulas were
+  # written in and not the frame's (brms_block_order())
+  for (bi in brms_block_order(fit)) {
     bk <- fit$frame[["re_blocks"]][[bi]]
     # a smooth's one parameter is brms's smoothing sd, sds_sx_1
     if (!is.na(sds_nm[bi])) {
@@ -3316,7 +3577,9 @@ hyp_env_vals <- function(fit, vals, comp) {
     }
   }
   for (j in seq_along(cor_nm)) put(cor_nm[j], cor_val[j])
-  for (bi in sds_at) {
+  # a smooth is no group id in brms: its sds_ follow the predictors'
+  # own order, which is the frame's
+  for (bi in sort(sds_at)) {
     put(sds_nm[bi],
         exp(th[fit$frame[["re_blocks"]][[bi]][["theta_idx"]][1L]]))
   }
@@ -3368,6 +3631,7 @@ hyp_env_vals <- function(fit, vals, comp) {
   }
   lncor_put(fit, vals, comp, put)
   me_put_hyper(fit, vals, comp, put)
+  mo_put_simplex(fit, vals, comp, put)
   acc$vals
 }
 
@@ -4045,7 +4309,8 @@ variables.frmtmb_fit <- function(x, ...) {
   require_fit_packages(x)
   frm_check_dots(...)
   vo <- hyp_vals_only(x)
-  names(hyp_env_vals(x, vo$vals, vo$comp))
+  nm <- names(hyp_env_vals(x, vo$vals, vo$comp))
+  nm[brms_variable_sort(x, nm)]
 }
 
 #' Deprecated name of variables()

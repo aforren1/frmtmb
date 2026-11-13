@@ -503,17 +503,26 @@ test_that("a sigma the field took stays flat at the row check", {
   g <- factor(sample(letters[1:5], n, TRUE))
   y <- sin(2 * x) + 0.3 * z + stats::rnorm(n)
   w <- character()
+  m <- character()
   fit <- withCallingHandlers(
     frm(y ~ z + gp(x), data = data.frame(x, z, g, y)),
     warning = function(cn) {
       w <<- c(w, conditionMessage(cn))
       invokeRestart("muffleWarning")
     },
-    message = function(m) invokeRestart("muffleMessage"))
+    message = function(cn) {
+      m <<- c(m, conditionMessage(cn))
+      invokeRestart("muffleMessage")
+    })
   expect_lt(exp(fit$estimates$betad[[1L]]), 1e-2)
   se <- sqrt(diag(as.matrix(vcov(fit, full = TRUE))))
   expect_true(is.nan(se[["sigma_(Intercept)"]]))
-  expect_true(any(grepl("Standard errors are not available", w, fixed = TRUE)))
+  # either verdict says so: "flat", or sigma at the end of its range,
+  # where the field interpolates the rows (se_edge_limit())
+  expect_true(any(grepl("Standard errors are not available", w,
+                        fixed = TRUE)) ||
+                any(grepl("sigma_(Intercept) is at the end of its range", m,
+                          fixed = TRUE)))
 })
 
 test_that("a row under its noise is flat only if it reads no curvature", {
@@ -616,7 +625,7 @@ gs_fe_row <- function(seed, n, curve, body) {
   data.frame(x, z, w, y)
 }
 gs_rv_row <- function(design, seed, n, ci) {
-  di <- c(E = 1L, F = 2L, K = 7L)[[design]]
+  di <- c(E = 1L, F = 2L, K = 7L, L = 8L)[[design]]
   set.seed(52000 + 100 * seed + n + 10 * di + ci)
   x <- sort(round(stats::runif(n, 0, 10), 3))
   z <- round(stats::rnorm(n), 3)
@@ -629,7 +638,8 @@ gs_rv_row <- function(design, seed, n, ci) {
               E = (2 + fs) * exp(0.4 * z) + 0.1 * stats::rnorm(n),
               F = (3 + fs) / (1 + exp(-1.5 * (z - 0.2))) +
                 0.1 * stats::rnorm(n),
-              K = stats::rgamma(n, 5, 5 / exp(0.5 + 0.5 * fs + 0.3 * z)))
+              K = stats::rgamma(n, 5, 5 / exp(0.5 + 0.5 * fs + 0.3 * z)),
+              L = 2 * exp((0.3 + 0.2 * fs) * z) + 0.1 * stats::rnorm(n))
   data.frame(x, z, g, fby, y)
 }
 gs_ll <- function(...) {
@@ -692,6 +702,138 @@ test_that("the body start reads every coefficient, in one step", {
     best <- max(best, v)
   }
   expect_gt(gs_ll(fE, data = dE), best - 1e-5 * abs(best))
+})
+
+test_that("a multiplicative body is linearized again at the fit's optimum", {
+  skip_on_cran()
+  # at the template's zeros `a * exp(b * z)` scales a's field by 1, and
+  # `b ~ gp(x)` by 0: on 0.81.0 these read 36.50 and 5.24 nats below one
+  # theta start, conv 0 and no warning (dev/gpstop-findings.md, item 1)
+  dE <- gs_rv_row("E", 2L, 120L, 2L)
+  fE <- bf(y ~ a * exp(b * z), a ~ gp(x), b ~ 1, nl = TRUE)
+  ref <- gs_ll(fE, data = dE, start = list(theta = c(log(1.5), log(0.3))))
+  expect_gt(gs_ll(fE, data = dE), ref - 1e-5 * abs(ref))
+  dL <- gs_rv_row("L", 2L, 120L, 2L)
+  fL <- bf(y ~ a * exp(b * z), a ~ 1, b ~ gp(x), nl = TRUE)
+  ref <- gs_ll(fL, data = dL, start = list(theta = c(log(0.3), log(0.1))))
+  expect_gt(gs_ll(fL, data = dL), ref - 1e-5 * abs(ref))
+})
+
+# rows of the review's sweep (dev/reviews/gpstop-review-sweep2.R): a
+# logistic body with the field in its asymptote
+gs_logis_row <- function(fam, n, seed) {
+  set.seed(81100 + 1000 * match(fam, c("gaussian", "poisson", "bernoulli",
+                                       "student")) +
+             100 * seed + n + 30)
+  x <- sort(round(stats::runif(n, 0, 10), 3))
+  z <- round(stats::rnorm(n), 3)
+  w <- round(stats::runif(n, 0.2, 5), 3)
+  f <- if (seed %% 2) sin(x) else 2 * sin(3 * x) + x
+  eta <- (3 + f / max(abs(f))) / (1 + exp(-1.5 * z))
+  y <- switch(fam,
+              student = eta + 0.1 * stats::rt(n, 3),
+              bernoulli = stats::rbinom(n, 1, stats::plogis(
+                1.5 * (eta - stats::median(eta)) / stats::sd(eta))))
+  data.frame(x, z, w, y)
+}
+# the smallest eigenvalue of the fit's inner Hessian at its optimum
+gs_inner_ev <- function(fit) {
+  env <- fit$obj$env
+  fit$obj$fn(fit$opt$par)
+  H <- as.matrix(env$spHess(env$last.par, random = TRUE))
+  min(eigen((H + t(H)) / 2, symmetric = TRUE, only.values = TRUE)$values)
+}
+
+test_that("a second reading of the body keeps only a regular maximum", {
+  skip_on_cran()
+  # the descent from it rose to a student() spike (code 1, gradient 1.2e13,
+  # inner eigenvalue 1.97e-7) and to a bernoulli field of length scale
+  # e^-323 at code 0 with no warning; importance sampling read both below
+  # 0.81.0's point (dev/reviews/2026-11-11-gpstop.md, MAJOR 1 and 2)
+  fl <- bf(y ~ a / (1 + exp(-b * z)), a ~ gp(x), b ~ 1, nl = TRUE)
+  ok <- c("Optimizer did not report", "gradient", "Standard errors are not")
+  for (fam in c("student", "bernoulli")) {
+    d <- gs_logis_row(fam, 40L, 2L)
+    family <- if (fam == "student") student() else bernoulli()
+    fit <- allow_warnings(frm(fl, data = d, family = family), ok)
+    ref <- local({
+      local_mocked_bindings(gp_body_relin_applies = function(...) FALSE,
+                            .package = "frmtmb")
+      allow_warnings(frm(fl, data = d, family = family), ok)
+    })
+    ll <- as.numeric(logLik(fit))
+    l0 <- as.numeric(logLik(ref))
+    # never below the fit without the second reading ...
+    expect_gt(ll, l0 - 1e-8 * abs(l0))
+    # ... and, where above it, at a regular maximum of the field
+    if (ll > l0 + 1e-8 * abs(l0)) {
+      expect_identical(fit$opt$convergence, 0L)
+      gap <- min(diff(sort(unique(d$x))))
+      expect_gt(exp(fit$estimates$theta[2L]), gap / 10)
+      expect_gt(gs_inner_ev(fit), 0.01 * gs_inner_ev(ref))
+    }
+  }
+})
+
+test_that("a white-noise field is refused at any length scale below the gaps", {
+  skip_on_cran()
+  # the bernoulli artifact polished from a length scale near the smallest
+  # gap is a stationary point at code 0 with a healthy inner Hessian, at
+  # 0.67 of the smallest gap, and at 52 times it beside one near tie; a
+  # rule on the smallest gap kept both (review, short check S1)
+  fl <- bf(y ~ a / (1 + exp(-b * z)), a ~ gp(x), b ~ 1, nl = TRUE)
+  ok <- c("Optimizer did not report", "gradient", "Standard errors are not")
+  regular <- frmtmb:::gp_relin_regular
+  for (v in c("plain", "tie")) {
+    d <- gs_logis_row("bernoulli", 40L, 2L)
+    if (v == "tie") d$x[20] <- d$x[19] + 1e-4
+    fit <- allow_warnings(frm(fl, data = d, family = bernoulli()), ok)
+    obj <- fit$obj
+    # the absent case: the fit's own regular maximum passes
+    expect_true(regular(obj, fit$frame, fit$opt, 1e-3))
+    mg <- min(diff(sort(unique(d$x))))
+    pn <- names(obj$par)
+    p <- obj$par
+    p[pn == "beta"] <- c(-11.046, -135.46)
+    p[pn == "theta"] <- c(3.5988, log((if (v == "tie") 20 else 5) * mg / 10))
+    o <- suppressWarnings(stats::nlminb(p, obj$fn, obj$gr,
+                                        control = list(iter.max = 200)))
+    o$convergence <- as.integer(o$convergence)
+    expect_false(regular(obj, fit$frame, o, 1e-3))
+    obj$fn(fit$opt$par)
+  }
+})
+
+test_that("the body is linearized again only for its field, with no start", {
+  n_relin <- 0L
+  real <- frmtmb:::gp_body_relin
+  local_mocked_bindings(gp_body_relin = function(...) {
+    n_relin <<- n_relin + 1L
+    real(...)
+  }, .package = "frmtmb")
+  ok <- c("Optimizer did not report", "gradient", "Standard errors are not")
+  dE <- gs_rv_row("E", 1L, 60L, 2L)
+  fE <- bf(y ~ a * exp(b * z), a ~ gp(x), b ~ 1, nl = TRUE)
+  # the absent case: a field in a body, no start of the caller's
+  fit <- allow_warnings(frm(fE, data = dE), ok)
+  expect_gt(n_relin, 0L)
+  # update() refits from the cold start, as frm() does
+  n_relin <- 0L
+  allow_warnings(update(fit, data = dE), ok)
+  expect_gt(n_relin, 0L)
+  # refit() is handed the fit's estimates, so it has a start
+  n_relin <- 0L
+  allow_warnings(refit(fit, newresp = dE$y * 1.01), ok)
+  expect_identical(n_relin, 0L)
+  n_relin <- 0L
+  allow_warnings(frm(fE, data = dE,
+                     start = list(beta = c("b_(Intercept)" = 0.3))), ok)
+  expect_identical(n_relin, 0L)
+  # a field in the mean: the working response reads no body
+  set.seed(9)
+  dP <- data.frame(x = dE$x, y = stats::rpois(nrow(dE), exp(1 + sin(dE$x))))
+  allow_warnings(frm(y ~ gp(x), data = dP, family = poisson()), ok)
+  expect_identical(n_relin, 0L)
 })
 
 test_that("a caller's start turns the body start off on every refit path", {

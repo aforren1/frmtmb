@@ -465,7 +465,16 @@ fit_draw_space <- function(fit) {
                   jc = list(null = sdr$se_null, flat = sdr$se_null_flat,
                             units = fit$par_units,
                             boundary = se_null_boundary(fit, sdr)),
-                  boundary_only = all(sdr$se_lost == "boundary"),
+                  # a family's limiting case ("limit", draw_limit_quiet())
+                  # is held like a variance component at zero, and
+                  # predict() puts the raw row of a parameter at its end
+                  # back (draw_limit_restore()); any other "limit" is a
+                  # fit with no maximum, which no law describes
+                  boundary_only = all(
+                    sdr$se_lost == "boundary" |
+                      (sdr$se_lost == "limit" &
+                         draw_limit_quiet(fit, sdr$se_lost))),
+                  raw = sdr$cov_fixed_raw, lost = sdr$se_lost,
                   mo_const_only = length(cpos) > 0L &&
                     !anyNA(lost_pos) && all(lost_pos %in% cpos)))
     }

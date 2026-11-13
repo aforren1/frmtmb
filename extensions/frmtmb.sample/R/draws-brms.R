@@ -24,7 +24,9 @@
 #'
 #' @noRd
 draws_raw_array <- function(x, inc_warmup = FALSE) {
-  m <- x$draws
+  # in brms's order (draws_brms_order()), the order variables() lists
+  o <- draws_brms_order(x)
+  m <- x$draws[, o, drop = FALSE]
   nc <- draws_nchains(x)
   if (nc <= 1L || nrow(m) %% nc != 0L) nc <- 1L
   w <- if (isTRUE(inc_warmup)) draws_warmup(x)
@@ -33,6 +35,7 @@ draws_raw_array <- function(x, inc_warmup = FALSE) {
                  dimnames = list(NULL, paste0("chain:", seq_len(nc)),
                                  colnames(m))))
   }
+  if (identical(colnames(w), colnames(x$draws))) w <- w[, o, drop = FALSE]
   if (!identical(colnames(w), colnames(m)) || nrow(w) %% nc != 0L) {
     frm_stop("inc_warmup = TRUE: the saved warmup does not fit these ",
              "draws (", ncol(w), " variables and ", nrow(w), " rows ",
@@ -613,18 +616,21 @@ draws_internal_matrix <- function(x, rows = NULL) {
 #' is the first chain's iterations.
 #'
 #' `format` converts the draws array before the draw subset, because
-#' brms subsets in the format the method returns.
+#' brms subsets in the format the method returns. Each method refuses an
+#' unknown argument itself, with `draws_accessor_dots`, so that the
+#' refusal names the function the caller called and not this one
+#' (backlog 1547).
 #'
 #' @noRd
 draws_accessor_args <- function(x, pars, variable, draw, subset, what,
                                 format = identity, ...) {
-  frm_check_dots(..., .allow = c("regex", "fixed", "inc_warmup",
-                                 "iteration", "chain"))
   dots <- list(...)
   if (!anyNA(pars)) {
     frm_warning("Argument 'pars' is deprecated. Please use 'variable' ",
                 "instead.", call. = FALSE)
-    variable <- draws_extract_pars(pars, colnames(x$draws),
+    # brms's extract_pars(pars, variables(x)): the selection comes in
+    # variables() order, not the stored one
+    variable <- draws_extract_pars(pars, variables(x),
                                    fixed = dots$fixed %||% FALSE)
   }
   if (!is.null(subset)) {
@@ -640,6 +646,12 @@ draws_accessor_args <- function(x, pars, variable, draw, subset, what,
   }
   a
 }
+
+#' The arguments of brms's draws accessors that arrive in `...`.
+#'
+#' @noRd
+draws_accessor_dots <- c("regex", "fixed", "inc_warmup", "iteration",
+                         "chain")
 
 #' brms's `fixef_pars()`: the population-level coefficient prefixes.
 #'

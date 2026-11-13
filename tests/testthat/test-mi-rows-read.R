@@ -340,3 +340,21 @@ test_that("the laplace seam gives an unfitted object the fit's objective", {
   expect_lt(abs(a$obj$fn(b$obj$par) - b$obj$fn(b$obj$par)) /
               abs(b$obj$fn(b$obj$par)), 1e-10)
 })
+
+test_that("df.residual() and anova() count the rows a missing y left", {
+  d <- pair_data(12009)
+  m <- seq(4, nrow(d), by = 12)
+  d$y[m] <- NA
+  a <- frm(bf(y | mi() ~ x), family = gam, data = d)
+  b <- frm(bf(y ~ x), family = gam, data = d[-m, ])
+  b0 <- frm(bf(y ~ 1), family = gam, data = d[-m, ])
+  # the mi() fit's likelihood is on the complete rows, so every count
+  # agrees with the complete-case fit's: through 0.81.0 df.residual()
+  # counted the rows mi() left unread, and anova() refused to compare
+  # the mi() fit with a complete-case fit
+  expect_identical(attr(logLik(a), "nobs"), nrow(d) - length(m))
+  expect_equal(df.residual(a), df.residual(b))
+  ref <- anova(b, b0)$Chisq[2L]
+  expect_no_error(tab <- anova(a, b0))
+  expect_lt(abs(tab$Chisq[2L] - ref), 1e-6 * abs(ref))
+})

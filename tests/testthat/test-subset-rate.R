@@ -243,6 +243,28 @@ test_that("a subset() model is the sum of the separate fits", {
   expect_error(nobs(mv, resp = "y3"), "y3")
 })
 
+test_that("BIC(), df.residual() and anova() count the rows a response keeps", {
+  d <- subset_data()
+  mv <- frm(bf(y1 | subset(s1) ~ x) + gaussian() +
+              bf(y2 | subset(s2) ~ z) + poisson(), data = d)
+  used <- sum(d$s1 | d$s2)
+  # rows that no response's subset() keeps carry no density, so they
+  # are no observation; through 0.81.0 all 120 were counted
+  expect_lt(used, nrow(d))
+  ll <- logLik(mv)
+  expect_identical(attr(ll, "nobs"), used)
+  expect_equal(BIC(mv), -2 * as.numeric(ll) + log(used) * attr(ll, "df"))
+  expect_equal(df.residual(mv), used - attr(ll, "df"))
+  # brms's nobs() stays the rows of the data
+  expect_identical(nobs(mv), nrow(d))
+  # the same frame without y1's subset() is a likelihood of more data,
+  # though both frames hold 120 rows
+  wide <- frm(bf(y1 ~ x) + gaussian() + bf(y2 | subset(s2) ~ z) +
+                poisson(), data = d)
+  expect_identical(attr(logLik(wide), "nobs"), nrow(d))
+  expect_error(anova(mv, wide), "same number of observations")
+})
+
 test_that("an NA drops its row only where a response uses it", {
   d <- subset_data()
   # z is NA on the 30 rows outside y2's subset, and nothing else uses z:

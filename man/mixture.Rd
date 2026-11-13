@@ -110,15 +110,20 @@ their standard errors mean nothing. In 160 fits of a two-component
 mixture to simulated data with two well-separated classes (300 or
 500 rows), 22 ended there, and in 16 of the 22 the degenerate point
 had a higher log-likelihood than the best non-degenerate optimum
-found from other starts, so a better start does not move such a fit
-off it. The fit warns when a component ends at such a point: when
-doubling all its latent distances (or, with \code{cs()}, one threshold's)
+found from other starts, so the best start by the likelihood alone
+does not move such a fit off it. Without random effects, \code{\link[=frm]{frm()}}
+therefore also fits from 10 jittered starts and keeps the best
+converged point without a step function, and warns when a step
+function it passed over was higher (see
+\code{starts} in \code{\link[=frmtmb_control]{frmtmb_control()}}). The fit warns when a component ends
+at such a point: when doubling all its latent distances (or, with
+\code{cs()}, one threshold's)
 costs the log-likelihood less than 0.1, or when no row lies within a
 latent distance of 50 of one of its thresholds. Strong predictors
 alone do not set it off: none of 167 sound fits with slopes up to 15
 warned, under the logit, probit, cloglog and cauchit. Compare
-several starts (\code{frm(start = )}), the more so with three or more
-components, and hold the components with priors on \code{class = "Intercept"} and \code{class = "b"} with \code{dpar = "mu<k>"}, as a brms fit
+more starts (\code{frmtmb_control(starts = )}), the more so with three or
+more components, and hold the components with priors on \code{class = "Intercept"} and \code{class = "b"} with \code{dpar = "mu<k>"}, as a brms fit
 does; or use fewer components. An ordinal mixture holds each
 interior category's probability at \code{exp(-692)} or above, so that a
 component which stops using a category does not stop the optimizer

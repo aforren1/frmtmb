@@ -459,6 +459,14 @@ hmm <- function(K, family = stats::gaussian(), time = NULL, group = NULL,
   dpars <- character(0)
   links <- list()
   init_fns <- list()
+  # A component's stationary point is one of every state's, in that
+  # state's copy of the dpar, as in core's mixture(). Every state starts
+  # a non-primary dpar from one pooled value, so a state skewed against
+  # the pooled residual starts on the wrong side of alpha = 0: without
+  # the declaration hmm(2, skew_normal()) stopped at alpha = 0 in one
+  # state on 2 of 3 seeds (dev/silent-findings.md, item 857).
+  st_comp <- comp[["post"]][["stationary"]]
+  stat <- list()
   for (k in seq_len(K)) {
     for (dp in comp$dpars) {
       nm <- paste0(dp, k)
@@ -468,6 +476,9 @@ hmm <- function(K, family = stats::gaussian(), time = NULL, group = NULL,
         hmm_mu_init(k, K, comp$links[[dp]])
       } else {
         comp$init_dpars[[dp]]
+      }
+      if (is.list(st_comp) && is.list(st_comp[[dp]])) {
+        stat[[nm]] <- st_comp[[dp]]
       }
     }
   }
@@ -513,7 +524,8 @@ hmm <- function(K, family = stats::gaussian(), time = NULL, group = NULL,
     # cannot come from the plain `sim` slot; it is the structure's
     # sim_ctx, installed with the rest of the protocol below
     primary_dpars = as.vector(t(outer(primaries, seq_len(K), paste0))),
-    extra_pars = extra_pars
+    extra_pars = extra_pars,
+    post = if (length(stat)) list(stationary = stat) else list()
   )
   # A transition logit is one free cell of a row's softmax, so no
   # elementwise inverse turns it into a probability. frmtmb's brms names

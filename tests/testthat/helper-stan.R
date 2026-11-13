@@ -156,14 +156,12 @@ frm_u <- function(fit, group = 1) {
 
 # One random-effect block, keyed by the TERM LABEL VarCorr() prints.
 #
-# That label is the only unambiguous key. ranef() names every block
-# after its GROUPING FACTOR, so a model with a random intercept on two
-# distributional parameters has two blocks both called "id" whose
-# columns are both called "(Intercept)"; `||` splits one term into
-# several blocks with the same name again. VarCorr() distinguishes them
-# ("1 | id" against "phi: 1 | id", "0 + half | id" against
-# "0 + bias | id"), and its list runs in the same order as ranef()'s, so
-# one index serves both.
+# That label is the only unambiguous key. ranef() holds one matrix per
+# GROUPING FACTOR, the blocks on it merged, so a model with a random
+# intercept on two distributional parameters has one entry "id";
+# VarCorr() keeps one entry per block ("1 | id" against "phi: 1 | id",
+# "0 + half | id" against "0 + bias | id"). ranef() returns one block
+# when it is indexed by that label, so the label serves both.
 frm_block_index <- function(fit, term) {
   nm <- names(varcorr_matrices(fit))
   i <- match(term, nm)
@@ -176,7 +174,8 @@ frm_block_index <- function(fit, term) {
 
 # The conditional modes of one column of one block.
 frm_u_term <- function(fit, term, col = 1L) {
-  unname(ranef(fit)[[frm_block_index(fit, term)]][, col])
+  frm_block_index(fit, term)
+  unname(ranef(fit)[[term]][, col])
 }
 
 # That column's standard deviation.

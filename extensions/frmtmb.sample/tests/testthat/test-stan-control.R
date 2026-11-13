@@ -250,6 +250,36 @@ test_that("an assembly argument on the FIT route is refused rather
                  iter = 40, refresh = 0, REML = FALSE,
                  fit_control = frmtmb_control()))),
     "frmtmb_draws")
+  # drop_unused_levels is frm()'s, and a fit has already used it
+  expect_error(frm_sample(fit, drop_unused_levels = FALSE),
+               "drop_unused_levels =", fixed = TRUE)
+})
+
+test_that("the formula route takes frm()'s drop_unused_levels", {
+  # it reached the sampler, which stopped with "passing unknown
+  # arguments: drop_unused_levels." (backlog 1655)
+  skip_sampler()
+  set.seed(1655)
+  dd <- data.frame(g = factor(rep(1:6, each = 6L), levels = 1:7),
+                   x = stats::rnorm(36))
+  dd$y <- 1 + 0.5 * dd$x + stats::rnorm(6L, 0, 0.5)[dd$g] +
+    stats::rnorm(36)
+  ds <- function(...) {
+    suppressWarnings(suppressMessages(
+      frm_sample(bf(y ~ x + (1 | g)), data = dd, chains = 1, iter = 40,
+                 refresh = 0, seed = 1, ...)))
+  }
+  # frm() keeps the level in the model frame, as the fit route does; a
+  # grouping factor's block holds the observed levels either way, as in
+  # lme4
+  kept <- ds(drop_unused_levels = FALSE)
+  expect_identical(levels(kept$data$g), as.character(1:7))
+  expect_identical(levels(kept$data$g),
+                   levels(suppressWarnings(suppressMessages(
+                     frm(bf(y ~ x + (1 | g)), data = dd,
+                         drop_unused_levels = FALSE)))$data$g))
+  # the guard's condition absent: the default drops the level
+  expect_identical(levels(ds()$data$g), as.character(1:6))
 })
 
 ## ---- what adapt_delta buys, measured by the run ----------------------

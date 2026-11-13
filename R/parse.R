@@ -95,6 +95,15 @@ row_aterms <- c("subset", "index")
 #' `mi_pred`, `gp_pred`, `cs_pred`, `ar`, `ma`, `arma`, `cosy`,
 #' `unstr`, `mm` and `mmc`.
 #'
+#' A name whose keys in `aterms` another term already uses is refused
+#' too. The keys of a term are `name`, or `name1` to `namek` for `arity
+#' = k` (the name alone for an option). So `x2` is refused beside an
+#' `x` of three arguments, and the reverse, because both deliver a
+#' value under `x2`; `vint1` and `cens_y` with two arguments are
+#' refused because core delivers `vint()` and `cens()` values under
+#' `vint1` and `cens_y2`. Two such terms would overwrite each other's
+#' values without a word.
+#'
 #' @param name The term's name, as it is written in a formula, without
 #'   parentheses: `"dec"` accepts `y | dec(response) ~ x`.
 #' @param arity How many arguments the term takes. With `arity = 1` the
@@ -184,6 +193,7 @@ frmtmb_register_aterm <- function(name, arity = 1L, coerce = as.numeric,
              "(family, call, env) that returns the family, not ",
              arg_desc(option), call. = FALSE)
   }
+  aterm_key_clash(name, as.integer(arity), option)
   # A registered term the compatibility table cannot describe is a gap
   # by construction: frm() would accept a term frm_compat() refuses to
   # answer about, and the registrant would have to remember to say the
@@ -199,6 +209,56 @@ frmtmb_register_aterm <- function(name, arity = 1L, coerce = as.numeric,
   frmtmb_aterm_registry$reg[[name]] <-
     list(name = name, arity = as.integer(arity), coerce = coerce,
          option = option)
+  invisible(NULL)
+}
+
+#' The keys a registered term delivers its values under in `aterms`:
+#' `name` for one argument, `name1..k` for k. An option term carries no
+#' value, but registered_aterm_of() finds it by its name before it
+#' strips an index, so its name is a key too.
+#'
+#' @noRd
+aterm_reg_keys <- function(name, arity, option = NULL) {
+  if (is.function(option) || arity == 1L) name else paste0(name, seq_len(arity))
+}
+
+#' Refuse a registration whose keys another term already delivers under.
+#' Two terms that share a key overwrite each other in `aterms`: with
+#' `x()` of three arguments beside `x2()`, `y | x2(z) + x(u, v, w)` let
+#' x's second argument replace x2(z) and take x2's coercion, and the
+#' other order said "Duplicated addition term `x2()`". The name being
+#' registered is left out, since registering it again replaces it.
+#'
+#' @noRd
+aterm_key_clash <- function(name, arity, option) {
+  keys <- aterm_reg_keys(name, arity, option)
+  core_keys <- c(core_aterms, "trunc_lb", "trunc_ub", "cens_y2",
+                 "se_sigma", "mi_sd", "thres_gr")
+  owner <- function(k) {
+    if (k %in% core_keys || grepl("^(vint|vreal)[0-9]+$", k)) {
+      return(paste0("frmtmb's own `", aterm_base(k), "()`"))
+    }
+    for (e in frmtmb_aterm_registry$reg) {
+      if (identical(e$name, name)) next
+      if (k %in% aterm_reg_keys(e$name, e$arity, e$option)) {
+        return(paste0("the registered `", e$name, "()`",
+                      if (e$arity > 1L && !is.function(e$option)) {
+                        paste0(" (", e$arity, " arguments)")
+                      }))
+      }
+    }
+    NULL
+  }
+  for (k in keys) {
+    who <- owner(k)
+    if (is.null(who)) next
+    frm_stop("frmtmb_register_aterm(): `", name, "()`",
+             if (length(keys) > 1L) paste0(" with ", arity, " arguments"),
+             " would deliver a value under the key `", k, "`, which ",
+             who, " already uses. Two terms that share a key overwrite ",
+             "each other's values in the `aterms` list a family reads. ",
+             "Choose another name", call. = FALSE)
+  }
   invisible(NULL)
 }
 
