@@ -61,9 +61,16 @@ autocor_reserved_names <- function() {
 #'
 #' The term holds for all the rows of a response at once, so the
 #' likelihood does not factor into rows. frmtmb therefore refuses the
-#' term with `weights()`, `cens()`, `trunc()`, `se()`, `mi()`,
-#' `rescor = TRUE`, a mixture, a non-linear formula and `quadrature`,
-#' as it refuses `ar(cov = TRUE)`. The term's fixed data describe the
+#' term with `weights()`, `cens()`, `trunc()`, `se()`, `rescor = TRUE`,
+#' a mixture, a non-linear formula and `quadrature`. `mi()` on the
+#' response works: a missing value is a coordinate of the joint draw,
+#' a latent value that `whiten()` receives with the observed ones and
+#' that the fit integrates out under the Laplace approximation, exact
+#' on `gaussian()`. On `student()` the joint is one multivariate t, whose
+#' Laplace error is a function of `nu` and the numbers of rows and of
+#' missing values alone; the objective takes it off, so the fit is exact
+#' there too when no other density reads the values and no other random
+#' effect is integrated. The term's fixed data describe the
 #' rows of the data, so [fitted()], [predict()] and [simulate()] take
 #' `newdata` with one row per row of the term's matrix, read in their
 #' order (a counterfactual on the same units, as brms takes it). When
@@ -89,8 +96,10 @@ autocor_reserved_names <- function() {
 #'
 #' @section The map:
 #' `whiten(y, mu, sigma, theta, aux)` runs on the TAPE: `mu`, `sigma`
-#' and `theta` are RTMB advectors there, `y` is numeric and `mu` has one
-#' value per row. `sigma` is ONE value when `sigma_varies = FALSE`, and
+#' and `theta` are RTMB advectors there and `mu` has one value per row.
+#' `y` is numeric, except under `mi()`, where its missing entries are
+#' latent values and `y` is an advector too, so the map must not coerce
+#' it with `as.numeric()`. `sigma` is ONE value when `sigma_varies = FALSE`, and
 #' one value per row when `sigma_varies = TRUE`. It returns
 #' `list(u, logjac)`: the innovations, one per row, and the log of the
 #' absolute determinant of the map's Jacobian in `y`, one number. Write
@@ -122,7 +131,8 @@ autocor_reserved_names <- function() {
 #' lag map registered without its slot, one draw takes 0.03 s and 21 Mb
 #' at `n = 500`, 0.5 s and 48 Mb at 1000, 1.7 s and 155 Mb at 2000, and
 #' 5 s and 345 Mb at 3000, growing as `n^3`; with the slot, 1600 rows
-#' take 2 ms. Above 1000 rows `log_lik()` warns once per call (class
+#' take 2 ms. Above `getOption("frmtmb.autocor_dense_max", 1000L)` rows
+#' `log_lik()` warns once per call (class
 #' `frmtmb_autocor_dense_fallback`), naming the term and the slot. When the
 #' frame is built, a given `jacobian` is checked on numbers at two
 #' points: the start with `sigma = 1`, and a generic point, with sigma
@@ -371,6 +381,8 @@ autocor_seam_compat_rules <- function(feat, note = NULL) {
     r(feat, "group:autocor_families", "works", note)
     r(feat, "kind:aterm", "refused",
       "Refused: the density is joint over the rows, so there is no per-row contribution for a weight, a censoring indicator, a truncation bound or a known standard error to act on.")
+    r(feat, "mi()", "conditional",
+      "mi() on the response makes each missing value a coordinate of the joint draw, brms's Yl, which whiten() then receives on the tape. frm() integrates the missing values out under the Laplace approximation, exact on gaussian(); on student() its error is a function of nu and the numbers of rows and of missing values alone, which the objective takes off, so the fit is exact there too when no other density reads the values and no other random effect is integrated. frm_sample() samples them, as brms does. log_lik() is refused, as it is for every mi() model.")
     r(feat, "rescor", "refused",
       "Refused: rescor = TRUE is another residual covariance, across responses.")
     r(feat, "mixture", "refused",
@@ -558,8 +570,9 @@ autocor_seam_check_map <- function(e, ac, aux, st, n) {
                "difference ", format(max(abs(uu - u)), digits = 3),
                "), so unwhiten() is not the inverse of whiten()"))
   }
+  literal <- TRUE
   if (!is.null(e[["jacobian"]])) {
-    autocor_seam_check_jacobian(e, ac, aux, st, n, bad)
+    literal <- autocor_seam_check_jacobian(e, ac, aux, st, n, bad)
   }
   b <- e[["bounds"]]
   if (!is.null(b)) {
@@ -577,7 +590,8 @@ autocor_seam_check_map <- function(e, ac, aux, st, n) {
                  "at the start"))
     }
   }
-  invisible(TRUE)
+  # whether the jacobian slot is K itself rather than O K
+  invisible(literal)
 }
 
 #' Check a registered term's `jacobian` slot against its map, on numbers.
@@ -591,8 +605,11 @@ autocor_seam_check_map <- function(e, ac, aux, st, n) {
 #' `sigma_varies = TRUE`, different on every row (which tells rows from
 #' columns), and every parameter moved off the start (a logit-mapped
 #' one stays inside its interval). At each point `K (y - m)` must be
-#' `whiten(y)` for two directions of `y - m`. A slip passes only if its
-#' error matrix annihilates both directions there, which a slip that
+#' `whiten(y)` for two directions of `y - m`, or, for a slot that gives
+#' `O K` with `O` orthogonal and so the same precision, the two must
+#' have the same Gram matrix. Returns whether every point matched
+#' literally; the other kind is read through `K'K e`. A slip passes only
+#' if its error matrix annihilates both directions there, which a slip that
 #' depends on sigma, on the parameters or on the orientation of `K`
 #' does not do at a generic point. The parameters are moved by 0.4 and
 #' then -0.4 times their position, and by 0.04 and -0.04 where the map
@@ -641,26 +658,39 @@ autocor_seam_check_jacobian <- function(e, ac, aux, st, n, bad) {
                 class = "frmtmb_autocor_jacobian_unchecked")
   }
   pts <- c(pts, list(gen))
+  literal <- TRUE
   for (pt in Filter(Negate(is.null), pts)) {
     K <- tryCatch(e[["jacobian"]](pt$sg, pt$th, aux),
                   error = function(err) bad(paste0(
                     "could not be evaluated: jacobian() failed: ",
                     conditionMessage(err))))
     KD <- tryCatch(as.matrix(K %*% pt$D), error = function(err) NULL)
-    if (is.null(KD) || !identical(as.integer(dim(K)), c(n, n)) ||
-        !identical(dim(KD), dim(pt$U)) ||
-        max(abs(KD - pt$U)) > 1e-6 * max(abs(pt$U))) {
-      bad(paste0("is wrong: jacobian() must give the n x n matrix K with ",
-                 "K (y - m) = whiten(y)$u, m the mean unwhiten(0), at ",
-                 "every sigma and parameter value; it fails at sigma ",
-                 if (length(pt$sg) > 1L) "varying by row" else
-                   format(pt$sg[1L]),
-                 if (length(pt$th)) paste0(" and parameters ",
-                                           paste(format(pt$th, digits = 3),
-                                                 collapse = ", "))))
+    shape_ok <- !is.null(KD) && identical(as.integer(dim(K)), c(n, n)) &&
+      identical(dim(KD), dim(pt$U))
+    tol <- 1e-6 * max(abs(pt$U))
+    if (shape_ok && max(abs(KD - pt$U)) <= tol) next
+    # O K for an orthogonal O is the same precision K'K, which is all the
+    # pointwise log-density reads, so it is right too: the Gram matrices
+    # of the two directions agree. It is read through K'K e rather than
+    # K'u (autocor_seam_loo_parts()), since K e is then O u
+    G <- crossprod(pt$U)
+    if (shape_ok && max(abs(crossprod(KD) - G)) <= 1e-6 * max(abs(G))) {
+      literal <- FALSE
+      next
     }
+    bad(paste0("is wrong: jacobian() must give the n x n matrix K with ",
+               "K (y - m) = whiten(y)$u, m the mean unwhiten(0), at ",
+               "every sigma and parameter value, or that matrix times an ",
+               "orthogonal one; it fails at sigma ",
+               if (length(pt$sg) > 1L) "varying by row" else
+                 format(pt$sg[1L]),
+               if (length(pt$th)) paste0(" and parameters ",
+                                         paste(format(pt$th, digits = 3),
+                                               collapse = ", "))))
   }
-  invisible(TRUE)
+  # whether K (y - m) is the map's own u at every point checked, which
+  # lets the pointwise log-density read Q e as K'u
+  invisible(literal)
 }
 
 #' Build a registered term's block once, when the frame is assembled:
@@ -686,7 +716,9 @@ autocor_seam_block <- function(ac, resp, rows, n_all, lookup) {
              length(st), " value(s) where npar is ", np, ", or a value ",
              "that is not finite, for ", ac[["label"]], call. = FALSE)
   }
-  autocor_seam_check_map(e, ac, aux, st, n)
+  if (!isTRUE(autocor_seam_check_map(e, ac, aux, st, n))) {
+    ac[["jacobian_rotated"]] <- TRUE
+  }
   ac[["aux"]] <- aux
   ac[["d"]] <- n
   # the rows of the data the term's matrix covers, the dropped ones
@@ -721,6 +753,61 @@ autocor_seam_loglik <- function(e, y, mu, sigma, theta, ac, nu = NULL) {
   # residual correlation of the ar() family does (mvt_std_loglik())
   lgamma_shift_diff(nu / 2, n / 2) - 0.5 * n * (log(nu) + log(pi)) -
     0.5 * (nu + n) * log1p(q / nu) + w[["logjac"]]
+}
+
+#' The Laplace error of integrating `m` coordinates out of one
+#' `n`-dimensional multivariate t with shape `nu`, on the tape:
+#' `lgamma((nu + n)/2) - lgamma((nu + n - m)/2) + (m/2) log(2/(nu + n))`.
+#' The joint at the inner mode is the exact margin of the other `n - m`
+#' coordinates times `exp()` of this, whatever the data, the mean or the
+#' scale matrix, because the quadratic form of the kept coordinates
+#' cancels. So the objective subtracts it and the margin is exact.
+#'
+#' @noRd
+autocor_seam_t_laplace <- function(nu, n, m) {
+  a <- (nu + n - m) / 2
+  lgamma_shift_diff(a, m / 2) + (m / 2) * log(2 / (nu + n))
+}
+
+#' Per response, how many missing values of a registered term's
+#' `student()` response the Laplace approximation integrates out of that
+#' term's density alone: `0` where the correction above does not apply.
+#' It applies on the maximum-likelihood route (`mi_ml_frame()` has run;
+#' a sampler keeps the joint density, with no correction) when no other
+#' density reads a missing value of the response (`mi(y)` as a predictor,
+#' a measurement error `mi(sd)`), and when nothing else is integrated:
+#' with another random effect the inner problem is not the term's
+#' density alone, and the joint Laplace error is not this constant.
+#'
+#' @noRd
+autocor_seam_t_missing <- function(frame) {
+  out <- list()
+  mp <- frame[["mi_map"]] %||% list()
+  if (is.null(frame[["mi_sampling"]]) || !length(mp)) return(out)
+  if (length(frame[["re_blocks"]] %||% list()) ||
+        length(frame[["me"]][["groups"]] %||% list())) {
+    return(out)
+  }
+  for (r in names(mp)) {
+    ac <- frame[["autocor"]][[r]]
+    m <- mp[[r]]
+    if (!autocor_is_seam(ac) || !isTRUE(ac[["student"]]) ||
+          !is.null(m[["se"]]) || !length(m[["rows"]])) {
+      next
+    }
+    # every latent value in the model must be this response's own
+    if (length(frame[["par_template"]][["miss"]]) != length(m[["rows"]])) {
+      next
+    }
+    read <- FALSE
+    for (lp in frame[["linpreds"]]) {
+      for (mt in lp[["mi"]] %||% list()) {
+        if (identical(mt[["var"]], r)) read <- TRUE
+      }
+    }
+    if (!read) out[[r]] <- length(m[["rows"]])
+  }
+  out
 }
 
 #' The natural names of a registered block's parameters, read off its
@@ -1038,8 +1125,11 @@ fcor_build <- function(spec, rows, n_all, lookup) {
              call. = FALSE)
   }
   L <- t(chol(M))
-  list(L = L, Linv = forwardsolve(L, diag(nrow(L))),
-       logdet = sum(log(diag(L))))
+  Linv <- forwardsolve(L, diag(nrow(L)))
+  # the diagonal of M^-1, once: the pointwise log-density reads it per
+  # draw (autocor_seam_loo_parts()) without forming K = Linv / sigma
+  list(L = L, Linv = Linv, logdet = sum(log(diag(L))),
+       diag_inv = colSums(Linv * Linv))
 }
 
 #' @noRd

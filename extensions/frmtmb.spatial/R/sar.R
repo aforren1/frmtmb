@@ -28,7 +28,7 @@
 #' `e` holds independent normal residuals with standard deviation
 #' `sigma`, or for `student()` one multivariate-t draw with scale
 #' `sigma` and `nu`. The log-likelihood has the log-determinant
-#' \eqn{\log|I - \rho W| = \sum_i \log(1 - \rho \lambda_i)}, with
+#' \eqn{\log|I - \rho W| = \sum_i \log|1 - \rho \lambda_i|}, with
 #' \eqn{\lambda_i} the eigenvalues of `W`, computed once.
 #'
 #' @section Arguments of the term:
@@ -40,8 +40,12 @@
 #'     `spdep::nb2mat()` with its row-standardized default) without
 #'     needing spdep. The rows the model drops (missing values) are
 #'     dropped from `M`, as brms drops them. `M` is not checked for row
-#'     standardization or symmetry, as in brms. Its eigenvalues must be
-#'     real, with at least one negative and one positive.}
+#'     standardization or symmetry, as in brms. Its real eigenvalues must
+#'     include a negative and a positive one. A `W`
+#'     from a directed graph, such as an asymmetric k-nearest-neighbor
+#'     graph, has complex eigenvalues in conjugate pairs; each pair adds
+#'     \eqn{\log|1 - \rho \lambda|^2}{log|1 - rho lambda|^2} to the
+#'     log-determinant, which is real. brms 2.23.0 refuses such a `W`.}
 #'   \item{`type`}{`"lag"` or `"error"`. A unique abbreviation is read
 #'     as brms reads it (`match.arg()`).}
 #' }
@@ -49,7 +53,12 @@
 #' @section The range of rho:
 #' \eqn{I - \rho W} is invertible and its determinant positive on the
 #' interval \eqn{(1 / \lambda_{min}, 1 / \lambda_{max})}, the default
-#' interval of `spatialreg::lagsarlm()`. frmtmb estimates \eqn{\rho} on
+#' interval of `spatialreg::lagsarlm()`. With complex eigenvalues the
+#' interval is read off the real eigenvalues alone, as spatialreg reads
+#' it: \eqn{1 - \rho \lambda}{1 - rho lambda} is zero at a real
+#' \eqn{\rho} only for a real \eqn{\lambda}{lambda}, and a complex pair
+#' adds \eqn{|1 - \rho \lambda|^2 > 0}{|1 - rho lambda|^2 > 0}, so the
+#' determinant stays positive on it. frmtmb estimates \eqn{\rho} on
 #' that interval through a logistic map, starting at 0. brms 2.23.0
 #' bounds \eqn{\rho} by \eqn{(\lambda_{min}, \lambda_{max})} instead.
 #' For a row-standardized `W` (\eqn{\lambda_{max} = 1}) that is a
@@ -77,9 +86,15 @@
 #' and `nu`, as in brms ("SAR models are not implemented when
 #' predicting 'sigma' or 'nu'"). It is written in the formula of `mu`.
 #' The likelihood is one joint density over all the rows, so
-#' `weights()`, `cens()`, `trunc()`, `se()`, `mi()`, `rescor = TRUE`,
-#' mixtures and `quadrature` are refused, and a response carries one
-#' residual correlation term. Random effects work.
+#' `weights()`, `cens()`, `trunc()`, `se()`, `rescor = TRUE`, mixtures
+#' and `quadrature` are refused, and a response carries one residual
+#' correlation term. Random effects work. `mi()` on the response works,
+#' as in brms: a missing value is a coordinate of the joint draw, which
+#' [frmtmb::frm()] integrates out under the Laplace approximation, exact
+#' on `gaussian()`, and exact on `student()` too once frmtmb takes off its
+#' error, a function of `nu` and the numbers of rows and of missing values,
+#' when nothing else reads the values and no other random effect is
+#' integrated.
 #'
 #' `summary()` and [frmtmb::confint_varcorr()] report `lagsar`
 #' or `errorsar` with a delta-method interval. [fitted()] and
@@ -195,32 +210,49 @@ sar_build <- function(spec, rows, n_all, lookup) {
   }
   dimnames(M) <- list(NULL, NULL)
   ev <- eigen(as.matrix(M), only.values = TRUE)$values
+  # rounding leaves a few ulps of imaginary part on a W that is similar
+  # to a symmetric matrix, such as a row-standardized adjacency matrix;
+  # those eigenvalues are real. A W from a directed graph (an asymmetric
+  # kNN graph) has complex ones in conjugate pairs, each pair adding
+  # log|1 - rho lambda|^2 to log|I - rho W| (sar_logdet()); brms 2.23.0
+  # refuses such a W
+  evc <- NULL
   if (is.complex(ev)) {
-    # rounding leaves a few ulps of imaginary part on a W that is
-    # similar to a symmetric matrix, such as a row-standardized
-    # adjacency matrix; a real imaginary part makes log|I - rho W| a
-    # sum over complex pairs, which brms does not compute either
-    if (max(abs(Im(ev))) > 1e-8 * max(Mod(ev))) {
-      frm_stop("sar(): the eigenvalues of 'M' are complex (largest ",
-               "imaginary part ", format(max(abs(Im(ev))), digits = 3),
-               "), so log|I - rho M| has no real form over them. A ",
-               "spatial weights matrix from an undirected neighbor graph, ",
-               "symmetric or row-standardized, has real eigenvalues",
-               call. = FALSE)
-    }
-    ev <- Re(ev)
+    cx <- abs(Im(ev)) > 1e-8 * max(Mod(ev))
+    if (any(cx)) evc <- cbind(re = Re(ev[cx]), im = Im(ev[cx]))
+    ev <- Re(ev[!cx])
   }
-  lo <- min(ev)
-  hi <- max(ev)
-  tol <- 1e-8 * max(abs(ev))
-  if (!(lo < -tol && hi > tol)) {
-    frm_stop("sar(): 'M' needs a negative and a positive eigenvalue, ",
-             "which a weights matrix with a zero diagonal has; its range ",
-             "is [", format(lo, digits = 4), ", ", format(hi, digits = 4),
-             "]", call. = FALSE)
+  # rho's interval comes from the real eigenvalues alone, as spatialreg
+  # reads a complex spectrum (1 / range(Re(eig[Im(eig) == 0]))):
+  # 1 - rho lambda vanishes at a real rho only for a real lambda, and a
+  # complex pair adds |1 - rho lambda|^2 > 0, so |I - rho W| > 0 there
+  lo <- if (length(ev)) min(ev) else NA_real_
+  hi <- if (length(ev)) max(ev) else NA_real_
+  tol <- 1e-8 * max(abs(c(ev, evc[, "re"], evc[, "im"])))
+  if (!isTRUE(lo < -tol && hi > tol)) {
+    frm_stop("sar(): 'M' needs a negative and a positive real eigenvalue, ",
+             "which a weights matrix with a zero diagonal has",
+             if (length(ev)) paste0("; the range of its real eigenvalues ",
+                                    "is [", format(lo, digits = 4), ", ",
+                                    format(hi, digits = 4), "]"),
+             call. = FALSE)
   }
   sar_warn_repeated(ev, tol)
-  list(W = M, ev = ev, lo = 1 / lo, hi = 1 / hi, type = spec[["type"]])
+  list(W = M, ev = ev, evc = evc, lo = 1 / lo, hi = 1 / hi,
+       type = spec[["type"]])
+}
+
+#' `log|I - rho W|` from the eigenvalues of `W`, on the tape: the real
+#' ones give `log(1 - rho lambda)`, and each complex one, counted with
+#' its conjugate, half the log of `|1 - rho lambda|^2`, so a pair adds
+#' the log of the squared modulus, which is real and positive.
+#'
+#' @noRd
+sar_logdet <- function(rho, aux) {
+  out <- sum(log1p(-rho * aux[["ev"]]))
+  evc <- aux[["evc"]]
+  if (is.null(evc)) return(out)
+  out + 0.5 * sum(log((1 - rho * evc[, "re"])^2 + (rho * evc[, "im"])^2))
 }
 
 #' The weights matrix of an spdep `nb` object, as brms takes it:
@@ -319,7 +351,7 @@ sar_whiten <- function(y, mu, sigma, theta, aux) {
   }
   # one sigma: sigma_varies = FALSE
   list(u = r / sigma,
-       logjac = sum(log1p(-rho * aux[["ev"]])) - length(y) * log(sigma))
+       logjac = sar_logdet(rho, aux) - length(y) * log(sigma))
 }
 
 #' The response at innovations `u`: `A^-1 (mu + sigma u)` (lag) or

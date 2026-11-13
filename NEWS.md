@@ -1,3 +1,87 @@
+# frmtmb (development version)
+
+## Residual correlation terms
+
+* `se(s, sigma = TRUE)` beside `ar()`, `ma()` or `arma()` with
+  `cov = TRUE`, `cosy()` or `unstr()` now fits, as in brms 2.23.0: `s^2`
+  is added to the diagonal of each group's residual covariance, so the
+  covariance is `D R D + diag(s^2)`, and `sigma` stays the innovation sd
+  under `ar()`, `ma()` and `arma()`. `gaussian()` and `student()` both
+  work. The log density equals brms's Stan program
+  (`normal_time_hom_se_lpdf()` and its relatives) to 1.1e-13 at three
+  points on 9 models, and the maximum equals brms's own optimum to
+  6.8e-10 on the 8 without random effects. `simulate()` and `predict()`
+  add the known error to each draw, and frmtmb.sample's `log_lik()`
+  reads the summed covariance. `se()` without `sigma = TRUE` is refused
+  there, in brms's words. Before, `frm()` refused `se()` beside every
+  residual correlation term on these two families.
+
+* `mi()` on the response beside a residual correlation term now fits,
+  as in brms: `ar()`, `ma()` and `arma()` with `cov = TRUE`, `cosy()`,
+  `unstr()`, `fcor()` and registered terms such as frmtmb.spatial's
+  `sar()`. A missing value is a coordinate of its group's joint draw.
+  Under the `ar()` family, a missing value that no other density reads
+  integrates out exactly: the fit is the one over the observed rows,
+  whose lags are read off the time levels, on `student()` as on
+  `gaussian()`. Under `fcor()` and a registered term, the values stay
+  latent and are integrated out under the Laplace approximation, which
+  is exact on `gaussian()`. On `student()` its error is a known function
+  of `nu`, the number of rows and the number of missing values, and the
+  objective takes it off, so `logLik()`, `AIC()` and `nu` are exact
+  there too when no other density reads the values and the model has no
+  other random effect. The log-likelihood equals brms's Stan program
+  integrated over its `Ymi` to 6.4e-11 at three points on 7 models, and
+  on `student()` with `fcor()` and `sar()` to 2.2e-10 at `nu` 5, 10 and
+  30.
+  `log_lik()` stays refused, as for every `mi()` model.
+
+* `vcov_cluster()`, `cluster_scores()` and marginaleffects' `vcov = ~ g`
+  now work beside `ar()`, `ma()`, `arma()` (both forms), `cosy()` and
+  `unstr()` when every series of the term lies inside one cluster, as it
+  does when `g` is the term's grouping variable or one it is nested in.
+  A clustering that splits a series is refused with its reason, and
+  `fcor()` and `sar()`, whose density is one over all the rows, stay
+  refused. Each cluster's score equals the gradient of its series' own
+  dense density to 1e-6 relative. Before, every residual correlation
+  term was refused.
+
+* `ar()`, `ma()` and `arma()` with `cov = TRUE` give a message of class
+  `frmtmb_autocor_gap` when a group skips a time level that other groups
+  have. The lag is counted in time levels, as in nlme, so the rows on
+  either side of the gap are two steps apart; brms 2.23.0 counts rows
+  within a group and puts them one step apart, so a ported brms script
+  fits another model. The fit is unchanged.
+
+* marginaleffects' `vcov = "HAC"` refusal now says why: the time
+  variable of `ar()`, `ma()` or `arma()` orders the rows within each
+  group only, and a cluster formula over the term's grouping variable is
+  the robust alternative.
+
+* marginaleffects' `predictions(newdata = )` on a fit with `ar()`,
+  `ma()` or `arma()` under `cov = FALSE` no longer fails when `newdata`
+  leaves out a level of a factor. marginaleffects pads such `newdata`
+  with a row per level, copied from its first row, so with the factor as
+  the term's group the padded rows repeated a time of the rows asked for.
+  The padding rows are now predicted apart from the rows asked for.
+
+* `options(frmtmb.autocor_dense_max = )` sets the number of rows above
+  which the pointwise log-density of a registered residual correlation
+  term without a `jacobian` slot warns that it inverts a dense matrix
+  (class `frmtmb_autocor_dense_fallback`). The default is 1000, as
+  before.
+
+* `frmtmb_register_autocor(jacobian = )` now takes a slot that returns
+  `O K` for an orthogonal `O` in place of the map's Jacobian `K`: the
+  precision `K'K` is the same, which is all the pointwise log-density
+  reads, and it is then read as `K'(K e)`. The check compares the Gram
+  matrices of its two directions where the literal comparison fails, so
+  a slot with another precision is still refused.
+
+* The pointwise log-density of `fcor()` (frmtmb.sample's `log_lik()`)
+  no longer forms two `n x n` matrices per draw: it reads the diagonal
+  of `M^-1`, computed once. At 1500 rows the peak memory of one draw
+  fell from 34.5 Mb to 0.2 Mb, and the time from 0.040 s to 0.010 s.
+
 # frmtmb 0.81.0
 
 ## Convergence and standard errors

@@ -1,3 +1,29 @@
+# frmtmb.spatial (development version)
+
+Needs the development version of frmtmb, which takes `mi()` beside a
+registered residual correlation term.
+
+## New features
+
+* `sar()` takes a weights matrix with complex eigenvalues, as a directed
+  graph gives (an asymmetric k-nearest-neighbor graph, for one). Each
+  complex pair adds `log|1 - rho lambda|^2` to `log|I - rho W|`, and rho's
+  interval is read off the real eigenvalues alone, as spatialreg reads it;
+  each complex pair is positive on it, so the determinant stays positive.
+  The log-likelihood equals the dense normal density with
+  `log|I - rho W|` from `determinant()` to 1e-10, lag and error. Before,
+  `frm()` refused such a matrix; brms 2.23.0 refuses it too.
+
+* `mi()` on the response beside `sar()` now fits, as in brms 2.23.0. A
+  missing value is a coordinate of the joint draw, integrated out under
+  the Laplace approximation, which is exact on `gaussian()`: the
+  log-likelihood equals brms's Stan program integrated over its `Ymi` to
+  6.4e-11 at three points, lag and error. On `student()` frmtmb takes the
+  Laplace error, a function of `nu` and the numbers of rows and of
+  missing values alone, off the objective, so the fit is exact there too
+  when nothing else reads the values and no other random effect is
+  integrated.
+
 # frmtmb.spatial 0.3.0
 
 Needs frmtmb 0.76.0, which takes `frmtmb_register_autocor(jacobian =)`

@@ -265,7 +265,12 @@ response's per-row density with one joint density per group (for
 `fcor()`, one group holding every row). That is
 what decides almost every pair below on `gaussian()` and `student()`:
 an addition term that reshapes a per-row contribution has nothing left
-to reshape. brms's default `cov = FALSE` for `ar()`, `ma()` and `arma()`
+to reshape. Two keep the joint density, as in brms: `se()` beside
+`ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` (not `fcor()` or a
+registered term such as `sar()`) adds its squared value to the diagonal
+of each group's covariance, and `mi()` makes a missing value a
+coordinate of the joint draw. brms's default
+`cov = FALSE` for `ar()`, `ma()` and `arma()`
 keeps the per-row density and shifts `mu` instead, so the rows naming
 those three terms say where its answer differs. On every other family
 that takes the terms, they are brms's latent residual, a latent per row

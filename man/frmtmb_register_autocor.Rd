@@ -110,9 +110,16 @@ Jacobian of \code{whiten} in \code{y} (see "The Jacobian").
 
 The term holds for all the rows of a response at once, so the
 likelihood does not factor into rows. frmtmb therefore refuses the
-term with \code{weights()}, \code{cens()}, \code{trunc()}, \code{se()}, \code{mi()},
-\code{rescor = TRUE}, a mixture, a non-linear formula and \code{quadrature},
-as it refuses \code{ar(cov = TRUE)}. The term's fixed data describe the
+term with \code{weights()}, \code{cens()}, \code{trunc()}, \code{se()}, \code{rescor = TRUE},
+a mixture, a non-linear formula and \code{quadrature}. \code{mi()} on the
+response works: a missing value is a coordinate of the joint draw,
+a latent value that \code{whiten()} receives with the observed ones and
+that the fit integrates out under the Laplace approximation, exact
+on \code{gaussian()}. On \code{student()} the joint is one multivariate t, whose
+Laplace error is a function of \code{nu} and the numbers of rows and of
+missing values alone; the objective takes it off, so the fit is exact
+there too when no other density reads the values and no other random
+effect is integrated. The term's fixed data describe the
 rows of the data, so \code{\link[=fitted]{fitted()}}, \code{\link[=predict]{predict()}} and \code{\link[=simulate]{simulate()}} take
 \code{newdata} with one row per row of the term's matrix, read in their
 order (a counterfactual on the same units, as brms takes it). When
@@ -140,8 +147,10 @@ the observations is subset with \code{rows}, as brms subsets it.
 \section{The map}{
 
 \code{whiten(y, mu, sigma, theta, aux)} runs on the TAPE: \code{mu}, \code{sigma}
-and \code{theta} are RTMB advectors there, \code{y} is numeric and \code{mu} has one
-value per row. \code{sigma} is ONE value when \code{sigma_varies = FALSE}, and
+and \code{theta} are RTMB advectors there and \code{mu} has one value per row.
+\code{y} is numeric, except under \code{mi()}, where its missing entries are
+latent values and \code{y} is an advector too, so the map must not coerce
+it with \code{as.numeric()}. \code{sigma} is ONE value when \code{sigma_varies = FALSE}, and
 one value per row when \code{sigma_varies = TRUE}. It returns
 \code{list(u, logjac)}: the innovations, one per row, and the log of the
 absolute determinant of the map's Jacobian in \code{y}, one number. Write
@@ -175,7 +184,8 @@ one dense \verb{n x n} solve per parameter vector. Measured with \code{sar()}'s
 lag map registered without its slot, one draw takes 0.03 s and 21 Mb
 at \code{n = 500}, 0.5 s and 48 Mb at 1000, 1.7 s and 155 Mb at 2000, and
 5 s and 345 Mb at 3000, growing as \code{n^3}; with the slot, 1600 rows
-take 2 ms. Above 1000 rows \code{log_lik()} warns once per call (class
+take 2 ms. Above \code{getOption("frmtmb.autocor_dense_max", 1000L)} rows
+\code{log_lik()} warns once per call (class
 \code{frmtmb_autocor_dense_fallback}), naming the term and the slot. When the
 frame is built, a given \code{jacobian} is checked on numbers at two
 points: the start with \code{sigma = 1}, and a generic point, with sigma

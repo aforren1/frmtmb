@@ -48,9 +48,20 @@ ll_dense_joint <- function(y, m, S, grp, nu = NULL) {
 # a model assembled for sampling, read at parameters set by hand, as
 # frmtmb.sample reads one draw (its draws_base_fit())
 ll_unfit <- function(f, ...) {
-  fit <- frm(f, ..., dry_run = "objective")
+  fit <- ll_gap(frm(f, ..., dry_run = "objective"), f)
   class(fit) <- setdiff(class(fit), "frmtmb_unfitted")
   fit
+}
+
+# ll_ac_data() skips a level in one group on purpose, so ar(), ma() and
+# arma() under cov = TRUE say that brms would count it as one step; the
+# message is asserted there, and nothing is said under the other terms
+ll_gap <- function(expr, f) {
+  txt <- paste(deparse(f), collapse = "")
+  if (!grepl("(ar|ma|arma)\\(.*cov = TRUE", txt)) return(expr)
+  out <- NULL
+  testthat::expect_message(out <- expr, class = "frmtmb_autocor_gap")
+  out
 }
 
 # ragged groups, rows shuffled, and one group missing an interior time
@@ -124,7 +135,7 @@ test_that("the ar() family's rows are the dense conditionals of their
   for (f in forms) {
     for (fam in list(gaussian(), student())) {
       if (inherits(f, "brmsformula") && fam$family == "student") next
-      fit <- frm(f, family = fam, data = d)
+      fit <- ll_gap(frm(f, family = fam, data = d), f)
       ll <- autocor_row_loglik(fit, eval_dpars(fit), "y")
       ref <- ll_grouped_ref(fit, d)
       expect_length(ll, nrow(d))
@@ -294,6 +305,64 @@ test_that("a jacobian that is not the map's is refused by name", {
   # the guard absent: fcor()'s own slot passes the same check
   expect_s3_class(frm(y ~ x + fcor(V), data = d, data2 = list(V = V)),
                   "frmtmb_fit")
+})
+
+test_that("a jacobian slot that gives O K, O orthogonal, is the same
+           precision and is taken", {
+  local_frmtmb_registries()
+  tt <- seam_fix_term()
+  d <- ll_ac_data()
+  n <- nrow(d)
+  V <- 0.6^abs(outer(1:n, 1:n, "-")) + diag(0.3, n)
+  # the rows of K in reverse order, and K with a Householder reflection
+  # in front: neither is the map's own K, and both give K'K
+  hv <- sin(seq_len(n))
+  H <- diag(n) - 2 * tcrossprod(hv) / sum(hv^2)
+  for (jac in list(function(sigma, theta, aux) aux$Linv[nrow(aux$Linv):1, ] /
+                     sigma,
+                   function(sigma, theta, aux) H %*% aux$Linv / sigma)) {
+    frmtmb_register_autocor("llrot", args = "V", build = tt$build,
+                            whiten = tt$whiten, unwhiten = tt$unwhiten,
+                            jacobian = jac, sigma_varies = FALSE,
+                            replace = TRUE)
+    f0 <- frm(y ~ x + fcor(V), data = d, data2 = list(V = V))
+    f1 <- frm(y ~ x + llrot(V), data = d, data2 = list(V = V))
+    expect_true(isTRUE(f1$frame$autocor$y$jacobian_rotated))
+    f1$estimates <- f0$estimates
+    l0 <- autocor_row_loglik(f0, eval_dpars(f0), "y")
+    l1 <- autocor_row_loglik(f1, eval_dpars(f1), "y")
+    expect_lt(max(abs(l1 - l0)), 1e-10 * max(abs(l0)))
+  }
+})
+
+test_that("under se() a row's conditional reads D R D + diag(se^2)", {
+  d <- ll_ac_data()
+  set.seed(12)
+  d$s <- stats::runif(nrow(d), 0.2, 0.7)
+  for (fam in list(gaussian(), student())) {
+    for (f in list(y | se(s, sigma = TRUE) ~ x + ar(t, g, cov = TRUE),
+                   y | se(s, sigma = TRUE) ~ x + cosy(t, g))) {
+      fit <- ll_unfit(f, family = fam, data = d)
+      fit$estimates$beta[] <- c(1, 0.5)
+      fit$estimates$betad[] <- c(log(0.8), if (fam$family == "student")
+        log(6 - 1))
+      fit$estimates$thetaac[] <- 0.7
+      md <- ll_ar_model(fit, d)
+      S <- md$S + diag(d$s^2)
+      ref <- numeric(nrow(d))
+      for (g in unique(d$g)) {
+        r <- which(d$g == g)
+        ref[r] <- ll_dense_cond(d$y[r], md$m[r], S[r, r, drop = FALSE],
+                                md$nu)
+      }
+      ll <- autocor_row_loglik(fit, eval_dpars(fit), "y")
+      expect_lt(max(abs(ll - ref)), 1e-10 * max(abs(ref)))
+      # and the objective is the joint density of the same covariance
+      joint <- ll_dense_joint(d$y, md$m, S, d$g, md$nu)
+      expect_lt(abs(-as.numeric(build_objective(fit$frame)(fit$estimates)) -
+                      joint), 1e-10 * abs(joint))
+    }
+  }
 })
 
 test_that("autocor_row_loglik() refuses a response with no covariance

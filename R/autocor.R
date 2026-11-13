@@ -235,7 +235,15 @@
 #' definite. brms 2.23.0 checks the second with
 #' `min(eigen(M)$values <= 0)`, which refuses only a matrix whose
 #' eigenvalues are all non-positive; frmtmb refuses every matrix that is
-#' not positive definite.
+#' not positive definite. `se()` is refused beside it, as brms refuses it
+#' ("Invalid addition arguments for this model"). `mi()` on the response
+#' works, as in brms: each missing value is a latent coordinate of the
+#' joint draw, integrated out under the Laplace approximation, which on
+#' `gaussian()` is exact and gives the fit over the observed rows with
+#' `M` cut to them. On `student()` the Laplace error is a function of
+#' `nu` and the numbers of rows and of missing values alone, and the
+#' objective takes it off, so the fit is exact there too when no other
+#' density reads the values and no other random effect is integrated.
 #'
 #' The term has no parameter, and the mean of the response is `mu`.
 #' [fitted()], [predict()] and [simulate()] take `newdata` with one row
@@ -265,7 +273,12 @@
 #' position within the group and treats a missing row as no gap (only
 #' its `unstr()` carries a time index). On complete balanced groups the
 #' two coincide. Time levels that are whole numbers but not consecutive
-#' warn, because the lag is then not the one the labels suggest.
+#' warn, because the lag is then not the one the labels suggest. Under
+#' `ar()`, `ma()` and `arma()`, a group that skips a level other groups
+#' have gives a message of class `frmtmb_autocor_gap`, since a brms fit
+#' of the same formula counts that gap as one step. For brms's model,
+#' use each row's position within its group, in time order, as the time
+#' variable.
 #'
 #' Groups of different sizes are handled by construction: the density is
 #' evaluated one PATTERN at a time (a pattern being a distinct set of
@@ -275,17 +288,39 @@
 #'
 #' @section What cannot be combined with it:
 #' The likelihood is a joint density over each group, so it no longer
-#' factorizes into per-row contributions. `weights()`, `cens()`,
-#' `trunc()`, `se()` and `mi()` on the same response are therefore
-#' refused, as are `rescor = TRUE`, mixture families,
-#' `quadrature = TRUE`, `frm_simulate()` and
-#' `residuals(type = "osa")`. brms refuses `weights()`, `cens()`,
-#' `trunc()` and `rescor = TRUE` too; it fits `se()` here (see
-#' "Divergence from brms"). Random
+#' factorizes into per-row contributions. `weights()`, `cens()` and
+#' `trunc()` on the same response are therefore refused, as are
+#' `rescor = TRUE`, mixture families, `quadrature = TRUE`,
+#' `frm_simulate()` and `residuals(type = "osa")`. brms refuses
+#' `weights()`, `cens()`, `trunc()` and `rescor = TRUE` too. Random
 #' effects ARE allowed and are the point of the feature: the marginal
 #' likelihood is a Laplace approximation over the modes with the
 #' correlated residual density inside, which reproduces
 #' `nlme::lme(random = ~ 1 | subj, correlation = corAR1())`.
+#'
+#' Two addition terms keep the joint density, as in brms 2.23.0:
+#' \itemize{
+#'   \item `se(s, sigma = TRUE)` adds \eqn{s_i^2}{s_i^2} to the diagonal of
+#'     each group's covariance, \eqn{D R D + \mathrm{diag}(s^2)}{D R D +
+#'     diag(s^2)}, as brms's `normal_time_hom_se_lpdf()` and its relatives
+#'     do. `sigma` stays the innovation sd under `ar()`, `ma()` and
+#'     `arma()`. Each group then has a covariance of its own, so the
+#'     density costs one factorization per group rather than one per
+#'     pattern. `se()` without `sigma = TRUE` is refused, as brms refuses
+#'     it: the covariance would be `diag(s^2)` alone, which the
+#'     correlation does not enter. [simulate()] and [predict()] add the
+#'     known error to each draw, and the pointwise log-density reads the
+#'     summed covariance.
+#'   \item `mi()` on the response makes a missing value a coordinate of its
+#'     group's draw. A missing value that no other density reads
+#'     integrates out exactly: the density of the observed rows is the
+#'     margin of the joint one, the same block over the time points the
+#'     group still has, on `student()` as on `gaussian()`. One that another
+#'     density reads (`mi(y)` as a predictor) stays latent, under the
+#'     Laplace approximation, which is exact on `gaussian()`.
+#'     `frmtmb.sample::frm_sample()` samples every missing value, as brms
+#'     does.
+#' }
 #'
 #' @section Latent residuals:
 #' On a family with no residual `y - mu`, these terms add a latent residual
@@ -547,10 +582,7 @@
 #' brms limits `cov = TRUE` to order one ("Covariance formulation of
 #' ARMA structures is only possible for effects of maximal order one");
 #' higher `p` and `q` are supported here, with `sigma` the innovation sd
-#' there too. brms 2.23.0 fits `se()` beside a `cov = TRUE` term, adding
-#' \eqn{se_i^2}{se_i^2} to the diagonal of each group's covariance
-#' (`normal_time_hom_se_lpdf()` and its relatives); frmtmb refuses that
-#' combination.
+#' there too.
 #'
 #' On a nonlinear body with `cov = FALSE`, brms 2.23.0's post-processing does
 #' not follow its own model. Its Stan program carries the ARMA term in `mu`,
@@ -1145,10 +1177,10 @@ check_autocor_cond <- function(resp, av, yv) {
   if (!is.null(av[["se"]])) {
     frm_stop(fn, "(): se() cannot be combined with cov = FALSE. brms ",
              "refuses the same call (\"Please set cov = TRUE in ARMA ",
-             "structures when including known standard errors\"); here ",
-             "cov = TRUE refuses se() as well, because its density is a ",
-             "joint one per group. Drop se(), or model the known error ",
-             "as a random effect", call. = FALSE)
+             "structures when including known standard errors\"). With ",
+             "cov = TRUE, se(..., sigma = TRUE) adds se^2 to the diagonal ",
+             "of each group's residual covariance, as in brms",
+             call. = FALSE)
   }
   if (!is.null(resp$family[["mix"]])) {
     frm_stop(fn, "(): a mixture likelihood has no single residual to ",
@@ -1198,12 +1230,17 @@ check_autocor_response <- function(resp, spec, av, yv) {
     frm_stop(ac[["fn"]], "(): a mixture likelihood has no single residual to ",
              "correlate", call. = FALSE)
   }
+  # se() and mi() keep a joint density, so they are not in this list: a
+  # known standard error adds se^2 to the diagonal of the group's
+  # covariance (brms's normal_time_hom_se_lpdf()), and a missing value
+  # is a coordinate of the joint draw. brms 2.23.0 fits both; it refuses
+  # se() beside fcor() and writes code stanc rejects for it beside sar(),
+  # so a registered term still refuses se().
   bad <- c(if (!is.null(av[["weights"]])) "weights()",
            if (!is.null(av[["cens"]])) "cens()",
            if (!is.null(av[["trunc_lb"]]) ||
              !is.null(av[["trunc_ub"]])) "trunc()",
-           if (!is.null(av[["se"]])) "se()",
-           if (isTRUE(resp$aterms[["mi"]])) "mi()")
+           if (!is.null(av[["se"]]) && autocor_is_seam(ac)) "se()")
   if (length(bad)) {
     frm_stop(ac[["fn"]], "(): ", paste(bad, collapse = ", "),
              " cannot be combined with a residual correlation term. The ",
@@ -1214,6 +1251,16 @@ check_autocor_response <- function(resp, spec, av, yv) {
              "renormalize, or a known standard error could be added to. ",
              "brms refuses weights(), cens() and trunc() here for the same ",
              "reason", call. = FALSE)
+  }
+  if (!is.null(av[["se"]]) && !isTRUE(av[["se_sigma"]])) {
+    # without sigma the covariance is diag(se^2), which the correlation
+    # does not enter, so the term's parameters would be unidentified
+    frm_stop(ac[["fn"]], "(): se() beside a residual correlation term ",
+             "needs se(..., sigma = TRUE): the correlation acts on the ",
+             "residual sd sigma, and with sigma = FALSE the covariance is ",
+             "the known diag(se^2) alone. brms refuses the same call ",
+             "(\"Please set argument 'sigma' of function 'se' to TRUE when ",
+             "modeling time-series covariance matrices\")", call. = FALSE)
   }
   if (autocor_is_seam(ac) && dpar_spec_predicted(resp, "sigma") &&
         !isTRUE(ac_block_entry(ac)[["sigma_varies"]])) {
@@ -1338,6 +1385,41 @@ autocor_warn_gaps <- function(ac, lv) {
   invisible(NULL)
 }
 
+#' Say when a group skips a time level that other groups have: the lag
+#' here is counted in levels, so the rows on either side of the gap are
+#' two steps apart, where brms 2.23.0 counts rows within the group
+#' (`chol_cor[1:nobs[i], 1:nobs[i]]`, no time index) and puts them one
+#' step apart. Both are models of the data; the message is for a brms
+#' script ported as it is, whose fit would otherwise differ in silence.
+#' A message rather than a warning, because the levels reading is
+#' nlme's and is a correct model. `cosy()` has one correlation for every
+#' pair and `unstr()` reads the time index in brms as well, so neither
+#' has anything to say.
+#'
+#' @noRd
+autocor_note_gaps <- function(ac, gidx, ti) {
+  if (!isTRUE(ac[["struct"]] %in% c("ar", "ma", "arma"))) {
+    return(invisible(NULL))
+  }
+  for (g in split(ti$idx, gidx)) {
+    s <- sort(g)
+    i <- which(diff(s) > 1L)
+    if (!length(i)) next
+    i <- i[1L]
+    frm_message(ac[["fn"]], "(): a group skips a time level (one goes ",
+                "from '", ti$levels[s[i]], "' to '", ti$levels[s[i + 1L]],
+                "'). The lag is counted in time levels, so those rows are ",
+                s[i + 1L] - s[i], " steps apart, as in nlme; brms counts ",
+                "rows within a group and puts them one step apart, so a ",
+                "brms fit of the same formula differs. To fit brms's ",
+                "model, use as the time variable each row's position ",
+                "within its group in time order",
+                class = "frmtmb_autocor_gap")
+    return(invisible(NULL))
+  }
+  invisible(NULL)
+}
+
 #' Turn one parsed autocorrelation term plus the model frame into the
 #' residual block the objective evaluates.
 #'
@@ -1412,7 +1494,10 @@ autocor_block <- function(ac, resp, mf, env, n) {
   if (autocor_is_cond(ac)) {
     return(autocor_cond_block(ac, resp, gidx, ti$idx, n))
   }
-  if (!is.null(ac[["time_expr"]])) autocor_warn_gaps(ac, ti$levels)
+  if (!is.null(ac[["time_expr"]])) {
+    autocor_warn_gaps(ac, ti$levels)
+    autocor_note_gaps(ac, gidx, ti)
+  }
   # one pattern per distinct set of present time levels
   by_g <- split(seq_len(n), gidx)
   pkeys <- vapply(by_g, function(rows) {
@@ -1609,7 +1694,7 @@ autocor_cond_mu <- function(fit, ac, mu, y) {
 #' whole group, which is also why a predicted `nu` is refused upstream.
 #'
 #' @noRd
-autocor_loglik <- function(z, R, ac, log_sigma_sum, nu = NULL) {
+autocor_loglik <- function(z, R, ac, log_sigma_sum, nu = NULL, w = NULL) {
   ll <- -log_sigma_sum
   for (pt in ac[["patterns"]]) {
     k <- pt$k
@@ -1617,18 +1702,130 @@ autocor_loglik <- function(z, R, ac, log_sigma_sum, nu = NULL) {
       RTMB::matrix(as.vector(R)[pt$gather], k, k)
     }
     zs <- z[pt$rows]
+    wg <- autocor_group_w(w, pt)
     if (is.null(nu)) {
-      ll <- ll + if (k == 1L) {
-        sum(RTMB::dnorm(zs, 0, 1, log = TRUE))
+      lg <- if (k == 1L) {
+        RTMB::dnorm(zs, 0, 1, log = TRUE)
       } else {
-        sum(RTMB::dmvnorm(t(RTMB::matrix(zs, k, pt$G)), 0, Rp,
-                          log = TRUE))
+        RTMB::dmvnorm(t(RTMB::matrix(zs, k, pt$G)), 0, Rp, log = TRUE)
       }
+      ll <- ll + if (is.null(wg)) sum(lg) else sum(wg * lg)
       next
     }
-    ll <- ll + mvt_std_loglik(t(RTMB::matrix(zs, k, pt$G)), Rp, nu)
+    ll <- ll + mvt_std_loglik(t(RTMB::matrix(zs, k, pt$G)), Rp, nu, wg)
   }
   ll
+}
+
+#' The weight of each group of a pattern, read off its first row: a
+#' cluster weight (R/sandwich.R) is constant over a group, because
+#' `vcov_cluster()` refuses a clustering that splits one. `NULL` for no
+#' weights.
+#'
+#' @noRd
+autocor_group_w <- function(w, pt) {
+  if (is.null(w)) return(NULL)
+  w[pt$rows[(seq_len(pt$G) - 1L) * pt$k + 1L]]
+}
+
+#' Log-density of one response under a residual correlation block with a
+#' known standard error per row: brms's `normal_time_hom_se_lpdf()` and
+#' its relatives, where each group's covariance is `D R D + diag(se^2)`.
+#' `res` is `y - mu`, `sg` the marginal sds (one, or one per row) and
+#' `se2` the squared standard errors. The added diagonal differs from row
+#' to row, so every group has a covariance of its own and is taken alone,
+#' at the cost of one `k x k` factorization per group.
+#'
+#' @noRd
+autocor_loglik_se <- function(res, sg, se2, R, ac, nu = NULL, w = NULL) {
+  ll <- 0
+  one_sg <- length(sg) == 1L
+  for (pt in ac[["patterns"]]) {
+    k <- pt$k
+    Rp <- if (k == ac[["d"]]) R else {
+      RTMB::matrix(as.vector(R)[pt$gather], k, k)
+    }
+    wg <- autocor_group_w(w, pt)
+    for (j in seq_len(pt$G)) {
+      ix <- pt$rows[(j - 1L) * k + seq_len(k)]
+      S <- if (one_sg) sg * sg * Rp else {
+        s <- RTMB::matrix(sg[ix], k, 1)
+        Rp * (s %*% t(s))
+      }
+      S <- S + diag(se2[ix], k)
+      lg <- if (!is.null(nu)) {
+        mvt_std_loglik(RTMB::matrix(res[ix], 1, k), S, nu)
+      } else if (k == 1L) {
+        RTMB::dnorm(res[ix], 0, sqrt(S[1, 1]), log = TRUE)
+      } else {
+        RTMB::dmvnorm(RTMB::matrix(res[ix], 1, k), 0, S, log = TRUE)
+      }
+      ll <- ll + if (is.null(wg)) lg else wg[j] * lg
+    }
+  }
+  ll
+}
+
+#' The series of each row of an ar() family block, as an integer per
+#' row (`NA` for a row no series holds), read off the block's own
+#' bookkeeping: the patterns under the covariance form, the within-group
+#' positions under `cov = FALSE`. What `vcov_cluster()` checks a
+#' clustering against.
+#'
+#' @noRd
+autocor_row_groups <- function(ac, n) {
+  out <- rep(NA_integer_, n)
+  if (autocor_is_cond(ac)) {
+    # pos_rows[[t]] holds the row at position t of every group that long,
+    # in one group order, so its j-th entry is always group j
+    for (rows in ac[["pos_rows"]]) out[rows] <- seq_along(rows)
+    return(out)
+  }
+  g0 <- 0L
+  for (pt in ac[["patterns"]]) {
+    out[pt$rows] <- g0 + rep(seq_len(pt$G), each = pt$k)
+    g0 <- g0 + pt$G
+  }
+  out
+}
+
+#' A block with the rows `gone` taken out of its patterns: the density
+#' of the rows left is the marginal of the joint one, which is the same
+#' block over the time points that remain. That is how a missing
+#' response no other density reads integrates out exactly
+#' (`mi_ml_frame()`), on `student()` as on `gaussian()`, since a margin
+#' of a multivariate t is a multivariate t with the same `nu`. A group
+#' with no row left drops out.
+#'
+#' @noRd
+autocor_drop_rows <- function(ac, gone) {
+  if (!length(gone) || autocor_is_seam(ac) || autocor_is_cond(ac)) {
+    return(ac)
+  }
+  d <- ac[["d"]]
+  cols <- list()
+  tsets <- list()
+  for (pt in ac[["patterns"]]) {
+    k <- pt$k
+    # the time index of each position, off the diagonal of the gather
+    tset <- (pt$gather[(seq_len(k) - 1L) * (k + 1L) + 1L] - 1L) %/%
+      (d + 1L) + 1L
+    M <- matrix(pt$rows, k, pt$G)
+    for (j in seq_len(pt$G)) {
+      keep <- !(M[, j] %in% gone)
+      if (!any(keep)) next
+      cols[[length(cols) + 1L]] <- M[keep, j]
+      tsets[[length(tsets) + 1L]] <- tset[keep]
+    }
+  }
+  key <- vapply(tsets, paste, "", collapse = ",")
+  ac[["patterns"]] <- unname(lapply(split(seq_along(cols), key), function(ix) {
+    ts <- tsets[[ix[1L]]]
+    list(k = length(ts), G = length(ix),
+         rows = as.integer(unlist(cols[ix], use.names = FALSE)),
+         gather = as.vector(outer(ts, ts, function(a, b) (b - 1L) * d + a)))
+  }))
+  ac
 }
 
 #' Summed log-density of the rows of `tZ` under a standard multivariate
@@ -1640,7 +1837,7 @@ autocor_loglik <- function(z, R, ac, log_sigma_sum, nu = NULL) {
 #' AD-safe.
 #'
 #' @noRd
-mvt_std_loglik <- function(tZ, R, nu) {
+mvt_std_loglik <- function(tZ, R, nu, w = NULL) {
   k <- ncol(R)
   G <- nrow(tZ)
   # log|R| comes from the gaussian density at the origin, which avoids
@@ -1653,6 +1850,12 @@ mvt_std_loglik <- function(tZ, R, nu) {
   # where the two lgamma() values agree in every leading digit, and
   # log1p() for the tail, which is multiplied by (nu + k) / 2 and so
   # amplifies the rounding of 1 + qv/nu by that same factor
+  # `w` weights each draw, a cluster weight of the sandwich's scores
+  if (!is.null(w)) {
+    return(sum(w) * (lgamma_shift_diff(nu / 2, k / 2) -
+                       0.5 * k * (log(nu) + log(pi)) - half_ldet) -
+             0.5 * (nu + k) * sum(w * log1p(qv / nu)))
+  }
   G * (lgamma_shift_diff(nu / 2, k / 2) -
          0.5 * k * (log(nu) + log(pi)) - half_ldet) -
     0.5 * (nu + k) * sum(log1p(qv / nu))
@@ -2135,7 +2338,8 @@ autocor_matrix <- function(fit, resp = NULL) {
 #' normal (or scaled-t) innovations and scattered back to the rows.
 #'
 #' @noRd
-autocor_draw_resid <- function(ac, R, sigma, n, nu = NULL) {
+autocor_draw_resid <- function(ac, R, sigma, n, nu = NULL, se = NULL) {
+  if (!is.null(se)) return(autocor_draw_resid_se(ac, R, sigma, n, nu, se))
   e <- numeric(n)
   for (pt in ac[["patterns"]]) {
     k <- pt$k
@@ -2151,6 +2355,33 @@ autocor_draw_resid <- function(ac, R, sigma, n, nu = NULL) {
     e[pt$rows] <- as.vector(Z)
   }
   e * sigma
+}
+
+#' `autocor_draw_resid()` with a known standard error per row: each
+#' group's covariance is `D R D + diag(se^2)`, the sum of the correlated
+#' residual and an independent error of sd `se`. Under `student()` the
+#' one chi-square of the group scales both, because brms's
+#' `multi_student_t()` takes the summed matrix as its scale.
+#'
+#' @noRd
+autocor_draw_resid_se <- function(ac, R, sigma, n, nu, se) {
+  e <- numeric(n)
+  sigma <- rep_len(sigma, n)
+  se <- rep_len(se, n)
+  for (pt in ac[["patterns"]]) {
+    k <- pt$k
+    Rp <- if (k == ac[["d"]]) R else {
+      matrix(as.vector(R)[pt$gather], k, k)
+    }
+    L <- t(chol(Rp))
+    Z <- (L %*% matrix(stats::rnorm(k * pt$G), k, pt$G)) * sigma[pt$rows] +
+      se[pt$rows] * matrix(stats::rnorm(k * pt$G), k, pt$G)
+    if (!is.null(nu)) {
+      Z <- Z * rep(sqrt(nu / stats::rchisq(pt$G, nu)), each = k)
+    }
+    e[pt$rows] <- as.vector(Z)
+  }
+  e
 }
 
 # ------------------------------------ autocorrelation terms as objects

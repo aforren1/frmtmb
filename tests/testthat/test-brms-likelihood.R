@@ -1454,6 +1454,22 @@ test_that("row 18e: ma(), arma() and sigma ~ x read brms's sigma", {
   brms_lp_check(brms::bf(fo, sigma ~ x2), gaussian(), d18, fit)
 })
 
+test_that("row 18f: se() beside the covariance form is brms's
+           normal_time_hom_se_lpdf()", {
+  skip_unless_brms_fit()
+  # brms adds se^2 to the diagonal of each group's covariance, and so does
+  # frmtmb since this was a refusal; sigma stays the innovation sd
+  d18 <- brms_ac_data()
+  set.seed(37)
+  d18$s <- stats::runif(nrow(d18), 0.2, 0.6)
+  for (bf_txt in c("y | se(s, sigma = TRUE) ~ x + ar(time, gr = g, cov = TRUE)",
+                   "y | se(s, sigma = TRUE) ~ x + cosy(time, gr = g)")) {
+    fo <- stats::as.formula(bf_txt)
+    fit <- frm(bf(fo) + gaussian(), data = d18)
+    brms_lp_check(brms::bf(fo), gaussian(), d18, fit)
+  }
+})
+
 test_that("row 18d: brms's default cov = FALSE ARMA is an identity", {
   skip_unless_brms_fit()
 

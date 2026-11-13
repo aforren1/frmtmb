@@ -1789,9 +1789,11 @@ mi_chart_maps <- function(chart) {
 #' @noRd
 mi_rows_joint <- function(frame, r) {
   fam <- frame[["spec"]]$responses[[r]]$family
+  ac <- frame[["autocor"]][[r]]
+  # a registered term's map takes every row at once, so it has no margin
+  # to drop a row into; the ar() family's blocks do (autocor_drop_rows())
   !is.null(fam_structure(fam)[["loglik"]]) ||
-    (!is.null(frame[["autocor"]][[r]]) &&
-       autocor_is_cond(frame[["autocor"]][[r]]))
+    (!is.null(ac) && (autocor_is_cond(ac) || autocor_is_seam(ac)))
 }
 
 #' Which rows of response `s` still have their density in the objective, with
@@ -2108,16 +2110,20 @@ check_id_mm_weights <- function(cps) {
 
 #' Where a read value's Laplace approximation is exact: a gaussian value that
 #' only gaussian means read, on the identity link, since its log density is
-#' then a quadratic.
+#' then a quadratic; and a registered term's `student()` value that only the
+#' term's density reads, whose error the objective takes off exactly.
 #'
 #' @noRd
 mi_laplace_exact <- function(frame) {
   gaussian_resp <- function(r) {
     identical(frame[["spec"]]$responses[[r]]$family[["family"]], "gaussian")
   }
+  # a registered term's student() values the objective corrects exactly
+  # (autocor_seam_t_laplace())
+  t_exact <- autocor_seam_t_missing(frame)
   for (r in names(frame[["mi_map"]])) {
     if (!length(frame[["mi_map"]][[r]][["rows"]])) next
-    if (!gaussian_resp(r)) return(FALSE)
+    if (!gaussian_resp(r) && is.null(t_exact[[r]])) return(FALSE)
   }
   for (lp in frame[["linpreds"]]) {
     if (!length(lp[["mi"]])) next

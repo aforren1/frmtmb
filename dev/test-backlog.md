@@ -3898,6 +3898,10 @@ Record: `dev/sarfcor-findings.md` (A6, B4, "What needs the user");
   asymmetric kNN graph, common in spdep). brms fails too; a general
   complex log-determinant (`log|1 - rho lambda|` over conjugate pairs)
   is cheap and not built.
+  CLOSED in the round of 2026-11-11 (lane arspat): `sar()` takes a W with
+  complex eigenvalues; each pair adds log|1 - rho lambda|^2, rho's interval
+  from the real eigenvalues alone, as spatialreg reads it
+  (dev/arspat-findings.md).
 - `confint_varcorr()` gives rho a delta-method interval on the raw
   scale, so its upper end can pass `1 / max eigenvalue` near the bound.
 - `sar()` with `mi()` or with `ar(cov = FALSE)`, and `newdata2`, are
@@ -4105,20 +4109,33 @@ was posted upstream.
   non-consecutive GLOBAL levels, so a ported brms script fits the
   by-level model where brms fits the by-position one. Pre-existing.
   Record: `dev/loglik-findings.md`, Fix round 1, "Not done".
+  CLOSED in the round of 2026-11-11 (lane arspat): a message of class
+  `frmtmb_autocor_gap`; the levels reading is kept, a question for the user in
+  dev/arspat-findings.md.
 - **brms accepts `se()` and `mi()` beside `ar(cov = TRUE)`**, where
   frmtmb refuses them. Pre-existing. Record: the same.
+  CLOSED in the round of 2026-11-11 (lane arspat): `se(sigma = TRUE)` and
+  `mi()` beside the covariance form fit as in brms; L1 to 1.1e-13 and 1.7e-13
+  (dev/arspat-findings.md).
 - **The Jacobian check is literal.** `frmtmb_register_autocor(jacobian
   =)` is checked against the map entry by entry, so a slot that returns
   `O K` for an orthogonal `O`, with the same `K'K`, is refused although
   the precision it gives is right. Record: `dev/reviews/2026-10-27-loglik.md`,
   Fix round 2 check, "Still open".
+  CLOSED in the round of 2026-11-11 (lane arspat): a slot giving O K is
+  accepted by its Gram matrix and read through K'K e (`jacobian_rotated`).
 - **Optional: a documented option for the dense-fallback threshold**
   (`getOption("frmtmb.autocor_dense_max", 1000L)`, named in "The
   Jacobian"), which would also let frmtmb.spatial's `test-sar.R` set it
   instead of reading `frmtmb:::autocor_loo_dense_max`. Record: the same
   review, Fix round 2 check, item 2.
+  CLOSED in the round of 2026-11-11 (lane arspat):
+  `options(frmtmb.autocor_dense_max = )`; frmtmb.spatial's test sets it to 60.
 - `fcor()` allocates two `n x n` matrices per draw. Record:
   `dev/loglik-findings.md`, "Open items and defects".
+  CLOSED in the round of 2026-11-11 (lane arspat): fcor() reads diag(M^-1) from
+  the block: peak 34.5 Mb to 0.2 Mb and 4.0x faster per draw at n = 1500
+  (dev/arspat-fcor-cost.R).
 
 ### Found by the consolidation
 
@@ -4183,6 +4200,9 @@ was posted upstream.
   compat row and `?frmtmb-autocor` ("Divergence from brms") state the
   gap. Not checked: `mi()` beside `cov = TRUE`, which the 0.76.0 loglik
   lane noted brms accepts too.
+  CLOSED in the round of 2026-11-11 (lane arspat): fits, `D R D + diag(se^2)`
+  per group; objective, draws and pointwise log-density
+  (dev/arspat-findings.md).
 - **Saved 0.76.0 draws** of a model with one of these terms report the
   old marginal sd as `sigma` in `summary()`, `posterior_summary()`,
   `as.matrix()` and `variables()`; only the computed quantities
@@ -4304,6 +4324,8 @@ parity gap and saved 0.76.0 draws) stand.
   series there, so `~ <the ar group>` (or a grouping that nests it)
   has a valid cluster sandwich. Release review, finding 2
   (`dev/review-rel077-b-run/x3.R`, `x3.txt`).
+  CLOSED in the round of 2026-11-11 (lane arspat): `vcov_cluster()` and `vcov =
+  ~ g` work when every series lies in one cluster; a split series is refused.
 - **A residual-correlation term of order 2 or 3 under `prior = "flat"`**:
   `prior_summary()` prints `ar` as `uniform(-2, 2)` or `uniform(-3, 3)`
   with no bounds, not as `(flat)`. The round trip gives identical draws,
@@ -4322,6 +4344,9 @@ parity gap and saved 0.76.0 draws) stand.
   group"), on rellib-r14 too; and the `"HAC"` refusal says a frmtmb fit
   "does not carry" a time order, but an `ar()` fit does. Release review,
   finding 8 (`x4.txt`).
+  CLOSED in the round of 2026-11-11 (lane arspat): `get_predict()` predicts
+  marginaleffects' padding rows apart under cov = FALSE; the HAC refusal names
+  the within-group order and `~ g`.
 - **The bin-2 adapters find brms's suite through `../../brms-suite`**
   when `FRMTMB_PORT_ROOT` is unset: a stage folder at another depth
   then fails `distributions:446`, `:479`, `:527` and `:549` with "object
@@ -4660,6 +4685,53 @@ none is a regression of this release.
   package does not declare (inferred by the review, not run). The skip
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
+
+## Filed in the round of 2026-11-11
+
+### From lane arspat
+
+- `sar()` beside `ar(cov = FALSE)` is still refused, where brms 2.23.0
+  fits it (`mu[n] += Err[n, 1:Kar] * ar`, then the SAR density of `Y`;
+  `dev/arspat-out/brms-probe.txt`). A response holds one residual term
+  (`frame$autocor[[resp]]`), and 33 readers in 11 files branch on
+  `autocor_is_cond()` of that one slot, so carrying a `cov = FALSE`
+  term beside a registered one is a change of the frame's shape, not
+  of `sar()`. The `mi()` half of backlog 3903 is closed; `newdata2`
+  stays open too.
+- `confint_varcorr()` still gives `sar()`'s rho a raw-scale
+  delta-method interval (backlog 3901). An interval on the logit chart
+  of the term's bounds needs `lo`/`hi` carried through the five
+  places that rbind or back-transform these rows (R/confint.R,
+  R/methods-fit.R twice, R/multiple.R, R/autocor-latent.R).
+- On gaussian data a `student()` fit runs nu to about 1e9, where brms's
+  program and frmtmb's density part by 1e-5 nats (`se_ar_student` of
+  `dev/arspat-out/l1-all.txt`); at df 4 they agree to 1.1e-13. Likely
+  Stan's `multi_student_t` head at a large nu (frmtmb uses
+  `lgamma_shift_diff()`); not checked against an exact reference.
+  CLOSED in the round of 2026-11-11 (lane arspat): not a frmtmb defect.
+  At nu = 1e9 the naive `lgamma((nu + k)/2) - lgamma(nu/2)`, Stan's head,
+  errs by -5.3e-7 (k = 3) and -1.1e-6 (k = 6) against the asymptotic
+  series; `lgamma_shift_diff()` errs by at most 2.1e-14. One error per
+  group over 30 groups is 1.5e-5 to 3e-5, the size of the gap
+  (dev/reviews/arspat-review-se.log). Nothing goes upstream.
+- `skew_normal()` with `se(s, sigma = TRUE)` beside `ar(t, g)` (the
+  `cov = FALSE` latent residual) fits in frmtmb, on rellib-r20 and on the
+  lane (logLik -89.9534 on `dev/arspat-l1d.R` case `skew_se_ar_cond`),
+  where brms 2.23.0 refuses it ("Please set cov = TRUE in ARMA structures
+  when including known standard errors"). Under `cov = TRUE` both fit it
+  and the log density is identical to brms's program (2.8e-14 for
+  `ar()`, 0 for `cosy()`, three points each). Parity question: refuse it
+  as brms does, or keep it as a model brms will not write. Reported to
+  the coordinator; behavior not changed.
+- `student()` with `fcor()` or `sar()` and `mi()`, plus a random effect
+  such as `(1 | h)`: the exact Laplace correction `c(nu, n, m)` is off
+  there (`autocor_seam_t_missing()` refuses it beside another integrated
+  block), and the error is silent again. With the random-effect sd fitted
+  at 2.9e-5, the error is -1.3614 nats, and `mi_laplace_note()` reads
+  `tk = -0.927`, under its `|tk| > 1` gate. With a real random effect
+  (sd 1.92) it reads -0.789, and the exact value is not known. Fix route:
+  a message for this case, or a lower gate. Short check of the round's
+  fix (dev/reviews/arspat-short-*).
 
 ## Filed at the 0.81.0 release (2026-11-10)
 

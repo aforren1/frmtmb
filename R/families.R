@@ -1597,7 +1597,8 @@ sim_autocor_rows <- function(ctx, ac) {
   sg <- autocor_marg_sigma(rep(dp[["sigma"]], length.out = n), tac, ac)
   rep(dp[["mu"]], length.out = n) +
     autocor_draw_resid(ac, R, sg, n,
-                       nu = if (isTRUE(ac[["student"]])) dp[["nu"]][1])
+                       nu = if (isTRUE(ac[["student"]])) dp[["nu"]][1],
+                       se = ctx[["aterms"]][["se"]])
 }
 
 #' The `cov = FALSE` branch: a fresh replicate of brms's recursion.
