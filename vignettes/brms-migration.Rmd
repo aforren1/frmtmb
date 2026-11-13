@@ -282,7 +282,10 @@ brms does.
   of the result pool by Rubin's rules where brms combines the draws of
   the imputations; `plot()`, `as_draws_array()` and `nchains()` read
   draws, so they are refused. Mixture fits are ML: expect multimodality,
-  compare starts (`frm_allfit()`). `pp_mixture()` gives the component
+  compare starts (`frm_allfit()`). A mixture of ordinal families without
+  random effects also fits from 10 jittered starts and keeps the best
+  maximum at which no component is a step function of its predictors
+  (`frmtmb_control(starts = )`). `pp_mixture()` gives the component
   probabilities at the estimates in brms's array.
 - **`cs()` refuses a column written on both sides**, where brms fits it.
   `y ~ x + cs(x)` is not identified: adding a constant to the

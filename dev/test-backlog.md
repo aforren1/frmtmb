@@ -2350,6 +2350,7 @@ item. Each item this round closed is marked in place above with
   best of 10 jittered starts beats the default on 20 of 40 fits, but
   on 12 of those 20 the better point is degenerate
   (`dev/optima-ordmix-starts.R`). Lane optima, item 4c.
+  CLOSED in the round of 2026-11-11 (lane ordstart): 10 jittered starts by default (no random effects), converged runs only, ranked so that a step function never wins; 12 of 40 fits move and the degenerate warning goes from 12 fits to 5, but 2 of the 7 new points are flat points the check does not see (dev/ordstart-findings.md).
 - **`parnames.frmtmb_fit()` and `parnames.frmtmb_draws()` decide
   whether to warn from which generic the `parnames` binding resolves
   to**, not which generic dispatched; a call through a generic the
@@ -4660,6 +4661,64 @@ none is a regression of this release.
   package does not declare (inferred by the review, not run). The skip
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
+
+## Filed in the round of 2026-11-11
+
+### From lane ordstart
+
+- **The degenerate check's "collapsed" test is exact-double equality,
+  so it is path-dependent**: on cum_cum seed 5 of
+  `dev/ordstart-starts.R` the default fit (two thresholds the same
+  double, warns) and a jittered start's fit (two thresholds 1e-15
+  apart, `cover` 2.5e-16, silent) have the same logLik to 1e-10. The
+  same holds for `near > 50` along a flat threshold (cum_sratio seed
+  16: a threshold at -39.8, the log-likelihood flat to 1e-10 over a
+  shift of 10; some starts drift past 50 and warn). 10 percent of the
+  fits the rule passes have a category a component gives at most 1e-8
+  at every row (`dev/ordstart-out/base40-classes.txt`). The multi-start
+  ranks these flat boundaries with proper points for that reason
+  (`mixture_starts_pick()`); the warning itself still flags one point
+  and not its twin. A cut on `cover` would be continuous; not measured
+  for false alarms.
+  The same blind spot passes points the jittered starts move to. The
+  review's short check (dev/reviews/2026-11-11-ordstart.md, "Short
+  check", S3) found 6 of the 15 step-to-proper moves on a flat
+  direction the step test and the fit-end check both call proper:
+  cs_sr_acat seed 4 (threshold `mu2_Intercept[2]` 325.5, its cs()
+  slopes 161.3 and 204.3, all SE NaN; smallest Hessian eigenvalues
+  -3.9e-31, -4.1e-15, -2.0e-7; one category at 1.8e-85; a refit from
+  the point gains 0.4638 and ends at code 1, so it is not a maximum),
+  cs_sr_acat seed 1 (SE 8310, eigenvalue 6.9e-9, the profile 1.09
+  higher at t = 2), dpar_formula seed 4 (a threshold at -32.45 with SE
+  4443, eigenvalue 5.07e-8, cover 3.2e-8), cum_sratio 14 (SE 5.05e3,
+  eigenvalue 3.92e-8, cover 6.6e-7), cum_sratio 18 (SE 5.2e3,
+  eigenvalue 3.7e-8, cover 9.1e-9) and acat_cumcll_K7 seed 6 (SE
+  8.19e3, eigenvalue 9.8e-9, cover 1.2e-8). Measured as a stricter
+  proper test on the 40-fit table (`dev/ordstart-strict.R`,
+  `dev/ordstart-strict-sum.R`): an exact-Hessian eigenvalue floor of
+  5.1e-8 rejects all 6, but calls 11 of the 28 defaults 0.81.0 passed
+  flat (cum_cum 16 and cum_sratio 3 would lose their upward moves), and
+  the 5 upward moves (cum_cum 3, 11, 16; cum_sratio 3, 11) land on
+  points it rejects; it also rejects cum_cum 15 and cum_sratio 9, whose
+  standard errors are 1.33 and 7.55. A cover floor of 1e-8 rejects 1 of
+  the 4 of the 6 whose cover was measured (cum_sratio 14 is at 6.6e-7)
+  and calls 8 passed defaults flat. Neither separates the six from
+  sound fits on these data, so neither was built. A test on the
+  standard error in natural units (above 5e3 here, at most 43.6 on the
+  other moves) is the next candidate; not measured.
+- **A flat ordinal-mixture threshold with no warning at all**: cum_sratio
+  seed 16 (n = 300, `mixture(cumulative(), sratio())`, `y ~ x + z`)
+  fits silently with component 2's first threshold at -39.8, where the
+  gradient is 3e-15 and the log-likelihood does not move over a shift
+  of 10 (`dev/ordstart-probe16.R`). Neither the degenerate check (near
+  33 < 50) nor the SE check warned. Not measured: the standard error
+  `summary()` reports for it.
+- **Ordinal mixtures with random effects run no jittered starts by
+  default**: each start is a Laplace fit, 15 to 23 times the fit in all
+  (n = 1000, 50 groups, `dev/ordstart-cost.R`), so `starts = n` opts
+  in. How often the answer moves with random effects is not measured.
+  Refits from a fit's estimates (bootstrap, `influence()`, `refit()`)
+  run none either unless `starts` is set, and `frm_allfit()` runs none.
 
 ## Filed at the 0.81.0 release (2026-11-10)
 

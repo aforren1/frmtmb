@@ -278,6 +278,10 @@ autoscale_prefit <- function(spec, frame, bform, cl, REML, start,
   # pre-fit" line; a nested copy of every stage line would only
   # interleave with the fit that is actually reported
   ctl$verbose <- FALSE
+  # the jittered starts of a mixture run once, in the fit that is
+  # reported, where their warning is heard; in the pre-fit they ran
+  # twice and the warning was muffled (mixture_starts())
+  ctl$starts <- 0L
   if (!is.null(start)) {
     # through make_start(), so a partially NAMED start leaves the
     # entries it does not address at the defaults the pre-fit would
@@ -460,11 +464,26 @@ autoscale_choose <- function(run, control, template, vb = 0L) {
   seeded <- capture(run(control, template))
   obj <- function(r) if (r$error) Inf else r$value$opt$objective
   tol <- 1e-8 * max(1, abs(obj(plain)[is.finite(obj(plain))]))
-  pick_seeded <- !seeded$error &&
-    (plain$error || (obj(seeded) < obj(plain) - tol &&
-                       (length(seeded$warnings) >= length(plain$warnings) ||
-                          (!length(seeded$warnings) &&
-                             autoscale_fit_sound(seeded$value)))))
+  # A mixture's jittered starts can leave a higher point on purpose
+  # (mixture_starts() leaves a step function for a proper maximum), so
+  # when they ran, the tier of the point kept decides before the
+  # objective; comparing objectives alone handed the step function back
+  tier <- function(r) {
+    ms <- if (!r$error) r$value$opt$mixture_starts
+    if (is.null(ms) || is.na(ms["tier"])) NA_real_ else ms[["tier"]]
+  }
+  tp <- tier(plain)
+  ts <- tier(seeded)
+  pick_seeded <- if (!is.na(tp) || !is.na(ts)) {
+    !is.na(ts) && (is.na(tp) || ts < tp ||
+                     (ts == tp && obj(seeded) < obj(plain) - tol))
+  } else {
+    !seeded$error &&
+      (plain$error || (obj(seeded) < obj(plain) - tol &&
+                         (length(seeded$warnings) >= length(plain$warnings) ||
+                            (!length(seeded$warnings) &&
+                               autoscale_fit_sound(seeded$value)))))
+  }
   # replayed as the condition objects they were, class and call kept
   for (x in plain$messages) frm_message(x)
   chosen <- if (pick_seeded) seeded else plain

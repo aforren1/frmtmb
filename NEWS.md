@@ -1,3 +1,38 @@
+# frmtmb (development version)
+
+## Ordinal mixtures
+
+* BREAKING: A `mixture()` of ordinal families without random effects
+  now also fits from 10 jittered starts and keeps the best converged
+  point at which no component is a step function of its predictors, the
+  degenerate boundary where maximum likelihood for such a mixture often
+  has its supremum. Only runs the optimizer calls converged are ranked.
+  A fit from the default start that the degenerate check passes is
+  replaced only by a higher point that it passes too; a step function
+  is replaced by the best point without one, whatever its likelihood
+  (when it did not converge, only by a point the check passes); a fit at
+  a flat degenerate boundary, or one with no step function that did not
+  converge, stays as it was. Under brms's default priors the posterior
+  density at such step functions was far below that at the point
+  returned, and brms's posterior mode lies near that point, not at it.
+  When a start reached a higher step function, `frm()` warns with class
+  `frmtmb_mixture_step_start`. On 40 fits of two-class data with 300
+  rows, 12 moved: 5 up, and 7 from a step function to a point the
+  degenerate check passes, so its warning fell from 12 fits to 5. Of
+  those 7 points, 2 are clean maxima, 3 have a category that a component
+  gives a probability near 1e-8 to 1e-7, and 2 lie on a flat direction
+  (a standard error above 5000) that the check does not see. On 145
+  fits of other designs, 23 moved, 15 up and 8 off a step function, and
+  none that the check passed lost likelihood; 4 of those 8 points are
+  flat in the same way, and one of the 4 is not a maximum (a refit from
+  it gains 0.46). The starts cost 5 to 10 times the fit's optimization (up to 15
+  times in single runs), and 15 to 23 times with random effects, which
+  is why such a model runs none by default. The draws use a named
+  generator, so the fit does not depend on `RNGkind()`.
+  `frmtmb_control(starts = )` sets the count, `0` turns them off, and a
+  `start` of your own turns the default starts off. `frm_allfit()` runs
+  no starts.
+
 # frmtmb 0.81.0
 
 ## Convergence and standard errors

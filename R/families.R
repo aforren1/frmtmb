@@ -5986,15 +5986,20 @@ mixture_mu_start <- function(y, aterms, p, bounded) {
 #' mixture to simulated data with two well-separated classes (300 or
 #' 500 rows), 22 ended there, and in 16 of the 22 the degenerate point
 #' had a higher log-likelihood than the best non-degenerate optimum
-#' found from other starts, so a better start does not move such a fit
-#' off it. The fit warns when a component ends at such a point: when
-#' doubling all its latent distances (or, with `cs()`, one threshold's)
+#' found from other starts, so the best start by the likelihood alone
+#' does not move such a fit off it. Without random effects, [frm()]
+#' therefore also fits from 10 jittered starts and keeps the best
+#' converged point without a step function, and warns when a step
+#' function it passed over was higher (see
+#' `starts` in [frmtmb_control()]). The fit warns when a component ends
+#' at such a point: when doubling all its latent distances (or, with
+#' `cs()`, one threshold's)
 #' costs the log-likelihood less than 0.1, or when no row lies within a
 #' latent distance of 50 of one of its thresholds. Strong predictors
 #' alone do not set it off: none of 167 sound fits with slopes up to 15
 #' warned, under the logit, probit, cloglog and cauchit. Compare
-#' several starts (`frm(start = )`), the more so with three or more
-#' components, and hold the components with priors on `class =
+#' more starts (`frmtmb_control(starts = )`), the more so with three or
+#' more components, and hold the components with priors on `class =
 #' "Intercept"` and `class = "b"` with `dpar = "mu<k>"`, as a brms fit
 #' does; or use fewer components. An ordinal mixture holds each
 #' interior category's probability at `exp(-692)` or above, so that a
@@ -6683,6 +6688,7 @@ mixture_build_ordinal <- function(comps, ref, order, y = NULL,
     sim = sim,
     post = list(
       fit_check = mixture_ord_fit_check,
+      start_degenerate = mixture_ord_start_class,
       start_spread = if (shared) {
         function(frame, resp, tpl) {
           mixture_ord_start_spread(frame, resp, tpl, cf)
@@ -7100,15 +7106,42 @@ mixture_ord_degenerate_check <- function(fit, resp) {
                "exp(-692)")
       }), collapse = "; "), ")")
   }, "")
+  ms <- fit$opt[["mixture_starts"]]
   frm_warning(fam[["family"]], ": ", paste(what, collapse = "; "),
               " ended at a degenerate boundary. Maximum likelihood for ",
               "an ordinal mixture often has its supremum there, so its ",
               "estimates run off and their standard errors mean ",
-              "nothing. Compare several starts (frm(start = )), hold the ",
-              "component with priors, as brms does (class Intercept and ",
-              "b with dpar = \"mu<k>\"), or use fewer components",
-              call. = FALSE)
+              "nothing. ",
+              if (is.null(ms)) {
+                "Compare several starts (frm(start = )), "
+              } else if (any(step)) {
+                paste0("None of ", ms[["starts"]], " jittered starts ",
+                       "reached a maximum without a step function. ")
+              },
+              if (is.null(ms)) "hold" else "Hold",
+              " the component with priors, as brms does (class ",
+              "Intercept and b with dpar = \"mu<k>\"), or use fewer ",
+              "components", call. = FALSE)
   invisible(NULL)
+}
+
+#' The components of a fitted ordinal mixture at a degenerate boundary,
+#' by the rule of `mixture_ord_degenerate_check()`, for
+#' `mixture_starts()`: `step`, those that are step functions of their
+#' predictors, the boundary that buys likelihood; `boundary`, the others
+#' the rule flags (a threshold no row is near, two thresholds the same
+#' number), along which the likelihood is flat. A component whose
+#' sharpening could not be measured (the doubled likelihood not finite)
+#' counts as a step function: on three cumulative components every such
+#' point had coefficients of 740 to 9.5e4 and was not a measured maximum
+#' (dev/reviews/2026-11-11-ordstart.md, finding 3).
+#'
+#' @noRd
+mixture_ord_start_class <- function(fit, resp) {
+  dg <- mixture_ord_degeneracy(fit, resp)
+  step <- !((dg$sharpen <= -0.1) %in% TRUE)
+  flat <- (dg$near > 50) %in% TRUE | dg$collapsed %in% TRUE
+  list(step = dg$component[step], boundary = dg$component[flat & !step])
 }
 
 #' How far each component of a fitted ordinal mixture has run toward a

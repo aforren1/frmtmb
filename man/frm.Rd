@@ -87,6 +87,10 @@ it and pass it back. Its section "The default starting values"
 tells how the defaults are set; the entries you do not name in
 \code{start} keep those defaults.
 
+A mixture of ordinal families without random effects also fits from
+10 jittered starts by default; a \code{start} of your own turns them off
+(see \code{starts} in \code{\link[=frmtmb_control]{frmtmb_control()}}).
+
 An exact \code{gp()} on a gaussian response with a constant \code{sigma} starts at
 the maximum of the model's marginal, read from the best cell of six
 length scales on a coarse grid. Beside \code{ar()} in brms's default form

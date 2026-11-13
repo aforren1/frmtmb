@@ -42,7 +42,9 @@ from, which includes its \verb{start =} and the starting values a located
 prior places on a nonlinear parameter. A nonlinear model is rarely
 defined at the default start of zero, so refits from there fail or
 stop somewhere else, and their disagreement then says nothing about
-the original fit.
+the original fit. The refits run no jittered starts of a mixture
+(\code{starts} in \code{\link[=frmtmb_control]{frmtmb_control()}}), so each shows its own optimizer's
+point.
 
 The printed table compares each refit with the best log-likelihood
 any fit reached, the original included. An optimizer that reports

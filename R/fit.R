@@ -77,6 +77,10 @@
 #'   tells how the defaults are set; the entries you do not name in
 #'   `start` keep those defaults.
 #'
+#'   A mixture of ordinal families without random effects also fits from
+#'   10 jittered starts by default; a `start` of your own turns them off
+#'   (see `starts` in [frmtmb_control()]).
+#'
 #'   An exact `gp()` on a gaussian response with a constant `sigma` starts at
 #'   the maximum of the model's marginal, read from the best cell of six
 #'   length scales on a coarse grid. Beside `ar()` in brms's default form
@@ -1318,9 +1322,14 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                           objective_only = FALSE,
                           announce_start = FALSE,
                           check_se = announce_start,
-                          gp_body = is.null(start)) {
+                          gp_body = is.null(start),
+                          starts_cold = is.null(start) && is.null(template)) {
   lower_arg <- lower
   upper_arg <- upper
+  # no caller start and no refit's warm start (mixture_starts_count()).
+  # The autoscale choice passes its call's answer to both of its fits,
+  # and autoscale_choose() weighs the tier of the points they keep
+  cold_start <- starts_cold
   vb <- verbose_level(control)
   n_imp <- as.integer(importance %||% 0L)
   # every fit, the deletion refits of influence() among them; the sampler
@@ -1371,7 +1380,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                         quadrature = quadrature, importance = importance,
                         template = tpl, data2 = data2,
                         announce_start = announce_start, check_se = FALSE,
-                        gp_body = gp_body)
+                        gp_body = gp_body,
+                        starts_cold = cold_start)
         }, control, pre$template, vb)
       if (check_se) {
         se_check(fit, control)
@@ -1871,6 +1881,29 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       # the probe's answers belong to the stop the restart left
       fit$cache <- new.env(parent = emptyenv())
     }
+    # a mixture whose family declares its degenerate boundary
+    # (mixture_starts()). A warm-started fit (the autoscale pre-fit's
+    # template, a refit's) jitters about the start the plain fit would
+    # use, not about the warm start: from there no start left its basin,
+    # and 11 of 11 step-start warnings of the plain fits went missing
+    # (dev/reviews/2026-11-11-ordstart.md, finding 2)
+    ms <- mixture_starts(fit, ctl_opt, bounds, par_units, tally, est_at,
+                         cold = cold_start, verbose = vb,
+                         center = if (!is.null(template)) function() {
+                           outer_from_template(
+                             make_start(frame, start, prior_entries,
+                                        nll = nll_bare), obj, frame)
+                         })
+    if (isTRUE(ms$moved)) {
+      opt <- newton_polish(obj, ms$opt, bounds, par_units, ctl_opt,
+                           ill = ill, frame = frame)
+      est <- est_at(opt)
+      fit$estimates <- est
+      fit$cache <- new.env(parent = emptyenv())
+    } else if (!is.null(ms)) {
+      opt <- ms$opt
+    }
+    fit$opt <- opt
   }
   if (!is.null(imp)) {
     imp_ess_warning(imp$ess$ess, imp$lay, imp$plan[["n_draw"]],
@@ -2511,6 +2544,81 @@ sdr_of <- function(fit) {
 #'   for the Laplace approximation. Memory and time grow with the rows
 #'   times the product of the two counts. A model with one block per row
 #'   does not read this setting: its rule is adaptive Gauss-Kronrod.
+#' @param starts The number of jittered starts for a [mixture()] of
+#'   ordinal families, or `NULL` (default) for 10 on a fit with no `start`
+#'   of your own and no random effects, and none otherwise. After the fit
+#'   from the default start, the model is refitted from each start, every
+#'   outer parameter moved by a normal draw with standard deviation 0.5
+#'   (a coefficient by 0.5 over the root mean square of its column). The
+#'   fit keeps the best of these converged points at which no component
+#'   is a step function of its predictors. Maximum likelihood for an ordinal
+#'   mixture often has its supremum at such a step function, a degenerate
+#'   boundary where the component's slopes and thresholds run off, so the
+#'   best start ranked by the likelihood alone picks it more often than it
+#'   escapes it. Only runs that the optimizer calls converged are ranked.
+#'   The rule:
+#'
+#'   * A fit from the default start with no degenerate component is
+#'     replaced only by a better maximum, by more than `grad_tol` in
+#'     log-likelihood, with no degenerate component either.
+#'   * A fit at a flat degenerate boundary only (collapsed thresholds, a
+#'     threshold no row is near) is kept as it is, and no starts run.
+#'   * A step function, or a component whose sharpening cannot be
+#'     measured, is replaced by the best converged point without one,
+#'     whatever its likelihood. When the optimizer did not call the
+#'     default fit converged, only a point the degenerate check passes
+#'     replaces it, and a fit with no step function that did not converge
+#'     is kept as it is.
+#'   * When a start reached a step function above the point returned,
+#'     [frm()] warns with class `frmtmb_mixture_step_start`. `logLik()`
+#'     and the information criteria are those of the point returned.
+#'
+#'   A point the degenerate check passes is not always a clean maximum:
+#'   the check does not see a direction along which the likelihood is
+#'   flat, such as a threshold that drifts with a standard error in the
+#'   thousands or a category a component gives a probability near 1e-8.
+#'   Check the standard errors of a fit that moved.
+#'
+#'   On two-class data with 300 rows, 20 seeds each of
+#'   `mixture(cumulative(), cumulative())` and
+#'   `mixture(cumulative(), sratio())`, the default starts moved 12 of 40
+#'   fits: 5 to a higher maximum (by 0.12 to 2.4) and 7 from a step
+#'   function to a point the degenerate check passes (2.7 to 10.4 lower),
+#'   so its warning fell from 12 fits to 5. Of those 7 points, 2 are clean
+#'   maxima, 3 have a category near 1e-8 to 1e-7, and 2 lie on a flat
+#'   direction with a standard error above 5000. On 107 fits of 14 other designs
+#'   (other links and families, three components, `cs()`, a free `disc`,
+#'   `order = "mu"`, priors on `b`, 22 predictors) 18 moved, 10 up and 8
+#'   off a step function (4 of those 8 points flat in the same way, one
+#'   of the 4 not a maximum), and none that 0.81.0 passed lost likelihood
+#'   or gained the degenerate warning; with 38 steep and one-class designs
+#'   added, 23 of 145 moved. On the two-class data the starts moved 9 of
+#'   40 fits at 1000 rows (all up), 1 of 40 at 3000 rows and 0 of 40 at
+#'   20000 rows, where they took 8 times as long (46 s against 5.7 s a
+#'   fit); one steep design with 20000 rows gained 8.8. The answer is the
+#'   best of the points these 10 starts reach, not the best there is: 20
+#'   starts moved 6 of the 40 fits higher than 10 did, by 0.21 to 3.07,
+#'   for 1.8 times the time. Under brms 2.23.0's default priors, the
+#'   posterior density at two of the step functions was 53 to 56 units
+#'   below that at the point returned, and `rstan::optimizing()` reached a
+#'   posterior mode near that point, not at it, from each of 10
+#'   random starts.
+#'
+#'   The starts cost 5 to 10 times the fit's optimization at 300 and 3000
+#'   rows (minimum of 3 runs; up to 15 to 20 times in single runs), and 15
+#'   to 23 times with a random intercept over 50 groups (1000 rows), where
+#'   each start is a Laplace fit: that is why a model with random effects
+#'   does not run them by default. Refits that warm-start from a fit,
+#'   [frm_bootstrap()] and [refit()] among them, run no starts unless
+#'   `starts` is a number, so their replicates start from the chosen
+#'   point and can end at a step function; [frm_allfit()] runs none, so
+#'   that its optimizers' spread still shows a second maximum. Under
+#'   `autoscale` they run in the fit that is reported, not in its
+#'   pre-fit. The
+#'   draws come from a private stream with a named generator and a fixed
+#'   seed, so a fit neither reads nor changes the session's random state,
+#'   and the same call gives the same fit under any [RNGkind()]. `0`
+#'   turns the starts off. A model of other families is not affected.
 #' @param quad_max_gb Limit, in GB, on the memory that `frm(quadrature =
 #'   TRUE)` over two nested blocks may add. The fit predicts that memory
 #'   before the Laplace warm start, from three small probe tapes and a
@@ -2592,7 +2700,7 @@ frmtmb_control <- function(optimizer = "nlminb",
                            importance_seed = 1L, importance_rounds = 5L,
                            importance_ess = 0.25, mo_search = TRUE,
                            verbose = NULL, quad_nodes = c(11L, 15L),
-                           quad_max_gb = 4) {
+                           quad_max_gb = 4, starts = NULL) {
   # The three flags below reach isTRUE() later, which reads a
   # string or a length-2 vector as FALSE; checking here refuses the
   # mistake instead of quietly turning the option off.
@@ -2616,6 +2724,8 @@ frmtmb_control <- function(optimizer = "nlminb",
   }
   quad_nodes <- rep_len(as.integer(quad_nodes), 2L)
   check_positive(quad_max_gb, "quad_max_gb")
+  # NULL is the default rule (mixture_starts_count()), not a count
+  if (!is.null(starts)) starts <- check_count(starts, "starts", min = 0L)
   if (importance_ess > 1) {
     frm_stop("`importance_ess` is an effective sample size as a FRACTION ",
              "of the draw count, so it lies in (0, 1]; ",
@@ -2653,7 +2763,7 @@ frmtmb_control <- function(optimizer = "nlminb",
        importance_rounds = as.integer(importance_rounds),
        importance_ess = importance_ess, mo_search = isTRUE(mo_search),
        verbose = verbose, quad_nodes = quad_nodes,
-       quad_max_gb = quad_max_gb)
+       quad_max_gb = quad_max_gb, starts = starts)
 }
 
 #' lme4's lmerControl runs a battery of structural checks before the fit
