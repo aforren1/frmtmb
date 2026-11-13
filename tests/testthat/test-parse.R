@@ -186,6 +186,63 @@ test_that("a registered aterm of arity above one numbers its arguments", {
                "Duplicated addition term")
 })
 
+test_that("a registration whose key another term delivers under is refused", {
+  local_frmtmb_registries()
+  frmtmb_register_aterm("tterm", arity = 3)
+  reg0 <- frmtmb_aterm_registry$reg
+  feat0 <- frm_compat_features()
+  # tterm2 is the key of tterm()'s second argument: through 0.81.0 this
+  # was accepted, and `y | tterm2(z) + tterm(u, v, w)` handed v to the
+  # family as tterm2
+  expect_error(frmtmb_register_aterm("tterm2"),
+               paste0("under the key `tterm2`, which the registered ",
+                      "`tterm()` (3 arguments) already uses"),
+               fixed = TRUE)
+  # the refusal left both registries as it found them
+  expect_identical(frmtmb_aterm_registry$reg, reg0)
+  expect_identical(frm_compat_features(), feat0)
+  # the keys core delivers its own terms' values under
+  expect_error(frmtmb_register_aterm("vint1"),
+               "which frmtmb's own `vint()` already uses", fixed = TRUE)
+  expect_error(frmtmb_register_aterm("cens_y", arity = 2),
+               "key `cens_y2`, which frmtmb's own `cens()`", fixed = TRUE)
+  expect_error(frmtmb_register_aterm("trunc_lb"),
+               "which frmtmb's own `trunc()` already uses", fixed = TRUE)
+  # the absent case: names that share a stem but no key, and the same
+  # name again, which replaces it
+  expect_no_error(frmtmb_register_aterm("tterm1x"))
+  expect_no_error(frmtmb_register_aterm("ttermb", arity = 2))
+  expect_no_error(frmtmb_register_aterm("tterm", arity = 3))
+  spec <- frm(bf(y | ttermb(a, b) + tterm(u, v, w) ~ x) + gaussian(),
+              data = NULL, dry_run = "spec")
+  expect_named(spec$responses[[1]]$aterms,
+               c("ttermb1", "ttermb2", "tterm1", "tterm2", "tterm3"))
+})
+
+test_that("a registration whose keys reach a registered name is refused", {
+  local_frmtmb_registries()
+  # the other order: the earlier term owns the key `tterm2`. Through
+  # 0.81.0 `y | tterm2(z) + tterm(u, v, w)` then stopped with
+  # "Duplicated addition term `tterm2()`", which names neither cause
+  frmtmb_register_aterm("tterm2")
+  expect_error(frmtmb_register_aterm("tterm", arity = 3),
+               paste0("`tterm()` with 3 arguments would deliver a value ",
+                      "under the key `tterm2`"),
+               fixed = TRUE)
+  # twelve arguments reach ta11 and ta12, a two-argument ta1()'s keys
+  frmtmb_register_aterm("ta1", arity = 2)
+  expect_error(frmtmb_register_aterm("ta", arity = 12),
+               "key `ta11`, which the registered `ta1()` (2 arguments)",
+               fixed = TRUE)
+  # an option term is found by its name, so its name is a key
+  frmtmb_register_aterm("tq2", option = function(family, call, env) {
+    family
+  })
+  expect_error(frmtmb_register_aterm("tq", arity = 2),
+               "key `tq2`, which the registered `tq2()` already uses",
+               fixed = TRUE)
+})
+
 test_that("frmtmb_register_aterm validates its own arguments", {
   expect_error(frmtmb_register_aterm("trials"),
                "cannot be re-registered")

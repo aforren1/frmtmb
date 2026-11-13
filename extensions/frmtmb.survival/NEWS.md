@@ -1,3 +1,17 @@
+# frmtmb.survival (development version)
+
+* BREAKING: The upper boundary knot of `cox()`'s baseline covers every
+  upper bound the likelihood reads: the upper bound of an
+  interval-censored row and a `trunc(ub = )` bound, not only the
+  response. The default upper knot widens to such a bound, and
+  `Boundary.knots` (or `bhaz(Boundary.knots = )`) whose upper knot
+  misses one are refused. Before, a bound past the knot was held at the
+  knot without a word, which says that no hazard accrues after it. A
+  `trunc(lb = )` bound, as in delayed entry, does not move the knots:
+  below the lower knot the model has no hazard, so the cumulative
+  hazard there is exactly 0. A fit without an upper bound past the data
+  keeps brms's default knots.
+
 # frmtmb.survival 0.2.3
 
 * `royston_parmar()` takes `trunc(lb = )` at or below 0, which is no

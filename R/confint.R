@@ -2158,7 +2158,10 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
   # false-positives on identical frames and misses NA-dropped rows;
   # comparing the response actually used catches the real cases.
   # [lme4#622]
-  nobs_all <- vapply(fits, function(f) as.integer(f$frame[["n_obs"]]), 0L)
+  # The rows that keep a density, as BIC() counts them: a multivariate
+  # subset() fit on 72 of 80 rows has n_obs 80, and through 0.81.0 it
+  # was compared with an 80-row fit.
+  nobs_all <- vapply(fits, function(f) as.integer(loglik_nobs(f$frame)), 0L)
   if (length(unique(nobs_all)) > 1L) {
     frm_stop("anova() needs fits with the same number of observations (got ",
              paste(unique(nobs_all), collapse = ", "),
@@ -2210,11 +2213,26 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
 
 #' Single-term deletions
 #'
-#' Drops each fixed-effect term of the primary (`mu`) formula in turn,
-#' refits, and tabulates AIC (and likelihood-ratio tests with
-#' `test = "Chisq"`), following [stats::drop1()] and lme4's
-#' `drop1.merMod`. Random-effect, smooth, and `mo()`/`mi()` terms are
-#' not part of the deletion scope.
+#' Drops each term of the primary (`mu`) formula in turn, refits, and
+#' tabulates AIC (and likelihood-ratio tests with `test = "Chisq"`),
+#' following [stats::drop1()] and lme4's `drop1.merMod`. The scope holds
+#' every term of the formula except the random-effect and
+#' autocorrelation terms, so a `mo()`, `me()`, `cs()`, `gp()` or smooth
+#' term is dropped as a whole, as a plain covariate is. Dropping a
+#' smooth drops its penalized part and its unpenalized part together.
+#'
+#' A row whose refit leaves out a `me()` call has `NA` statistics, and a
+#' message names it: a `me()` term puts the measurements of its noisy
+#' variable into the likelihood, so that refit is a likelihood of other
+#' data, which [anova.frmtmb_fit()] refuses too. A `me()` term that
+#' another term still uses (`me(x, sdx) + me(x, sdx):z`, dropping the
+#' interaction) keeps its measurements and gets its statistics. The
+#' same holds for [stats::add1()]: a row that adds a `me()` call is
+#' `NA`. `add1()` reads the fit's whole formula for the terms it has, so
+#' a `mo()`, `me()` or smooth term of the fit is not offered again, and
+#' an interaction with one is offered when marginality allows it. A
+#' random-effect term it adds is written in parentheses, `(1 | g)`, in
+#' the row name and in the refit.
 #'
 #' A family without a `mu` gives the main formula to every location
 #' predictor that has no formula of its own: each category of
@@ -2238,8 +2256,9 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
 #' @param object A `frmtmb_fit` from an ML fit (`REML = FALSE`) of a
 #'   univariate model.
 #' @param scope Terms to drop: a character vector or a right-hand-side
-#'   formula. Defaults to all fixed-effect terms that marginality
-#'   allows ([stats::drop.scope()]).
+#'   formula. Defaults to all terms in the scope above that marginality
+#'   allows ([stats::drop.scope()]). For `add1()`, the terms to add, as
+#'   in [stats::add1()].
 #' @param test `"Chisq"` adds likelihood-ratio tests.
 #' @param k AIC penalty per parameter.
 #' @param ... Refused: an argument the method does not have is an
@@ -2295,7 +2314,7 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
     }
     dp_main <- loc[1L]
   }
-  tt <- terms(object, dpar = dp_main)
+  tt <- drop1_terms(object, dp_main)
   labs <- attr(tt, "term.labels")
   if (missing(scope)) {
     scope <- stats::drop.scope(tt)
@@ -2344,6 +2363,8 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
                importance = object$importance$draws %||% 0L,
                drop_unused_levels =
                  object$frame[["drop_unused_levels"]] %||% TRUE)
+  me0 <- fit_me_keys(object)
+  me_gone <- character(0)
   for (i in seq_len(n_sc)) {
     nb <- object$bform
     nf <- stats::update.formula(nb$formula,
@@ -2352,6 +2373,12 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
     nb$formula <- nf
     if (held) args$data <- refit_channel(rd, formula = nb, fit = object)
     fit_i <- do.call(frm, c(list(formula = nb), args), quote = TRUE)
+    # a refit without a me() call has lost that variable's measurements
+    # from its likelihood, which is then of other data
+    if (!identical(fit_me_keys(fit_i), me0)) {
+      me_gone <- c(me_gone, scope[i])
+      next
+    }
     ll_i <- logLik(fit_i)
     df_i <- loglik_df(fit_i)
     if (is.na(df_i)) {
@@ -2366,6 +2393,7 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
     aic[i] <- -2 * as.numeric(ll_i) + k * as.vector(df_i)
     lrt[i] <- 2 * (as.numeric(ll0) - as.numeric(ll_i))
   }
+  if (length(me_gone)) me_rows_message("drop1()", me_gone, "leaves out")
   tab <- data.frame(Df = c(NA, ddf), AIC = c(aic0, aic),
                     row.names = c("<none>", scope), check.names = FALSE)
   if (test == "Chisq") {
@@ -2375,6 +2403,121 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
   structure(tab, class = c("anova", "data.frame"),
             heading = c("Single term deletions\n",
                         paste("Model:", model_label(object)), ""))
+}
+
+#' The terms drop1() deletes: every term of the main formula but the
+#' random-effect and autocorrelation terms. `terms(fit)` is the terms of
+#' the fixed design only, which the parser builds after it has taken
+#' `mo()`, `me()`, `cs()`, `gp()` and the smooths out, so through 0.81.0
+#' `y ~ mo(k) + z` listed only `z` and said nothing. A nonlinear formula,
+#' or one terms() cannot read alone, keeps the fixed design's terms.
+#'
+#' @noRd
+drop1_terms <- function(object, dpar) {
+  fixed <- function() terms(object, dpar = dpar)
+  f <- object$bform[["formula"]]
+  if (!inherits(f, "formula") || isTRUE(object$bform[["nl"]]) ||
+        length(object$bform[["nlforms"]])) {
+    return(fixed())
+  }
+  tt <- tryCatch(stats::terms(reformulas::nobars(f)),
+                 error = function(e) NULL)
+  if (is.null(tt)) return(fixed())
+  labs <- attr(tt, "term.labels")
+  ac <- vapply(labs, function(l) {
+    length(called_functions(str2lang(l), autocor_term_names())) > 0L
+  }, NA)
+  if (!any(ac)) return(tt)
+  if (all(ac)) {
+    return(stats::terms(stats::update.formula(stats::formula(tt), . ~ 1)))
+  }
+  stats::drop.terms(tt, which(ac), keep.response = TRUE)
+}
+
+#' The `me()` calls a fit's likelihood holds measurements for, as
+#' anova() compares them.
+#'
+#' @noRd
+fit_me_keys <- function(fit) {
+  sort(vapply(fit$frame[["me"]]$terms %||% list(), `[[`, "", "key"))
+}
+
+#' The `me()` calls written in one term label.
+#'
+#' @noRd
+me_keys_in <- function(e) {
+  if (is_me_call(e)) return(deparse1(e))
+  if (!is.call(e)) return(character(0))
+  out <- character(0)
+  for (i in seq_along(e)[-1L]) {
+    if (identical(e[[i]], quote(expr = ))) next
+    out <- c(out, me_keys_in(e[[i]]))
+  }
+  out
+}
+
+#' Say which rows of a drop1() or add1() table are NA because their
+#' refit changes the me() calls, and so the data, of the likelihood.
+#'
+#' @noRd
+me_rows_message <- function(what, rows, verb) {
+  frm_message(what, ": no statistics for ",
+              paste0("`", rows, "`", collapse = ", "), ". The refit ",
+              verb, " a me() call, and a me() term puts the measurements ",
+              "of its noisy variable into the likelihood, so that refit ",
+              "is a likelihood of other data, as anova() says. Test a ",
+              "me() coefficient with its Wald test in summary() or with ",
+              "confint(method = \"profile\")")
+}
+
+#' @rdname drop1.frmtmb_fit
+#' @export
+add1.frmtmb_fit <- function(object, scope, ...) {
+  # stats::add.scope() reads terms(object), the fixed design's terms, so
+  # a mo(), me() or smooth term the fit has looked absent: through 0.81.0
+  # `~ . + me(x, sdx):z` on y ~ me(x, sdx) + z offered me(x, sdx) again,
+  # with Df 0, and never the interaction. The fit's whole formula, its
+  # random-effect terms included, is what a term is added to.
+  f <- object$bform[["formula"]]
+  if (!missing(scope) && !is.null(scope) && !is.character(scope) &&
+        inherits(f, "formula") && !isTRUE(object$bform[["nl"]]) &&
+        !length(object$bform[["nlforms"]])) {
+    tt <- tryCatch(stats::terms(f), error = function(e) NULL)
+    if (!is.null(tt)) {
+      scope <- stats::add.scope(tt, stats::update.formula(f, scope))
+    }
+  }
+  # a nonlinear fit keeps stats' own reading, made here so that its
+  # labels pass through the bar-term repair below too
+  if (!missing(scope) && !is.null(scope) && !is.character(scope)) {
+    scope <- stats::add.scope(object, stats::update.formula(object, scope))
+  }
+  # add1.default() refits update(fit, ~ . + <label>), and the label of a
+  # bar term has no parentheses: `~ . + 1 | g` parses as `(. + 1) | g`,
+  # so through 0.81.0 the refit was y ~ (x + 1 | g), a random slope in
+  # place of the fixed one (LRT 128.62 on Df 2, where y ~ x + (1 | g)
+  # gives 133.54 on Df 1). step() passes the labels as characters.
+  if (!missing(scope) && is.character(scope)) {
+    bar <- grepl("|", scope, fixed = TRUE) &
+      !vapply(scope, function(l) {
+        e <- tryCatch(str2lang(l), error = function(err) NULL)
+        is.call(e) && identical(e[[1L]], as.name("("))
+      }, NA)
+    scope[bar] <- paste0("(", scope[bar], ")")
+  }
+  tab <- utils::getS3method("add1", "default")(object, scope, ...)
+  me0 <- fit_me_keys(object)
+  new_me <- vapply(rownames(tab), function(l) {
+    if (identical(l, "<none>")) return(FALSE)
+    e <- tryCatch(str2lang(l), error = function(err) NULL)
+    !is.null(e) && length(setdiff(me_keys_in(e), me0)) > 0L
+  }, NA)
+  if (any(new_me)) {
+    cols <- intersect(names(tab), c("Df", "AIC", "LRT", "Pr(>Chi)"))
+    tab[new_me, cols] <- NA
+    me_rows_message("add1()", rownames(tab)[new_me], "adds")
+  }
+  tab
 }
 
 #' Does a formula carry a `.` term, which is what makes it a delta

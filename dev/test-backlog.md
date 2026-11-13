@@ -653,6 +653,9 @@ Regression tests in tests/testthat/test-osa-inference.R.
   `cens()` fit returns normally, silently. `simulate(censored = TRUE)` makes the draws comparable, but
   the point mass it puts at each censoring point is not a distribution
   DHARMa's rank transform can use, so it is not a drop-in fix.
+  CLOSED in the round of 2026-11-11 (lane silent): a censored row's
+  residual is drawn over its event through DHARMa's PIT tie rule;
+  `tests/testthat/test-dharma-cens.R`, `dev/silent-findings.md`.
 
 ## Code-review fixes, v0.22-v0.25 (2026-09-01)
 
@@ -724,6 +727,9 @@ tests in tests/testthat/test-review-v25.R.
   the same length-0 mean there. Confirmed 2026-09-07 at
   R/conditional-effects.R:14: `ce_aterms()`'s `strict` set is trials,
   se, trunc_lb and trunc_ub, and vint/vreal are not in it.
+  CLOSED in the round of 2026-11-11 (lane silent): `ce_aterms()` refuses
+  an unevaluable custom data term or `rate()`;
+  `tests/testthat/test-newdata-aterms.R`.
 - `cens()` stays refused for discrete families, so the discrete
   censored-truncated branch is reachable only through
   `build_objective()` and is tested that way. Confirmed 2026-09-07:
@@ -861,6 +867,8 @@ neither is the defect that lane fixed.
   unguarded. `mixture()` was fixed in core in the same round and is
   the model to copy: build the declaration alongside `init_fns`, keyed
   by the same `paste0(dp, k)` name. Left to the extension's own lane.
+  CLOSED in the round of 2026-11-11 (lane silent): `hmm()` copies the
+  declaration per state; frmtmb.latent `test-hmm-stationary.R`.
 
 ## Added by wt-skewinit after punch round 2, 2026-09-22
 
@@ -1562,6 +1570,9 @@ section and are listed here only where a user could hit them.
 - **A multivariate model's `logLik()` `nobs` attribute** counts rows
   that no response's `subset()` uses (80 where 72 rows carry data).
   `BIC()` reads it. Lane aterms2, re-check.
+  CLOSED in the round of 2026-11-11 (lane silent): `logLik()`'s `nobs`,
+  `df.residual()` and `anova()` count rows a response keeps (`nobs()`
+  stays brms's); `tests/testthat/test-subset-rate.R`.
 
 ### Upstream, listed in `dev/upstream-bugs.md` for the user to file
 
@@ -3876,6 +3887,8 @@ Record: `dev/bhaz-findings.md`, sections 4 and 7;
   the knot, as at 0.74.0 for `cens_y2` and truncation bounds, so "must
   cover every observed time" says less than it seems to (the review's
   "Cases the lane did not test").
+  CLOSED in the round of 2026-11-11 (lane silent): the upper knot covers
+  every upper bound the likelihood reads; `test-cox-bounds.R`.
 - Without frmtmb.survival, `bhaz()` on any family says to load
   frmtmb.survival, and with it loaded the same call on gaussian is
   refused; `dec()` has the same shape with frmtmb.eam (review finding
@@ -4234,6 +4247,8 @@ parity gap and saved 0.76.0 draws) stand.
   `dev/mointerop-findings.md`, fix round 1, "Pre-existing".
 - **`drop1()` omits `mo()` terms**, both arms, also on a 4-category
   fit. Same record.
+  CLOSED in the round of 2026-11-11 (lane silent): `drop1()` and `add1()`
+  read the whole formula; `tests/testthat/test-drop1-specials.R`.
 - **`predict()` of a gap fit draws at the estimates alone** (the
   parameter uncertainty is dropped), both arms. Same record.
 - **The marginaleffects `re_formula` warning (upstream).**
@@ -4661,6 +4676,43 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-11
+
+### From lane silent
+
+- **MINOR. The stationary-point escape is one pass, so two declared
+  dpars on their point at once leave one there.** `escape_stationary()`
+  restarts from each declared dpar moved off its point with the others
+  held, and keeps the best optimum; it does not look again. With both
+  states of `hmm(2, skew_normal())` started at alpha = 0
+  (`dev/silent-hmm-probe.R lane`, seeds 1 to 3) the escape ran 4
+  restarts and left one alpha at 0: logLik -1019.45, -985.69 and
+  -976.15, against -998.26, -960.60 and -953.59 from the default start.
+  `mixture()` of two skew normals has the same code path. The default
+  start of the probe's data stalls one state at most. Fix: repeat the
+  escape from the kept optimum while it gains and a declared dpar still
+  sits on its point, at most once per declaration.
+  (`dev/silent-findings.md`, item 857.)
+- **MINOR. An addition term whose value has the length of the new rows
+  by coincidence is read row by row.**
+  `vreal(rep_len(c(1, 3), 120))` on a 120-row fit is refused by
+  `conditional_effects()` on its default 100-row grid, but accepted at
+  `resolution = 120`, where the fitted rows' values pair with grid rows
+  they do not describe. Both `ce_aterms()` and `aterms_for_newdata()`
+  accept any value of length 1 or n, so `predict(newdata = )` on 120
+  rows reads the same way by construction (not run). A value that names
+  no column of the new data cannot follow its rows; refusing such a
+  term when it has length n and n is not 1 would close it.
+  (`dev/silent-ce-probe.R`, `dev/silent-findings.md`, item 720.)
+- **MINOR. `anova()`'s same-data check compares a count of rows, not
+  the rows.** A multivariate fit whose responses `subset()` rows 1 to 72
+  of 80 and one whose responses take rows 9 to 80 both count 72, and
+  `anova()` tests one against the other, on base and after the fix of
+  item 1562 alike (`dev/reviews/silent-review-nobs.R`, case E: "ran").
+  `loglik_nobs()` already builds the set of rows each fit reads;
+  comparing those sets instead of their lengths would close it.
+  (`dev/reviews/2026-11-11-silent.md`, MINOR 2.)
+
 ## Filed at the 0.81.0 release (2026-11-10)
 
 Gathered from the lanes' own sections of the round of 2026-11-09
@@ -4686,6 +4738,8 @@ records: `dev/<lane>-findings.md`, reviews
   (`vint<k>`, `vreal<k>`, `trunc_lb`, `trunc_ub`, `cens_y2`,
   `se_sigma`, `mi_sd`, `thres_gr`) (`dev/reviews/2026-11-10-compat.md`,
   round 2, R1).
+  CLOSED in the round of 2026-11-11 (lane silent): refused at
+  registration as proposed; `tests/testthat/test-parse.R`.
 
 ### From lane code8
 

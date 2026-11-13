@@ -1,3 +1,57 @@
+# frmtmb (development version)
+
+## Silent wrong answers fixed
+
+* BREAKING: `dharma_residuals()` on a `cens()` fit gives each censored
+  row the residual of the event it observes: a uniform draw between the
+  predictive distribution function at the two ends of `Y > y`,
+  `Y <= y` or `y < Y <= y2`. Before, a censored row was scored as the
+  exact value it records, against draws of the uncensored response, so
+  a right-censored row read the bottom of its interval every time, and
+  nothing was said. The residuals are uniform under a correct model
+  whatever each row's censoring time, on a continuous or a discrete
+  family. On a censored row the DHARMa object's observed value and
+  draws hold one point of that event, not the recorded value. On such a
+  fit `method = "traditional"` and `rotation`, passed on to DHARMa, are
+  refused: neither gives this residual.
+
+* BREAKING: In a multivariate model, the `nobs` attribute of `logLik()`,
+  which `BIC()` reads, and `df.residual()` count only the rows that a
+  response uses. Before, a row that no response's `subset()` keeps was
+  counted (80 where 72 rows carry data). `nobs()` still counts the rows
+  of the data, as brms's does. `anova()` compares this count, so it now
+  refuses two fits on 72 and 80 rows that it compared before.
+  `df.residual()` and `anova()` also leave out the rows whose missing
+  response `mi()` leaves unread, as the `nobs` attribute already did:
+  on a univariate `y | mi()` fit with 4 of 120 responses missing,
+  `df.residual()` goes from 117 to 113, and `anova()` against the
+  complete-case fit, which it refused before, now runs.
+
+* BREAKING: `drop1()` drops every term of the main formula except the
+  random-effect and autocorrelation terms: a `mo()`, `me()`, `cs()`,
+  `gp()` or smooth term is dropped as a whole. Before, it left these
+  terms out of the table without a word, so `drop1(y ~ mo(k) + z)` and
+  `step()` saw `z` alone. A row whose refit leaves out a `me()` call has
+  `NA` statistics and a message, because that refit is a likelihood of
+  other data. `add1()` does the same for a row that adds a `me()` call;
+  before, it reported a negative likelihood-ratio statistic there.
+  `add1()` now reads the terms the fit has from its whole formula, so
+  it no longer offers a `mo()`, `me()` or smooth term of the fit again.
+  A random-effect term it adds is refitted in parentheses: before,
+  `add1(fit, ~ . + (1 | g))` on `y ~ x` refitted `y ~ (x + 1 | g)`, a
+  random slope in place of the fixed one, and `step()` did the same.
+
+* `frmtmb_register_aterm()` refuses a name whose keys in `aterms` another
+  term uses: `x2` beside an `x` of three arguments, either way round,
+  and names such as `vint1` or `cens_y` (arity 2) that reach a key of a
+  core term. Before, the second term overwrote the first one's value
+  without a word.
+
+* `conditional_effects()` refuses a `vint()`, `vreal()` or registered
+  addition term, or a `rate()`, that it cannot evaluate on its grid, as
+  `predict(newdata = )` does. Before, it dropped the term, and the
+  draws of a custom family that reads it were `NA`.
+
 # frmtmb 0.81.0
 
 ## Convergence and standard errors

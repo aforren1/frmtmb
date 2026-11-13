@@ -388,8 +388,8 @@ pooled_order <- function(a, b) {
   }
   # Same guard as anova.frmtmb_fit, applied imputation by imputation:
   # likelihoods computed on different data are not on a common scale.
-  na <- vapply(a$fits, function(f) as.integer(f$frame[["n_obs"]]), 0L)
-  nb <- vapply(b$fits, function(f) as.integer(f$frame[["n_obs"]]), 0L)
+  na <- vapply(a$fits, function(f) as.integer(loglik_nobs(f$frame)), 0L)
+  nb <- vapply(b$fits, function(f) as.integer(loglik_nobs(f$frame)), 0L)
   if (!identical(na, nb)) {
     frm_stop("anova() needs both fits fit to the same imputed datasets; ",
              "imputation ", which(na != nb)[1], " has ", na[which(na != nb)[1]],

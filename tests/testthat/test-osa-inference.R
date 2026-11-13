@@ -62,8 +62,10 @@ test_that("OSA refuses the censoring layouts it cannot transform", {
   dv$y[i] <- dv$y[i] + seq_along(i) * 0.01
   fv <- frm(bf(y | cens(cen) ~ x) + gaussian(), data = dv)
   expect_error(residuals(fv, type = "osa"), "type-I censoring")
-  # and it names why dharma_residuals() is not the fallback
-  expect_error(residuals(fv, type = "osa"), "LATENT uncensored")
+  # and it names dharma_residuals() as the residual that needs no model
+  # of the censoring (test-dharma-cens.R)
+  expect_error(residuals(fv, type = "osa"),
+               "dharma_residuals() needs no such model", fixed = TRUE)
 
   # interval censoring
   di <- dd

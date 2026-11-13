@@ -15,6 +15,7 @@ S3method(LOO,frmtmb_fit)
 S3method(VarCorr,frmtmb_fit)
 S3method(VarCorr,frmtmb_multiple)
 S3method(WAIC,frmtmb_fit)
+S3method(add1,frmtmb_fit)
 S3method(add_criterion,frmtmb_fit)
 S3method(anova,frmtmb_fit)
 S3method(anova,frmtmb_multiple)
@@ -486,6 +487,7 @@ importFrom(nlme,
 importFrom(stats,
   AIC,
   BIC,
+  add1,
   anova,
   coef,
   confint,

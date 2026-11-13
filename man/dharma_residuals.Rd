@@ -55,6 +55,29 @@ refused for the same reason: a row of proportions has no scalar
 distribution function to evaluate.
 }
 
+\section{Censored responses}{
+
+A \code{cens()} row observes an event, not a value: \code{Y > y} when right
+censored, \code{Y <= y} when left censored, \verb{y < Y <= y2} for an interval.
+Its residual is a uniform draw between the predictive distribution
+function at the two ends of that event, the randomized quantile
+residual of Dunn and Smyth (1996) extended to censoring, and an
+uncensored row keeps \code{F(y)}. To get it, the draws of a censored row
+that fall inside its event are set to one point of the event, and
+the observation to the same point; DHARMa's default PIT residual
+(\code{method = "PIT"}) then randomizes over the tie, as it does for a
+count. Under a correct model the residuals are uniform whatever each
+row's censoring time is, so the censoring may vary by row and needs
+no model of its own. On a censored row, \code{observedResponse} and the
+row of \code{simulatedResponse} hold that point, not the recorded value
+and the latent draws. On a fit with a censored row,
+\code{method = "traditional"} and \code{rotation}, passed on to
+\code{\link[DHARMa:createDHARMa]{DHARMa::createDHARMa()}}, are refused: the first adds noise that moves
+a censored row off its event, and the second mixes rows before the
+event is read, so neither gives residuals that are uniform under a
+correct model.
+}
+
 \examples{
 if (requireNamespace("DHARMa", quietly = TRUE)) {
   set.seed(1)

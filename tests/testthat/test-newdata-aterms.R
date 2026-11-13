@@ -382,3 +382,40 @@ test_that("conditional_effects() holds a vint() count at a whole value", {
   expect_true(all(is.finite(ce[[1]]$estimate__)))
   expect_true(all(ce[[1]]$N == round(stats::median(cs$d$N))))
 })
+
+test_that("a grid that cannot evaluate a vreal() payload is refused", {
+  # a family that declares no required term, so nothing downstream names
+  # the missing one: through 0.81.0 ce_aterms() dropped the payload, and
+  # ce_sim_one(), the seam frmtmb.sample's method = "predict" draws
+  # through, drew one NA per grid row with only rnorm()'s warning
+  scaled <- custom_family(
+    "ce_scaled", dpars = c("mu", "sigma"),
+    links = list(mu = "identity", sigma = "log"),
+    lpdf = function(y, dpars, aterms) {
+      RTMB::dnorm(y, dpars[["mu"]] * aterms[["vreal1"]], dpars[["sigma"]],
+                  log = TRUE)
+    },
+    post = list(mean_fn = function(dpars, aterms) {
+      dpars[["mu"]] * aterms[["vreal1"]]
+    }),
+    sim = function(dpars, aterms, n) {
+      stats::rnorm(n, dpars[["mu"]] * aterms[["vreal1"]], dpars[["sigma"]])
+    })
+  set.seed(3)
+  n <- 120
+  d <- data.frame(x = stats::rnorm(n), s = rep_len(c(1, 3), n))
+  d$y <- (1 + 0.5 * d$x) * d$s + stats::rnorm(n, 0, 0.3)
+  # a payload written as an expression of the fitted row count
+  fe <- frm(bf(y | vreal(rep_len(c(1, 3), 120)) ~ x), family = scaled,
+            data = d)
+  nd <- data.frame(x = seq(-2, 2, length.out = 100), y = mean(d$y))
+  expect_error(frmtmb:::ce_sim_one(fe, nd, "y"),
+               "conditional_effects() could not evaluate vreal(", fixed = TRUE)
+  # the absent case: the same payload as a column is held on the grid
+  fc <- frm(bf(y | vreal(s) ~ x), family = scaled, data = d)
+  nd$s <- 2
+  set.seed(5)
+  draws <- frmtmb:::ce_sim_one(fc, nd, "y")
+  expect_length(draws, nrow(nd))
+  expect_true(all(is.finite(draws)))
+})

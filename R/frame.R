@@ -2129,23 +2129,26 @@ mi_laplace_exact <- function(frame) {
   TRUE
 }
 
-#' How many rows of the data have no density left in the objective, which is
-#' what `BIC()` must not count: in a multivariate model a row that one response
-#' lost and another still reads stays. A response under `subset()` has its own
-#' rows, and `mi_map` is on those.
+#' How many rows of the data keep a density in the objective, which is what
+#' `BIC()`, `df.residual()` and `anova()` count. A row is counted once if
+#' any response reads it: in a multivariate model a row that one response
+#' lost to a missing value and another still reads stays. A row that no
+#' response's `subset()` keeps has no density at all, and through 0.81.0
+#' it was counted (80 where 72 rows carry data). A response under
+#' `subset()` has its own rows, and `mi_map` is on those. `nobs()` is
+#' brms's count, the rows of the data, and does not read this.
 #'
 #' @noRd
-mi_rows_gone <- function(frame) {
-  gone <- integer(0)
+loglik_nobs <- function(frame) {
+  if (!length(frame[["y"]])) return(frame[["n_obs"]])
   held <- integer(0)
   for (r in names(frame[["y"]])) {
     rows <- seq_len(NROW(frame[["y"]][[r]]))
     un <- frame[["mi_map"]][[r]][["unread"]]
     of <- frame[["subset_rows"]][[r]] %||% rows
-    gone <- c(gone, of[un])
     held <- c(held, of[setdiff(rows, un)])
   }
-  length(setdiff(gone, held))
+  length(unique(held))
 }
 
 #' After a fit: warn when the Laplace approximation of the read values has a

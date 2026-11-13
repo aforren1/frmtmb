@@ -1140,6 +1140,24 @@ frame_n_outer <- function(frame, object) {
 #' read through a log-Jacobian, which is not constant, so it is a
 #' density like any other.
 #'
+#' @section The number of observations:
+#' One fit can give two counts, and each reader takes one of them:
+#'
+#' * `nobs(fit)` is brms's count, the rows of the data. A `subset()`
+#'   that leaves rows to no response and a missing response that `mi()`
+#'   leaves unread do not lower it. `nobs(fit, resp = )` counts the rows
+#'   of one response of a multivariate model. `insight::n_obs()` gives
+#'   this count too.
+#' * `attr(logLik(fit), "nobs")` counts the rows that keep a density in
+#'   the likelihood: a row counts once if any response reads it.
+#'   `BIC()`, `df.residual()` and the same-data check of
+#'   [anova()][anova.frmtmb_fit] read this count.
+#'
+#' The two agree when every row of the data carries a response that the
+#' likelihood reads. With two responses that both `subset()` rows 1 to
+#' 72 of 80, `nobs()` is 80 and the `nobs` attribute is 72, so `BIC()`
+#' takes `log(72)`.
+#'
 #' @param object A `frmtmb_fit`.
 #' @param ... For `AIC()` and `BIC()`, more fitted models, as in
 #'   [stats::AIC()]. Refused otherwise.
@@ -1341,8 +1359,9 @@ logLik.frmtmb_fit <- function(object, ...) {
             df = as.vector(df),
             df_why = attr(df, "df_why"),
             # a row a missing response took out of the objective is no
-            # observation for BIC, which is then the complete-case one
-            nobs = object$frame[["n_obs"]] - mi_rows_gone(object$frame),
+            # observation for BIC, which is then the complete-case one,
+            # and neither is a row no response's subset() keeps
+            nobs = loglik_nobs(object$frame),
             REML = object$REML,
             class = "logLik")
 }
@@ -1375,7 +1394,8 @@ nobs.frmtmb_fit <- function(object, ..., resp = NULL) {
 #' @export
 df.residual.frmtmb_fit <- function(object, ...) {
   frm_check_dots(...)
-  object$frame[["n_obs"]] - as.vector(loglik_df(object))
+  # the rows BIC() counts, so that the two never disagree on n
+  loglik_nobs(object$frame) - as.vector(loglik_df(object))
 }
 
 #' @export

@@ -143,8 +143,8 @@ property of the observation process, not of the response. This
 matches brms, whose \code{posterior_predict()} also ignores \code{cens()} (and
 whose \code{pp_check()} therefore drops the censored rows). The draws are
 then not comparable with the observed values on censored rows, which
-is why \code{dharma_residuals()} and \code{residuals(type = "osa")} refuse or
-skip them.
+is why \code{residuals(type = "osa")} refuses or skips them and
+\code{dharma_residuals()} scores each one on the event it observes.
 
 \code{censored = TRUE} applies the fitted censoring mechanism to each
 draw instead, so the draws are directly comparable with the observed
