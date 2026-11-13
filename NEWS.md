@@ -1,3 +1,61 @@
+# frmtmb (development version)
+
+## Quadrature
+
+* BREAKING: `quadrature = TRUE` on one random-effect block per row now
+  tapes the Gauss-Kronrod rule again at the estimate, and optimizes
+  again from there while the rule taped at the estimate has a gradient
+  above `grad_tol`. The rule is fixed when it is taped, so it is a rule
+  for the integral only near that point. This fixes two silent wrong
+  answers:
+  - When no calibration point gave a stationary rule, the fit kept the
+    one with the lowest objective, which is the one that overstates the
+    log-likelihood most. Against an independent integral at each fit's
+    own estimate, the worst error on 120 binomial, Bernoulli and poisson
+    fits at the default `grad_tol` fell from 4.48e-2 to 1.06e-3. With
+    `grad_tol = 1e-4` and `1e-5` (50 fits each), it fell from 1.82 and
+    3.78 to 5.4e-6. None of these 100 fits warns now; one warned
+    before.
+  - A likelihood that rises without bound stopped at a false maximum
+    with code 0 and no warning: a gaussian `mi()` response with weights
+    of 1.5 and `(1 | obs)` stopped at log sigma -4.06. Such a fit now
+    warns with class `frmtmb_quad_unsettled` when it is still gaining
+    after 10 rounds, or when the optimizer stops without converging.
+    (The same model without `mi()` is refused by the weights check.)
+
+  The reported log-likelihood is now the rule's value at or next to the
+  estimate, and moves by the rule's own error at that point: on the 120
+  fits it
+  is worse than before by more than 1e-6 on 19 and better on 17.
+  Standard errors move with it, by up to 6.8e-4 relative. A round that
+  does not move, or whose two rules agree within 1e-5, ends the loop
+  as settled. Cost: at the default `grad_tol`, 9 of the 120 fits needed
+  a round, and the others paid one tape. With `grad_tol = 1e-4` and
+  `1e-5`, 17 and 29 of 50 fits needed rounds. On a Bernoulli model with
+  500 groups at `grad_tol = 1e-4`, the three fits took 24.4, 10.8 and
+  14.9 s, against 20.6, 8.7 and 11.9 s before. `fit$opt$quad_settle`
+  records the rounds.
+
+* A family's declared stationary point (the skew normal's alpha = 0) is
+  now escaped on the Laplace fit, before the quadrature rule is taped.
+  Before, the escape ran on a rule fixed at the stall: a skew normal
+  with `(1 | g)` started at alpha's stationary point ended 1.0e-2 below
+  the fit from the default start. It now ends within 1e-8, as under
+  the Laplace approximation.
+
+* BREAKING: A standard deviation at zero in a `quadrature = TRUE` fit
+  on one block per row is now a boundary (singular) fit, with the same
+  message and NaN standard error as under the Laplace approximation.
+  This covers standard deviations only: a coefficient that runs off to
+  infinity still gets no verdict under quadrature.
+  Before, the standard deviation had a finite Wald standard error and an
+  interval below zero (a Bernoulli `(1 | g)` with an sd of 4.8e-5 had
+  Est.Error 0.136 and a lower limit of -0.27). The check asks a rule
+  taped at each value it probes, so a fit with an sd at zero costs 8
+  more tapes: 0.37 s in place of 0.12 s on that fit, 1.25 s in place of
+  0.33 s on a skew normal of 200 rows. The nested route keeps the
+  "flat" verdict.
+
 # frmtmb 0.81.0
 
 ## Convergence and standard errors

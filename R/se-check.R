@@ -520,13 +520,13 @@ se_bound_held <- function(fit, p, H = NULL) {
 se_edge_sd <- function(fit, H) {
   np <- NROW(H)
   out <- logical(np)
-  # Under quadrature the boundary is not asked: the upward check
+  # Not on the nested quadrature route: the upward check
   # (se_sd_gain_up()) cannot run on that objective, and without it a fit
   # stuck near sd = 0 is called a boundary (4 of 4 rescaled-response fits
   # 0.0007 to 0.825 below lme4, 20 of 20 GLMMs started at exp(-12),
   # setier review, final check RQ1); such an sd keeps base's "flat"
   # verdict and its warning
-  if (isTRUE(fit$quadrature)) return(out)
+  if (!se_edge_probed(fit)) return(out)
   th <- fit$estimates[["theta"]]
   if (!length(th)) return(out)
   om <- outer_par_map(fit)
@@ -2268,13 +2268,8 @@ se_boundary_act <- function(what, msg) {
 #'
 #' @noRd
 se_boundary_names <- function(fit, lost) {
-  # Under quadrature the boundary is not asked: the upward check
-  # (se_sd_gain_up()) cannot run on that objective, and without it a fit
-  # stuck near sd = 0 is called a boundary (4 of 4 rescaled-response fits
-  # 0.0007 to 0.825 below lme4, 20 of 20 GLMMs started at exp(-12),
-  # setier review, final check RQ1); such an sd keeps base's "flat"
-  # verdict and its warning
-  if (isTRUE(fit$quadrature)) return(character(0))
+  # Not on the nested quadrature route (se_edge_sd())
+  if (!se_edge_probed(fit)) return(character(0))
   th <- fit$estimates[["theta"]]
   flat <- names(lost)[lost == "flat"]
   if (!length(th) || !length(flat)) return(character(0))
@@ -2387,21 +2382,23 @@ se_sd_gain_up0 <- function(fit, k) {
   scale <- se_sd_scale(fit, k)
   up <- log(c(0.01, 0.03, 0.1, 0.3, 1) * scale)
   up <- up[up > p[thpos[k]]]
-  # a quadrature objective is not accurate above the sd it was fitted
-  # at: on test-quadrature-defects.R's nested beta fit, an sd at
-  # exp(-11.2) moved up by 2 lowered it by 0.009 and moved to 0.01 by
-  # 17, where the Laplace objective rose by 0.0015 (dev/setier-quadup.R),
-  # so the question is not asked there
-  if (isTRUE(fit$quadrature)) return(none)
+  # a quadrature tape is not accurate above the sd it was fitted at: on
+  # test-quadrature-defects.R's nested beta fit, an sd at exp(-11.2)
+  # moved up by 2 lowered it by 0.009 and moved to 0.01 by 17, where the
+  # Laplace objective rose by 0.0015 (dev/setier-quadup.R). A one-block
+  # rule is taped again at each value (se_probe_fn()); the nested one
+  # is not asked
+  if (!se_edge_probed(fit)) return(none)
   obj <- fit$obj
+  fn <- se_probe_fn(fit)
   saved <- obj_state_save(obj)
   on.exit(obj_state_restore(obj, saved), add = TRUE)
-  f0 <- tryCatch(obj$fn(p), error = function(e) NA_real_)
+  f0 <- tryCatch(fn(p), error = function(e) NA_real_)
   if (!is.finite(f0)) return(none)
   at <- function(v) {
     q <- p
     q[thpos[k]] <- v
-    f0 - tryCatch(se_quiet(obj$fn(q)), error = function(e) NA_real_)
+    f0 - tryCatch(se_quiet(fn(q)), error = function(e) NA_real_)
   }
   gain <- vapply(up, at, 0)
   up <- up[is.finite(gain)]
@@ -2505,12 +2502,13 @@ se_at_edge <- function(fit, name, dir) {
   j <- match(name, outer_par_names(fit))
   if (is.na(j) || length(p) != length(outer_par_names(fit))) return(FALSE)
   obj <- fit$obj
+  fn <- se_probe_fn(fit)
   saved <- obj_state_save(obj)
   on.exit(obj_state_restore(obj, saved), add = TRUE)
   q <- p
   q[j] <- q[j] + dir * se_edge_step
-  f0 <- tryCatch(obj$fn(p), error = function(e) NA_real_)
-  f1 <- tryCatch(obj$fn(q), error = function(e) NA_real_)
+  f0 <- tryCatch(fn(p), error = function(e) NA_real_)
+  f1 <- tryCatch(fn(q), error = function(e) NA_real_)
   is.finite(f0) && is.finite(f1) && abs(f1 - f0) <= se_edge_tol
 }
 
@@ -3282,9 +3280,9 @@ se_pred_warn <- function(bad, what = "predictions") {
 #'
 #' @noRd
 se_boundary_stop <- function(fit, g, control) {
-  # (never under quadrature, where no boundary verdict is given:
-  # se_boundary_names())
-  if (isTRUE(fit$quadrature) ||
+  # (not on the nested quadrature route, where no boundary verdict is
+  # given: se_boundary_names())
+  if (!se_edge_probed(fit) ||
         !is.finite(g) || g > (control$grad_tol %||% 1e-3) ||
         identical(control$check_se, "ignore") ||
         !is.environment(fit$cache)) {

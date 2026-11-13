@@ -498,12 +498,14 @@ test_that("an sd the fit left near zero short of the maximum is no boundary", {
   }
 })
 
-test_that("under quadrature no sd is called a boundary", {
-  # final check RQ1: the upward check cannot run on a quadrature
+test_that("under quadrature an sd stuck short of the maximum is no boundary", {
+  # final check RQ1: the upward check could not run on a quadrature
   # objective, and seed 36 at x1e-3 refitted with quadrature = TRUE,
   # 0.825 below lme4's log-likelihood, was told "is at zero". Since
   # lane optrap that fit reaches the maximum; the start of a group sd at
-  # exp(-20) leaves it 0.825 short again (dev/optrap-rq1.R)
+  # exp(-20) leaves it 0.825 short again (dev/optrap-rq1.R). The check
+  # now asks a rule taped at each larger sd (se_probe_fn()), which finds
+  # the gain
   set.seed(36)
   d <- data.frame(g = factor(rep(1:20, each = 5)), x = rnorm(100))
   d$y <- 1 + 0.5 * d$x + rnorm(100)

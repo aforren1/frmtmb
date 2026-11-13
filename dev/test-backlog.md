@@ -834,6 +834,10 @@ neither is the defect that lane fixed.
   Reproduction: `dev/skewinit-punch1c.R`. The fix is to escape BEFORE
   `quad_fit()` calibrates, or to recalibrate after it, both of which
   are changes to `quad_fit()` rather than to the escape.
+  CLOSED in the round of 2026-11-11 (lane quadseam): `quad_fit()` escapes on the
+  Laplace objective before it tapes the rule, and re-tapes after any
+  later move; the case lands 1.0e-8 from the unstalled fit
+  (`dev/quadseam-punch1c.R`).
 
 - DECIDED 2026-09-24 (user): KEEP REPORTING nonzero optimizer
   convergence codes, "I'd rather people think about their fits". The
@@ -3471,6 +3475,12 @@ findings 2 to 4 and "Item 1".
   check treats quadrature as exact for that reason; a fit that the
   check does not reach (several responses, `se()`) gets that
   spurious maximum.
+  CLOSED in the round of 2026-11-11 (lane quadseam): `quad_settle()`
+  re-tapes the rule at the estimate until it is stationary, and warns
+  `frmtmb_quad_unsettled` on a runaway the weights check does not
+  reach: a gaussian with `mi()` stopped at log sigma -4.06 with code 0
+  (`dev/quadseam-runaway3.R`). The weighted `(1 | obs)` cases of this
+  item are refused by the weights check since lane wcheck (3447).
 
 #### Open - low
 
@@ -3479,6 +3489,10 @@ findings 2 to 4 and "Item 1".
   and the boundary message (`dev/fuzzfix-quad-boundary.R`, seed 3: sd
   4.773e-05, Est.Error 0.1355, Q2.5 -0.2654). `sdr_nan_nonpos()` and the
   boundary rule do not run on a quadrature objective.
+  CLOSED in the round of 2026-11-11 (lane quadseam): on the one-block route the
+  boundary rule probes rules taped at each sd (`se_probe_fn()`): the
+  same message and NaN SE as under Laplace. The nested route is
+  filed under "Filed in the round of 2026-11-11".
 - **Weights summing to exactly n with an observation-level effect**
   drift to a boundary dispersion (log shape 15.7 on the fuzz data;
   gaussian `scale = TRUE` log sigma -8.27). Bounded, so not refused; the
@@ -3616,6 +3630,12 @@ findings 2 to 4 and "Item 1".
   `(1 | obs)` at an excess of 0.5 returns conv 0 while the exact
   likelihood keeps rising. The weights check refuses that case; other
   unbounded quadrature fits are not detected.
+  CLOSED in the round of 2026-11-11 (lane quadseam): the one-block rule
+  is taped again at the estimate until it is stationary
+  (`quad_settle()`), and an unbounded fit the weights check does not
+  reach (`mi()`, `se()`, a family outside its table) warns
+  `frmtmb_quad_unsettled`; the gaussian `(1 | obs)` case is refused by
+  the weights check.
 - **Extension families are outside the weights check.** frmtmb.eam's
   `wiener()` and `rdm()` with `cens()`, weights 1.5 and `(1 | obs)` run
   away (logLik 1782.55 and 766.21) with warnings. Each extension would
@@ -4660,6 +4680,57 @@ none is a regression of this release.
   package does not declare (inferred by the review, not run). The skip
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
+
+## Filed in the round of 2026-11-11
+
+### From lane quadseam
+
+Lane record: `dev/quadseam-findings.md`.
+
+- **A skew normal under `quadrature = TRUE` started at the stall can
+  end 5.5e-2 short.** wt-skewinit's acceptance seed 6 with `(1 | g)`
+  and the stall start: logLik -244.155229735 at alpha 5.008, against
+  -244.100465993 at 5.267 from the default start; the Laplace fit
+  reaches its maximum from both starts. The same on 0.81.0 and the
+  lane build; no escape fires, since the warm start does not stop on
+  alpha = 0. The one-block route has no Newton polish
+  (`newton_polish()` runs only without `integrate`), and the rule taped
+  at the stop reads a gradient below `grad_tol` there
+  (`dev/quadseam-escorder.R`, `dev/quadseam-seed6.R`).
+- **The Gauss-Kronrod rule's error depends on its anchor, up to
+  1e-3.** On the review's 120 fits at the default `grad_tol` (Bernoulli
+  groups of 4 and of 2, poisson sd 1 and sd 2;
+  `dev/reviews/quadseam-review-acc.R`) the log-likelihood against
+  `stats::integrate()` per group at the fit's own estimate has a worst
+  error of 1.06e-3 with the rule taped at the estimate (4.48e-2 on
+  0.81.0); against 0.81.0 it is worse by more than 1e-6 on 19 fits and
+  better on 17. TMB's calibration takes its curvature by differences
+  with a step of 1 and stops its mode search at a gain of 1e-2
+  (`ytol`), so the rule is not equally good at every anchor.
+- **The nested quadrature route still gives no boundary verdict.** An
+  sd at zero under `(1 | ga/gb)` keeps the "flat" warning: the upward
+  check needs the rule taped at each probed sd, and the nested rule
+  needs the Laplace objective for its anchor, which the fit does not
+  keep (`se_edge_probed()`).
+- **`sd_up_escape()` does not run under quadrature.** A quadrature fit
+  left with an sd near zero short of an interior maximum (the start at
+  exp(-20) of test-se-tier.R) keeps the "flat" warning or the
+  convergence warning where the Laplace fit restarts and reaches the
+  maximum. The upward probe now works on the one-block route
+  (`se_probe_fn()`); the restart would then need `quad_settle()`.
+- **Cross-lane (boundfam): a coefficient that runs off under one-block
+  quadrature gets a finite SE and no warning.** Poisson with a factor
+  level whose counts are all zero, plus `(1 | g)`: under Laplace the
+  coefficient (-22.53) has SE NaN and a warning ("toward -Inf" on
+  boundfam's build, "flat" on this lane's); under `quadrature = TRUE`
+  it has SE 7471 and no word, on both builds
+  (`dev/reviews/quadseam-review-limit.R`). boundfam's
+  `se_edge_limit()` keeps its own `!isTRUE(fit$quadrature)` gate. On
+  the one-block route its direction test can read `se_probe_fn()`;
+  its curvature test (`se_limit_curv()`) takes `obj$he()` at a moved
+  point, which on the frozen rule is a read away from the anchor and
+  would need the Hessian of a rule taped at that point. For the
+  consolidation to decide; not done in either lane.
 
 ## Filed at the 0.81.0 release (2026-11-10)
 

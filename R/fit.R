@@ -244,9 +244,15 @@
 #'   its optimum: the
 #'   Gauss-Kronrod rescaling is fixed when the tape is built, so the
 #'   starting point decides whether the marginalized objective is
-#'   finite at all. That fit also supplies the conditional modes, which
-#'   the marginalized objective no longer carries, so `ranef()`,
-#'   `fitted()` and `predict()` work as usual.
+#'   finite at all. The Laplace fit also supplies the conditional
+#'   modes, which the marginalized objective no longer carries, so
+#'   `ranef()`, `fitted()` and `predict()` work as usual. The rule is
+#'   then taped again at the estimate, and optimized again from there,
+#'   until the rule taped at the estimate is stationary or a round
+#'   changes the log-likelihood by less than the rule can resolve
+#'   (1e-5). A fit still gaining after 10 rounds, such as one whose
+#'   likelihood rises without bound, warns (class
+#'   `frmtmb_quad_unsettled`).
 #' @param importance Number of importance draws per group, or `0`
 #'   (default) for none. A positive count replaces the Laplace
 #'   approximation with an importance-sampling correction of it
@@ -1571,11 +1577,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     # Two nested blocks on a row take the route of R/quadrature-nested.R
     # instead, which never reads this spec.
     qnest <- quad_check_blocks(frame)
-    integrate <- list(b = structure(
-      list(dim = 1, adaptive = FALSE, debug = FALSE,
-           method = "marginal_gk"),
-      class = "GK"
-    ))
+    integrate <- quad_gk_integrate()
   }
   profile_arg <- NULL
   if (isTRUE(control$profile)) {
@@ -1758,6 +1760,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     obj <- qf$obj
     opt <- qf$opt
   }
+  qf_par <- opt$par
   # A family that declares a stationary point gets looked at from both
   # sides of it. Not under importance=: its diagnostics (the effective
   # sample size, the proposal) belong to the optimum importance_fit()
@@ -1770,6 +1773,13 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     if (!isFALSE(ctl_opt$mo_search)) {
       opt <- mo_search(obj, opt, frame, ctl_opt, bounds, par_units,
                        verbose = vb, tally = tally)
+    }
+    # a restart above ran on the rule frozen at the old estimate
+    if (!is.null(integrate) && is.null(qnest) &&
+          !identical(opt$par, qf_par)) {
+      qs <- qf$settle(obj, opt)
+      obj <- qs$obj
+      opt <- qs$opt
     }
     if (is.null(integrate)) {
       # with random effects the Hessian costs 2 p inner solves, so only
@@ -2114,6 +2124,14 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
   if (vb) t0 <- vb_now()
   lap_opt <- optimize_obj(lap_obj, control, bounds, par_units)
   if (vb) vb_stage("quadrature warm start", t0, vb_opt_detail(lap_opt))
+  # the rule is anchored at this optimum, so a stall on a family's
+  # declared stationary point is escaped here, on the Laplace objective:
+  # an escape on the frozen rule afterwards landed 1.0e-2 short (skew
+  # normal with (1 | g), dev/quadseam-findings.md, item 828)
+  if (!is.null(frame)) {
+    lap_opt <- escape_stationary(lap_obj, lap_opt, frame, control, bounds,
+                                 par_units, verbose = vb)
+  }
 
   # A template holding the outer values `par` plus the conditional
   # modes there, which is what MakeADFun needs to calibrate the tape.
@@ -2186,7 +2204,298 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
   if (is.null(best)) {
     frm_stop(quad_breakdown_message(frame, lap_tpl$theta), call. = FALSE)
   }
-  best[c("obj", "opt")]
+  tape_at <- function(par) {
+    o <- tryCatch(RTMB::MakeADFun(nll, anchor(par), random = random,
+                                  map = map, integrate = integrate,
+                                  silent = TRUE, inner.control = inner_ctl),
+                  error = function(e) NULL)
+    if (is.null(o) || length(o$env$random)) NULL else o
+  }
+  out <- quad_settle(best$obj, best$opt, tape_at, control, bounds,
+                     par_units, vb)
+  # the escape's record, which escape_stationary() keeps measurable
+  out$opt$stationary_escape <- lap_opt$stationary_escape
+  # what fit_assembled() calls again after a restart moved the estimate
+  out$settle <- function(obj, opt) {
+    quad_settle(obj, opt, tape_at, control, bounds, par_units, vb)
+  }
+  out
+}
+
+#' Re-anchor the Gauss-Kronrod rule at the estimate until it is
+#' stationary there.
+#'
+#' A tape is a rule for the integral near the point it was calibrated
+#' at, and its optimum is the optimum of the integral only if the rule
+#' taped at that optimum is stationary too. Two ways it is not:
+#'
+#' - A spike narrower than the frozen nodes' spacing. On a runaway (a
+#'   likelihood that rises without bound as a scale falls) the frozen
+#'   rule stops at a false maximum with code 0 (dev/quadseam-findings.md,
+#'   item 3466).
+#' - Calibration points that disagree. quad_fit() keeps the candidate
+#'   with the lowest objective among rules calibrated at different
+#'   points, which selects a rule that underestimates the negative
+#'   log-likelihood: 0.81.0 overstated the log-likelihood by up to
+#'   4.5e-2 at the default `grad_tol` and 3.78 at 1e-5, with no warning
+#'   (review of lane quadseam).
+#'
+#' So the rule is taped again at the estimate, as the nested route does
+#' (quad_nest_fit()); while its gradient there exceeds `grad_tol` it is
+#' optimized from there and taped again at the stop. A round ends the
+#' loop as settled when the optimizer converges without moving (a step
+#' below 1e-8 in the optimizer's units, code 0: the gradient is then the
+#' rule's own calibration noise, not a missing maximum; at `grad_tol =
+#' 1e-4` such fits spent 10 rounds of step 0 and then warned), or when
+#' it converges and the rules taped at the round's two ends differ by no
+#' more than `quad_settle_tol`, which the rule cannot resolve. The
+#' estimate is then the stop of the rule the round optimized, which is
+#' stationary there, so the convergence check does not read the noise
+#' either. A round that gains more than that is kept. One that loses more
+#' is rejected and retried inside a box of a quarter of its step, as the
+#' nested route does. The loop warns (class `frmtmb_quad_unsettled`) when
+#' it is still gaining after `rounds` rounds, after three rejections in a
+#' row, or when the optimizer stops without converging and without a step
+#' the rule can resolve.
+#'
+#' Returns `list(obj, opt, info)`: the tape the estimate is reported on
+#' (taped at the estimate, or at the start of the round that ended the
+#' loop within the rule's resolution), the optimum with the objective
+#' that rule gives there, and how the
+#' loop ended. An anchor that cannot be taped keeps `obj` and `opt`.
+#'
+#' @noRd
+quad_settle <- function(obj, opt, tape_at, control, bounds, par_units,
+                        vb = 0L, rounds = quad_settle_rounds) {
+  units <- par_units %||% 1
+  tol <- control$grad_tol %||% 1e-3
+  grad_at <- function(o, at) {
+    g <- try(max(abs(o$gr(at) * units)), silent = TRUE)
+    if (inherits(g, "try-error")) NA_real_ else g
+  }
+  value_at <- function(o, at) {
+    v <- try(o$fn(at), silent = TRUE)
+    if (inherits(v, "try-error")) NA_real_ else v
+  }
+  par <- opt$par
+  fz <- tape_at(par)
+  f_at <- if (is.null(fz)) NA_real_ else value_at(fz, par)
+  if (!is.finite(f_at)) {
+    return(list(obj = obj, opt = opt, info = list(rounds = 0L,
+                                                  settled = NA)))
+  }
+  np <- length(par)
+  lo <- rep_len(bounds$lower %||% -Inf, np)
+  hi <- rep_len(bounds$upper %||% Inf, np)
+  f_first <- f_at
+  grad <- grad_at(fz, par)
+  settled <- isTRUE(grad < tol)
+  k <- 0L
+  step <- 0
+  radius <- Inf
+  rejected <- 0L
+  why <- "rounds"
+  last <- NA_real_
+  while (!settled && k < rounds && rejected < 3L) {
+    k <- k + 1L
+    if (vb) t0 <- vb_now()
+    box <- list(lower = pmax(lo, par - radius / units),
+                upper = pmin(hi, par + radius / units))
+    op <- tryCatch(optimize_obj(fz, control, box, par_units,
+                                start_par = par),
+                   error = function(e) NULL)
+    if (is.null(op) || !all(is.finite(op$par))) {
+      why <- "failed"
+      break
+    }
+    s <- max(abs((op$par - par) * units))
+    if (!is.finite(s) || s < 1e-8) {
+      # the optimizer called the rule taped here stationary; one that
+      # stopped on a failure did not (a runaway's rule, gradient 3e5,
+      # stopped at "false convergence" without a step)
+      settled <- isTRUE(op$convergence == 0L)
+      why <- "stuck"
+      break
+    }
+    fz_new <- tape_at(op$par)
+    f_new <- if (is.null(fz_new)) NA_real_ else value_at(fz_new, op$par)
+    gain <- f_at - f_new
+    if (vb) {
+      vb_stage("quadrature re-anchor", t0,
+               paste0("step ", format(s, digits = 3), ", gain ",
+                      format(gain, digits = 3)))
+    }
+    last <- gain
+    if (is.finite(gain) && abs(gain) <= quad_settle_tol) {
+      # the two rules agree to their own error, so the gradient there is
+      # calibration noise: report the stop of the rule this round
+      # optimized, which is stationary at it, rather than a point where a
+      # rule reads a gradient of noise (poisson, sd 2, groups of 3: 1.06e-3
+      # and a convergence warning). Inside a box the stop can be the box's
+      # edge, so the estimate stays where it was. Only a stop the optimizer
+      # calls converged: a runaway's rule stopped at "false convergence"
+      # after a step of 1.4e-8 with the two rules 5.6e-7 apart and a
+      # gradient of 3.7e5 (the mi() runaway, one ulp draw in five)
+      settled <- isTRUE(op$convergence == 0L)
+      if (!settled) {
+        why <- "stuck"
+        break
+      }
+      if (!is.finite(radius)) {
+        par <- op$par
+        f_at <- value_at(fz, par)
+        keep <- setdiff(names(opt), names(op))
+        opt <- c(op, opt[keep])
+        grad <- grad_at(fz, par)
+      }
+      break
+    }
+    if (!is.finite(gain) || gain < 0) {
+      rejected <- rejected + 1L
+      radius <- s / 4
+      why <- "rejected"
+      next
+    }
+    rejected <- 0L
+    radius <- Inf
+    why <- "rounds"
+    step <- s
+    par <- op$par
+    fz <- fz_new
+    f_at <- f_new
+    # what an earlier stage recorded on the optimum (an escape's gain)
+    # describes this fit still
+    keep <- setdiff(names(opt), names(op))
+    opt <- c(op, opt[keep])
+    grad <- grad_at(fz, par)
+    settled <- isTRUE(grad < tol)
+  }
+  # the tape's state at the estimate, where every reader expects it
+  value_at(fz, par)
+  opt$par <- par
+  opt$objective <- f_at
+  # measurable, as an escape's record is: the rounds a fit needed
+  opt$quad_settle <- c(rounds = k, gain = f_first - f_at, grad = grad,
+                       last = last)
+  if (!settled) {
+    frm_warning("quadrature = TRUE did not settle the Gauss-Kronrod rule: ",
+                "after ", k, " re-anchoring(s) the rule taped at the ",
+                "estimate still has a gradient of ", format(grad, digits = 3),
+                " there, ",
+                if (why == "rounds") {
+                  paste0("and the log-likelihood was still rising (by ",
+                         format(f_first - f_at, digits = 3), " over them, ",
+                         format(step, digits = 3), " in the last step)")
+                } else if (why == "rejected") {
+                  paste0("and three steps in a row lowered the ",
+                         "log-likelihood of the rule taped at their end")
+                } else if (why == "stuck") {
+                  paste0("and the optimizer stopped there without ",
+                         "converging (", op$message %||% "no message",
+                         ") and without a step the rule could resolve")
+                } else "and the last round's optimizer failed",
+                ". The reported estimate is not the maximum of the ",
+                "integral. A log-likelihood that keeps rising as a ",
+                "standard deviation falls has no maximum; otherwise ",
+                "compare with quadrature = FALSE, the Laplace approximation",
+                call. = FALSE, class = "frmtmb_quad_unsettled")
+  }
+  list(obj = fz, opt = opt,
+       info = list(rounds = k, settled = settled, grad = grad,
+                   gain = f_first - f_at))
+}
+
+#' Re-anchorings quad_settle() makes before it gives up while still
+#' gaining. A runaway gains at every round and never settles.
+#'
+#' @noRd
+quad_settle_rounds <- 10L
+
+#' How far apart the rules taped at the two ends of a round may be and
+#' still be read as equal: the order of the rule's own error at its
+#' anchor. Rounds that "gained" 2.6e-7 and 2.8e-7 moved to points whose
+#' exact log-likelihood was lower (review of lane quadseam, MINOR 3), and
+#' the boundary check reads the likelihood to `se_edge_tol`, 1e-6, too.
+#'
+#' @noRd
+quad_settle_tol <- 1e-5
+
+#' TMB's `integrate =` spec for the one-block route, replicated from
+#' TMB's GK().
+#'
+#' @noRd
+quad_gk_integrate <- function() {
+  list(b = structure(list(dim = 1, adaptive = FALSE, debug = FALSE,
+                          method = "marginal_gk"),
+                     class = "GK"))
+}
+
+#' The objective of a one-block quadrature fit at an outer vector `q`,
+#' by a Gauss-Kronrod rule taped at `q`, for the standard-error check's
+#' probes away from the estimate. The fit's own tape is frozen at the
+#' estimate and reads garbage there: on a bernoulli `(1 | g)` fit with
+#' the sd at 4.8e-5 it moved by +2.5, -6.8 and +41 at sds of 0.01, 0.03
+#' and 1, where a rule taped at each point moved by 4e-4, 3.7e-3 and 4.2
+#' (dev/quadseam-probe1.R). Each call costs a tape, 0.01 to 0.04 s
+#' there. The template holds the fit's conditional modes, from which
+#' the rule's own calibration finds the mode at `q`.
+#'
+#' NULL for a fit this does not apply to: no quadrature, or the nested
+#' route, whose rule needs the Laplace objective to anchor.
+#'
+#' @noRd
+quad_reanchored_fn <- function(fit) {
+  if (!isTRUE(fit$quadrature) || !is.null(fit[["quad_nested"]])) {
+    return(NULL)
+  }
+  cached <- is.environment(fit$cache)
+  hit <- if (cached) fit$cache$quad_fn
+  if (!is.null(hit) && identical(hit$est, fit[["estimates"]])) {
+    return(hit$fn)
+  }
+  frame <- fit[["frame"]]
+  nll0 <- build_objective(frame)
+  ent <- fit_prior_entries(fit)
+  nll <- if (length(ent)) {
+    nlp <- neg_log_prior_fn(ent)
+    function(pars) nll0(pars) + nlp(pars)
+  } else nll0
+  est <- fit[["estimates"]]
+  map <- frame[["map"]]
+  inner_ctl <- predictor_inner_control(predictor_units(frame))
+  # the boundary checks ask the same points more than once (the
+  # estimate, its move toward zero), and each answer costs a tape
+  seen <- new.env(parent = emptyenv())
+  fn <- function(q) {
+    key <- paste(sprintf("%a", q), collapse = ",")
+    if (!is.null(seen[[key]])) return(seen[[key]])
+    tpl <- imp_par_list(est, q, map)
+    o <- RTMB::MakeADFun(nll, tpl, random = "b", map = map,
+                         integrate = quad_gk_integrate(), silent = TRUE,
+                         inner.control = inner_ctl)
+    v <- if (length(o$env$random)) NA_real_ else o$fn(o$par)
+    seen[[key]] <- v
+    v
+  }
+  if (cached) fit$cache$quad_fn <- list(fn = fn, est = est)
+  fn
+}
+
+#' Can the standard-error check probe this fit's objective away from the
+#' estimate, as its boundary verdicts need? Not on the nested quadrature
+#' route (quad_reanchored_fn()).
+#'
+#' @noRd
+se_edge_probed <- function(fit) {
+  !isTRUE(fit$quadrature) || is.null(fit[["quad_nested"]])
+}
+
+#' The objective the standard-error check's probes evaluate at an outer
+#' vector: the fit's own, or under quadrature a rule taped there.
+#'
+#' @noRd
+se_probe_fn <- function(fit) {
+  quad_reanchored_fn(fit) %||% fit$obj$fn
 }
 
 #' The refusal message when every calibration point breaks down. A bare
@@ -5259,6 +5568,11 @@ grad_headroom <- function(fit, g, active) {
   H <- headroom_pulled_hessian(fit, ec)
   if (is.null(H)) {
     H <- tryCatch(obj_he_cached(fit$obj, p), error = function(e) NULL)
+    # a Gauss-Kronrod tape's he() can be NaN in every entry where its
+    # gradient is finite (poisson, sd 2, groups of 3), and the
+    # differences below are then the curvature, as fit_outer_hessian()
+    # already takes them
+    if (!is.null(H) && !all(is.finite(H))) H <- NULL
   }
   u1 <- is.null(fit$par_units) || all(fit$par_units == 1)
   if (is.null(H) || !identical(dim(H), c(np, np))) {
@@ -5503,6 +5817,11 @@ conv_headroom <- function(fit, g) {
     } else {
       obj_he_cached(obj, p)
     }, error = function(e) NULL)
+    # a Gauss-Kronrod tape's he() can be NaN where its gradient is finite
+    # (grad_headroom())
+    if (is.matrix(H) && !all(is.finite(H))) {
+      H <- fit_outer_hessian_at(fit, p) %||% H
+    }
   }
   if (!is.matrix(H) || !all(dim(H) == np)) return(NA_real_)
   H <- (H + t(H)) / 2
@@ -5541,14 +5860,14 @@ conv_headroom <- function(fit, g) {
 #' The covariance parameters at the edge of their range that the
 #' standard-error check holds (se_edge_cor(), se_edge_sd()), as a logical
 #' vector over the outer parameters; `ec` is headroom_edge_cor()'s
-#' answer. Not asked under quadrature or importance sampling, where the
-#' check gives no boundary verdict.
+#' answer. Not asked on the nested quadrature route or under importance
+#' sampling, where the check gives no boundary verdict.
 #'
 #' @noRd
 headroom_edge <- function(fit, H, ec = headroom_edge_cor(fit, NROW(H))) {
   np <- NROW(H)
   out <- logical(np)
-  if (isTRUE(fit$quadrature) || !is.null(fit$importance)) return(out)
+  if (!se_edge_probed(fit) || !is.null(fit$importance)) return(out)
   es <- tryCatch(se_edge_sd(fit, H), error = keep_missing(out))
   if (length(ec) != np) ec <- out
   if (length(es) != np) es <- out

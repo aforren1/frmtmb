@@ -258,9 +258,15 @@ plain Laplace fit runs first and the quadrature tape is built at
 its optimum: the
 Gauss-Kronrod rescaling is fixed when the tape is built, so the
 starting point decides whether the marginalized objective is
-finite at all. That fit also supplies the conditional modes, which
-the marginalized objective no longer carries, so \code{ranef()},
-\code{fitted()} and \code{predict()} work as usual.}
+finite at all. The Laplace fit also supplies the conditional
+modes, which the marginalized objective no longer carries, so
+\code{ranef()}, \code{fitted()} and \code{predict()} work as usual. The rule is
+then taped again at the estimate, and optimized again from there,
+until the rule taped at the estimate is stationary or a round
+changes the log-likelihood by less than the rule can resolve
+(1e-5). A fit still gaining after 10 rounds, such as one whose
+likelihood rises without bound, warns (class
+\code{frmtmb_quad_unsettled}).}
 
 \item{importance}{Number of importance draws per group, or \code{0}
 (default) for none. A positive count replaces the Laplace
