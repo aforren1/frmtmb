@@ -168,21 +168,31 @@ test_that("a proper default never loses likelihood or gains the warning", {
 
 test_that("the starts draw under a named generator, whatever the session's", {
   draws <- frmtmb:::mixture_starts_draws
+  # every kind RNGkind() reports, set by position: R-devel has a fourth,
+  # binom.kind, after the three of R 4.6
+  set_kinds <- function(k) suppressWarnings(do.call(RNGkind, as.list(k)))
   old <- RNGkind()
-  on.exit(RNGkind(old[1L], old[2L], old[3L]), add = TRUE)
+  on.exit(set_kinds(old), add = TRUE)
   ref <- draws(3, 2)
-  for (k in list(c("L'Ecuyer-CMRG", "Inversion", "Rejection"),
-                 c("Mersenne-Twister", "Box-Muller", "Rejection"),
-                 c("Mersenne-Twister", "Inversion", "Rounding"))) {
-    suppressWarnings(RNGkind(k[1L], k[2L], k[3L]))
+  cases <- list(c("L'Ecuyer-CMRG", "Inversion", "Rejection"),
+                c("Mersenne-Twister", "Box-Muller", "Rejection"),
+                c("Mersenne-Twister", "Inversion", "Rounding"))
+  # the fourth kind away from its default, where the R version has one
+  if (length(old) >= 4L) {
+    cases <- c(cases, list(c("Mersenne-Twister", "Inversion", "Rejection",
+                             "Buggy BTPE")))
+  }
+  for (k in cases) {
+    set_kinds(k)
     set.seed(3)
+    want <- RNGkind()
     before <- .Random.seed
     expect_identical(draws(3, 2), ref, label = paste(k, collapse = " "))
-    # the caller's kinds and seed are put back
-    expect_identical(RNGkind(), k)
+    # the caller's kinds, all of them, and seed are put back
+    expect_identical(RNGkind(), want)
     expect_identical(.Random.seed, before)
   }
-  RNGkind(old[1L], old[2L], old[3L])
+  set_kinds(old)
   # a seed that did not exist does not exist after
   ge <- globalenv()
   saved <- get0(".Random.seed", envir = ge, inherits = FALSE)
@@ -201,7 +211,7 @@ test_that("the same call gives the same fit under any RNG kind", {
   # the default kind and -379.31 under L'Ecuyer-CMRG; 11 of the 40 fits
   # differed so (dev/reviews/2026-11-11-ordstart.md, finding 1)
   old <- RNGkind()
-  on.exit(RNGkind(old[1L], old[2L], old[3L]), add = TRUE)
+  on.exit(suppressWarnings(do.call(RNGkind, as.list(old))), add = TRUE)
   d <- oms_data(14)
   fam <- mixture(cumulative(), cumulative())
   RNGkind("Mersenne-Twister", "Inversion", "Rejection")
@@ -330,7 +340,22 @@ test_that("autoscale runs the starts once, in the fit that is reported", {
   expect_identical(plain$picks, 1L)
   expect_identical(scaled$picks, 1L)
   expect_false(is.null(scaled$fit$opt$mixture_starts))
-  expect_identical(scaled$step, plain$step)
+  # the step-start signal is that of the one run whose record the fit
+  # carries. How many starts reach a higher step function is each run's
+  # optimizer path, which rescaling and rounding change: 0 to 6 of 10
+  # over 240 fits of these data, every one at the same maximum, and with
+  # x scaled by 1 + 48e-15 the scaled fit's starts reached none while the
+  # plain fit's reached 5 (dev/ci082-findings.md)
+  for (a in list(plain, scaled)) {
+    rec <- a$fit$opt$mixture_starts
+    expect_identical(a$step, rec[["degenerate_above"]] > 0 &&
+                       rec[["tier"]] < 2)
+  }
+  # and both report the same maximum: every one of those 240 fits read
+  # -388.095489 to 6 decimals, so within 1e-6 of each other, and 1e-7 of
+  # the log-likelihood is 3.9e-5
+  llp <- as.numeric(logLik(plain$fit))
+  expect_lt(abs(as.numeric(logLik(scaled$fit)) - llp), 1e-7 * abs(llp))
   # cum_cum seed 10: a flat-boundary default, whose degenerate warning
   # 0.81.0 gives with and without the rescaling
   d <- oms_data(10)

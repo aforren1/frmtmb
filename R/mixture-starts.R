@@ -257,8 +257,8 @@ mixture_starts_default <- 10L
 #' session with `RNGkind("L'Ecuyer-CMRG")`, which parallel work sets, drew
 #' other starts and got another answer on 11 of the 40 fits, by up to
 #' 10.4 in log-likelihood (dev/reviews/2026-11-11-ordstart.md, finding
-#' 1). The caller's kinds and seed are put back, and a seed that did not
-#' exist is removed again.
+#' 1). The caller's kinds (all of them, however many the R version has)
+#' and seed are put back, and a seed that did not exist is removed again.
 #'
 #' @noRd
 mixture_starts_draws <- function(np, n) {
@@ -269,8 +269,10 @@ mixture_starts_draws <- function(np, n) {
   on.exit({
     # setting a kind seeds the stream anew, so the seed goes back after;
     # a "Rounding" sample.kind warns that it is non-uniform, which the
-    # caller chose and has been told
-    suppressWarnings(RNGkind(kinds[1L], kinds[2L], kinds[3L]))
+    # caller chose and has been told. Every kind RNGkind() reports goes
+    # back, by position: R-devel added a fourth (binom.kind) after the
+    # three of R 4.6
+    suppressWarnings(do.call(RNGkind, as.list(kinds)))
     if (had) {
       assign(".Random.seed", old, envir = ge)
     } else if (exists(".Random.seed", envir = ge, inherits = FALSE)) {

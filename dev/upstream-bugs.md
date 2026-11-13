@@ -1076,9 +1076,25 @@ Numbering is settled at consolidation. Not reported.
   `G <- MakeTape(function(p) dnbinom_robust(1, 0, -p[1], log = TRUE), 30)`;
   `G$jacobian(30)` gives 1.2e-2 (25: -5.6e-5).
 - Expected: about 1e-13 (the Poisson limit).
+- Seen again 2026-11-13 (TMB 1.9.25, `dev/ci082-nbgrad.R`, RTMB alone,
+  log `dev/ci082-out/nbgrad.txt`): 200 poisson counts (seed 2), the
+  jacobian of `sum(dnbinom_robust(y, lmu, 2 * lmu - p, log = TRUE))` in
+  the log size `p` against the exact derivative (the digamma difference
+  summed as `sum(1 / (size + j))`, `log1p()` for the log term): at 10,
+  7.1714e-05 against 7.1719e-05; at 18, -1.3e-05 against 2.3e-08; at
+  24, -3.6e-03 against 5.8e-11; at 30, -0.18 against 1.6e-13; at 35,
+  -218 against -3.2e-15. The value stays right to about 1e-12. The
+  error grows like size times machine epsilon, the cancellation of
+  `lgamma(x + size) - lgamma(size)` and of its digamma difference.
+- Consequence: a negbinomial fit at its poisson limit can stop at a log
+  shape past 20, where the convergence check reads the noise as a
+  "Large maximum absolute gradient" warning in place of the limit
+  message (backlog, round of 2026-11-13, lane ci082).
 - Workaround: none; the robustness test does not sweep `shape`
-  (`tests/testthat/test-numerical-robustness.R:136`).
-- Record: `dev/fams-findings.md` "Defects found and not fixed" item 2.
+  (`tests/testthat/test-numerical-robustness.R:136`). RTMB-6's
+  `lgamma_shift_diff()` is the pattern a stable form would use.
+- Record: `dev/fams-findings.md` "Defects found and not fixed" item 2;
+  `dev/ci082-findings.md`, item 3b.
 - Status: not reported.
 
 ### RTMB-5. `OBS()` in a loop silently swaps data between responses

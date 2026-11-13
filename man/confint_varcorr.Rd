@@ -31,7 +31,12 @@ unstructured block of three or more terms the same holds for the
 correlations of a term that is, to within that clamp, a linear
 combination of the terms before it (a singular correlation matrix),
 and a component whose standard error comes out as zero gets \code{NA}
-bounds too. A
+bounds too. A component that the covariance structure fixes, such as
+a correlation that a registered structure holds at one value, is not
+estimated: its interval is that value, with no width. For a
+correlation this holds when the value is not 0 and lies inside
++/-0.9999; a fixed correlation at or past +/-0.9999 is on the
+boundary and gets \code{NA} bounds with the warning, as above. A
 bootstrap (\code{\link[=hypothesis]{hypothesis()}} with \code{method = "boot"}) or a likelihood
 profile of the underlying \code{theta} is the alternative.
 }

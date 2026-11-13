@@ -4793,6 +4793,39 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-13
+
+### From lane ci082
+
+- **LOW. Under `check_se = "ignore"` nlminb's code at a supremum decides
+  the convergence warning** (dev/ci082-findings.md, item 3). A
+  negbinomial fit to poisson data (seed 2 of `test-se-limit.R`) stops
+  with "relative convergence (4)" or "false convergence (8)" by
+  rounding: code 8 on 2 of 20 ulp perturbations on the reference BLAS
+  and 2 of 20 under OpenBLAS 0.3.26. Under "warning" both read as the
+  limit (a message). Under "ignore" the code-4 stop is silent and the
+  code-8 stop warns "Optimizer did not report convergence", because the
+  check that reads a code-8 stop as a boundary is the one "ignore" turns
+  off (documented in `se_boundary_stop()`, pinned by `test-se-conv.R`).
+  A user decision: keep it, or let "ignore" still ask the boundary
+  question for a stop with a nonzero code, at the cost of the SE
+  analysis on those fits only.
+- **MEDIUM. A negbinomial fit at its poisson limit can end with a false
+  "Large maximum absolute gradient" warning in place of the limit
+  message** (dev/ci082-findings.md, item 3). The same data as above,
+  x scaled by `1 + 30e-15`, under OpenBLAS 0.3.26 with
+  `OPENBLAS_CORETYPE=Sandybridge`: code 0 at log shape 24.48, gradient
+  0.00504 in the shape, "one Newton step ... would still gain 0.158",
+  no limit message, under check_se "warning" and "ignore" alike. The
+  log-likelihood there is 3.6e-11 below the poisson maximum, so no step
+  can gain 0.158: the gradient is the noise of TMB's `dnbinom_robust()`
+  derivative at a large size (`dev/upstream-bugs.md`, RTMB-4; exact
+  derivative 3.6e-11). On the reference BLAS the same data stop at
+  15.21 with the limit message. Fix candidates: a stable negbinomial
+  density (RTMB-6's `lgamma_shift_diff()`), or a gradient verdict that
+  measures the Newton step's gain with the objective instead of
+  predicting it.
+
 ## Filed at the 0.82.0 release (2026-11-11)
 
 ### From lane boundfam

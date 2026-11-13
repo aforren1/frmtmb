@@ -1,3 +1,25 @@
+# frmtmb 0.82.1
+
+## Bug fixes
+
+* `confint_varcorr()` and the covariance rows of `summary()` report a
+  component that the covariance structure fixes, such as a correlation
+  that a registered structure holds at one value, at that value with an
+  interval of zero width and no warning. A component is fixed when it
+  takes the same value at points far apart in the structure's
+  parameters. Before, the standard error of such a component was a
+  rounding residue: a small positive number on one platform, which gave
+  an interval of almost zero width, and exactly zero on another, which
+  gave NA bounds and the "No interval" warning. For a correlation this
+  holds when the fixed value is not 0 and lies inside -0.9999 to
+  0.9999. A fixed correlation at or past that limit is on the boundary
+  and keeps NA bounds and the warning. Estimated components are
+  unchanged.
+
+* The jittered starts of an ordinal mixture restore every random number
+  generator kind that `RNGkind()` reports. R-devel adds a fourth kind,
+  `binom.kind`, after the three of R 4.6.
+
 # frmtmb 0.82.0
 
 ## Convergence and standard errors

@@ -9,20 +9,20 @@
 # ratio to a quantity the run measures. Names no extension uses (xcs,
 # toyfld), and local_frmtmb_registries() puts every registry back.
 
-# An exchangeable block with a FIXED correlation of 0.5 and one
-# estimated standard deviation: xcs(0 + t | g).
-xcs_C <- function(d) matrix(0.5, d, d) + diag(0.5, d)
-register_xcs <- function() {
+# An exchangeable block with a FIXED correlation of 0.5 (or `rho`) and
+# one estimated standard deviation: xcs(0 + t | g).
+xcs_C <- function(d, rho = 0.5) matrix(rho, d, d) + diag(1 - rho, d)
+register_xcs <- function(name = "xcs", rho = 0.5) {
   frmtmb_register_covstruct(
-    "xcs",
+    name,
     lpdf = function(b, theta, blk) {
       d <- blk[["dim"]]
-      Sigma <- exp(2 * theta[1]) * xcs_C(d)
+      Sigma <- exp(2 * theta[1]) * xcs_C(d, rho)
       dim(b) <- c(d, length(b) %/% d)
       sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
     },
     vcov = function(theta, blk) {
-      V <- exp(2 * theta[1]) * xcs_C(blk[["dim"]])
+      V <- exp(2 * theta[1]) * xcs_C(blk[["dim"]], rho)
       dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
@@ -76,11 +76,11 @@ dense_ll <- function(y, X, beta, Z, S, sigma) {
   -0.5 * (length(y) * log(2 * pi) + 2 * sum(log(diag(R))) + sum(r^2))
 }
 
-xcs_data <- function(seed = 11L, G = 30L, per = 3L) {
+xcs_data <- function(seed = 11L, G = 30L, per = 3L, rho = 0.5) {
   set.seed(seed)
   d <- expand.grid(t = factor(c("a", "b", "c")), rep = seq_len(per),
                    g = factor(sprintf("g%02d", seq_len(G))))
-  u <- t(crossprod(chol(0.8^2 * xcs_C(3L)), matrix(rnorm(3 * G), 3)))
+  u <- t(crossprod(chol(0.8^2 * xcs_C(3L, rho)), matrix(rnorm(3 * G), 3)))
   d$x <- rnorm(nrow(d))
   d$y <- 0.4 + 0.7 * d$x + u[cbind(as.integer(d$g), as.integer(d$t))] +
     rnorm(nrow(d), 0, 0.6)
@@ -136,6 +136,76 @@ test_that("a registered bar structure fits as its density says", {
   expect_identical(dim(simulate(fit, nsim = 2, seed = 3)), c(nrow(d), 2L))
   # and frm_compat() describes the structure it now accepts
   expect_true("xcs" %in% frm_compat_features()$name)
+})
+
+test_that("a fixed correlation has no width on every rounding", {
+  skip_on_cran()
+  # The fixed correlation's delta-method se is a rounding residue: 0.82.0
+  # read an exact 0 as a lost estimate and gave NA bounds and a warning,
+  # on 11 of these 20 fits at 0.5 on the reference BLAS and 13 under
+  # OpenBLAS 0.3.26, and on the ubuntu runners at k = 0. At 0.999, where
+  # atanh is steep, the residue is up to 1.2e-9 (dev/ci082-findings.md)
+  local_frmtmb_registries()
+  register_xcs()
+  register_xcs("xch", 0.999)
+  for (st in c("xcs", "xch")) {
+    d0 <- xcs_data(rho = if (st == "xch") 0.999 else 0.5)
+    f <- stats::as.formula(paste0("y ~ x + ", st, "(0 + t | g)"))
+    for (k in 0:19) {
+      d <- d0
+      d$y <- d0$y * (1 + 2e-15 * k)
+      fit <- frm(f, family = gaussian(), data = d)
+      cv <- confint_varcorr(fit)
+      cr <- cv$type == "cor"
+      lab <- paste(st, "k", k)
+      expect_identical(cv$lwr[cr], cv$estimate[cr], info = lab)
+      expect_identical(cv$upr[cr], cv$estimate[cr], info = lab)
+      expect_true(all(cv$upr[!cr] > cv$lwr[!cr]), info = lab)
+    }
+  }
+  # the guard-absent cases. An estimated correlation keeps its width
+  d0 <- xcs_data()
+  fu <- frm(bf(y ~ x + (0 + t | g)), family = gaussian(), data = d0)
+  cu <- confint_varcorr(fu)
+  cr <- cu$type == "cor"
+  expect_true(all(cu$upr[cr] > cu$estimate[cr] &
+                    cu$estimate[cr] > cu$lwr[cr]))
+  # and so does one that is tiny or flat at the estimate: ou() on data
+  # with no correlation across times, where each correlation is
+  # exp(-rate * lag) of an estimated rate, 2.6e-17 at a lag of 1 and 0
+  # by underflow at 20. Each keeps a positive se, or (underflowed) gets
+  # NA bounds and the warning, as on 0.82.0; none is a zero width. A
+  # time of 1000 puts lags of 960 and more in, whose correlation is 0 at
+  # the estimate and at every point the fixed-row probe reads, so the
+  # probe alone would call it fixed (short check of the fix round)
+  grids <- list(list(seed = 1L, times = c(0, 0.5, 1, 2, 8, 20, 40)))
+  for (s in 1:3) {
+    grids[[length(grids) + 1L]] <-
+      list(seed = s, times = c(0, 0.5, 1, 2, 8, 20, 40, 1000))
+  }
+  for (gr in grids) {
+    set.seed(gr$seed)
+    times <- gr$times
+    b <- stats::rnorm(50L * length(times))
+    dou <- data.frame(y = rep(b, each = 2L) +
+                        stats::rnorm(2L * length(b), 0, 0.5),
+                      g = factor(rep(seq_len(50L),
+                                     each = 2L * length(times))),
+                      tim = num_factor(rep(rep(times, each = 2L), 50L)))
+    lab <- paste("times", length(times), "seed", gr$seed)
+    fo <- frm(y ~ 1 + ou(tim + 0 | g), family = gaussian(), data = dou)
+    co <- allow_warnings(confint_varcorr(fo), "No interval for",
+                         require = "No interval for")
+    cr <- co$type == "cor"
+    se <- frmtmb:::varcorr_trans_rows(fo)$se_t[cr]
+    expect_true(all(is.na(se) | se > 0), info = lab)
+    expect_true(any(se > 0, na.rm = TRUE), info = lab)
+    expect_true(all(is.na(co$upr[cr]) | co$upr[cr] > co$lwr[cr]),
+                info = lab)
+    expect_true(all(is.na(se[co$estimate[cr] == 0])), info = lab)
+    far <- grepl("tim(1000)", co$term[cr], fixed = TRUE)
+    expect_true(all(is.na(se[far])), info = lab)
+  }
 })
 
 test_that("a registered field term fits as core's gr(cov = A) does", {

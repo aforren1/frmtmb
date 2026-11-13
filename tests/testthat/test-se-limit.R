@@ -94,9 +94,31 @@ test_that("a negbinomial shape at its poisson limit is a boundary fit", {
   g <- stats::glm(y ~ x, family = stats::poisson(), data = d)
   expect_equal(unname(se[1:2] / sqrt(diag(stats::vcov(g)))), c(1, 1),
                tolerance = 1e-3)
-  # check_se = "ignore" is silent, "stop" stops, as for a variance at zero
-  expect_silent(frm(y ~ x, family = negbinomial(), data = d,
-                    control = frmtmb_control(check_se = "ignore")))
+  # check_se = "ignore" says nothing of the limit, "stop" stops, as for a
+  # variance at zero. At the supremum nlminb's code is rounding's choice:
+  # "relative convergence (4)" or "false convergence (8)", the latter on
+  # 4 of 40 ulp-perturbed fits and on the ubuntu runner for these data
+  # (dev/ci082-findings.md). The check that reads a code-8 stop as a
+  # limit is the one "ignore" turns off, so that stop keeps its
+  # convergence warning (test-se-conv.R) and is the other valid ending,
+  # but only at the maximum: a stop short of it, or one whose curvature
+  # is unusable, is the defect the warning exists for. Both fits run the
+  # same optimizer path, so the coefficients agree to rounding
+  ri <- limit_conds(frm(y ~ x, family = negbinomial(), data = d,
+                        control = frmtmb_control(check_se = "ignore")))
+  expect_length(ri$messages, 0L)
+  if (isTRUE(ri$value$opt$convergence == 0)) {
+    expect_length(ri$warnings, 0L)
+  } else {
+    expect_length(ri$warnings, 1L)
+    expect_match(ri$warnings, "Optimizer did not report convergence: ",
+                 fixed = TRUE)
+    expect_match(ri$warnings, "false convergence (8)", fixed = TRUE)
+    expect_match(ri$warnings, "so the estimates are at the maximum",
+                 fixed = TRUE)
+    expect_equal(unname(ri$value$opt$par[1:2] / r$value$opt$par[1:2]),
+                 c(1, 1), tolerance = 1e-6)
+  }
   expect_error(frm(y ~ x, family = negbinomial(), data = d,
                    control = frmtmb_control(check_se = "stop")),
                "end of its range", fixed = TRUE)

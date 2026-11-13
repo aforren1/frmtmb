@@ -813,6 +813,13 @@ varcorr_trans_rows <- function(fit) {
       (gfun(tp) - gfun(tm)) / (2 * h)
     }, numeric(length(g0)))
     J <- matrix(J, nrow = length(g0))
+    # A row a structure fixes (xcs()'s correlation in
+    # test-covstruct-seam.R) is not estimated, so its interval has no
+    # width. Its delta-method se is a rounding residue, exactly 0 on
+    # the ubuntu runners and 5.8e-13 on Windows, which the zero-se rule
+    # below would read as a lost estimate (varcorr_fixed_rows())
+    fixed <- varcorr_fixed_rows(bk, t0)
+    if (length(fixed) != length(g0)) fixed <- logical(length(g0))
     pos <- th_pos[bk[["theta_idx"]]]
     # A parameter whose variance is not shown (sdr_nan_nonpos(): a NaN
     # row and column, reason "nocurv") spreads its NaN through the
@@ -826,6 +833,8 @@ varcorr_trans_rows <- function(fit) {
     kb <- setdiff(seq_along(pos), nb)
     Jk <- J[, kb, drop = FALSE]
     se_g <- sqrt(pmax(diag(Jk %*% Vb[kb, kb, drop = FALSE] %*% t(Jk)), 0))
+    # before the lost-direction rules, so that their NA always stands
+    se_g[fixed] <- 0
     if (length(nb)) {
       hb <- 2e-5 * pmax(abs(t0[nb]), 1)
       tol <- 16 * .Machine$double.eps * pmax(abs(g0), 1)
@@ -874,7 +883,8 @@ varcorr_trans_rows <- function(fit) {
     # zero or below, and seed 7 of the 0.72.0 review's three-dimensional
     # us() design reported cor(x,z) as [-0.122416, -0.122416] that way
     # (dev/test-backlog.md, the item of the 0.72.0 release review)
-    se_g[bd | !is.finite(est0) | !is.finite(se_g) | !(se_g > 0)] <- NA_real_
+    se_g[bd | !is.finite(est0) | !is.finite(se_g) |
+           !(se_g > 0 | fixed)] <- NA_real_
 
     n_sd <- length(g0) - if (has_cor) d * (d - 1) / 2 else 0
     for (i in seq_len(n_sd)) {
@@ -931,6 +941,76 @@ varcorr_us_row_edge <- function(t, d) {
   edge[which(lower.tri(diag(d)), arr.ind = TRUE)[, 1L]]
 }
 
+#' For block `bk` at theta `t0`, one logical per `varcorr_trans_rows()`
+#' row (log sds, then the correlations in `lower.tri()` order): does the
+#' structure fix the row, so that no theta moves it? Such a row takes
+#' one value everywhere, so it is read at points far apart: the
+#' structure's own start and `t0` moved by -1 and +1 in each
+#' coordinate. A row is fixed when every one of them gives the value at
+#' `t0` to `1e-10` of the larger of the two, with no absolute floor.
+#'
+#' Not a derivative test: an estimated row can be flat at the estimate
+#' and still move at these points. An `ou()` correlation of 2.6e-17
+#' (or one that has underflowed to 0) is `exp(-rate * D)` of an
+#' estimated rate, and `homcs()` stopped near -1/(d-1) at a logistic
+#' parameter of -28 moves 7 ulps over a difference step and 0.5 at its
+#' start; a test against rounding at `1e-5` called both fixed (review of
+#' lane ci082, dev/reviews/2026-11-13-ci082.md). A fixed row and an
+#' estimated one are about 10 orders of magnitude apart on these points
+#' (dev/reviews/ci082-review-proto.R). A point where the structure
+#' errors or the row is not finite counts as a move, and a correlation
+#' at exactly 0 at `t0` is never fixed: one that underflows reads 0 at
+#' every point, and so would one a structure fixes at 0, which then
+#' keeps the zero-se rule's NA. A fixed correlation past
+#' `varcorr_cor_clamp` keeps the boundary rule's NA too. A structure
+#' whose vcov loses the fixed value to rounding (a read-back through two
+#' inverses) may fall back to the delta method on some rows.
+#'
+#' @noRd
+varcorr_fixed_rows <- function(bk, t0) {
+  e <- cs_entry(bk[["covstruct"]])
+  has_cor <- block_has_cor(bk)
+  # unclamped: the clamp would make two points past it read equal
+  rows <- function(tt) {
+    tryCatch(suppressWarnings({
+      V <- e$vcov(tt, bk)
+      r <- log(sqrt(diag(V)))
+      if (has_cor) {
+        C <- stats::cov2cor(V)
+        r <- c(r, atanh(C[lower.tri(C)]))
+      }
+      structure(as.numeric(r), n_sd = NROW(V))
+    }), error = function(err) NULL)
+  }
+  g0 <- rows(t0)
+  if (is.null(g0)) return(NULL)
+  is_cor <- seq_along(g0) > attr(g0, "n_sd")
+  g0 <- as.numeric(g0)
+  st <- tryCatch(e$start(bk), error = function(err) NULL)
+  pts <- if (length(st) == length(t0)) list(st) else list()
+  for (i in seq_along(t0)) {
+    for (s in c(-1, 1)) {
+      tt <- t0
+      tt[i] <- tt[i] + s
+      pts[[length(pts) + 1L]] <- tt
+    }
+  }
+  # A correlation at exactly 0 is never called fixed: an ou() correlation
+  # at a lag of 960 or more underflows to 0 at every point read here,
+  # though its rate is estimated. Its jacobian row is exactly 0, so it
+  # keeps 0.82.0's NA bounds and warning, and not by rounding's choice.
+  # (A log sd of 0 is an sd of 1, which nothing underflows to)
+  fixed <- is.finite(g0) & !(is_cor & g0 == 0)
+  for (p in pts) {
+    gp <- as.numeric(rows(p))
+    if (length(gp) != length(g0)) return(logical(length(g0)))
+    same <- is.finite(gp) &
+      abs(gp - g0) <= 1e-10 * pmax(abs(g0), abs(gp))
+    fixed <- fixed & (same %in% TRUE)
+  }
+  fixed
+}
+
 #' Back-transform to the natural scale (elementwise over types): log for
 #' scales, Fisher-z for correlations, logit for the CAR mixing
 #' proportions (which live on (0, 1), as they do in brms), and the
@@ -961,7 +1041,12 @@ varcorr_untrans <- function(type, v) {
 #' correlations of a term that is, to within that clamp, a linear
 #' combination of the terms before it (a singular correlation matrix),
 #' and a component whose standard error comes out as zero gets `NA`
-#' bounds too. A
+#' bounds too. A component that the covariance structure fixes, such as
+#' a correlation that a registered structure holds at one value, is not
+#' estimated: its interval is that value, with no width. For a
+#' correlation this holds when the value is not 0 and lies inside
+#' +/-0.9999; a fixed correlation at or past +/-0.9999 is on the
+#' boundary and gets `NA` bounds with the warning, as above. A
 #' bootstrap ([hypothesis()] with `method = "boot"`) or a likelihood
 #' profile of the underlying `theta` is the alternative.
 #'
