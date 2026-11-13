@@ -1,3 +1,36 @@
+# frmtmb.sample (development version)
+
+Needs the development version of frmtmb, for the `lb` and `ub` columns
+of its prior tables and the support box below.
+
+* `frm_sample()`'s message about its default priors no longer says that
+  every slope is flat when the call gives class `"b"` a prior. Where
+  that prior reaches every slope, the line about flat slopes is left
+  out; where it leaves some, the line reads "(flat) where your prior
+  sets none".
+
+* `frm_sample()` reads a prior table that `as.data.frame()` turned into
+  a plain data frame row by row. A row with `""`, a row added with
+  `set_prior("", ...)` and a row with a density are read as written,
+  `""` being brms's (flat). A row that holds frmtmb's printed `"(flat)"`
+  in a slot where brms has a default is refused, and the message names
+  each such row: it is how a `route = "fit"` table lists frm()'s
+  defaults. Until now the check refused the whole frame where any such
+  row replaced a default, so a coerced `route = "sample"` table edited
+  to `""` on `sd` was refused.
+
+* A sampling table passed back as `prior =` replaces the defaults of a
+  multivariate model whose response names have `_` or `.`: the table
+  lists `Ya` for `Y_a`, and each row now supersedes the default of its
+  slot. `prior_summary()` and the default-prior message listed both,
+  the default and the row, though only the row applied.
+
+* A uniform on a parameter with no `lb` or `ub` is sampled inside its
+  support, as `frm()` now fits it (a density positive at the end of its
+  support; see `?set_prior`, Hard bounds). brms warns about the missing
+  bound and samples the parameter unbounded, where every draw outside
+  the support is rejected.
+
 # frmtmb.sample 0.28.0
 
 Needs frmtmb 0.81.0, which adds `row_lpdf(exact = )`.

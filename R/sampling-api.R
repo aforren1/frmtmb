@@ -805,6 +805,10 @@ registered_prior_defaults <- function(spec, frame) {
       } else {
         format_prior_dist(s$dist)
       }
+      # a bound the default puts on the parameter (brms's nu above 1)
+      # is part of the sampled model, so the table's lb and ub show it
+      attr(out[[k]], "lb") <- s$lb %||% NA_real_
+      attr(out[[k]], "ub") <- s$ub %||% NA_real_
     }
   }
   out

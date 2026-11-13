@@ -1098,6 +1098,9 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # frm_sample() runs the check itself, against the priors it samples
   # under, which it resolves after this unfitted object exists
   if (!identical(dry_run, "objective")) {
+    # a table's restated interval (lb = 0 on sd) boxes nothing, and an
+    # ML fit given only such rows stays an ML fit
+    prior <- drop_unbounding_slots(prior, spec, frame)
     check_weights_unbounded(spec, frame, prior, exact = isTRUE(quadrature))
     latres_refuse_laplace(spec, frame)
   }
@@ -1827,6 +1830,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     inner <- solved_par_list(lap_obj, opt$par)
     for (cp in random) est[[cp]][] <- inner[[cp]]
   }
+  opt <- nonfinite_not_converged(opt, bounds$lower, bounds$upper)
   fit <- structure(
     list(spec = spec, frame = frame, obj = obj, opt = opt, sdr = NULL,
          REML = REML, estimates = est, prior = prior,
@@ -2893,6 +2897,32 @@ run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control,
     frm_stop("Unknown optimizer '", optimizer,
              "' (use \"nlminb\", \"optim\", or a function)", call. = FALSE)
   )
+}
+
+#' A fit's final stop on a closed bound at a non-finite objective is not
+#' a converged fit, whatever code the optimizer gave: nlminb returns 0
+#' at a bound where a prior's density is 0 (lognormal() on a slope
+#' boxed at lb = 0), with the objective Inf. The code is set to 1, so
+#' the fit warns as for any other stop the optimizer did not certify.
+#' It reads the final stop only, in fit_assembled(): a nested-quadrature
+#' stage ends at -Inf on its trust box and the rounds after it recover,
+#' and marking the stage gave that fit a non-convergence it did not
+#' have.
+#'
+#' @noRd
+nonfinite_not_converged <- function(res, lower = NULL, upper = NULL) {
+  par <- res$par
+  on_bound <- function(b) {
+    length(b) && length(par) &&
+      any(is.finite(b) & !is.na(par) & par == rep_len(b, length(par)))
+  }
+  if (isTRUE(res$convergence == 0) && !isTRUE(is.finite(res$objective)) &&
+        (on_bound(lower) || on_bound(upper))) {
+    res$convergence <- 1L
+    res$message <- paste0("the objective is ", format(res$objective),
+                          " at the reported optimum, not finite")
+  }
+  res
 }
 
 #' A parameter list flattened into the outer vector the optimizer

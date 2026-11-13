@@ -50,9 +50,10 @@ set.
 \description{
 brms's \code{default_prior()}, and \code{get_prior()}, which brms has kept as
 its alias since 2.20.14: one row per slot a prior can target, with
-the class/coef/dpar/group values to pass to \code{\link[=set_prior]{set_prior()}}. Classes
-\code{"sd"} and \code{"cor"} are targeted by \code{group} and \code{nlpar}, and class
-\code{"sd"} lists a row per coefficient of each group, as brms does; the
+the class/coef/dpar/group values to pass to \code{\link[=set_prior]{set_prior()}}. Class
+\code{"sd"} is targeted by \code{group} and \code{nlpar}, and lists a row per
+coefficient of each group, as brms does; class \code{"cor"} has one row
+per grouping factor, targeted by \code{group} alone, as in brms; the
 residual-correlation classes (\code{"ar"}, \code{"ma"}, \code{"cosy"}, \code{"cortime"})
 by \code{resp}, with \code{lb} and \code{ub} where the parameter lives on an
 interval (brms's -1 and 1 on a first-order \code{cov = TRUE} \code{ar} or \code{ma};
@@ -100,6 +101,15 @@ as in brms (\code{sd_patient__Intercept}).
 
 A flat slot reads \code{"(flat)"} in the \code{prior} column, where brms stores
 an empty string and prints \code{(flat)}.
+
+The \code{lb} and \code{ub} of a distributional parameter's own class row are
+the ends brms declares where frmtmb's link holds the parameter (a log
+link gives \code{lb = 0}, student()'s \code{nu} \code{lb = 1}, a logit link 0 and
+1). The values are frmtmb's, so a row passed back as \verb{prior =} boxes
+nothing on \code{\link[=frm]{frm()}}'s route; a link that leaves the parameter
+unbounded, such as an identity link on \code{sigma}, leaves the column
+\code{NA}. A response is listed by its Stan name (\code{Ya} for \code{Y_a}), as in
+brms.
 }
 
 \section{Which route the defaults describe}{

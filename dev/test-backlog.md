@@ -1109,6 +1109,11 @@ the lane did not re-measure them. None is a wrong answer from the fit.
 - **Three spellings frmtmb accepts and brms refuses:** `cor` with
   `dpar = "mub"`; a bound (`lb`/`ub`) with `coef`; and class `b` with
   `coef = "Intercept"` on `y ~ 1`.
+  CLOSED in the round of 2026-11-11 (lane priortab): the first spelling only,
+  `cor` with `dpar` (and `nlpar`), refused as brms. `coef = "Intercept"` on
+  `y ~ 1` is refused already (checked on the lane build); a bound with `coef`
+  stays frmtmb's own box on frm() (`?set_prior`, Hard bounds) and refused by
+  frm_sample(), so that spelling stays open as a decision.
 - **One spelling brms accepts and frmtmb refuses:** `Intercept` with
   `coef = "2"` on `cumulative()`, brms's per-threshold intercept.
 - **`cratio()` with `disc ~ z`** is unsupported.
@@ -3161,6 +3166,7 @@ See `dev/round-20261020.md`, "Found at the consolidation".
 - `default_prior()` prints a multivariate response by its raw name
   (`Y_a`) where brms prints its Stan name (`Ya`); `set_prior(resp = )`
   takes both. Pre-existing for every class.
+  CLOSED in the round of 2026-11-11 (lane priortab): default_prior() lists `Ya`, brms's Stan name.
 - `multinomial(K = )` and `categorical(K = )` keep positional `mu2`,
   `mu3` names with named columns; `categorical()` keeps unused factor
   levels where brms drops them; `insight::get_predicted()` on
@@ -3200,6 +3206,7 @@ See `dev/round-20261020.md`, "Found at the consolidation".
   brms keys by group.
 - Class `cor` rows of a dpar block: frmtmb lists `cor, g, sigma` where
   brms has one `cor, g` row, and brms sorts `cor` before `sd`.
+  CLOSED in the round of 2026-11-11 (lane priortab): one `cor, g` row per group, no dpar, as brms.
 - `confint_varcorr()$block` and other tables read `term_label` (`1 + f
   | g` for a `||` term); it is the matching key.
 - `ranef()` gives one entry per block: two blocks on one factor give
@@ -3231,6 +3238,7 @@ See `dev/round-20261020.md`, "Found at the consolidation".
   disclosure message and `prior_summary()` do not list it either.
 - The prior table's `lb`/`ub` columns, and brms's empty group `sd` row
   under the class row (frmtmb repeats the density).
+  CLOSED in the round of 2026-11-11 (lane priortab): `lb`/`ub` as brms's; group `sd` rows read (flat).
 - Draw columns other than `sd_`/`cor_` (autocor, rescor and the like)
   go through `hyp_env_vals()` once per draw, about 33 times the fast
   path's cost.
@@ -4247,9 +4255,11 @@ parity gap and saved 0.76.0 draws) stand.
   leaves slopes`** when the call gives class `"b"` a prior; the prior
   applies, the line is wrong. Pre-existing (`dev/priordraws-disclosure.R`,
   `dev/priordraws-findings.md`, section 8).
+  CLOSED in the round of 2026-11-11 (lane priortab): the line reads "(flat) where your prior sets none".
 - **The sampling table shows `lb` NA on `sd` and `sigma` rows**, where
   brms's `default_prior()` shows 0, on both routes. `dev/reslot-findings.md`,
   "Not done, and why".
+  CLOSED in the round of 2026-11-11 (lane priortab): `sd` class rows `lb = 0`, `sigma` 0, as brms.
 - **`vignettes/brms-migration.Rmd`, the paragraph on prior classes**,
   still says `sdgp` and `lscale` are refused by name and that a `coef`
   on an `sd` row is refused; both have been wrong since 0.72.0 or
@@ -4280,6 +4290,7 @@ parity gap and saved 0.76.0 draws) stand.
   `test-get-prior-route.R` ("coercion drops the class and the label
   together") rules out today. `dev/round-20261028.md`, "Release fixes",
   R1 and F1.
+  CLOSED in the round of 2026-11-11 (lane priortab): "" rows read, "(flat)" rows refused.
 - **`frm()` refuses `pe[, "prior", drop = FALSE]` with the wrong
   cause.** A one-column selection of an edited fit-route table keeps
   its route since release fix F1, and `frm()` then stops with
@@ -4290,12 +4301,14 @@ parity gap and saved 0.76.0 draws) stand.
   names no slot, so a refusal that says so would be right. Release
   review, short check of release fix 2, S3
   (`dev/review-rel077-c-run/fix2-r15.txt`, seed 11).
+  CLOSED in the round of 2026-11-11 (lane priortab): refused for the dropped slot columns.
 - **`default_prior() + set_prior()` and `set_prior() + default_prior()`
   fail** in R's `Ops` dispatch ("Incompatible methods" between
   `Ops.data.frame` and `+.frmtmb_priorlist`, then "non-numeric argument
   to binary operator"), on 0.76.0 too; brms 2.23.0's `+` combines them.
   `c()` takes the table in either order since the release review
   (finding 3). Release review, `dev/review-rel077-b-run/r1c-rellib-r15.txt`.
+  CLOSED in the round of 2026-11-11 (lane priortab): `+` combines a table and set_prior(), either order.
 - **PARITY GAP: a cluster sandwich over the series of a residual
   correlation term.** Under `ar(time = t, gr = h, cov = TRUE)`,
   marginaleffects' `vcov = ~ h` is refused by `vcov_cluster()` with
@@ -4313,10 +4326,12 @@ parity gap and saved 0.76.0 draws) stand.
   specifications" for `list(sp1)` and still suggests `sp1 + sp2` there;
   `list("flat")` and `list()` get the generic message. Release review,
   finding 8 (`s1r2-rellib-r15.txt`).
+  CLOSED in the round of 2026-11-11 (lane priortab): `list(sp1)`, `list()`, `list("flat")` named.
 - **`frm(prior = "flat")` is refused with the generic message**, where
   `frm_sample()` takes the string; a pointer to `frm()`'s
   maximum-likelihood default would help. Pre-existing. Release review,
   finding 8 (`s1r2-rellib-r15.txt`, line 24).
+  CLOSED in the round of 2026-11-11 (lane priortab): the refusal points at frm_sample() and ML.
 - **`predictions(newdata =)` on an `ar(cov = FALSE)` fit stops behind
   marginaleffects' generic message** ("newdata repeats a time within a
   group"), on rellib-r14 too; and the `"HAC"` refusal says a frmtmb fit
@@ -4530,6 +4545,7 @@ section 7.4.
 - **`default_prior()` gives `sigma` no `lb = 0`**, on every shape;
   brms gives `lb = 0`. The same as the 0.77.0 item on the `sd` and
   `sigma` rows of the sampling table, still open.
+  CLOSED in the round of 2026-11-11 (lane priortab): `sigma` and `sd` class rows `lb = 0`, as brms.
 - **`mi()` latent values are `miss_<k>` in draws**; brms names them
   `Ymi_<resp>[k]`.
 - **`"only"` refuses a `me()` vector with a proper prior on some terms
@@ -4640,14 +4656,17 @@ none is a regression of this release.
   `resp`; `set_prior("lkj(5)", class = "cor", group = "g", resp = "y2")`
   is accepted on both routes and reaches only y2's block, where brms
   refuses it (`x4-r16.txt`, `x6-*.txt`).
+  CLOSED in the round of 2026-11-11 (lane priortab): rows have no resp; cor resp kept (decision 2026-09-24).
 - **`set_prior("lkj(2)", class = "rescor", coef = "y__y2")` is
   accepted** on both routes; brms refuses it (`x4`).
+  CLOSED in the round of 2026-11-11 (lane priortab): rescor with `coef` or `group` is refused, as brms.
 - **`conditional_effects()` of a multivariate model without `resp`**
   returns the first response only (`x3`, `x5`); the rescorpp item above
   has the rest.
 - **`default_prior()` table `+ set_prior()`** fails with "non-numeric
   argument to binary operator", an `Ops` method conflict; `c()` works.
   Filed at 0.77.0 too; still open.
+  CLOSED in the round of 2026-11-11 (lane priortab): `+` combines a table and set_prior(), either order.
 - **Draws depend on the order of specifications in different slots**:
   the floating-point sums differ by order, pB + pb gives 4.788349 and pb
   + pB 4.797311 (`x5`). No action needed; recorded so a bitwise
@@ -4660,6 +4679,45 @@ none is a regression of this release.
   package does not declare (inferred by the review, not run). The skip
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
+
+## Filed in the round of 2026-11-11
+
+### From lane priortab
+
+- **MINOR. A user's `lb` at an end where the prior's density is 0 gives
+  a closed box with an infinite objective at the end.**
+  `set_prior("lognormal(0, 1)", class = "b", coef = "z", lb = 0)` on a
+  slope the data want negative (`yneg = y - 0.8 z`, seed 1, n = 120)
+  stops at z = 0 with objective Inf; `beta(2, 2)` with `lb = 0` the
+  same, and `gamma(0.5, 1)` at -Inf. On 0.81.0 nlminb reported code 0
+  there. The round of 2026-11-11 reports such a stop as not converged
+  (code 1, "the objective is Inf at the reported optimum"), but the
+  value is still the end, not the mode: under `beta(2, 2)` the mode is
+  129.8616523 at z = 0.006822082 (`lb = 1e-8`). The cure is a fit-route
+  transform of a bounded coefficient (lb + exp(u), a logit for two
+  bounds), which changes every bounded fit. Reproducer:
+  `dev/reviews/priortab-review-probe2.R` (B1e, B2e) and
+  `dev/reviews/priortab-review-probe3.R` (M).
+- **MINOR. A uniform on a centered intercept is not boxed to its
+  support.** `uniform(0, 0.5)` on class `"Intercept"` of `y ~ z`, or on
+  `sigma`'s Intercept under `sigma ~ x`, still ends in "NA/NaN gradient
+  evaluation". The density is on the intercept at the predictor means,
+  which no box on the stored intercept bounds; a user's `lb` there boxes
+  the stored intercept, a different number (pre-existing). Documented in
+  `?set_prior`, Hard bounds. `dev/reviews/priortab-review-probe2.R`
+  (B7, B10).
+- **S2. A box on a distributional parameter's own class can land one ulp
+  outside the support.** `internal_bound()` maps a support's end through
+  the link, and `linkinv()` of the mapped bound can return a value just
+  outside the support, where a uniform's log density is -Inf:
+  `plogis(qlogis(0.3))` is 0.30000000000000004. Through the logit 37 of
+  99 values land outside, through the log 33 of 100. `uniform(0, 0.3)`
+  on `zi` stops with code 1 at 168.6664, where a Newton step would still
+  gain 4.98; `uniform(0.35, 5)` on `sigma` fails with "NA/NaN gradient
+  evaluation". Both are loud, and an explicit `lb`/`ub` there fails the
+  same way on 0.81.0. Fix route: move the internal bound inward in
+  `internal_bound()` until `linkinv()` lands inside the support. Logs:
+  `dev/reviews/priortab-short-*` (`-ulp`, `-zi`).
 
 ## Filed at the 0.81.0 release (2026-11-10)
 
@@ -4928,6 +4986,7 @@ then the reviews' items left for later. Lane records:
   the bounds; frmtmb could set them from the uniform's support
   (dev/reviews/2026-11-06-loglik.md, short check, item 2;
   `dev/review-loglik-unifbase.R`).
+  CLOSED in the round of 2026-11-11 (lane priortab): boxed where the density is positive at the end.
 - **MINOR. A switch in `frmtmb_control()` for the nonlinear sign probe.**
   0.80.0 has `options(frmtmb.nl_sign_probe = FALSE)` only; a control entry
   would travel with the fit (nlstart decision, brief of the 0.80.0
@@ -5081,6 +5140,7 @@ translator's order of the positions.
 - refuse: the `lb = 0` of the `sd` and `sigma` class rows (filed at 0.78.0); a
   translator rule for `sigma ~ s(z)` and for `tmp_xi`; class `sd` on `car()` and
   `spde()` keeps its old spelling, `sdcar` stays refused by name.
+  CLOSED in the round of 2026-11-11 (lane priortab): the `lb = 0` part only: brms's bounds on both routes.
 - impsamp: crossed factors under `importance =` stay refused; a heavy-tail guard
   for hard binary designs (sd 0.67 at 512 draws); poisson `x + 1e5` false
   convergence with NaN SEs, tape condition number 9e18; MCSE by pairs.

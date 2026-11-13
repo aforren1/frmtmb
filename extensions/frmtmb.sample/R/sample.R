@@ -2454,34 +2454,82 @@ prior_rows_as_written <- function(pl) {
   out
 }
 
-#' The classes of brms's proper defaults whose every position the
-#' effective prior `ri` leaves (flat): what the (flat) rows of a coerced
-#' frmtmb table replaced. A default that is already flat (on an interval,
-#' a flat LKJ) or dirichlet(1), which brms's (flat) on a simplex is, is
-#' no loss.
+#' The rows of a coerced prior table that hold frmtmb's printed
+#' `"(flat)"` in a slot where brms has a proper default, each named as
+#' its target; empty when there are none.
+#'
+#' The check is per row. `as.data.frame()` drops a table's route, and a
+#' `route = "fit"` table lists frm()'s defaults as `"(flat)"`, which read
+#' here would replace brms's default in that slot with (flat), silently.
+#' brms writes its (flat) as `""` and never as `"(flat)"`, so a row with
+#' `""`, a row given with `set_prior("", ...)`, and a row with a density
+#' are the user's on purpose and are read as written. Through the 0.81.0
+#' release the whole frame was refused when any (flat) row replaced a
+#' default, so a coerced sampling table edited to `""` on `sd` was
+#' refused; for one round after, the whole frame was accepted when any
+#' row kept a default, so a coerced fit table with one row set to brms's
+#' default had its other (flat) rows read as brms's (flat).
 #'
 #' @noRd
-table_flat_lost <- function(fit, ri, defs) {
-  is_flat <- function(e) {
-    identical(e[["dist"]][["kind"]], "flat") ||
-      isTRUE(e[["dist"]][["flat"]])
+table_flat_rows <- function(user_pl, defs) {
+  slot <- function(s) {
+    sp <- spec_spelling(s)
+    # the table lists a response by its Stan name (Ya for Y_a)
+    rs <- s$resp %||% ""
+    if (nzchar(rs)) rs <- brms_stan_name(rs)
+    paste(sp$class, sp$dpar, s$coef %||% "", s$group %||% "", rs,
+          s$nlpar %||% "", sep = "\r")
   }
-  key <- function(es) {
-    unlist(lapply(es, function(e) paste(e[["comp"]], e[["idx"]])))
-  }
-  flat <- key(Filter(is_flat, ri[["entries"]] %||% list()))
-  out <- character(0)
-  for (d in unclass(defs %||% list())) {
+  # a default already flat on brms's parameter (on an interval, a flat
+  # LKJ) or dirichlet(1), brms's (flat) on a simplex, is no loss
+  proper <- Filter(function(d) {
     dd <- d[["dist"]]
-    if (is.null(dd) || isTRUE(d[["flat_interval"]]) ||
-          dd[["kind"]] %in% c("flat", "dirichlet") ||
-          isTRUE(dd[["flat"]])) next
-    di <- resolve_prior_input(fit, structure(list(d),
-                                             class = "frmtmb_priorlist"))
-    k <- key(di[["entries"]])
-    if (length(k) && all(k %in% flat)) out <- c(out, spec_spelling(d)$class)
+    !is.null(dd) && !isTRUE(d[["flat_interval"]]) &&
+      !dd[["kind"]] %in% c("flat", "dirichlet") && !isTRUE(dd[["flat"]])
+  }, unclass(defs %||% list()))
+  if (!length(proper)) return(character(0))
+  d_slots <- vapply(proper, slot, "")
+  rows <- Filter(function(s) isTRUE(s$printed_flat) && slot(s) %in% d_slots,
+                 unclass(user_pl %||% list()))
+  unique(vapply(rows, spec_target, ""))
+}
+
+#' How many population-level slopes no prior in `ri` reaches, for the
+#' announcement's line about flat slopes; `NA` where it was not counted
+#' (no class `"b"` density among the user's rows, or a model the count
+#' does not read).
+#'
+#' The slopes are the positions a class `"b"` density reaches on each
+#' class `"b"` row `default_prior()` lists (one per response, dpar and
+#' nlpar), resolved as frm_sample() resolves its prior.
+#'
+#' @noRd
+flat_slope_count <- function(fit, ri, user_pl) {
+  own_b <- any(vapply(unclass(user_pl %||% list()), function(s) {
+    identical(s$class, "b") && !is.null(s$dist) &&
+      !identical(s$dist$kind, "flat")
+  }, NA))
+  if (!own_b || is.null(ri)) return(NA_integer_)
+  key <- function(es) {
+    unlist(lapply(es, function(e) paste0(e$comp, ".", e$idx)))
   }
-  unique(out)
+  got <- key(Filter(function(e) !identical(e$dist$kind, "flat"),
+                    ri$entries))
+  tab <- tryCatch(as.data.frame(default_prior(structure(
+    list(spec = fit$spec, frame = fit$frame), class = "frmtmb_fit"))),
+    error = function(e) NULL)
+  if (is.null(tab)) return(NA_integer_)
+  rows <- tab[tab$class == "b" & !nzchar(tab$coef), , drop = FALSE]
+  slopes <- character(0)
+  for (i in seq_len(nrow(rows))) {
+    probe <- set_prior("normal(0, 1)", class = "b", resp = rows$resp[i],
+                       dpar = rows$dpar[i], nlpar = rows$nlpar[i])
+    e <- tryCatch(resolve_prior_input(fit, probe)$entries,
+                  error = function(e) NULL)
+    if (is.null(e)) return(NA_integer_)
+    slopes <- c(slopes, key(e))
+  }
+  as.integer(sum(!unique(slopes) %in% got))
 }
 
 #' What a user's specification of a slot keeps from brms's default
@@ -2546,8 +2594,14 @@ keep_default_bounds <- function(user, defs) {
 #' silence. `message()` rather than `warning()`: this is information,
 #' not a fault, and `suppressMessages()` turns it off.
 #'
+#' `user_pl` is the caller's own prior: where it gives class `"b"` a
+#' density, the line about flat slopes says that only the slopes it
+#' leaves are flat, and it is left out when `flat_slopes`
+#' (`flat_slope_count()`) is 0.
+#'
 #' @noRd
-announce_default_priors <- function(pl, notes) {
+announce_default_priors <- function(pl, notes, user_pl = NULL,
+                                    flat_slopes = NA_integer_) {
   msg <- paste0("frm_sample(): default priors (brms 2.23 defaults; ",
                 "prior = \"flat\" puts brms's (flat) in every slot)")
   for (s in unclass(pl %||% list())) {
@@ -2615,7 +2669,18 @@ announce_default_priors <- function(pl, notes) {
                           else if (s$class %in% c("cor", "corme"))
                             "  [correlation matrix]" else ""))
   }
-  msg <- c(msg, "  b                  (flat), as brms leaves slopes")
+  # a slope the caller's prior reaches is not flat, and the line said
+  # it was whenever the call gave class "b" a density
+  own_b <- any(vapply(unclass(user_pl %||% list()), function(s) {
+    identical(s$class, "b") && !is.null(s$dist) &&
+      !identical(s$dist$kind, "flat")
+  }, NA))
+  if (!own_b) {
+    msg <- c(msg, "  b                  (flat), as brms leaves slopes")
+  } else if (!identical(flat_slopes, 0L)) {
+    msg <- c(msg, paste0("  b                  (flat) where your prior ",
+                         "sets none, as brms leaves slopes"))
+  }
   for (nt in notes) {
     msg <- c(msg, paste0("  ", nt, " - see ?frm_sample"))
   }
@@ -2753,13 +2818,16 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
   }
   ri <- if (!is.null(eff)) resolve_prior_input(fit, eff)
   if (table_mark && defaults) {
-    lost <- table_flat_lost(fit, ri, defs_all)
+    lost <- table_flat_rows(user_pl, defs_all)
     if (length(lost)) {
       frm_stop("prior = was read from a default_prior() or validate_prior() ",
                "table that as.data.frame() turned into a plain data frame, ",
                "which drops its route, and its (flat) rows would replace ",
-               "brms's default on ", paste(lost, collapse = ", "),
-               " with (flat). A table of route = \"fit\", the default, ",
+               "brms's default with (flat) on the rows ",
+               paste0("(", lost, ")", collapse = ", "),
+               ". brms writes its (flat) as \"\", never as \"(flat)\", ",
+               "so a \"\" row is read as yours. A table of route = \"fit\", ",
+               "the default, ",
                "lists frm()'s defaults as (flat). For brms's defaults with ",
                "your rows edited in, pass the table itself or start from ",
                "default_prior(..., route = \"sample\"); for brms's (flat) ",
@@ -2773,7 +2841,9 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
   if (defaults) {
     announce_default_priors(defs, c(default_prior_notes(fit, user_pl),
                                     unreached_prior_notes(fit, user_pl,
-                                                          ri)))
+                                                          ri)),
+                            user_pl = user_pl,
+                            flat_slopes = flat_slope_count(fit, ri, user_pl))
   }
   # brms's dirichlet(1) on a mixture's weights is a density on the whole
   # simplex, which no set_prior() class names here (class "theta" is

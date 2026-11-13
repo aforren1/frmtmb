@@ -1,3 +1,82 @@
+# frmtmb (development version)
+
+## Prior tables and prior specifications
+
+* BREAKING: `default_prior()` and `validate_prior()` fill the `lb` and
+  `ub` columns as brms 2.23.0 does. The class-wide `sd` row has
+  `lb = 0`, and its group and coefficient rows have none. A
+  distributional parameter's own class row has the ends brms declares,
+  where frmtmb's link holds the parameter: `sigma`, `shape`, `phi` and
+  the other dispersions `lb = 0`, `student()`'s `nu` `lb = 1`, and `zi`,
+  `hu`, `zoi`, `coi` and `quantile` `lb = 0`, `ub = 1`. On
+  `route = "sample"` a row also shows a bound that frm_sample()'s
+  default adds, for example `ndt` below the smallest response. Until now
+  these columns were `NA`. `xi` and `alpha` have no bound, as in brms.
+
+* BREAKING: A table passed back as `prior =` to `frm()` keeps an ML fit
+  an ML fit. A bounds-only row of the table's own (`source` is
+  `"default"`) that boxes nothing on the model, such as `lb = 0` on
+  `sd`, `sds` or `sigma`, is dropped before the fit. Until now such a
+  row stayed in `fit$prior`, so `prior_summary()` listed it,
+  `vcov_cluster()` refused the fit, and `frm_sample(fit)` read it as
+  brms's (flat) on that slot; this was the case for any table of a model
+  with a smooth. The fitted objective does not change. A bounds-only
+  specification you write yourself, such as
+  `set_prior("", class = "sd", lb = 0)`, is kept, so `frm_sample(fit)`
+  reads it as brms's (flat), as `frm_sample(prior = )` does.
+
+* BREAKING: `default_prior()` lists one class `"cor"` row per grouping
+  factor, with no `dpar`, `nlpar` or `resp`, as brms does. A
+  distributional, nonlinear or multivariate model listed one row per
+  predictor or response. `set_prior(class = "cor", group = "g")`
+  reaches every correlated block on `g`, as before.
+
+* BREAKING: Class `"cor"` with `dpar` or `nlpar`, and class `"rescor"`
+  with `coef` or `group`, are refused, as brms refuses them. Until now
+  `cor` with `dpar = "mub"` was applied to that predictor's blocks only,
+  and `rescor` with a `coef` or `group` was applied to the whole matrix
+  while the table listed a row of its own. Class `"cor"` with `resp`
+  stays accepted, as frmtmb's own spelling.
+
+* BREAKING: `default_prior()` lists a response of a multivariate model
+  by its Stan name, `Ya` for `Y_a`, as brms does. `set_prior(resp = )`
+  takes either name, as before, and the two names are now one slot:
+  `resp = "Y_a"` beside `resp = "Ya"` for the same class is refused as
+  a duplicate. Before, both were accepted and one was dropped without a
+  word.
+
+* `default_prior() + set_prior()` and `set_prior() + default_prior()`
+  combine the table's rows and the specification, as in brms. They
+  failed with "non-numeric argument to binary operator". `c()` already
+  combined them.
+
+* `set_prior("uniform(0, 0.2)", class = "b", coef = "x")` with no `lb`
+  or `ub` now fits. Where no bound is given, a parameter is boxed to
+  the support of a density that is positive at the end of it (a
+  uniform, or an exponential at 0), since the penalized objective is
+  not defined outside it. The box covers a slope, an intercept that is
+  not centered, and a distributional parameter's own class
+  (`class = "sigma"`); it does not cover a centered intercept. The fit
+  failed with "NA/NaN gradient evaluation". A density that is zero or
+  infinite at the end of its support (`beta(2, 2)`, `lognormal()`,
+  `gamma(0.5, 1)`) gets no box: give `lb` and `ub` just inside the
+  support. brms's warning about the missing bound stays.
+
+* A fit that stops on a bound with an objective that is not finite is
+  reported as not converged (code 1, with the "Optimizer did not report
+  convergence" warning). nlminb reported code 0 at a closed bound where
+  a prior's density is 0, for example `lognormal(0, 1)` with `lb = 0`
+  on a slope the data put below 0, with the objective `Inf`. The value
+  is still the bound, not the mode: give the bound just inside the
+  support (`lb = 1e-8`).
+
+* The refusal of `prior =` names the input. `list(sp)` says to pass the
+  specification itself. An empty list, the string `"flat"` (the
+  spelling of `frmtmb.sample::frm_sample()`) and a density string each
+  have their own message. A table whose column selection dropped
+  `class`, `coef`, `group`, `resp`, `dpar` or `nlpar` is refused for
+  that reason. Before, it was refused as a duplicated slot.
+
 # frmtmb 0.81.0
 
 ## Convergence and standard errors
