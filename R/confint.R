@@ -859,10 +859,22 @@ varcorr_trans_rows <- function(fit) {
       # clamp touches has a zero jacobian row and would otherwise report
       # a zero-width interval AT the clamp
       bd <- c(bd, abs(r0) >= varcorr_cor_clamp)
+      # the same boundary in a wider block: a row whose variable is a
+      # combination of those before it to within the clamp, with no one
+      # correlation at +/-1 (varcorr_us_row_edge())
+      if (identical(bk[["covstruct"]], "us") && isTRUE(d >= 3L)) {
+        bd[-seq_len(length(sds0))] <- bd[-seq_len(length(sds0))] |
+          varcorr_us_row_edge(t0, d)
+      }
     }
     # A non-finite se (an inverted Hessian that did not invert) is no
-    # more usable than a boundary estimate; both become NA bounds.
-    se_g[bd | !is.finite(est0) | !is.finite(se_g)] <- NA_real_
+    # more usable than a boundary estimate; both become NA bounds. Nor is
+    # a zero one, which no estimated component has: the delta method gave
+    # it where the jacobian row is flat or the quadratic form rounded to
+    # zero or below, and seed 7 of the 0.72.0 review's three-dimensional
+    # us() design reported cor(x,z) as [-0.122416, -0.122416] that way
+    # (dev/test-backlog.md, the item of the 0.72.0 release review)
+    se_g[bd | !is.finite(est0) | !is.finite(se_g) | !(se_g > 0)] <- NA_real_
 
     n_sd <- length(g0) - if (has_cor) d * (d - 1) / 2 else 0
     for (i in seq_len(n_sd)) {
@@ -887,6 +899,36 @@ varcorr_trans_rows <- function(fit) {
   }
   rownames(out) <- NULL
   out
+}
+
+#' For a `us()` block of dimension `d` at theta `t` (log sds, then the
+#' unit-diagonal Cholesky factor's lower triangle column by column), one
+#' logical per correlation in `lower.tri()` order: does the correlation
+#' sit in a row whose variable is, to within the clamp, a combination of
+#' the variables before it? Row `i` of the factor is
+#' `(L[i, 1], ..., L[i, i - 1], 1)`, and the multiple correlation of
+#' variable `i` with the earlier ones is `sqrt(S / (1 + S))`, `S` the
+#' squared length of the row's off-diagonal part, so the test
+#' `S >= c^2 / (1 - c^2)` is the multiple correlation at or past
+#' `varcorr_cor_clamp`, which in dimension 2 is the one correlation's own
+#' test. The block's correlation matrix is singular there, on the boundary
+#' of its space, though no single correlation is near +/-1, and a Wald
+#' interval for those correlations has no meaning: on a code-1 stop with
+#' the row at (1771, -2271) cor(z,(Intercept)) had a Fisher-z standard
+#' error of 9.2e-4 (dev/boundfam-findings.md).
+#'
+#' @noRd
+varcorr_us_row_edge <- function(t, d) {
+  off <- t[-seq_len(d)]
+  np <- d * (d - 1L) / 2L
+  if (length(off) != np) return(logical(np))
+  lt <- matrix(0L, d, d)
+  lt[lower.tri(lt)] <- seq_len(np)
+  tc2 <- varcorr_cor_clamp^2 / (1 - varcorr_cor_clamp^2)
+  edge <- vapply(seq_len(d), function(i) {
+    i > 1L && sum(off[lt[i, seq_len(i - 1L)]]^2) >= tc2
+  }, NA)
+  edge[which(lower.tri(diag(d)), arr.ind = TRUE)[, 1L]]
 }
 
 #' Back-transform to the natural scale (elementwise over types): log for
@@ -914,7 +956,12 @@ varcorr_untrans <- function(type, v) {
 #' standard deviation collapsed to zero, or a correlation at `+/-1` -
 #' has no interval on these scales, because the transform is infinite
 #' there. Those rows report the estimate with `NA` bounds and warn,
-#' rather than a zero-width interval at an arbitrary clamp. A
+#' rather than a zero-width interval at an arbitrary clamp. In an
+#' unstructured block of three or more terms the same holds for the
+#' correlations of a term that is, to within that clamp, a linear
+#' combination of the terms before it (a singular correlation matrix),
+#' and a component whose standard error comes out as zero gets `NA`
+#' bounds too. A
 #' bootstrap ([hypothesis()] with `method = "boot"`) or a likelihood
 #' profile of the underlying `theta` is the alternative.
 #'
@@ -959,7 +1006,9 @@ confint_varcorr <- function(fit, level = 0.95) {
     frm_warning("No interval for ", length(bad), " component",
                 if (length(bad) > 1L) "s" else "",
                 " on the boundary of the parameter space (a standard ",
-                "deviation at zero, or a correlation at +/-1). The interval ",
+                "deviation at zero, a correlation at +/-1, or a singular ",
+                "correlation matrix) or with a standard error of zero. ",
+                "The interval ",
                 "is a Wald interval on the log / Fisher-z scale, which is ",
                 "infinite there, so it is reported as NA rather than as a ",
                 "zero-width interval at an arbitrary clamp. The estimates ",

@@ -73,13 +73,18 @@ test_that("max_ndt above min(rt) is refused alone and allowed in a mixture", {
 
   # and lifts inside a mixture. These rows do not place the wiener
   # component's parameters, and frm() says their standard errors are
-  # not available.
+  # not available: the mixing weight's logit is at the end of its range,
+  # near -23, and the wiener parameters are undetermined there. Through
+  # frmtmb 0.81.0 the weight was called flat and bs1 kept a standard
+  # error of 5575
   fit <- allow_warnings(
     frm(bf(rt | dec(upper) ~ 1, bias1 = 0.5),
         family = mixture(wiener(max_ndt = 0.4, allow_unreachable = TRUE),
                          lognormal()),
         data = dat),
-    "Standard errors are not available")
+    "Standard errors are not available",
+    require = c("theta1_(Intercept) (at ", "toward -Inf",
+                "bs1_(Intercept)"))
   expect_true(is.finite(as.numeric(logLik(fit))))
   # the point of the exercise: the non-decision time is free to sit
   # above the fastest response time, which a bare fit cannot do
@@ -88,17 +93,15 @@ test_that("max_ndt above min(rt) is refused alone and allowed in a mixture", {
   expect_gt(ndt, min(dat$rt))
 
   # every row still has a likelihood, because the contaminant carries
-  # the ones the Wiener component gives zero. Their standard errors are
-  # NaN, with the prediction warning: the mixing weight sits at 6e-11
-  # and the Wiener parameters are flat, so every row moves along a
-  # direction the fit does not determine, at a cosine of up to 8.3e-5
-  # in the Hessian's unit-diagonal metric, which frmtmb's prediction
-  # test reads since lane seflags' punch round 2 (in the optimizer's
-  # units it was 3.8e-12; dev/seflags-eamdbg.R in frmtmb's tree)
-  res <- allow_warnings(stats::residuals(fit, type = "response"),
-                        "predictions move along",
-                        require = "predictions move along")
+  # the ones the Wiener component gives zero. The mixing weight sits at
+  # 6e-11, so the rows move along the weight and the undetermined Wiener
+  # parameters by a negligible amount, and frmtmb keeps their standard
+  # errors. Through frmtmb 0.81.0 they were NaN with a warning, from a
+  # cosine of up to 8.3e-5 in the Hessian's unit-diagonal metric
+  # (dev/seflags-eamdbg.R in frmtmb's tree)
+  res <- stats::residuals(fit, type = "response")
   expect_true(all(is.finite(res[, "Estimate"])))
+  expect_true(all(is.finite(res[, "Est.Error"])))
 })
 
 test_that("an unreachable row is a clean zero, not a NaN gradient", {

@@ -1,3 +1,79 @@
+# frmtmb (development version)
+
+## Convergence and standard errors
+
+* BREAKING: The standard-error check finds a coefficient that has run to
+  the end of its range, where the likelihood has no maximum at a finite
+  value. With the other parameters held, the log-likelihood does not
+  fall as the coefficient moves further that way, and it falls when the
+  coefficient moves back. The check also finds the parameters whose
+  curvature vanishes toward that end. These parameters get NaN standard
+  errors in place of huge finite ones. The rule reads the fixed effects
+  of every distributional parameter, the intercept of a family
+  parameter among them. Examples: a poisson fit to an all-zero
+  response gave an intercept of -636.8 with a standard error of 2.7e137
+  and only the optimizer's code 9; a gaussian fit with every row
+  right-censored gave standard errors of 6.4e8 and no warning.
+  - Where a mean coefficient is at its end, or a mean or covariance
+    parameter is left undetermined, the warning "Standard errors are
+    not available" says that the maximum likelihood estimate does not
+    exist, and names each coefficient with its estimate and direction.
+  - Where only coefficients of family parameters are involved (a
+    `negbinomial()` shape at its poisson limit, a `beta_binomial()`
+    precision at its binomial limit, a `student()` `nu` at its gaussian
+    limit, a zero-inflation probability at zero), the fit is the
+    family's limiting case. It gets the boundary message of class
+    `frmtmb_boundary_fit`, as a variance component at zero does, and
+    the other standard errors are those of the limit model. Fitted
+    values keep their standard errors too, with the family parameter
+    held at its estimate.
+  - A fitted value, prediction or hypothesis gets NaN for a parameter at
+    its limit, or for one the limit leaves undetermined, only where it
+    actually moves along that parameter: by more than 1e-6 of what the
+    parameters with a standard error move it by. On a zero-inflation or
+    hurdle slope at its limit the fitted values move by about 1e-9 per
+    unit, and keep their standard errors.
+  - On a nonlinear model, a family parameter at its limit from the
+    default start triggers the restart from moved coefficients, as a
+    flat direction does.
+  - A slope of a zero-inflation, hurdle or mixing probability that
+    sends the probability to 0 on some rows and to 1 on others is a
+    separation of that probability. The warning says so, and the
+    probability's other coefficients also get NaN, as for a separated
+    bernoulli mean. A probability's intercept at its limit, or one
+    factor level's, stays the family's limiting case.
+  - Where the log-likelihood still rises by more than
+    `frmtmb_control(grad_tol =)` along the coefficient, the warning
+    says that the fit stopped on the way up and not at a maximum. It
+    does not say that the maximum does not exist, because it can lie
+    further out.
+  - When such a stop is the only problem, this report replaces the
+    optimizer's "did not report convergence" warning, whose text said
+    that the stop was at the maximum.
+  - The other standard errors are those of the model with the
+    parameter held at its end, as for a variance component at zero.
+    Where the two were coupled, they move: a lognormal `sigma` at its
+    end under `ar(cov = TRUE)` takes the first latent standard error
+    from 0.064 to 0.050.
+  - The rule probes each coefficient in its natural unit (the
+    predictor's unit over the column's spread), whatever units the
+    optimizer used. It asks only a coefficient whose curvature is at
+    most 0.1 in those units, or whose curvature is not finite. Over the
+    test suites, the standard errors of every fit where the rule does
+    not fire are unchanged. Where it fires, its test of the other
+    parameters costs four gradients of the objective per parameter.
+  - The rule does not run under quadrature or importance sampling.
+
+* BREAKING: `confint_varcorr()` and the covariance rows of `summary()`
+  give no interval (NA bounds, with the "No interval" warning) where
+  the standard error of a standard deviation or correlation is zero.
+  Before, such a row was an interval of zero width, such as
+  [-0.122416, -0.122416]. In an unstructured block of three or more
+  terms, the correlations of a term that is a linear combination of
+  the terms before it (to within the 0.9999 clamp) get no interval
+  either. The correlation matrix is singular there, though no one
+  correlation is near -1 or 1.
+
 # frmtmb 0.81.0
 
 ## Convergence and standard errors

@@ -383,6 +383,14 @@ cov_from_hessian <- function(fit, H, E = NULL, exact = FALSE) {
   p <- fit$opt$par
   held <- se_bound_held(fit, p, H)
   edge <- se_edge_sd(fit, H) | ec
+  # a coefficient run to the end of its range, and what it leaves
+  # undetermined. Not under quadrature or importance sampling, which
+  # give no boundary verdict either (se_edge_sd())
+  if (!isTRUE(fit$quadrature) && is.null(fit$importance)) {
+    # a probe that fails leaves the other rules' verdicts
+    edge <- edge | tryCatch(se_edge_limit(fit, H, held | edge),
+                            error = keep_missing(logical(np)))
+  }
   # before the tiers: on an ill-conditioned fixed design the natural
   # inverse is inaccurate whichever tier accepts it (se_reparam_cov())
   if (!any(held) && !any(edge)) {
@@ -703,6 +711,337 @@ se_sd_at_zero <- function(fit, k) {
 #'
 #' @noRd
 se_edge_screen <- 0.1
+
+#' Coefficients of a linear predictor that have run to the end of their
+#' range, where the likelihood has no maximum at a finite value, and the
+#' parameters that this leaves undetermined. The covariance parameters'
+#' own boundary rule is se_edge_sd() and se_edge_cor(); this one reads
+#' the fixed effects of every distributional parameter, a family
+#' parameter's intercept among them.
+#'
+#' Such a fit reported huge finite standard errors with little or no
+#' warning: a poisson fit to an all-zero response stopped at an
+#' intercept of -636.8 with a standard error of 2.7e137 and only the
+#' optimizer's code 9; a gaussian with every row right-censored stopped
+#' at code 0 with standard errors of 6.4e8, 1.3e8 and 2.1e8 and no word
+#' at all; a mixture precision at exp(23.4) kept 1.3e4
+#' (dev/boundfam-findings.md).
+#'
+#' A coefficient is at the end of its range in direction `s` when, with
+#' the others held, the objective (minus the log-likelihood) changes by
+#' no more than `se_edge_tol` against the stop at `se_edge_step` natural
+#' units that way (or falls), does not rise by more than that from there
+#' to `se_edge_step + se_sd_far` units out, and rises by more than
+#' `se_edge_tol` the other way (at `se_edge_step`, or where that is level
+#' too, at zero or `se_sd_far` units back, whichever is further). The
+#' last test asks that the likelihood reads the coefficient at all.
+#' Where both sides are level at `se_edge_step`, the end is the side away
+#' from zero. An interior maximum passes the first test only with a
+#' curvature below about 5e-7 in natural units, a standard error above
+#' about 1400 of them.
+#'
+#' A ray that gains more than `grad_tol` of log-likelihood is a stop on
+#' the way up, not at the end: weights summing to n with `(1 | obs)`
+#' left a Gamma shape at exp(15.6) with a gradient of 5.5e-6, and 12
+#' units further out the log-likelihood was 0.047 higher
+#' (dev/boundfam-findings.md). The coefficient still has no standard
+#' error, and its report is a warning that says how much the likelihood
+#' still rises (`rise`).
+#'
+#' A parameter is then undetermined when its curvature, measured at the
+#' stop and with every coefficient at its end moved `se_edge_step`
+#' further, falls by more than the factor `se_limit_decay`: its standard
+#' error grows without bound as the fit goes on toward the end. The
+#' coefficients a limit model keeps (a mixture's means beside a
+#' precision run to the binomial limit) keep their curvature there.
+#'
+#' Only coefficients whose curvature is at most `se_edge_screen` (in the
+#' optimizer's units) are asked, so a fit with a maximum costs no
+#' evaluation in most cases, and three objective evaluations when a
+#' coefficient is that flat and has a maximum. Where the rule fires, the
+#' curvature test costs four gradients per other outer parameter (3.6 s
+#' of a 24 s negbinomial fit with `(1 | g)` at n = 2e4,
+#' dev/boundfam-findings.md).
+#' `skip` marks the parameters an earlier rule holds. The kinds ("end",
+#' "undefined"), the directions and the estimates are kept in
+#' `fit$cache$se_limit` for the message (se_limit_message()).
+#'
+#' @noRd
+se_edge_limit <- function(fit, H, skip = logical(NROW(H))) {
+  np <- NROW(H)
+  out <- logical(np)
+  p <- fit$opt$par
+  om <- outer_par_map(fit)
+  if (length(p) != np || length(om$names) != np || !np) return(out)
+  # the latest analysis of this point is the one its report reads
+  if (is.environment(fit$cache)) fit$cache$se_limit <- NULL
+  skip <- rep_len(as.vector(skip) %in% TRUE, np)
+  # every coefficient in its natural unit, whatever units the optimizer
+  # ran in: under autoscale = FALSE a poisson `y ~ 0 + xs` with xs at
+  # scale 1e-6 left its coefficient at 6.9e5, where a raw step of 2 moves
+  # the predictor by 2e-6 and the likelihood by nothing, so the
+  # coefficient read as level both ways (test-predfix.R). A smooth gives
+  # the fit `par_units`, which leave such a column in raw units too: at
+  # the maximum of `y ~ xs + s(z)` xs at 3.3e5 was called at its end
+  # (review of lane boundfam, B1)
+  cand <- se_limit_candidates(fit, om)
+  u <- rep_len(fit$par_units %||% 1, np)
+  u[cand] <- se_limit_units(fit, om)[cand]
+  hd <- abs(diag(H)) * u^2
+  # a row the Hessian cannot give is asked of the objective itself: a
+  # negbinomial shape at exp(23.2) had a row that was not finite and
+  # read level both ways (review of lane boundfam, m1)
+  cand <- cand[!skip[cand] & (!is.finite(hd[cand]) |
+                                hd[cand] <= se_edge_screen)]
+  if (!length(cand)) return(out)
+  obj <- fit$obj
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  fn <- function(q) tryCatch(se_quiet(obj$fn(q)), error = function(e) NA_real_)
+  f0 <- fn(p)
+  if (!is.finite(f0)) return(out)
+  tol <- fit$control$grad_tol %||% 1e-3
+  dir <- numeric(np)
+  gain <- numeric(np)
+  for (j in cand) {
+    s <- se_limit_dir(function(t) {
+      q <- p
+      q[j] <- p[j] + t * u[j]
+      fn(q) - f0
+    }, p[j] / u[j])
+    dir[j] <- s
+    gain[j] <- attr(s, "gain") %||% 0
+  }
+  lim <- which(dir != 0)
+  if (!length(lim)) return(out)
+  rise <- gain[lim] > tol
+  # a probability's slope that sends some rows to 0 and others to 1 is a
+  # separation of that parameter's model, and every coefficient of it is
+  # undetermined, as in a separated bernoulli mean
+  sp <- se_limit_separating(fit, lim, om)
+  sepo <- setdiff(unlist(attr(sp, "others")), c(lim, which(skip)))
+  und <- integer(0)
+  rest <- setdiff(which(!skip), c(lim, sepo))
+  # at a stop on the way up the curvature further out says nothing about
+  # the stop: the coherence of frmtmb.coupling's test fit had a maximum
+  # about 6 units out (review of lane boundfam, m3)
+  if (length(rest) && !any(rise)) {
+    q <- p
+    q[lim] <- p[lim] + dir[lim] * se_edge_step * u[lim]
+    c0 <- se_limit_curv(fit, p, rest, u)
+    c1 <- se_limit_curv(fit, q, rest, u)
+    und <- c(und, rest[is.finite(c0) & is.finite(c1) & abs(c0) > 0 &
+                         abs(c1) < se_limit_decay * abs(c0)])
+  }
+  out[c(lim, sepo, und)] <- TRUE
+  if (is.environment(fit$cache)) {
+    fit$cache$se_limit <- list(
+      kind = stats::setNames(c(rep("end", length(lim)),
+                               rep("sepother", length(sepo)),
+                               rep("undefined", length(und))),
+                             om$names[c(lim, sepo, und)]),
+      dir = stats::setNames(dir[lim], om$names[lim]),
+      est = stats::setNames(p[lim], om$names[lim]),
+      rise = stats::setNames(rise, om$names[lim]),
+      sep = stats::setNames(as.vector(sp), om$names[lim]),
+      gain = stats::setNames(gain[lim], om$names[lim]), par = p)
+  }
+  out
+}
+
+#' Which of the end coefficients `js` (outer positions) separate the rows
+#' of a probability parameter (`zi`, `hu`, `zoi`, `coi`, a mixing
+#' `theta`): a column with rows of both signs, so that the run sends the
+#' probability to 0 on some rows and to 1 on others. An intercept, or a
+#' column whose rows all move one way (a factor level's indicator), is the
+#' family's limiting case on those rows instead. Attribute `others`: for
+#' each, the outer positions of the other coefficients of that predictor.
+#'
+#' On `bf(y ~ 1, zi ~ x)` with every row below x = 0 a zero, zi_x ran to
+#' -1707 and zi_(Intercept), a 2-unit step of the slope moving the
+#' boundary by 0.1 percent, kept a standard error of 1063 under the quiet
+#' message (review of lane boundfam, M1).
+#'
+#' @noRd
+se_limit_separating <- function(fit, js, om = outer_par_map(fit)) {
+  out <- logical(length(js))
+  others <- vector("list", length(js))
+  for (lp in fit$frame[["linpreds"]] %||% list()) {
+    if (!grepl("^(zi|hu|zoi|coi|theta)[0-9]*$", lp[["dpar"]] %||% "")) next
+    pos <- tryCatch(se_lp_outer_pos(fit, lp, om), error = function(e) NULL)
+    X <- lp[["X"]]
+    if (!length(pos) || is.null(X) || NCOL(X) != length(pos)) next
+    for (i in which(js %in% pos)) {
+      x <- as.numeric(X[, match(js[i], pos)])
+      if (any(x > 0) && any(x < 0)) {
+        out[i] <- TRUE
+        others[[i]] <- setdiff(pos, js[i])
+      }
+    }
+  }
+  structure(out, others = others)
+}
+
+#' The parameters whose draws a prediction may hold where the fit is a
+#' family's limiting case: a named logical over `names(lost)`, `TRUE` for
+#' a "limit" parameter at its end (not one left undetermined) when
+#' se_limit_quiet() calls the whole fit quiet. Such a parameter's flat
+#' side is the limit model's, so it can be held there as a variance at
+#' zero is; an undetermined parameter, or any limit parameter of a fit
+#' that warns (a mean coefficient at its end, a separation, a ray that
+#' still rises), has no variance to draw from.
+#'
+#' @noRd
+se_limit_draw_held <- function(fit, lost) {
+  out <- stats::setNames(logical(length(lost)), names(lost))
+  if (!se_limit_quiet(fit, lost)) return(out)
+  kind <- se_limit_info(fit)$kind[names(lost)]
+  out[lost == "limit" & kind %in% "end"] <- TRUE
+  out
+}
+
+#' Which way a coefficient has run off (+1 or -1), or 0 when it has not
+#' (se_edge_limit()). `at(t)` is the change of the objective with the
+#' coefficient moved `t` natural units, the rest held; `z` is the
+#' coefficient in natural units, which places zero. Attribute `gain` is
+#' the most log-likelihood the ray out gains.
+#'
+#' @noRd
+se_limit_dir <- function(at, z) {
+  d <- c(at(se_edge_step), at(-se_edge_step))
+  lvl <- is.finite(d) & d <= se_edge_tol
+  if (!any(lvl)) return(0)
+  if (all(lvl)) {
+    s <- sign(z)
+    if (!is.finite(s) || s == 0) return(0)
+    back <- at(-s * max(se_sd_far, abs(z)))
+  } else {
+    s <- if (lvl[1L]) 1 else -1
+    back <- d[if (s > 0) 2L else 1L]
+  }
+  # a coefficient the likelihood does not read has no end to be at, and
+  # one that gains on the way back is not at a maximum that way either
+  if (!is.finite(back) || back <= se_edge_tol) return(0)
+  near <- d[if (s > 0) 1L else 2L]
+  far <- at(s * (se_edge_step + se_sd_far))
+  # the likelihood turns down further out: not an end
+  if (!is.finite(far) || far > near + se_edge_tol) return(0)
+  structure(s, gain = max(0, -min(near, far)))
+}
+
+#' Natural units of the outer parameters for a fit the optimizer ran in
+#' raw ones (no `par_units`): a linear predictor's coefficient in the
+#' predictor's unit (predictor_units(), 1 on a link scale) over its
+#' column's spread (predictor_col_spread()), and 1 elsewhere.
+#'
+#' @noRd
+se_limit_units <- function(fit, om = outer_par_map(fit)) {
+  u <- rep(1, length(om$names))
+  units <- tryCatch(predictor_units(fit$frame), error = function(e) NULL)
+  for (key in names(fit$frame[["linpreds"]])) {
+    lp <- fit$frame[["linpreds"]][[key]]
+    pos <- tryCatch(se_lp_outer_pos(fit, lp, om), error = function(e) NULL)
+    if (!length(pos)) next
+    s <- tryCatch(predictor_col_spread(lp, fit$frame),
+                  error = function(e) numeric(0))
+    if (length(s) != length(pos)) next
+    s[!is.finite(s) | !(s > 0)] <- 1
+    u[pos] <- (if (key %in% names(units)) units[[key]] else 1) / s
+  }
+  u
+}
+
+#' What se_edge_limit() found at the fit's own point: `list(kind, dir,
+#' est, rise, sep, gain)`, empty when it found nothing there.
+#'
+#' @noRd
+se_limit_info <- function(fit) {
+  li <- if (is.environment(fit$cache)) fit$cache$se_limit
+  if (is.null(li) || !identical(li$par, fit$opt$par)) {
+    return(list(kind = character(0), dir = numeric(0), est = numeric(0),
+                rise = logical(0), sep = logical(0), gain = numeric(0)))
+  }
+  li
+}
+
+#' The outer positions of the coefficients se_edge_limit() asks about:
+#' those of every linear predictor of a family's distributional
+#' parameters. A nonlinear parameter's coefficients are left to
+#' nl_flat_message(), which reads a nonlinear body's own ridges.
+#'
+#' @noRd
+se_limit_candidates <- function(fit, om = outer_par_map(fit)) {
+  out <- integer(0)
+  lps <- fit$frame[["linpreds"]] %||% list()
+  nlp <- list()
+  for (lp in lps) {
+    if (!is.null(lp[["nl_body"]])) {
+      nlp[[lp[["resp"]]]] <- c(nlp[[lp[["resp"]]]], lp[["nl_pars"]] %||%
+                                 character(0))
+    }
+  }
+  for (lp in lps) {
+    if (lp[["dpar"]] %in% nlp[[lp[["resp"]]]]) next
+    pos <- tryCatch(se_lp_outer_pos(fit, lp, om), error = function(e) NULL)
+    out <- c(out, pos)
+  }
+  sort(unique(out))
+}
+
+#' Which of the outer positions `pos` are coefficients of a family
+#' parameter (a distributional parameter outside the family's primary
+#' ones), as against those of a mean.
+#'
+#' @noRd
+se_limit_family_par <- function(fit, pos, om = outer_par_map(fit)) {
+  fam_pos <- integer(0)
+  for (lp in fit$frame[["linpreds"]] %||% list()) {
+    fam <- fit$spec$responses[[lp[["resp"]]]]$family
+    if (lp[["dpar"]] %in% (fam[["primary_dpars"]] %||% "mu")) next
+    fam_pos <- c(fam_pos, tryCatch(se_lp_outer_pos(fit, lp, om),
+                                   error = function(e) NULL))
+  }
+  pos %in% fam_pos
+}
+
+#' The curvature of the objective in each of the outer parameters `ks`
+#' at `x`, in the optimizer's units: the AD Hessian's diagonal without
+#' random effects, else central differences of the gradient a
+#' thousandth of a unit apart. NA where it cannot be had.
+#'
+#' @noRd
+se_limit_curv <- function(fit, x, ks, u) {
+  obj <- fit$obj
+  if (!length(obj$env$random)) {
+    Hx <- tryCatch(se_quiet(obj$he(x)), error = function(e) NULL)
+    if (!is.matrix(Hx) || !all(dim(Hx) == length(x))) {
+      return(rep(NA_real_, length(ks)))
+    }
+    return(diag(Hx)[ks] * u[ks]^2)
+  }
+  gk <- function(k, t) {
+    y <- x
+    y[k] <- x[k] + t
+    tryCatch(se_quiet(drop(obj$gr(y)))[k], error = function(e) NA_real_)
+  }
+  vapply(ks, function(k) {
+    h <- 1e-3 * u[k]
+    (gk(k, h) - gk(k, -h)) / (2 * h) * u[k]^2
+  }, 0)
+}
+
+#' The factor by which a parameter's curvature must fall, between the
+#' stop and `se_edge_step` further toward the end of the coefficients
+#' that ran off, for se_edge_limit() to call it undetermined there. A
+#' curvature that decays exponentially along the run falls by exp(-2)
+#' over that move: the wiener parameters of frmtmb.eam's mixture whose
+#' weight's logit ran to -23.4 read 0.1353353. One that converges to the
+#' limit model's stays: the four other parameters of the Malingering_2
+#' mixture, whose precision ran to exp(23.4), read 1 to eight digits
+#' (dev/boundfam-findings.md).
+#'
+#' @noRd
+se_limit_decay <- 0.5
 
 #' Tier 3 of cov_from_hessian(): which parameters have no standard
 #' error, why, and the covariance of the rest.
@@ -2011,6 +2350,56 @@ sdr_rescue_hessian <- function(fit, sdr, H = NULL) {
   sdr$se_lost <- se_relabel(fit, an$lost)
   sdr$se_null <- an$null
   sdr$se_null_flat <- an$flat
+  se_null_drop_held(fit, sdr)
+}
+
+#' `sdr` without the null directions of family parameters held at their
+#' end (se_limit_draw_held()): a prediction reads such a parameter at its
+#' estimate, with no variance, as a variance component at zero reads its
+#' sd, and keeps its standard error. On a zero_inflated_binomial() whose
+#' zi intercept ran to its limit (backlog item 3269), fitted() moved by
+#' at most 2.7e-9 per logit unit along zi, and its standard errors are
+#' the binomial model's to 2.8e-10; with the direction kept every row
+#' was NaN, against the message's "the other standard errors are kept"
+#' (review of lane ppdraw, short check). A parameter the limit leaves
+#' undetermined, or a limit of a fit that warns, keeps its direction.
+#'
+#' The directions that remain and load only on limit parameters (an end
+#' that is not a separation, or a parameter it leaves undetermined) are
+#' marked in the attribute `limit` of `sdr$se_null`, one logical per
+#' column. jc_nonest() asks of such a direction whether a quantity
+#' actually moves along it, not its cosine: the cosine is taken in the
+#' unit-diagonal metric, where the vanishing curvature of a parameter at
+#' its limit makes a negligible move look large.
+#'
+#' @noRd
+se_null_drop_held <- function(fit, sdr) {
+  N <- sdr$se_null
+  lost <- sdr$se_lost
+  if (!NCOL(N) || !any(lost == "limit")) return(sdr)
+  nm <- outer_par_names(fit)
+  held <- se_limit_draw_held(fit, lost)
+  hpos <- match(names(lost)[held], nm)
+  drop <- apply(N != 0, 2L, function(nz) any(nz) && all(which(nz) %in% hpos))
+  keep <- which(!drop)
+  if (any(drop)) {
+    fl <- sdr$se_null_flat
+    if (!is.null(fl$cols)) {
+      fc <- match(fl$cols, keep)
+      fl$cols <- fc[!is.na(fc)]
+      sdr$se_null_flat <- fl
+    }
+    N <- N[, keep, drop = FALSE]
+  }
+  li <- se_limit_info(fit)
+  ln <- names(lost)[lost == "limit"]
+  ok <- li$kind[ln] %in% c("end", "undefined") &
+    !(li$sep[ln] %in% TRUE)
+  lpos <- match(ln[ok], nm)
+  attr(N, "limit") <- if (NCOL(N)) {
+    apply(N != 0, 2L, function(nz) any(nz) && all(which(nz) %in% lpos))
+  } else logical(0)
+  sdr$se_null <- N
   sdr
 }
 
@@ -2188,10 +2577,95 @@ se_report <- function(fit, lost, act) {
   said <- bnd & se_par_grouped(fit, names(lost)) &
     !latres_limit_par(fit, names(lost))
   if (any(said)) se_boundary_act(act, se_boundary_message(fit, lost[said]))
-  if (any(!bnd)) {
-    re_check_act(act, latres_par_text(fit, se_lost_message(fit, lost[!bnd])))
+  # family parameters at the end of their range, which leave nothing
+  # undetermined, are the family's limiting case: a boundary fit too
+  quiet <- lost == "limit" & se_limit_quiet(fit, lost)
+  # a subclass of its own, which the nonlinear restart reads as the flat
+  # direction it is (nl_flat_warning())
+  if (any(quiet)) {
+    se_boundary_act(act, se_limit_message(fit, lost[quiet]),
+                    class = c("frmtmb_limit_fit", "frmtmb_boundary_fit"))
+  }
+  if (any(!bnd & !quiet)) {
+    re_check_act(act, latres_par_text(fit, se_lost_message(fit,
+                                                           lost[!bnd &
+                                                                  !quiet])))
   }
   invisible(NULL)
+}
+
+#' Are the "limit" parameters of `lost` (se_edge_limit()) all
+#' coefficients of family parameters, none of them on a ray that still
+#' rises? Then the fit is the family's limiting case (a beta_binomial()
+#' precision run to the binomial, a negbinomial() shape to the poisson,
+#' a student() `nu` to the gaussian, a zero-inflation probability to
+#' zero), and the means keep the standard errors of the limit model, so
+#' it gets the boundary message, as a variance component at zero does.
+#' A family parameter's other coefficients that the limit leaves
+#' undetermined (`nu ~ x`'s slope at the gaussian limit) join it, as the
+#' correlation of a block whose variance is zero joins that boundary. A
+#' mean coefficient at its end or left undetermined, or a covariance
+#' parameter left undetermined, is a fit with no maximum likelihood
+#' estimate for the mean model, and warns. So does a probability's slope
+#' that separates its rows (se_limit_separating()), and a ray that still
+#' rises, which is a stop on the way up and not a limit.
+#'
+#' @noRd
+se_limit_quiet <- function(fit, lost) {
+  nm <- names(lost)[lost == "limit"]
+  if (!length(nm)) return(FALSE)
+  li <- se_limit_info(fit)
+  if (anyNA(li$kind[nm]) || any(li$rise[nm] %in% TRUE) ||
+        any(li$sep %in% TRUE)) {
+    return(FALSE)
+  }
+  om <- outer_par_map(fit)
+  all(se_limit_family_par(fit, match(nm, om$names), om))
+}
+
+#' The boundary message for family parameters at the end of their range.
+#'
+#' @noRd
+se_limit_message <- function(fit, lost) {
+  kind <- se_limit_info(fit)$kind[names(lost)]
+  ends <- names(lost)[kind %in% "end"]
+  und <- names(lost)[kind %in% "undefined"]
+  one <- length(ends) == 1L
+  paste0("Boundary fit: ", se_limit_where(fit, ends),
+         if (length(und)) {
+           paste0("; ", paste(und, collapse = ", "),
+                  if (length(und) == 1L) " is" else " are",
+                  " undefined there, since the likelihood's curvature ",
+                  "along ", if (length(und) == 1L) "it" else "them",
+                  " vanishes at that limit")
+         },
+         ". The likelihood ",
+         "does not fall as ", if (one) "it moves" else "they move",
+         " further that way, so ",
+         if (one && !length(und)) "it has" else "these have",
+         " no standard error (NaN in summary(), vcov() and confint()); ",
+         "the other standard errors are kept, as those of the model at ",
+         "that limit. A family parameter at an end of its range is a ",
+         "limiting case of the family: at the upper end beta_binomial() ",
+         "becomes binomial(), negbinomial() poisson() and student() ",
+         "gaussian(), at the lower end student() becomes the Cauchy, ",
+         "and an intercept of a zero-inflation or mixing probability at ",
+         "its limit drops that part of the model on the rows it reaches")
+}
+
+#' "`name` is at the end of its range, at `est` on the link scale and
+#' moving toward +Inf", one clause per parameter.
+#'
+#' @noRd
+se_limit_where <- function(fit, nms) {
+  li <- se_limit_info(fit)
+  one <- function(n) {
+    paste0(n, " is at the end of its range (", format(li$est[[n]],
+                                                        digits = 4),
+           " on its link scale, moving toward ",
+           if (li$dir[[n]] > 0) "+Inf" else "-Inf", ")")
+  }
+  paste(vapply(nms, one, ""), collapse = "; ")
 }
 
 #' The term labels of the random-effect blocks with a parameter at the
@@ -2238,11 +2712,11 @@ se_par_grouped <- function(fit, nms) {
 #' "ignore" is silent and "stop" stops.
 #'
 #' @noRd
-se_boundary_act <- function(what, msg) {
+se_boundary_act <- function(what, msg, class = "frmtmb_boundary_fit") {
   switch(what %||% "warning",
          ignore = invisible(NULL),
          stop = frm_stop(msg, call. = FALSE),
-         frm_message(msg, class = "frmtmb_boundary_fit"))
+         frm_message(msg, class = class))
 }
 
 #' The covariance parameters at the edge of their parameter space: a
@@ -2720,6 +3194,10 @@ se_explained_pars <- function(fit) {
 #' @noRd
 se_relabel <- function(fit, lost) {
   if (!length(lost)) return(lost)
+  # first, so that a covariance parameter it leaves undetermined is not
+  # read as a boundary of its own
+  lk <- se_limit_info(fit)$kind
+  lost[names(lost) %in% names(lk) & lost == "flat"] <- "limit"
   lost[names(lost) %in% se_boundary_names(fit, lost) &
          lost == "flat"] <- "boundary"
   kind <- fit$cache$se_boundary_kind
@@ -2742,7 +3220,9 @@ se_relabel <- function(fit, lost) {
   # that predictor: a flat coefficient above 10 on unseparated data (a
   # bernoulli polynomial) is not one (setier review, re-check m-c)
   sep <- intersect(sep, fit$cache$se_explained_sep %||% character(0))
-  hit <- names(lost) %in% sep & lost == "flat"
+  # a proved separation says more than a coefficient at the end of its
+  # range (se_edge_limit()), which it is too
+  hit <- names(lost) %in% sep & lost %in% c("flat", "limit")
   lost[hit] <- "separation"
   lost
 }
@@ -3014,11 +3494,48 @@ se_lost_clauses <- function(fit, lost) {
       paste0(n, " (simplex of ", mo_lab[[z]], ")")
     } else n
   }
+  # a coefficient at the end of its range and one it leaves undetermined
+  # (se_edge_limit()) read differently
+  li <- se_limit_info(fit)
+  hit <- lost == "limit"
+  hn <- names(lost)[hit]
+  lost[hit] <- paste0("limit_", ifelse(
+    li$kind[hn] %in% c("undefined", "sepother"), li$kind[hn],
+    ifelse(li$rise[hn] %in% TRUE, "rise",
+           ifelse(li$sep[hn] %in% TRUE, "sep", "end"))))
   text <- function(r, one) {
     it <- if (one) "it" else "them"
     switch(r,
       bound = paste0("a bound holds ", it, ", so the fit is a constrained ",
                      "optimum there"),
+      limit_sep = paste0("the data separate the rows of ",
+                         if (one) "its" else "their",
+                         " probability: as ", if (one) "it moves" else
+                           "they move",
+                         " further, the probability goes to 0 on some rows ",
+                         "and to 1 on others and the likelihood does not ",
+                         "fall, so the maximum likelihood estimate does not ",
+                         "exist"),
+      limit_sepother = paste0("the other coefficients of that probability, ",
+                              "which the separation leaves undetermined"),
+      limit_end = paste0("the likelihood does not fall as ",
+                         if (one) "it moves" else "they move",
+                         " further toward the end of ",
+                         if (one) "its range" else "their ranges",
+                         ", so the maximum likelihood estimate does not ",
+                         "exist and the optimizer stopped where its ",
+                         "tolerances did"),
+      limit_rise = paste0("the likelihood is level where the fit stopped ",
+                          "and still rises as ",
+                          if (one) "it moves" else "they move",
+                          " further the way shown, so the fit stopped on ",
+                          "the way up and not at a maximum, if there is ",
+                          "one"),
+      limit_undefined = paste0("the data do not determine ", it, " at ",
+                               "that limit, since the likelihood's ",
+                               "curvature along ", it, " vanishes as the ",
+                               "parameters at the end of their ranges move ",
+                               "further"),
       short = paste0("the fit stopped short of the maximum: ",
                      if (one) "this standard deviation is" else
                        "these standard deviations are",
@@ -3078,12 +3595,23 @@ se_lost_clauses <- function(fit, lost) {
                       "along it)"))
   }
   out <- character(0)
-  for (r in c("bound", "boundary", "separation", "short", "flat",
-              "illcond", "concave", "nonfinite", "nocurv")) {
+  for (r in c("bound", "limit_end", "limit_rise", "limit_sep",
+              "limit_sepother", "limit_undefined", "boundary",
+              "separation", "short", "flat", "illcond", "concave",
+              "nonfinite", "nocurv")) {
     n <- names(lost)[lost == r]
     if (!length(n)) next
     lab <- if (r == "boundary") se_boundary_labels(fit, n) else {
       vapply(n, label, "")
+    }
+    if (r %in% c("limit_end", "limit_rise", "limit_sep")) {
+      lab <- paste0(lab, " (at ", vapply(n, function(k) {
+        format(li$est[[k]], digits = 4)
+      }, ""), ", toward ", ifelse(li$dir[n] > 0, "+Inf", "-Inf"),
+      if (r == "limit_rise") {
+        paste0(", where the log-likelihood rises by a further ",
+               vapply(n, function(k) format(li$gain[[k]], digits = 2), ""))
+      }, ")")
     }
     out <- c(out, paste0(paste(lab, collapse = ", "), ": ",
                          text(r, length(n) == 1L)))
@@ -3184,8 +3712,51 @@ se_lost_message <- function(fit, lost) {
 #' estimable prediction stays below it, and a prediction of a single
 #' parameter gets that parameter's verdict.
 #'
+#' A row that reads a lost parameter whose variance is not finite in
+#' `jc$V` is non-estimable too (jc_nan_lost()): its standard error comes
+#' out NaN whatever the null basis says, and the caller's warning must
+#' say why.
+#'
 #' @noRd
 jc_nonest <- function(jc, G, pos) {
+  n <- NROW(G)
+  if (!n || !length(pos)) return(rep(FALSE, n))
+  jc_nonest_null(jc, G, pos) | jc_nan_lost(jc, G, pos)
+}
+
+#' The rows of `G` that read a lost parameter (`jc$lost_pos`) whose
+#' variance in `jc$V` is not finite. Where the fit stopped short, or a
+#' separation explained it, the standard-error check keeps sdreport()'s
+#' inverse with NaN rows and builds no null basis, so such a row's
+#' standard error was NaN with no warning: the separated bernoulli of
+#' test-se-limit.R at seed 514 warned under the reference BLAS (code 0,
+#' the analysis) and not under OpenBLAS 0.3.26 (code 1, the separation
+#' warning as the convergence verdict), with 240 of 240 fitted values
+#' NaN on both (round of 2026-11-11, consolidation).
+#'
+#' @noRd
+jc_nan_lost <- function(jc, G, pos) {
+  n <- NROW(G)
+  out <- rep(FALSE, n)
+  lp <- jc$lost_pos
+  V <- jc$V
+  if (!length(lp) || is.null(V)) return(out)
+  lp <- lp[!is.na(lp) & lp >= 1L & lp <= NROW(V)]
+  dv <- vapply(lp, function(i) as.numeric(V[i, i]), 0)
+  j <- match(lp[!is.finite(dv)], pos)
+  j <- j[!is.na(j)]
+  if (!length(j)) return(out)
+  Gj <- abs(G[, j, drop = FALSE]) > 0
+  if (inherits(Gj, "Matrix")) {
+    as.numeric(Matrix::rowSums(Gj)) > 0
+  } else rowSums(as.matrix(Gj)) > 0
+}
+
+#' jc_nonest() over the null basis: the directions the propagation
+#' covariance leaves out.
+#'
+#' @noRd
+jc_nonest_null <- function(jc, G, pos) {
   N <- jc$null
   n <- NROW(G)
   fl <- jc$flat
@@ -3215,7 +3786,25 @@ jc_nonest <- function(jc, G, pos) {
       gn <- sqrt(rowSums(Gq^2))
     }
     den <- outer(gn, sqrt(colSums(Nq^2)))
-    bad <- rowSums(num > se_pred_tol * den, na.rm = TRUE) > 0
+    cos_bad <- num > se_pred_tol * den
+    # A direction of a parameter at its limit, or one the limit leaves
+    # undetermined (se_null_drop_held()), is asked how far the quantity
+    # moves along it, against what the parameters with a standard error
+    # move it by (`Gq` over them, about its standard error): on a
+    # zero_inflated_binomial() with `zi ~ x` whose zi ran to its end, the
+    # rows move by about 1e-9 per unit along zi_x, and the cosine called
+    # 195 of 200 of them NaN (round of 2026-11-11, consolidation)
+    lim <- attr(N, "limit")
+    if (length(lim) == NCOL(N) && any(lim[oc])) {
+      lc <- which(lim[oc])
+      kp <- which((rowSums(abs(N) > 0) == 0)[pos])
+      ref <- if (!length(kp)) rep(0, n) else if (sp) {
+        sqrt(as.numeric(Matrix::rowSums(Gq[, kp, drop = FALSE]^2)))
+      } else sqrt(rowSums(Gq[, kp, drop = FALSE]^2))
+      ch <- abs(as.matrix(G %*% N[pos, oc[lc], drop = FALSE]))
+      cos_bad[, lc] <- ch > se_pred_tol * ref
+    }
+    bad <- rowSums(cos_bad, na.rm = TRUE) > 0
   }
   if (length(fc)) {
     r <- which(is.finite(fl$scale) & fl$scale > 0)
@@ -3275,8 +3864,10 @@ se_pred_warn <- function(bad, what = "predictions") {
 #' Is a fit the optimizer stopped short at a boundary, as lme4 calls a
 #' singular fit? The largest gradient (`g`, in the optimizer's units) is
 #' within `grad_tol`, and every standard error the check loses there is
-#' a boundary one. The analysis is built even where se_check_at_fit()
-#' would wait, since its answer decides which report the fit gets; under
+#' a boundary one, or one of a coefficient at the end of its range or
+#' left undetermined by it (se_edge_limit()). The analysis is built even
+#' where se_check_at_fit() would wait, since its answer decides which
+#' report the fit gets; under
 #' `check_se = "ignore"` it is not asked, and the convergence warning
 #' stays.
 #'
@@ -3293,7 +3884,9 @@ se_boundary_stop <- function(fit, g, control) {
   an <- tryCatch(se_fit_analysis(fit, force = TRUE),
                  error = keep_missing(NULL))
   lost <- an$lost
-  ok <- length(lost) > 0L && all(lost == "boundary")
+  # a coefficient at the end of its range is a stop at a supremum, which
+  # the SE check reports in place of the optimizer's code
+  ok <- length(lost) > 0L && all(lost %in% c("boundary", "limit"))
   fit$cache$se_boundary_stop <- ok
   # an sdreport taken at the fit (se = TRUE) predates the analysis and
   # kept its own covariance, as for any fit that stopped short

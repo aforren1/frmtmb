@@ -163,10 +163,11 @@ test_that("diagnose() names a dpar whose maximum is outside its range", {
   expect_s3_class(dg$unbounded_dpar, "data.frame")
   expect_true(any(grepl("^nu", dg$unbounded_dpar$parameter)))
   # the pair is the evidence: an estimate far out on the link AND a
-  # standard error bigger than the estimate
+  # standard error bigger than the estimate, or none: the
+  # standard-error check finds nu at the end of its range and gives it
+  # NaN (se_edge_limit())
   expect_gt(abs(dg$unbounded_dpar$estimate[1]), 10)
-  expect_gt(dg$unbounded_dpar$std.error[1],
-            abs(dg$unbounded_dpar$estimate[1]))
+  expect_true(is.nan(dg$unbounded_dpar$std.error[1]))
   expect_output(diagnose(f), "end of its link")
   # the same model on data that does pin nu down is not flagged
   set.seed(42)
@@ -193,8 +194,7 @@ test_that("the same check reads the LOWER end of logm1 correctly", {
   dgc <- diagnose(fc, quiet = TRUE)
   expect_s3_class(dgc$unbounded_dpar, "data.frame")
   expect_lt(dgc$unbounded_dpar$estimate[1], -10)
-  expect_gt(dgc$unbounded_dpar$std.error[1],
-            abs(dgc$unbounded_dpar$estimate[1]))
+  expect_true(is.nan(dgc$unbounded_dpar$std.error[1]))
   out <- utils::capture.output(diagnose(fc))
   expect_true(any(grepl("runs DOWN to one", out)))
 })

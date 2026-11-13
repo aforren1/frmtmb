@@ -2592,6 +2592,7 @@ install 32), and the release tree took the fixes by a rerun of
   called "flat", where "a mixing parameter at its limit", in the
   boundary message that exists, explains the fit better (lane
   seflags' section below; review consolidation list).
+  CLOSED in the round of 2026-11-11 (lane boundfam): the mixing logit is named at the end of its range (-23.4, toward -Inf), and the wiener parameters as undetermined there.
 - **Read every `||` term as brms does** (moparity's r2, in its section
   below). A core parsing change; its own lane.
   CLOSED at 0.71.0 (lane dblbar): a `||` term is `(x | gr(g, cor = FALSE))`,
@@ -2712,6 +2713,7 @@ the measurements.
   decoupled row (unit-diagonal eigenvalues 0.98 to 1.01) and an
   objective rounding of about 1e-3 there; needs a limit test per family
   precision.
+  CLOSED in the round of 2026-11-11 (lane boundfam): log phi2 at 23.4 gets the boundary message and a NaN SE; the other SEs are kept.
 - **The cs() ordinal-mixture wall has no message naming its cause.**
 - **`mo(inc) * age` with the interaction's simplex at a face**
   (`dev/seflags-segapface.R`, seeds 2, 3, 5 of 6): the flat split along
@@ -2770,6 +2772,7 @@ the measurements.
   check after punch round 2, frmtmb.eam `test-defects.R:92`): the mixing
   logit at -23.44 is called "flat", and "a mixing parameter at its
   limit", in the boundary message that exists, explains the fit better.
+  CLOSED in the round of 2026-11-11 (lane boundfam): as 2591 above.
 - **frmtmb.eam's R CMD check warns "'::' or ':::' import not declared
   from: 'rstan'"**: its `test-sampling.R` calls `rstan::` and rstan is
   not in Suggests (since 5f39a6f5, 0.69.0). Seen by lane seflags'
@@ -3104,6 +3107,7 @@ See `dev/round-20261020.md`, "Found at the consolidation".
   reports NA for both affected correlations. It is 0.71.0's filed
   flat-ridge item; a cheap guard would treat `se_t == 0` on a row that
   is not at its boundary as NA.
+  CLOSED in the round of 2026-11-11 (lane boundfam): a zero se gives NA bounds, and so do the correlations of a us() row past the clamp in a block of 3 or more.
 - **`summary()` prints "Method: ML (MAP)" for a fit whose prior only
   sets bounds**, which adds no density and which `drop1()` now treats
   as maximum likelihood. On 0.71.0 too.
@@ -3335,6 +3339,7 @@ See `dev/round-20261020.md`, "Found at the consolidation".
   verdict for poisson); `y | cens(cen) ~ x` with every row
   right-censored gives SEs near 4e9 with no warning (seeds 2 and 3
   lose two SEs as "flat").
+  CLOSED in the round of 2026-11-11 (lane boundfam): se_edge_limit() names the coefficients at the end of their range and those left undetermined, with NaN SEs and a warning that the MLE does not exist.
 
 #### Open - low
 
@@ -3483,6 +3488,7 @@ findings 2 to 4 and "Item 1".
   drift to a boundary dispersion (log shape 15.7 on the fuzz data;
   gaussian `scale = TRUE` log sigma -8.27). Bounded, so not refused; the
   boundary message should reach a dispersion at its limit.
+  CLOSED in the round of 2026-11-11 (lane boundfam): a dispersion at its limit is named (se_edge_limit()); a Gamma shape whose ray still rises warns that the fit stopped on the way up.
 - **`gamma(2, 1)` on a log-scale `b` of `shape ~ 0 + fac`** stops at
   "NA/NaN gradient evaluation" on 0.72.0 and 0.73.0 alike (a
   positive-support prior on a coefficient of either sign; review,
@@ -4660,6 +4666,43 @@ none is a regression of this release.
   package does not declare (inferred by the review, not run). The skip
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
+
+## Filed in the round of 2026-11-11
+
+### From lane boundfam
+
+- **A joint runaway is still called flat** (dev/boundfam-findings.md,
+  "Not done"): a poisson fit whose one count is at the largest x
+  (`dev/boundfam-repro.R`, case pois1max) runs (Intercept) to -436.5
+  and x to 208.8 together, with a code-7 warning that says the stop is
+  at the maximum and the "flat" warning. glm() warns "fitted rates
+  numerically 0". The limit rule reads one coefficient at a time, and
+  each coefficient alone costs likelihood there. The verdict depends
+  on the coding (dev/reviews/2026-11-11-boundfam.md, m2): poisson
+  `y ~ g` with group a all zero gives (Intercept) -22.3 and gb 23.5
+  "flat", while `y ~ 0 + g` gives ga "limit" and the warning that the
+  maximum likelihood estimate does not exist; the zero-inflated and
+  negbinomial forms of `y ~ g` stay "flat". The treatment-coded
+  `zi ~ f` with one level all zero is silent on both builds, with SEs
+  of 5374 (dev/reviews/boundfam-short-*).
+- **A zero-inflation probability sent to 1 is called the family's
+  limiting case** (dev/reviews/boundfam-short-*, m7): with
+  `zi ~ 0 + f` and one level all zero, zi_fa runs to +21.9. The
+  column has no negative rows, so `se_limit_separating()` does not
+  call it a separation, and the quiet boundary message says the
+  probability "drops that part of the model", where it goes to 1. The
+  bernoulli analogue warns of quasi-complete separation. The SEs are
+  right (zi_fa NaN, zi_fb 2.20 kept; 0.81.0 gave 4665 in silence);
+  only the class and the text are wrong. Suggested rule: an end that
+  sends zi, hu or zoi to 1 on some rows is a separation.
+- **A negbinomial shape at its limit stays "nocurv" behind a
+  convergence warning** (dev/boundfam-findings.md, "Fix round"):
+  seed 17 of poisson data, log shape 23.2, code 8 and a gradient of
+  1.35e-3 above `grad_tol`. The convergence verdict makes the stop
+  short, so the standard-error analysis is not applied, and the limit
+  rule, which would fire there, is not asked.
+- **3022 and 3037 are family fit-end checks, not the boundary rule**
+  (dev/boundfam-findings.md, "Not done"): both stay open as filed.
 
 ## Filed at the 0.81.0 release (2026-11-10)
 

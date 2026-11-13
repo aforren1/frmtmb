@@ -1002,7 +1002,17 @@ latres_shift_tk <- function(fit, bk) {
     env$last.par <- lp0
     env$last.par.best <- lb0
   })
-  V <- tryCatch(as.matrix(sdr_of(fit)$cov.fixed), error = function(e) NULL)
+  sdr <- tryCatch(sdr_of(fit), error = function(e) NULL)
+  V <- tryCatch(as.matrix(sdr$cov.fixed), error = function(e) NULL)
+  # a dispersion at the end of its range (se_edge_limit()) has no standard
+  # error, and the others are those of the model at that limit: the
+  # covariance kept for propagation, zero in the dispersion's row, reads
+  # the shift there (a lognormal sigma at exp(-4.4) under ar(cov = TRUE))
+  lost <- sdr$se_lost
+  if (length(lost) && all(lost == "limit") &&
+        !is.null(sdr$cov_fixed_prop)) {
+    V <- as.matrix(sdr$cov_fixed_prop)
+  }
   if (is.null(V) || nrow(V) != length(par)) return(Inf)
   g <- numeric(length(par))
   for (k in which(names(par) != "beta")) {

@@ -503,17 +503,26 @@ test_that("a sigma the field took stays flat at the row check", {
   g <- factor(sample(letters[1:5], n, TRUE))
   y <- sin(2 * x) + 0.3 * z + stats::rnorm(n)
   w <- character()
+  m <- character()
   fit <- withCallingHandlers(
     frm(y ~ z + gp(x), data = data.frame(x, z, g, y)),
     warning = function(cn) {
       w <<- c(w, conditionMessage(cn))
       invokeRestart("muffleWarning")
     },
-    message = function(m) invokeRestart("muffleMessage"))
+    message = function(cn) {
+      m <<- c(m, conditionMessage(cn))
+      invokeRestart("muffleMessage")
+    })
   expect_lt(exp(fit$estimates$betad[[1L]]), 1e-2)
   se <- sqrt(diag(as.matrix(vcov(fit, full = TRUE))))
   expect_true(is.nan(se[["sigma_(Intercept)"]]))
-  expect_true(any(grepl("Standard errors are not available", w, fixed = TRUE)))
+  # either verdict says so: "flat", or sigma at the end of its range,
+  # where the field interpolates the rows (se_edge_limit())
+  expect_true(any(grepl("Standard errors are not available", w,
+                        fixed = TRUE)) ||
+                any(grepl("sigma_(Intercept) is at the end of its range", m,
+                          fixed = TRUE)))
 })
 
 test_that("a row under its noise is flat only if it reads no curvature", {

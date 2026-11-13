@@ -750,12 +750,18 @@ nl_ll_pair <- function(a, b) {
 }
 
 #' Do these held warnings report a flat direction in the standard errors?
+#' A family parameter at the end of its range is one too (its message,
+#' class `frmtmb_limit_fit`, is held beside the warnings): a student()
+#' `nu` that the default start ran to exp(22.7) on a `pow_a` body with
+#' gp() stopped at a log-likelihood of -4.95, and the restart reaches
+#' 55.67 (lane gpstop's sweep, `pow_a_student_n120_s2`).
 #'
 #' @noRd
 nl_flat_warning <- function(held) {
   any(vapply(held, function(w) {
-    grepl("Standard errors are not available|are not identified",
-          conditionMessage(w))
+    inherits(w, "frmtmb_limit_fit") ||
+      grepl("Standard errors are not available|are not identified",
+            conditionMessage(w))
   }, NA))
 }
 
@@ -842,8 +848,17 @@ nl_fit_off_saddle <- function(run, frame, start, prior) {
     hq$w[[length(hq$w) + 1L]] <- w
     invokeRestart("muffleWarning")
   }
-  release <- function() for (w in hq$w) warning(w)
-  fit <- tryCatch(withCallingHandlers(run(start, TRUE), warning = hold),
+  # a family limit's message is held as the warnings are: it marks the
+  # flat direction a restart is for, and it is about this fit only
+  hold_limit <- function(m) {
+    hq$w[[length(hq$w) + 1L]] <- m
+    invokeRestart("muffleMessage")
+  }
+  release <- function() {
+    for (w in hq$w) if (inherits(w, "message")) message(w) else warning(w)
+  }
+  fit <- tryCatch(withCallingHandlers(run(start, TRUE), warning = hold,
+                                      frmtmb_limit_fit = hold_limit),
                   error = function(e) {
                     release()
                     stop(e)

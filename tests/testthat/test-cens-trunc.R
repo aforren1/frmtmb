@@ -386,8 +386,12 @@ test_that("the trunc() window check refuses lb >= ub and admits the bounds", {
                  nrow(d) * log(stats::ppois(hi, mu) - stats::ppois(lo - 1, mu)),
                tolerance = 1e-10)
   # enough rows that the window's two parameters are well determined:
-  # on five rows the fit stopped at false convergence under OpenBLAS
-  dg <- data.frame(y = c(-1, 2, seq(-0.9, 1.9, length.out = 40)))
+  # on five rows the fit stopped at false convergence under OpenBLAS.
+  # Rows spread evenly over the window determine neither: the truncated
+  # normal's maximum is the uniform, at sigma = Inf, which the
+  # standard-error check reports (se_edge_limit())
+  dg <- data.frame(y = c(-1, 2,
+                         0.5 + 0.35 * stats::qnorm(stats::ppoints(40))))
   fg <- frm(y | trunc(lb = -1, ub = 2) ~ 1, family = gaussian(), data = dg)
   expect_equal(fg$opt$convergence, 0L)
   expect_error(frm(y | trunc(lb = 0) ~ 1, family = gaussian(), data = dg),

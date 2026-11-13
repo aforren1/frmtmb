@@ -202,6 +202,9 @@ joint_cov_repair_meta <- function(fit, sdr, p, r, f) {
     null <- matrix(0, p, NCOL(sdr$se_null))
     null[f, ] <- sdr$se_null
     null <- gp_null_at_field(fit, null, r, f)
+    # which columns are a limit's (se_null_drop_held(), jc_nonest())
+    lim <- attr(sdr$se_null, "limit")
+    if (length(lim) == NCOL(null)) attr(null, "limit") <- lim
   }
   units <- rep(1, p)
   units[f] <- fit$par_units %||% 1

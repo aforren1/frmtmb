@@ -23,7 +23,9 @@ exempt <- list(
     'R/fit.R | optimizer_from_best | stop(e)',
     'R/fit.R | fit_error_context | stop(e)',
     # the same for a nonlinear body's fit, which holds the warnings of a fit
-    # until it is the one returned, and raises them with their own classes
+    # until it is the one returned, and raises them with their own classes,
+    # and the message of a family limit it holds beside them
+    'R/par-template.R | nl_fit_off_saddle | message(w)',
     'R/par-template.R | nl_fit_off_saddle | warning(w)',
     'R/par-template.R | nl_fit_off_saddle | warning(w)',
     'R/par-template.R | nl_fit_off_saddle | stop(e)',
