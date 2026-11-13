@@ -1,3 +1,80 @@
+# frmtmb (development version)
+
+## Weighted likelihoods with no maximum
+
+* BREAKING: `frm()` now checks each response of a multivariate model
+  for a weighted likelihood with no maximum. Before, the check did not
+  run for more than one response. `mvbf()` with `(1 | obs)` in two
+  gaussian responses and weights that sum to more than the rows ran to
+  a log-likelihood of 836.78 with `sigma` at exp(-37.49), with only
+  convergence warnings. The refusal names the response. A block that
+  the responses share through an ID does not stop it, and neither does
+  `quadrature = TRUE`, which stopped at a false maximum. An
+  overdispersed count with an effect per row, and weights that sum to
+  fewer than the rows, fit as before. A prior names a response in
+  either spelling, `resp = "y_a"` or brms's `resp = "ya"`.
+
+* BREAKING: Under `cens()` and the Laplace approximation, a censored row
+  takes 1/2 off the weight excess only when no constant mean brings its
+  probability to 1 together with the other censored rows. The rows
+  censored on one side cost nothing when three things hold: the mean
+  formula spans the constant (an intercept, or a full set of cell
+  means), there is no `trunc()`, and no prior on the intercept (or on
+  the cell means) bounds the mean on that side. The rows on the other
+  side and the interval-censored rows cost 1/2 each, and the check
+  takes the cheaper side. Before, every censored row cost 1/2. On 80
+  gaussian rows with 16 right censored, an uncensored excess from 0.5
+  to 8 was not refused: the fits stopped at an interior estimate or ran
+  to `sigma` at exp(-14.2). Along a mean above the bound the Laplace
+  objective grows with a slope equal to the excess. These models are
+  now refused, and so is asym_laplace with 72 of 80 rows right
+  censored. With `uniform(-5, 0.5)` on the intercept, below the bound,
+  the same models keep their maximum and fit.
+
+* BREAKING: A free coefficient of the dispersion formula that moves the
+  rows of one cell alone is now refused when the weights of that cell
+  sum to more than its rows. Before, a `normal()` prior on one cell mean
+  of `sigma ~ 0 + f` exempted the model, and the other cell ran away. A
+  `student_t()` prior on every cell mean is refused, as it is on an
+  intercept. In `sigma ~ 1 + f` the check reads a free treatment
+  contrast only when the intercept has no prior that bounds it: frmtmb
+  puts that prior on the centered intercept, which the contrast moves
+  too, and the model can then have its maximum.
+
+* BREAKING: A prior with a power-law tail on a shape or a precision now
+  exempts the model only when the tail falls faster than the likelihood
+  grows. A Gamma, Beta, inverse.gaussian or von_mises density narrows
+  like the shape to the power -1/2, so the likelihood grows like the
+  shape to the power `(sum(w) - n) / 2`. A weibull or frechet density
+  narrows like the shape to the power -1. frmtmb evaluates the prior on
+  the natural scale with the Jacobian of the shape's link, which adds a
+  power of the shape: 1 under the log link (and under logm1, the
+  default for frechet's `nu`), 0 under the identity, softplus and
+  squareplus links. Under the log link the objective so
+  falls like the shape to the power `-nu` under `student_t(nu)` and
+  `-a` under `inv_gamma(a, b)`, and under the other three like `-(nu +
+  1)` and `-(a + 1)`. The model is refused when that power is smaller
+  than the growth's. Before, any `student_t()` or `inv_gamma()` prior
+  on the shape exempted the model: `student_t(3, 0, 2.5)` on Gamma's
+  shape ran to a log-likelihood of 1.8e10. Under any other link the
+  check does not decide. An exponential, gamma or logistic prior on a
+  log-scale coefficient is read the same way, from its rate, and a
+  lognormal one never bounds it.
+
+* A prior on `sigma` that is finite at 0 (`normal()`, `student_t()`,
+  `exponential()`) no longer refuses a model whose weight excess
+  `sum(w) - n` is below the power that the Jacobian of `sigma`'s link
+  adds at 0: 1 under the log and softplus links, 2 under squareplus, 0
+  under the identity link. Under the log link the objective falls like
+  `sigma` to the power `1 - (sum(w) - n)` at 0, so such a model has its
+  maximum. `gamma(a, b)` on `sigma` bounds it under the log link when
+  `a` exceeds `sum(w) - n`. Before, the check left the Jacobian out and
+  refused these models, for example an excess of 0.5 under
+  `normal(0, 1)` with the log link, or 1.5 with squareplus. These
+  powers are those of the maximum `frm()` looks for. Whether the
+  posterior of `frm_sample()` integrates does not depend on the link,
+  and its check reads a power of 1 under every link, as before.
+
 # frmtmb 0.81.0
 
 ## Convergence and standard errors

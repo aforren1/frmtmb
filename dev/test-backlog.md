@@ -2972,6 +2972,7 @@ See `dev/round-20261014.md`, "Found at the consolidation".
 - huber() reached +1.39e5 on 400 rows on rellib-r8 (a degenerate stop
   of its density); fuzz specs with `weights(w)` and `ar1()` on beta and
   Gamma reach objectives near -1e15 on rellib-r8.
+  CLOSED in the round of 2026-11-11 (lane wcheck): neither reproduces.
 - 0.70.0's initializers read an `mi()` response's imputed zeros outside
   the least-squares rule (`bf(y | mi() ~ 1)`).
 - The wide design ends at "false convergence (8)" at lme4's maximum on
@@ -3444,9 +3445,11 @@ findings 2 to 4 and "Item 1".
     logLik 352.966; log phi 39.11, logLik 29663.6). The growth is a
     power, about `k^(excess / 2)`, and a Student-t tail is
     `k^-(nu + 1)`, so the verdict follows from `nu`.
+  CLOSED in the round of 2026-11-11 (lane wcheck): decided, with Jacobian.
 - **`mvbf()` with `(1 | obs)` per response runs away without a
   refusal** (two gaussian responses, weights summing above n: logLik
   790.247 on 0.72.0 and 0.73.0). The check runs for one response only.
+  CLOSED in the round of 2026-11-11 (lane wcheck): each response checked.
 - **The Laplace allowance for censored rows is derived, not proved.**
   Since the release review's finding 1 the check runs on the uncensored
   rows and, under the Laplace approximation, takes 1/2 off the excess
@@ -3463,6 +3466,7 @@ findings 2 to 4 and "Item 1".
   sigma -7.24 with false convergence (0, 8 and 40 censored are
   refused). A measurement of the censored rows' Laplace term would
   settle the constant.
+  CLOSED in the round of 2026-11-11 (lane wcheck): one side costs 0.
 - **Quadrature stops a runaway at a spurious maximum.** In the same
   probe, `quadrature = TRUE` stopped at log sigma -3.65 to -5.21 (conv
   0) at every excess from 2 to 32, where the exact integral has no
@@ -3611,6 +3615,7 @@ findings 2 to 4 and "Item 1".
   asym_laplace with 72 of 80 rows censored, still run away (with a
   false-convergence warning). The measured cost of a censored row is
   about 0.16. A tighter, proved allowance would close them.
+  CLOSED in the round of 2026-11-11 (lane wcheck): one side costs 0.
 - **A quadrature fit can stop at a false maximum on a runaway** (TMB's
   fixed Gauss-Kronrod nodes, `dev/upstream-bugs.md` TMB-3): gaussian
   `(1 | obs)` at an excess of 0.5 returns conv 0 while the exact
@@ -4660,6 +4665,67 @@ none is a regression of this release.
   package does not declare (inferred by the review, not run). The skip
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
+
+## Filed in the round of 2026-11-11
+
+### From lane wcheck
+
+Record: `dev/wcheck-findings.md`.
+
+- **The Laplace allowance still costs 1/2 per censored row on the
+  other side.** When no constant mean brings every censored row to
+  probability 1 (rows censored on both sides, interval rows, `trunc()`,
+  a mean formula that does not span the constant, or a prior that
+  bounds the mean), each such row takes 1/2 off the excess, and the
+  check fails open below that. The measured cost can be far less:
+  asym_laplace with 72 of 80 rows right censored and the mean held 2
+  below the bound grew with a slope of 8.00 per unit of `-log sigma`,
+  where the allowance takes 36 off; the effects' log sd ran to 12.8
+  (`dev/wcheck-cens-path.R`). The derivation at a fixed sd gives 1/2
+  per such row, so the measurement is not explained. The same with 36
+  rows left censored, 36 right and 8 uncensored
+  (`dev/reviews/wcheck-review-misc.R`, part cens): the check takes 36
+  halves off, so 8 - 18 < 0 is let through, and the objective grows at
+  8.00 per unit from log sigma -8 to -14 (quantile free or held at
+  0.5); the fit ends at logLik 39.17, log sigma -7.59, conv 1 with a
+  gradient of 1.43e6 (warned, not silent), and quadrature ends at
+  conv 1 too. Gaussian rows on the other side cost about 1/2 (slopes
+  3.7 to 3.9 at an excess of 8 with 8 such rows).
+- **hurdle_lognormal and zero_inflated_beta are outside the spike table
+  and run away unrefused.** With weights 1.5 and `(1 | obs)`
+  (`dev/reviews/wcheck-review-misc.R`, part quad): `hurdle_lognormal`
+  reaches a Laplace logLik of 968.909 at log sigma -37.49 (conv 1), and
+  `zero_inflated_beta` 2.79e10 at log phi 52.87 (conv 1); under
+  `quadrature = TRUE` both stop at a false maximum at conv 0 (-33.1861,
+  120.834). Each needs a table entry with its own proof, with the
+  hurdle and zero-inflated rows treated as zero_inflated_asym_laplace's
+  zeros are (a point mass neither grows nor curves).
+- **A free treatment contrast of `sigma ~ 1 + f` under a bounding
+  Intercept prior is not decided.** frmtmb puts the Intercept prior on
+  the centered intercept, which the contrast moves too, so the check
+  returns "unknown" there. With two cells the model is unbounded
+  exactly when the mean excess of one cell exceeds the mean weight of
+  the other (`dev/reviews/2026-11-11-wcheck.md`, finding 1: weights 0.3
+  and 1.5 under `normal(0, 1)` run to logLik 612.75, conv 1, unrefused).
+  An exact rule for more cells is a linear program not derived yet.
+- **An invalid prior meets the weights refusal before its own error.**
+  `set_prior(..., class = "b", coef = "Intercept", dpar = "sigma")` on
+  a centered dispersion design is refused by frmtmb ("names an
+  intercept that this model centers"), but on a weighted model with an
+  observation-level effect `frm()` gives the weights refusal first, so
+  the user does not see what is wrong with the prior
+  (`dev/reviews/wcheck-short-attacks.R`, `wcheck-short-couple-lane.txt`).
+  The order predates the round of 2026-11-11.
+- **The observation-level warning names a multivariate term with its
+  response.** `mvbf(bf(y ~ x + (1 | obs)), ...)` warns "`y 1 | obs`
+  gives every observation its own random effect"; the formula writes
+  `(1 | obs)`. The block label carries the response prefix, which the
+  weights refusal now strips (`block_term_in_response()`).
+- **asym_laplace with 72 of 80 rows right censored and `(1 | g4)` ends
+  at logLik -0 and log sigma -38.61** (conv 1) after "Starting value 0
+  for sigma is -Inf through its log link", on rellib-r20 and the lane
+  alike (`dev/wcheck-cases.R`, part cens). Not investigated; 3333 (all
+  rows censored) is near it.
 
 ## Filed at the 0.81.0 release (2026-11-10)
 
