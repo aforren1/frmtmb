@@ -613,13 +613,14 @@ draws_internal_matrix <- function(x, rows = NULL) {
 #' is the first chain's iterations.
 #'
 #' `format` converts the draws array before the draw subset, because
-#' brms subsets in the format the method returns.
+#' brms subsets in the format the method returns. Each method refuses an
+#' unknown argument itself, with `draws_accessor_dots`, so that the
+#' refusal names the function the caller called and not this one
+#' (backlog 1547).
 #'
 #' @noRd
 draws_accessor_args <- function(x, pars, variable, draw, subset, what,
                                 format = identity, ...) {
-  frm_check_dots(..., .allow = c("regex", "fixed", "inc_warmup",
-                                 "iteration", "chain"))
   dots <- list(...)
   if (!anyNA(pars)) {
     frm_warning("Argument 'pars' is deprecated. Please use 'variable' ",
@@ -640,6 +641,12 @@ draws_accessor_args <- function(x, pars, variable, draw, subset, what,
   }
   a
 }
+
+#' The arguments of brms's draws accessors that arrive in `...`.
+#'
+#' @noRd
+draws_accessor_dots <- c("regex", "fixed", "inc_warmup", "iteration",
+                         "chain")
 
 #' brms's `fixef_pars()`: the population-level coefficient prefixes.
 #'

@@ -1,3 +1,15 @@
+# frmtmb (development version)
+
+* `integrated_design_zero()` (internal, exported for frmtmb.sample)
+  says for each row of new data whether every design entry that
+  multiplies a random effect or a smooth or Gaussian-process
+  coefficient is exactly 0, in every linear predictor of a response. It
+  answers `FALSE` for every row where the design does not say: a
+  nonlinear body, a `me()` or `mi()` term, a latent residual or an
+  autocorrelation term. frmtmb.sample's laplace draws use it to compute
+  a prediction that reads no group-level value, such as `(0 + x | g)` at
+  `x = 0`.
+
 # frmtmb 0.81.0
 
 ## Convergence and standard errors

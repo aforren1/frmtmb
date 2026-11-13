@@ -22,18 +22,18 @@
 #' own column of [frmtmb::log_lik()], so a leave-one-out expectation exists
 #' only for a row the model was fitted on. brms passes `newdata` to both
 #' `loo()` and the prediction, and so computes the weights on the new
-#' rows' own response. Here [frmtmb::loo()] and [frmtmb::log_lik()] refuse
-#' `newdata`, and these functions refuse it in the same words, with
+#' rows' own response. Here [frmtmb::loo()] and [frmtmb::log_lik()] refuse new
+#' rows, and these functions refuse them in the same words, with
 #' `re_formula` and the new-level arguments. For a summary on other
 #' rows, use [posterior_predict()] or [posterior_epred()] with
 #' `newdata`: on a row the model has not seen, there is no observation
 #' to leave out. `newdata` that holds exactly the rows the model was
 #' fitted on (`object$data`) is accepted: those are the rows these
 #' functions answer, and on them brms's answer is theirs. A subset of
-#' them is refused, though brms answers it: rows are matched by value,
-#' and a subset cannot be placed among the fitted rows unambiguously
-#' where rows repeat and a per-row latent value (`me()`, `mi()`) or an
-#' autocorrelation neighbor enters.
+#' them is refused here, though brms answers it: these functions take
+#' the fitted rows or none, while [frmtmb::log_lik()], [frmtmb::loo()],
+#' `waic()`, `psis()`, `loo_model_weights()` and the `loo_*` types of
+#' `pp_check()` take such a subset and use those rows' columns.
 #'
 #' @section Draws:
 #' `ndraws` and `draw_ids` choose the draws ONCE, and the same draws give
@@ -231,13 +231,34 @@ loo_draws_opts <- function(dots, what, pred_args, models = list()) {
 #' Whether the argument `name` = `value` asks the leave-one-out functions
 #' of `models` for anything: not when it is brms's default, and not
 #' when it is `newdata` holding every model's fitted rows
-#' (draws_newdata_is_fitted()), which are the rows they answer.
+#' (draws_newdata_is_fitted()), which are the rows they answer. With
+#' `subset = TRUE`, for a caller that hands `newdata` on to log_lik(),
+#' not either when it is a subset of every model's fitted rows
+#' (draws_newdata_rows()).
 #'
 #' @noRd
-loo_arg_asks <- function(models, name, value) {
+loo_arg_asks <- function(models, name, value, subset = FALSE) {
   if (loo_default_value(name, value)) return(FALSE)
-  !(identical(name, "newdata") && length(models) &&
-      all(vapply(models, draws_newdata_is_fitted, NA, newdata = value)))
+  if (!identical(name, "newdata") || !length(models)) return(TRUE)
+  takes <- function(m) {
+    draws_newdata_is_fitted(m, value) ||
+      (subset && !is.character(draws_newdata_rows(m, value)))
+  }
+  !all(vapply(models, takes, NA))
+}
+
+#' Why `newdata` is not a subset of the fitted rows of one of `models`,
+#' as the sentence a refusal ends with; `NULL` when it is one of every
+#' model's.
+#'
+#' @noRd
+loo_newdata_why <- function(models, newdata) {
+  for (m in models) {
+    if (draws_newdata_is_fitted(m, newdata)) next
+    why <- draws_newdata_rows(m, newdata)
+    if (is.character(why)) return(draws_subset_note(why))
+  }
+  NULL
 }
 
 #' Whether `value` is brms's default for the argument `name`, so that
@@ -293,9 +314,11 @@ draws_psis_of <- function(ll, x, ...) {
 #' ratios themselves.
 #'
 #' @noRd
-loo_draws_weights <- function(x, rows, resp, what, psis_args = list()) {
+loo_draws_weights <- function(x, rows, resp, what, psis_args = list(),
+                              newdata = NULL) {
   ll <- draws_as_caller(what, re_formula = FALSE,
-                        loo_matrix(x, NULL, resp, what, draw_ids = rows))
+                        loo_matrix(x, NULL, resp, what, draw_ids = rows,
+                                   newdata = newdata))
   list(ll = ll, psis = do.call(draws_psis_of, c(list(ll, x), psis_args)))
 }
 
@@ -661,15 +684,18 @@ draws_model_weights <- function(models, opts, ll_opts, what) {
   # nothing log_lik() refuses, and pass
   ll_refused <- c("newdata", "re_formula", "re.form", draws_new_level_args,
                   "nug")
-  hit <- Filter(function(a) loo_arg_asks(models, a, opts[[a]]),
+  hit <- Filter(function(a) loo_arg_asks(models, a, opts[[a]], TRUE),
                 intersect(names(opts), ll_refused))
   if (length(hit)) {
     frm_stop(what, " cannot honor `", hit[1L], "`: the weights are ",
              "computed from log_lik() of each model, which takes the rows ",
              "the model was fitted on and refuses it.",
-             if (identical(hit[1L], "newdata")) draws_fitted_rows_note,
+             if (identical(hit[1L], "newdata")) {
+               c(draws_fitted_rows_note, loo_newdata_why(models, opts$newdata))
+             },
              call. = FALSE)
   }
+  newdata <- opts$newdata
   if ("r_eff_list" %in% names(opts)) {
     frm_stop(what, " cannot honor `r_eff_list`: the relative efficiencies ",
              "are each model's own, taken on its chains as loo() takes ",
@@ -688,7 +714,8 @@ draws_model_weights <- function(models, opts, ll_opts, what) {
     r <- loo_resp_name(draws_base_fit(m), ll_opts$resp, what)
     draws_as_caller(what, re_formula = FALSE,
                     loo_matrix(m, ll_opts$ndraws, r, what,
-                               draw_ids = ll_opts$draw_ids))
+                               draw_ids = ll_opts$draw_ids,
+                               newdata = newdata))
   })
   n <- vapply(ll, ncol, 1L)
   if (length(unique(n)) != 1L) {

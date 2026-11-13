@@ -78,8 +78,17 @@ test_that("as.array() and as.matrix() take brms's chain and iteration", {
   m1 <- as.matrix(cs$ds, iteration = 1:10, chain = 1)
   expect_identical(unname(m1[, "b_x"]), unname(a[1:10, 1L, "b_x"]))
   expect_identical(nrow(as.data.frame(cs$ds, chain = 1)), k)
-  # the dots are still refused past the two names brms passes on
-  expect_error(as.array(cs$ds, chains = 1), "chains")
+  # the dots are still refused past the two names brms passes on, by the
+  # function the caller called; the refusal named draws_accessor_args()
+  # (backlog 1547)
+  expect_error(as.array(cs$ds, chains = 1),
+               "as.array() has no argument `chains`", fixed = TRUE)
+  expect_error(as.matrix(cs$ds, chains = 1),
+               "as.matrix() has no argument `chains`", fixed = TRUE)
+  expect_error(as.data.frame(cs$ds, chains = 1),
+               "as.data.frame() has no argument `chains`", fixed = TRUE)
+  e <- tryCatch(as.array(cs$ds, chains = 1), error = conditionMessage)
+  expect_no_match(e, "draws_accessor_args", fixed = TRUE)
 })
 
 test_that("the posterior converters all round-trip the same draws", {

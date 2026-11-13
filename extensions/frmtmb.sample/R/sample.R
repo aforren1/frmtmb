@@ -854,7 +854,13 @@ mo_sample_pars <- function(fit, pars) {
   for (tm in simplex_frame_terms(fit)) {
     pars[[tm$zeta]] <- mo_coords(mo_simplex(pars[[tm$zeta]]), "softmax")
   }
-  gev_xi_chart_start(fit, gev_xi_chart_terms(fit), pars)
+  # the chart's start reads mu and sigma at the fit's estimates, which on
+  # the formula route are the starting values; frm_linpred() refuses the
+  # unfitted object by its class, which said nothing about that start
+  # (backlog 3215)
+  at <- fit
+  class(at) <- setdiff(class(at), "frmtmb_unfitted")
+  gev_xi_chart_start(at, gev_xi_chart_terms(fit), pars)
 }
 
 #' The `mo()` simplexes (their `zeta` components) a fit's own prior puts
@@ -1342,7 +1348,8 @@ dev_namespaces_of <- function(fit) {
 #'
 #' @noRd
 sample_assemble <- function(formula, data, family, data2, start,
-                            fit_control, na.action, REML) {
+                            fit_control, na.action, REML,
+                            drop_unused_levels = TRUE) {
   if (!inherits(formula, c("formula", "frmtmb_formula",
                            "frmtmb_mvformula"))) {
     frm_stop("frm_sample() takes a frmtmb fit or a formula; got an object ",
@@ -1358,7 +1365,8 @@ sample_assemble <- function(formula, data, family, data2, start,
   # Stan is given is resolved from the prior further down
   frm(formula, data, family = family, REML = REML, start = start,
       control = fit_control, na.action = na.action,
-      data2 = data2, dry_run = "objective")
+      data2 = data2, drop_unused_levels = drop_unused_levels,
+      dry_run = "objective")
 }
 
 # --- default priors for frm_sample() -----------------------------------
@@ -2979,10 +2987,13 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' it suggests `re_formula = NA` only where that function takes it and
 #' it computes on the model. Whether a call reads an integrated value is
 #' found out by evaluating it at one draw with those values set to `NA`
-#' and to `0`: a result that changes read them. A draw whose result has
-#' non-finite values where the first draw's has none is refused the same
-#' way, so a value that vanishes at the first draw only cannot slip
-#' through as NaN.
+#' and to `0`: a result that changes read them, unless every value that
+#' changes is at a row where each design entry multiplying an integrated
+#' value is exactly 0, as `(0 + x | g)` at `x = 0` is (frmtmb's
+#' `integrated_design_zero()`). Entries that cancel, `(1 + x | g)` at
+#' `x = -1`, still refuse. Every draw whose result has missing values is
+#' evaluated at `0` too, and refused the same way, so a value that
+#' vanishes at the first draw only cannot slip through as NaN.
 #'
 #' *Why they refuse rather than fill the values in.* `laplace = TRUE`
 #' samples an approximate posterior, and its use is to check that
@@ -2998,13 +3009,16 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' `posterior_epred()` depend on the random seed and disagree with
 #' `log_lik()` and `ranef()` about what a draw contains.
 #'
-#' *Two edge cases.* On a model with nothing to integrate out,
+#' *Three edge cases.* On a model with nothing to integrate out,
 #' `laplace = TRUE` is the model itself, so the call says so and samples
 #' it on the full route, with draws identical to a call without the
 #' argument. On a REML fit whose objective is sampled as it stands
 #' ([check_laplace()]), the objective integrates the coefficients out
 #' too, and that combination is refused: the draws would hold no
-#' coefficient.
+#' coefficient. On a REML model with priors (the default), the sampled
+#' objective is rebuilt from the likelihood without REML's integral
+#' over the coefficients, and the coefficients are sampled: the density
+#' is the one a maximum-likelihood fit gives, and a message says so.
 #'
 #' @section Default priors:
 #' Both routes default to brms 2.23's own weakly-informative
@@ -3262,13 +3276,18 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' @param family Family, when `fit` is a plain formula that does not
 #'   carry one (`frm_sample(bf(y ~ x), data = dd, family = poisson())`;
 #'   the `+` spelling `bf(y ~ x) + poisson()` works too).
-#' @param data2,start,fit_control,na.action,REML As in [frmtmb::frm()]
-#'   (`fit_control` is that function's `control`). They belong to the
-#'   formula path, where they assemble the model this function samples,
-#'   and on a fitted object they are refused by name rather than
-#'   accepted and discarded: the model is already assembled, so nothing
-#'   would read them. `fit_control` is not the sampler's control list;
-#'   `control` is.
+#' @param data2,start,fit_control,na.action,REML,drop_unused_levels
+#'   Passed to [frmtmb::frm()] (`fit_control` is that function's
+#'   `control`). They belong to the formula path, where they assemble the
+#'   model this function samples, and on a fitted object they are
+#'   refused by name rather than accepted and discarded: the model is
+#'   already assembled, so nothing would read them. `fit_control` is not
+#'   the sampler's control list; `control` is. `drop_unused_levels =
+#'   FALSE` today keeps an unused factor level in the model frame
+#'   (`draws$data`) only: `frm()` gives it no group-level effect and no
+#'   column of the fixed-effect design, so the sampled model is the one
+#'   without the level. brms 2.23.0 keeps it in both, and its draws hold
+#'   that level's effect, drawn from its prior.
 #' @param control The SAMPLER's control list, brms's spelling and
 #'   brms's meaning: `control = list(adapt_delta = 0.99,
 #'   max_treedepth = 12)` reaches [tmbstan::tmbstan()] and then rstan
@@ -3576,6 +3595,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                        control = NULL,
                        fit_control = frmtmb_control(),
                        na.action = stats::na.omit, REML = FALSE,
+                       drop_unused_levels = TRUE,
                        .diagnostic = FALSE) {
   if (inherits(fit, "frmtmb_multiple")) {
     return(sample_multiple(fit, match.call(), parent.frame()))
@@ -3621,7 +3641,8 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                if (!missing(start)) "start",
                if (!missing(data2)) "data2",
                if (!missing(na.action)) "na.action",
-               if (!missing(REML)) "REML")
+               if (!missing(REML)) "REML",
+               if (!missing(drop_unused_levels)) "drop_unused_levels")
     if (length(inert)) {
       frm_stop("frm_sample(", paste0(inert, " =", collapse = ", "),
                ") belongs to the formula interface: those arguments ",
@@ -3659,7 +3680,8 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   if (from_formula) {
     fit <- sample_assemble(fit, data, family, data2 = data2,
                            start = start, fit_control = fit_control,
-                           na.action = na.action, REML = REML)
+                           na.action = na.action, REML = REML,
+                           drop_unused_levels = drop_unused_levels)
     # laplace = TRUE integrates the values out as frm() does, and has its
     # error on a value nothing reads unless that row leaves the objective
     if (isTRUE(list(...)$laplace)) fit <- mi_sampling(fit, "laplace")
@@ -3842,6 +3864,16 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
              "effects, and the draws would hold no coefficient at all. ",
              "Sample a maximum-likelihood fit (REML = FALSE) with ",
              "laplace = TRUE, or this fit without it", call. = FALSE)
+  }
+  if (laplace && isTRUE(fit$REML)) {
+    # the rebuilt objective has no REML integral over beta, and nothing
+    # said so (backlog 1533)
+    frm_message("frm_sample(laplace = TRUE) on a REML model samples the ",
+                "population-level coefficients: the density is the ",
+                "likelihood with the random effects integrated out, and the ",
+                "priors, as for a maximum-likelihood fit (REML = FALSE). ",
+                "REML's integral over the coefficients is not in it; the ",
+                "draws of the coefficients take its place.")
   }
   bounds <- if (length(lower) || length(upper)) {
     resolve_bounds(fit, unlist(lower), unlist(upper))
@@ -4149,6 +4181,7 @@ as.matrix.frmtmb_draws <- function(x, pars = NA, variable = NULL,
   # brms:::as.matrix.brmsfit: an unclassed draws_matrix, so the margins
   # are named `draw` and `variable` and the chain count rides along.
   # `x$draws` is the plain matrix, for anyone who wants that
+  frm_check_dots(..., .allow = draws_accessor_dots)
   unclass(draws_accessor_args(x, pars, variable, draw, subset,
                               "as.matrix()",
                               format = posterior::as_draws_matrix, ...))

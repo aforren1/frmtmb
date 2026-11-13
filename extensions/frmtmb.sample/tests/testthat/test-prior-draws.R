@@ -75,6 +75,24 @@ test_that("the prior draws carry brms's names, in brms's order", {
   expect_false(any(grepl("^prior_", rownames(summary(cs$yes)))))
 })
 
+test_that("prior_samples() is brms's deprecated prior_draws()", {
+  # brms 2.23.0 warns "'prior_samples' is deprecated. Please use
+  # 'prior_draws' instead." and returns prior_draws() (backlog 4370,
+  # dev/sampfront-brms-probe.R); frmtmb.sample had no such function
+  cs <- pd_case()
+  dep <- "'prior_samples' is deprecated. Please use 'prior_draws' instead."
+  expect_identical(
+    allow_warnings(prior_samples(cs$yes), dep, require = dep),
+    prior_draws(cs$yes))
+  set.seed(4)
+  a <- allow_warnings(prior_samples(cs$yes, variable = "b_x"), dep,
+                      require = dep)
+  set.seed(4)
+  expect_identical(a, prior_draws(cs$yes, variable = "b_x"))
+  expect_identical(allow_warnings(prior_samples(cs$no), dep, require = dep),
+                   prior_draws(cs$no))
+})
+
 test_that("each prior column is a draw from its exact prior", {
   cs <- pd_case()
   pd <- prior_draws(cs$yes)

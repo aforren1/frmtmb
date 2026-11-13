@@ -191,7 +191,7 @@ posterior_average.frmtmb_draws <- function(x, ..., variable = NULL,
     variable <- as.character(variable %||% setdiff(common, "lp__"))
     inv <- setdiff(variable, common)
     if (length(inv)) {
-      frm_stop("Parameters ", paste(inv, collapse = ", "), " cannot be ",
+      frm_stop("Parameters ", pa_quote(inv), " cannot be ",
                "found in all of the models. Consider using argument ",
                "'missing'.", call. = FALSE)
     }
@@ -199,7 +199,7 @@ posterior_average.frmtmb_draws <- function(x, ..., variable = NULL,
     variable <- as.character(variable %||% setdiff(all_vars, "lp__"))
     inv <- setdiff(variable, all_vars)
     if (length(inv)) {
-      frm_stop("Parameters ", paste(inv, collapse = ", "), " cannot be ",
+      frm_stop("Parameters ", pa_quote(inv), " cannot be ",
                "found in any of the models.", call. = FALSE)
     }
     # brms's as_one_numeric(allow_na = TRUE): one number, or one NA
@@ -216,7 +216,7 @@ posterior_average.frmtmb_draws <- function(x, ..., variable = NULL,
       inv <- setdiff(need, names(missing))
       if (length(inv)) {
         frm_stop("Argument 'missing' has no value for parameters ",
-                 paste(inv, collapse = ", "), ".", call. = FALSE)
+                 pa_quote(inv), ".", call. = FALSE)
       }
       missing <- lapply(missing, one_num)
     } else {
@@ -225,11 +225,7 @@ posterior_average.frmtmb_draws <- function(x, ..., variable = NULL,
     }
   }
   ndraws <- ndraws %||% ndraws(models[[1L]])
-  if (!is.numeric(ndraws) || length(ndraws) != 1L || is.na(ndraws) ||
-      ndraws < 0 || ndraws != round(ndraws)) {
-    frm_stop("`ndraws` must be one whole number of at least 0",
-             call. = FALSE)
-  }
+  pa_check_ndraws(ndraws)
   weights <- pa_weights(weights, models, control)
   nd <- pa_round_largest_remainder(weights * ndraws)
   names(weights) <- names(nd) <- labels
@@ -261,11 +257,12 @@ posterior_average.frmtmb_draws <- function(x, ..., variable = NULL,
   out
 }
 
-#' Model weights for posterior_average(), normalized: numeric weights as
-#' given, or brms's model_weights() methods over draws.
+#' Model weights for posterior_average() and pp_average(), normalized:
+#' numeric weights as given, or brms's model_weights() methods over draws.
 #'
 #' @noRd
-pa_weights <- function(weights, models, control = list()) {
+pa_weights <- function(weights, models, control = list(),
+                       what = "posterior_average()") {
   if (is.numeric(weights)) {
     if (length(weights) != length(models)) {
       frm_stop("If numeric, 'weights' must have the same length as the ",
@@ -285,9 +282,37 @@ pa_weights <- function(weights, models, control = list()) {
              paste(class(weights), collapse = "/"), " of length ",
              length(weights), call. = FALSE)
   }
+  # brms's validate_weights(): `control` is model_weights()'s further
+  # arguments
+  w <- pa_model_weights(weights, models, control, what)
+  w / sum(w)
+}
+
+#' brms's `model_weights()` over draws, before they are normalized: the
+#' Akaike-type weights of each model's LOOIC or WAIC, or the stacking
+#' and pseudo-BMA weights of `loo_model_weights()`. `opts` holds the
+#' further arguments, which go to `loo()` or `waic()`, or to
+#' `loo_model_weights()` and each model's `log_lik()`.
+#'
+#' @noRd
+pa_model_weights <- function(weights, models, opts, what) {
+  if (!is.character(weights) || length(weights) != 1L || is.na(weights)) {
+    frm_stop(what, ": `weights` must be one method name, not a ",
+             paste(class(weights), collapse = "/"), " of length ",
+             length(weights), call. = FALSE)
+  }
   method <- tolower(weights)
-  if (method == "loo2") method <- "stacking"
-  if (method == "marglik") method <- "bma"
+  # brms's validate_weights_method(), with its warnings
+  if (method == "loo2") {
+    frm_warning("Weight method 'loo2' is deprecated. Use 'stacking' ",
+                "instead.", call. = FALSE)
+    method <- "stacking"
+  }
+  if (method == "marglik") {
+    frm_warning("Weight method 'marglik' is deprecated. Use 'bma' instead.",
+                call. = FALSE)
+    method <- "bma"
+  }
   method <- frm_match_arg(method, c("loo", "waic", "kfold", "stacking",
                                     "pseudobma", "bma"))
   if (method %in% c("kfold", "bma")) {
@@ -301,21 +326,278 @@ pa_weights <- function(weights, models, control = list()) {
     frm_stop("weights = \"", method, "\" needs the 'loo' package; install ",
              "it, or give numeric weights", call. = FALSE)
   }
-  w <- if (method %in% c("loo", "waic")) {
+  if (method %in% c("loo", "waic")) {
     ics <- vapply(models, function(m) {
-      ic <- if (method == "loo") loo(m) else waic(m)
+      ic <- draws_as_caller(what, re_formula = FALSE, do.call(
+        if (method == "loo") loo else waic, c(list(m), opts)))
       ic$estimates[3L, 1L]
     }, 1)
-    exp(-(ics - min(ics)) / 2)
-  } else {
-    # loo_model_weights()'s own path, as brms's model_weights() reaches
-    # loo_model_weights.brmsfit(): one log_lik() per model and its
-    # relative efficiency, not a stored criterion
-    as.numeric(draws_model_weights(models, c(list(method = method), control),
-                                   list(), "posterior_average()"))
+    return(exp(-(ics - min(ics)) / 2))
   }
-  w / sum(w)
+  # loo_model_weights()'s own path, as brms's model_weights() reaches
+  # loo_model_weights.brmsfit(): one log_lik() per model and its
+  # relative efficiency, not a stored criterion
+  ll_args <- intersect(names(opts), c("ndraws", "draw_ids", "resp"))
+  as.numeric(draws_model_weights(
+    models, c(list(method = method), opts[setdiff(names(opts), ll_args)]),
+    opts[ll_args], what))
 }
+
+#' The models among `x` and `dots` (the draws objects), their labels,
+#' and the other arguments, as brms's `split_dots()` sorts them. A label
+#' is the deparsed argument (`exprs`), or its name where one is given,
+#' or `model_names`. An argument that is not a model needs a name.
+#'
+#' @noRd
+pa_split <- function(x, dots, exprs, model_names, what) {
+  nms <- names(dots) %||% rep("", length(dots))
+  is_model <- vapply(dots, inherits, NA, "frmtmb_draws")
+  if (!inherits(x, "frmtmb_draws")) {
+    frm_stop(what, " takes draws objects from frm_sample(), and argument ",
+             "1 is a ", paste(class(x), collapse = "/"), call. = FALSE)
+  }
+  bad <- which(!nzchar(nms) & !is_model)
+  if (length(bad)) {
+    pa_refuse_unnamed(what, bad[1L] + 1L, dots[[bad[1L]]])
+  }
+  models <- c(list(x), dots[is_model])
+  labels <- vapply(exprs[c(TRUE, is_model)],
+                   function(e) paste(deparse(e), collapse = ""), "")
+  given <- c("", nms[is_model])
+  labels[nzchar(given)] <- given[nzchar(given)]
+  if (!is.null(model_names)) {
+    if (length(model_names) != length(models)) {
+      # brms's words
+      frm_stop("Number of model names is not equal to the number of ",
+               "models.", call. = FALSE)
+    }
+    labels <- as.character(model_names)
+  }
+  list(models = models, labels = labels, opts = dots[!is_model])
+}
+
+#' Model weights
+#'
+#' brms's `model_weights()` on draws from [frm_sample()]: one weight per
+#' model, normalized to sum to 1 and named by model.
+#'
+#' `weights = "stacking"` (the default) and `"pseudobma"` are the
+#' weights of [loo_model_weights()][sample-loo_model_weights]. `"loo"`
+#' and `"waic"` are Akaike-type weights, `exp(-delta / 2)` over each
+#' model's LOOIC or WAIC. brms's deprecated `"loo2"` and `"marglik"`
+#' warn and mean `"stacking"` and `"bma"`. `"kfold"` and `"bma"` are
+#' refused: frmtmb.sample has no `kfold()` and no marginal likelihood.
+#'
+#' @param x,... Draws objects from [frm_sample()], one per model; a
+#'   named argument that is not a model is passed to the weight method:
+#'   to [frmtmb::loo()] or [frmtmb::waic()], or to `loo_model_weights()`
+#'   (`ndraws`, `draw_ids` and `resp` reach each model's `log_lik()`).
+#' @param weights The method name. See the description.
+#' @param model_names Labels for the models. The default deparses the
+#'   arguments, as brms does.
+#' @return A named numeric vector of weights that sum to 1.
+#' @seealso [pp_average()], [posterior_average()]
+#' @examples
+#' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     requireNamespace("loo", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
+#'   set.seed(1)
+#'   dd <- data.frame(x = rnorm(60))
+#'   dd$y <- rnorm(60, 1 + 0.5 * dd$x)
+#'   d1 <- frm_sample(bf(y ~ x), family = gaussian(), data = dd,
+#'                    chains = 1, iter = 400, seed = 1, refresh = 0)
+#'   d2 <- frm_sample(bf(y ~ 1), family = gaussian(), data = dd,
+#'                    chains = 1, iter = 400, seed = 1, refresh = 0)
+#'   model_weights(d1, d2, weights = "waic")
+#' }
+#' }
+#' @export
+model_weights <- function(x, ...) UseMethod("model_weights")
+
+#' @rdname model_weights
+#' @exportS3Method brms::model_weights
+#' @export
+model_weights.frmtmb_draws <- function(x, ..., weights = "stacking",
+                                       model_names = NULL) {
+  sp <- pa_split(x, list(...), as.list(substitute(list(x, ...)))[-1L],
+                 model_names, "model_weights()")
+  w <- pa_model_weights(weights, sp$models, sp$opts, "model_weights()")
+  w <- w / sum(w)
+  names(w) <- sp$labels
+  w
+}
+
+#' Posterior predictions averaged over models
+#'
+#' brms's `pp_average()` on draws from [frm_sample()]: predictions of
+#' several models stacked in proportion to their weights. The number of
+#' draws taken from each model is the weight times `ndraws`, rounded by
+#' the largest remainder, and each model's draws are a random sample of
+#' its own, as brms takes them. The prediction is `method` on those
+#' draws, with the further arguments.
+#'
+#' @inheritParams posterior_average
+#' @param x,... Draws objects from [frm_sample()], one per model; a
+#'   named argument that is not a model is passed to `method`, such as
+#'   `newdata` or `re_formula`. brms's `draw_ids` and `subset` are
+#'   refused, as brms refuses them.
+#' @param weights Numeric weights, one per model, or a method name of
+#'   [model_weights()].
+#' @param method The prediction: `"posterior_predict"` (the default),
+#'   `"posterior_epred"`, `"posterior_linpred"` or `"predictive_error"`,
+#'   or brms's other names of them (`"predict"`, `"fitted"`,
+#'   `"residuals"`, ...).
+#' @param summary If `TRUE` (the default), the averaged draws are
+#'   summarized by [frmtmb::posterior_summary()]; if `FALSE` they are
+#'   returned as they are.
+#' @param probs,robust Passed to [frmtmb::posterior_summary()].
+#' @param control A list of arguments passed on to [model_weights()].
+#' @param seed Seed for the draw selection.
+#' @return The averaged draws, one row per draw and one column per
+#'   observation, the first model's first; with `summary = TRUE` their
+#'   summary, one row per observation. The attribute `weights` holds the
+#'   normalized weights and `ndraws` the number of draws taken from each
+#'   model, both named by model.
+#' @seealso [model_weights()], [posterior_average()]
+#' @examples
+#' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
+#'   set.seed(1)
+#'   dd <- data.frame(x = rnorm(60))
+#'   dd$y <- rnorm(60, 1 + 0.5 * dd$x)
+#'   d1 <- frm_sample(bf(y ~ x), family = gaussian(), data = dd,
+#'                    chains = 1, iter = 400, seed = 1, refresh = 0)
+#'   d2 <- frm_sample(bf(y ~ 1), family = gaussian(), data = dd,
+#'                    chains = 1, iter = 400, seed = 1, refresh = 0)
+#'   pa <- pp_average(d1, d2, weights = c(0.7, 0.3), seed = 1,
+#'                    method = "posterior_epred", newdata = dd[1:3, ])
+#'   attr(pa, "ndraws")
+#' }
+#' }
+#' @export
+pp_average <- function(x, ...) UseMethod("pp_average")
+
+#' @rdname pp_average
+#' @exportS3Method brms::pp_average
+#' @export
+pp_average.frmtmb_draws <- function(x, ..., weights = "stacking",
+                                    method = "posterior_predict",
+                                    ndraws = NULL, nsamples = NULL,
+                                    summary = TRUE,
+                                    probs = c(0.025, 0.975),
+                                    robust = FALSE, model_names = NULL,
+                                    control = list(), seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+  fun <- pa_pp_method(method)
+  ndraws <- ndraws %||% nsamples
+  if (any(c("draw_ids", "subset") %in% names(list(...)))) {
+    # brms's words
+    frm_stop("Cannot use argument 'draw_ids' in pp_average.", call. = FALSE)
+  }
+  check_flag(summary, "summary")
+  check_flag(robust, "robust")
+  sp <- pa_split(x, list(...), as.list(substitute(list(x, ...)))[-1L],
+                 model_names, "pp_average()")
+  models <- sp$models
+  ys <- lapply(models, function(m) {
+    fit <- draws_base_fit(m)
+    lapply(names(fit$spec$responses), function(r) {
+      as.numeric(draws_observed_y(fit, r))
+    })
+  })
+  if (!all(vapply(ys, identical, NA, ys[[1L]]))) {
+    # brms's words
+    frm_stop("Can only average models predicting the same response.",
+             call. = FALSE)
+  }
+  ndraws <- ndraws %||% ndraws(models[[1L]])
+  pa_check_ndraws(ndraws)
+  weights <- pa_weights(weights, models, control, "pp_average()")
+  nd <- pa_round_largest_remainder(weights * ndraws)
+  names(weights) <- names(nd) <- sp$labels
+  out <- vector("list", length(models))
+  for (i in seq_along(models)) {
+    if (nd[i] <= 0) next
+    avail <- ndraws(models[[i]])
+    if (nd[i] > avail) {
+      frm_stop("pp_average() needs ", nd[i], " draws from model '",
+               sp$labels[i], "', which has ", avail, ". Lower `ndraws`",
+               call. = FALSE)
+    }
+    # brms's validate_draw_ids(): a random sample, in the order drawn
+    ids <- sample(seq_len(avail), nd[i])
+    p <- draws_as_caller("pp_average()", do.call(
+      fun, c(list(models[[i]]), sp$opts, list(draw_ids = ids))))
+    if (length(dim(p)) != 2L) {
+      frm_stop("pp_average() averages predictions with one value per row ",
+               "and draw, and model '", sp$labels[i], "' predicts more ",
+               "than one. Name the response with resp =, or give the ",
+               "prediction with one value per row", call. = FALSE)
+    }
+    out[[i]] <- p
+  }
+  out <- do.call(rbind, out)
+  if (summary) out <- posterior_summary(out, probs = probs, robust = robust)
+  attr(out, "weights") <- weights
+  attr(out, "ndraws") <- nd
+  out
+}
+
+#' The prediction function `pp_average()`'s `method` names, under each
+#' of brms's names for it (`validate_pp_method()`).
+#'
+#' @noRd
+pa_pp_method <- function(method) {
+  if (!is.character(method) || length(method) != 1L || is.na(method)) {
+    frm_stop("pp_average(): `method` must be one name", call. = FALSE)
+  }
+  if (method %in% c("posterior_predict", "predict", "pp")) {
+    return(posterior_predict)
+  }
+  if (method %in% c("posterior_epred", "fitted", "pp_expect")) {
+    return(posterior_epred)
+  }
+  if (method == "posterior_linpred") return(posterior_linpred)
+  if (method %in% c("predictive_error", "residuals")) {
+    return(predictive_error)
+  }
+  # brms's words, but for its "it"
+  frm_stop("Posterior predictive method '", method, "' is not supported.",
+           call. = FALSE)
+}
+
+#' The refusal of `ndraws` that is not one whole number of at least 0,
+#' for `posterior_average()` and `pp_average()`.
+#'
+#' @noRd
+pa_check_ndraws <- function(ndraws) {
+  if (!is.numeric(ndraws) || length(ndraws) != 1L || is.na(ndraws) ||
+        ndraws < 0 || ndraws != round(ndraws)) {
+    frm_stop("`ndraws` must be one whole number of at least 0",
+             call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' The refusal of an argument without a name that is not a draws object,
+#' where `...` holds models: `obj` is argument `pos` of the call.
+#'
+#' @noRd
+pa_refuse_unnamed <- function(what, pos, obj) {
+  frm_stop(what, " takes models without a name, and argument ", pos,
+           " is a ", paste(class(obj), collapse = "/"), ", not draws. ",
+           "Name the options, as ndraws = 100", call. = FALSE)
+}
+
+#' Variable names in brms's `collapse_comma()` spelling: each quoted,
+#' joined by commas.
+#'
+#' @noRd
+pa_quote <- function(x) paste0("'", x, "'", collapse = ", ")
 
 #' brms's round_largest_remainder(): whole numbers that sum to the
 #' rounded total and differ from `x` by less than one each.

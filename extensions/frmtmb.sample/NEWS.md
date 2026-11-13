@@ -1,3 +1,85 @@
+# frmtmb.sample (development version)
+
+Needs the frmtmb release that adds `integrated_design_zero()`.
+
+* BREAKING: `log_lik()`, `logLik()`, `loo()`, `waic()`, `psis()`,
+  `loo_model_weights()` and the `loo_*` types of `pp_check()` of draws
+  take `newdata` whose rows are fitted rows, such as
+  `draws$data[1:10, ]`, a tibble's rows or the result of
+  `dplyr::filter()`, and use the columns of those rows in the order of
+  `newdata`, as brms uses those rows' pointwise values. A row is placed
+  by its row name when the name gives a fitted row with the same values,
+  and otherwise on a fitted row that holds the same value of every
+  variable the model reads; on the models this applies to, two such rows
+  have the same column. A row that equals no fitted row is refused, and
+  the refusal gives its position. On such a subset, brms 2.23.0 gave a
+  difference of 0 from its own fitted columns. Before, a subset was
+  refused.
+
+* A subset of the fitted rows is still refused, with the reason, on a
+  model with an autocorrelation term, a `me()` or `mi()` term (named as
+  written, such as `me(x, sdx)`), responses fitted on different rows
+  under `subset()`, or a family whose likelihood has no column per row.
+  On those models brms's answer for a subset is not the fitted column:
+  an `ar()` row reads its neighbors in `newdata`, and on the rows with
+  `t >= 3` brms's columns differed from its fitted ones by up to 0.46.
+  The `loo_*()` functions still refuse a subset.
+
+* `log_lik(combine = FALSE)` on a multivariate model without `rescor`
+  gives brms's draws x observations x responses array, one layer per
+  response, named as brms names the responses. Before, it was refused.
+
+* `frm_sample()` from a formula samples a `gen_extreme_value()` model
+  with a scalar `xi`. Before, it stopped with "frm_linpred() needs a
+  fitted model", while the route from a fit sampled.
+
+* `frm_sample()` takes `drop_unused_levels` on the formula route and
+  passes it to `frm()`. On a fit it is refused by name, as the other
+  arguments that assemble a model are. Before, it reached the sampler,
+  which stopped with "passing unknown arguments". `FALSE` keeps an
+  unused level in the model frame only: the group-level block and the
+  fixed-effect design do not get it, where brms 2.23.0 keeps it in both.
+
+* `posterior_linpred()` of draws refuses an argument it does not have,
+  as `posterior_epred()` does. Before, `posterior_linpred(ds, junk = 1)`
+  returned the matrix.
+
+* `prior_samples()`, brms's deprecated name for `prior_draws()`, is
+  defined: it warns as brms warns and returns `prior_draws()`.
+
+* `pp_average()` and `model_weights()` are defined for draws, as brms
+  defines them for a fit. `posterior_average()` quotes the names in its
+  refusals, as brms does: "Parameters 'b_x', 'nope' cannot be found in
+  all of the models."
+
+* `as.array()`, `as.matrix()` and `as.data.frame()` of draws name
+  themselves when they refuse an argument. Before, the refusal named
+  the internal function `draws_accessor_args()`.
+
+* Draws from `frm_sample(laplace = TRUE)`: a prediction at a row where
+  every design entry that multiplies a group-level effect is exactly 0,
+  such as `(0 + x | g)` at `x = 0`, is computed, because it reads no
+  group-level value. The design decides this, read by frmtmb's
+  `integrated_design_zero()`; a nonlinear body, a `me()` or `mi()` term,
+  a latent residual or an autocorrelation term keeps the refusal.
+  Entries that are not 0 refuse even where they cancel, as `(1 + x | g)`
+  at `x = -1` does. Before, the row was refused.
+
+* Draws from `frm_sample(laplace = TRUE)`: a quantity that reads an
+  integrated value at a later draw is refused when the first draw is
+  `NaN` for its own reason. Before, the first draw's pattern of missing
+  values was the reference, and `posterior_epred()` returned 480 of 480
+  cells `NaN` where the full draws have 80. Now each draw with a
+  missing value is evaluated again with the integrated values at 0 and
+  compared with itself. `conditional_effects(method =
+  "posterior_predict")` checks the expected values, as its first-draw
+  check does, rather than the simulated ones.
+
+* `frm_sample(laplace = TRUE)` on a REML model with priors says that it
+  samples the population-level coefficients, with the density that a
+  maximum-likelihood fit gives. Before, REML's integral over the
+  coefficients was dropped without a message.
+
 # frmtmb.sample 0.28.0
 
 Needs frmtmb 0.81.0, which adds `row_lpdf(exact = )`.

@@ -327,7 +327,11 @@ test_that("loo_model_weights() is loo's, on each model's log_lik()", {
   pa <- quiet(posterior_average(d1, d2, variable = "sigma", seed = 1))
   expect_identical(unname(attr(pa, "weights")),
                    as.numeric(w) / sum(as.numeric(w)))
-  expect_error(loo_model_weights(d1, d2, newdata = cs$dd[1:3, ]),
+  # rows the model was not fitted on; a subset of the fitted rows is
+  # taken (test-loo-newdata-subset.R)
+  moved <- cs$dd[1:3, ]
+  moved$x <- moved$x + 1
+  expect_error(loo_model_weights(d1, d2, newdata = moved),
                "cannot honor `newdata`")
   expect_error(loo_model_weights(d1, d2, optim = "x"),
                "has no argument `optim`")

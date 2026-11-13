@@ -46,11 +46,17 @@ data that holds exactly the rows the model was fitted on, such as
 to when no row was dropped. Those are the rows this matrix is
 for, so the result is the matrix without \code{newdata}, which is what
 brms computes there too. Every variable the model reads must be in
-it, with its fitted value. A subset of the fitted rows is refused,
-though brms answers it: rows are matched by value, and a subset
-cannot be placed among the fitted rows unambiguously where rows
-repeat and a per-row latent value (\code{me()}, \code{mi()}) or an
-autocorrelation neighbor enters.}
+it, with its fitted value. A subset of the fitted rows, such as
+\code{x$data[1:10, ]}, gives the columns of those rows, in newdata's
+order, as brms gives their pointwise values: a row is placed by its
+row name when that names a fitted row with its values, and
+otherwise on a fitted row with the same value of every variable the
+model reads (a tibble has no row names). A row that equals no
+fitted row is refused. A subset is refused, with the reason,
+on a model with an autocorrelation term, a \code{me()} or \code{mi()} term,
+responses fitted on different rows under \code{subset()}, or a family
+whose column is a group: there brms's answer on a subset is not
+the fitted column (an \code{ar()} row reads its neighbors in newdata).}
 
 \item{resp}{For a multivariate model, the responses whose density to
 report: the default is every response, summed without \code{rescor} and
@@ -64,11 +70,13 @@ evenly spaced subsample \code{ndraws} takes. Give one or the other.}
 
 \item{pointwise, combine, add_point_estimate, cores}{brms's slots, in
 brms's positions. \code{pointwise = TRUE} (brms's function of one
-observation) and \code{add_point_estimate = TRUE} are refused by name;
-\code{combine = FALSE} is accepted on a univariate model, on one
-response, and on a \code{set_rescor(TRUE)} model, where there is
-nothing to combine; \code{cores} is accepted and unused, because the
-matrix is built in this process.}
+observation) and \code{add_point_estimate = TRUE} are refused by name.
+\code{combine = FALSE} on a multivariate model without \code{rescor} gives
+brms's draws x observations x responses array, one layer per
+response, named as brms names the responses; on a univariate model,
+on one response and on a \code{set_rescor(TRUE)} model there is nothing
+to combine, and it gives the matrix. \code{cores} is accepted and
+unused, because the matrix is built in this process.}
 
 \item{point_estimate, ndraws_point_estimate}{brms's arguments:
 collapse the draws to their \code{"mean"} or \code{"median"} first and use
@@ -79,7 +87,10 @@ error naming it, rather than silently changing nothing.}
 }
 \value{
 A numeric matrix with one row per draw and one column per
-observation (the rows the model was fitted on).
+observation (the rows the model was fitted on, or the rows of
+\code{newdata} that is a subset of them); with \code{combine = FALSE} on a
+multivariate model without \code{rescor}, an array with one layer per
+response.
 }
 \description{
 The \verb{ndraws x nobs} matrix of per-observation log-densities, each row
@@ -178,7 +189,8 @@ brms's \code{log_lik(resp =)} computes them. \code{combine = FALSE} has nothing
 to combine there and returns the same matrix, as in brms.
 Without \code{rescor}, the responses are independent given the predictors
 and the default sums their log-densities per row; pass \code{resp} to get
-one response's contribution alone.
+one response's contribution alone, or \code{combine = FALSE} to get every
+response's matrix as one layer of an array, as brms does.
 }
 
 \section{Likelihoods with no per-observation column}{

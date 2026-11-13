@@ -376,6 +376,14 @@ test_that("the slots this package cannot answer refuse by name", {
   expect_error(log_lik(ds, nd), "does not take newdata")
   expect_error(log_lik(ds, re_formula = NA), "does not take re_formula")
   expect_error(psis(ds, nd), "does not take newdata")
+  # posterior_linpred() refuses an argument it does not have, as
+  # posterior_epred() does; it returned the matrix (backlog 3594)
+  expect_error(posterior_linpred(ds, junk = 1),
+               "posterior_linpred() has no argument `junk`", fixed = TRUE)
+  expect_error(posterior_epred(ds, junk = 1),
+               "posterior_epred() has no argument `junk`", fixed = TRUE)
+  expect_identical(dim(posterior_linpred(ds, allow_new_levels = FALSE)),
+                   dim(posterior_linpred(ds)))
   # brms's own default, spelled out positionally, is the no-op these
   # methods already do and is NOT refused
   expect_silent(ll <- log_lik(ds, NULL, NULL, NULL, 5L))

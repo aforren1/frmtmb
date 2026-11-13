@@ -69,9 +69,9 @@ test_that("rows other than the fitted ones are still refused", {
   y1$y[3] <- y1$y[3] + 1
   ulp <- dd
   ulp$x[5] <- ulp$x[5] * (1 + 2e-15)
-  others <- list(response = y1, ulp = ulp, subset = dd[1:20, ],
-                 reordered = dd[c(2, 1, 3:nrow(dd)), ],
-                 extra_row = rbind(dd, dd[1, ]),
+  # fitted rows, reordered, repeated or renumbered, are taken now: see
+  # test-loo-newdata-subset.R
+  others <- list(response = y1, ulp = ulp,
                  no_response = dd[c("x", "g")])
   for (nm in names(others)) {
     nd <- others[[nm]]
@@ -85,9 +85,12 @@ test_that("rows other than the fitted ones are still refused", {
   e <- tryCatch(loo(ds, newdata = y1), error = conditionMessage)
   expect_match(e, "holds exactly the rows the model was fitted on",
                fixed = TRUE)
-  # a subset is fitted rows, so its refusal gives its own reason
-  es <- tryCatch(loo(ds, newdata = dd[1:20, ]), error = conditionMessage)
-  expect_match(es, "rows are matched by value", fixed = TRUE)
+  # a subset is fitted rows, and gives those rows' values
+  ls <- suppressWarnings(loo(ds, newdata = dd[1:20, ]))
+  expect_identical(nrow(ls$pointwise), 20L)
+  # the fitted rows and one of them again: a repeated row's column
+  expect_identical(ncol(log_lik(ds, newdata = rbind(dd, dd[1, ]))),
+                   nrow(dd) + 1L)
 })
 
 test_that("a transformed term is compared by the variables it reads", {

@@ -1,6 +1,6 @@
 # Why this file exists.
 #
-# This package defines 21 S3 generics of its own, and every one of
+# This package defines 23 S3 generics of its own, and every one of
 # those names is owned by another package: rstantools, loo,
 # bridgesampling, bayesplot, posterior, coda, gratia or brms. A generic
 # defined here and exported is a rival, not an alias. `UseMethod()`
@@ -81,8 +81,10 @@ sample_generic_owners <- list(
   nuts_params = "bayesplot",
   rhat = c("posterior", "bayesplot"),
   mcmc_plot = "brms",
+  model_weights = "brms",
   posterior_average = "brms",
   posterior_samples = c("brms", "gratia"),
+  pp_average = "brms",
   prior_draws = "brms",
   restructure = "brms"
 )

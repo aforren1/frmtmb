@@ -91,18 +91,18 @@ The weight of a draw for observation \code{i} comes from that observation's
 own column of \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}}, so a leave-one-out expectation exists
 only for a row the model was fitted on. brms passes \code{newdata} to both
 \code{loo()} and the prediction, and so computes the weights on the new
-rows' own response. Here \code{\link[frmtmb:loo]{frmtmb::loo()}} and \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}} refuse
-\code{newdata}, and these functions refuse it in the same words, with
+rows' own response. Here \code{\link[frmtmb:loo]{frmtmb::loo()}} and \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}} refuse new
+rows, and these functions refuse them in the same words, with
 \code{re_formula} and the new-level arguments. For a summary on other
 rows, use \code{\link[=posterior_predict]{posterior_predict()}} or \code{\link[=posterior_epred]{posterior_epred()}} with
 \code{newdata}: on a row the model has not seen, there is no observation
 to leave out. \code{newdata} that holds exactly the rows the model was
 fitted on (\code{object$data}) is accepted: those are the rows these
 functions answer, and on them brms's answer is theirs. A subset of
-them is refused, though brms answers it: rows are matched by value,
-and a subset cannot be placed among the fitted rows unambiguously
-where rows repeat and a per-row latent value (\code{me()}, \code{mi()}) or an
-autocorrelation neighbor enters.
+them is refused here, though brms answers it: these functions take
+the fitted rows or none, while \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}}, \code{\link[frmtmb:loo]{frmtmb::loo()}},
+\code{waic()}, \code{psis()}, \code{loo_model_weights()} and the \verb{loo_*} types of
+\code{pp_check()} take such a subset and use those rows' columns.
 }
 
 \section{Draws}{

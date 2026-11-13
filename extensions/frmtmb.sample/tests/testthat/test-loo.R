@@ -894,8 +894,11 @@ test_that("loo() and waic() of several draws are brms's loolist", {
 test_that("loo() and waic() refuse what they would otherwise ignore", {
   cs <- ll_case()
   skip_if_not_installed("loo")
+  # rows the model was not fitted on: 0.18.0 returned all 60 pointwise
+  # rows and the in-sample elpd here. A subset of the fitted rows gives
+  # those rows' values (test-loo-newdata-subset.R)
   nd <- cs$dd[1:20, ]
-  # 0.18.0 returned all 60 pointwise rows and the in-sample elpd here
+  nd$x <- nd$x + 1
   expect_error(loo(cs$ds, newdata = nd), "cannot honor `newdata`")
   expect_error(waic(cs$ds, newdata = nd), "cannot honor `newdata`")
   expect_error(loo(cs$ds, re_formula = NA), "cannot honor `re_formula`")
@@ -915,10 +918,12 @@ test_that("logLik() of draws is log_lik(), as brms's is", {
   cs <- ll_case()
   expect_identical(logLik(cs$ds), log_lik(cs$ds))
   expect_equal(dim(logLik(cs$ds, ndraws = 10)), c(10L, 60L))
-  # rows the model was not fitted on; the fitted rows themselves are
-  # accepted (test-loo-newdata-fitted.R)
-  expect_error(logLik(cs$ds, newdata = cs$dd[1:20, ]),
-               "does not take newdata")
+  # rows the model was not fitted on; the fitted rows themselves and a
+  # subset of them are accepted (test-loo-newdata-fitted.R,
+  # test-loo-newdata-subset.R)
+  nd <- cs$dd[1:20, ]
+  nd$x <- nd$x + 1
+  expect_error(logLik(cs$ds, newdata = nd), "does not take newdata")
 })
 
 test_that("bayes_R2() of draws takes brms's newdata and re_formula", {

@@ -1462,6 +1462,7 @@ section and are listed here only where a user could hit them.
   one draw; the result is NaN, never a finite wrong number. Fix:
   compare each draw with itself at fill 0, at one more evaluation per
   draw. Lane sampfix, R2 (`dev/sampfix-rev-r2-01-watch.R`).
+CLOSED in the round of 2026-11-11 (lane sampfront): per-draw fills.
 - **`predict(newdata = )` with NA responses under `ar()`/`arma()` with
   `cov = FALSE`** is refused by name. brms fills a missing response with
   its predicted draws and runs the recursion over them;
@@ -1530,9 +1531,11 @@ section and are listed here only where a user could hit them.
 - **A harmless false alarm on laplace draws**: `(0 + x | g)` at
   `newdata` with `x = 0` is refused, because the probe's `NA` times 0
   is `NA`. Lane sampfix, M2 (`dev/sampfix-rev-01-probe.R`).
+CLOSED in the round of 2026-11-11 (lane sampfront): computed.
 - **REML with `laplace = TRUE`** samples an objective rebuilt without
   the REML integral over `beta`, so the draws are the ML Laplace
   posterior. Lane sampfix, item 3.
+CLOSED in the round of 2026-11-11 (lane sampfront): a message.
 - **`?frm_sample`'s `prior` says list names are "parameter names as in
   the draws"**; named-list priors resolve against the internal outer
   names (`tau_raw`, `beta`). Lane sampfix, item 4.
@@ -1547,6 +1550,7 @@ section and are listed here only where a user could hit them.
 - **A refusal from frmtmb.sample's draws accessors names the internal
   function**, "draws_accessor_args() has no argument `chains`", where
   the caller typed `as.array()`. Lane defects, section 7.
+CLOSED in the round of 2026-11-11 (lane sampfront): names the method.
 - **`summary()`'s `Data:` line is empty** for a fit whose data came by
   value through `do.call()`; brms records a deparse cut at 50
   characters. Lane defects, section 7.
@@ -1559,6 +1563,7 @@ section and are listed here only where a user could hit them.
 - **`posterior_average()`'s refusals** quote the variable without
   brms's quotes, and `pp_average()` and `model_weights()` are not
   exported. Lane postfit2, section 8.
+CLOSED in the round of 2026-11-11 (lane sampfront): quoted; both defined.
 - **A multivariate model's `logLik()` `nobs` attribute** counts rows
   that no response's `subset()` uses (80 where 72 rows carry data).
   `BIC()` reads it. Lane aterms2, re-check.
@@ -1655,6 +1660,7 @@ them, and the ledger records the ones the ported suite reaches.
 - **`frm_sample()` takes no `drop_unused_levels`**; fit with
   `frm(drop_unused_levels = FALSE)` and sample the fit. Lane
   formrobust, section 9.
+CLOSED in the round of 2026-11-11 (lane sampfront): taken.
 - **`refit(newresp = )` of a recoded bernoulli fit** takes the 0/1
   codes that `simulate()` returns and refuses the original values by
   name. Lane formrobust, section 9.
@@ -3219,6 +3225,7 @@ See `dev/round-20261020.md`, "Found at the consolidation".
   with "frm_linpred() needs a fitted model", the fit route samples
   (`dev/sampleprior-gevform.R`). Fix: compute the chart's start from
   the starting parameter list.
+CLOSED in the round of 2026-11-11 (lane sampfront): samples.
 
 #### Open - low
 
@@ -3594,6 +3601,7 @@ findings 2 to 4 and "Item 1".
 - **`posterior_linpred.frmtmb_draws()` ignores an unknown argument**
   (`posterior_linpred(ds, junk = 1)` returns the matrix): it never calls
   `frm_check_dots()`, where `posterior_epred()` refuses.
+CLOSED in the round of 2026-11-11 (lane sampfront): refused.
 - **`fit$data` is NULL on draws**: a `frmtmb_draws` holds `stanfit`,
   `draws` and `fit`, so brms code that reads `fit$data` gets NULL in
   silence (bin-2 row `brmsfit-methods:469` holds hollowly on it).
@@ -4225,6 +4233,7 @@ parity gap and saved 0.76.0 draws) stand.
   Pre-existing (rellib-r14 too). Review
   `dev/reviews/2026-10-27-priordraws.md`, new finding 13
   (`dev/review-priordraws-gevbase.R`).
+CLOSED in the round of 2026-11-11 (lane sampfront): with 3215.
 - **`default_prior()` fails on `rr()`**: `y ~ x + rr(0 + tf | g, d = 1)`
   stops with "arguments imply differing number of rows: 1, 0", on both
   arms. Review `dev/reviews/2026-10-27-reslot.md`, finding 6
@@ -4370,6 +4379,7 @@ parity gap and saved 0.76.0 draws) stand.
 - **`prior_samples()` is not defined in frmtmb.sample**; brms's
   deprecated `prior_samples()` reaches `prior_draws()` while brms is
   loaded. Same record.
+CLOSED in the round of 2026-11-11 (lane sampfront): defined.
 - **`variables()` of an ML fit lacks `simo_` entries**: the hypothesis
   layout would need the simplex and its delta-method rows.
   `brmsfit-methods:978` stays a divergence anyway. `dev/mointerop-findings.md`,
@@ -4584,6 +4594,7 @@ Review `dev/reviews/2026-10-28-rescorpp.md`; `dev/rescorpp-findings.md`,
 - **`log_lik(combine = FALSE)` without rescor is refused**; brms returns
   a draws x observations x responses array. `dev/rescorpp-findings.md`,
   section 8.
+CLOSED in the round of 2026-11-11 (lane sampfront): brms's array.
 - **Two brms 2.23.0 defects**, `dev/upstream-bugs.md` brms-43 (one
   response of a student rescor model reads `nu = 1`) and brms-44 (a
   permuted `resp` stops every method that prepares several responses
@@ -4661,6 +4672,53 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-11
+
+### From lane sampfront
+
+- **The `loo_*()` functions refuse a subset of the fitted rows**, which
+  `log_lik()`, `loo()`, `waic()`, `psis()`, `loo_model_weights()` and
+  `pp_check()`'s `loo_*` types now take. brms computes them on
+  `newdata`. Each row's leave-one-out value depends on its own column
+  only, so the cut columns of the call without `newdata` would be the
+  answer. `dev/sampfront-findings.md`, item 1.
+- **`frm(drop_unused_levels = FALSE)` keeps an unused level in the model
+  frame only** (core). With `g` of 7 levels, 6 used, and `f` of 3, 2
+  used: brms 2.23.0 `make_standata(drop_unused_levels = FALSE)` has
+  N_1 = 7 levels of `g` and `y ~ f` has K = 3 columns (Intercept, fb,
+  fc, the last all 0); `frm()` has 7 levels of `fit$data$g` but 6
+  effects (`length(b)`, `ranef()` rows) and the coefficients Intercept
+  and fb. So brms's draws hold `r_g[7,Intercept]`, from its prior, and
+  frmtmb's do not; `frm_sample(drop_unused_levels = FALSE)` passes the
+  value to `frm()` and inherits this. `dev/review-sampfront-dul.R`,
+  `dev/sampfront-dul-probe.R`, `dev/sampfront-findings.md`, item 7b.
+- **`log_lik(newdata =)` of draws on a subset computes every fitted
+  column, then cuts**: `draws_loglik_matrix()` runs `draws_row_loglik()`
+  over all rows per draw and keeps `cols`, so `loo(newdata =
+  d[1:10, ])` on a 100,000-row fit costs the whole model per draw. brms
+  evaluates the subset rows only. The cut could move into the per-draw
+  call. Review 2026-11-11 of lane sampfront, finding 6.
+- **A prediction rebuilds a group-level term's design under the
+  session's contrasts, not the fit's** (core, `pred_design()`): fitted
+  under `options(contrasts = c("contr.sum", "contr.poly"))`,
+  `y ~ f + (1 + f | g)` predicts after the option is reset with
+  "Random-effect design for `1 + f | g` does not match the fitted model
+  (columns: (Intercept), fb vs (Intercept), f1)". The fixed part reads
+  the stored `lp$contrasts`; the group-level `model.matrix()` takes no
+  `contrasts.arg`. Found by the fix round's test of
+  `test-laplace-draws.R` (case B). `dev/sampfront-findings.md`.
+- **Laplace draws give `conditional_effects(method =
+  "posterior_predict")` an all-NA band** when only a distributional
+  parameter carries the group-level term: `sigma ~ (1 | h)` (gaussian,
+  student) or `shape ~ (1 | h)` (negbinomial), with `re_formula =
+  NULL`. Six "NAs produced" warnings, and no refusal, on base and lane
+  alike. The watch of that path reads the expected values, and the
+  expected value does not read `sigma` or `shape`, while
+  `posterior_predict()` on the same model refuses. Fix: watch the
+  distributional parameters in that path, as `posterior_predict()`
+  does. Reproducer and logs:
+  `dev/reviews/sampfront-short-out/ce-lane.txt`, `ce-base.txt`.
+
 ## Filed at the 0.81.0 release (2026-11-10)
 
 Gathered from the lanes' own sections of the round of 2026-11-09
@@ -4727,6 +4785,7 @@ records: `dev/<lane>-findings.md`, reviews
   `log_lik()` columns. Then the answer is those columns of the fitted
   `log_lik()`. Review `dev/reviews/2026-11-10-hollow.md`, item 3;
   `dev/hollow-findings.md`.
+CLOSED in the round of 2026-11-11 (lane sampfront): subset taken by row names.
 
 ### From the reviews and the lanes' records, left for later
 

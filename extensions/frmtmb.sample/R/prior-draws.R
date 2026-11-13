@@ -746,6 +746,19 @@ prior_draws.frmtmb_draws <- function(x, variable = NULL, pars = NULL,
   data.frame(out, check.names = FALSE)
 }
 
+#' @rdname prior_draws
+#' @details `prior_samples()` is brms's deprecated name of
+#'   `prior_draws()`: it warns as brms warns and returns `prior_draws()`.
+#' @export
+prior_samples <- function(x, ...) {
+  # a plain function, as brms's is, and not a generic: with brms loaded
+  # `prior_draws` is brms's generic (generic-owners.R), so a brmsfit
+  # reaches brms's method through this name too
+  frm_warning("'prior_samples' is deprecated. Please use 'prior_draws' ",
+              "instead.", call. = FALSE)
+  prior_draws(x, ...)
+}
+
 #' brms's `escape_all()`: every regular-expression metacharacter of a
 #' name escaped.
 #'
