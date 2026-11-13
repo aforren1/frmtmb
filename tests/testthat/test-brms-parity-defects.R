@@ -451,10 +451,12 @@ test_that("update(newdata = ) records the data's name, as brms does", {
   up <- update(fit, newdata = new_data)
   expect_identical(attr(up$data, "data_name"), "new_data")
   expect_output(print(summary(up)), "Data: new_data (Number", fixed = TRUE)
-  # the absent case: a frame passed by value has no spelling to record
+  # a frame passed by value has no spelling: it is named by a descriptor
+  # of the value, which costs nothing per row, where brms deparses it
   byval <- do.call(frm, list(formula = y ~ x, data = dd))
-  expect_null(attr(byval$data, "data_name"))
-  expect_output(print(summary(byval)), "Data:  (Number", fixed = TRUE)
+  expect_identical(attr(byval$data, "data_name"), "<data.frame: 30 x 2>")
+  expect_output(print(summary(byval)),
+                "Data: <data.frame: 30 x 2> (Number", fixed = TRUE)
 })
 
 test_that("the prior table spells a smooth's column as brms does", {

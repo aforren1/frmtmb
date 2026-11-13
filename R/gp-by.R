@@ -50,8 +50,11 @@
 #' the field has to carry.
 #'
 #' @section The order of the field:
-#' `frm_sample()`'s `b[i]` columns and `fit$estimates$b` of an exact term hold
-#' z, in a farthest-first order of the positions. [ranef()], [coef()] and
+#' `frm_sample()`'s `zgp_<term>[i]` columns (brms's name, `zgp_gpx[1]`) and
+#' `fit$estimates$b` of an exact term hold z, in a farthest-first order of the
+#' positions. brms's own `zgp` is z in the order the positions first appear,
+#' through a Cholesky factor in that order, so the two are not equal element by
+#' element. [ranef()], [coef()] and
 #' `getME(fit, "b")` read the field, at the sorted distinct positions, where
 #' brms keeps first appearance. None of these is in the order of the rows of
 #' the data. Read a field at the data through `posterior_epred()` or

@@ -359,7 +359,9 @@ summary.frmtmb_draws <- function(object, priors = FALSE, prob = 0.95,
     frm_stop("summary() on draws needs the 'posterior' package: its ",
              "columns are brms's, which posterior computes", call. = FALSE)
   }
+  # in brms's order, which variables() lists
   keep <- draws_outer_cols(object)
+  keep <- keep[order(match(keep, variables(object)))]
   probs <- c((1 - prob) / 2, 1 - (1 - prob) / 2)
   # brms:::summary.brmsfit's own `.summary()`, measure for measure and
   # in its column order, so a column carries brms's definition under
@@ -704,7 +706,7 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #' number: each draw's `frm_linpred(type = "response")` is an `n x K`
 #' matrix of category probabilities. Those stack into a 3-D
 #' `draws x observations x categories` array. `dimnames` are
-#' `list(NULL, <observation names or NULL>, <category levels>)`, so
+#' `list(NULL, NULL, <category levels>)`, as in brms, so
 #' `ep[, , "high"]` is the draws-by-observations matrix for one
 #' category and `ep[k, , ]` is draw `k`'s own `n x K` prediction, the
 #' matrix `frm_linpred(type = "response")` returns. Every `ep[k, i, ]`
@@ -1010,9 +1012,11 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
       # brms's posterior_epred() return for polytomous families, and it
       # keeps ep[, , "cat"] and ep[k, , ] addressable directly.
       cat_out <- is.matrix(p)
+      # the observation margin unnamed, as brms leaves it (brms 2.23.0
+      # on a categorical fit: list(NULL, NULL, c("a", "b", "c")))
       out <- if (cat_out) {
         array(NA_real_, c(length(rows), nrow(p), ncol(p)),
-              dimnames = list(NULL, rownames(p), colnames(p)))
+              dimnames = list(NULL, NULL, colnames(p)))
       } else {
         matrix(NA_real_, length(rows), length(p))
       }
@@ -1265,7 +1269,11 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
     draws_pp_setup(object, fit, r, newdata, re_form, rows, idx)
   })
   out <- if (length(want) == 1L) {
-    draws_pp_one(object, sets[[1L]], rows, idx)
+    # brms's dimnames on one response's matrix: list(NULL, NULL), not
+    # none, which identical() against brms's draws reads
+    m <- draws_pp_one(object, sets[[1L]], rows, idx)
+    if (is.matrix(m) && is.null(dimnames(m))) dimnames(m) <- list(NULL, NULL)
+    m
   } else if (isTRUE(fit$spec$rescor)) {
     draws_pp_joint(object, sets, rows, idx)
   } else {
@@ -1893,7 +1901,21 @@ as_draws.frmtmb_draws <- function(x, variable = NULL, regex = FALSE,
 #' @export
 variables.frmtmb_draws <- function(x, ...) {
   frm_check_dots(...)
-  colnames(x$draws)
+  colnames(x$draws)[draws_brms_order(x)]
+}
+
+#' The permutation of the draws' columns into brms's order
+#' (`brms_variable_sort()` in core): what `variables()` lists and the
+#' order the `as_draws_*()` objects, `as.matrix()` and `as.data.frame()`
+#' hand out. `x$draws` itself keeps the template order every positional
+#' reader in this package relies on.
+#'
+#' @noRd
+draws_brms_order <- function(x) {
+  cn <- colnames(x$draws)
+  fit <- x$fit
+  if (is.null(fit) || is.null(fit$frame)) return(seq_along(cn))
+  brms_variable_sort(fit, cn)
 }
 
 #' @rdname sample-as_draws
@@ -2011,7 +2033,7 @@ as.mcmc.frmtmb_draws <- function(x, pars = NA, fixed = FALSE,
   }
   sel <- draws_select_variables(x, pars, NULL, FALSE, fixed, "as.mcmc()")
   if (combine_chains) {
-    m <- x$draws
+    m <- x$draws[, draws_brms_order(x), drop = FALSE]
     if (!is.null(sel)) m <- m[, sel, drop = FALSE]
     return(coda::as.mcmc(m))
   }
@@ -2196,7 +2218,8 @@ draws_extract_pars <- function(pars, all_pars, fixed = FALSE) {
 draws_select_variables <- function(x, pars = NA, variable = NULL,
                                    regex = FALSE, fixed = FALSE,
                                    what = "this function") {
-  all_pars <- colnames(x$draws)
+  # in variables() order, so a `pars =` regex selects in brms's order
+  all_pars <- variables(x)
   if (!(is.logical(pars) && length(pars) == 1L && is.na(pars))) {
     return(draws_extract_pars(pars, all_pars, fixed = fixed))
   }

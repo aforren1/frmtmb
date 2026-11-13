@@ -496,7 +496,9 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
       draws_row_loglik(draws_fit_at(object, rows[k], idx), resp),
       frmtmb_autocor_dense_fallback = once)
     if (is.null(out)) {
-      out <- matrix(NA_real_, length(rows), length(v))
+      # brms's dimnames, list(NULL, NULL) and not none
+      out <- matrix(NA_real_, length(rows), length(v),
+                    dimnames = list(NULL, NULL))
       unit <- attr(v, "unit")
     }
     out[k, ] <- v

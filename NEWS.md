@@ -1,3 +1,93 @@
+# frmtmb (development version)
+
+## brms names and layouts
+
+* BREAKING: `variables()` of a fit lists its parameters in brms's order
+  (`brms:::reorder_pars()`): by class, with every class `b` intercept
+  first, so `bf(y ~ x, sigma ~ z)` gives `b_Intercept`,
+  `b_sigma_Intercept`, `b_x`, `b_sigma_z`, and a multivariate or
+  categorical fit lists the intercepts of every response or category
+  before the slopes. The group-level `sd_` and `cor_` names follow
+  brms's group-id order, which is the order the formula writes its
+  distributional parameters in: `bf(y ~ (1 | h), alpha ~ (1 | g),
+  sigma ~ (1 | ga))` gives `sd_h`, then `sd_g__alpha`, then
+  `sd_ga__sigma`. The `me()` hyperparameters are listed group by group,
+  as brms lists them. The names do not change. `VarCorr()` and
+  `ranef()` list the grouping factors in the same order, on a fit and
+  on draws.
+
+* `variables()` of a fit with a `mo()` term lists the simplex,
+  `simo_<term>1[k]`, as brms does, and `hypothesis()` reads it.
+
+* BREAKING: `ranef()` returns one matrix per grouping factor, as brms
+  and lme4 do. Two terms on one factor, `(1 | g) + (0 + x | g)`, or a
+  group-level term in two distributional parameters, `bf(y ~ (1 | g),
+  sigma ~ (1 | g))`, were two entries both named `g`, and `ranef(fit)$g`
+  was refused. Now `ranef(fit)$g` holds every column of `g`, and a block
+  label such as `ranef(fit)[["sigma: 1 | g"]]` returns that block's
+  columns. A categorical or multivariate fit's `g` holds every
+  category's or response's columns.
+
+* BREAKING: `coef()` returns one data frame per grouping factor, as brms
+  does, holding every population-level coefficient of the model with
+  the group's modes added: the columns the group varies first, then the
+  others in `fixef()` order. It was one list per distributional
+  parameter or response, each with its own coefficients only, so
+  `coef(fit)$g` was `NULL` on a distributional, categorical or
+  multivariate fit.
+
+* BREAKING: `ranef()` of a model without group-level terms stops with
+  brms's message, "The model does not contain group-level effects." A
+  smooth-only model returned the smooth's penalized coefficients under
+  the internal names `s(x).1`, ...; those are brms's `s_` parameters,
+  not group-level effects.
+
+* BREAKING: `categorical()` drops a factor level that no row of the
+  response takes, as brms does. It was a category with no data, whose
+  coefficients went to minus infinity.
+
+* BREAKING: `categorical(K = )`, `multinomial(K = )` and
+  `dirichlet_multinomial(K = )` name the dpars by the data's categories
+  when `frm()` gets data with `K` named categories: `mub` and `muc` for
+  a factor `a, b, c`, `muy2` and `muy3` for `cbind(y1, y2, y3)`, as
+  brms and these families without `K` name them. They were `mu2` and
+  `mu3`. Away from data, and on data with unnamed categories, `K` still
+  gives `mu2 ... muK`.
+
+* `predict(summary = FALSE)` of one response has dimnames
+  `list(NULL, NULL)`, as brms's has, not `NULL`.
+
+* `summary()` prints every formula of the model on its `Formula:` lines,
+  as brms does: the distributional and nonlinear parameter formulas
+  (`sigma ~ z`) and the fixed ones (`nu = 3`, `sigma1 = sigma2`) under
+  the response formula. It printed the response formula alone.
+
+* `summary()`'s `Data:` line names data passed by value, through
+  `do.call()` or `update(newdata = )`, by its class and size,
+  `<data.frame: 300 x 4>`. The line was empty. A name or a call is
+  printed as before, cut at 50 characters as brms cuts it.
+
+* BREAKING: `confint_varcorr()`'s `block` column and the pooled
+  variance components of `frm_multiple()` (`x$pooled_varcorr$grp` and
+  its summary) name an uncorrelated term as written: `1 + f || g` for a
+  `||` term, which was `1 + f | g`, and `1 + x | gr(g, cor = FALSE)`
+  for a `gr(cor = FALSE)` term, which was `1 + x | g`. The old labels
+  read as the correlated term. Code that matched on the old label has
+  to match on the new one.
+
+* BREAKING: `ranef()` of a model with group-level terms and a smooth no
+  longer lists the smooth (`ranef(fit)$"s(x)"`, its penalized basis
+  coefficients under the internal names `s(x).1`, ...). brms's
+  `ranef()` does not list it either; the smooth is in
+  `conditional_smooths()` and its coefficients are brms's `s_`
+  parameters.
+
+* BREAKING: `insight::get_parameters()` and `insight::get_varcov()` of
+  an ordinal mixture under `order = "mu"` report every component's
+  thresholds on the model's scale under `fixef()`'s names, as they do
+  for any other ordinal fit. They reported the shared internal threshold
+  vector, so the rows have new names and values.
+
 # frmtmb 0.81.0
 
 ## Convergence and standard errors

@@ -432,12 +432,20 @@ here too, and with its default priors (flat on the slopes) its
 sampler does not converge on this model.
 
 The categories come from the data, so \code{frm()} reads them off the
-response before it parses the formula. Constructing the family away
+response before it parses the formula. A factor level that no row
+takes is not a category, as in brms. Constructing the family away
 from a data set (to inspect it, or to reach the parser through
 another entry point) needs them stated: \code{categorical(levels = c("a", "b", "c"))}, or \code{categorical(K = 3)} for a response already coded
-\verb{1..K}, which names the dpars \verb{mu2 ... muK}. A character or logical
-response is coerced to a factor with a message naming the level
-order, because that order is the model.
+\verb{1..K}, which names the dpars \verb{mu2 ... muK}.
+
+Given to \code{frm()} with data, \code{K} does not fix the names: the dpars take
+the data's category names, as brms names them. A factor \verb{a, b, c}
+gives \code{mub} and \code{muc}, and a dpar formula or a prior then names those,
+\code{bf(y ~ x, mub ~ z)} and \code{set_prior(..., dpar = "mub")}; \code{mu2} does
+not apply to factor data and is refused. Numeric codes give their own
+names, so codes \verb{2, 3, 4} give \code{mu3} and \code{mu4}. A character or
+logical response is coerced to a factor with a message naming the
+level order, because that order is the model.
 
 \code{fitted()} returns brms's \verb{n x 4 x K} array of category
 probabilities, one layer per category named \verb{P(Y = <level>)}, and
@@ -462,7 +470,9 @@ and an unnamed matrix numbers them \code{mu2}, \code{mu3}. \code{refcat} works a
 for \code{categorical()}. \code{fitted()} returns brms's \verb{n x 4 x K} array of
 expected COUNTS, probability times trials, which brms labels
 \verb{P(Y = <category>)} too. \code{multinomial(K = 3)} builds the family away
-from the data, with the categories \verb{1..K}. A one-hot matrix with one
+from the data, with the categories \verb{1..K}; given data whose response
+matrix has \code{K} named columns, the dpars take the column names, as
+they do without \code{K}. A one-hot matrix with one
 trial a row gives the log-likelihood of \code{categorical()}.
 
 \code{dirichlet_multinomial()} is brms's overdispersed multinomial. The

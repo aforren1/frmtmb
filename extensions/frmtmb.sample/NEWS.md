@@ -1,3 +1,43 @@
+# frmtmb.sample (development version)
+
+Needs the development version of frmtmb, which adds
+`brms_variable_sort()` to the sampling API.
+
+* BREAKING: `variables()`, `as_draws()` and the `as_draws_*()` functions,
+  `as.matrix()`, `as.array()`, `as.data.frame()`, `as.mcmc()`,
+  `posterior_summary()` and `posterior_interval()` list the draws in
+  brms's order (`brms:::reorder_pars()`): by class, every class `b`
+  intercept first, the group-level `r_` columns block by block in brms's
+  group-id order and, within a block, every level of one coefficient
+  before the next. A selection by the deprecated `pars =` comes in the
+  same order, as brms's does. `draws$draws` keeps its own internal
+  order; select its columns by name.
+
+* BREAKING: `summary()` of draws lists its rows in the same order, as
+  brms's `summary()` lists them: `sd_` rows before an unmodeled `sigma`,
+  for example. It listed them in the stored order.
+
+* BREAKING: A smooth's basis weights are named as brms names them,
+  `s_<term>_<k>[i]` (`s_sx_1[1]`), and an exact `gp()` term's
+  standardized values `zgp_<term>[i]` (`zgp_gpx[1]`). Both were `b[i]`.
+  The `zgp` values are in the term's own order of positions, not in
+  brms's, so they are not elementwise brms's `zgp`. An approximate
+  `gp(k = )` keeps `b[i]`: its weights are not standardized.
+
+* BREAKING: The latent states of `ar(cov = FALSE)` on a non-Gaussian
+  family are brms's `zerr[k]`, one standard normal per row. They were
+  `latent_state[k]`, which other latent terms keep. brms's derived
+  `err[k]` columns are not in the draws.
+
+* BREAKING: `posterior_epred()` of a categorical or ordinal model leaves
+  the observation margin unnamed, as brms does: `list(NULL, NULL,
+  <categories>)`. It carried the row names, so code that indexed the
+  observations by name has to index them by position.
+
+* `posterior_predict()`, `predict(summary = FALSE)`,
+  `predictive_error()` and `log_lik()` of one response have dimnames
+  `list(NULL, NULL)`, as brms's have, not `NULL`.
+
 # frmtmb.sample 0.28.0
 
 Needs frmtmb 0.81.0, which adds `row_lpdf(exact = )`.

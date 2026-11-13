@@ -181,6 +181,14 @@ prior draws. The object also holds what converts the saved warmup
 in the \code{stanfit} to the draws' columns (and the prior draws of its
 rows), the \code{sample_prior} setting and the arguments of the call,
 which \link[=update.frmtmb_draws]{update()} reads.
+
+The draws matrix \code{x$draws} holds its columns in an internal order,
+the order of the model's parameter vector, which the package's own
+methods read by position. It is NOT the order of
+\code{\link[frmtmb:variables]{frmtmb::variables()}}:
+\code{variables()}, \code{as.matrix()}, \code{as_draws_df()} and the other
+accessors list the columns in brms's order. Select a column of
+\code{x$draws} by name, \code{x$draws[, "b_x"]}, never by position.
 }
 \description{
 Runs \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} on the model's objective and returns the

@@ -3400,6 +3400,14 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   in the `stanfit` to the draws' columns (and the prior draws of its
 #'   rows), the `sample_prior` setting and the arguments of the call,
 #'   which [update()][update.frmtmb_draws] reads.
+#'
+#'   The draws matrix `x$draws` holds its columns in an internal order,
+#'   the order of the model's parameter vector, which the package's own
+#'   methods read by position. It is NOT the order of
+#'   [frmtmb::variables()]:
+#'   `variables()`, `as.matrix()`, `as_draws_df()` and the other
+#'   accessors list the columns in brms's order. Select a column of
+#'   `x$draws` by name, `x$draws[, "b_x"]`, never by position.
 #' @section Prior draws:
 #'   `sample_prior = "yes"` draws from the priors as brms does. Each
 #'   prior statement of brms's Stan program for the model is one column

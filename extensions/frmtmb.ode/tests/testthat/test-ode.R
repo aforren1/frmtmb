@@ -287,7 +287,9 @@ test_that("the population PK fit matches the probe reference", {
   # the random effects recover the simulated subject deviations
   set.seed(2026)
   b_ka <- stats::rnorm(12, 0, 0.30)
-  expect_gt(stats::cor(as.numeric(ranef(fit)[[1L]]), b_ka), 0.95)
+  # ranef() holds the id blocks of lka and lke in one matrix, as brms
+  expect_gt(stats::cor(as.numeric(ranef(fit)$id[, "lka_Intercept"]), b_ka),
+            0.95)
 })
 
 test_that("frm_linpred() re-solves on newdata", {

@@ -326,10 +326,13 @@
 #' of a group: [ranef()] and [VarCorr()] do not list them, and `re_formula =
 #' NA` keeps them, as brms keeps `err`. [summary()] and [confint_varcorr()]
 #' report `sderr` and the coefficients, and [variables()] names them as brms
-#' does. Under `frm_sample()` the draws of the latents are named
-#' `latent_state[k]`. These are the chain's own states and not `err`: `ma()`,
-#' `arma()` and `cosy()` have one extra state per group, so 60 rows in 12 groups
-#' have 72 states.
+#' does. Under `frm_sample()` the draws of the latents of `ar(cov = FALSE)`
+#' are brms's `zerr[k]`, one standard normal per row in row order, which
+#' brms's program declares and does not save. Under any other term they
+#' are named `latent_state[k]`: these are the chain's own states and not
+#' `err` or `zerr`, and `ma()`, `arma()` and `cosy()` have one extra state
+#' per group, so 60 rows in 12 groups have 72 states. brms's derived
+#' `err[k]` columns are not in the draws.
 #'
 #' After the fit, [fitted()], [frm_linpred()], [residuals()], [predict()] and
 #' [simulate()] read the conditional mode of `err` on the fitted rows. On new

@@ -1069,10 +1069,11 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # brms's `data_name` attribute: the data as the call spelled it, which
   # update(newdata = ) re-records. A value passed by do.call() has no
   # spelling, and deparsing a whole data frame to get one would cost
-  # time in proportion to its rows, so it records nothing
+  # time in proportion to its rows, so it records a descriptor of the
+  # value instead (data_name_of())
   dn <- if (!is.null(refit[["call"]])) cl[["data"]] else substitute(data)
-  if ((is.name(dn) || is.call(dn)) && !is.null(frame[["data_frame"]])) {
-    attr(frame[["data_frame"]], "data_name") <- substr(deparse1(dn), 1L, 50L)
+  if (!is.null(frame[["data_frame"]])) {
+    attr(frame[["data_frame"]], "data_name") <- data_name_of(dn, data)
   }
   # A family with a `family_finalize` slot derives itself from the
   # response during assembly, and the fit stores the spec separately

@@ -360,7 +360,8 @@ predict.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
                          sample_new_levels)
   if (!is.null(transform)) ds <- lapply(ds, match.fun(transform))
   if (!summary) {
-    return(if (length(ds) == 1L) ds[[1L]] else predict_stack(ds))
+    return(if (length(ds) == 1L) pp_dimnames(ds[[1L]]) else
+      predict_stack(ds))
   }
   per <- lapply(seq_along(ds), function(i) {
     cross <- predict_cross_rows(object, rspecs[[i]], newdata, re_formula,
@@ -467,6 +468,17 @@ predict_mv_refuse <- function(object, rspecs) {
              bad[1L], "\")", call. = FALSE)
   }
   invisible(NULL)
+}
+
+#' A one-response draws matrix with brms's dimnames, `list(NULL, NULL)`
+#' rather than none, as brms's `posterior_predict()`, `predict(summary =
+#' FALSE)`, `predictive_error()` and `log_lik()` return it (brms 2.23.0,
+#' dev/names-findings.md). Any other shape is left alone.
+#'
+#' @noRd
+pp_dimnames <- function(m) {
+  if (is.matrix(m) && is.null(dimnames(m))) dimnames(m) <- list(NULL, NULL)
+  m
 }
 
 #' The `ndraws x nrow x nresp` array brms returns for a multivariate

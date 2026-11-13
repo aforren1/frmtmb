@@ -309,7 +309,9 @@
 #' `brms_re_parts(fit, bk)` a block's prefixes and renamed coefficients;
 #' `brms_par_labels(fit, include_random)` labels a
 #' sampled parameter vector in template order, in brms's spelling where
-#' brms has a parameter with the same content, and
+#' brms has a parameter with the same content,
+#' `brms_variable_sort(fit, names)` is the permutation that puts such
+#' names into brms's `variables()` order, and
 #' `gp_brms_natural(fit)` maps the `theta` entries it labels `sdgp_`
 #' and `lscale_` to brms's scales and back. `mi_sampling(fit)` gives a
 #' fit back the `mi()` rows maximum likelihood left out of its objective,
@@ -574,6 +576,7 @@
 #' @aliases hyp_eval_in
 #' @aliases hyp_expr_vars
 #' @aliases brms_par_labels
+#' @aliases brms_variable_sort
 #' @aliases gp_brms_natural
 #' @aliases mi_sampling
 #' @aliases varcorr_matrices
@@ -662,6 +665,7 @@
 #'   hyp_samples_frame, hyp_brms_result, brms_coef_names, brms_re_rnames,
 #'   brms_block_has_r, brms_coef_table, brms_stan_name, brms_group_name,
 #'   brms_levels, brms_re_parts, hyp_eval_in, hyp_expr_vars,
+#'   brms_variable_sort,
 #'   brms_par_labels, gp_brms_natural, mi_sampling, varcorr_matrices,
 #'   varcorr_layout,
 #'   varcorr_values,

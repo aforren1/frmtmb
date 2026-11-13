@@ -7815,8 +7815,8 @@ categorical_levels <- function(formula, data) {
 #' The category labels of a categorical response, in the order that fixes
 #' the reference category and the dpar names. A character vector is
 #' coerced with a message naming the order it took, because that order is
-#' the model; a factor keeps its own levels; numeric codes are read in
-#' numeric order, as brms reads them.
+#' the model; a factor keeps its own levels but the ones no row takes;
+#' numeric codes are read in numeric order, as brms reads them.
 #'
 #' @noRd
 categorical_y_levels <- function(y, label) {
@@ -7830,7 +7830,10 @@ categorical_y_levels <- function(y, label) {
                 "if that is not what you want.")
     return(lv)
   }
-  if (is.factor(y)) return(levels(y))
+  # a level no row takes is no category, as in brms (its ncat counts the
+  # observed ones); kept, it was a category with no data, whose
+  # coefficients the likelihood pushes to minus infinity
+  if (is.factor(y)) return(levels(droplevels(y)))
   # Numeric codes are categories too, in numeric order, as brms reads
   # them: 11:20 is ten categories with 11 the reference. This returned
   # NULL once, and the caller then claimed "fewer than two categories"
@@ -8200,7 +8203,35 @@ fam_multinomial <- function(link = "logit", refcat = NULL, K = NULL) {
   if (is.null(K)) return(fam_multinomial_deferred(link, refcat))
   refcat <- check_simplex_refcat(refcat, "multinomial", allow_na = TRUE)
   K <- check_ncat_arg(K, "multinomial")
-  fam_multinomial_impl(as.character(seq_len(K)), refcat, link)
+  fam <- fam_multinomial_impl(as.character(seq_len(K)), refcat, link)
+  # named response columns name the dpars, muy2 and not mu2, as brms
+  # names them
+  fam[["defer"]] <- k_defer(fam, K, function(formula, data) {
+    cats <- tryCatch(multinomial_categories(formula, data),
+                     error = function(e) NULL)
+    if (length(cats) == K) fam_multinomial_impl(cats, refcat, link)
+  })
+  fam
+}
+
+#' The `defer` slot of a family built from `K =`: `resolve()` gives the
+#' family the data's own category names, or `NULL` when the data have
+#' another number of categories or none to read, and then the family
+#' built from `K` stays, without the slot, so the frame's own check
+#' reports the mismatch.
+#'
+#' @noRd
+k_defer <- function(fam, K, resolve) {
+  force(fam)
+  force(K)
+  function(formula, data) {
+    out <- resolve(formula, data)
+    if (is.null(out)) {
+      fam[["defer"]] <- NULL
+      return(fam)
+    }
+    out
+  }
 }
 
 #' The registry's dirichlet_multinomial constructor, which
@@ -8215,7 +8246,16 @@ fam_dirichlet_multinomial <- function(link = "logit", link_phi = "log",
   if (is.null(K)) return(fam_multinomial_deferred(link, refcat, link_phi))
   refcat <- check_simplex_refcat(refcat, fname, allow_na = TRUE)
   K <- check_ncat_arg(K, fname)
-  fam_multinomial_impl(as.character(seq_len(K)), refcat, link, link_phi)
+  fam <- fam_multinomial_impl(as.character(seq_len(K)), refcat, link,
+                              link_phi)
+  fam[["defer"]] <- k_defer(fam, K, function(formula, data) {
+    cats <- tryCatch(multinomial_categories(formula, data, fname),
+                     error = function(e) NULL)
+    if (length(cats) == K) {
+      fam_multinomial_impl(cats, refcat, link, link_phi)
+    }
+  })
+  fam
 }
 
 #' The categories of a multinomial response: its column names, or `1..K`
@@ -8680,13 +8720,21 @@ as_frmtmb_family <- function(x) {
 #' sampler does not converge on this model.
 #'
 #' The categories come from the data, so `frm()` reads them off the
-#' response before it parses the formula. Constructing the family away
+#' response before it parses the formula. A factor level that no row
+#' takes is not a category, as in brms. Constructing the family away
 #' from a data set (to inspect it, or to reach the parser through
 #' another entry point) needs them stated: `categorical(levels = c("a",
 #' "b", "c"))`, or `categorical(K = 3)` for a response already coded
-#' `1..K`, which names the dpars `mu2 ... muK`. A character or logical
-#' response is coerced to a factor with a message naming the level
-#' order, because that order is the model.
+#' `1..K`, which names the dpars `mu2 ... muK`.
+#'
+#' Given to `frm()` with data, `K` does not fix the names: the dpars take
+#' the data's category names, as brms names them. A factor `a, b, c`
+#' gives `mub` and `muc`, and a dpar formula or a prior then names those,
+#' `bf(y ~ x, mub ~ z)` and `set_prior(..., dpar = "mub")`; `mu2` does
+#' not apply to factor data and is refused. Numeric codes give their own
+#' names, so codes `2, 3, 4` give `mu3` and `mu4`. A character or
+#' logical response is coerced to a factor with a message naming the
+#' level order, because that order is the model.
 #'
 #' `fitted()` returns brms's `n x 4 x K` array of category
 #' probabilities, one layer per category named `P(Y = <level>)`, and
@@ -8711,7 +8759,9 @@ as_frmtmb_family <- function(x) {
 #' for `categorical()`. `fitted()` returns brms's `n x 4 x K` array of
 #' expected COUNTS, probability times trials, which brms labels
 #' `P(Y = <category>)` too. `multinomial(K = 3)` builds the family away
-#' from the data, with the categories `1..K`. A one-hot matrix with one
+#' from the data, with the categories `1..K`; given data whose response
+#' matrix has `K` named columns, the dpars take the column names, as
+#' they do without `K`. A one-hot matrix with one
 #' trial a row gives the log-likelihood of `categorical()`.
 #'
 #' `dirichlet_multinomial()` is brms's overdispersed multinomial. The
@@ -9300,8 +9350,17 @@ categorical <- function(link = "logit", refcat = NULL, levels = NULL,
   }
   if (!is.null(K)) {
     K <- check_ncat_arg(K, "categorical")
-    return(fam_categorical_impl(as.character(seq_len(K)), refcat, link,
-                                levels = NULL))
+    fam <- fam_categorical_impl(as.character(seq_len(K)), refcat, link,
+                                levels = NULL)
+    # K builds the family away from the data; given data with K named
+    # categories, the dpars take the categories' names, as brms (which
+    # has no K) names them: muB, not mu2
+    fam[["defer"]] <- k_defer(fam, K, function(formula, data) {
+      lv <- tryCatch(categorical_levels(formula, data),
+                     error = function(e) NULL)
+      if (length(lv) == K) fam_categorical_impl(lv, refcat, link = link)
+    })
+    return(fam)
   }
   fam_categorical_deferred(link, refcat)
 }

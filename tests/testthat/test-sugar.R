@@ -56,7 +56,7 @@ test_that("two terms on one factor share a coef frame", {
   expect_named(cc, "g")
   expect_equal(colnames(cc$g), c("Intercept", "x"))
   expect_equal(cc$g$x,
-               unname(fixef_by_dpar(fit)$mu["x"] + ranef(fit)[[2]][, "x"]),
+               unname(fixef_by_dpar(fit)$mu["x"] + ranef(fit)$g[, "x"]),
                tolerance = 1e-10)
 })
 

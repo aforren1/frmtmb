@@ -1293,6 +1293,7 @@ reference build, neither this lane's.
   `cs()`, and its comment points here. The fix belongs with a rank check
   over the FILLED design rather than the assembly-time one, since the
   `mo()` column is a zero placeholder at assembly.
+CLOSED in the round of 2026-11-11 (lane names): by user decision, keep fitting with the SE check naming the flat parameters; brms 2.23.0 fits it with no identification check (only sampler warnings).
 
 ### Open - minor
 
@@ -1542,6 +1543,7 @@ section and are listed here only where a user could hit them.
   where frmtmb refuses it. Both loud. Lane formula2, section 4.
 - **`summary()`'s Formula line** does not print `sigma1 = sigma2`, or
   any parameter formula. Lane formula2, section 4.
+CLOSED in the round of 2026-11-11 (lane names): the Formula lines print every pform, nlform and fixed dpar under the response formula, as brms's print.brmsformula().
 - **A `y ~ . - w` fit refit on data without `w`** is refused ("The
   model uses `w`"), as `y ~ x1 + w - w` is. Lane formula2, 9.2.
 - **A refusal from frmtmb.sample's draws accessors names the internal
@@ -1550,6 +1552,7 @@ section and are listed here only where a user could hit them.
 - **`summary()`'s `Data:` line is empty** for a fit whose data came by
   value through `do.call()`; brms records a deparse cut at 50
   characters. Lane defects, section 7.
+CLOSED in the round of 2026-11-11 (lane names): by user decision, data passed by value is named `<data.frame: rows x cols>` (class shown), with no deparse.
 - **`xbeta()` third derivatives inside the tie blend of
   `log_pbeta_ad()`** are off by up to 0.12 relative at shapes (1e6,
   3e6), against 3e-9 for plain `log(RTMB::pbeta())`. Values and first
@@ -1866,6 +1869,7 @@ and the ledger, and upstream defects in `dev/upstream-bugs.md`.
   stays internal, since its block list holds `tau_raw` twice; and a
   sum-to-zero component has no class `Intercept` row, which brms
   lists. `dev/ordmix-findings.md`, "Not done, and why".
+CLOSED in the round of 2026-11-11 (lane names): insight reads every component's thresholds on fixef()'s scale under order = "mu"; the sum-to-zero Intercept row stays with the decision of 1832.
 - **fixes: F11 seed 8** (`bf(y ~ s(x1), sigma ~ s(x2))`) stops 0.142
   below rellib-r5's optimum, converged, with finite standard errors:
   sigma's smoothing SD sits at a local optimum (theta -7.99, -0.80)
@@ -1881,9 +1885,11 @@ and the ledger, and upstream defects in `dev/upstream-bugs.md`.
 - **gpby: `zgp` is not a draw name.** frmtmb samples the field and
   brms its standardized `zgp`; the map is the change of variables
   `L^-1 b`, which a column cannot be renamed into. Section 7.
+CLOSED in the round of 2026-11-11 (lane names): exact gp() draws are zgp_<term>[i] (z in the farthest-first order, documented as not elementwise brms's).
 - **gpby: the draws' column order** puts each sub-GP's `sdgp` beside
   its `lscale`; brms puts every `sdgp` first. Names match, order does
   not. Section 7.
+CLOSED in the round of 2026-11-11 (lane names): the draws list every sdgp_ before the lscale_, by brms's class order.
 - **gpby: core `predict()` holds a `gp()` curve at its mode** and draws
   neither its coefficients nor the kriging residual, so its interval
   past the positions is narrower than brms's. Section 7.
@@ -2899,6 +2905,7 @@ See `dev/round-20261014.md`, "Found at the consolidation".
   `confint_varcorr()$block`); `term_label` is a matching key, so the
   change is not cosmetic. The class "cor" refusal names the term as
   written since 0.72.0 (lane prilabel); the tables still read it.
+CLOSED in the round of 2026-11-11 (lane names): confint_varcorr()$block shows a || term as written; term_label stays the internal key.
 - A diagonal within-level covariance for `gr(cov = )` / `gr(prec = )`
   would let a factor sit in a `||` term over a known matrix; now
   refused.
@@ -3155,9 +3162,11 @@ See `dev/round-20261020.md`, "Found at the consolidation".
 - `ranef()` of a categorical fit is 25 x 2; brms's is 25 x 4 x 2.
   `coef()` is a list by dpar, so `coef(fit)$g` is `NULL`; brms's is
   25 x 4 x 4. Pre-existing.
+CLOSED in the round of 2026-11-11 (lane names): ranef() is one levels x coefficients matrix per factor and coef() one frame per factor with every fixef() column; the ML shape stays lme4's 2-D, not brms's levels x 4 x coefs.
 - `variables()` order on a categorical fit is `b_mua_Intercept b_mua_x
   b_muc_Intercept b_muc_x`; brms's is `b_mua_Intercept b_muc_Intercept
   b_mua_x b_muc_x`. The names agree.
+CLOSED in the round of 2026-11-11 (lane names): variables() and the draws follow brms's reorder_pars() order.
 - `default_prior()` prints a multivariate response by its raw name
   (`Y_a`) where brms prints its Stan name (`Ya`); `set_prior(resp = )`
   takes both. Pre-existing for every class.
@@ -3167,6 +3176,7 @@ See `dev/round-20261020.md`, "Found at the consolidation".
   `multinomial()` returns flattened counts where brms errors; the
   observation margin of `posterior_epred()` of categorical draws is
   named where brms leaves it `NULL`.
+CLOSED in the round of 2026-11-11 (lane names): K takes named categories from the data, categorical() drops unused levels, and draws' posterior_epred() leaves the rows unnamed; insight::get_predicted() on multinomial() is not done (filed again).
 - The review's nit (check of round 2): the `tryCatch()` around the
   twin's `assemble_frame()` in `refcat_first_outer()` catches only
   `frmtmb_error`, so a base R error there would stop the fit instead of
@@ -3192,18 +3202,23 @@ See `dev/round-20261020.md`, "Found at the consolidation".
   sigma ~ (1 | ga))` with `skew_normal()` gives h, alpha g, sigma ga;
   frmtmb h, sigma ga, alpha g; `dev/prilabel-rev2-predorder.R`).
   Within a predictor the order is brms's (review R2).
+CLOSED in the round of 2026-11-11 (lane names): group ids follow the written dpar order, as brms numbers them.
 - `mm(id = )` stays refused.
 - Population-level `variables()` order: brms `b_Intercept,
   b_sigma_Intercept, b_x`; frmtmb `b_Intercept, b_x,
   b_sigma_Intercept`.
+CLOSED in the round of 2026-11-11 (lane names): population-level order is brms's, every class b intercept first.
 - `coef()` of a distributional model is keyed by dpar, then group;
   brms keys by group.
+CLOSED in the round of 2026-11-11 (lane names): coef() is keyed by group, holding every predictor's coefficients.
 - Class `cor` rows of a dpar block: frmtmb lists `cor, g, sigma` where
   brms has one `cor, g` row, and brms sorts `cor` before `sd`.
 - `confint_varcorr()$block` and other tables read `term_label` (`1 + f
   | g` for a `||` term); it is the matching key.
+CLOSED in the round of 2026-11-11 (lane names): as 2897.
 - `ranef()` gives one entry per block: two blocks on one factor give
   the names `g g`; brms merges them into one `g` entry.
+CLOSED in the round of 2026-11-11 (lane names): blocks on one factor are one ranef() entry.
 - `validate_prior()` and `prior_summary()` keep `default_prior()`'s
   order for every class but `sd`; brms sorts by class, group, resp,
   dpar, nlpar and coef.
@@ -3843,14 +3858,17 @@ names the lane changed.
 - `ranef()` of a smooth-only model returns the smooth's penalized
   coefficients under the internal names `s(x).1`, ...; brms stops, and
   names them `s_sx_1[1]`, ... in `variables()`.
+CLOSED in the round of 2026-11-11 (lane names): ranef() of a model with no group-level term stops in brms's words; smooth draws are s_<label>[i].
 - `variables()` of an ML fit with `mo()` has no `simo_` entries; brms's
   has `simo_mok1[1]`, ..., and frmtmb.sample's draws have them.
+CLOSED in the round of 2026-11-11 (lane names): variables() of an ML fit lists simo_ and hypothesis() reads it.
 - The column order of `variables()` and of the draws is frmtmb's
   template order, not brms's (every centered intercept first, then
   response by response); recorded by the earlier lane
   (`dev/brmsnames-findings.md`, "Found and NOT fixed", item 1). The
   summaries follow brms since 0.75.0: `fixef()` of the fit and of the
   draws.
+CLOSED in the round of 2026-11-11 (lane names): variables() and the draws' accessors follow brms's order; x$draws keeps the template order.
 - The prior table's classes sort as brms's do since 0.75.0; `confint()`
   keeps frmtmb's internal parameter rows on purpose (brms has no
   `confint()` method).
@@ -4071,6 +4089,7 @@ was posted upstream.
   `dev/mocode-findings.md`, "Where frmtmb still differs from brms".
 - `variables()` of an ML fit has no `simo_` entries (filed at 0.75.0,
   still open).
+CLOSED in the round of 2026-11-11 (lane names): as 3846.
 
 ### Residual correlation priors
 
@@ -4374,6 +4393,7 @@ parity gap and saved 0.76.0 draws) stand.
   layout would need the simplex and its delta-method rows.
   `brmsfit-methods:978` stays a divergence anyway. `dev/mointerop-findings.md`,
   section 7.
+CLOSED in the round of 2026-11-11 (lane names): as 3846; hyp_par_cov() carries the simplex coordinates.
 - **The ported helper `brms_shim_update()` drops `sample_prior`** with
   the sampling arguments, so a ported `update(fit, sample_prior = )` row
   would not reach it. No such row is ported. `dev/priordraws-findings.md`,
@@ -4527,6 +4547,7 @@ section 7.4.
   `meanme_mexg meanme_mez meanme_mewg`, brms `meanme_mexg meanme_mewg
   meanme_mez`. `b_` and `bsp_` interleave differently on the dpar, mv
   and mi shapes. Same set of names on every shape.
+CLOSED in the round of 2026-11-11 (lane names): me() hyperparameters are listed group by group; b_ and bsp_ follow the class order.
 - **`default_prior()` gives `sigma` no `lb = 0`**, on every shape;
   brms gives `lb = 0`. The same as the 0.77.0 item on the `sd` and
   `sigma` rows of the sampling table, still open.
@@ -4574,6 +4595,7 @@ Review `dev/reviews/2026-10-28-rescorpp.md`; `dev/rescorpp-findings.md`,
   `list(NULL, NULL)`** (pre-existing nit, review finding 12): every
   `resp = first` difference on `posterior_predict`, `predictive_error`,
   `predict(summary = FALSE)` and `log_lik` in the review's layout logs.
+CLOSED in the round of 2026-11-11 (lane names): one-response draws matrices carry list(NULL, NULL).
 - **On a univariate model, `posterior_epred()` and `fitted()` with
   `resp = character(0)` stop with a raw "attempt to select less than one
   element"**, and with `resp = c("y", "y")` with "Unknown response:
@@ -4660,6 +4682,40 @@ none is a regression of this release.
   package does not declare (inferred by the review, not run). The skip
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
+
+## Filed in the round of 2026-11-11
+
+### From lane names
+
+- **brms's derived `err[k]` columns are not in the draws** of a latent
+  residual term (`ar(cov = FALSE)`'s states are brms's `zerr[k]` since
+  this round; other latent terms keep `latent_state[k]`). brms saves
+  `err` and not `zerr`. Adding them changes the draws' content, not a
+  name. The rest of the 5087 bundle (a corrected estimate and logLik,
+  `get_joint_cov()` on a new row's design, M7) stays open with it.
+- **`ranef()` and `coef()` of a fit keep lme4's `levels x coefs`
+  shape**, where brms's are `levels x 4 x coefs` summary arrays (the
+  draws methods already return brms's). A user decision: the ML modes
+  have no posterior summary to fill the 4, though `condVar` could fill
+  `Est.Error`.
+- **`ranef()` and `coef()` of a fit answer for an exact or approximate
+  `gp()` term** (the field) and `coef()` of a fit without group-level
+  terms returns the coefficient vectors; brms stops on both. Both are
+  documented frmtmb behavior, kept.
+- **`variables()` of a fit puts `b_Intercept` first under `0 +
+  Intercept`**: brms keeps it in its `b` vector, so on a distributional
+  model brms lists `b_sigma_Intercept` before it. Not measured; the rule
+  reads the name, not the predictor's centering.
+- **An exact `gp()`'s `zgp_<term>[i]` is not elementwise brms's**: z is
+  taken in the farthest-first order of the positions, brms's in first
+  appearance. An approximate `gp(k = )` keeps `b[i]` (its weights carry
+  the spectral density; brms's `zgp` is standardized).
+- **`insight::get_predicted()` on `multinomial()`** returns flattened
+  counts where brms errors (from 3164, not done).
+- **brms names an ordinal fit's `posterior_epred()` draw margin**
+  `"1".."S"`; frmtmb.sample's is `NULL`, and brms's categorical one is
+  `NULL` too (gated `test-sampling-ported.R`; dev/names-findings.md).
+  The observation margin is `NULL` on both sides since this round.
 
 ## Filed at the 0.81.0 release (2026-11-10)
 
@@ -5088,6 +5144,7 @@ translator's order of the positions.
   and `err[n]`; a corrected estimate and logLik (Laplace + C, `theta + shift`);
   `get_joint_cov()` on a new row's design, which reads `V` of the outer parameters
   alone, and M7.
+CLOSED in the round of 2026-11-11 (lane names): the names part only: ar(cov = FALSE) states are zerr[k]; err[k], the corrected estimate, get_joint_cov() on a new row and M7 are filed again.
 - nlfix: `simulate()` on `beta_binomial()` stops if a fitted mean rounds to 0 or 1;
   `frm_allfit(start_from_mle = FALSE)` reports bobyqa "failed" on a body's fit from
   zeros; `Beta()`, `dirichlet()` and the inflated Beta forms keep raw `lgamma()`

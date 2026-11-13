@@ -944,13 +944,16 @@ confint_varcorr <- function(fit, level = 0.95) {
   tr <- varcorr_trans_rows(fit)
   if (is.null(tr)) return(NULL)
   z <- stats::qnorm(1 - (1 - level) / 2)
+  # the block as written: a `||` term's label is the correlated
+  # `1 + f | g`, the term it is not (block_display_label())
+  shown <- block_display_label(fit, tr$block)
   out <- data.frame(
-    block = tr$block, term = tr$term, type = tr$type,
+    block = shown, term = tr$term, type = tr$type,
     estimate = varcorr_untrans(tr$type, tr$est_t),
     lwr = varcorr_untrans(tr$type, tr$est_t - z * tr$se_t),
     upr = varcorr_untrans(tr$type, tr$est_t + z * tr$se_t)
   )
-  label <- function(i) paste0(tr$block[i], " ", tr$term[i])
+  label <- function(i) paste0(shown[i], " ", tr$term[i])
   bad <- which(is.na(tr$se_t))
   # a block the fit's boundary message already named (se_boundary_act())
   # gets its NA bounds without a second warning
@@ -989,6 +992,28 @@ confint_varcorr <- function(fit, level = 0.95) {
                 paste(vapply(wide, label, ""), collapse = "; "),
                 call. = FALSE)
   }
+  out
+}
+
+#' The label a table shows for each block label in `labels`: a `||` or
+#' `gr(cor = FALSE)` term as it was written, `1 + f || g`, and any other
+#' block by its `term_label`. The `term_label` stays the matching key
+#' every reader inside the package uses; only the shown column changes.
+#'
+#' @noRd
+block_display_label <- function(fit, labels) {
+  map <- character(0)
+  for (bk in fit$frame[["re_blocks"]] %||% list()) {
+    wt <- unique(unlist(lapply(bk[["components"]] %||% list(), function(cp) {
+      cp[["written_text"]]
+    })))
+    if (!length(wt)) next
+    wt <- sub("^[(](.*)[)]$", "\\1", wt)
+    map[bk[["term_label"]]] <- paste(wt, collapse = " + ")
+  }
+  out <- labels
+  hit <- labels %in% names(map)
+  out[hit] <- unname(map[labels[hit]])
   out
 }
 
@@ -3065,7 +3090,49 @@ hyp_vals_only <- function(fit) {
     vals <- c(vals, v)
     comp <- c(comp, rep(cp, length(v)))
   }
+  # the mo() simplexes, which brms reports as simo_ variables; without
+  # them variables() of a fit had none and the draws had them all
+  for (cp in mo_extra_comps(fit)) {
+    v <- est[[cp]]
+    vals <- c(vals, v)
+    comp <- c(comp, rep(cp, length(v)))
+  }
   list(vals = vals, comp = comp)
+}
+
+#' The parameter-template components that hold the coordinates of the
+#' `mo()` simplexes (`zeta<j>`), in template order.
+#'
+#' @noRd
+mo_extra_comps <- function(fit) {
+  tpl <- fit$frame[["par_template"]]
+  z <- unlist(lapply(fit$frame[["linpreds"]], function(lp) {
+    vapply(lp[["mo"]] %||% list(), function(mi) mi[["zeta"]] %||% "", "")
+  }), use.names = FALSE)
+  z <- intersect(unique(z[nzchar(z)]), names(tpl))
+  z[lengths(tpl[z]) > 0L]
+}
+
+#' Put the `mo()` simplexes under brms's names, `simo_<label>1[k]`, for
+#' `hyp_env_vals()`. A two-category term has one weight, fixed at 1, as
+#' brms reports it.
+#'
+#' @noRd
+mo_put_simplex <- function(fit, vals, comp, put) {
+  for (lp in fit$frame[["linpreds"]]) {
+    pre <- brms_lp_prefix(fit, lp)
+    for (mi in lp[["mo"]] %||% list()) {
+      if (!isTRUE(mi[["D"]] >= 1L)) next
+      lab <- brms_rename(mi[["label"]])
+      nm <- paste0("simo", if (nzchar(pre)) paste0("_", pre), "_", lab,
+                   "1[", seq_len(mi[["D"]]), "]")
+      z <- vals[comp == (mi[["zeta"]] %||% "")]
+      w <- if (mi[["D"]] == 1L) 1 else mo_simplex(z, mi[["chart"]])
+      if (length(w) != length(nm)) next
+      for (k in seq_along(nm)) put(nm[k], w[k])
+    }
+  }
+  invisible(NULL)
 }
 
 #' The parameter-template components that hold an ordinal fit's
@@ -3125,7 +3192,7 @@ hyp_par_cov <- function(fit, extra = character(0)) {
   # covariance of (interop_vcov(): the mo() simplexes)
   comps <- c("beta", "betad", "theta", "thetaac", "thetar",
              ord_extra_comps(fit), me_comps(fit), simplex_extra_comps(fit),
-             extra)
+             mo_extra_comps(fit), extra)
   if (!fit$REML && !isTRUE(fit$control$profile)) {
     sdr <- sdr_of(fit)
     V <- sdr$cov.fixed
@@ -3281,7 +3348,9 @@ hyp_env_vals <- function(fit, vals, comp) {
   # and a smooth's sds_ follows them, brms's order sd, cor, sds, sdgp,
   # lscale (reorder_pars(); dev/prilabel-rev-log/order-brms.txt)
   sds_at <- integer(0)
-  for (bi in seq_along(fit$frame[["re_blocks"]])) {
+  # in brms's id order, which is the order the dpar formulas were
+  # written in and not the frame's (brms_block_order())
+  for (bi in brms_block_order(fit)) {
     bk <- fit$frame[["re_blocks"]][[bi]]
     # a smooth's one parameter is brms's smoothing sd, sds_sx_1
     if (!is.na(sds_nm[bi])) {
@@ -3316,7 +3385,9 @@ hyp_env_vals <- function(fit, vals, comp) {
     }
   }
   for (j in seq_along(cor_nm)) put(cor_nm[j], cor_val[j])
-  for (bi in sds_at) {
+  # a smooth is no group id in brms: its sds_ follow the predictors'
+  # own order, which is the frame's
+  for (bi in sort(sds_at)) {
     put(sds_nm[bi],
         exp(th[fit$frame[["re_blocks"]][[bi]][["theta_idx"]][1L]]))
   }
@@ -3368,6 +3439,7 @@ hyp_env_vals <- function(fit, vals, comp) {
   }
   lncor_put(fit, vals, comp, put)
   me_put_hyper(fit, vals, comp, put)
+  mo_put_simplex(fit, vals, comp, put)
   acc$vals
 }
 
@@ -4045,7 +4117,8 @@ variables.frmtmb_fit <- function(x, ...) {
   require_fit_packages(x)
   frm_check_dots(...)
   vo <- hyp_vals_only(x)
-  names(hyp_env_vals(x, vo$vals, vo$comp))
+  nm <- names(hyp_env_vals(x, vo$vals, vo$comp))
+  nm[brms_variable_sort(x, nm)]
 }
 
 #' Deprecated name of variables()

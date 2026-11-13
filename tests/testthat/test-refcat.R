@@ -143,7 +143,10 @@ test_that("multinomial() reads its categories from the response", {
   fm <- frm(bf(Yc | trials(N) ~ x), family = multinomial(), data = dd)
   # brms 2.23.0 names them by the columns: muy2, muy3
   expect_identical(names(fixef_by_dpar(fm)), c("muy2", "muy3"))
-  expect_identical(names(fixef_by_dpar(fk)), c("mu2", "mu3"))
+  # K = 3 builds the family away from the data; with the data, the named
+  # columns name the dpars as they do without K
+  expect_identical(names(fixef_by_dpar(fk)), c("muy2", "muy3"))
+  expect_identical(multinomial(K = 3)[["dpars"]], c("mu2", "mu3"))
   ll <- abs(as.numeric(logLik(fk)))
   expect_lt(abs(as.numeric(logLik(fk) - logLik(fm))), 1e-10 * ll)
   # cbind() names the categories too, and an unnamed matrix numbers them

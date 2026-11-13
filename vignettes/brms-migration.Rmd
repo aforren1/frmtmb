@@ -254,9 +254,10 @@ brms does.
   optimizer's tolerance. brms's fit does depend on them: at `y * 1000` its
   kernel does not factor at the estimates. `frmtmb` factors the kernel over a
   farthest-first order of the distinct positions, where rounding moves the
-  field least, and brms factors it in order of first appearance, so the `b[i]`
-  columns of `frm_sample()` draws are not brms's `zgp[i]` columns. Read the
-  field through `ranef()` or the predictive methods.
+  field least, and brms factors it in order of first appearance, so the
+  `zgp_<term>[i]` columns of `frm_sample()` draws carry brms's name but are
+  not brms's `zgp[i]` element by element. Read the field through `ranef()` or
+  the predictive methods.
 - `sample_prior = "only"` plus `posterior_predict()` is the same call
   on `frmtmb.sample::frm_sample()`, which samples the prior of the
   whole model as brms does. Without a sampler,

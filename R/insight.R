@@ -96,29 +96,42 @@ insight_param_scale <- function(x) {
   ex <- brms_extra_fixef(x)
   # a model whose extra blocks brms_extra_fixef() does not list in
   # ord_extra_comps() order keeps the internal scale rather than a
-  # guessed alignment
-  if (!length(ex) ||
-        !identical(vapply(ex, `[[`, "", "comp"), ord_extra_comps(x))) {
+  # guessed alignment. Several entries may read ONE block: under an
+  # ordinal mixture's order = "mu" every component reads tau_raw, each
+  # through its own threshold map, and fixef() lists each component's
+  # thresholds. That case kept the internal scale until the map below
+  # was allowed more rows than the vector it maps.
+  comps <- unique(vapply(ex, `[[`, "", "comp"))
+  if (!length(ex) || !identical(comps, ord_extra_comps(x))) {
     return(list(est = est, V = V))
   }
   n0 <- length(estimated_coef_names(x))
-  A <- diag(length(est))
-  nm <- names(est)
-  off <- n0
+  lens <- vapply(comps, function(cp) length(x$estimates[[cp]]), 1L)
+  if (!all(vapply(ex, function(e) {
+    length(e$raw) == lens[[e$comp]]
+  }, NA)) || n0 + sum(lens) > length(est)) {
+    return(list(est = est, V = V))
+  }
+  start <- n0 + c(0L, cumsum(lens))[seq_along(comps)]
+  names(start) <- comps
+  I <- diag(length(est))
+  rest <- seq_along(est)[seq_along(est) > n0 + sum(lens)]
+  A <- I[seq_len(n0), , drop = FALSE]
+  out <- est[seq_len(n0)]
   for (e in ex) {
     k <- length(e$raw)
-    pos <- off + seq_len(k)
-    for (i in seq_len(k)) {
-      A[pos[i], pos] <- fd_gradient_row(e$map, e$raw, i)
-    }
-    est[pos] <- e$values
-    nm[pos] <- e$names
-    off <- off + k
+    pos <- start[[e$comp]] + seq_len(k)
+    B <- matrix(0, k, length(est))
+    for (i in seq_len(k)) B[i, pos] <- fd_gradient_row(e$map, e$raw, i)
+    A <- rbind(A, B)
+    out <- c(out, stats::setNames(e$values, e$names))
   }
-  names(est) <- nm
+  A <- rbind(A, I[rest, , drop = FALSE])
+  out <- c(out, est[rest])
+  nm <- names(out)
   V <- A %*% V %*% t(A)
   dimnames(V) <- list(nm, nm)
-  list(est = est, V = V)
+  list(est = out, V = V)
 }
 
 # insight::get_sigma() is not generic; it dispatches on its internal
