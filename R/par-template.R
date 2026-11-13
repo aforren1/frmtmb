@@ -1019,10 +1019,14 @@ nl_saddle_warning <- function(frame, bodies, ll, llw = "log-likelihood") {
 nl_local_message <- function(frame, fit, bodies) {
   if (!length(bodies)) return(invisible(NULL))
   w <- nl_bodies_words(bodies)
+  # the value the fit maximized: logLik() stops under REML with a prior on
+  # the fixed effects, which sits inside the integral
+  llw <- if (fit_penalized(fit)) "penalized log-likelihood" else
+    "log-likelihood"
   frm_message(
     "The fit stops where ", w$noun, " ", w$is, " constant across the rows, ",
-    "which is ", nl_model_words(frame, bodies), ": log-likelihood ",
-    format(as.numeric(stats::logLik(fit)), digits = 7), ". The point is a ",
+    "which is ", nl_model_words(frame, bodies), ": ", llw, " ",
+    format(as.numeric(logLik_penalized(fit)), digits = 7), ". The point is a ",
     "local maximum along ", w$its, " coefficients. A `start` elsewhere can ",
     "test for a higher one",
     class = "frmtmb_nl_local")
@@ -1565,9 +1569,19 @@ nl_fit_probed <- function(run, frame, start, prior) {
       say(held$c)
       stop(e)
     })
+  # a fit that nothing warned about is asked whether it is on a ridge
+  # along which its coefficients are not determined
+  limit <- function(f, said) {
+    if (any(vapply(said, inherits, NA, "warning"))) return(invisible())
+    msg <- tryCatch(nl_limit_message(f), error = keep_missing(NULL))
+    if (!is.null(msg)) {
+      frm_warning(msg, call. = FALSE, class = "frmtmb_nl_limit")
+    }
+  }
   pr <- if (is.null(start)) nl_sign_probe(run, frame, fit)
   if (is.null(pr)) {
     say(held$c)
+    limit(fit, held$c)
     return(fit)
   }
   # what the first fit's stop was, or a restart it kept, is no longer the
@@ -1597,6 +1611,8 @@ nl_fit_probed <- function(run, frame, start, prior) {
       ", against ", lt[1L], " on the first fit's objective. The fit may ",
       "not be at a maximum; a `start` near the estimates can test it",
       call. = FALSE, class = "frmtmb_nl_multistart_unsettled")
+  } else {
+    limit(pr$fit, pr$held)
   }
   pr$fit
 }

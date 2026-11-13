@@ -1422,6 +1422,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       upper <- unlist(upper)
     }
   }
+  # no warm template from a caller: frm()'s cold start, or its pre-fit's
+  # (prior_conflict_escape())
+  cold_tpl <- is.null(template) || prefit_seeded
   if (is.null(template)) {
     template <- make_start(frame, start, prior_entries,
                            announce = announce_start, nll = nll_bare)
@@ -1741,6 +1744,13 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     if (is.null(bw) && !isTRUE(attr(start, "frmtmb_nl_probe"))) {
       opt <- nl_basis_descent(obj, opt, frame, ctl_opt, bounds, par_units,
                               tally, vb)
+    }
+    # a prior far from the data can leave a higher mode at its location;
+    # asked on the user's own cold start, not by a refit handed a mode
+    if (is.null(bw) && is.null(start) && announce_start && cold_tpl) {
+      opt <- prior_conflict_escape(obj, opt, frame, prior_entries, ctl_opt,
+                                   bounds, par_units, tally)
+      prior_conflict_message(opt)
     }
   } else if (!is.null(qnest)) {
     qf <- quad_nest_fit(nll, template, random, frame[["map"]], lap_obj,

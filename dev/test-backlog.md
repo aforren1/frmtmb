@@ -4661,6 +4661,80 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-11
+
+### From lane nlstop
+
+- **F11 seed 8's higher maximum is at a boundary that only a refit
+  reaches** (open since 0.70.0, item "fit_loss2 and F11 seed 8"). On
+  0.81.0 `bf(y ~ s(x1), sigma ~ s(x2))` stops at -589.023726, code 0, no
+  warning, with the sd of `s(x2)` at exp(-0.80); a refit from that log sd
+  at -10 reaches -588.881888 and stays there (`dev/nlstop-f11.R`). A
+  probe that does not refit cannot see it: the objective at log sd -10.8
+  with the rest held is 0.69 lower than the fit, and one or two Newton
+  steps in the other parameters on the fit's Hessian diverge (712.8 and
+  2.7e11, `dev/nlstop-dbg2.R`). The only test found is one refit per
+  interior sd, about one more fit each, on every model with random
+  effects. Not done: the brief prefers a warning to a costly search, and
+  there is no cheap warning (lane nlstop).
+- **The quadratic model under-reads a stop on a curved ridge tilted by a
+  weak prior.** `c0 + exp(a)^k`, `normal(0.5, 1000)` on k, a stop moved
+  along the ridge to k = 50 is 1.225e-3 short at code 0 with no warning:
+  `grad_verdict()` reads a headroom of 4.23e-4 (the reparameterized
+  Newton step), and `headroom_ritz_flat()` finds no flat column there, so
+  the Ritz-flat exception is not what keeps it quiet (`dev/nlstop-dbg3.R`,
+  `dev/nlstop-dbg4.R`). With psd 100 and k = 5 the stop is 1.012e-3 short,
+  also silent; from 3.16e-3 short every stop warns. The 1.9e-4 stop of the
+  0.81.0 Limit is below `grad_tol` and its silence is the rule. The prior's
+  gain along the ridge's tangent is exactly the shortfall here, but the
+  data-only Hessian's flattest direction carries the gradient across the
+  ridge, and a gain read along it was 2.7e7 (lane nlstop).
+- **huber() with a group term stops short in silence on half the fits.**
+  `y ~ x + (1 | g)`, 100 rows, 20 groups, t3 noise, seeds 1 to 20
+  (`dev/nlstop-huber.R`, against the best of 8 jittered starts): at the
+  response scales 1 and 1e3, 11 of 20 fits are short each, 6 and 5 of them
+  with no warning, by 0.0074 to 0.272; without the group term 0 of 40. The
+  Laplace objective jumps where a residual crosses `k` (lane optrap, m6).
+  Under `quadrature = TRUE` the same rows read 0 short at scale 1 and 2
+  short at 1e3 (0.0274 and 6.7e-4, `dev/nlstop-huber-quad.R`). Either
+  say so on a huber() fit with random effects under the Laplace
+  approximation, or document `quadrature = TRUE` as its route (lane
+  nlstop). The fix round documented it in `?huber` and added no warning:
+  the review found no cheap detector (coordinate probes find 3 of 11
+  silent shorts) and a warning on every such fit would fire on 9 of 20
+  correct fits at each scale (review of lane nlstop, user question).
+- **Silent short nonlinear fits left on the review's fresh rows** (425
+  rows, 335 fit from the default start; `dev/nlstop-freshsum.R`): binomial
+  `Vm * xp / (K + xp)` seeds 11 and 44 stop at code 0 with no warning at
+  -623.288529 (K -0.182532) and -626.898840 (K -0.110348), trapped
+  between poles inside the data's xp (0.1 to 5); the higher points are
+  proper interior maxima outside the covariate's range, -618.966489 at K
+  -6.0152 and -625.980024 at K -6.45313, code 0, reached from K starts
+  near -6 (8 and 9 of 24 starts), so the defaults are 4.32 and 0.92 short
+  of a real maximum (`dev/reviews/nlstop-review-pole.R`). On bernoulli mm
+  55, user starts at K = -2.5 end at code 0 with no warning at
+  -207.650719 (K -1.00) and -207.001511 (K -2.92), with a pole inside the
+  data, 1.38 and 0.73 below the linear limit. Cumulative `a * xp^b` seed
+  22 is 1.03 short at code 0; bernoulli `sig4` seed 55 is 2.8e-4 short,
+  below `grad_tol` (lane nlstop, corrected in its fix round).
+- **The limit check (`frmtmb_nl_limit`) misses two limits it describes.**
+  `a * (exp(b * x) - 1)` on linear data (n 1000, seed 2): code 0, no
+  warning, a 1.40e4, b 1.44e-4; scaling (a, b) by (1000, 1/1000) raises
+  the log-likelihood by 0.003285, above `grad_tol`, but the flattest
+  eigenvector of the differenced Hessian in log magnitudes is not exactly
+  (1, -1), and the 1000-fold move along it leaves the ridge (gain
+  -0.0200), so the check says nothing. The Hill body `Emax * x^h / (EC50^h
+  + x^h)` on step data with a gap: h times 1000 overflows to NaN, and the
+  quadratic gate reads 9.14 against 1. A fix would re-solve the stiff
+  direction after the move (one Newton step across it) and move by
+  smaller factors where the body overflows
+  (`dev/reviews/nlstop-review-fndebug.R`; review of lane nlstop, MINOR
+  1). Neither is a regression:
+  0.81.0 is silent on both (lane nlstop).
+- **`grad_headroom()` on ordinal nl fits (4793), a `frmtmb_control()`
+  switch for the sign probe (4931) and the profile at x near 1e-20
+  (4856)** were not reached in this round (lane nlstop).
+
 ## Filed at the 0.81.0 release (2026-11-10)
 
 Gathered from the lanes' own sections of the round of 2026-11-09
@@ -4853,6 +4927,7 @@ then the reviews' items left for later. Lane records:
   6203 and on both rellib-r18 and the lane's build. Not fixed: the linear
   spelling has no restart. `dev/reviews/2026-11-06-nlstart.md`, "Filed,
   not this lane's"; `dev/review-nlstart-prior.R`, rows `apbx 1e6 1000`.
+  CLOSED in the round of 2026-11-11 (lane nlstop): a coefficient more than 4 prior scales from its prior's location gets a restart there; the three rows read the body's -2462.96, -2466.22, -2457.56.
 - **Profile intervals at x near 1e-20 are `NA`** on the linear and body
   spellings and on both builds (same review).
 
@@ -4916,6 +4991,7 @@ then the reviews' items left for later. Lane records:
 - **NIT. `nl_local_message()` reads `stats::logLik()`**, which stops under
   REML with a prior on the fixed effects. It is unreachable under any
   prior (release review of 0.80.0, item 9).
+  CLOSED in the round of 2026-11-11 (lane nlstop): the message reads logLik_penalized(), which does not stop there.
 - **UPSTREAM, for the user. Ask TMB upstream to export `solveSubset()`
   and a tape-size accessor (`info()`); user will raise it later.** 0.80.0
   keeps both reads: `solveSubset()` through `get0()` with a correct
@@ -4961,6 +5037,7 @@ then the reviews' items left for later. Lane records:
   Michaelis-Menten seed 55, 1.84 short at code 0, silent, where 0.79.1
   was 2.29 short with 2 warnings; NEWS says so
   (dev/reviews/2026-11-06-nlstart.md, third short check, MINOR 1).
+  CLOSED in the round of 2026-11-11 (lane nlstop): the fit is the linear limit (1.7e-5 below y ~ 0 + xp) and now warns (frmtmb_nl_limit); the "higher maximum" is a pole at K = -max(xp) under false convergence.
 - **QUESTION. A user `vcov =` over the coefficients alone holds the
   group-level effects fixed, with a warning** (decided for 0.80.0). The
   alternative is to carry it through `J` with the model's own

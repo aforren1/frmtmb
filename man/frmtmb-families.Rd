@@ -237,6 +237,13 @@ categories, and a \code{binomial()}, \code{beta_binomial()} or
 Every constructor has brms's fields: \verb{$link} is the name of the link
 for the mean, and \verb{$link_<dpar>} the link of each other parameter,
 as in \code{beta_binomial()$link_phi}. See \code{\link[=frmtmb_family]{frmtmb_family()}}.
+
+For \code{huber()} with group-level terms: the Laplace approximation
+of the marginal likelihood changes in steps where a residual crosses
+\code{k}, so the optimizer can stop on a lower piece of it, at code 0 and
+with no warning. For such a model, fit with \code{quadrature = TRUE} where
+the model allows it (scalar group-level terms), which integrates the
+density itself, or compare fits from several starts.
 }
 \section{Compositional responses}{
 

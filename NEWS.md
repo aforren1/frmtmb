@@ -1,3 +1,47 @@
+# frmtmb (development version)
+
+## Fitting
+
+* BREAKING: When the likelihood has a free dispersion or scale (sigma,
+  phi, shape, nu; a probability such as zi or hu is not one) and a fixed
+  coefficient, or the centered intercept, lies more than
+  4 scales of its normal, Student t or logistic prior from the prior's
+  location, `frm()` now fits a second time from the default start with
+  that coefficient at the location and returns the higher of the two,
+  with a message of class `frmtmb_prior_multistart` when the second
+  wins. Such a prior can leave two posterior modes: `y ~ x` with y near
+  1e6, a slope near 5e4 and `normal(0, 1000)` on it stopped at the
+  data's mode, about 470 below the mode near the prior's location in the
+  penalized log-likelihood, at code 0 with no warning; `normal(0, 1e4)`
+  on the intercept stopped 3614 below. Only the user's own fit from the
+  default start takes the second fit; `refit()`, `influence()`,
+  `frm_allfit()` and the refits of `anova()` start from the mode they are
+  given.
+
+* BREAKING: A nonlinear fit that no other check warns about is now asked
+  whether the data determine its coefficients. They are moved by a
+  factor of 1000 along the flattest direction of the log-likelihood in
+  their log magnitudes, and when a move that makes a coefficient larger
+  lowers the log-likelihood by no more than `grad_tol`, and every
+  coefficient it moves is at least one standard error from 0 given the
+  others, a warning of class `frmtmb_nl_limit` says so.
+  `Vm * xp / (K + xp)` on Bernoulli data whose likelihood rises toward
+  the linear limit returned Vm = 1.3e4 and K = 1.8e5 at code 0 with
+  finite standard errors and no warning; it was the sign probe's
+  "quieter lower maximum" of 0.80.0. The higher value that random starts
+  reached there is not a maximum but a pole of the body at the largest
+  covariate value, under a false-convergence warning.
+
+* The message of a fit that stops where a nonlinear body is constant
+  now gives the penalized log-likelihood, the value the fit maximized,
+  under a prior with a density.
+
+## Documentation
+
+* `?huber` says that with group-level terms the Laplace approximation
+  can stop on a lower piece of its objective, and that
+  `quadrature = TRUE` is the route for such a fit.
+
 # frmtmb 0.81.0
 
 ## Convergence and standard errors

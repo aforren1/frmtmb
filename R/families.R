@@ -9237,6 +9237,12 @@ zero_inflated_asym_laplace <- function(link = "identity", link_sigma = "log",
 #'   units of `sigma` where the density stops being gaussian and becomes
 #'   Laplace. It is FIXED, not estimated - the default 1.345 is
 #'   `MASS::rlm()`'s, which gives 95% efficiency against a gaussian.
+#' @details For `huber()` with group-level terms: the Laplace approximation
+#'   of the marginal likelihood changes in steps where a residual crosses
+#'   `k`, so the optimizer can stop on a lower piece of it, at code 0 and
+#'   with no warning. For such a model, fit with `quadrature = TRUE` where
+#'   the model allows it (scalar group-level terms), which integrates the
+#'   density itself, or compare fits from several starts.
 #' @export
 huber <- function(link = "identity", k = 1.345, link_sigma = "log") {
   link <- link_arg_value(substitute(link), link,
