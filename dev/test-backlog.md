@@ -4793,6 +4793,99 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-13
+
+### From lane wcheck2
+
+Record: `dev/wcheck2-findings.md`.
+
+- **HIGH. asym_laplace's Laplace approximation has no maximum with a
+  random effect in mu.** The log density is piecewise linear in mu, so
+  with mu linear in the effects the data add no curvature: H = 1/sd^2,
+  the term -1/2 log H cancels the normalizing constant of the effects'
+  prior, and the approximation is `sum_g max_b (sum_i log f(y_i | b) -
+  b^2 / (2 sd^2))`, which does not decrease in sd, even at exact inner
+  modes. TMB's inner search does not find those modes either. The
+  review's runs (`dev/reviews/wcheck2-review-al.R`, no weights, no
+  censoring, `y ~ x + (1 | g)`, seeds 20261114 to 20261123, rellib-r21):
+
+  | design | conv 0 of 10 fits | exact-mode Laplace sup minus fit logLik, median (max) | max TMB mode error | quadrature fits with no logLik |
+  |---|---|---|---|---|
+  | 80 rows, groups of 4 | 0 | 6.63 (11.10) | 0.622 | 8 of 10 |
+  | 100 rows, groups of 10 | 0 | 2.90 (3.81) | 0.291 | 5 of 10 |
+  | 80 rows, groups of 2 | 0 | 49.24 (63.29) | 2.06 | 4 of 10 |
+  | 80 rows, groups of 4, ALD noise (p 0.3) | 0 | 5.35 (9.16) | 0.655 | 7 of 10 |
+
+  At each fit the exact-mode approximation rose along log sd +0 to +8
+  in 30 of 30 profiles; every fit ended at "false convergence (8)" with
+  a gradient warning; each quadrature failure read "the Gauss-Kronrod
+  objective broke down". With `(1 | obs)` and censored rows the inner
+  search also leaves each censored row's effect where the complement of
+  its CDF underflows (1.4e4 and 6.4e5 sigmas past the bound), and the
+  objective rises 8.00 per unit of `-log sigma` where the approximation
+  at the modes falls 27.96 to 28.0 (`dev/wcheck2-al-decomp.R`).
+  The round of 2026-11-13 ships a refusal (`check_ald_laplace()`, class
+  `frmtmb_ald_no_laplace`) under the Laplace approximation of a block
+  in mu on the identity link among `(1 | g)`, slopes (correlated or
+  not), `cs()`, `homdiag()`, `ar1()`, `gr(cov = )`, `s()`, `t2()` and an
+  approximate `gp(k = )`, each profiled first, with no
+  `cens()`/`trunc()`, no `mi()`/`me()`, no random effect of the response
+  in sigma, quantile or zi, no Student-t block or other package's block
+  in the same mu, and no prior on the block's scale; it points to
+  `frm_sample()`. What remains: the models it leaves open (another
+  link, censored rows, a random effect in sigma, an exact `gp()`, `rr()`
+  and the structures not profiled, a Student-t block or another
+  package's block anywhere in mu, `mi()`/`me()`)
+  still fit with the false-convergence warning; the quadrature breakdown
+  is open; a smoothed quantile family that has curvature is planned for
+  a later round. Near 3389 (no asym_laplace fit passes the gradient
+  check).
+- **LOW. A fit with every row censored has no "estimate does not exist"
+  warning under asym_laplace.** `yac | cens(ca) ~ x + (1 | g4)`, all 80
+  rows right censored at the minimum (`dev/wcheck2-allcens.R`): gaussian
+  warns that the maximum likelihood estimate does not exist and names
+  the intercept and sigma; asym_laplace ends at logLik -0, log sigma
+  -38.61, conv 1 with the start warning and "false convergence (8)"
+  only. 3392's limit rule does not reach it.
+- **LOW. The weights check does not decide two cells of a shape under a
+  bounding Intercept prior.** The pair rule (a cell's mean excess above
+  another's mean weight, with the centered intercept held) is proved
+  for a scale on the log link, where a row loses its weight per unit as
+  the scale grows. A shape going to 0 loses at its family's own rate
+  (Gamma 1, inverse.gaussian 1/2, von_mises 0, weibull faster than any
+  power), not derived, so `shape ~ 1 + fac` under a bounding Intercept
+  prior stays "unknown" and fails open.
+- **LOW. `dev/wcheck-cases.R` labels an all-censored arm "72 right
+  censored".** Its loop over k leaves the data at k = 80, so the arm
+  "asym_laplace 72 right censored (1 | g4)" of the 58-case table fits
+  every row censored. Relabel it when the table is next regenerated.
+- **LOW. The pair rule of the weights check misses a dispersion design
+  that is not saturated, or a column whose prior bounds it.** The rule
+  tests pairs of row sets with the centered intercept held: the
+  distinct rows of a saturated design, else treatment cells and the
+  reference level. With `normal(0, 1)` on `facb` of `sigma ~ 1 + fac`
+  the best direction moves a and b together against c, which no pair
+  is, so the model is let through (7 of 150 configurations of the
+  review's grid, slope 13.7 on one, `dev/reviews/wcheck2-review-pair.R`).
+  A numeric column beside a factor, or two additive factors, are tested
+  on cells alone; no miss was found there (0 of 150 with a numeric
+  column), but none is proved absent. The exact rule is a linear
+  program over the held columns.
+- **LOW. huber with `(1 | g4)` stops at "false convergence (8)" and its
+  logLik differs from a fresh evaluation.** In 7 of 10 seeds of the
+  review's g4 design the fit ends at code 8, 2 of them with "Standard
+  errors are not available for 4 of 4 parameters", and in 5 of 10 the
+  reported logLik differs from a fresh object's value at `fit$opt$par`
+  by 0.064 to 0.136 (`dev/reviews/wcheck2-review-al.R huber4`). The
+  inner modes are found (largest inner gradient 6.09e-11). Not
+  diagnosed.
+- **LOW. An identity-link sigma ~ 1 + fac under a normal Intercept prior
+  stops at sigma = 0.** With weights giving one cell an excess of 8,
+  sigma of that cell ends at 0.4141 - 0.4141 = 0, logLik 136.452, conv 1
+  (warned), on rellib-r21 and the lane alike
+  (`dev/reviews/wcheck2-review-links.R`). The weights check decides
+  only the log link here.
+
 ## Filed at the 0.82.0 release (2026-11-11)
 
 ### From lane boundfam
@@ -4965,6 +5058,7 @@ Record: `dev/wcheck-findings.md`.
   gradient of 1.43e6 (warned, not silent), and quadrature ends at
   conv 1 too. Gaussian rows on the other side cost about 1/2 (slopes
   3.7 to 3.9 at an excess of 8 with 8 such rows).
+  CLOSED in the round of 2026-11-13 (lane wcheck2): misdiagnosed; 1/2 per row is the Laplace approximation's cost (with each row's inner mode found, both cases fall 27.96 and 28.0 per unit, 8 - 72/2 = -28); the 8.00 is TMB's inner search stopping where the CDF complement underflows, filed under "From lane wcheck2".
 - **MEDIUM. hurdle_lognormal and zero_inflated_beta are outside the spike table
   and run away unrefused.** With weights 1.5 and `(1 | obs)`
   (`dev/reviews/wcheck-review-misc.R`, part quad): `hurdle_lognormal`
@@ -4974,6 +5068,7 @@ Record: `dev/wcheck-findings.md`.
   120.834). Each needs a table entry with its own proof, with the
   hurdle and zero-inflated rows treated as zero_inflated_asym_laplace's
   zeros are (a point mass neither grows nor curves).
+  CLOSED in the round of 2026-11-13 (lane wcheck2): hurdle_lognormal, hurdle_gamma, zero_inflated_beta and zero_one_inflated_beta join the table, rows at the point mass left out of the excess; profiled on both sides (slopes rate x E of the other rows: 34, 4, -2; 17, 2, -1).
 - **LOW. A free treatment contrast of `sigma ~ 1 + f` under a bounding
   Intercept prior is not decided.** frmtmb puts the Intercept prior on
   the centered intercept, which the contrast moves too, so the check
@@ -4982,6 +5077,7 @@ Record: `dev/wcheck-findings.md`.
   the other (`dev/reviews/2026-11-11-wcheck.md`, finding 1: weights 0.3
   and 1.5 under `normal(0, 1)` run to logLik 612.75, conv 1, unrefused).
   An exact rule for more cells is a linear program not derived yet.
+  CLOSED in the round of 2026-11-13 (lane wcheck2): for a scale on the log link, refused when one row set's mean excess exceeds another's mean weight, the sets being the distinct rows of a saturated design (exact there when every moving column is free: any coding of one factor, a full interaction) or else treatment cells and the reference level (slopes +-0.100 on both sides); held columns, unsaturated designs and shapes are filed under "From lane wcheck2".
 - **LOW. An invalid prior meets the weights refusal before its own error.**
   `set_prior(..., class = "b", coef = "Intercept", dpar = "sigma")` on
   a centered dispersion design is refused by frmtmb ("names an
@@ -4990,16 +5086,19 @@ Record: `dev/wcheck-findings.md`.
   the user does not see what is wrong with the prior
   (`dev/reviews/wcheck-short-attacks.R`, `wcheck-short-couple-lane.txt`).
   The order predates the round of 2026-11-11.
+  CLOSED in the round of 2026-11-13 (lane wcheck2): the check resolves the prior before it refuses, so the prior's own error comes first (also "Prior target not found").
 - **LOW. The observation-level warning names a multivariate term with its
   response.** `mvbf(bf(y ~ x + (1 | obs)), ...)` warns "`y 1 | obs`
   gives every observation its own random effect"; the formula writes
   `(1 | obs)`. The block label carries the response prefix, which the
   weights refusal now strips (`block_term_in_response()`).
+  CLOSED in the round of 2026-11-13 (lane wcheck2): both structure checks write "`1 | obs` of response y" (and "`1 | one` of response y2" for one level).
 - **MEDIUM. asym_laplace with 72 of 80 rows right censored and `(1 | g4)` ends
   at logLik -0 and log sigma -38.61** (conv 1) after "Starting value 0
   for sigma is -Inf through its log link", on rellib-r20 and the lane
   alike (`dev/wcheck-cases.R`, part cens). Not investigated; 3333 (all
   rows censored) is near it.
+  CLOSED in the round of 2026-11-13 (lane wcheck2): misdiagnosed; the script's loop left every row censored (k = 80), and with 72 censored the fit ends at logLik -20.715 (3389's code 1); the all-censored stop is filed under "From lane wcheck2".
 ### From lane priortab
 
 - **MINOR. A user's `lb` at an end where the prior's density is 0 gives

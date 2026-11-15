@@ -17,7 +17,22 @@ unbounded_spike_dpar <- list(
   shifted_lognormal = "sigma", huber = "sigma", von_mises = "kappa",
   frechet = "nu", gen_extreme_value = "sigma",
   exgaussian = c("sigma", "beta"), asym_laplace = "sigma",
-  zero_inflated_asym_laplace = "sigma")
+  zero_inflated_asym_laplace = "sigma",
+  # lognormal, Gamma and Beta on the rows off the point mass
+  # (unbounded_point_mass); dev/wcheck2-4968.R profiles each
+  hurdle_lognormal = "sigma",
+  hurdle_gamma = "shape",
+  zero_inflated_beta = "phi",
+  zero_one_inflated_beta = "phi")
+
+# The responses at which a family puts a point mass that its density
+# reads off a probability dpar alone (hu, zi, zoi and coi): such a row's
+# density neither depends on mu nor on the spike dpar, so its own effect
+# keeps only its prior, and the row neither grows nor curves as the
+# spike dpar goes to its limit. The excess is the other rows'.
+unbounded_point_mass <- list(
+  zero_inflated_asym_laplace = 0, hurdle_lognormal = 0, hurdle_gamma = 0,
+  zero_inflated_beta = 0, zero_one_inflated_beta = c(0, 1))
 
 # The limit each spike dpar runs to: a scale shrinks to 0, a precision
 # or shape grows without bound
@@ -31,6 +46,8 @@ unbounded_spike_toward_zero <- c("sigma", "beta")
 # k^(rate * excess), which is what a prior's tail is weighed against.
 unbounded_spike_rate <- list(
   Gamma = c(shape = 0.5), beta = c(phi = 0.5),
+  hurdle_gamma = c(shape = 0.5), zero_inflated_beta = c(phi = 0.5),
+  zero_one_inflated_beta = c(phi = 0.5),
   inverse.gaussian = c(shape = 0.5), von_mises = c(kappa = 0.5),
   weibull = c(shape = 1), frechet = c(nu = 1))
 
@@ -91,6 +108,12 @@ unbounded_spike_rate <- list(
 #' to 7.5, where the 0.81.0 allowance of 1/2 per row let all of them
 #' through.
 #'
+#' A hurdle or zero-inflated family puts some responses in a point mass
+#' whose probability is a dpar of its own (`unbounded_point_mass`). Such
+#' a row's density reads neither mu nor the spike dpar, so its own effect
+#' keeps only its prior: the row neither grows nor costs, and the excess
+#' is the other rows'.
+#'
 #' A prior on a spike dpar exempts the model only when it provably
 #' bounds the growth (`prior_spike_verdict()`); a prior on anything else
 #' never does. `route = "sample"` asks the posterior question instead:
@@ -114,6 +137,12 @@ check_weights_unbounded <- function(spec, frame, prior, exact = FALSE,
   for (r in names(spec$responses)) {
     hit <- weights_unbounded_response(spec, frame, prior, r, exact, route)
     if (!is.null(hit)) {
+      # a prior the fit would refuse is the first thing to fix, and the
+      # refusal below would hide its error (frm() reaches this check
+      # before it resolves the prior); frm_sample() resolved its own
+      if (route == "map" && length(prior)) {
+        resolve_prior_input(list(frame = frame, spec = spec), prior)
+      }
       hit$resp <- if (multi) r
       frm_stop(do.call(weights_unbounded_message, hit), call. = FALSE)
     }
@@ -160,19 +189,26 @@ weights_unbounded_response <- function(spec, frame, prior, r, exact,
   cen <- av[["cens"]]
   cen <- if (is.null(cen)) rep(0, n) else rep_len(cen, n)
   unc <- pos[cen[pos] == 0]
-  # a zero of zero_inflated_asym_laplace is the point mass: log(zi),
-  # whatever its own effect, so the row neither grows nor curves
-  if (identical(fam, "zero_inflated_asym_laplace")) {
-    yv <- frame[["y"]][[r]]
-    unc <- unc[yv[unc] != 0]
+  # a row at a point mass reads log(zi) or log(hu), whatever its own
+  # effect, so it neither grows nor curves
+  mass <- unbounded_point_mass[[fam]]
+  at_mass <- rep(FALSE, n)
+  if (!is.null(mass)) {
+    at_mass <- frame[["y"]][[r]] %in% mass
+    unc <- unc[!at_mass[unc]]
   }
   # a constant mean can put one side's censored rows at probability 1
   # (see above); trunc() bounds the mean's reach, so there it cannot
   shift <- if (is.null(av[["trunc_lb"]]) && is.null(av[["trunc_ub"]])) {
     unbounded_shift_sides(prior, r, lp)
   } else c(up = FALSE, down = FALSE)
+  # membership by mask: a cell's rows are read in time proportional to
+  # their number, never to n
+  is_pos <- w > 0
+  is_unc <- logical(n)
+  is_unc[unc] <- TRUE
   excess_of <- function(rows) {
-    u <- intersect(rows, unc)
+    u <- rows[is_unc[rows]]
     e <- if (laplace_linear) sum(w[u]) else sum(w[u] - 1)
     cr <- rows[cen[rows] != 0]
     if (isTRUE(exact) || !length(cr)) return(list(e = e, u = u, cost = 0))
@@ -191,7 +227,8 @@ weights_unbounded_response <- function(spec, frame, prior, r, exact,
     }, ""))
     list(terms = terms, w = w[ex$u], excess = ex$e, spike = spike,
          fam = fam, laplace_linear = laplace_linear, route = route,
-         n_cens = sum(cen[rows] != 0), cost = ex$cost, coef = coef)
+         n_cens = sum(cen[rows] != 0), cost = ex$cost, coef = coef,
+         n_mass = sum(at_mass[rows] & cen[rows] == 0), mass = mass)
   }
   rate <- unbounded_spike_rate[[fam]][spike] %||% rep(1, length(spike))
   rate[is.na(rate)] <- 1
@@ -213,16 +250,234 @@ weights_unbounded_response <- function(spec, frame, prior, r, exact,
   # with two spike dpars both would have to reach their limit on the
   # same rows, which the check does not try to prove
   if (length(spike) == 1L && unbounded_spike_free_lp(lps[[1L]])) {
-    for (cell in unbounded_spike_cells(lps[[1L]])) {
-      rows <- intersect(pos, cell$rows)
+    cells <- unbounded_spike_cells(lps[[1L]])
+    # the design once, not once per cell: per cell it cost O(L n p)
+    Xs <- if (length(cells) && length(prior)) as.matrix(lps[[1L]][["X"]])
+    icpt_s <- if (!is.null(Xs)) unbounded_has_icpt(Xs)
+    for (cell in cells) {
+      rows <- cell$rows[is_pos[cell$rows]]
       ex <- excess_of(rows)
       if (tol(ex)) next
       v <- prior_column_verdict(prior, r, spike, lps[[1L]], cell$col,
-                                ex$e * rate[1L], route)
+                                ex$e * rate[1L], route, X = Xs,
+                                icpt = icpt_s)
       if (identical(v, "free")) return(hit(rows, ex, coef = cell$name))
+    }
+    # no unit can gain while every uncensored weight is at most 1; an
+    # unweighted model stops here
+    if (laplace_linear || any(w[is_unc] > 1)) {
+      pr <- unbounded_cell_pair(cells, lps[[1L]], prior, r, spike, is_pos,
+                                is_unc, w, excess_of)
+      if (!is.null(pr)) {
+        out <- hit(pr$rows, pr$ex)
+        out$pair <- pr$pair
+        return(out)
+      }
     }
   }
   NULL
+}
+
+#' Two units of a scale's design whose rows can move apart with the
+#' centered intercept held, which a prior holds: the scale shrinks on
+#' one unit's rows and grows on another's while that prior stays
+#' constant.
+#'
+#' frmtmb puts a class `Intercept` prior on `Ic = b0 + means_X'b`, the
+#' mean of the predictor over the design's rows. With `Ic` held, unit
+#' j's log scale can move by `s_j` and unit k's by `s_k` when `n_j s_j +
+#' n_k s_k = 0` (`n` counting the design's rows of each unit, as
+#' `means_X` does). The units are of two kinds:
+#'
+#' - When the parametric design is saturated in its rows (its distinct
+#'   rows number `rank(X)`, as for one factor in any coding, treatment,
+#'   `contr.sum` or Helmert, and for a full interaction of factors), each
+#'   distinct row is a unit. Any move of the units is then a direction in
+#'   the coefficients, `d = solve(D, s)` over the distinct rows `D`.
+#' - Otherwise, the rows that one column moves alone (a treatment
+#'   column, `unbounded_spike_cells()`), and, when those cells do not
+#'   overlap, the rows that none of them reaches (the reference level: b0
+#'   moves and every cell's column takes it back). A numeric column
+#'   beside a factor, or two factors without their interaction, give this
+#'   kind; their other directions are not searched.
+#'
+#' As unit j's scale shrinks its rows gain `E_j` per unit of `-log
+#' sigma` (the excess, less the censored rows' cost); as unit k's scale
+#' grows, each uncensored row off a point mass loses its weight per unit,
+#' for every scale in the table (its density at a fixed point falls like
+#' 1 / sigma, and its own effect's curvature goes to 0), and a censored
+#' or point-mass row loses nothing. So the objective grows without bound
+#' along that ray when `E_j / n_j > W_k / n_k`, with `W_k` the weight of
+#' unit k's uncensored rows off the mass. For a saturated design whose
+#' columns are all free this is also the only way: over moves of the
+#' units with `sum n_u s_u = 0`, the growth is linear and its maximum
+#' puts all its mass on one shrinking unit and one growing unit.
+#'
+#' Decided only for a scale spike (sigma) on the log link, the one loss
+#' rate proved here, and only for a pair whose moving columns all have a
+#' free prior (none, flat or student_t, with no bound); the intercept's
+#' column is free, since its prior is on the held `Ic`. A column's own
+#' prior would cost a power of t that the linear growth must beat, and a
+#' held column restricts the moves to a linear program that this does
+#' not solve. Otherwise `NULL` (not decided). A prior that does not bound
+#' `Ic` is the cell rule's case, decided before this one.
+#'
+#' @noRd
+unbounded_cell_pair <- function(cells, lp, prior, r, spike, is_pos, is_unc,
+                                w, excess_of) {
+  if (!(spike %in% unbounded_spike_toward_zero)) return(NULL)
+  if (!identical(lp[["link"]][["name"]] %||% "", "log")) return(NULL)
+  X <- as.matrix(lp[["X"]])
+  if (isFALSE(lp[["center"]]) || !unbounded_has_icpt(X)) return(NULL)
+  # means_X holds the parametric columns only (lp_center_offset()); the
+  # rest are held
+  np <- min(lp[["n_param_cols"]] %||% ncol(X), ncol(X))
+  Xp <- X[, seq_len(np), drop = FALSE]
+  n <- nrow(Xp)
+  cns <- (colnames(X) %||% character(ncol(X)))[seq_len(np)]
+  icpt <- apply(Xp, 2L, function(v) v[1L] != 0 && all(v == v[1L]))
+  if (!any(icpt)) return(NULL)
+  # whether the class b prior of one column is free both ways: an
+  # exponential or gamma tail costs linearly too, which is not weighed
+  # here
+  mine_b <- if (length(prior)) {
+    if (!inherits(prior, "frmtmb_priorlist")) return(NULL)
+    Filter(function(s) {
+      identical(s$dpar %||% "", spike) && prior_resp_matches(s, r) &&
+        identical(s$class, "b")
+    }, prior)
+  } else list()
+  col_free <- vapply(seq_len(np), function(j) {
+    if (icpt[j]) return(TRUE)
+    hit <- Filter(function(s) identical(s$coef %||% "", cns[j]), mine_b)
+    if (!length(hit)) hit <- Filter(function(s) !nzchar(s$coef %||% ""),
+                                    mine_b)
+    if (!length(hit)) return(TRUE)
+    s <- hit[[1L]]
+    kind <- if (is.null(s$dist)) "flat" else s$dist$kind %||% ""
+    kind %in% c("t", "flat") &&
+      !isTRUE(is.finite(suppressWarnings(as.numeric(s$lb)))) &&
+      !isTRUE(is.finite(suppressWarnings(as.numeric(s$ub))))
+  }, NA)
+  cells <- Filter(function(cl) cl$col <= np, cells)
+  cell_cols <- vapply(cells, `[[`, 0L, "col")
+  cell_rows <- unlist(lapply(cells, `[[`, "rows"))
+  disjoint <- !anyDuplicated(cell_rows)
+  pat <- unbounded_row_patterns(Xp)
+  if (!is.null(pat)) {
+    rows_of <- split(seq_len(n), pat$id)
+    # a column's direction for a pair: d = solve(D, s), read only when a
+    # column is not free
+    moves_of <- function(j, k) {
+      if (all(col_free)) return(TRUE)
+      if (nrow(pat$D) != np) return(FALSE)
+      s <- numeric(nrow(pat$D))
+      s[j] <- -1 / length(rows_of[[j]])
+      s[k] <- 1 / length(rows_of[[k]])
+      d <- solve(pat$D, s)
+      mv <- abs(d) > 1e-9 * max(abs(d))
+      all(col_free[mv])
+    }
+  } else {
+    if (!length(cells)) return(NULL)
+    rows_of <- lapply(cells, `[[`, "rows")
+    moves <- as.list(cell_cols)
+    ref <- if (disjoint) which(!seq_len(n) %in% cell_rows) else integer()
+    if (length(ref)) {
+      # b0 moves the reference rows, and every cell's column takes it back
+      rows_of[[length(rows_of) + 1L]] <- ref
+      moves[[length(moves) + 1L]] <- cell_cols
+    }
+    moves_of <- function(j, k) {
+      all(col_free[union(moves[[j]], moves[[k]])]) &&
+        !anyDuplicated(c(rows_of[[j]], rows_of[[k]]))
+    }
+  }
+  size <- vapply(rows_of, length, 0L)
+  exs <- lapply(rows_of, function(rr) excess_of(rr[is_pos[rr]]))
+  gain <- vapply(exs, `[[`, 0, "e") / size
+  loss <- vapply(rows_of, function(rr) sum(w[rr[is_unc[rr]]]), 0) / size
+  tol <- function(g, j) g > 1e-8 * max(1, gain[j])
+  if (!tol(max(gain) - min(loss), which.max(gain))) return(NULL)
+  best <- NULL
+  lo <- order(loss)
+  for (j in order(gain, decreasing = TRUE)) {
+    if (!is.null(best) && gain[j] - loss[lo[1L]] <= best$g) break
+    for (k in lo) {
+      g <- gain[j] - loss[k]
+      if (!tol(g, j)) break
+      if (j == k || !moves_of(j, k)) next
+      if (is.null(best) || g > best$g) best <- list(g = g, j = j, k = k)
+      break
+    }
+  }
+  if (is.null(best)) return(NULL)
+  j <- best$j
+  k <- best$k
+  # how the message names a unit: a treatment column's cell, the
+  # reference level, or the values of its design row
+  name_of <- function(u, down) {
+    rr <- rows_of[[u]]
+    if (!is.null(pat)) {
+      row <- pat$D[u, ]
+      nz <- which(row != 0 & !icpt)
+      cl <- match(nz, cell_cols)
+      # the pattern is a column's cell only when it holds all its rows,
+      # and the reference level only when it holds every row no cell
+      # reaches
+      if (length(nz) == 1L && !is.na(cl) &&
+            length(rr) == length(cells[[cl]]$rows)) {
+        u_cell <- cells[[cl]]$name
+      } else if (!length(nz) && disjoint && length(cells) &&
+                   length(rr) == n - length(cell_rows)) {
+        u_cell <- NA_character_
+      } else {
+        return(paste0(" rows where ",
+                      paste0("`", cns[nz], "` is ", format(row[nz]),
+                             collapse = " and "),
+                      " in the design of ", spike))
+      }
+    } else {
+      u_cell <- if (u <= length(cells)) cells[[u]]$name else NA_character_
+    }
+    if (is.na(u_cell)) {
+      return(paste0(" rows that none of ",
+                    paste0("`", cns[cell_cols], "`", collapse = ", "),
+                    " of ", spike, " reaches"))
+    }
+    if (down) {
+      paste0(" rows that the coefficient `", u_cell, "` of ", spike,
+             " moves alone")
+    } else paste0(" rows that `", u_cell, "` moves alone")
+  }
+  list(rows = rows_of[[j]][is_pos[rows_of[[j]]]], ex = exs[[j]],
+       pair = list(down = name_of(j, TRUE), up = name_of(k, FALSE),
+                   gain = gain[j], loss = loss[k], n_up = size[k],
+                   n_down = size[j]))
+}
+
+#' The distinct rows of a design and each row's pattern, when the design
+#' is saturated in them: as many distinct rows as its rank. Then every
+#' pattern can move alone. `NULL` otherwise, and as soon as the distinct
+#' rows outnumber the columns. The rows are coded column by column, so
+#' the cost is n times the columns, with no row turned into a string.
+#'
+#' @noRd
+unbounded_row_patterns <- function(Xp) {
+  p <- ncol(Xp)
+  id <- rep(1L, nrow(Xp))
+  for (j in seq_len(p)) {
+    v <- Xp[, j]
+    code <- match(v, unique(v))
+    key <- (id - 1) * max(code) + code
+    id <- match(key, unique(key))
+    if (max(id) > p) return(NULL)
+  }
+  U <- max(id)
+  if (U < 2L) return(NULL)
+  D <- Xp[match(seq_len(U), id), , drop = FALSE]
+  if (qr(D)$rank != U) return(NULL)
+  list(id = id, D = D)
 }
 
 #' Whether a dpar's coefficients are free to move at all: no constant
@@ -270,17 +525,20 @@ unbounded_spike_cells <- function(lp) {
 #' on whether the mean excess of one exceeds the mean weight of the
 #' other), which is not decided here: "unknown".
 #'
+#' @param X,icpt The design as a dense matrix and whether it has an
+#'   intercept, which a caller looping over columns reads once.
 #' @noRd
-prior_column_verdict <- function(prior, r, dpar, lp, j, excess, route) {
+prior_column_verdict <- function(prior, r, dpar, lp, j, excess, route,
+                                 X = as.matrix(lp[["X"]]),
+                                 icpt = unbounded_has_icpt(X)) {
   if (!length(prior)) return("free")
   if (!inherits(prior, "frmtmb_priorlist")) return("unknown")
   zero <- dpar %in% unbounded_spike_toward_zero
   link <- lp[["link"]][["name"]] %||% ""
-  X <- as.matrix(lp[["X"]])
   mine <- Filter(function(s) {
     identical(s$dpar %||% "", dpar) && prior_resp_matches(s, r)
   }, prior)
-  if (!isFALSE(lp[["center"]]) && unbounded_has_icpt(X)) {
+  if (!isFALSE(lp[["center"]]) && icpt) {
     for (s in mine) {
       if (!identical(s$class, "Intercept") || nzchar(s$coef %||% "")) next
       if (!identical(prior_entry_verdict(s, zero, link, excess, route),
@@ -633,11 +891,16 @@ prior_entry_verdict <- function(s, zero, link, excess, route) {
 #' @param coef The dispersion coefficient whose own rows run away, when
 #'   the refusal is about one cell rather than every row.
 #' @param resp The response, in a multivariate model.
+#' @param pair From `unbounded_cell_pair()`: how the shrinking and the
+#'   growing rows are named, with their gain, loss and row counts.
+#' @param n_mass,mass The uncensored rows at the family's point mass, and
+#'   the values it sits at (`unbounded_point_mass`).
 #' @noRd
 weights_unbounded_message <- function(terms, w, excess, spike, fam,
                                       laplace_linear, route, n_cens = 0L,
                                       cost = n_cens, coef = NULL,
-                                      resp = NULL) {
+                                      resp = NULL, pair = NULL,
+                                      n_mass = 0L, mass = NULL) {
   zero <- spike[1L] %in% unbounded_spike_toward_zero
   dp <- paste(spike, collapse = " and ")
   lim <- if (zero) {
@@ -653,14 +916,30 @@ weights_unbounded_message <- function(terms, w, excess, spike, fam,
     "The weighted likelihood of this model has no maximum. "
   }
   where <- if (is.null(resp)) "mu" else paste0("the mu of response ", resp)
-  rows <- if (is.null(coef)) " rows" else {
+  fmt <- function(x) format(x, digits = 4)
+  rows <- if (!is.null(coef)) {
     paste0(" rows that the coefficient `", coef, "` of ", spike[1L],
            " moves alone")
+  } else if (!is.null(pair)) pair$down else " rows"
+  held <- if (!is.null(pair)) {
+    paste0("A prior holds the Intercept of ", spike[1L], ", which frmtmb ",
+           "places at the predictor means, but ", spike[1L], " can shrink ",
+           "on these rows while it grows on the ", pair$n_up, pair$up, ", ",
+           "and keep that intercept fixed. Each row there loses its weight ",
+           "as ", spike[1L], " grows, ", fmt(pair$loss), " a row on ",
+           "average, which is less than the excess a row here, ",
+           fmt(pair$gain), ". ")
   }
+  pw <- if (is.null(pair)) excess else excess - pair$n_down * pair$loss
+  less <- paste0(if (cost && n_cens) paste0(" - ", cost, "/2"),
+                 if (!is.null(pair)) {
+                   paste0(" - ", pair$n_down, " x ", fmt(pair$loss))
+                 })
   owns <- paste0(paste0("`", terms, "`", collapse = ", "), " gives every ",
                  "row with a positive weight its own random effect in ",
                  where,
-                 if (!is.null(coef) || (length(w) && any(w != 1))) {
+                 if (!is.null(coef) || !is.null(pair) ||
+                       (length(w) && any(w != 1))) {
                    paste0(", and the weights sum to ",
                           format(sum(w), digits = 6), " over ",
                           length(w), if (n_cens) " uncensored", rows)
@@ -675,13 +954,19 @@ weights_unbounded_message <- function(terms, w, excess, spike, fam,
                                    "bring to 1 with the rest take 1/2 ",
                                    "each off the power below")
                           }, ". ")
-                 })
-  less <- if (cost && n_cens) paste0(" - ", cost, "/2") else ""
+                 },
+                 if (n_mass) {
+                   paste0("The ", n_mass, " rows at ",
+                          paste(mass, collapse = " or "), " sit in the ",
+                          fam, " point mass, whose probability reads ",
+                          "neither mu nor ", spike[1L], ", so they ",
+                          "neither add to the growth nor stop it. ")
+                 }, held)
   why <- if (laplace_linear) {
     paste0("The ", fam, " log density is linear on each side of its ",
            "mode, so the data give a row's own effect no curvature, and as ",
            lim, " the approximation grows like the peak height to the ",
-           "power sum(w)", less, " = ", format(excess, digits = 4),
+           "power sum(w)", less, " = ", fmt(pw),
            ", whatever the weights. quadrature = TRUE integrates the ",
            "effect exactly and has a maximum when the weights sum to less ",
            "than the number of rows; so does the model without the ",
@@ -692,7 +977,7 @@ weights_unbounded_message <- function(terms, w, excess, spike, fam,
            "variance: as ", lim, ", each density narrows onto its own ",
            "observation, and the likelihood grows like the height of ",
            "that peak to the power sum(w) - n", less, " = ",
-           format(excess, digits = 4), ", without bound. A usable fit ",
+           fmt(pw), ", without bound. A usable fit ",
            "needs weights that sum to the number of rows or fewer, a ",
            "random effect that is not observation-level, or a fixed ",
            spike[1L], ".")
@@ -701,8 +986,11 @@ weights_unbounded_message <- function(terms, w, excess, spike, fam,
   # it and the excess balance: lognormal(0, 1) on sigma stopped at a log
   # sigma of -19.8 and sampled with Rhat 2.83
   pri <- if (laplace_linear) "" else {
-    paste0(" A prior on ", if (is.null(coef)) spike[1L] else
-             paste0("the coefficient `", coef, "`"),
+    paste0(" A prior on ", if (!is.null(coef)) {
+             paste0("the coefficient `", coef, "`")
+           } else if (!is.null(pair)) {
+             paste0("the coefficients of ", spike[1L])
+           } else spike[1L],
            " can make the objective bounded, but not the estimate ",
            "informative: the mode then sits where the prior and the ",
            "weight excess balance.")

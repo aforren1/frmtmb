@@ -1113,6 +1113,8 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
     # ML fit given only such rows stays an ML fit
     prior <- drop_unbounding_slots(prior, spec, frame)
     check_weights_unbounded(spec, frame, prior, exact = isTRUE(quadrature))
+    check_ald_laplace(spec, frame, prior,
+                      exact = isTRUE(quadrature) || importance > 0)
     latres_refuse_laplace(spec, frame)
   }
 
@@ -3152,6 +3154,8 @@ check_re_structure <- function(spec, frame, control) {
     # smooth / gp / hsgp blocks carry a synthetic n_levels of 1 and no
     # grouping levels at all; only real grouping factors are checked
     if (is.null(bk[["levels"]])) next
+    lp <- frame[["linpreds"]][[bk[["components"]][[1L]]$lp_key]]
+    term <- re_check_term(spec, bk, lp)
     # A structured block over several terms per level (ar1, us, the
     # spatial covstructs) is a single realization of a field, and one
     # group level is the normal way to write it; only a SCALAR term
@@ -3159,8 +3163,8 @@ check_re_structure <- function(spec, frame, control) {
     if (bk[["n_levels"]] == 1L && bk[["dim"]] == 1L) {
       re_check_act(
         control$check_nlev_1,
-        paste0("Grouping factor '", bk[["group_name"]], "' in `",
-               bk[["term_label"]], "` has a single level, so its variance is ",
+        paste0("Grouping factor '", bk[["group_name"]], "' in ",
+               term, " has a single level, so its variance is ",
                "not identified and collapses to zero. Drop the term (it ",
                "is absorbed by the intercept), or set ",
                "frmtmb_control(check_nlev_1 = \"ignore\")"))
@@ -3170,7 +3174,6 @@ check_re_structure <- function(spec, frame, control) {
       }
       next
     }
-    lp <- frame[["linpreds"]][[bk[["components"]][[1L]]$lp_key]]
     resp <- spec$responses[[lp[["resp"]]]]
     fam <- resp$family
     if (is.null(fam)) next
@@ -3199,7 +3202,7 @@ check_re_structure <- function(spec, frame, control) {
         bk[["dpar"]] %in% (fam[["primary_dpars"]] %||% "mu")) {
       re_check_act(
         control$check_olre,
-        paste0("`", bk[["term_label"]], "` gives every observation its own ",
+        paste0(term, " gives every observation its own ",
                "random effect, and for a ", fam[["family"]], " response that ",
                "variance is confounded with the residual sd: only their ",
                "sum is identified, so the split between them is ",
@@ -3215,6 +3218,24 @@ check_re_structure <- function(spec, frame, control) {
     }
   }
   invisible(if (length(found)) found)
+}
+
+#' A block's term as check_re_structure() names it: in backticks, as the
+#' formula writes it. A multivariate model's frame labels the block with
+#' its response ("y 1 | obs"), which no formula holds, so the prefix
+#' goes and the response is named after the term instead.
+#'
+#' @noRd
+re_check_term <- function(spec, bk, lp) {
+  lab <- bk[["term_label"]] %||% ""
+  r <- lp[["resp"]]
+  if (length(spec$responses) < 2L || is.null(r)) {
+    return(paste0("`", lab, "`"))
+  }
+  rn <- spec$responses[[r]]$resp_name %||% r
+  pre <- paste0(rn, " ")
+  if (startsWith(lab, pre)) lab <- substring(lab, nchar(pre) + 1L)
+  paste0("`", lab, "` of response ", rn)
 }
 
 #' The objective as nlminb sees it: a NaN at a TRIAL point becomes +Inf.

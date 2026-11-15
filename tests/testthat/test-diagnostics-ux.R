@@ -132,6 +132,29 @@ test_that("gaussian OLRE warns about confounding with sigma (lme4)", {
     frm(y ~ x + (1 | g), data = d, family = gaussian())))
 })
 
+test_that("the structure checks name a multivariate term as written", {
+  # the frame labels a block of response y "y 1 | obs", which no formula
+  # holds; through 0.82.0 both checks quoted that label
+  d <- make_gauss()
+  d$y2 <- d$y + rnorm(nrow(d))
+  stop_on <- frmtmb_control(check_olre = "stop", check_nlev_1 = "stop")
+  err <- tryCatch(frm(mvbf(bf(y ~ x + (1 | obs)), bf(y2 ~ x + (1 | g))),
+                      data = d, family = gaussian(), control = stop_on),
+                  error = conditionMessage)
+  expect_match(err, "`1 | obs` of response y gives every observation",
+               fixed = TRUE)
+  expect_no_match(err, "`y 1 | obs`", fixed = TRUE)
+  err <- tryCatch(frm(mvbf(bf(y ~ x + (1 | g)), bf(y2 ~ x + (1 | one))),
+                      data = d, family = gaussian(), control = stop_on),
+                  error = conditionMessage)
+  expect_match(err, "in `1 | one` of response y2 has a single level",
+               fixed = TRUE)
+  # one response: the term alone, as before
+  err <- tryCatch(frm(y ~ x + (1 | obs), data = d, family = gaussian(),
+                      control = stop_on), error = conditionMessage)
+  expect_match(err, "^`1 \\| obs` gives every observation")
+})
+
 # --- diagnose() upgrades [glmmTMB diagnose(), lme4 isSingular] --------
 
 test_that("diagnose() names complete separation (glmmTMB diagnose())", {

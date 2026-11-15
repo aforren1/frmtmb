@@ -1,3 +1,65 @@
+# frmtmb (development version)
+
+## Weighted models with an observation-level effect
+
+* BREAKING: The check that refuses a weighted likelihood with no maximum
+  now includes `hurdle_lognormal()`, `hurdle_gamma()`,
+  `zero_inflated_beta()` and `zero_one_inflated_beta()`. A row at the
+  point mass (an exact 0, or an exact 1 for the zero-one-inflated beta)
+  does not count: its probability is `hu`, `zi` or `zoi`, which does not
+  depend on `mu` or on the dispersion. The excess is the sum of `w - 1`
+  over the other rows. Before, these models ran away (a
+  `hurdle_lognormal()` fit with weights of 1.5 reached a log-likelihood
+  of 968.9 at a log sigma of -37.5), or stopped with no warning at a
+  point from which the objective increases without bound.
+* BREAKING: A prior on the intercept of a dispersion formula such as
+  `sigma ~ 1 + fac` no longer keeps the check from a model that it
+  cannot bound. frmtmb puts that prior on the intercept at the
+  predictor means, and sigma can decrease on one set of rows and
+  increase on another without a change to that intercept. The
+  likelihood then has no maximum when the mean of `w - 1` over the rows
+  of the first set is more than the mean weight of the second. The check
+  tests pairs of these sets when sigma has the log link and each
+  coefficient that the pair moves has no prior, a flat prior or a
+  `student_t()` prior:
+  - When the distinct rows of sigma's design are as many as its rank
+    (one factor in any coding, such as `contr.sum()`, or a full
+    interaction of factors), each set is the rows of one distinct row,
+    and the test is exact when no coefficient has another prior.
+  - Otherwise (a numeric variable beside a factor, or two factors
+    without their interaction), each set is the rows of one treatment
+    column, or the reference level. A model that is unbounded only in
+    another direction is not refused.
+
+  Before, a model with weights of 0.3 and 1.5 on two levels reached a
+  log-likelihood of 612.75.
+* When the check refuses a model that also has an invalid prior, `frm()`
+  now gives the error about the prior first. Before, the refusal hid it.
+* The warnings about an observation-level effect and about a grouping
+  factor with one level now write a term of a multivariate model as its
+  formula does, followed by the response: "`1 | obs` of response y".
+  Before, they wrote "`y 1 | obs`".
+
+## asym_laplace() with random effects
+
+* BREAKING: `frm()` refuses an `asym_laplace()` or
+  `zero_inflated_asym_laplace()` model whose random effects enter `mu`
+  through the identity link, under the Laplace approximation (the
+  default): `(1 | g)`, correlated or uncorrelated slopes, `s()`, `t2()`,
+  an approximate `gp(k = )`, `ar1()`, `cs()`, `homdiag()` and
+  `gr(cov = )`. The log density
+  is linear in `mu` on each side of its mode, so the data give these
+  effects no curvature, and the approximation never falls as their
+  standard deviation grows: it has no maximum. Before, such fits ended
+  wherever the optimizer stopped, with a false-convergence warning;
+  their standard deviation and log-likelihood had no meaning. Use
+  `frmtmb.sample::frm_sample()`. The check does not refuse a model with
+  another link, `cens()` or `trunc()`, `mi()` or `me()`, a random effect
+  in `sigma`, `quantile` or `zi`, a Student-t random effect (`gr(dist =
+  "student")`) or another package's structure in the same `mu`, a prior
+  on the random effects' standard deviation, an exact `gp()`, another
+  structure, `quadrature = TRUE` or `importance`.
+
 # frmtmb 0.82.0
 
 ## Convergence and standard errors
