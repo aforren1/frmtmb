@@ -1951,7 +1951,7 @@ compat_hand_rules_tbl <- function() {
   # self-pair row, which the resolved table cannot hold; every gp()
   # model has a family, so they are stated here instead.
   r("gp_pred()", "kind:family", "works",
-    "gp() takes 1 to 3 variables and brms's arguments by, k, iso, gr, cmc, scale and c, evaluated in the formula environment; c may be a vector with one entry per dimension, and iso defaults to TRUE as in brms. A factor by fits one GP per level (cmc = TRUE) or contrast GPs (cmc = FALSE), each scaled over its own rows with its own sdgp and lscale under brms's names; a numeric by multiplies one GP; a by-level the fit never saw is refused, as brms refuses it. cov = other than \"exp_quad\" is refused: the Matern and exponential kernels are not implemented. Several gp() terms may appear in one formula.")
+    "gp() takes 1 to 3 variables and brms's arguments by, k, iso, gr, cmc, scale and c, evaluated in the formula environment; c may be a vector with one entry per dimension, and iso defaults to TRUE as in brms. A factor by fits one GP per level (cmc = TRUE) or contrast GPs (cmc = FALSE), each scaled over its own rows with its own sdgp and lscale under brms's names; a numeric by multiplies one GP; a by-level the fit never saw is refused, as brms refuses it. cov = takes brms's four kernels, \"exp_quad\", \"matern52\", \"matern32\" and \"exponential\" (also \"matern12\"), exact and approximate, with brms's kernels and spectral densities. Several gp() terms may appear in one formula.")
   r("s()", "kind:mode", "untested", "", override = TRUE)
   r("s()", "kind:family", "works", "")
   r("t2()", "kind:family", "works", "")

@@ -1348,6 +1348,10 @@ gp_start <- function(blk) {
 #'
 #' @noRd
 gp_corr <- function(theta, blk) {
+  nug <- diag(gp_nugget, nrow(blk[["aux_D2"]][[1]]))
+  if (!identical(gp_cov_of(blk), "exp_quad")) {
+    return(gp_kern_d2(blk[["aux_D2"]], theta, blk) + nug)
+  }
   Q <- 0
   for (j in seq_along(blk[["aux_D2"]])) {
     rho <- if (isTRUE(blk[["gp_iso"]])) exp(theta[2]) else exp(theta[1 + j])
@@ -1358,7 +1362,79 @@ gp_corr <- function(theta, blk) {
     if (!inherits(rho2, "advector")) rho2 <- max(rho2, .Machine$double.xmin)
     Q <- Q + blk[["aux_D2"]][[j]] / (2 * rho2)
   }
-  exp(-Q) + diag(gp_nugget, nrow(blk[["aux_D2"]][[1]]))
+  exp(-Q) + nug
+}
+
+#' A gp() block's kernel, brms's `cov =`: "exp_quad" for a block built
+#' before the other kernels existed.
+#'
+#' @noRd
+gp_cov_of <- function(blk) blk[["gp_cov"]] %||% "exp_quad"
+
+#' A Matern or exponential kernel's correlation at `s`, the distance over
+#' the length scale, as brms 2.23.0 writes it (`cov_gp_matern32()` and the
+#' Stan chunks `fun_gp_*.stan`).
+#'
+#' @noRd
+gp_kern_s <- function(s, cov) {
+  switch(cov,
+    exponential = exp(-s),
+    matern32 = (1 + sqrt(3) * s) * exp(-sqrt(3) * s),
+    matern52 = (1 + sqrt(5) * s + 5 / 3 * s^2) * exp(-sqrt(5) * s),
+    frm_stop("gp(): unknown kernel '", cov, "'", call. = FALSE))
+}
+
+#' `d k(r / rho) / d log rho = -s k'(s)` of a kernel at `s = r / rho`.
+#'
+#' @noRd
+gp_kern_dlog <- function(s, cov) {
+  switch(cov,
+    exp_quad = s^2 * exp(-s^2 / 2),
+    exponential = s * exp(-s),
+    matern32 = 3 * s^2 * exp(-sqrt(3) * s),
+    matern52 = 5 / 3 * s^2 * (1 + sqrt(5) * s) * exp(-sqrt(5) * s))
+}
+
+#' The correlation of a Matern or exponential gp() block from the squared
+#' differences `d2` per input dimension, on the tape or on numbers. As
+#' brms builds it, an isotropic block reads the Euclidean distance and an
+#' anisotropic one is the product of one kernel per dimension. The
+#' distances are data, so the root is taken on numbers: at a distance of 0
+#' a root on the tape has no derivative.
+#'
+#' @noRd
+gp_kern_d2 <- function(d2, theta, blk) {
+  cov <- gp_cov_of(blk)
+  rho_of <- function(j) {
+    rho <- if (isTRUE(blk[["gp_iso"]])) exp(theta[2]) else exp(theta[1 + j])
+    # as in gp_corr(): a numeric length scale that underflows is not 0 / 0
+    if (!inherits(rho, "advector")) rho <- max(rho, .Machine$double.xmin)
+    rho
+  }
+  if (isTRUE(blk[["gp_iso"]])) {
+    return(gp_kern_s(sqrt(Reduce(`+`, d2)) / rho_of(1L), cov))
+  }
+  K <- 1
+  for (j in seq_along(d2)) K <- K * gp_kern_s(sqrt(d2[[j]]) / rho_of(j), cov)
+  K
+}
+
+#' The correlation between the coordinate rows of `A` and of `B` (each with
+#' one column per input dimension) under a gp() block's kernel at `theta`,
+#' on numbers, without the nugget.
+#'
+#' @noRd
+gp_kern_xy <- function(A, B, theta, blk) {
+  d2 <- lapply(seq_len(ncol(A)), function(j) outer(A[, j], B[, j], "-")^2)
+  if (!identical(gp_cov_of(blk), "exp_quad")) {
+    return(gp_kern_d2(d2, theta, blk))
+  }
+  Q <- 0
+  for (j in seq_along(d2)) {
+    rho <- if (isTRUE(blk[["gp_iso"]])) exp(theta[2]) else exp(theta[1 + j])
+    Q <- Q + d2[[j]] / (2 * rho^2)
+  }
+  exp(-Q)
 }
 
 #' A numeric kernel's Cholesky factor when rounding may leave it just short
@@ -1411,6 +1487,14 @@ gp_farthest_first <- function(blk) {
 #'
 #' @noRd
 gp_factor_ordered <- function(theta, blk) {
+  # a predict() replicate that has factored this kernel already leaves the
+  # factor on its copy of the block (gp_field_draw()), and the field there
+  # reads it rather than a second factor of n x n
+  cc <- blk[["gp_factor_cache"]]
+  if (!is.null(cc) && !inherits(theta, "advector") &&
+        identical(as.numeric(theta), cc$theta)) {
+    return(cc$L)
+  }
   p <- blk[["gp_order"]]
   K <- gp_corr(theta, blk)[p, p, drop = FALSE]
   # not is.numeric(): it is TRUE of an advector, and a jitter that went onto
@@ -1549,15 +1633,30 @@ gp_field_dtheta <- function(z, theta, blk) {
   K0 <- gp_corr(theta, blk)
   diag(K0) <- diag(K0) - gp_nugget
   nr <- length(theta) - 1L
+  cov <- gp_cov_of(blk)
   for (k in seq_len(nr)) {
-    dK <- 0
-    for (j in seq_along(blk[["aux_D2"]])) {
-      if (isTRUE(blk[["gp_iso"]]) || j == k) {
-        rho <- exp(theta[1L + (if (isTRUE(blk[["gp_iso"]])) 1L else j)])
-        dK <- dK + blk[["aux_D2"]][[j]] / rho^2
+    if (identical(cov, "exp_quad")) {
+      dK <- 0
+      for (j in seq_along(blk[["aux_D2"]])) {
+        if (isTRUE(blk[["gp_iso"]]) || j == k) {
+          rho <- exp(theta[1L + (if (isTRUE(blk[["gp_iso"]])) 1L else j)])
+          dK <- dK + blk[["aux_D2"]][[j]] / rho^2
+        }
+      }
+      dK <- K0 * dK
+    } else if (isTRUE(blk[["gp_iso"]])) {
+      dK <- gp_kern_dlog(sqrt(Reduce(`+`, blk[["aux_D2"]])) /
+                           exp(theta[2L]), cov)
+    } else {
+      # a product kernel: the other dimensions' factors times this one's
+      # derivative
+      dK <- 1
+      for (j in seq_along(blk[["aux_D2"]])) {
+        s <- sqrt(blk[["aux_D2"]][[j]]) / exp(theta[1L + j])
+        dK <- dK * (if (j == k) gp_kern_dlog(s, cov) else gp_kern_s(s, cov))
       }
     }
-    dK <- (K0 * dK)[p, p, drop = FALSE]
+    dK <- dK[p, p, drop = FALSE]
     M <- backsolve(L, t(backsolve(L, dK, upper.tri = FALSE)),
                    upper.tri = FALSE)
     M[upper.tri(M)] <- 0
@@ -1603,7 +1702,9 @@ gp_cross_cov <- function(theta, blk, Xnew, pos) {
     Q <- Q + dj^2 / (2 * rho^2)
     same <- same * (dj == 0)
   }
-  exp(2 * theta[1]) * (exp(-Q) + gp_nugget * same)
+  K <- if (identical(gp_cov_of(blk), "exp_quad")) exp(-Q) else
+    gp_kern_xy(Xnew, pos, theta, blk)
+  exp(2 * theta[1]) * (K + gp_nugget * same)
 }
 
 covstruct_core[["gp"]] <- list(
@@ -1631,12 +1732,35 @@ covstruct_core[["gp"]] <- list(
 #' `S(w) = sd^2 (2 pi)^{D/2} prod_j rho_j exp(-0.5 sum_j rho_j^2 w_j^2)`.
 #'
 #' @noRd
-hsgp_sds <- function(theta, omega, iso = TRUE) {
+hsgp_sds <- function(theta, omega, iso = TRUE, cov = "exp_quad") {
   D <- ncol(omega)
   log_rho <- if (isTRUE(iso)) rep(theta[2], D) else theta[1 + seq_len(D)]
+  if (!identical(cov, "exp_quad")) {
+    return(exp(hsgp_log_spd_matern(theta[1], log_rho, omega, cov) / 2))
+  }
   logS <- 2 * theta[1] + (D / 2) * log(2 * pi) + sum(log_rho) -
     0.5 * as.vector(omega^2 %*% exp(2 * log_rho))
   exp(logS / 2)
+}
+
+#' The log spectral density of brms's Matern and exponential kernels at the
+#' frequencies `omega` (M x D), as brms 2.23.0 writes them
+#' (`spd_gp_matern32()` and the chunks `fun_spd_gp_*.stan`):
+#' `sd^2 2^D pi^(D/2) Gamma((D + nu2) / 2) nu2^(nu2/2) / (c sqrt(pi))
+#' prod(rho) (nu2 + sum rho^2 w^2)^(-(D + nu2) / 2)`, with `nu2` 1, 3 or 5
+#' and `c` 1, 1/2 or 3/4. An anisotropic block weighs each frequency by its
+#' own length scale there, which brms's exact kernel does not: brms's
+#' approximate and exact anisotropic Matern fields are different kernels.
+#'
+#' @noRd
+hsgp_log_spd_matern <- function(log_sd, log_rho, omega, cov) {
+  D <- ncol(omega)
+  nu2 <- switch(cov, exponential = 1, matern32 = 3, matern52 = 5)
+  cc <- switch(cov, exponential = 1, matern32 = 0.5, matern52 = 0.75)
+  logc <- D * log(2) + (D / 2) * log(pi) + lgamma((D + nu2) / 2) +
+    (if (nu2 > 1) (nu2 / 2) * log(nu2) else 0) - log(cc) - 0.5 * log(pi)
+  2 * log_sd + logc + sum(log_rho) -
+    (D + nu2) / 2 * log(nu2 + as.vector(omega^2 %*% exp(2 * log_rho)))
 }
 
 #' Tensor-product sine basis at centered coordinates xc (n x D) for the
@@ -1704,12 +1828,13 @@ covstruct_core[["hsgp"]] <- list(
   npar = function(blk) gp_npar(blk[["gp_D"]], blk[["gp_iso"]]),
   sd_idx = by_dim(function(dim) 1L),
   nll = function(b, theta, blk) {
-    sum(RTMB::dnorm(b, 0, hsgp_sds(theta, blk[["aux_omega"]], blk[["gp_iso"]]),
+    sum(RTMB::dnorm(b, 0, hsgp_sds(theta, blk[["aux_omega"]], blk[["gp_iso"]],
+                                   gp_cov_of(blk)),
                     log = TRUE))
   },
   vcov = function(theta, blk) {
     V <- diag(as.numeric(hsgp_sds(theta, blk[["aux_omega"]],
-                                  blk[["gp_iso"]]))^2,
+                                  blk[["gp_iso"]], gp_cov_of(blk)))^2,
               nrow = blk[["dim"]])
     dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
@@ -2171,7 +2296,7 @@ covstruct_core[["homdiag"]]$chol_sd <- function(theta, blk) {
   rep(exp(theta[1]), blk[["dim"]])
 }
 covstruct_core[["hsgp"]]$chol_sd <- function(theta, blk) {
-  hsgp_sds(theta, blk[["aux_omega"]], blk[["gp_iso"]])
+  hsgp_sds(theta, blk[["aux_omega"]], blk[["gp_iso"]], gp_cov_of(blk))
 }
 covstruct_core[["equalto"]]$chol_L <- function(theta, blk) {
   t(chol(blk[["aux_A"]]))

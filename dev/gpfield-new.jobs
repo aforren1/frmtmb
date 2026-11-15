@@ -1,0 +1,3 @@
+frmtmb tests/testthat/test-gp-kernels.R
+frmtmb tests/testthat/test-gp-field.R
+frmtmb tests/testthat/test-gp-predict-draw.R

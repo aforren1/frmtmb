@@ -3350,8 +3350,10 @@ gp_krig_cov <- function(krig) {
     for (j in seq_along(rho2)) {
       E <- E + outer(X[r, j], X[cc, j], "-")^2 / rho2[j]
     }
-    B <- sd2 * (exp(-E) - tcrossprod(P[r, , drop = FALSE],
-                                     Q[cc, , drop = FALSE]))
+    K <- if (identical(gp_cov_of(krig$bk), "exp_quad")) exp(-E) else
+      gp_kern_xy(X[r, , drop = FALSE], X[cc, , drop = FALSE], th, krig$bk)
+    B <- sd2 * (K - tcrossprod(P[r, , drop = FALSE],
+                               Q[cc, , drop = FALSE]))
     # the block on the diagonal is written by both assignments below, so
     # it is made symmetric first
     dd <- r >= c0
@@ -3538,13 +3540,17 @@ gp_krig_factor <- function(krig) {
     # is slower than the whole kernel and one LAPACK factor
     # (dev/rel068-krig-rank.R measures both regimes), so
     # a high-rank grid takes the dense route
-    if (k >= n / 4) return(gp_krig_factor_dense(Xu, P, Qr, rho2, d0, key, u))
+    if (k >= n / 4) {
+      return(gp_krig_factor_dense(Xu, P, Qr, rho2, d0, key, u, krig))
+    }
     k <- k + 1L
     if (k > ncol(L)) L <- cbind(L, matrix(0, n, min(n, 2L * ncol(L)) -
                                             ncol(L)))
     Q <- 0
     for (a in seq_len(ncol(Xu))) Q <- Q + (Xu[, a] - Xu[j, a])^2 / rho2[a]
-    col <- exp(-Q) - as.vector(P %*% Qr[j, ])
+    kj <- if (identical(gp_cov_of(krig$bk), "exp_quad")) exp(-Q) else
+      as.vector(gp_kern_xy(Xu, Xu[j, , drop = FALSE], th, krig$bk))
+    col <- kj - as.vector(P %*% Qr[j, ])
     if (k > 1L) {
       col <- col - as.vector(L[, seq_len(k - 1L), drop = FALSE] %*%
                                L[j, seq_len(k - 1L)])
@@ -3569,12 +3575,14 @@ gp_krig_factor <- function(krig) {
 #' `L L' + diag(white)` is the same law.
 #'
 #' @noRd
-gp_krig_factor_dense <- function(Xu, P, Qr, rho2, d, key, u) {
+gp_krig_factor_dense <- function(Xu, P, Qr, rho2, d, key, u, krig) {
   E <- 0
   for (a in seq_len(ncol(Xu))) {
     E <- E + outer(Xu[, a], Xu[, a], "-")^2 / rho2[a]
   }
-  C <- exp(-E) - tcrossprod(P, Qr)
+  K <- if (identical(gp_cov_of(krig$bk), "exp_quad")) exp(-E) else
+    gp_kern_xy(Xu, Xu, krig$theta, krig$bk)
+  C <- K - tcrossprod(P, Qr)
   C <- (C + t(C)) / 2
   # the diagonal as extra_var has it, so the two cannot drift apart
   diag(C) <- d

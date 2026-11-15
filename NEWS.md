@@ -1,3 +1,59 @@
+# frmtmb (development version)
+
+## Gaussian processes
+
+* `gp()` takes brms's other kernels, `cov = "matern52"`, `"matern32"` and
+  `"exponential"` (also spelled `"matern12"`), exact and approximate, with
+  brms's kernels and spectral densities. Before, `frm()` refused them. As in
+  brms, an anisotropic exact field is a product of one kernel per dimension.
+  `frm_extra_cov_deriv()` refuses a term with a kernel other than
+  `"exp_quad"`.
+* BREAKING: `predict()` draws a `gp()` term's coefficients with the other
+  estimates, at every `re_formula`, and at a position the fit did not see it
+  draws the field there given the drawn field, as brms's draws carry them.
+  An exact field takes the inner mode at each replicate's own parameters.
+  Before, the field stayed at its mode while the intercept it can absorb
+  was drawn: on a 30-row example the spread at a fitted position was 8
+  times brms's, and far past the positions it was half of brms's. Now it is
+  within 13 percent of brms's at each of five positions. Each replicate
+  takes Newton steps on numbers from the fit's field to its own mode, one
+  step on a gaussian mean, and factors the kernel there once for its field:
+  on a gaussian field at 500 positions and a poisson one at 300, a draw
+  takes 0.9 to about 2 times as long as before. Beside another random effect or
+  in a nonlinear body it solves the inner problem on the tape, which took 3
+  to 21 times as long.
+* BREAKING: an exact `gp()` in a linear predictor of a family other than
+  the gaussian is read again at the fit's optimum: its marginal with each
+  row's log density replaced by its quadratic there. Where that reads another
+  length scale, a descent runs from it, and the fit keeps it only at a
+  regular maximum that is higher. On low-count Poisson counts the default
+  stopped 1.59 below such a maximum, at code 0 with no warning. It runs on
+  the user's own fit with no `start`.
+* BREAKING: an approximate `gp(k = )` in a model with no exact `gp()` gets
+  the same second reading, from a grid of length scales and standard
+  deviations read at the fit's optimum. Its fits had no start of their own,
+  and stopped 1.18 and 0.94 short, each at code 0 with no warning.
+* BREAKING: `frm()` warns with class `frmtmb_gp_laplace` where the Laplace
+  approximation of an exact `gp()` field does not hold at the optimum: the
+  inner Hessian has an eigenvalue below 0.01, or the first-order correction
+  to the approximation is more than 1 in log-likelihood. On a `student()`
+  response with a step in the field the default stopped where the Laplace
+  value stood 2.7 below the marginal likelihood, and on bernoulli rows at a
+  white-noise field far above it, each with no warning. The check reads the
+  fit `frm()` returns, a nonlinear model's refit from a sign probe or a
+  saddle restart included. The correction overstates the error by up to
+  about 1.5 times: on 20 bernoulli fits of a wiggly field it warned on 2,
+  where importance sampling read the Laplace value 0.90 and 0.70 off. See
+  `?frmtmb-gp`.
+* BREAKING: `frm()` warns with class `frmtmb_gp_basis` where the length
+  scale of an approximate `gp(k = )` runs below a tenth of the spacing its
+  basis resolves. There every basis function gets the same prior weight,
+  and the data determine `sdgp^2` times the product of the length scales
+  but not each one. The fitted field and its predictions hold. A modest `k`
+  ends there often: 13 of 30 gaussian fits of fields drawn from a squared
+  exponential kernel did, with `k` from 5 to 20, each at the likelihood's
+  maximum.
+
 # frmtmb 0.82.0
 
 ## Convergence and standard errors

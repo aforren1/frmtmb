@@ -176,7 +176,11 @@ test_that("a smooth and a gp() field are in get_coef(), with no warning", {
   d <- data.frame(x = stats::rnorm(n))
   d$y <- sin(2 * d$x) + stats::rnorm(n, 0, 0.4)
   nd <- data.frame(x = c(-1, 0, 1, 2.5))
-  for (f in list(frm(y ~ s(x), data = d), frm(y ~ gp(x, k = 15), data = d))) {
+  # the k = 15 field ends at its basis's white limit and frm() says so; the
+  # predictions are what is read here
+  fg <- allow_warnings(frm(y ~ gp(x, k = 15), data = d),
+                       "spacing its basis resolves")
+  for (f in list(frm(y ~ s(x), data = d), fg)) {
     p <- marginaleffects::predictions(f, newdata = nd)
     ft <- fitted(f, newdata = nd)[, "Est.Error"]
     # 0.79.1 read 6.9, 0.51, 6.5 and 6.8 times fitted()'s on s(x)

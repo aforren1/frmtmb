@@ -159,8 +159,19 @@ predict_type_retired <- c(
 #' there is nothing to switch off. A brms user looking for the missing
 #' argument is looking for this one.
 #'
-#' Only the terms `re_formula` keeps are drawn. A population smooth and
-#' a `gp()` curve stay at their modes under every setting.
+#' Only the terms `re_formula` keeps are drawn. A `gp()` term is drawn
+#' under every setting, as brms's draws carry it: its coefficients given
+#' the drawn parameters, and at a position the fit did not see, the field
+#' there given the drawn field. A population smooth stays at its mode. An
+#' exact field takes each draw's own inner mode, by Newton steps on numbers
+#' and one factor of its kernel per draw: on a gaussian field at 500
+#' positions and a poisson one at 300, a draw took 0.9 to about 2 times as
+#' long as one that held the field at its mode. Beside another random effect
+#' or in a nonlinear body the inner problem is solved on the tape instead, 3
+#' to 21 times as long, and so is a draw whose Newton steps do not settle or
+#' meet a curvature that is not positive: on binomial fields with many trials
+#' 20 to 38 percent of the draws do, and
+#' those cost what they did before.
 #'
 #' A fit whose covariance could not be recovered from the Hessian has no
 #' second term to draw: the simulation falls back to the estimates and
@@ -1805,8 +1816,11 @@ draw_edge_flat <- 1e-4
 #' groups carry exactly the correlation `Q` implies. A per-row added
 #' variance would get the summary right and `summary = FALSE` wrong.
 #'
-#' Only the blocks `re_formula = NA` would drop are written back: a
-#' population smooth or a `gp()` curve is held at its mode as before.
+#' Only the blocks `re_formula = NA` would drop are written back, and a
+#' `gp()` field's coefficients at every `re_formula`; a population smooth
+#' is held at its mode as before. With a `gp()` field the replicate also
+#' draws the field at a position the fit did not see given its own field
+#' (`krige_draw`).
 #'
 #' `propagate_error = FALSE` turns this draw OFF along with the
 #' parameter draw. The two are one axis and the argument names it:
@@ -1830,8 +1844,10 @@ draw_edge_flat <- 1e-4
 predict_b_drawer <- function(object, re_formula, delta, ndraws,
                              propagate_error) {
   if (!propagate_error) return(NULL)
-  if (!re_form_keeps(re_formula)) return(NULL)
-  gov <- re_governed_b(object)
+  # a gp() field is a population term, which re_formula does not drop: its
+  # coefficients are drawn at every re_formula, as brms's draws carry them
+  gov <- sort(unique(c(if (re_form_keeps(re_formula)) re_governed_b(object),
+                       gp_drawn_b(object))))
   if (!length(gov)) return(NULL)
   Q <- joint_precision(object)
   rn <- rownames(Q)
@@ -1875,19 +1891,215 @@ predict_b_drawer <- function(object, re_formula, delta, ndraws,
   sel <- b_r[gov]
   b0 <- object$estimates[["b"]][gov]
   nr <- length(pos_r)
+  gpx <- gp_field_draw_plan(object, gov)
   bseeds <- sample.int(.Machine$integer.max, ndraws)
   function(fs, s) {
     set.seed(bseeds[s])
     x <- Matrix::solve(ch, Matrix::solve(ch, stats::rnorm(nr), system = "Lt"),
                        system = "Pt")
     x <- as.numeric(x)
+    xn <- x[sel]
     if (!is.null(delta)) {
       x <- x - as.numeric(Matrix::solve(ch, Qrd %*% delta(s),
                                         system = "A"))
     }
     fs$estimates[["b"]][gov] <- b0 + x[sel]
+    if (!is.null(gpx) && !is.null(delta)) fs <- gp_field_draw(fs, gpx, xn)
+    # at a position the fit did not see, the field's value given the
+    # replicate's own field, as a posterior draw of brms makes it
+    fs[["krige_draw"]] <- TRUE
     fs
   }
+}
+
+#' Positions in `b` of every `gp()` block, exact and approximate: the
+#' coefficients `predict()` draws whatever `re_formula` says.
+#'
+#' @noRd
+gp_drawn_b <- function(fit) {
+  sort(unlist(lapply(fit$frame[["re_blocks"]] %||% list(), function(bk) {
+    if (bk[["covstruct"]] %in% c("gp", "hsgp")) bk[["b_idx"]]
+  })))
+}
+
+#' What gp_field_draw() needs of the exact gp() blocks among the drawn
+#' coefficients `gov`: where their z sit in the objective's full vector
+#' and in `gov`. `NULL` where the replicate's parameters are not the
+#' objective's outer vector: under `REML = TRUE` or `profile = TRUE` beta
+#' is inner and drawn as well, and under quadrature or importance
+#' sampling there is no inner mode. Those keep the first-order draw.
+#'
+#' @noRd
+gp_field_draw_plan <- function(fit, gov) {
+  if (isTRUE(fit$REML) || isTRUE(fit$control$profile) ||
+        isTRUE(fit$quadrature) || !is.null(fit$importance) ||
+        !is.null(fit$beta_whiten) || is.null(fit$obj)) {
+    return(NULL)
+  }
+  bnames <- which(names(fit$obj$env$last.par) == "b")
+  blocks <- list()
+  for (bk in fit$frame[["re_blocks"]] %||% list()) {
+    if (!identical(bk[["covstruct"]], "gp")) next
+    at <- match(bk[["b_idx"]], gov)
+    if (anyNA(at)) next
+    blocks[[length(blocks) + 1L]] <- list(b_idx = bk[["b_idx"]], at = at,
+                                          pos = bnames[bk[["b_idx"]]])
+  }
+  if (!length(blocks) || anyNA(unlist(lapply(blocks, `[[`, "pos")))) {
+    return(NULL)
+  }
+  list(obj = fit$obj, blocks = blocks,
+       newton = tryCatch(gp_field_newton_plan(fit), error = function(e) NULL))
+}
+
+#' What gp_field_newton() needs, or `NULL` where it does not apply: one exact
+#' gp() block, the model's only random effect, in a linear predictor that is
+#' no nonlinear body's, each row reading at most one of its positions. The
+#' rows that read one (`ri`), the position (`pj`, sorted) and the row's
+#' multiplier (`pm`), and the field at the estimates there (`c0`).
+#'
+#' @noRd
+gp_field_newton_plan <- function(fit) {
+  fr <- fit$frame
+  bks <- fr[["re_blocks"]] %||% list()
+  if (length(bks) != 1L || !identical(bks[[1L]][["covstruct"]], "gp") ||
+        length(fit$spec$responses) != 1L || length(fr[["autocor"]]) ||
+        length(fr[["me"]]$terms) || length(fr[["par_template"]][["miss"]])) {
+    return(NULL)
+  }
+  bk <- bks[[1L]]
+  key <- gp_block_lp(bk, fr)
+  lp <- fr[["linpreds"]][[key]]
+  if (is.null(lp) || !is.null(lp[["nl_body"]]) ||
+        !identical(lp[["par"]], "beta")) {
+    return(NULL)
+  }
+  Zb <- methods::as(lp_Z(fit, lp)[, bk[["c_idx"]], drop = FALSE],
+                    "TsparseMatrix")
+  nz <- Matrix::summary(Zb)
+  nz <- nz[nz$x != 0, , drop = FALSE]
+  if (!nrow(nz) || any(tabulate(nz$i, nrow(Zb)) > 1L)) return(NULL)
+  est <- fit$estimates
+  r <- lp[["resp"]]
+  list(bk = bk, key = key, lp = lp, resp = r, ri = nz$i, pj = nz$j,
+       # the log density quadratic in the field: one step is the mode
+       quadratic = gp_laplace_exact(fit, list(bk)),
+       pm = nz$x, m = ncol(Zb),
+       c0 = gp_field(est[["b"]][bk[["b_idx"]]],
+                     est[["theta"]][bk[["theta_idx"]]], bk),
+       fam = fit$spec$responses[[r]]$family, y = fr[["y"]][[r]],
+       av = fr[["aterm_values"]][[r]])
+}
+
+#' The field's inner mode at a replicate's own parameters by Newton steps
+#' from the fit's field `c0`, on numbers: with `g` and `w` each position's
+#' gradient and curvature of the log-likelihood in the field at `f`,
+#' `f <- C (C + W^-1)^-1 (f + g / w)`, `C` the replicate's kernel, until the
+#' step is under 1e-2 of the field. One step is the mode where the log
+#' density is quadratic in the field (a gaussian mean with the identity
+#' link). A factor of the kernel per step, where the tape's inner solve took
+#' 3 to 21 times the replicate's whole cost
+#' (dev/reviews/2026-11-13-gpfield.md, F2). `NULL` where a curvature is not
+#' positive or the steps do not settle: the tape's solve decides then.
+#'
+#' @noRd
+gp_field_newton <- function(fs, nt) {
+  bk <- nt$bk
+  th <- fs$estimates[["theta"]][bk[["theta_idx"]]]
+  dp <- eval_dpars(fs, b = NULL)[[nt$resp]]
+  dpar <- nt$lp[["dpar"]]
+  lk <- nt$lp[["link"]]
+  eta <- lk$linkfun(as.numeric(dp[[dpar]]))
+  ex <- fit_extras(fs, nt$resp)
+  wc <- nt$av[["weights"]] %||% 1
+  K <- gp_corr(th, bk)
+  sd2 <- sd_floored(th[1L])^2
+  C <- sd2 * K
+  dg <- cbind(seq_len(nt$m), seq_len(nt$m))
+  f <- nt$c0
+  done <- FALSE
+  for (it in seq_len(if (nt$quadratic) 1L else gp_field_newton_steps)) {
+    e <- eta
+    e[nt$ri] <- e[nt$ri] + nt$pm * f[nt$pj]
+    h <- 1e-3 * pmax(1, abs(e))
+    ll <- function(k) {
+      dp[[dpar]] <- lk$linkinv(e + k * h)
+      wc * as.numeric(row_lpdf(nt$fam, nt$y, nt$y, dp, nt$av, ex))
+    }
+    l1 <- ll(-1)
+    l2 <- ll(0)
+    l3 <- ll(1)
+    g <- ((l3 - l1) / (2 * h))[nt$ri]
+    w <- (-(l3 - 2 * l2 + l1) / h^2)[nt$ri]
+    gp <- as.numeric(rowsum(nt$pm * g, nt$pj, reorder = TRUE))
+    wp <- as.numeric(rowsum(nt$pm^2 * w, nt$pj, reorder = TRUE))
+    if (length(wp) != nt$m || !all(is.finite(c(gp, wp))) || any(wp <= 0)) {
+      return(NULL)
+    }
+    M <- C
+    M[dg] <- M[dg] + 1 / wp
+    R <- tryCatch(chol(M), error = function(e) NULL)
+    if (is.null(R)) return(NULL)
+    f1 <- as.vector(C %*% backsolve(R, backsolve(R, f + gp / wp,
+                                                  transpose = TRUE)))
+    step <- max(abs(f1 - f))
+    f <- f1
+    # Newton converges quadratically: a step of 1e-2 of the field leaves
+    # the field it reaches about 1e-4 of it off
+    if (nt$quadratic || step <= 1e-2 * max(1, abs(f))) {
+      done <- TRUE
+      break
+    }
+  }
+  if (!done) return(NULL)
+  p <- bk[["gp_order"]]
+  # gp_factor_ordered()'s own arithmetic, so the field the replicate reads
+  # through the cached factor is the one it would have factored
+  L <- t(gp_chol_num(K[p, p, drop = FALSE]))
+  list(z = forwardsolve(L, f[p]) / sd_floored(th[1L]),
+       cache = list(theta = as.numeric(th), L = L))
+}
+
+# How many Newton steps gp_field_newton() takes toward a replicate's mode
+# before the tape's own solve decides. From the fit's field a poisson
+# field at 300 positions settles in a few; one step alone left the field
+# up to 1.7 posterior sds off (dev/gpfield-findings.md, fix round F2).
+gp_field_newton_steps <- 8L
+
+#' One replicate's exact gp() field: z at the inner mode of the replicate's
+#' own parameters, plus the drawn deviation `xn` from it. The first-order
+#' shift of the mode, which the group effects take, is not enough for a
+#' field: z is the field over `sd L(theta)`, so where the data pin the
+#' field the mode of z moves with theta along a curve. Read through each
+#' replicate's sd and length scale, the first-order z spread the field at
+#' a fitted position 1.38 where its noise is 0.2, and the field it gave was
+#' not one that kernel draws: kriged 5 length scales past the positions it
+#' spread 52 where brms reads 3.4 (dev/gpfield-findings.md, 1919).
+#'
+#' @noRd
+gp_field_draw <- function(fs, plan, xn) {
+  if (!is.null(plan$newton)) {
+    zn <- tryCatch(gp_field_newton(fs, plan$newton), error = function(e) NULL)
+    if (!is.null(zn) && all(is.finite(zn$z))) {
+      g <- plan$blocks[[1L]]
+      fs$estimates[["b"]][g$b_idx] <- zn$z + xn[g$at]
+      # the factor at this replicate's theta, which its field reads next
+      fs$frame[["re_blocks"]][[1L]][["gp_factor_cache"]] <- zn$cache
+      return(fs)
+    }
+  }
+  obj <- plan$obj
+  env <- obj$env
+  par <- outer_from_template(fs$estimates, obj, fs$frame)
+  if (is.null(par)) return(fs)
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  v <- tryCatch(suppressWarnings(obj$fn(par)), error = function(e) NA_real_)
+  if (!isTRUE(is.finite(v))) return(fs)
+  for (g in plan$blocks) {
+    fs$estimates[["b"]][g$b_idx] <- env$last.par[g$pos] + xn[g$at]
+  }
+  fs
 }
 
 #' Positions in `b` of the group effects the ROWS being predicted

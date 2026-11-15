@@ -158,6 +158,13 @@ gp_krig_deriv_cov <- function(fit, gi, newdata, env, var, o) {
              "multiplier", call. = FALSE)
   }
   bk <- fit$frame[["re_blocks"]][[gi$block_id]]
+  if (!identical(gp_cov_of(bk), "exp_quad")) {
+    # the exponential field has no derivative, and a Matern field's
+    # derivatives are not the Hermite polynomials taken below
+    frm_stop("frm_extra_cov_deriv(): the derivative of a gp() term in `",
+             var, "` is for the squared exponential kernel only; this ",
+             "term has cov = \"", gp_cov_of(bk), "\"", call. = FALSE)
+  }
   w <- gp_by_mult(gi$by, newdata, env, n)
   on <- which(w != 0)
   if (!length(on)) return(NULL)

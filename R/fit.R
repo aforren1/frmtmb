@@ -1138,7 +1138,9 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
         isTRUE(control[["optCtrl"]][["iter.max"]] == 0)) {
     return(run(start, TRUE))
   }
-  nl_fit_probed(run, frame, start, prior)
+  # the fit returned can be a refit (a sign probe's, a saddle restart's),
+  # which runs unannounced: its gp() warnings are said here
+  gp_end_warn(nl_fit_probed(run, frame, start, prior))
 }
 
 #' The refusal of `frm(threshold = )`, which names the family argument
@@ -1979,10 +1981,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       # explains every lost parameter but a bound-held one (se_report())
       fit$cache$se_explained <- "nl_flat"
     }
-    gp_msg <- gp_nugget_message(fit)
-    if (!is.null(gp_msg)) {
-      frm_warning(gp_msg, call. = FALSE, class = "frmtmb_gp_nugget")
-    }
+    gp_end_warn(fit)
   }
   if (se) {
     if (vb) t0 <- vb_now()

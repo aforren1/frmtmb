@@ -715,11 +715,6 @@ parse_gp_call <- function(tm, env) {
              "kernels are: 'exp_quad', 'matern52', 'matern32', ",
              "'exponential'", call. = FALSE)
   }
-  if (!identical(cov, "exp_quad")) {
-    frm_stop("gp(cov = \"", cov, "\"): brms's Matern and exponential ",
-             "kernels are not implemented here yet; only the squared ",
-             "exponential kernel, cov = \"exp_quad\", is", call. = FALSE)
-  }
   flag <- function(nm, default) {
     v <- arg(nm)
     if (is.null(v)) default else eval_spec_arg(v, nm, env)

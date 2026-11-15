@@ -4575,6 +4575,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
               aux_D2 = gp_d2,
               gp_order = gp_farthest_first(list(aux_D2 = gp_d2)),
               gp_D = Dg, gp_iso = iso, gp_vars = vnames,
+              gp_cov = ge$cov,
               # the exact form keeps data units inside; brms reports
               # its lengthscale on the scaled inputs
               gp_lscale_div = dmax, gp_brms = brms_meta,
@@ -4619,6 +4620,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
               bar = NULL, Zlocal = methods::as(Phi, "CsparseMatrix"),
               aux_omega = omega,
               gp_D = Dg, gp_iso = iso, gp_vars = vnames,
+              gp_cov = ge$cov,
+              # the basis's half wavelength at its top frequency, per
+              # dimension, in the length scale's units: the finest
+              # detail it can resolve (gp_basis_message())
+              gp_spacing = 2 * Lb / m,
+              gp_span = gp_max_dist(uq) / dmax,
               gp_dmax = dmax, gp_lscale_div = 1, gp_brms = brms_meta,
               group_name = lab,
               label = paste0(dp_prefix, lab)
@@ -5155,6 +5162,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       gp_order = cps[[1]]$gp_order,
       gp_D = cps[[1]]$gp_D,
       gp_iso = cps[[1]]$gp_iso,
+      gp_cov = cps[[1]]$gp_cov,
+      gp_spacing = cps[[1]]$gp_spacing,
+      gp_span = cps[[1]]$gp_span,
       gp_vars = cps[[1]]$gp_vars,
       gp_dmax = cps[[1]]$gp_dmax,
       gp_lscale_div = cps[[1]]$gp_lscale_div,

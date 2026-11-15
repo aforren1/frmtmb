@@ -321,13 +321,18 @@ test_that("gp() k/c/iso resolve in the formula environment", {
   expect_equal(as.numeric(logLik(f_expr)), as.numeric(logLik(f_lit)))
 
   use_iso <- TRUE
-  f_iso <- frm(bf(y ~ gp(x1, x2, k = 4, iso = use_iso)) + gaussian(),
-               data = dg)
+  # k = 4 over two dimensions can end at the basis's white limit, by the
+  # rounding (it does under OpenBLAS), and then says so: the argument is
+  # what is read here
+  basis <- "spacing its basis resolves"
+  f_iso <- allow_warnings(
+    frm(bf(y ~ gp(x1, x2, k = 4, iso = use_iso)) + gaussian(), data = dg),
+    basis)
   expect_true(f_iso$frame$re_blocks[[1]]$gp_iso)
   expect_equal(as.numeric(logLik(f_iso)),
-               as.numeric(logLik(frm(bf(y ~ gp(x1, x2, k = 4,
-                                               iso = TRUE)) + gaussian(),
-                                     data = dg))))
+               as.numeric(logLik(allow_warnings(
+                 frm(bf(y ~ gp(x1, x2, k = 4, iso = TRUE)) + gaussian(),
+                     data = dg), basis))))
 
   expect_error(frm(bf(y ~ gp(x1, x2, k = no_such_k)) + gaussian(),
                    data = dg),

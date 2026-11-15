@@ -273,8 +273,9 @@ test_that("gp() takes brms's arguments and refuses what it does not have", {
   d <- gpby_data()
   expect_error(frm(bf(y ~ gp(x, by = factor(f))), data = d),
                "must name one column")
-  expect_error(frm(bf(y ~ gp(x, cov = "matern32")), data = d),
-               "not implemented here yet")
+  # brms's other kernels fit (test-gp-kernels.R reads them)
+  expect_s3_class(frm(bf(y ~ gp(x, cov = "matern32")), data = d),
+                  "frmtmb_fit")
   expect_error(frm(bf(y ~ gp(x, cov = "nope")), data = d),
                "not a valid GP covariance kernel")
   expect_error(frm(bf(y ~ gp(x, bogus = 1)), data = d), "unknown: bogus")
@@ -336,7 +337,10 @@ test_that("check C: gp(by = ) Hilbert-space terms are brms's joint density", {
   d <- gpby_data()
   for (form in c("y ~ gp(x, by = f, k = 8)", "y ~ gp(x, by = w, k = 8)")) {
     bform <- brms::bf(stats::as.formula(form))
-    fit <- frm(bf(stats::as.formula(form)), data = d)
+    # k = 8 can leave a sub-GP at the basis's white limit, which the fit
+    # names; the joint density is what is read here
+    fit <- allow_warnings(frm(bf(stats::as.formula(form)), data = d),
+                          "spacing its basis resolves")
     brms_lp_check(bform, gaussian(), d, fit, joint = TRUE)
   }
 })
@@ -353,13 +357,18 @@ test_that("check C: a gp(by = ) in sigma and in a multivariate model", {
     stats::rnorm(nrow(d), 0, exp(-1 + 0.3 * (d$f == "b") * sin(d$x)))
   # two by-level GP sds run to 0 in sigma, so they have no standard
   # error, and frm() says so; the test is about the joint density
-  lost <- "Standard errors are not available"
+  # and a sub-GP of k = 6 can end at the basis's white limit, which the fit
+  # names
+  lost <- c("Standard errors are not available", "spacing its basis resolves")
   fs <- allow_warnings(frm(bf(ysig ~ x, sigma ~ gp(x, by = f, k = 6)),
                            data = d), lost)
   brms_lp_check(brms::bf(ysig ~ x, sigma ~ gp(x, by = f, k = 6)),
                 gaussian(), d, fs, joint = TRUE)
-  fm <- frm(mvbf(bf(y ~ gp(x, by = f, k = 8)), bf(y2 ~ gp(x, k = 6))) +
-              set_rescor(FALSE), data = d, family = gaussian())
+  fm <- allow_warnings(frm(mvbf(bf(y ~ gp(x, by = f, k = 8)),
+                                bf(y2 ~ gp(x, k = 6))) +
+                             set_rescor(FALSE), data = d,
+                           family = gaussian()),
+                       "spacing its basis resolves")
   brms_lp_check(brms::mvbf(brms::bf(y ~ gp(x, by = f, k = 8)),
                            brms::bf(y2 ~ gp(x, k = 6))) +
                   brms::set_rescor(FALSE), gaussian(), d, fm, joint = TRUE)

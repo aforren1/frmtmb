@@ -1908,6 +1908,7 @@ CLOSED in the round of 2026-11-11 (lane names): insight reads every component's 
   needs the kernel in `gp_corr()` and `gp_cross_cov()`; the
   Hilbert-space form needs brms's spectral densities.
   `dev/gpby-findings.md` section 7.
+  CLOSED in the round of 2026-11-13 (lane gpfield): the four kernels, exact and approximate, agree with brms 2.23.0's own kernel and spectral-density code to 1.2e-10 in the log-likelihood (dev/gpfield-kernels.R).
 - **gpby: `zgp` is not a draw name.** frmtmb samples the field and
   brms its standardized `zgp`; the map is the change of variables
   `L^-1 b`, which a column cannot be renamed into. Section 7.
@@ -1919,6 +1920,7 @@ CLOSED in the round of 2026-11-11 (lane names): the draws list every sdgp_ befor
 - **gpby: core `predict()` holds a `gp()` curve at its mode** and draws
   neither its coefficients nor the kriging residual, so its interval
   past the positions is narrower than brms's. Section 7.
+  CLOSED in the round of 2026-11-13 (lane gpfield): predict() draws a gp() term's coefficients at every re_formula, an exact field at its replicate's inner mode, and krigs a new position given the drawn field; table against brms in dev/gpfield-findings.md.
 - **gpby: a nonlinear body refuses a contributing exact `gp()` at an
   unseen position** (`lp_basis_nl()`). Section 7.
 - **gpby r4: `test-gp-by-draws.R`'s formula-route fixture chain is
@@ -4793,6 +4795,54 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-13
+
+### From lane gpfield
+
+- **MEDIUM. `gsigma step 40` (`bf(y ~ gp(x), sigma ~ z)`, dev/gpstop-ng.R
+  seed 1) stays 1.45 short, silent** (34.412387 against 35.861222 from a
+  theta start of sd 0.7552, length scale 0.7996). The higher maximum moves
+  sigma's z coefficient (-2.13 against -0.77) as well as the field: at the
+  fit's own sigma coefficients the working marginal, exact here, reads the
+  fit's theta, and the objective at the other theta with the fit's other
+  values reads 6.19, 28 below (dev/gpfield-dbg2.R, dbg3.R). A start for
+  the field cannot reach it; a joint start for sigma's coefficients could.
+- **LOW. The Laplace check (`frmtmb_gp_laplace`) reads one response whose
+  random effects all sit in the field's linear predictor**, with no
+  residual term and at most 2000 distinct rows of the field's design.
+  A field beside a group term of another predictor, or in a multivariate
+  model, is not checked (gp_laplace_tk() returns NULL there).
+- **LOW. `predict()` under `REML = TRUE` or `profile = TRUE` draws an exact
+  field's z to first order** (gp_field_draw_plan() returns NULL there:
+  beta is inner and drawn). On the ML route that spread the field at a
+  fitted position 1.38 where the noise is 0.2 before the replicate's own
+  inner mode was taken; the REML route is not measured.
+- **LOW. `frm_extra_cov_deriv()` refuses a Matern `gp()` term.** Matern
+  5/2 has two mean-square derivatives and 3/2 one; their kernels'
+  derivatives are not the Hermite polynomials the squared exponential
+  takes.
+- **LOW. 5319's remainder: brms's `zgp` as a derived draws column.**
+  frmtmb.sample would report `L_b(theta)^-1 L_ff(theta) z` per draw,
+  brms's z over its first-appearance order, with the sampled z under an
+  internal name and the inverse `L_ff^-1 L_b zgp` (exact: the map is
+  orthogonal at fixed theta) for every reader that takes a draw back. Lane
+  parity2's `draws_latres_cols()` (extensions/frmtmb.sample/R/draws-brms.R:
+  internal = a block's theta and its states, `map` appends the derived
+  columns, `inv` takes them back) is that kind of chart, on the same
+  `ordinal = c(...)` line this would extend; lane silent2's
+  `draws_brms_order()` (sample.R) must place the brms zgp columns. Do it
+  after both merge. dev/gpfield-zgp.R measures the gap: one field, the two
+  z differ by up to 1.54 elementwise.
+- **MEDIUM. The standard-error check does not treat an approximate field
+  at its basis's white limit as a limit.** Where `frmtmb_gp_basis` fires,
+  sdgp and lscale lie on a flat ridge (only `sdgp^2` times the product of
+  the length scales is determined), yet both keep finite standard errors:
+  on 13 of 30 gaussian fits of the gpfield review (`se_lost 0` on all 13;
+  dev/reviews/gpfield-review-basis.R) a user reads, for example, sdgp 155
+  with a standard error as an estimate. The check should give both NaN
+  with reason "limit", as 0.82.0 does for a coefficient at the end of its
+  range; the warning could then become a message.
+
 ## Filed at the 0.82.0 release (2026-11-11)
 
 ### From lane boundfam
@@ -5121,6 +5171,7 @@ Record: `dev/wcheck-findings.md`.
   artifact on its row (importance sampling 4 to 11 below). The second
   reading now refuses to move a fit there; nothing yet tells the user
   when the first descent stops there.
+  CLOSED in the round of 2026-11-13 (lane gpfield): both bernoulli white fields warn `frmtmb_gp_laplace` (first-order correction 2660 and -23), and so does a third the review found, mm_V bernoulli n40 s1, which the sign probe's refit returned unchecked (now checked on the fit returned; tk 60.2); the three poisson ones are observation-level effects whose Laplace value importance sampling confirms (0.009 to 0.030), and stay quiet.
 
 - **5033 re-described: `student()` with an exact `gp()` on a step field
   is a limit of the Laplace approximation, open.** The default (st80:
@@ -5136,6 +5187,7 @@ Record: `dev/wcheck-findings.md`.
   n 160 the importance-sampling value is lower at the spike (201.9
   against 203.6). `dev/gpstop-findings.md`, item 2;
   `dev/reviews/2026-11-11-gpstop.md`, MAJOR 3.
+  CLOSED in the round of 2026-11-13 (lane gpfield): not silent: the first-order Laplace correction reads 3.46 at st80's default (importance sampling 2.72) and frm() warns `frmtmb_gp_laplace`; the limit itself stays, in `?frmtmb-gp`.
 - **An approximate `gp(x, k = )` in a nonlinear body stops at a
   degenerate length scale, silent.** The body start and its second
   reading at the optimum cover the exact field only, so the approximate
@@ -5145,6 +5197,7 @@ Record: `dev/wcheck-findings.md`.
   starts (100.401246 against 101.584647); `pow_a` gaussian n 120 seed 2
   with `k = 12` at -12.67 (`dev/reviews/gpstop-review-gate.R`,
   `gpstop-review-sweep.R`; review MINOR 7). The gate was not widened.
+  CLOSED in the round of 2026-11-13 (lane gpfield): an approximate field gets a grid at the fit's optimum (gp_hsgp_relin()); `b ~ gp(x, k = 20)` and `pow_a` k 12 reach their best starts; `a ~ gp(x, k = 20)`'s white field is the likelihood's maximum and warns `frmtmb_gp_basis`.
 
 - **MEDIUM. The two exact `gp()` rows 0.80.0's Limits name beside `student()` stay
   short, silent:** `pois_mid two 80` 1.59 and `gsigma step 40` 1.45 below
@@ -5155,6 +5208,7 @@ Record: `dev/wcheck-findings.md`.
   row's known noise there (`sigma_i^2` under `sigma ~ z`, `1 / mu_i` under
   poisson). A t-weighted version of that read the fit's own length scale
   on 6 `student()` rows and gained nothing (`dev/gpstop-stproto.R`).
+  CLOSED in the round of 2026-11-13 (lane gpfield): the candidate is built (gp_mean_relin()); `pois_mid two 80` reaches -201.011189, the start's maximum; `gsigma step 40` is filed again (its higher maximum moves sigma's z coefficient, which no reading of the field reaches).
 - **MEDIUM. `student()` beside an exact `gp()` has Laplace spikes.** Where a row
   sits past `sqrt(nu) sigma`, one eigenvalue of the inner Hessian can
   come near 0, and the Laplace value there gains `-log(ev_min) / 2`
@@ -5162,6 +5216,7 @@ Record: `dev/wcheck-findings.md`.
   The fits that reach one warn (code 1, gradient 1e9 to 1e12), so it is
   not silent; a message that names the cause (a near-singular inner
   Hessian) would say more than the gradient warning does.
+  CLOSED in the round of 2026-11-13 (lane gpfield): the warning of class `frmtmb_gp_laplace` names the inner Hessian's eigenvalue below 0.01 (st40 seed 1, beside the gradient warning).
 ### From lane ordstart
 
 - **LOW. The degenerate check's "collapsed" test is exact-double equality,

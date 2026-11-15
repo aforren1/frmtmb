@@ -1,0 +1,2 @@
+frmtmb tests/testthat/test-gp-start.R
+frmtmb tests/testthat/test-gp-by.R

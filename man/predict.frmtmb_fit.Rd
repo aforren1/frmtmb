@@ -204,8 +204,19 @@ posterior draw has its own parameters and its own group effects, so
 there is nothing to switch off. A brms user looking for the missing
 argument is looking for this one.
 
-Only the terms \code{re_formula} keeps are drawn. A population smooth and
-a \code{gp()} curve stay at their modes under every setting.
+Only the terms \code{re_formula} keeps are drawn. A \code{gp()} term is drawn
+under every setting, as brms's draws carry it: its coefficients given
+the drawn parameters, and at a position the fit did not see, the field
+there given the drawn field. A population smooth stays at its mode. An
+exact field takes each draw's own inner mode, by Newton steps on numbers
+and one factor of its kernel per draw: on a gaussian field at 500
+positions and a poisson one at 300, a draw took 0.9 to about 2 times as
+long as one that held the field at its mode. Beside another random effect
+or in a nonlinear body the inner problem is solved on the tape instead, 3
+to 21 times as long, and so is a draw whose Newton steps do not settle or
+meet a curvature that is not positive: on binomial fields with many trials
+20 to 38 percent of the draws do, and
+those cost what they did before.
 
 A fit whose covariance could not be recovered from the Hessian has no
 second term to draw: the simulation falls back to the estimates and
