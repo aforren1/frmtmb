@@ -321,6 +321,18 @@ say("")
 say("'agree' is equivalent, refusal correct, or a compat row whose ",
     "behavior agrees with brms. Cannot-measure pairs stay in the ",
     "denominator except in the 'measured only' column.")
+# A conditional row states a working half and a refusing one. Where both
+# packages refuse, the pair scores "refusal correct" against the
+# refusing half, also when its spec was meant to meet the working half,
+# and only the reason text said so (review of lane compat, round 2, m2).
+chalf <- res$verdict == "refusal correct" & res$status == "conditional"
+say("")
+say("Refusal correct on a conditional row (both refuse; scored against ",
+    "the row's refused half, which a spec aimed at its working half also ",
+    "reaches): ", sum(chalf), " unique (", sum(res$draws[chalf]),
+    " draws)", if (any(chalf)) paste0(": ", paste(sprintf(
+      "%s %s x %s", res$id[chalf], res$feature_a[chalf],
+      res$feature_b[chalf]), collapse = "; ")), ".")
 say("")
 say("Strongest level reached, unique pairs (draws):")
 say("")

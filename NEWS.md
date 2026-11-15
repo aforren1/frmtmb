@@ -1,3 +1,50 @@
+# frmtmb (development version)
+
+## Compatibility table
+
+* `frm_compat()`: `REML` with `mi()` is "conditional", and `REML` with a
+  predictor `mi(x)` has a rule of its own, also "conditional". Where a
+  predictor `mi(x)` reads missing values, REML integrates the slope on
+  `mi(x)` together with the latent values it multiplies. The integrand
+  is then not gaussian, so the criterion is the Laplace approximation,
+  not the exact restricted likelihood, as for `me()`. With nothing
+  missing, or a missing response that no density reads, REML is exact.
+* `frm_compat()`: `rate()` with `cens()` and `rate()` with `trunc()`
+  "work". The log-likelihood of `poisson()`, `negbinomial()` and
+  `geometric()` with `rate()` and censoring or truncation equals brms
+  2.23.0's at the same parameters.
+
+## For extension packages
+
+* `frmtmb_register_frame_check()` replaces an earlier registration
+  when the two are provably the same: the same function, or the same
+  code over environments that held the same values at registration, up
+  to the namespace, with no environment, external pointer or named
+  environment among them. Every other registration is kept, including
+  closures one factory made for different values and closures over two
+  environments with equal contents. On a reload of the registering
+  package, a function defined at the top level of its namespace and an
+  anonymous closure that `.onLoad()` passes straight in now merge, so
+  they no longer run once more per fit after each reload; a closure
+  that `.onLoad()` first binds to a name, or one beside a formula, is
+  still added again (a harmless duplicate). The prior defaults that
+  frmtmb.sample registers behave the same way; a `pkgload::load_all()`
+  after `library()` passes a different library path and adds one
+  provider.
+* `frmtmb_local_registries()` keeps a package load hook (`setHook()`)
+  that other code sets inside its scope. Before, the restore dropped it.
+
+## Documentation
+
+* `frmtmb_family()`: the `lcdf` argument says that the slot returns the
+  CDF on the probability scale, not its log, despite the name.
+* The "inputs" vignette says that, in a maximum-likelihood fit with no
+  random effect and no prior, a constant `weights()` value on every row
+  multiplies the log-likelihood and leaves every estimate, `sigma`
+  included, unchanged. A prior, a random effect or `REML = TRUE` changes
+  that, because the weight does not multiply their terms. lme4's
+  precision weights change `sigma` instead.
+
 # frmtmb 0.82.0
 
 ## Convergence and standard errors

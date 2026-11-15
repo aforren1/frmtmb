@@ -121,7 +121,9 @@
 #'   these live in the `beta` parameter vector and are integrated out
 #'   under REML.
 #' @param lcdf Optional vectorized AD CDF `(q, dpars, aterms)` returning
-#'   probabilities; enables `cens()` and `trunc()` addition terms. It is
+#'   probabilities; enables `cens()` and `trunc()` addition terms. Despite
+#'   the `l` in its name, it returns `F(q)` on the probability scale, not
+#'   `log F(q)`; `lccdf` and `cdf_log` are the slots on the log scale. It is
 #'   the only thing either term asks of a family, whatever the family's
 #'   `type`. A discrete family is read on the integer lattice (see
 #'   Censoring a discrete response), so `trunc(lb = )` calls this at one
@@ -7931,8 +7933,10 @@ carry_finalized_responses <- function(spec, frame) {
   spec
 }
 
-#' Call a family's log-CDF, passing the family-level extra parameters to
-#' the families that declare them. The baseline of frmtmb.survival's
+#' Call a family's CDF (its `lcdf` slot, which returns probabilities and
+#' not their log, whatever the name says), passing the family-level extra
+#' parameters to the families that declare them. The baseline of
+#' frmtmb.survival's
 #' `cox()` lives there, so its survivor function needs them; every other
 #' CDF keeps the three-argument contract.
 #'

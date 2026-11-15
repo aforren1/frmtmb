@@ -19,7 +19,11 @@ line of each log, and make sure that it names the release library.
 2. Point `dev/release/run-tests.R` and `dev/release/run-session.R` at the new
    release library (`LIB`).
 3. Set `Config/roxygen2/version` in every `DESCRIPTION` to the roxygen2
-   version that the user library holds.
+   version that the user library holds. In the same pass, once core's
+   `DESCRIPTION` carries the release version, regenerate `codemeta.json`
+   with `codemetar::write_codemeta()` at the repository root.
+   `tests/testthat/test-codemeta.R` fails in step 4 until the file
+   carries the version and the dependencies of `DESCRIPTION`.
 4. Run the test suites of core and of every extension, one file per process,
    with `ROUND_BASE=<previous release library> bash dev/ciharden-scan.sh <run>
    ref <release library> 3`:

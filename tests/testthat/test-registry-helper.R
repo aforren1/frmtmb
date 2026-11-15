@@ -35,7 +35,8 @@ test_that("an extension loaded inside the scope keeps its registrations", {
     "ns <- asNamespace('frmtmb')",
     "st <- function() list(",
     "  features = ns$frmtmb_compat_contrib$features,",
-    "  rules = length(ns$frmtmb_compat_contrib$rules),",
+    # the rules in full: their order is their precedence
+    "  rules = ns$frmtmb_compat_contrib$rules,",
     "  aterms = names(ns$frmtmb_aterm_registry$reg),",
     "  checks = length(ns$frmtmb_frame_checks$fns),",
     "  priors = length(ns$frmtmb_prior_defaults$providers),",
@@ -81,4 +82,34 @@ test_that("an extension loaded inside the scope keeps its registrations", {
   gen <- function(out) grep("^GEN ", out, value = TRUE)
   expect_identical(gen(scoped), gen(plain))
   expect_match(gen(plain), "^GEN [1-9][0-9]* TRUE")
+})
+
+test_that("a load hook another party sets inside the scope survives it", {
+  # the restore used to put back the hook lists it saved, which dropped
+  # a hook set inside the scope by anyone else; it now removes only its
+  # own (the testiso review's note, check of fix round 2)
+  skip_on_cran()
+  pk <- "frmtmb.latent"
+  skip_if_not(nzchar(system.file(package = pk)), paste("not installed:", pk))
+  helper <- normalizePath(testthat::test_path("helper-registry.R"), "/")
+  out <- child_with_libs(.libPaths(), c(
+    "suppressMessages(library(frmtmb))",
+    sprintf("source(%s)", deparse(helper)),
+    "ev <- packageEvent('frmtmb.latent', 'onLoad')",
+    "cat('LOADED', 'frmtmb.latent' %in% loadedNamespaces(), '\\n')",
+    "n0 <- length(getHook(ev))",
+    "g <- function() {",
+    "  local_frmtmb_registries()",
+    "  setHook(ev, function(...) cat('THIRD PARTY HOOK RAN\\n'))",
+    "}",
+    "g()",
+    "cat('HOOKS', length(getHook(ev)) - n0, '\\n')",
+    "invisible(loadNamespace('frmtmb.latent'))"))
+  # the case is only a case if the package was not loaded at the start
+  expect_identical(grep("^LOADED ", out, value = TRUE), "LOADED FALSE ",
+                   info = paste(out, collapse = "\n"))
+  expect_identical(grep("^HOOKS ", out, value = TRUE), "HOOKS 1 ",
+                   info = paste(out, collapse = "\n"))
+  expect_true("THIRD PARTY HOOK RAN" %in% out,
+              info = paste(out, collapse = "\n"))
 })

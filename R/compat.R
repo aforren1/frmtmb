@@ -1190,7 +1190,10 @@ compat_hand_rules_tbl <- function() {
   r("REML", "rescor", "works", "")
   r("REML", "nl", "works", "Verified by a tiny fit.")
   r("REML", "|ID|", "works", "")
-  r("REML", "mi()", "works", "Verified by a tiny fit.")
+  r("REML", "mi()", "conditional",
+    "Runs (verified by a tiny fit). A missing response no density reads leaves the objective, so REML is the complete-case one exactly. Where a predictor mi(x) reads the missing values, REML integrates the slope on mi(x) together with the latent values it multiplies, as for me(): the integrand is not gaussian, so even for a gaussian response the criterion is the Laplace-approximated integrated likelihood, not the exact restricted likelihood.")
+  r("REML", "mi_pred()", "conditional",
+    "Runs (verified by a tiny fit). With nothing missing in x the model is linear and REML is exact. With missing values, REML integrates the slope on mi(x) together with the latent values it multiplies, as for me(), so the criterion is the Laplace-approximated integrated likelihood, not the exact restricted likelihood.")
   r("REML", "cens()", "works", "Verified by a tiny fit.")
   r("REML", "trunc()", "works", "Verified by a tiny fit.")
   r("REML", "se()", "works", "Verified by a tiny fit.")
@@ -1556,9 +1559,10 @@ compat_hand_rules_tbl <- function() {
     "As negbinomial(), whose density this family is: the mean and the shape 1 / sigma are multiplied by d, brms's neg_binomial_2_log_lpmf(y | mu + log_denom, inv(sigma) .* denom).")
   r("rate()", "geometric", "works",
     "As brms: the geometric is the negative binomial at shape 1, and rate(d) multiplies both the mean and that shape by d, so the fitted density is a negative binomial of size d. Verified against brms's compiled program at a shared parameter point.")
-  r("rate()", "cens()", "untested",
-    "Under cens() brms scores the censored rows at mu * d; frmtmb's poisson CDF reads the same product, but no comparison has been run.")
-  r("rate()", "trunc()", "untested", "")
+  r("rate()", "cens()", "works",
+    "A censored row is scored at the rated mean, as brms 2.23.0 scores it: the CDF reads mu * d, and the negative binomial's shape times d. Verified against brms's compiled program at a shared parameter point for poisson (log and sqrt links), negbinomial and geometric with left and right censoring.")
+  r("rate()", "trunc()", "works",
+    "The truncation window is read at the rated mean, as brms 2.23.0 reads it. Verified against brms's compiled program at a shared parameter point for poisson and negbinomial with trunc(lb = 0, ub = ) and for poisson with trunc(lb = 1).")
 
   ## subset() and index() ------------------------------------------------
   r("subset()", "kind:family", "works",

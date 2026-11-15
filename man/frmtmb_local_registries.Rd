@@ -28,7 +28,8 @@ name, because the name may belong to a package that was loaded
 before the test. A frmtmb package that loads inside the scope keeps
 its registrations: after the restore, the \code{.onLoad()} of every
 \verb{frmtmb.*} namespace that appeared in the scope runs again, in the
-order they loaded.
+order they loaded. A package load hook (\code{\link[=setHook]{setHook()}}) that other code
+sets inside the scope stays set.
 }
 \examples{
 \dontshow{if (requireNamespace("withr", quietly = TRUE)) withAutoprint(\{ # examplesIf}

@@ -1,0 +1,7 @@
+# A coverage job that a commit does not need is skipped (job `plan` of
+# .github/workflows/test-coverage.yaml), so that commit has no upload
+# for its flag. Carryforward keeps the flag's last report in the
+# commit's totals instead of dropping the package from them.
+flag_management:
+  default_rules:
+    carryforward: true

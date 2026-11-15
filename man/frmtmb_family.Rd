@@ -190,7 +190,9 @@ these live in the \code{beta} parameter vector and are integrated out
 under REML.}
 
 \item{lcdf}{Optional vectorized AD CDF \verb{(q, dpars, aterms)} returning
-probabilities; enables \code{cens()} and \code{trunc()} addition terms. It is
+probabilities; enables \code{cens()} and \code{trunc()} addition terms. Despite
+the \code{l} in its name, it returns \code{F(q)} on the probability scale, not
+\verb{log F(q)}; \code{lccdf} and \code{cdf_log} are the slots on the log scale. It is
 the only thing either term asks of a family, whatever the family's
 \code{type}. A discrete family is read on the integer lattice (see
 Censoring a discrete response), so \code{trunc(lb = )} calls this at one

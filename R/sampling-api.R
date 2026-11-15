@@ -734,8 +734,10 @@ frmtmb_register_prior_defaults <- function(provider) {
              "provider(spec, frame), not ", arg_desc(provider),
              call. = FALSE)
   }
+  # a reload registers the same provider again; it replaces itself when
+  # provably the same (registration_key()), and is kept otherwise
   frmtmb_prior_defaults$providers <-
-    c(frmtmb_prior_defaults$providers, list(provider))
+    register_once(frmtmb_prior_defaults$providers, provider)
   invisible(NULL)
 }
 

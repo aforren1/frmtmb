@@ -96,10 +96,6 @@ test_that("dirichlet_multinomial is brms's likelihood, refcat and phi ~ z", {
 })
 
 test_that("dirichlet_multinomial with (1 | ID | g), on the joint density", {
-  # (1 | ID | g) and not (1 | g): the joint-density translator misreads
-  # uncorrelated per-category blocks, multinomial()'s too, so check C
-  # cannot speak for that spelling (dev/nb2dm-findings.md); frm_sample()
-  # of (1 | g) agrees with brms's posterior there instead
   skip_unless_brms_fit()
   dd <- nbdm_dm_data(65)
   fit <- frm(Yc | trials(N) ~ x + (1 | ID | g),
@@ -107,6 +103,24 @@ test_that("dirichlet_multinomial with (1 | ID | g), on the joint density", {
              control = nbdm_tight)
   brms_lp_check(brms::bf(Yc | trials(N) ~ x + (1 | ID | g)),
                 brms::dirichlet_multinomial(), dd, fit, joint = TRUE)
+})
+
+test_that("uncorrelated per-category (1 | g), on the joint density", {
+  # one VarCorr block per category, each with a bare "(Intercept)"
+  # column: the translator read every category's z with the first one's
+  # sd, and check C missed by 8.04 (multinomial) and 126.7
+  # (dirichlet_multinomial) log units (dev/nb2dm-findings.md,
+  # dev/hygiene-findings.md)
+  skip_unless_brms_fit()
+  dd <- nbdm_dm_data(65)
+  fm <- frm(Yc | trials(N) ~ x + (1 | g), family = multinomial(),
+            data = dd, control = nbdm_tight)
+  brms_lp_check(brms::bf(Yc | trials(N) ~ x + (1 | g)),
+                brms::multinomial(), dd, fm, joint = TRUE)
+  fd <- frm(Yc | trials(N) ~ x + (1 | g), family = dirichlet_multinomial(),
+            data = dd, control = nbdm_tight)
+  brms_lp_check(brms::bf(Yc | trials(N) ~ x + (1 | g)),
+                brms::dirichlet_multinomial(), dd, fd, joint = TRUE)
 })
 
 test_that("dirichlet_multinomial inside mvbf() is brms's likelihood", {

@@ -1657,6 +1657,46 @@ test_that("row 24: rate() on poisson, negbinomial and geometric", {
   brms_lp_check(brms::bf(y | rate(time) ~ x), brms::geometric(), dr, fg)
 })
 
+test_that("row 24b: rate() with cens() and with trunc()", {
+  skip_unless_brms_fit()
+
+  # brms 2.23.0 scores a censored or truncated row of a rate() model at
+  # mu * denom, in the CDF as in the density; until this row the pair was
+  # "untested" in frm_compat(). Right (1) and left (-1) censoring at the
+  # observed count, and a window that holds every count. Check A to
+  # 5.1e-13 on every shape (dev/hygiene-ratecens.R, seed 1519).
+  set.seed(1519)
+  n <- 300
+  dr <- data.frame(x = rnorm(n), time = runif(n, 0.5, 4))
+  dr$y <- rpois(n, exp(0.2 + 0.5 * dr$x) * dr$time)
+  dr$yn <- rnbinom(n, mu = exp(0.2 + 0.5 * dr$x) * dr$time,
+                   size = 2 * dr$time)
+  dr$cc <- rep(c(0, 0, 1, -1), length.out = n)
+  dr$ub <- pmax(dr$y, dr$yn) + 3L
+
+  for (fam in list(poisson(), poisson("sqrt"))) {
+    fc <- frm(y | rate(time) + cens(cc) ~ x, data = dr, family = fam)
+    brms_lp_check(brms::bf(y | rate(time) + cens(cc) ~ x), fam, dr, fc)
+  }
+  fnc <- frm(yn | rate(time) + cens(cc) ~ x, data = dr,
+             family = negbinomial())
+  brms_lp_check(brms::bf(yn | rate(time) + cens(cc) ~ x),
+                brms::negbinomial(), dr, fnc)
+  ft <- frm(y | rate(time) + trunc(lb = 0, ub = ub) ~ x, data = dr,
+            family = poisson())
+  brms_lp_check(brms::bf(y | rate(time) + trunc(lb = 0, ub = ub) ~ x),
+                poisson(), dr, ft)
+  d1 <- dr[dr$y >= 1, ]
+  ft1 <- frm(y | rate(time) + trunc(lb = 1) ~ x, data = d1,
+             family = poisson())
+  brms_lp_check(brms::bf(y | rate(time) + trunc(lb = 1) ~ x), poisson(),
+                d1, ft1)
+  fnt <- frm(yn | rate(time) + trunc(lb = 0, ub = ub) ~ x, data = dr,
+             family = negbinomial())
+  brms_lp_check(brms::bf(yn | rate(time) + trunc(lb = 0, ub = ub) ~ x),
+                brms::negbinomial(), dr, fnt)
+})
+
 test_that("row 25: subset() in a two-response model", {
   skip_unless_brms_fit()
 

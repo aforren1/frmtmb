@@ -443,6 +443,8 @@ brms_port_not_run <- function(id, verdict, reason, why) {
 # reports with this line's error beside it.
 brms_setup <- function(id, code) {
   call <- substitute(code)
+  # read before the line runs, which may assign one of them
+  stale <- brms_stale_reads(call, parent.frame())
   res <- list(held = TRUE, vacuous = FALSE, msg = "", caught = "")
   tryCatch(
     withCallingHandlers(
@@ -455,7 +457,16 @@ brms_setup <- function(id, code) {
       res$msg <<- brms_port_clean(conditionMessage(e))
     }
   )
-  brms_mark(call, res$held, res$msg)
+  if (res$held && length(stale)) {
+    # it ran on the object a failed line left behind, where brms's block
+    # would have stopped, so what it assigns is stale in turn; it used
+    # to come out fresh (the remeasure review, R7)
+    brms_mark(call, FALSE, brms_port_clean(sprintf(
+      "STALE: reads '%s', whose last assignment failed: %s",
+      stale[1], brms_port_state$stale[[stale[1]]])))
+  } else {
+    brms_mark(call, res$held, res$msg)
+  }
   if (nzchar(Sys.getenv("FRMTMB_BRMSPORT_RECORD"))) {
     brms_port_record("setup", id, "", res)
   }

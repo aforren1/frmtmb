@@ -22,21 +22,21 @@ test_that("a structure with no loglik declares capabilities only", {
   st <- frmtmb_structure(supports = list(osa = FALSE))
   expect_s3_class(st, "frmtmb_structure")
   expect_null(st[["loglik"]])
-  expect_false(structure_allows(st, "osa"))
+  expect_false(frmtmb:::structure_allows(st, "osa"))
   # with no loglik the defaults OPEN: everything already works for a
   # rowwise family, so it names only what it refuses
-  expect_true(structure_allows(st, "reml"))
-  expect_true(structure_allows(st, "conditional_effects"))
+  expect_true(frmtmb:::structure_allows(st, "reml"))
+  expect_true(frmtmb:::structure_allows(st, "conditional_effects"))
   expect_identical(sum(!st[["supports"]]), 1L)
 })
 
 test_that("every capability starts refused", {
   st <- frmtmb_structure(loglik = ll_ok)
   expect_false(any(st[["supports"]]))
-  expect_length(st[["supports"]], length(frmtmb_structure_flags))
+  expect_length(st[["supports"]], length(frmtmb:::frmtmb_structure_flags))
   # a family with no structure at all is rowwise and refuses nothing
-  expect_true(structure_allows(NULL, "osa"))
-  expect_false(structure_allows(st, "osa"))
+  expect_true(frmtmb:::structure_allows(NULL, "osa"))
+  expect_false(frmtmb:::structure_allows(st, "osa"))
 })
 
 test_that("unit is one noun phrase, or the generic one", {
@@ -44,9 +44,11 @@ test_that("unit is one noun phrase, or the generic one", {
                "noun phrase")
   expect_error(frmtmb_structure(loglik = ll_ok, unit = ""), "noun phrase")
   expect_identical(
-    structure_unit(frmtmb_structure(loglik = ll_ok, unit = "a sequence")),
+    frmtmb:::structure_unit(
+      frmtmb_structure(loglik = ll_ok, unit = "a sequence")),
     "a sequence")
-  expect_true(nzchar(structure_unit(frmtmb_structure(loglik = ll_ok))))
+  expect_true(nzchar(
+    frmtmb:::structure_unit(frmtmb_structure(loglik = ll_ok))))
 })
 
 # The generic refusal had NO test until 2026-09-08, which is how a false
@@ -65,7 +67,7 @@ fam_with <- function(...) {
 test_that("the generic refusal names the unit as a leave-out unit", {
   f <- fam_with(loglik = ll_ok, unit = "a hidden-Markov sequence",
                 supports = list(reml = FALSE))
-  msg <- structure_generic(f, "REML = TRUE")
+  msg <- frmtmb:::structure_generic(f, "REML = TRUE")
   expect_match(msg, "REML = TRUE is not available for a 'toy' family:",
                fixed = TRUE)
   expect_match(msg,
@@ -73,7 +75,7 @@ test_that("the generic refusal names the unit as a leave-out unit", {
                fixed = TRUE)
   # a family that declares no unit still gets a sentence that parses
   g <- fam_with(loglik = ll_ok, supports = list(reml = FALSE))
-  expect_match(structure_generic(g, "REML = TRUE"),
+  expect_match(frmtmb:::structure_generic(g, "REML = TRUE"),
                "unit for leaving data out is one it has not named",
                fixed = TRUE)
 })
@@ -87,7 +89,7 @@ test_that("the generic refusal asserts nothing about factorization", {
   f <- fam_with(loglik = ll_ok, loglik_row = ll_ok, loglik_group = ll_ok,
                 unit = "one subject's trial sequence",
                 supports = list(reml = FALSE))
-  msg <- structure_generic(f, "REML = TRUE")
+  msg <- frmtmb:::structure_generic(f, "REML = TRUE")
   for (bad in c("factorize", "factorizes", "factorization",
                 "not defined per row", "per row is not defined")) {
     expect_false(grepl(bad, msg, fixed = TRUE), info = bad)
@@ -99,7 +101,7 @@ test_that("a capability-only structure says so instead", {
   # loglik = NULL keeps the family's own rowwise lpdf, so there is
   # nothing whatever to say about its likelihood
   f <- fam_with(supports = list(osa = FALSE))
-  msg <- structure_generic(f, "residuals(type = \"osa\")")
+  msg <- frmtmb:::structure_generic(f, "residuals(type = \"osa\")")
   expect_match(msg, "declares it unsupported and gives no reason of its own",
                fixed = TRUE)
   expect_false(grepl("factoriz", msg, fixed = TRUE))
@@ -163,27 +165,27 @@ test_that("a refusal is raised in the family's own words", {
     refusals = list(osa = "no one-step residual here",
                     re_form = "no re_formula here",
                     re_form.simulate = "not when simulating"))
-  expect_error(structure_gate(st, "osa", "GENERIC"),
+  expect_error(frmtmb:::structure_gate(st, "osa", "GENERIC"),
                "no one-step residual here", fixed = TRUE)
   # a context-specific message wins, and falls back to the bare flag
-  expect_error(structure_gate(st, "re_form", "GENERIC",
+  expect_error(frmtmb:::structure_gate(st, "re_form", "GENERIC",
                               context = "simulate"),
                "not when simulating", fixed = TRUE)
-  expect_error(structure_gate(st, "re_form", "GENERIC"),
+  expect_error(frmtmb:::structure_gate(st, "re_form", "GENERIC"),
                "no re_formula here", fixed = TRUE)
   # a flag refused without a sentence of its own gets the generic one
-  expect_error(structure_gate(st, "deviance", "GENERIC"), "GENERIC",
+  expect_error(frmtmb:::structure_gate(st, "deviance", "GENERIC"), "GENERIC",
                fixed = TRUE)
   # nothing is raised for a supported flag or for a rowwise family
-  expect_silent(structure_gate(NULL, "osa", "GENERIC"))
+  expect_silent(frmtmb:::structure_gate(NULL, "osa", "GENERIC"))
 })
 
 test_that("frmtmb_family() takes a structure and nothing else", {
   st <- frmtmb_structure(loglik = ll_ok)
   fam <- frmtmb_family("demo", "mu", list(mu = "identity"),
                        lpdf = function(y, dpars, aterms) 0, structure = st)
-  expect_identical(fam_structure(fam), st)
-  expect_null(fam_structure(as_frmtmb_family(stats::gaussian())))
+  expect_identical(frmtmb:::fam_structure(fam), st)
+  expect_null(frmtmb:::fam_structure(as_frmtmb_family(stats::gaussian())))
   expect_error(
     frmtmb_family("demo", "mu", list(mu = "identity"),
                   lpdf = function(y, dpars, aterms) 0,
@@ -193,7 +195,7 @@ test_that("frmtmb_family() takes a structure and nothing else", {
 
 test_that("a group-level mixture carries the protocol", {
   fg <- mixture(gaussian(), gaussian(), groups = ~g)
-  st <- fam_structure(fg)
+  st <- frmtmb:::fam_structure(fg)
   expect_s3_class(st, "frmtmb_structure")
   # the four flags that follow from the per-row mean being rowwise
   for (flag in c("conditional_effects", "newdata_response",
@@ -213,7 +215,7 @@ test_that("a rowwise mixture-type family declares capabilities only", {
   # family. The other two such families, lca() and mixture_mvn(), live
   # in frmtmb.latent now and assert this same row of the table there.
   for (fam in list(mixture(gaussian(), gaussian()))) {
-    st <- fam_structure(fam)
+    st <- frmtmb:::fam_structure(fam)
     expect_s3_class(st, "frmtmb_structure")
     expect_null(st[["loglik"]])
     expect_false(st[["supports"]][["reml"]])
@@ -223,8 +225,8 @@ test_that("a rowwise mixture-type family declares capabilities only", {
     expect_true(st[["supports"]][["cluster_robust"]])
     expect_true(is.function(st[["latent_probs"]]))
   }
-  expect_true(
-    fam_structure(mixture(gaussian(), gaussian()))[["supports"]][["osa"]])
+  expect_true(frmtmb:::fam_structure(
+    mixture(gaussian(), gaussian()))[["supports"]][["osa"]])
 })
 
 test_that("structure_supports_all() is what such a family starts from", {
@@ -241,7 +243,8 @@ test_that("structure_supports_all() is what such a family starts from", {
   expect_true(s[["cluster_robust"]])
   expect_setequal(
     names(s),
-    names(fam_structure(mixture(gaussian(), gaussian()))[["supports"]]))
+    names(frmtmb:::fam_structure(
+      mixture(gaussian(), gaussian()))[["supports"]]))
 })
 
 test_that("the frame carries one block per structured response", {
@@ -312,11 +315,11 @@ test_that("a block's grouping is read in one fixed order", {
   # a factor is read on its LEVELS and anything else on its sorted
   # values, so a family that numbers its units 1, 2, 10 does not get 10
   # before 2 through a character sort
-  expect_null(structure_group_codes(list(n = 3)))
-  expect_identical(structure_group_codes(list(group = c(1L, 10L, 2L))),
+  expect_null(frmtmb:::structure_group_codes(list(n = 3)))
+  expect_identical(frmtmb:::structure_group_codes(list(group = c(1L, 10L, 2L))),
                    c(1L, 3L, 2L))
   f <- factor(c("b", "a"), levels = c("b", "a"))
-  expect_identical(structure_group_codes(list(group = f)), c(1L, 2L))
+  expect_identical(frmtmb:::structure_group_codes(list(group = f)), c(1L, 2L))
 })
 
 test_that("the block a factorization rests on is checked at assembly", {
@@ -324,24 +327,25 @@ test_that("the block a factorization rests on is checked at assembly", {
                        lpdf = function(y, dpars, aterms) 0 * y)
   grp <- frmtmb_structure(loglik = ll_ok, loglik_group = ll_ok)
   row <- frmtmb_structure(loglik = ll_ok, loglik_row = ll_ok)
-  expect_error(check_structure_block(grp, list(n = 4), fam, "y", 4L),
+  expect_error(frmtmb:::check_structure_block(grp, list(n = 4), fam, "y", 4L),
                "carries no `group`")
   # a per-ROW slot may leave it out; only the correction then refuses
-  expect_null(check_structure_block(row, list(n = 4), fam, "y", 4L))
+  expect_null(frmtmb:::check_structure_block(row, list(n = 4), fam, "y", 4L))
   expect_error(
-    check_structure_block(grp, list(group = 1:3), fam, "y", 4L),
+    frmtmb:::check_structure_block(grp, list(group = 1:3), fam, "y", 4L),
     "for 3 rows, and the frame has 4", fixed = TRUE)
   expect_error(
-    check_structure_block(grp, list(group = c(1L, NA, 2L, 2L)), fam, "y", 4L),
+    frmtmb:::check_structure_block(grp, list(group = c(1L, NA, 2L, 2L)),
+                                   fam, "y", 4L),
     "leaves `group` missing on 1 row")
   expect_error(
-    check_structure_block(grp, list(group = matrix(1:4, 2)), fam, "y", 4L),
+    frmtmb:::check_structure_block(grp, list(group = matrix(1:4, 2)),
+                                   fam, "y", 4L),
     "one entry per row")
-  expect_null(check_structure_block(grp, list(group = factor(letters[c(1, 1, 2,
-                                                                       2)])),
-                                    fam, "y", 4L))
+  expect_null(frmtmb:::check_structure_block(
+    grp, list(group = factor(letters[c(1, 1, 2, 2)])), fam, "y", 4L))
   # a family with no structure at all is not asked for any of this
-  expect_null(check_structure_block(NULL, NULL, fam, "y", 4L))
+  expect_null(frmtmb:::check_structure_block(NULL, NULL, fam, "y", 4L))
 })
 
 test_that("a deviance residual needs the saturated half, and says so", {
@@ -359,11 +363,12 @@ test_that("a deviance residual needs the saturated half, and says so", {
   rspec <- list(resp_name = "y",
                 family = list(family = "toy"))
   local_mocked_bindings(eval_dpars = function(fit, ...) list(y = list()),
-                        fit_extras = function(fit) NULL)
-  expect_error(structure_unit_deviance(fit, rspec, st, list(n = 3)),
+                        fit_extras = function(fit) NULL,
+                        .package = "frmtmb")
+  expect_error(frmtmb:::structure_unit_deviance(fit, rspec, st, list(n = 3)),
                "attr(x, \"saturated\")", fixed = TRUE)
   st2 <- frmtmb_structure(loglik = ll_ok, supports = list(deviance = TRUE))
-  expect_error(structure_unit_deviance(fit, rspec, st2, list(n = 3)),
+  expect_error(frmtmb:::structure_unit_deviance(fit, rspec, st2, list(n = 3)),
                "frmtmb_structure(loglik_row = )", fixed = TRUE)
 })
 
@@ -381,8 +386,9 @@ test_that("a saturated value below the fitted one is refused, not clamped", {
                            aterm_values = list(y = list())))
   rspec <- list(resp_name = "y", family = list(family = "toy"))
   local_mocked_bindings(eval_dpars = function(fit, ...) list(y = list()),
-                        fit_extras = function(fit) NULL)
-  expect_error(structure_unit_deviance(fit, rspec, st, list(n = 3)),
+                        fit_extras = function(fit) NULL,
+                        .package = "frmtmb")
+  expect_error(frmtmb:::structure_unit_deviance(fit, rspec, st, list(n = 3)),
                "saturated log-density BELOW the fitted one at 1 row")
   # and the honest case still returns the unit deviances
   st2 <- frmtmb_structure(
@@ -391,7 +397,7 @@ test_that("a saturated value below the fitted one is refused, not clamped", {
       structure(rep(-0.5, length(y)), saturated = rep(0, 3))
     },
     supports = list(deviance = TRUE))
-  expect_equal(structure_unit_deviance(fit, rspec, st2, list(n = 3)),
+  expect_equal(frmtmb:::structure_unit_deviance(fit, rspec, st2, list(n = 3)),
                rep(1, 3))
 })
 
@@ -399,11 +405,11 @@ test_that("the allow-list names every term it refuses", {
   fam <- frmtmb_family("toy", dpars = "mu", links = list(mu = "identity"),
                        accepts_aterms = "weights",
                        lpdf = function(y, dpars, aterms) 0 * y)
-  one <- expect_error(check_accepted_aterms(
+  one <- expect_error(frmtmb:::check_accepted_aterms(
     list(family = fam, aterms = list(trials = quote(n))), list()))
   expect_match(conditionMessage(one), "term `trials()` is not one",
                fixed = TRUE)
-  two <- expect_error(check_accepted_aterms(
+  two <- expect_error(frmtmb:::check_accepted_aterms(
     list(family = fam,
          aterms = list(trials = quote(n), vint1 = quote(z))), list()))
   expect_match(conditionMessage(two), "terms `trials()`, `vint()` are not",
@@ -500,14 +506,14 @@ test_that("an unused level in the block's grouping is refused by name", {
                        lpdf = function(y, dpars, aterms) 0 * y)
   grp <- frmtmb_structure(loglik = ll_ok, loglik_group = ll_ok)
   g <- factor(c("a", "a", "b", "b"), levels = c("a", "MID", "b"))
-  err <- expect_error(check_structure_block(grp, list(group = g), fam,
-                                            "y", 4L))
+  err <- expect_error(frmtmb:::check_structure_block(grp, list(group = g),
+                                                     fam, "y", 4L))
   expect_match(conditionMessage(err), "1 unused level(s) ('MID')",
                fixed = TRUE)
   expect_match(conditionMessage(err), "toy", fixed = TRUE)
   # and the codes the core works in are contiguous whatever arrives, so
   # the permutation the correction builds cannot carry an NA
-  expect_identical(structure_group_codes(list(group = g)),
+  expect_identical(frmtmb:::structure_group_codes(list(group = g)),
                    c(1L, 1L, 2L, 2L))
 })
 

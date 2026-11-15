@@ -130,7 +130,15 @@ and produces the matrices.
 * `offset()` terms are summed per linear predictor and added to `eta`
   after `X %*% beta + Z %*% b`. `weights()` is not a design matrix at
   all: it is an addition term that multiplies the per-observation log
-  density.
+  density. So in a maximum-likelihood fit with no random effect and no
+  prior, a constant weight `c` on every row multiplies the
+  log-likelihood by `c` and leaves every estimate unchanged, `sigma`
+  included. These are brms's weights. Anything the weight does not
+  multiply changes that: a prior, a random effect's density, and under
+  `REML = TRUE` the term of the integrated fixed effects, so there
+  `sigma^2` goes from `RSS / (n - p)` to `c RSS / (c n - p)`. lme4's
+  `weights =` are precision weights, under which a constant weight
+  changes `sigma` in every case.
 
 Every linear predictor's `Z` spans the whole random-effect coefficient
 vector, so a `Z` column index *is* a coefficient index. Columns are

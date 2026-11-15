@@ -396,16 +396,24 @@ brms_adapt_dord <- function(fun, x, eta, thres, link = "logit") {
 }
 
 # brms's tests source reference helpers from tests/testthat/helpers,
-# which dev/brms-suite/ holds; a staged run's directory is
-# dev/brmsport-bin2-run/<package>
+# which dev/brms-suite/ holds. Without FRMTMB_PORT_ROOT the tree is the
+# nearest directory above the run's that holds dev/brms-suite/: a fixed
+# "../../" held only for a stage two levels under dev/, and a stage at
+# another depth failed four rows with "object 'ndraws_vec' not found"
+# instead of saying where the suite was. With neither, the path names
+# the variable, so the source() that reads it fails with the cure.
 brms_adapt_suite_dir <- local({
+  sub <- "dev/brms-suite/brms/tests/testthat"
   root <- Sys.getenv("FRMTMB_PORT_ROOT", unset = "")
-  if (nzchar(root)) {
-    file.path(root, "dev/brms-suite/brms/tests/testthat")
-  } else {
-    normalizePath("../../brms-suite/brms/tests/testthat", winslash = "/",
-                  mustWork = FALSE)
+  if (nzchar(root)) return(file.path(root, sub))
+  d <- normalizePath(getwd(), winslash = "/")
+  repeat {
+    if (dir.exists(file.path(d, sub))) return(file.path(d, sub))
+    up <- dirname(d)
+    if (identical(up, d)) break
+    d <- up
   }
+  paste0("<no ", sub, " above ", getwd(), ": set FRMTMB_PORT_ROOT>")
 })
 
 # Stands in for brms's skip_if_not_installed() on a package that only
