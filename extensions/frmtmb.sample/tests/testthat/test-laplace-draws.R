@@ -90,18 +90,30 @@ test_that("what laplace draws can compute equals the full draws' answer", {
     hypothesis(p$full, "sd_g__Intercept > 0", class = NULL)$hypothesis)
   expect_identical(VarCorr(p$lap), VarCorr(p$full))
   # conditional_effects() drops the group effects by default, and at
-  # re_formula = NULL draws a new level from each draw's own theta; the
-  # observed levels' b is read by neither
+  # re_formula = NULL with sample_new_levels = "gaussian" draws a new
+  # level from each draw's own theta; the observed levels' b is read by
+  # neither
   expect_identical(conditional_effects(p$lap, effects = "x",
                                        resolution = 5),
                    conditional_effects(p$full, effects = "x",
                                        resolution = 5))
   expect_identical(conditional_effects(p$lap, effects = "x",
                                        resolution = 5, re_formula = NULL,
-                                       seed = 2),
+                                       seed = 2,
+                                       sample_new_levels = "gaussian"),
                    conditional_effects(p$full, effects = "x",
                                        resolution = 5, re_formula = NULL,
-                                       seed = 2))
+                                       seed = 2,
+                                       sample_new_levels = "gaussian"))
+  # brms's default, "uncertainty", lends an observed level's effects,
+  # which these draws do not hold, so the laplace draws refuse it
+  e <- tryCatch(conditional_effects(p$lap, effects = "x", resolution = 5,
+                                    re_formula = NULL, seed = 2),
+                error = conditionMessage)
+  expect_match(e, "conditional_effects() needs the random effects",
+               fixed = TRUE)
+  # and names the rule that answers on these draws
+  expect_match(e, "sample_new_levels = \"gaussian\" draws it", fixed = TRUE)
 })
 
 test_that("the refusal leaves the caller's random-number stream alone", {

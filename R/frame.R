@@ -163,7 +163,19 @@ dpar_frame_rhs <- function(dp) {
     }
   }
   for (sspec in dp[["smooth"]] %||% list()) {
-    for (tm in sspec$term) parts <- c(parts, list(as.name(tm)))
+    # a smooth's term can be an expression (s(exp(x)), as brms fits it),
+    # which the frame evaluates; as a name it was a column nobody has
+    for (tm in sspec$term) {
+      # a backticked column has no Stan name; brms 2.23.0 cannot parse
+      # s(`my x`) ("unexpected symbol") and names nothing for it
+      if (grepl("`", tm, fixed = TRUE)) {
+        frm_stop("The smooth of ", tm, " is not supported: its variable ",
+                 "is not a syntactic name, which brms 2.23.0 cannot parse ",
+                 "in a smooth either. Rename the column, or compute it ",
+                 "under a syntactic name", call. = FALSE)
+      }
+      parts <- c(parts, list(str2lang(tm)))
+    }
     if (!is.null(sspec$by) && sspec$by != "NA") {
       parts <- c(parts, list(as.name(sspec$by)))
     }
@@ -4176,7 +4188,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           # (mo_bar_rewrite())
           for (ph in names(dp[["mo_re"]])) mf[[ph]] <- rep(1, nrow(mf))
           grp <- resolve_group_calls(rt_bars, mf, resp$formula_env)
+          # drop_unused_levels = FALSE keeps a grouping factor's unused
+          # level as a level of the term, as brms's standata has it (N_1
+          # counts it); its effect is then its prior alone
           rt <- reformulas::mkReTrms(grp$bars, fr = grp$fr,
+                                     drop.unused.levels = drop_unused_levels,
                                      reorder.terms = FALSE)
           fassign <- attr(rt$flist, "assign")
         }
@@ -4740,6 +4756,21 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           # did that up to 0.75.0). New data are coded from the fitted
           # data's minimum, as brms's validate_newdata() codes them.
           mo_lo <- min(v)
+          # brms's get_mo_values() takes the lowest category from
+          # attr(x, "min") when the data carry it, so a category below
+          # every observed value can be declared. The frame keeps it, so
+          # new data are coded from it too (brms recodes them from the
+          # observed minimum, its own inconsistency, brms-40)
+          amin <- if (is.name(mexpr)) attr(data[[as.character(mexpr)]], "min")
+          if (!is.null(amin)) {
+            if (!is.numeric(amin) || length(amin) != 1L || !is.finite(amin) ||
+                amin != round(amin) || amin > mo_lo) {
+              frm_stop("mo(", deparse1(mexpr), "): attr(", deparse1(mexpr),
+                       ", \"min\") must be one whole number no larger than ",
+                       "the smallest value, ", mo_lo, call. = FALSE)
+            }
+            mo_lo <- amin
+          }
           codes <- as.integer(v - mo_lo)
           D_mo <- max(codes)
           mo_levels <- NULL

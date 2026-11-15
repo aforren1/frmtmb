@@ -382,9 +382,12 @@ test_that("crossed terms at an unseen combination draw its new level", {
             data = dc)
   cond <- list(g = "1", h = "1")
   w <- at_g(fc, cond)
+  # the band of the gaussian law, which the Wald band reads: brms's
+  # default "uncertainty" lends one of 29 observed g:h modes instead,
+  # whose mean over 40 refits sits off the Wald estimate by chance
   bo <- conditional_effects(fc, "x", resolution = 3, re_formula = NULL,
                             conditions = cond, band = "boot", boot = 40,
-                            seed = 5)
+                            seed = 5, sample_new_levels = "gaussian")
   b <- bo$x
   # the frame keeps the levels asked for: nothing was moved
   expect_identical(as.character(b$g), rep("1", 3))

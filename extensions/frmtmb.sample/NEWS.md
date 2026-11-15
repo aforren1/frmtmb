@@ -1,3 +1,24 @@
+# frmtmb.sample (development version)
+
+Needs the frmtmb release that adds `ce_snl()` and `latres_err()` to the
+sampling API.
+
+* BREAKING: `conditional_effects()` on draws draws a new group level by
+  brms's default, `sample_new_levels = "uncertainty"`: each posterior
+  draw lends the effects of a level the fit saw, at that draw. Give
+  `sample_new_levels = "gaussian"` for the former draw from the
+  estimated covariance, or `"old_levels"`.
+* `loo_epred()`, `loo_linpred()`, `loo_predict()`,
+  `loo_predictive_interval()` and `loo_R2()` take `newdata` that holds a
+  subset of the fitted rows, as `log_lik()` and `loo()` do. The answer is
+  the fitted rows' answer cut to the subset, which is brms's.
+* BREAKING: `posterior_epred()` of an ordinal fit names its draw margin
+  `"1"` to `"S"`, as brms does. A categorical fit's stays unnamed.
+* The draws of a latent residual term (`ar()`, `ma()`, `arma()`,
+  `cosy()`, `unstr()` on a family without a residual) carry brms's
+  `err[k]`, one per row, beside the states. `variables()` lists them
+  last, after `lp__`, where brms lists them.
+
 # frmtmb.sample 0.29.0
 
 Needs frmtmb 0.82.0, which adds `brms_variable_sort()` to the sampling

@@ -1500,6 +1500,7 @@ CLOSED in the round of 2026-11-11 (lane sampfront): per-draw fills.
   narrower bands (brms 0.60, 0.51, 0.75 against frmtmb 0.90, 0.95,
   1.05 at 40 draws). On the fit and on draws. Lanes sampfix (M7) and
   postfit2 (section 8).
+  CLOSED in the round of 2026-11-13 (lane parity2): draws lend an observed level's effects by default (sample_new_levels = "uncertainty"); a fit keeps "gaussian" and refuses the lending rules by name (the fit's own "uncertainty" is filed MEDIUM in the round's section).
 - **`conditional_effects()` refuses two displays brms answers:**
   crossed `(1 | g) + (1 | h) + (1 | g:h)` with `g` and `h` at observed
   levels never seen together, on `band = "boot"` and draws (the Wald
@@ -1561,6 +1562,7 @@ CLOSED in the round of 2026-11-11 (lane sampfront): a message.
   model**, where brms pools the old parameter formulas into it; and
   brms replaces an equation with a later formula on the same parameter
   where frmtmb refuses it. Both loud. Lane formula2, section 4.
+  CLOSED in the round of 2026-11-13 (lane parity2): a later lf() or nlf() replaces the parameter with brms's message; update(fit, bf()) pooling is filed again.
 - **`summary()`'s Formula line** does not print `sigma1 = sigma2`, or
   any parameter formula. Lane formula2, section 4.
 CLOSED in the round of 2026-11-11 (lane names): the Formula lines print every pform, nlform and fixed dpar under the response formula, as brms's print.brmsformula().
@@ -2979,6 +2981,7 @@ CLOSED in the round of 2026-11-11 (lane names): confint_varcorr()$block shows a 
   maximum** (`dev/postfix-rev-nlscan.R`, pre-existing).
 - `conditional_effects(<frm_multiple()>, int_conditions = )` stops with
   "matched by multiple actual arguments" (pre-existing).
+  CLOSED in the round of 2026-11-13 (lane parity2): the j > 1 imputations take the first one's grid in place of the caller's int_conditions.
 
 #### Open - low
 
@@ -3373,6 +3376,7 @@ CLOSED in the round of 2026-11-11 (lane sampfront): samples.
 - frmtmb's REML AIC counts only the outer parameters (278.44 against
   lme4's 290.44 by the REML df convention; review finding 5).
   Pre-existing.
+  CLOSED in the round of 2026-11-13 (lane parity2): the REML df counts the fixed effects, as lme4's; AIC 1755.628 on sleepstudy as lme4's.
 - marginaleffects and a caller's `a' vcov() a` stay inaccurate on
   these designs in double precision (filed at 0.71.0).
 
@@ -3919,9 +3923,11 @@ names the lane changed.
 - `s(exp(x))` is refused ("The model uses `exp(x)`, which is not a
   column of `data`"); brms fits it (`sexpx_1`, `sds_sexpx_1`). The
   smooth's frame variables are taken as names (`dpar_frame_rhs()`).
+  CLOSED in the round of 2026-11-13 (lane parity2): s(exp(x)) fits (bs_sexpx_1, sds_sexpx_1); the frame evaluates a smooth's term as an expression.
 - `conditional_effects()` picks other default effects than brms on
   `exp(x):z`, `t2(x, z)`, `mo(k):z`, `cs(x)`, `sigma ~ exp(z)`, `mi()`
   and multivariate models.
+  CLOSED in the round of 2026-11-13 (lane parity2): default effects follow brms's get_all_effects() over every dpar and nlpar; names equal brms's on 11 formulas (cs() only in the per-category key).
 - `ranef()` of a smooth-only model returns the smooth's penalized
   coefficients under the internal names `s(x).1`, ...; brms stops, and
   names them `s_sx_1[1]`, ... in `variables()`.
@@ -4160,6 +4166,7 @@ was posted upstream.
 - `attr(x, "min")` is not read; brms reads it for new data (brms-40,
   `dev/upstream-bugs.md`, is brms's own inconsistency there). Record:
   `dev/mocode-findings.md`, "Where frmtmb still differs from brms".
+  CLOSED in the round of 2026-11-13 (lane parity2): attr(x, "min") of an integer mo() variable sets the lowest category at the fit (brms's Jmo = 4 on 1..4 with min 0); new data are coded from it.
 - `variables()` of an ML fit has no `simo_` entries (filed at 0.75.0,
   still open).
 CLOSED in the round of 2026-11-11 (lane names): as 3846.
@@ -4338,6 +4345,7 @@ CLOSED in the round of 2026-11-11 (lane sampfront): with 3215.
   stops with "arguments imply differing number of rows: 1, 0", on both
   arms. Review `dev/reviews/2026-10-27-reslot.md`, finding 6
   (`dev/review-reslot-p3b.R`).
+  CLOSED in the round of 2026-11-13 (lane parity2): default_prior() lists an rr() model (no sd row for the block).
 - **`fitted()` gives `Est.Error` 0, not `NaN`, at an empty category**
   of the degenerate `(mo(x) | g)` gap fit (seed 23), both arms.
   `dev/mointerop-findings.md`, fix round 1, "Pre-existing".
@@ -4792,6 +4800,81 @@ none is a regression of this release.
   package does not declare (inferred by the review, not run). The skip
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
+
+## Filed in the round of 2026-11-13
+
+### From lane parity2
+
+- **LOW (pre-existing). `conditional_effects()` on `y ~ factor(kk) * x`
+  with an integer `kk` stops** with R's "factor factor(kk) has new
+  levels 1.0505..., ...": the grid reads `kk` as the numeric column and
+  varies it (or holds it at its mean) where the model reads only its six
+  levels. Same on rellib-r21. Reproducer: `set.seed(21); n <- 200; d <-
+  data.frame(x = rnorm(n), kk = sample(1:6, n, TRUE)); d$y <- d$x +
+  d$kk * 0.3 + rnorm(n)`, then `conditional_effects(frm(bf(y ~
+  factor(kk) * x), family = gaussian(), data = d))`; `effects = "x:kk"`
+  stops the same way. brms 2.23.0 fails too, at both calls ("New factor
+  levels are not allowed. Levels allowed: '1', ..., '6'. Levels found:
+  '3.915'", kk held at its mean; `dev/parity2-brms-factorkk.R`,
+  `dev/parity2-out/factorkk.txt`). A better answer than brms's: grid a
+  variable that the model reads only through `factor()` at its levels,
+  or refuse it by name with "convert kk to a factor in the data".
+- **MEDIUM. `conditional_effects(band = "boot")` on a fit has no
+  `sample_new_levels = "uncertainty"`**: it is refused by name, and the
+  fit keeps `"gaussian"`. A replicate holds each level's conditional
+  mode; lending it drops the level's conditional variance. To build it,
+  lend the picked level's mode plus a draw from its conditional
+  covariance at the replicate, as `fitted(sample_new_levels =
+  "old_levels")` accounts for it, and remeasure against brms on
+  strong-shrinkage data. Review of the round (F1), 30 groups of 2 rows,
+  sd_g 1, sigma 2, data seed 100, band width at x = -1, 0, 1: brms
+  2.23.0 "uncertainty" 4.096 3.963 3.922, "gaussian" 4.448 4.367 4.387;
+  frmtmb.sample NUTS draws "uncertainty" 3.897 3.703 3.742; the fit's
+  boot band (400) lending modes 2.903 2.815 2.787, its gaussian boot
+  band 4.036 4.344 4.560, its Wald band 3.967 3.840 3.940
+  (dev/reviews/2026-11-13-parity2.md).
+- **MEDIUM (pre-existing). `conditional_effects(band = "boot",
+  re_formula = NULL)` at an OBSERVED level omits the level's conditional
+  variance**: the bootstrap of the level's mode is 55 to 61 percent as
+  wide as the Wald band of the same fit, in silence, identical on
+  0.82.0. On the 30-groups-of-2-rows data above (seed 100), boot 400,
+  seed 2, at `conditions = data.frame(g = l)`: level 10 Wald 3.391 3.143
+  3.169 against boot 2.077 1.727 1.807; level 3 Wald 3.524 3.327 3.389
+  against boot 2.078 1.812 1.942 (dev/reviews/2026-11-13-parity2-short.md).
+- **LOW. `conditional_effects()` of a fit refuses `sample_new_levels =
+  "old_levels"` on the Wald band**, which could honor it by `fitted()`'s
+  route: pick one seen level per call and evaluate at it.
+  `fitted(sample_new_levels = "old_levels")` gives that level's fitted
+  value and Est.Error (0.8650 0.8019 0.8084 at level 10, seed 7), equal
+  on every digit to the Wald display at `conditions = data.frame(g =
+  "10")`. Or let the refusal name `conditions = data.frame(<group> =
+  <level>)` (dev/reviews/2026-11-13-parity2-short.md).
+- **LOW. `update(fit, bf(y ~ x2))` with a complete `bf()` replaces the
+  model**, where brms pools the old parameter formulas into it (the half
+  of 1560 not done in the round of 2026-11-13).
+- **LOW. `bf(y ~ x, sigma ~ z, sigma ~ w)` and `bf(f, sigma ~ w)` on an
+  `f` that sets `sigma` are refused** ("Duplicated dpar formula"), where
+  brms 2.23.0's `brmsformula()` keeps the later one with "Replacing
+  initial definitions of parameters". A later `+ lf()` does that since
+  this round (`bform_replace_pars()`); `bf_dots()` does not.
+- **LOW. The rest of the latent residual bundle (5087, 5300)**: a
+  corrected estimate and logLik (Laplace + C, `theta + shift`),
+  `get_joint_cov()` on a new row's design, which reads `V` of the outer
+  parameters alone, and M7. Only `err[k]` was done (dev/parity2-findings.md).
+- **LOW (decision). `frm(drop_unused_levels = FALSE)` drops the zero
+  column of an unused factor level** (`fc` of `y ~ f`), where brms keeps it
+  (K = 3, `b_fc` drawn from its prior, improper under brms's flat default).
+  A coefficient of a zero column has no maximum likelihood estimate.
+  Recommendation: keep the drop. dev/parity2-findings.md, item 5337.
+- **LOW. `conditional_effects()` leaves a factor-smooth's own grouping
+  factor out of its default displays** (`s(x, g, bs = "fs")`), where
+  brms's `get_all_effects()` lists `g` and `x:g`. frmtmb drops that term
+  at the population level, so the display would draw one line per level
+  of a term the curve does not read. Kept; recorded for the ledger.
+- **LOW. The default displays of `mo()`, `me()` and `mi()` terms come
+  in that order**, where brms lists its special terms in written order. The
+  set is brms's; only the order of the list can differ when a formula
+  mixes them.
 
 ## Filed at the 0.82.0 release (2026-11-11)
 
@@ -5303,6 +5386,7 @@ Record: `dev/wcheck-findings.md`.
   `err` and not `zerr`. Adding them changes the draws' content, not a
   name. The rest of the 5087 bundle (a corrected estimate and logLik,
   `get_joint_cov()` on a new row's design, M7) stays open with it.
+  CLOSED in the round of 2026-11-13 (lane parity2): frm_sample() draws carry err[k] (sderr * zerr under cov = FALSE, the residual otherwise); the corrected estimate, get_joint_cov() on a new row and M7 are filed again.
 - **LOW. `ranef()` and `coef()` of a fit keep lme4's `levels x coefs`
   shape**, where brms's are `levels x 4 x coefs` summary arrays (the
   draws methods already return brms's). A user decision: the ML modes
@@ -5316,16 +5400,19 @@ Record: `dev/wcheck-findings.md`.
   Intercept`**: brms keeps it in its `b` vector, so on a distributional
   model brms lists `b_sigma_Intercept` before it. Not measured; the rule
   reads the name, not the predictor's centering.
+  CLOSED in the round of 2026-11-13 (lane parity2): a 0 + Intercept or center = FALSE intercept keeps its place among the b_, as brms orders it.
 - **LOW. An exact `gp()`'s `zgp_<term>[i]` is not elementwise brms's**: z is
   taken in the farthest-first order of the positions, brms's in first
   appearance. An approximate `gp(k = )` keeps `b[i]` (its weights carry
   the spectral density; brms's `zgp` is standardized).
 - **LOW. `insight::get_predicted()` on `multinomial()`** returns flattened
   counts where brms errors (from 3164, not done).
+  CLOSED in the round of 2026-11-13 (lane parity2): get_predicted() refuses a multinomial or simplex fit by name (brms fails inside insight).
 - **LOW. brms names an ordinal fit's `posterior_epred()` draw margin**
   `"1".."S"`; frmtmb.sample's is `NULL`, and brms's categorical one is
   `NULL` too (gated `test-sampling-ported.R`; dev/names-findings.md).
   The observation margin is `NULL` on both sides since this round.
+  CLOSED in the round of 2026-11-13 (lane parity2): an ordinal posterior_epred() names its draw margin "1".."S" as brms; categorical stays NULL.
 ### From lane sampfront
 
 - **LOW. The `loo_*()` functions refuse a subset of the fitted rows**, which
@@ -5334,6 +5421,7 @@ Record: `dev/wcheck-findings.md`.
   `newdata`. Each row's leave-one-out value depends on its own column
   only, so the cut columns of the call without `newdata` would be the
   answer. `dev/sampfront-findings.md`, item 1.
+  CLOSED in the round of 2026-11-13 (lane parity2): loo_epred(), loo_linpred(), loo_predict(), loo_predictive_interval() and loo_R2() take a subset of the fitted rows.
 - **LOW. `frm(drop_unused_levels = FALSE)` keeps an unused level in the model
   frame only** (core). With `g` of 7 levels, 6 used, and `f` of 3, 2
   used: brms 2.23.0 `make_standata(drop_unused_levels = FALSE)` has
@@ -5344,6 +5432,7 @@ Record: `dev/wcheck-findings.md`.
   frmtmb's do not; `frm_sample(drop_unused_levels = FALSE)` passes the
   value to `frm()` and inherits this. `dev/review-sampfront-dul.R`,
   `dev/sampfront-dul-probe.R`, `dev/sampfront-findings.md`, item 7b.
+  CLOSED in the round of 2026-11-13 (lane parity2): the term keeps the unused level (N_1 = 7, as brms); the zero fixed-effect column stays dropped, filed as a decision.
 - **LOW. `log_lik(newdata =)` of draws on a subset computes every fitted
   column, then cuts**: `draws_loglik_matrix()` runs `draws_row_loglik()`
   over all rows per draw and keeps `cols`, so `loo(newdata =

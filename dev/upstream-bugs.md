@@ -999,6 +999,35 @@ Numbering is settled at consolidation. Not reported.
   brms-50 were taken.
 - Status: not reported.
 
+### brms-52. `cumulative()` with `center = FALSE` does not compile
+
+- Seen: 2.23.0, 2026-11-13 (review of lane parity2, and the lane's
+  `dev/parity2-brms-probe4.R`).
+- Repro:
+
+  ```r
+  set.seed(4)
+  d <- data.frame(x = runif(80, 0.1, 2))
+  d$y <- sin(2 * d$x) + rnorm(80, sd = 0.3)
+  d$yo <- cut(d$y, quantile(d$y, c(0, 0.3, 0.6, 1)),
+              include.lowest = TRUE, labels = FALSE)
+  brms::brm(brms::bf(yo ~ x, center = FALSE), data = d,
+            family = brms::cumulative())
+  ```
+
+- Expected: an ordinal model whose thresholds are the intercept, fitted
+  without centering, as `center = FALSE` reads on other families.
+  Actual: stanc stops, "Ill-typed arguments supplied to function
+  "ordered_logistic_glm_lpmf": (array[] int, matrix, vector, int)"; the
+  generated line is `target += ordered_logistic_glm_lpmf(Y | X, b, 0);`,
+  with the integer `0` where the thresholds vector belongs.
+- Workaround: none in brms; leave `center` at its default. frmtmb fits
+  the model (`b_Intercept[1]`, `b_Intercept[2]`, `b_x`).
+- Record: `dev/parity2-findings.md`, fix round; log
+  `dev/parity2-out/brms-probe4.txt`. brms-52 was the next free number
+  among the lanes of the round of 2026-11-13 when filed.
+- Status: not reported.
+
 ## RTMB
 
 ### RTMB-1. `pbeta()`, `pbinom()` and `pnbinom()` have non-finite third derivatives

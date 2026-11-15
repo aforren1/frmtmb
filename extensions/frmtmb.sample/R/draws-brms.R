@@ -137,7 +137,7 @@ draws_natural_cols <- function(fit) {
               # a mo() simplex is renamed and mapped as an ordinal block
               # is: its chart columns become brms's simo_ weights
               ordinal = c(draws_ordinal_cols(fit), draws_mo_cols(fit),
-                          draws_lncor_cols(fit)))
+                          draws_lncor_cols(fit), draws_latres_cols(fit)))
   # the columns added after the sampled ones: a mixture's last weight,
   # an equated dpar, and the thresholds and delta an ordinal block
   # reports beyond its internal parameters
@@ -346,6 +346,53 @@ draws_lncor_cols <- function(fit) {
       if (multi) paste0("lncor_", brms_stan_name(r)) else "lncor")
   }
   out
+}
+
+#' brms's `err[k]` of each latent residual block (`ar()`, `ma()`,
+#' `arma()`, `cosy()`, `unstr()` on a family without a residual), added
+#' as an ordinal block adds its extra names: the internal columns are
+#' the block's `theta` and its states, kept as they are, and the map
+#' appends `latres_err()` of them. brms 2.23.0 saves `err[1..n]` (one
+#' per row) and not the states. A draws object from a Laplace run holds
+#' no states, so its block finds no columns and adds nothing.
+#'
+#' @noRd
+draws_latres_cols <- function(fit) {
+  tpl <- fit$frame[["par_template"]]
+  thn <- names(tpl[["theta"]])
+  if (is.null(thn)) thn <- paste0("theta_", seq_along(tpl[["theta"]]))
+  thn <- par_name_bare(thn)
+  multi <- length(fit$spec$responses) > 1L
+  out <- list()
+  for (bk in fit$frame[["re_blocks"]] %||% list()) {
+    if (!identical(bk[["covstruct"]], "latres")) next
+    rs <- if (multi) {
+      paste0("_", brms_stan_name(bk[["aux"]][["ac"]][["resp"]]))
+    }
+    st <- if (identical(bk[["aux"]][["kind"]], "condar")) "zerr" else
+      "latent_state"
+    nth <- length(bk[["theta_idx"]])
+    nb <- length(bk[["b_idx"]])
+    n <- bk[["aux"]][["n"]]
+    out[[length(out) + 1L]] <- draws_latres_block(
+      bk, nth, nb,
+      internal = c(thn[bk[["theta_idx"]]],
+                   paste0(st, rs, "[", seq_len(nb), "]")),
+      err = paste0("err", rs, "[", seq_len(n), "]"))
+  }
+  out
+}
+
+#' One block of `draws_latres_cols()`, its maps closed over its own block.
+#'
+#' @noRd
+draws_latres_block <- function(bk, nth, nb, internal, err) {
+  list(internal = internal, names = c(internal, err),
+       map = function(r) {
+         r <- as.numeric(r)
+         c(r, latres_err(r[seq_len(nth)], r[nth + seq_len(nb)], bk))
+       },
+       inv = function(v) as.numeric(v)[seq_len(nth + nb)])
 }
 
 #' One block of `draws_lncor_cols()`, its maps closed over its own

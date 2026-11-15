@@ -86,8 +86,13 @@ ce_kept_blocks <- function(fit, re_formula) {
 #' whether any reads it new, which is what the fit's bootstrap
 #' simulation is chosen from.
 #'
+#' `sample_new_levels` is brms's rule for the draw (see
+#' `ce_plan_draw()`); the plan carries it, with an environment that
+#' holds the levels `"old_levels"` picks once per call.
+#'
 #' @noRd
-ce_level_plan <- function(fit, grids, base, re_formula) {
+ce_level_plan <- function(fit, grids, base, re_formula,
+                          sample_new_levels = "uncertainty") {
   all_blocks <- fit$frame[["re_blocks"]] %||% list()
   blocks <- list()
   for (i in ce_kept_blocks(fit, re_formula)) {
@@ -169,7 +174,8 @@ ce_level_plan <- function(fit, grids, base, re_formula) {
                     blocks = blocks, locked = locked, base = base)
     list(n = n, parts = unname(parts))
   })
-  list(grids = plans, blocks = blocks, status = tally$status)
+  list(grids = plans, blocks = blocks, status = tally$status,
+       snl = sample_new_levels, pick = new.env(parent = emptyenv()))
 }
 
 #' Which members of an `mm()` term each row routes to one block, as a
@@ -434,7 +440,7 @@ ce_plan_eval <- function(f, plan, gi, cache, categorical, resp, dpar,
       for (e in p$new) {
         ck <- paste0(e$block, "\r", e$key)
         if (is.null(cache[[ck]])) {
-          cache[[ck]] <- ce_plan_draw(fp, plan$blocks[[e$block]])
+          cache[[ck]] <- ce_plan_draw(fp, plan$blocks[[e$block]], plan, ck)
         }
         b[e$idx] <- cache[[ck]]
         if (!is.null(e$relabel)) {
@@ -456,14 +462,44 @@ ce_plan_eval <- function(f, plan, gi, cache, categorical, resp, dpar,
   as.vector(out)
 }
 
-#' One new level's effects for one block, from the covariance the
-#' parameters of `f` imply; zero for a block whose levels ARE its
-#' structure (`gr_cov`, `gr_prec`, `car`, `spde`), which has no marginal
-#' law for an unseen level, as the Wald band assumes too.
+#' One new level's effects for one block, by brms's `sample_new_levels`
+#' rule, which the plan carries:
+#'
+#' - `"uncertainty"`, brms's default on draws: the effects of a level the
+#'   fit saw, picked at random per draw, read at the parameters of `f`.
+#'   A fit's bootstrap does not reach it (`ce_snl_fit()`): a replicate's
+#'   `b` is a mode, not a draw. A `gr(g, by = f)` block holds one
+#'   by-level's levels, so the pick is within the row's by-level, as
+#'   brms picks it.
+#' - `"old_levels"`: the same, with the level picked once per call and
+#'   new level (`ck`), so every draw reads the same level.
+#' - `"gaussian"`: a draw from the covariance the parameters of `f`
+#'   imply.
+#'
+#' A block whose levels ARE its structure gets zero: `car` and `spde`,
+#' whose new level brms does not draw, and under `"gaussian"` also
+#' `gr_cov` and `gr_prec`, which have no marginal law for an unseen
+#' level, as the Wald band assumes too.
 #'
 #' @noRd
-ce_plan_draw <- function(f, b) {
-  if (!isTRUE(b$draw)) return(numeric(b$d))
+ce_plan_draw <- function(f, b, plan = NULL, ck = "") {
+  snl <- plan$snl %||% "gaussian"
+  pick <- !identical(snl, "gaussian") &&
+    (isTRUE(b$draw) || b$bk[["covstruct"]] %in% c("gr_cov", "gr_prec"))
+  if (pick) {
+    nlev <- length(b$bk[["b_idx"]]) %/% b$d
+    lv <- if (identical(snl, "old_levels")) {
+      if (is.null(plan$pick[[ck]])) {
+        assign(ck, sample.int(nlev, 1L), envir = plan$pick)
+      }
+      plan$pick[[ck]]
+    } else {
+      sample.int(nlev, 1L)
+    }
+    return(f$estimates[["b"]][b$bk[["b_idx"]][(lv - 1L) * b$d +
+                                                 seq_len(b$d)]])
+  }
+  if (!isTRUE(b$draw) || !identical(snl, "gaussian")) return(numeric(b$d))
   if (b$rr) return(stats::rnorm(b$d))
   bk <- b$bk
   th <- f$estimates[["theta"]]
@@ -519,11 +555,12 @@ ce_plan_key <- function(plan) {
   # a plan that draws nothing is the population's key: which group the
   # draws belong to is then said by the simulation (`kept`), not here
   if (is.null(plan) || !ce_plan_has_new(plan)) return(list())
-  lapply(plan$grids, function(gp) {
+  # draws under one sample_new_levels rule are not a band under another
+  c(list(snl = plan$snl %||% "gaussian"), lapply(plan$grids, function(gp) {
     lapply(gp$parts, function(p) {
       list(rows = p$rows, new = lapply(p$new, function(e) {
         list(block = plan$blocks[[e$block]]$id, key = e$key, idx = e$idx)
       }))
     })
-  })
+  }))
 }

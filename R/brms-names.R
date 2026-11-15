@@ -818,7 +818,10 @@ brms_class_levels <- c(
   "sdgp", "lscale", ".dpar", "hs", "R2D2", "sdb", "sdbsp", "sdbs", "sdar",
   "sdma", "lncor", "Intercept", "tmp", "rescor", "delta", "simo", "r",
   "s", "zgp", "rcar", "sbhaz", "Ymi", "Yl", "meanme", "sdme", "corme",
-  "Xme", ".other", "prior", "lprior", "lp"
+  "Xme", ".other", "prior", "lprior", "lp",
+  # a class reorder_pars() does not list sorts last, after lp__: brms
+  # 2.23.0 lists a latent residual's err[k] there
+  "err"
 )
 
 #' The permutation that puts brms names into brms's order
@@ -857,12 +860,14 @@ brms_variable_sort <- function(fit, nm) {
   dk[is_dp] <- match(cl[is_dp], c(dps, unique(cl[is_dp])))
   # a nonlinear parameter's intercept is an ordinary column of its b_
   # vector in brms's program, not a centered intercept, so it keeps its
-  # place: b_a_Intercept, b_a_z, b_b_Intercept
+  # place: b_a_Intercept, b_a_z, b_b_Intercept. So is the intercept of
+  # `0 + Intercept` (or center = FALSE): brms lists b_sigma_Intercept,
+  # b_Intercept, b_x, b_sigma_z for bf(y ~ 0 + Intercept + x, sigma ~ z)
   nl_int <- unlist(lapply(fit$frame[["linpreds"]], function(lp) {
     nlp <- if (!is.null(lp[["resp"]])) {
       fit$spec$responses[[lp[["resp"]]]][["nlpars"]]
     }
-    if (lp[["dpar"]] %in% nlp) {
+    if (lp[["dpar"]] %in% nlp || isFALSE(lp[["center"]])) {
       paste0("b_", brms_usc(brms_lp_prefix(fit, lp), "Intercept"))
     }
   }), use.names = FALSE)

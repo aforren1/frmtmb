@@ -1,3 +1,53 @@
+# frmtmb (development version)
+
+## brms surface
+
+* BREAKING: `conditional_effects()` picks its default displays by brms's
+  rule (`get_all_effects()`): one display per term, of the variables
+  the term reads, over the predictors of every distributional and
+  nonlinear parameter, whichever `dpar` is drawn. `exp(x):z` is the one
+  display `x:z`, `t2(x, z)` and `mo(k):z` add their pair, `sigma ~ z`
+  adds `z`, a `cs()` term adds its variable, and a variable that only
+  an interaction reads is no longer a display of its own
+  (`poly(x, 2) + z + x:w` gives `x`, `z` and `x:w`). A pair puts its
+  numeric variable first, as brms does, so `f * x` gives `x:f`. On a
+  multivariate model each response draws the displays of all responses.
+* `conditional_effects()` of a fit takes brms's `sample_new_levels =
+  "gaussian"`, which is what its bands already use for a new group
+  level. `"uncertainty"` and `"old_levels"` are refused by name: a
+  bootstrap refit holds each level's conditional mode and not a draw of
+  its effect, so a lent level would make the band too narrow. A band
+  that draws nothing (Wald, profile) refuses any value but
+  `"gaussian"`.
+* `s()` of an expression, such as `s(exp(x))`, fits, as in brms. A
+  smooth of a non-syntactic column name (`` s(`my x`) ``) is refused by
+  name, as brms cannot parse it either.
+* An integer `mo()` variable with `attr(x, "min")` codes its categories
+  from that minimum, as brms does at the fit. New data are coded from
+  the same minimum.
+* BREAKING: A later `lf()` or `nlf()` replaces a parameter that the
+  `bf()` it is added to already sets, with brms's message "Replacing
+  initial definitions of parameters". It used to stop.
+* BREAKING: The `df` of `logLik()` for a REML fit counts the fixed
+  effects, as lme4's does, so `AIC()` and `BIC()` agree with lme4's.
+* BREAKING: `frm(drop_unused_levels = FALSE)` keeps an unused level of a
+  grouping factor as a level of its group-level term, as brms's
+  `standata()` does. Its effect is 0 with its prior's variance.
+* BREAKING: `variables()` keeps the intercept of `0 + Intercept` (or
+  `center = FALSE`) in its place among the coefficients, as brms does:
+  `b_sigma_Intercept` comes before `b_Intercept` in
+  `bf(y ~ 0 + Intercept + x, sigma ~ z)`.
+* `default_prior()` answers a model with an `rr()` term. It stopped
+  with "arguments imply differing number of rows".
+* `conditional_effects()` of a `frm_multiple()` result takes
+  `int_conditions`. It stopped with "matched by multiple actual
+  arguments".
+* `insight::get_predicted()` refuses a family that predicts one value
+  per category (`multinomial()`, `dirichlet()` and the other simplex
+  families) by name. It returned the values flattened, with nothing to
+  say which category each was.
+* The sampling API adds `ce_snl()` and `latres_err()`.
+
 # frmtmb 0.82.0
 
 ## Convergence and standard errors

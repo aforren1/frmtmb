@@ -35,8 +35,10 @@ conditional_effects(x, ...)
 \arguments{
 \item{x}{A \code{frmtmb_fit}.}
 
-\item{...}{\code{allow_new_levels}, passed to \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}.
-Anything else is reported as unknown, by name, against
+\item{...}{\code{allow_new_levels}, passed to \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}, and
+brms's \code{sample_new_levels}, which sets how a new group level is
+drawn (see "New group levels"; on a fit only \code{"gaussian"}). Anything
+else is reported as unknown, by name, against
 \code{conditional_effects()}.}
 
 \item{effects}{Character vector of variable names, or \code{"x:z"} pairs;
@@ -454,7 +456,27 @@ leaves it unset, the call is refused by name. brms also refuses the
 unseen level.
 }
 
-With \code{band = "boot"} and on draws, a new level is drawn as follows.
+On draws, a new level's effects follow brms's \code{sample_new_levels},
+given in \code{...}:
+\itemize{
+\item \code{"uncertainty"} (the default, as in brms): in each posterior draw,
+the effects of one level the fit saw, picked at random, at that
+draw's values. For a \code{gr(g, by = f)} term the pick is among the
+levels of the row's \code{f} level.
+\item \code{"old_levels"}: the same, with one level picked for the whole call.
+\item \code{"gaussian"}: a draw from the term's covariance at that draw.
+}
+
+On a fit, \code{band = "boot"} draws a new level's effects from the term's
+covariance in each replicate (\code{"gaussian"}), as \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}
+and \code{\link[=fitted.frmtmb_fit]{fitted.frmtmb_fit()}} do. \code{"uncertainty"} and \code{"old_levels"} are
+refused there by name: a refit holds each level's conditional mode,
+not a draw of its effect, so a lent level would bring none of its
+conditional variance and the band would be too narrow where the
+levels are shrunk. The Wald band does not draw: it adds the term's
+variance for a new level, which is the \code{"gaussian"} law, and refuses
+any other value.
+
 The rows are predicted at a placeholder level of the term, and the
 draw replaces the effects of that level. The placeholder can change
 only a grouping column that no other part of the model reads: not a
@@ -472,7 +494,7 @@ are drawn when \code{g} and \code{h} are set to observed levels that the data
 never has together: \code{g} and \code{h} keep their levels, and \code{g:h} reads a
 new level. With one new level in the call, the band on draws equals
 brms's at the same draws and the same seed, with
-\code{sample_new_levels = "gaussian"} (\code{dev/ceplot-crossed-brms.R}); with
+\code{sample_new_levels = "gaussian"} on both sides; with
 several, brms draws level by level and this draw by draw, so the
 bands agree in law but not number. A row whose grouping variable is
 unset there has no label to rename to, and is refused by name. A
@@ -504,20 +526,28 @@ parameter template.
 
 \section{Which predictors are plotted by default}{
 
-Every variable of the selected linear predictor that the display can
-vary: its fixed-effect terms, its smooth terms and its \code{mo()} terms
-(whose design columns are placeholders, so the variable is read from
-the term itself). On a nonlinear fit they live one level down - the
-covariates the nonlinear formula reads, plus the terms of each
-nonlinear parameter's own predictor - and all of those are collected
-too. Matrix-valued columns are excluded, a grid over a matrix
-covariate not being a curve. Every fitted interaction whose
-components are single plottable variables adds an \code{"a:b"} display,
-as in brms: a fitted interaction hidden by default invites reading
-the main-effect curves as the whole story. The display takes two
-variables, so a three-way or deeper term contributes its leading
-pair, with the remaining variables at their reference values until
-\verb{conditions =} pins them. Naming \verb{effects =} overrides the search.
+brms's rule (\code{get_all_effects()}), over the predictors of EVERY
+distributional parameter of the response and then of every nonlinear
+parameter, whichever \code{dpar} the display draws:
+\itemize{
+\item each fixed-effect term and each \code{cs()} term is one display of the
+variables it reads: \code{x * z} gives \code{x}, \code{z} and \code{x:z}, \code{exp(x):z}
+gives \code{x:z} alone, and \code{poly(x, 2)} gives \code{x};
+\item each \code{mo()}, \code{me()}, \code{mi()}, smooth and \code{gp()} term gives its
+variables (a \code{by} variable and a \code{mo(k):z} multiplier included)
+alone and in pairs, so \code{t2(x, z)} and \code{mo(k):z} give \code{x}, \code{z} and
+\code{x:z};
+\item a nonlinear formula gives its covariates alone and in pairs.
+}
+
+A display of three or more variables is left out, as in brms; name
+its leading pair in \verb{effects =} and pin the rest in \verb{conditions =}.
+A variable that only a group-level term or an \code{offset()} reads is not
+a display, nor is a factor-smooth's own grouping factor (its curve is
+dropped at the population level). Matrix-valued columns are excluded,
+a grid over a matrix covariate not being a curve. On a multivariate
+model the displays of all responses are drawn for each response, as
+in brms. Naming \verb{effects =} overrides the search.
 
 A response whose predictor reads \code{mi(x, idx = )} is refused by name.
 Such a term reads \code{x} on the row whose \code{index()} value equals the

@@ -1173,16 +1173,17 @@ conditional_effects.frmtmb_multiple <- function(x, effects = NULL, ...,
     U[, 1L] <- T1$s^2
     R[, 1L] <- T1$e
     V[, 1L] <- T1$r^2
+    # the grid of the first imputation replaces the caller's
+    # int_conditions and conditions, which it already holds; passing
+    # both was R's "matched by multiple actual arguments"
+    ce_j <- function(fit, ..., int_conditions = NULL, conditions = NULL) {
+      conditional_effects(fit, effects = e_call, prob = prob,
+                          int_conditions = ic,
+                          conditions = if (length(covs)) conds else list(),
+                          ...)
+    }
     for (j in seq_len(x$m)[-1L]) {
-      cej <- conditional_effects(x$fits[[j]], effects = e_call,
-                                 prob = prob,
-                                 int_conditions = ic,
-                                 conditions = if (length(covs)) {
-                                   conds
-                                 } else {
-                                   list()
-                                 },
-                                 ...)
+      cej <- ce_j(x$fits[[j]], ...)
       dj <- cej[[1L]]
       pos <- match(k1, key(dj))
       if (anyNA(pos)) {

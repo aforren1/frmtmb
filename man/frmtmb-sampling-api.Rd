@@ -82,6 +82,8 @@
 \alias{ce_structure_check}
 \alias{ce_re_formula}
 \alias{ce_dots}
+\alias{ce_snl}
+\alias{latres_err}
 \alias{find_linpred}
 \alias{arg_unset}
 \alias{re_form_arg}
@@ -265,7 +267,9 @@ with no such term, and refuses new rows under \code{cov = FALSE} in brms's words
 \code{latres_shifted(fit, lat, resp)} gives the fit back with one draw of them
 in the predictor of \code{mu}. \code{autocor_cond_strip_latent(fit)} marks a fit whose
 predictions read a grid: its latent residuals are not read there, as brms's
-\code{incl_autocor = FALSE} drops them.
+\code{incl_autocor = FALSE} drops them. \code{latres_err(theta, b, blk)} is brms's
+\code{err} of one latent block at one draw, per row: the block's \code{theta}
+(log \code{sderr} first) and its states \code{b} in, one value per row out.
 
 \code{arma_cond_resp(fit)} names the responses carrying brms's default
 \code{cov = FALSE} form of \code{ar()}, \code{ma()} or \code{arma()}, and
@@ -538,7 +542,9 @@ Three serve brms's display options on both surfaces.
 attribute from a draws-by-rows matrix \code{m} over the rows of \code{grid};
 \code{ce_spaghetti_check()} raises brms's refusal of \code{spaghetti} together
 with \code{surface}; \code{ce_check_distance()} validates \code{select_points} and
-\code{too_far}. \code{ce_grids_build()} takes \code{surface} and \code{too_far}, and
+\code{too_far}. \code{ce_grids_build()} takes \code{surface}, \code{too_far} and
+\code{re_formula} (whose kept terms' grouping variables order a default
+pair as factors), and
 \code{ce_finalize()} takes \code{select_points}, \code{pred_vars} (the grid's own
 \code{pred_vars}) and \code{draws_by_eff}, a list by effect of the draws
 matrices whose columns are that effect's rows.
@@ -553,22 +559,27 @@ in brms's columns and \code{cs_finalize()} makes the returned list.
 
 \code{ce_dots()} is the argument surface itself: it pulls
 \code{allow_new_levels} out of a call's dots, returns whether it was set,
-and REFUSES whatever is left, naming it. An extension that
-hand-rolls the same check accepts a different set of arguments from
+and REFUSES whatever is left but \code{sample_new_levels}, naming it.
+\code{ce_snl(dots)} reads that one, brms's rule for drawing a new level
+(\code{"uncertainty"} by default), which \code{ce_level_plan()} takes. An
+extension that hand-rolls the same check accepts a different set of
+arguments from
 the fit method, which is how \code{allow_new_levels} came to work on a
 fit and warn on draws.
 
 Three more serve one purpose between them: brms's rule for which
 group a grid row reads. \code{ce_group_vars()} names the grouping
 variables a \code{re_formula = NULL} call blanks where the grid does not
-set them. \code{ce_level_plan(fit, grids, base, re_formula)} then decides,
+set them. \code{ce_level_plan(fit, grids, base, re_formula, sample_new_levels)} then decides,
 per row and per group-level block, whether the row reads a level the
 fit saw or a NEW one (unset, unseen, or a combination a nested term
 never saw), and places each new one at a placeholder level of its
 block. A row reads only the block of its own level of a \code{gr(g, by = f)} term, and each new member value of an \code{mm()} term is its own new
 level. \code{ce_plan_eval(f, plan, gi, cache, ...)} evaluates grid \code{gi} at
-the parameters of \code{f}, drawing every new level from the covariance
-\code{f}'s own \code{theta} implies, once per distinct level: a sampler calls
+the parameters of \code{f}, drawing every new level by the plan's rule
+(an observed level's effects in \code{f} under \code{"uncertainty"}, or a draw
+from the covariance \code{f}'s own \code{theta} implies under \code{"gaussian"}),
+once per distinct level: a sampler calls
 it per POSTERIOR DRAW, with a fresh \code{cache} environment per draw,
 where the fit method calls it per bootstrap replicate, so the
 construction is the same and the frames stay comparable.

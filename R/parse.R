@@ -2917,10 +2917,11 @@ parse_one_response <- function(bform) {
                  paste(fam[["dpars"]], collapse = ", "), call. = FALSE)
       }
       # UNREACHABLE while plus_bf() (R/bf.R) stands: a name needs a
-      # formula AND a body to get here, and plus_bf() and nlf() refuse
-      # that combination on all three orderings ("nlf() sets 'a',
-      # which the bf() it is added to already sets"), while a duplicate
-      # inside one bf() is refused as "Duplicated dpar formula". So the
+      # formula AND a body to get here, and plus_bf() lets a later
+      # lf() or nlf() replace the earlier definition
+      # (bform_replace_pars()), so one name never keeps both, while a
+      # duplicate inside one bf() is refused as "Duplicated dpar
+      # formula". So the
       # only member `both` can hold is the location dpar injected above,
       # which the first branch takes. Measured on all four routes. Kept
       # as a guard rather than deleted, because the branch above would

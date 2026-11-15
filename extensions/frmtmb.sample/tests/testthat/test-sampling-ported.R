@@ -155,7 +155,8 @@ test_that("posterior_epred returns a draws x obs x category array", {
   ep <- posterior_epred(ds, newdata = nd, ndraws = 8)
   expect_true(is.array(ep) && length(dim(ep)) == 3L)
   expect_equal(dim(ep), c(8L, 4L, 3L))
-  expect_null(dimnames(ep)[[1]])
+  # brms names an ordinal epred's draw margin "1".."S"
+  expect_identical(dimnames(ep)[[1]], as.character(1:8))
   expect_equal(dimnames(ep)[[3]], levels(dd$y))
   # ep[, , "hi"] must be addressable by the response's own level names
   expect_equal(dim(ep[, , "hi"]), c(8L, 4L))
@@ -589,7 +590,7 @@ test_that("posterior_linpred stays on the mu predictor for an ordinal fit", {
   # as a draws x observations x categories array (brms's convention)
   ep <- posterior_epred(ds, newdata = nd, ndraws = 10)
   expect_equal(dim(ep), c(10L, 3L, 3L))
-  expect_null(dimnames(ep)[[1]])
+  expect_identical(dimnames(ep)[[1]], as.character(1:10))
   expect_equal(dimnames(ep)[[3]], levels(dd$y))
   # each draw's slice is a 3 x 3 matrix of distributions
   for (k in seq_len(dim(ep)[1])) {
@@ -649,9 +650,9 @@ test_that("ordinal posterior_epred has brms's draws x obs x category shape", {
   # leaves the observation margin unnamed, and so do the draws
   expect_equal(dimnames(ep)[[3]], levels(dd$y))
   expect_equal(dimnames(bep)[[3]], levels(dd$y))
-  expect_null(dimnames(ep)[[1]])
-  # brms names an ordinal fit's draw margin "1".."S"; the observation
-  # margin is unnamed on both sides
+  # brms names an ordinal fit's draw margin "1".."S", and so do the
+  # draws; the observation margin is unnamed on both sides
+  expect_identical(dimnames(ep)[[1]], dimnames(bep)[[1]])
   expect_identical(dimnames(ep)[[2]], dimnames(bep)[[2]])
   expect_vector_equal(as.vector(apply(ep, c(2L, 3L), mean)),
                       as.vector(apply(bep, c(2L, 3L), mean)), tol = 0.1)

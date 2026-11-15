@@ -357,6 +357,21 @@ latres_expand <- function(b, blk, theta) {
     })
 }
 
+#' brms's `err` of a latent residual block at one draw, per row in row
+#' order, from the block's `theta` (log sderr first) and its states `b`.
+#' Under `ar(cov = FALSE)` it is `sderr * zerr`, brms's iid residual,
+#' whose lagged sum brms adds to `mu` apart from it; under every other
+#' term it is the residual itself, `latres_expand()`. brms 2.23.0 saves
+#' `err[1..n]` and not `zerr` on both (dev/parity2-brms-probe2.R).
+#'
+#' @noRd
+latres_err <- function(theta, b, blk) {
+  if (identical(blk[["aux"]][["kind"]], "condar")) {
+    return(exp(theta[1L]) * b)
+  }
+  as.numeric(latres_expand(b, blk, theta))
+}
+
 #' `sum_j ar_j z_{t-j}` over the rows, each lag one gather of `z` padded with
 #' a zero for a row with no such lag.
 #'

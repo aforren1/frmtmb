@@ -30,10 +30,12 @@
 #' to leave out. `newdata` that holds exactly the rows the model was
 #' fitted on (`object$data`) is accepted: those are the rows these
 #' functions answer, and on them brms's answer is theirs. A subset of
-#' them is refused here, though brms answers it: these functions take
-#' the fitted rows or none, while [frmtmb::log_lik()], [frmtmb::loo()],
-#' `waic()`, `psis()`, `loo_model_weights()` and the `loo_*` types of
-#' `pp_check()` take such a subset and use those rows' columns.
+#' them is accepted too, as [frmtmb::log_lik()] accepts it: each row's
+#' leave-one-out value reads that row's own column, so the result is the
+#' rows of the fitted answer that the subset holds, in its order, which
+#' is brms's answer on such newdata. A model whose column reads more
+#' than its own row (an autocorrelation, `me()` or `mi()` term) refuses
+#' a subset, as [frmtmb::log_lik()] does.
 #'
 #' @section Draws:
 #' `ndraws` and `draw_ids` choose the draws ONCE, and the same draws give
@@ -76,10 +78,11 @@
 #'   them. `newdata`, `re_formula` and the new-level arguments are
 #'   refused unless they hold brms's default value (`NULL`;
 #'   `allow_new_levels = FALSE`; `sample_new_levels = "uncertainty"`),
-#'   which asks for nothing, or `newdata` holds exactly the fitted rows
-#'   (see *Leave-one-out, and newdata*). Any
+#'   which asks for nothing, or `newdata` holds the fitted rows or a
+#'   subset of them (see *Leave-one-out, and newdata*). Any
 #'   other name is an error that names it.
-#' @return A matrix with one row per observation and one column per
+#' @return A matrix with one row per observation (per row of a subset
+#'   `newdata`) and one column per
 #'   summary, named `mean`, `var` or `q<100 p>`. Where the prediction
 #'   has a third dimension (categories, or the responses of a
 #'   multivariate model without `resp` or with several), an array
@@ -176,7 +179,8 @@ loo_predictive_interval.frmtmb_draws <- function(object, prob = 0.9,
 #' reads nowhere) says so instead of changing nothing in silence.
 #'
 #' @noRd
-loo_draws_opts <- function(dots, what, pred_args, models = list()) {
+loo_draws_opts <- function(dots, what, pred_args, models = list(),
+                           subset = FALSE) {
   nms <- names(dots) %||% rep("", length(dots))
   if (any(!nzchar(nms))) {
     frm_stop(what, " takes its further arguments by name, and argument ",
@@ -186,8 +190,12 @@ loo_draws_opts <- function(dots, what, pred_args, models = list()) {
   # weights are built from log_lik(), which refuses them, and the policy
   # is loo()'s, so its reason is given in its words. brms's own default
   # values ask for none of that and pass, as does newdata holding the
-  # fitted rows, which never reaches the prediction either.
-  given <- function(a) a %in% nms && loo_arg_asks(models, a, dots[[a]])
+  # fitted rows, which never reaches the prediction either. With
+  # `subset`, a subset of the fitted rows passes too: its caller cuts
+  # the fitted rows' answer to it.
+  given <- function(a) {
+    a %in% nms && loo_arg_asks(models, a, dots[[a]], subset = subset)
+  }
   ll_refused <- c("newdata", "re_formula", "re.form", draws_new_level_args,
                   "nug")
   hit <- Filter(given, ll_refused)
@@ -225,7 +233,8 @@ loo_draws_opts <- function(dots, what, pred_args, models = list()) {
   }
   list(ndraws = dots$ndraws, draw_ids = dots$draw_ids,
        pred = dots[intersect(nms, pred_args)],
-       psis = dots[intersect(nms, psis_args)])
+       psis = dots[intersect(nms, psis_args)],
+       newdata = if (subset) dots$newdata)
 }
 
 #' Whether the argument `name` = `value` asks the leave-one-out functions
@@ -341,7 +350,15 @@ loo_draws_expect <- function(object, pred_fun, what, type, probs,
   if (!requireNamespace("loo", quietly = TRUE)) {
     loo_need_pkg(what)
   }
-  op <- loo_draws_opts(dots, what, pred_args, list(object))
+  op <- loo_draws_opts(dots, what, pred_args, list(object), subset = TRUE)
+  # a subset of the fitted rows: each row's leave-one-out value reads its
+  # own column only, so the answer is the fitted rows' cut to the subset,
+  # as brms's is (0 difference, dev/parity2-brms-probe2.R); the fitted
+  # rows themselves need no cut
+  cut <- NULL
+  if (!is.null(op$newdata) && !draws_newdata_is_fitted(object, op$newdata)) {
+    cut <- draws_newdata_rows(object, op$newdata)
+  }
   if (identical(type, "quantile")) {
     ok <- is.numeric(probs) && length(probs) >= 1L && !anyNA(probs) &&
       all(probs > 0 & probs < 1)
@@ -378,11 +395,20 @@ loo_draws_expect <- function(object, pred_fun, what, type, probs,
   } else {
     one(resp)
   }
+  if (!is.null(cut)) {
+    pred <- if (length(dim(pred)) == 3L) {
+      pred[, cut, , drop = FALSE]
+    } else {
+      pred[, cut, drop = FALSE]
+    }
+  }
   if (is.null(psis_object)) {
     # brms's message
     frm_message("Running PSIS to compute weights")
     psis_object <- loo_draws_weights(object, rows, resp, what,
-                                     op$psis)$psis
+                                     op$psis, newdata = if (!is.null(cut)) {
+                                       op$newdata
+                                     })$psis
   }
   if (!inherits(psis_object, "psis") ||
         !identical(dim(psis_object), dim(pred)[1:2])) {
@@ -441,8 +467,10 @@ loo_expect_value <- function(x, psis_object, type, probs) {
 #' An ordinal or categorical family is refused, as [frmtmb::bayes_R2()]
 #' refuses it: brms refuses the categorical families and treats ordinal
 #' probabilities as a continuous prediction, with a warning. `newdata`
-#' is refused for the reason [loo_epred()] gives: a row the model was
-#' not fitted on has no observation to leave out.
+#' that holds a subset of the fitted rows gives R-squared over those
+#' rows, as in brms; other `newdata` is refused for the reason
+#' [loo_epred()] gives: a row the model was not fitted on has no
+#' observation to leave out.
 #'
 #' @param object A `frmtmb_draws` from [frm_sample()].
 #' @param resp For a multivariate model, which responses, in brms's
@@ -458,7 +486,8 @@ loo_expect_value <- function(x, psis_object, type, probs) {
 #' @param args_epred,args_loglik Named lists of arguments for
 #'   [posterior_epred()] alone and for [frmtmb::log_lik()] alone.
 #' @param ... `ndraws` or `draw_ids`, which choose the draws for both,
-#'   and further arguments of [posterior_epred()].
+#'   `newdata` holding a subset of the fitted rows, and further
+#'   arguments of [posterior_epred()].
 #' @return A summary matrix with one row per response, or with
 #'   `summary = FALSE` the matrix of bootstrap draws.
 #' @references Vehtari, A. and Lampinen, J. (2002). Bayesian model
@@ -517,7 +546,15 @@ loo_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
       posterior_summary(R2, probs = probs, robust = robust)
     } else R2)
   }
-  op <- loo_draws_opts(dots, "loo_R2()", c("dpar", "nlpar"), list(object))
+  op <- loo_draws_opts(dots, "loo_R2()", c("dpar", "nlpar"), list(object),
+                       subset = TRUE)
+  # a subset of the fitted rows: R-squared over those rows, each row's
+  # leave-one-out prediction read off its own column, as brms computes
+  # it on such newdata
+  cut <- NULL
+  if (!is.null(op$newdata) && !draws_newdata_is_fitted(object, op$newdata)) {
+    cut <- draws_newdata_rows(object, op$newdata)
+  }
   for (a in c("ndraws", "draw_ids")) {
     if (a %in% c(names(args_epred), names(args_loglik))) {
       frm_stop("loo_R2(): give `", a, "` in `...`, where it chooses the ",
@@ -558,6 +595,11 @@ loo_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
     ll <- draws_as_caller("loo_R2()", re_formula = FALSE, do.call(
       loo_matrix, c(list(object, NULL, rn, "loo_R2()", draw_ids = rows),
                     args_loglik)))
+    if (!is.null(cut)) {
+      y <- y[cut]
+      ep <- ep[, cut, drop = FALSE]
+      ll <- ll[, cut, drop = FALSE]
+    }
     ps <- do.call(draws_psis_of, c(list(ll, object), op$psis))
     loo_R2_boot(as.numeric(y), ep, ll, ps)
   })

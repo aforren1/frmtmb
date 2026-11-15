@@ -366,8 +366,10 @@
 #' brms's program declares and does not save. Under any other term they
 #' are named `latent_state[k]`: these are the chain's own states and not
 #' `err` or `zerr`, and `ma()`, `arma()` and `cosy()` have one extra state
-#' per group, so 60 rows in 12 groups have 72 states. brms's derived
-#' `err[k]` columns are not in the draws.
+#' per group, so 60 rows in 12 groups have 72 states. Beside the states,
+#' the draws carry brms's `err[k]`, one per row: `sderr * zerr[k]` under
+#' `ar(cov = FALSE)` and the latent residual itself under the other
+#' terms, which is what brms saves.
 #'
 #' After the fit, [fitted()], [frm_linpred()], [residuals()], [predict()] and
 #' [simulate()] read the conditional mode of `err` on the fitted rows. On new

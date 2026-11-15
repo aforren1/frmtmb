@@ -2698,6 +2698,9 @@ prior_table <- function(spec, frame, route) {
     # has a row for each, and below each group row one per coefficient
     # (sd_spec_reach() is the rule the rows describe)
     sp <- block_sd_prefix(spec, frame, bk)
+    # a block with no standard deviation of its own (rr(), whose
+    # loadings carry its scale) has no sd row to list
+    if (!nrow(sp)) next
     cf <- block_sd_coefs(frame, bk)
     sd_rows[[length(sd_rows) + 1L]] <- data.frame(
       group = bk[["group_name"]], nlpar = sp$nlpar, dpar = sp$dpar,

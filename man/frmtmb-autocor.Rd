@@ -340,8 +340,10 @@ are brms's \code{zerr[k]}, one standard normal per row in row order, which
 brms's program declares and does not save. Under any other term they
 are named \code{latent_state[k]}: these are the chain's own states and not
 \code{err} or \code{zerr}, and \code{ma()}, \code{arma()} and \code{cosy()} have one extra state
-per group, so 60 rows in 12 groups have 72 states. brms's derived
-\code{err[k]} columns are not in the draws.
+per group, so 60 rows in 12 groups have 72 states. Beside the states,
+the draws carry brms's \code{err[k]}, one per row: \code{sderr * zerr[k]} under
+\code{ar(cov = FALSE)} and the latent residual itself under the other
+terms, which is what brms saves.
 
 After the fit, \code{\link[=fitted]{fitted()}}, \code{\link[=frm_linpred]{frm_linpred()}}, \code{\link[=residuals]{residuals()}}, \code{\link[=predict]{predict()}} and
 \code{\link[=simulate]{simulate()}} read the conditional mode of \code{err} on the fitted rows. On new

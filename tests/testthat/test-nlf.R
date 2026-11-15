@@ -173,16 +173,17 @@ test_that("post-processing follows the nonlinear parameter a body names", {
                       se.fit = TRUE)$se.fit
     expect_lt(max(abs(sb / sl - 1)), 1e-3, label = ty)
   }
-  # the effect display finds the body's covariate, not mu's
+  # the effect display finds the body's covariate beside mu's, as brms's
+  # get_all_effects() reads every parameter (x from mu, z from the body)
   ce <- conditional_effects(fit, dpar = "sigma", band = "boot", boot = 5)
-  expect_named(ce, "z")
+  expect_named(ce, c("x", "z"))
   # its Wald band is the delta method through the body, on sigma's link
   cw <- conditional_effects(fit, dpar = "sigma", band = "wald")
-  expect_named(cw, "z")
+  expect_named(cw, c("x", "z"))
   expect_equal(cw$z$estimate__, ce$z$estimate__)
   expect_true(all(is.finite(cw$z$se__)))
   # ... while mu keeps its own analytic band
-  expect_named(conditional_effects(fit), "x")
+  expect_named(conditional_effects(fit), c("x", "z"))
   expect_true(all(c("b_a_Intercept", "b_b_Intercept") %in% variables(fit)))
   expect_s3_class(hypothesis(fit, "b_Intercept = 0"), "frmtmb_hypothesis")
 
@@ -217,12 +218,20 @@ test_that("nlf() refuses what it cannot mean", {
   expect_error(nlf(a + b ~ exp(x)), "one parameter at a time")
   expect_error(nlf(a.b ~ x), "Invalid parameter name")
   expect_error(nlf(a ~ exp(x), a ~ 1), "both a nonlinear body")
-  expect_error(bf(y ~ x, sigma ~ z) + nlf(sigma ~ a * z),
-               "nlf\\(\\) sets 'sigma'")
-  expect_error(bf(y ~ x) + nlf(sigma ~ a * z) + nlf(sigma ~ a + z),
-               "nlf\\(\\) sets 'sigma'")
-  expect_error(bf(y ~ x) + nlf(sigma ~ a * z) + lf(sigma ~ z),
-               "lf\\(\\) sets 'sigma'")
+  # a later definition replaces the earlier one, with brms 2.23.0's
+  # message on all three orderings (dev/parity2-brms-nlf.R)
+  rep_msg <- "Replacing initial definitions of parameters 'sigma'"
+  f1 <- f2 <- f3 <- NULL
+  expect_message(f1 <- bf(y ~ x, sigma ~ z) + nlf(sigma ~ a * z), rep_msg)
+  expect_null(f1$pforms$sigma)
+  expect_identical(deparse1(f1$nlforms$sigma), "sigma ~ a * z")
+  expect_message(f2 <- bf(y ~ x) + nlf(sigma ~ a * z) + nlf(sigma ~ a + z),
+                 rep_msg)
+  expect_identical(deparse1(f2$nlforms$sigma), "sigma ~ a + z")
+  expect_message(f3 <- bf(y ~ x) + nlf(sigma ~ a * z) + lf(sigma ~ z),
+                 rep_msg)
+  expect_null(f3$nlforms$sigma)
+  expect_identical(deparse1(f3$pforms$sigma), "sigma ~ z")
   expect_error(bf(y ~ x) + bf(z ~ x) + nlf(sigma ~ a),
                "does not say which response")
   # nlf(mu ~ ...) would silently discard the bf()'s own right-hand side

@@ -999,12 +999,14 @@ print.summary.frmtmb_fit <- function(x, ...) {
 }
 
 #' Estimated outer parameters: profiled betas (control profile = TRUE)
-#' leave opt$par but are still estimated and must count toward df.
+#' leave opt$par but are still estimated and must count toward df. So do
+#' the betas REML integrates out: lme4's REML logLik counts them, and an
+#' AIC without them is short of lme4's by twice their number.
 #'
 #' @noRd
 n_outer_est <- function(object) {
   n <- length(object$opt$par)
-  if (isTRUE(object$control$profile)) {
+  if (isTRUE(object$control$profile) || isTRUE(object$REML)) {
     n <- n + length(object$frame[["par_template"]][["beta"]])
   }
   n
@@ -1049,16 +1051,13 @@ loglik_df <- function(object) {
 #' The estimated coefficients of `mo()` terms on one value. Such a term
 #' is 0 on every row, so its coefficient cannot change the likelihood:
 #' it is not a degree of freedom, as `lm()` does not count a column it
-#' aliases (`lm(y ~ z)` has df 3 where the fit counted 4). Under REML
-#' the population-level coefficients are not in the count at all.
+#' aliases (`lm(y ~ z)` has df 3 where the fit counted 4). The
+#' population-level coefficients are in the count under REML too
+#' (`n_outer_est()`), so each such coefficient comes off it.
 #'
 #' @noRd
 mo_const_df <- function(object) {
-  pos <- interop_mo_const(object)
-  nb <- length(object$frame[["par_template"]][["beta"]])
-  in_beta <- pos <= nb
-  sum(!in_beta) +
-    if (!object$REML || isTRUE(object$control$profile)) sum(in_beta) else 0L
+  length(interop_mo_const(object))
 }
 
 #' The parameter count of a `refcat = NA` model's reference twin, for
@@ -1114,7 +1113,8 @@ refcat_first_outer <- function(spec, bform, data, na.action, data2,
 }
 
 #' The outer parameters a frame holds, counted as `n_outer_est()`
-#' counts them for a fit with `object`'s REML and profile settings.
+#' counts them (which no longer depends on `object`'s REML and profile
+#' settings).
 #' `frame` is a frame or the `lens`/`nfix` record of
 #' `refcat_first_outer()`.
 #'
@@ -1122,10 +1122,8 @@ refcat_first_outer <- function(spec, bform, data, na.action, data2,
 frame_n_outer <- function(frame, object) {
   lens <- frame[["lens"]] %||% lengths(frame[["par_template"]])
   nfix <- frame[["nfix"]] %||% length(frame[["betad_fixed_idx"]])
+  # beta counts under REML as well, as n_outer_est() counts it
   inner <- c("b", "miss")
-  if (isTRUE(object$REML) && !isTRUE(object$control$profile)) {
-    inner <- c(inner, "beta")
-  }
   sum(lens[setdiff(names(lens), inner)]) - nfix
 }
 
@@ -1173,6 +1171,9 @@ frame_n_outer <- function(frame, object) {
 #' integral, so a prior on them (class `b`, `Intercept`, or an `nlpar`)
 #' does not separate from it. Then `logLik()` stops with an error, and
 #' `logLik_penalized()` still gives the maximized value.
+#'
+#' The `df` of a REML fit counts the fixed effects too, as lme4's REML
+#' `logLik()` does, so `AIC()` and `BIC()` of the two agree.
 #'
 #' @section Information criteria:
 #' The MAP estimates do not maximize the log-likelihood, and a parameter

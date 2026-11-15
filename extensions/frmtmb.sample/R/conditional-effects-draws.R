@@ -155,9 +155,11 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   # re_formula = NULL means a NEW group here exactly as it does on the
   # fit side: the grid's grouping column says so with NA. Where the fit
   # method draws that group's effects per BOOTSTRAP replicate, this one
-  # draws them per POSTERIOR DRAW, from that draw's own theta - which
-  # is brms's construction, and the reason its curve for an unobserved
-  # group is not the population curve under another name.
+  # draws them per POSTERIOR DRAW, from that draw's own parameters (an
+  # observed level's effects under brms's default "uncertainty", a draw
+  # from that draw's theta under "gaussian") - which is brms's
+  # construction, and the reason its curve for an unobserved group is
+  # not the population curve under another name.
   pop_level <- !inherits(re_formula, "formula") &&
     length(re_formula) == 1L && is.na(re_formula)
   # a grouping variable the grid sets keeps its value; core's
@@ -166,11 +168,23 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   na_vars <- ce_na_vars(fit, pop_level)
   gb <- ce_grids_build(fit, rspec, lp, effects, resp, dpar, resolution,
                        conditions, data, int_conditions, na_vars,
-                       surface = surface, too_far = too_far)
+                       surface = surface, too_far = too_far,
+                       re_formula = re_formula)
   ce_spaghetti_check(spaghetti, surface, gb$grids, gb$base)
   # a display holds a me(gr = ) group at NA, a new level per row
   anl <- allow_new_levels || !pop_level || length(ce_na_vars(fit, TRUE)) > 0L
-  plan <- if (!pop_level) ce_level_plan(fit, gb$grids, gb$base, re_formula)
+  # brms's sample_new_levels, "uncertainty" by default: a new level lends
+  # an observed level's effects in each draw
+  plan <- if (!pop_level) {
+    ce_level_plan(fit, gb$grids, gb$base, re_formula, ce_snl(dots))
+  }
+  # a laplace refusal names the gaussian rule where the plan lends a level
+  if (!is.null(plan) && ce_plan_has_new(plan) &&
+        !identical(plan$snl, "gaussian")) {
+    old_lends <- draws_call_state$snl_lends
+    draws_call_state$snl_lends <- TRUE
+    on.exit(draws_call_state$snl_lends <- old_lends, add = TRUE)
+  }
   # the seed governs every random number the call takes: the new-level
   # draws of a plan, and the simulated responses of method = "predict"
   if (!is.null(seed) &&

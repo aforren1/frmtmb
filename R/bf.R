@@ -424,8 +424,9 @@ check_dpar_equations <- function(pfix, pforms, fn = "bf()",
 #' `bf()` on a formula `bf()` already built. With nothing else given the
 #' object comes back untouched, which is brms's contract
 #' (`identical(form, bf(form))`). Further dpar formulas and constants are
-#' added; one naming a parameter the formula already sets is refused, as
-#' `+ lf()` refuses it, rather than replacing it in silence.
+#' added; one naming a parameter the formula already sets is refused,
+#' where brms replaces it with a message, as `+ lf()` now does here
+#' (`bform_replace_pars()`; filed in the backlog).
 #'
 #' @noRd
 bf_update <- function(formula, ..., family = NULL, nl = NULL,
@@ -831,6 +832,28 @@ stop_ac_term_added <- function(what = "brmsformula") {
            "with acformula(~ ar(time, gr))", call. = FALSE)
 }
 
+#' Drop the definitions of parameters `nms` from a `bf()` before a later
+#' `lf()` or `nlf()` sets them again: a formula, a fixed value or an
+#' equation, and a nonlinear body. The later definition wins, with
+#' brms's message (its `brmsformula()` does the same to a parameter
+#' given twice). A parameter is one of the three, so the old one has to
+#' go whichever kind the new one is.
+#'
+#' @noRd
+bform_replace_pars <- function(e1, nms) {
+  old <- intersect(nms, c(names(e1$pforms), names(e1$pfix),
+                          names(e1$nlforms)))
+  if (!length(old)) return(e1)
+  frm_message("Replacing initial definitions of parameters ",
+              paste0("'", old, "'", collapse = ", "))
+  for (slot in c("pforms", "pfix", "nlforms")) {
+    if (any(old %in% names(e1[[slot]]))) {
+      e1[[slot]] <- e1[[slot]][setdiff(names(e1[[slot]]), old)]
+    }
+  }
+  e1
+}
+
 #' `bf() + e2`.
 #'
 #' @noRd
@@ -846,12 +869,9 @@ plus_bf <- function(e1, e2) {
   }
   if (inherits(e2, "frmtmb_lf")) {
     # formulas, then constants and equations, which lf() takes as well
-    for (nm in c(names(e2$pforms), names(e2[["pfix"]]))) {
-      if (nm %in% c(names(e1$pforms), names(e1$pfix),
-                    names(e1$nlforms))) {
-        frm_stop("lf() sets '", nm, "', which the bf() it is added to ",
-                 "already sets", call. = FALSE)
-      }
+    nms <- c(names(e2$pforms), names(e2[["pfix"]]))
+    e1 <- bform_replace_pars(e1, nms)
+    for (nm in nms) {
       if (nm %in% names(e2$pforms)) {
         e1$pforms[[nm]] <- e2$pforms[[nm]]
       } else {
@@ -862,22 +882,11 @@ plus_bf <- function(e1, e2) {
     return(e1)
   }
   if (inherits(e2, "frmtmb_nlf")) {
-    set <- function(nm) {
-      nm %in% c(names(e1$pforms), names(e1$pfix), names(e1$nlforms))
-    }
+    e1 <- bform_replace_pars(e1, c(names(e2$nlforms), names(e2$pforms)))
     for (nm in names(e2$nlforms)) {
-      if (set(nm)) {
-        frm_stop("nlf() sets '", nm, "', which the bf() it is added to ",
-                 "already sets", call. = FALSE)
-      }
       e1$nlforms[[nm]] <- e2$nlforms[[nm]]
     }
     for (nm in names(e2$pforms)) {
-      if (set(nm)) {
-        frm_stop("The linear parameter formulas passed to nlf() set '", nm,
-                 "', which the bf() it is added to already sets",
-                 call. = FALSE)
-      }
       e1$pforms[[nm]] <- e2$pforms[[nm]]
     }
     check_dpar_equations(e1$pfix, c(names(e1$pforms), names(e1$nlforms)))
