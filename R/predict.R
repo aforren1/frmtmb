@@ -40,6 +40,8 @@ get_joint_cov <- function(fit, dense = TRUE) {
   flat <- NULL
   units <- NULL
   lost_pos <- integer(0)
+  lost_why <- character(0)
+  limit_range <- NULL
   root <- NULL
   Vrest <- NULL
   if (is.null(Q)) {
@@ -55,6 +57,8 @@ get_joint_cov <- function(fit, dense = TRUE) {
     flat <- sdr$se_null_flat
     if (!is.null(null)) units <- fit$par_units
     lost_pos <- match(names(sdr$se_lost), outer_par_names(fit))
+    lost_why <- se_lost_why(fit, sdr)
+    limit_range <- se_limit_ranges_of(fit, sdr)
     root <- sdr$cov_fixed_root
   } else {
     rep <- joint_cov_repair(fit, Q, sdr_of(fit))
@@ -64,6 +68,8 @@ get_joint_cov <- function(fit, dense = TRUE) {
       flat <- rep$flat
       units <- rep$units
       lost_pos <- rep$lost_pos
+      lost_why <- rep$lost_why
+      limit_range <- rep$limit_range
       root <- rep$root
       Vrest <- rep$Vrest
     } else {
@@ -76,9 +82,15 @@ get_joint_cov <- function(fit, dense = TRUE) {
     }
     rn <- rownames(Q)
   }
+  # the reasons beside the positions, which the prediction warning reads
+  # (se_pred_warn())
+  lost_why <- if (length(lost_why) == length(lost_pos)) {
+    lost_why[!is.na(lost_pos)]
+  }
   cache$Vjoint <- list(V = V, names = rn, null = null, flat = flat,
                        units = units, lost_pos = lost_pos[!is.na(lost_pos)],
-                       root = root, Vrest = Vrest)
+                       root = root, Vrest = Vrest, lost_why = lost_why,
+                       limit_range = limit_range)
   cache$Vjoint
 }
 
@@ -159,10 +171,16 @@ joint_cov_repair <- function(fit, Q, sdr) {
         length(f) != length(outer_par_names(fit))) {
     return(NULL)
   }
-  Qrr <- Q[r, r, drop = FALSE]
-  Wrr <- tryCatch(as.matrix(Matrix::solve(Qrr)), error = function(e) NULL)
-  if (is.null(Wrr) || !all(is.finite(Wrr))) return(NULL)
-  J <- -Wrr %*% as.matrix(Q[r, f, drop = FALSE])
+  wi <- joint_cov_white_inner(fit, sdr, r, f)
+  if (!is.null(wi$Wrr)) {
+    Wrr <- wi$Wrr
+    J <- wi$J
+  } else {
+    Qrr <- Q[r, r, drop = FALSE]
+    Wrr <- tryCatch(as.matrix(Matrix::solve(Qrr)), error = function(e) NULL)
+    if (is.null(Wrr) || !all(is.finite(Wrr))) return(NULL)
+    J <- -Wrr %*% as.matrix(Q[r, f, drop = FALSE])
+  }
   # through the factor where there is one (se_reparam_cov()): J Vf J'
   # with Vf whole loses every digit of a group effect's variance on an
   # ill-conditioned design, as a prediction would
@@ -180,15 +198,128 @@ joint_cov_repair <- function(fit, Q, sdr) {
   # group effects as the propagated part is: V = Vrest + root root'
   root <- NULL
   Vrest <- NULL
-  if (!is.null(Lf)) {
+  if (!is.null(wi$K)) {
+    # the whole covariance as a factor (joint_cov_white_inner()); `Vf`
+    # through its own factor, or its eigenvectors where it has none
+    if (is.null(Lf)) {
+      e <- eigen((Vf + t(Vf)) / 2, symmetric = TRUE)
+      Lf <- e$vectors %*% diag(sqrt(pmax(e$values, 0)), length(f))
+    }
+    root <- matrix(0, p, length(r) + ncol(Lf),
+                   dimnames = list(rownames(Q), NULL))
+    root[r, seq_along(r)] <- wi$K
+    root[r, length(r) + seq_len(ncol(Lf))] <- J %*% Lf
+    root[f, length(r) + seq_len(ncol(Lf))] <- Lf
+  } else if (!is.null(Lf)) {
     root <- matrix(0, p, ncol(Lf), dimnames = list(rownames(Q), NULL))
     root[f, ] <- Lf
     root[r, ] <- JL
     Vrest <- matrix(0, p, p, dimnames = dimnames(V))
     Vrest[r, r] <- Wrr
   }
+  lost_pos <- meta$lost_pos
+  lost_why <- meta$lost_why
+  if (length(wi$too_big)) {
+    # Above joint_root_limit() the whitened inverse is not formed, and
+    # the natural one gave a REML fit's coefficients standard errors of
+    # exactly 0 (4510 joint parameters, degree 7, sd lost, seed 2) or 7
+    # percent high (seed 3), with no warning (review of lane selimit2,
+    # F4b). Their rows are NaN, lost for "size" (se_pred_warn()).
+    jb <- wi$too_big
+    V[jb, ] <- NaN
+    V[, jb] <- NaN
+    root <- NULL
+    Vrest <- NULL
+    lost_pos <- c(lost_pos, jb)
+    lost_why <- c(if (length(lost_why) == length(meta$lost_pos)) {
+      lost_why
+    } else rep(NA_character_, length(meta$lost_pos)),
+    rep("size", length(jb)))
+  }
   list(V = V, null = meta$null, flat = meta$flat, units = meta$units,
-       root = root, Vrest = Vrest, lost_pos = meta$lost_pos)
+       root = root, Vrest = Vrest, lost_pos = lost_pos,
+       lost_why = lost_why, limit_range = meta$limit_range)
+}
+
+#' The most joint parameters for which a REML fit on a whitened design
+#' with a lost parameter has prediction standard errors
+#' (joint_cov_white_inner(), which forms a dense factor over the inner
+#' positions): `options(frmtmb.joint_root_max = )`, default
+#' `joint_root_max`.
+#'
+#' @noRd
+joint_root_limit <- function() {
+  v <- getOption("frmtmb.joint_root_max", joint_root_max)
+  if (!is.numeric(v) || length(v) != 1L || is.na(v)) joint_root_max else v
+}
+
+#' joint_cov_repair()'s `Qrr^-1` and `J = -Qrr^-1 Qrf` taken in the
+#' coordinates of beta_whitener(), or NULL where the fit has none.
+#'
+#' Under REML `beta` is inner, and in natural coordinates its block of
+#' `Qrr` carries the design's condition number squared. On a raw
+#' polynomial with `(1 | g)` whose sd ran to 0 (lost, so the repair runs)
+#' `Qrr` had a condition number of 1e16 and an eigenvalue below 0 in
+#' double precision at degree 6, and fitted(re_formula = NA) read
+#' standard errors up to 1.1e-4 off the exact ones at degree 6 and 3.2
+#' percent off at degree 7, with no warning, where vcov() of the same fit
+#' was within 1e-9 (dev/selimit2-3370.R, seeds 1 to 5). With
+#' `beta = T gamma` on the inner positions, `Qrr = Wr^-T Qg_rr Wr^-1`, so
+#' `Qrr^-1 = Wr Qg_rr^-1 Wr'` and `J = Wr Jg`; `Qg` is the precision
+#' sdr_unwhiten() was handed. `K = Wr Lg`, with `Qg_rr^-1 = Lg Lg'`, is
+#' returned as the factor joint_cov_repair() keeps: within 2e-9 at
+#' degree 7.
+#'
+#' @noRd
+joint_cov_white_inner <- function(fit, sdr, r, f) {
+  bw <- fit$beta_whiten
+  Qg <- sdr$joint_precision_white
+  if (is.null(bw) || is.null(Qg) || nrow(Qg) != length(r) + length(f)) {
+    return(NULL)
+  }
+  jb <- which(rownames(Qg) == "beta")
+  ib <- match(jb, r)
+  if (length(jb) != length(fit$frame[["par_template"]][["beta"]]) ||
+        anyNA(ib)) {
+    return(NULL)
+  }
+  # the factor is dense over the inner positions, as sdr_unwhiten()'s is;
+  # above the limit the natural-coordinate inverse is no answer either
+  # (joint_cov_repair())
+  if (nrow(Qg) > joint_root_limit()) return(list(too_big = jb))
+  Qgr <- Matrix::forceSymmetric(methods::as(Qg[r, r, drop = FALSE],
+                                            "CsparseMatrix"))
+  ch <- tryCatch(suppressWarnings(Matrix::Cholesky(Qgr, perm = TRUE,
+                                                   LDL = FALSE)),
+                 error = function(e) NULL)
+  if (is.null(ch)) return(NULL)
+  nr <- length(r)
+  I <- Matrix::Diagonal(nr)
+  # Qg_rr = P' L L' P, so Qg_rr^-1 = Lg Lg' with Lg = P' L^-T
+  Lg <- tryCatch(as.matrix(Matrix::solve(ch, Matrix::solve(ch, I,
+                                                           system = "Lt"),
+                                         system = "Pt")),
+                 error = function(e) NULL)
+  Wg <- tryCatch(as.matrix(Matrix::solve(ch, I)), error = function(e) NULL)
+  Jg <- tryCatch(-as.matrix(Matrix::solve(ch, as.matrix(Qg[r, f, drop = FALSE]))),
+                 error = function(e) NULL)
+  if (is.null(Lg) || is.null(Wg) || is.null(Jg) ||
+        !all(is.finite(Lg)) || !all(is.finite(Wg)) || !all(is.finite(Jg))) {
+    return(NULL)
+  }
+  # `T` acts on the beta rows alone (beta = T gamma)
+  for (blk in bw[["blocks"]]) {
+    k <- ib[blk[["idx"]]]
+    Tb <- blk[["T"]]
+    Lg[k, ] <- Tb %*% Lg[k, , drop = FALSE]
+    Jg[k, ] <- Tb %*% Jg[k, , drop = FALSE]
+    Wg[k, ] <- Tb %*% Wg[k, , drop = FALSE]
+    Wg[, k] <- Wg[, k, drop = FALSE] %*% t(Tb)
+  }
+  # `Qrr^-1` is kept as its factor `K`: formed whole in natural
+  # coordinates, a prediction's `a' Qrr^-1 a` cancels the digits the
+  # whitener kept (at degree 7, 3.8e-3 off)
+  list(Wrr = Wg, J = Jg, K = Lg)
 }
 
 #' What joint_cov_repair() carries beside `V`, at joint positions: the lost
@@ -221,7 +352,20 @@ joint_cov_repair_meta <- function(fit, sdr, p, r, f) {
     }
   }
   list(null = null, flat = flat, units = units,
-       lost_pos = f[match(names(sdr$se_lost), outer_par_names(fit))])
+       lost_pos = f[match(names(sdr$se_lost), outer_par_names(fit))],
+       lost_why = se_lost_why(fit, sdr),
+       limit_range = jc_limit_range_at(se_limit_ranges_of(fit, sdr), f))
+}
+
+#' se_limit_ranges()'s entries with their outer positions moved to the
+#' joint positions `f` (jc_limit_extrap()).
+#'
+#' @noRd
+jc_limit_range_at <- function(lr, f) {
+  lapply(lr, function(e) {
+    e$pos <- f[e$pos]
+    e
+  })
 }
 
 #' The joint precision of every estimated parameter, fixed and random,
@@ -3748,6 +3892,32 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
   }
   var_m <- pmax(jc_rowvar(jc, G, pos_all), 0)
   lost_dir <- jc_nonest(jc, G, pos_all)
+  # (`|` drops it; the rows added below are not of that kind)
+  nocurv <- attr(lost_dir, "nocurv")
+  size_lost <- attr(lost_dir, "size")
+  # a row the derivative calls determined, which a limit direction moves
+  # within its level range (se_limit_ranges()): the mean at the moved
+  # predictors, with the ends at their limits where the direction is an
+  # undetermined parameter
+  if (length(jc$limit_range)) {
+    preds <- list()
+    lks <- list()
+    for (dnm in dnames) {
+      lk <- object$frame[["linpreds"]][[linpred_key(rnm, dnm)]][["link"]]
+      if (!is.function(lk$linkinv) || is.null(das[[dnm]]$A)) next
+      preds[[dnm]] <- list(eta = eds[[dnm]]$eta, A = das[[dnm]]$A,
+                           coef_pos = das[[dnm]]$coef_pos)
+      lks[[dnm]] <- lk
+    }
+    at <- function(etas) {
+      dk <- dp
+      for (dnm in names(etas)) dk[[dnm]] <- lks[[dnm]]$linkinv(etas[[dnm]])
+      as.numeric(response_mean(fam, dk, av))
+    }
+    lost_dir <- lost_dir | jc_limit_extrap(jc, preds, at, sqrt(var_m))
+  }
+  attr(lost_dir, "nocurv") <- nocurv
+  attr(lost_dir, "size") <- size_lost
 
   # New grouping levels: a block whose components sit in several linear
   # predictors enters once, through the summed gradient over its own

@@ -423,3 +423,245 @@ test_that("confint_varcorr() gives a singular three-term block no interval", {
   }
   expect_gt(past, 0L)
 })
+
+test_that("coefficients that run off together are a limit in any coding", {
+  # Backlog item 4800. With group a all zero, `y ~ g` runs the intercept
+  # to -22.3 and gb to 23.5 together; each alone moves group b, so the
+  # one-coefficient probe read no end and 0.82.0 called both "flat",
+  # while `y ~ 0 + g` called ga a limit. The one count at the largest x
+  # does the same to `y ~ x` (intercept -436.5, slope 208.8), under a
+  # code-7 warning that said the stop was at the maximum
+  set.seed(5)
+  d <- data.frame(g = factor(rep(c("a", "b"), each = 50)))
+  d$y <- ifelse(d$g == "a", 0L, stats::rpois(100, 3))
+  for (fm in list(y ~ g, y ~ 0 + g)) {
+    r <- limit_conds(frm(fm, family = poisson(), data = d))
+    expect_length(r$warnings, 1L)
+    expect_match(r$warnings, "maximum likelihood estimate does not exist",
+                 fixed = TRUE)
+    lost <- sdr_of(r$value)$se_lost
+    expect_true(all(lost == "limit"))
+  }
+  # group b's mean is determined either way: the run moves group a only
+  r <- limit_conds(frm(y ~ g, family = poisson(), data = d))
+  expect_match(r$warnings, "move together further", fixed = TRUE)
+  fp <- limit_conds(stats::fitted(r$value,
+                                  newdata = data.frame(g = c("a", "b"))))
+  expect_true(is.nan(fp$value[1L, "Est.Error"]))
+  gb <- stats::glm(y ~ 1, family = stats::poisson(), data = d[d$g == "b", ])
+  eb <- stats::predict(gb, newdata = data.frame(x = 1), type = "response",
+                       se.fit = TRUE)$se.fit
+  expect_equal(unname(fp$value[2L, "Est.Error"] / eb), 1, tolerance = 1e-3)
+  # the absent case: one count in group a leaves an interior maximum
+  d$y[1L] <- 1L
+  r <- limit_conds(frm(y ~ g, family = poisson(), data = d))
+  expect_length(r$warnings, 0L)
+  g1 <- stats::glm(y ~ g, family = stats::poisson(), data = d)
+  expect_equal(unname(limit_se(r$value) / sqrt(diag(stats::vcov(g1)))),
+               c(1, 1), tolerance = 1e-3)
+  # the one count at the largest x, on every rounding of x
+  set.seed(2)
+  x <- stats::rnorm(50)
+  for (k in 0:19) {
+    de <- data.frame(x = x * (1 + 2e-15 * k), y = 0L)
+    de$y[which.max(de$x)] <- 1L
+    r <- limit_conds(frm(y ~ x, family = poisson(), data = de))
+    expect_length(r$warnings, 1L)
+    expect_match(r$warnings, "maximum likelihood estimate does not exist",
+                 fixed = TRUE)
+    expect_identical(unname(sdr_of(r$value)$se_lost), c("limit", "limit"))
+  }
+  # the absent case the joint search reaches: two counts delta apart at
+  # the top cannot both be matched as the slope grows, so the MLE is
+  # finite, though the ray is level to 1e-6 two and fourteen units out;
+  # the lane's first build called it a limit (review of lane selimit2, F2)
+  for (delta in c(1e-3, 1e-4, 1e-5)) {
+    dp <- data.frame(x = c(seq(0, 10, length.out = 30), 15 - delta, 15),
+                     y = c(rep(0L, 30), 1L, 1L))
+    r <- limit_conds(frm(y ~ x, family = poisson(), data = dp))
+    said <- c(r$warnings, vapply(r$messages, conditionMessage, ""))
+    expect_false(any(grepl("does not exist", said, fixed = TRUE)))
+    expect_false(any(sdr_of(r$value)$se_lost == "limit"))
+  }
+})
+
+test_that("a stop short across a joint end keeps its convergence warnings", {
+  # Review of lane selimit2, F1. Started far along the joint end of
+  # `y ~ g` (group a all zero) with one iteration, the fit stops with a
+  # gradient of 94.2 on each coefficient, all of it along (1, 1), across
+  # the end (-1, 1), and group b's mean 85 percent off. Dropping the
+  # whole gradient of the end's coefficients gave the limit words alone
+  set.seed(1)
+  d <- data.frame(g = factor(rep(c("a", "b"), each = 20)),
+                  y = c(rep(0, 20), stats::rpois(20, 5)))
+  r <- limit_conds(frm(y ~ g, data = d, family = poisson(),
+                       start = list(beta = c(-25, 24.5)),
+                       control = frmtmb_control(
+                         optCtrl = list(iter.max = 1, eval.max = 3))))
+  expect_true(any(grepl("Optimizer did not report convergence",
+                        r$warnings, fixed = TRUE)))
+  expect_true(any(grepl("Large maximum absolute gradient", r$warnings,
+                        fixed = TRUE)))
+})
+
+test_that("a zero-inflation probability sent to 1 on a level separates", {
+  # Backlog items 4814 and 4800. With level a all zero, `zi ~ 0 + f` runs
+  # zi_fa to 21.9, which sends zi to 1 on a's rows: 0.82.0 called it the
+  # family's limit in the quiet message ("drops that part of the model").
+  # Treatment-coded, `zi ~ f` runs both coefficients off together and
+  # 0.82.0 kept standard errors of 5374 with no word. Each is the
+  # bernoulli's quasi-complete separation of those rows. In the second
+  # draw group b has no excess zeros either, so its zi runs to 0 at the
+  # same time, through zi_fb alone
+  n <- 300
+  for (b_end in c(FALSE, TRUE)) {
+    set.seed(21)
+    d <- data.frame(f = factor(rep(c("a", "b"), each = n / 2)))
+    if (!b_end) d$x <- stats::rnorm(n)
+    d$y <- ifelse(d$f == "a", 0L, stats::rpois(n, 4))
+    r <- limit_conds(frm(bf(y ~ 1, zi ~ 0 + f),
+                         family = zero_inflated_poisson(), data = d))
+    expect_length(r$messages, 0L)
+    expect_length(r$warnings, 1L)
+    expect_match(r$warnings, "the probability goes to 1 on some rows",
+                 fixed = TRUE)
+    se <- limit_se(r$value)
+    expect_true(is.nan(se[["zi_fa"]]))
+    expect_true(is.finite(se[["(Intercept)"]]))
+    expect_identical(is.nan(se[["zi_fb"]]), b_end)
+    for (fam in list(zero_inflated_poisson(), hurdle_poisson())) {
+      dp <- if (identical(fam$family, "hurdle_poisson")) "hu" else "zi"
+      fm <- stats::as.formula(paste(dp, "~ f"))
+      r <- limit_conds(frm(bf(y ~ 1, fm), family = fam, data = d))
+      expect_length(r$messages, 0L)
+      expect_length(r$warnings, 1L)
+      expect_match(r$warnings, "the probability goes to 1 on some rows",
+                   fixed = TRUE)
+      se <- limit_se(r$value)
+      expect_true(all(is.nan(se[paste0(dp, c("_(Intercept)", "_fb"))])))
+      expect_true(is.finite(se[["(Intercept)"]]))
+    }
+  }
+  # the absent case: zeros in level a beyond the poisson's leave zi_fa a
+  # maximum, and zi_fb's run to 0 is the family's limit on b's rows
+  set.seed(21)
+  d$y2 <- ifelse(d$f == "a" & stats::runif(n) < 0.4, 0L, stats::rpois(n, 4))
+  r <- limit_conds(frm(bf(y2 ~ 1, zi ~ 0 + f),
+                       family = zero_inflated_poisson(), data = d))
+  said <- c(r$warnings, vapply(r$messages, conditionMessage, ""))
+  expect_false(any(grepl("goes to 1", said, fixed = TRUE)))
+  expect_true(is.finite(limit_se(r$value)[["zi_fa"]]))
+})
+
+test_that("a prediction a limit moves away from the data has no SE", {
+  # Backlog item 5433. zi ran to its end and zi_x (-0.32) is
+  # undetermined: any slope in about (-3, 3) fits as well, which leaves
+  # every fitted row where it is but sends zi to 1 at x = -10 or 10.
+  # 0.82.0 read x = -10 as 0.099 with a standard error of 0.049, from
+  # the derivative at the estimate alone
+  set.seed(7)
+  d <- data.frame(x = stats::rnorm(200), N = sample(5:15, 200, TRUE))
+  d$y <- stats::rbinom(200, d$N, stats::plogis(0.3 + 0.5 * d$x))
+  f <- limit_conds(frm(bf(y | trials(N) ~ x, zi ~ x),
+                       family = zero_inflated_binomial(), data = d))$value
+  expect_identical(unname(sdr_of(f)$se_lost), c("limit", "limit"))
+  nd <- data.frame(x = c(-10, 10), N = 10)
+  r <- limit_conds(stats::fitted(f, newdata = nd))
+  expect_true(all(is.nan(r$value[, "Est.Error"])))
+  expect_match(r$warnings, "move along a direction the fit does not",
+               fixed = TRUE)
+  # the absent case: rows inside the data, and one just outside it where
+  # zi stays below 2e-6 over the whole range, keep their standard errors
+  nd <- data.frame(x = c(-1, 0, 3), N = 10)
+  r <- limit_conds(stats::fitted(f, newdata = nd))
+  expect_length(r$warnings, 0L)
+  expect_true(all(is.finite(r$value[, "Est.Error"])))
+  r <- limit_conds(stats::fitted(f))
+  expect_length(r$warnings, 0L)
+  expect_true(all(is.finite(r$value[, "Est.Error"])))
+})
+
+test_that("a row inside the data that the limit moves has no SE", {
+  # Review of lane selimit2, F3. zi ~ x + z: rows at x = 0 fix zi's
+  # intercept and z slope, rows at z = 0 have no zeros, so zi_x runs to
+  # -Inf. A new row at (1, 1) lies inside every column's range and reads
+  # 0.22 at the stop, while zi_x at its limit, which fits as well, gives
+  # 4.06, 8.3 standard errors away; the first build kept its SE because
+  # its move lay within the fitted rows'
+  set.seed(31)
+  zA <- stats::runif(200)
+  yA <- ifelse(stats::runif(200) < stats::plogis(-9 + 18 * zA), 0L,
+               stats::rpois(200, 4))
+  xB <- stats::runif(100, 1, 2)
+  d <- data.frame(x = c(rep(0, 200), xB), z = c(zA, rep(0, 100)),
+                  y = c(yA, 1L + stats::rpois(100, 3)))
+  f <- limit_conds(frm(bf(y ~ 1, zi ~ x + z), data = d,
+                       family = zero_inflated_poisson()))$value
+  expect_identical(names(sdr_of(f)$se_lost), "zi_x")
+  r <- limit_conds(stats::fitted(f, newdata = data.frame(
+    x = c(1, 1, 1.5), z = c(1, 0.8, 0.9))))
+  expect_true(all(is.nan(r$value[, "Est.Error"])))
+  expect_match(r$warnings, "move along a direction the fit does not",
+               fixed = TRUE)
+  # the absent case: rows zi_x does not reach, and the fitted rows
+  r <- limit_conds(stats::fitted(f, newdata = data.frame(x = c(0, 3),
+                                                         z = c(0.5, 0))))
+  expect_length(r$warnings, 0L)
+  expect_true(all(is.finite(r$value[, "Est.Error"])))
+  r <- limit_conds(stats::fitted(f))
+  expect_length(r$warnings, 0L)
+  expect_true(all(is.finite(r$value[, "Est.Error"])))
+})
+
+test_that("a limit's noisy gradient does not hide the limit", {
+  # Backlog item 4824. A negbinomial shape on poisson data (seed 17)
+  # stopped at log shape 23.2 with code 8 and a gradient of 1.35e-3 on
+  # the shape, above grad_tol, while two units further out the objective
+  # moves by 2.1e-9. 0.82.0 gave the false-convergence and gradient
+  # warnings and the shape "nocurv"; the limit was not named
+  set.seed(17)
+  d <- data.frame(x = stats::rnorm(200))
+  d$y <- stats::rpois(200, exp(1 + 0.4 * d$x))
+  r <- limit_conds(frm(y ~ x, family = negbinomial(), data = d))
+  expect_length(r$warnings, 0L)
+  expect_length(r$messages, 1L)
+  expect_s3_class(r$messages[[1L]], "frmtmb_limit_fit")
+  expect_identical(unname(sdr_of(r$value)$se_lost), "limit")
+  g <- stats::glm(y ~ x, family = stats::poisson(), data = d)
+  expect_equal(unname(limit_se(r$value)[1:2] / sqrt(diag(stats::vcov(g)))),
+               c(1, 1), tolerance = 1e-3)
+})
+
+test_that("a NaN prediction at a stop without curvature says so", {
+  # Backlog item 5423. asym_laplace() stops at false convergence on the
+  # kinks of its likelihood with every parameter "nocurv"; its fitted
+  # values were NaN under the words "move along a direction the fit does
+  # not determine", which describe a different case
+  set.seed(5)
+  d <- data.frame(x = stats::rnorm(100))
+  d$y <- 1 + 0.5 * d$x + stats::rnorm(100)
+  # the stop's own warnings, whichever of them a BLAS gives
+  f <- allow_warnings(frm(y ~ x, data = d, family = asym_laplace()),
+                      c("Optimizer did not report convergence",
+                        "Large maximum absolute gradient",
+                        "Standard errors are not available"))
+  lost <- sdr_of(f)$se_lost
+  expect_true(any(lost == "nocurv"))
+  r <- limit_conds(stats::fitted(f))
+  expect_true(all(is.nan(r$value[, "Est.Error"])))
+  expect_length(r$warnings, 1L)
+  # every row reads the location's coefficients; where some other reason
+  # is lost beside "nocurv" (a stop on another BLAS), the general words
+  expect_match(r$warnings, if (all(lost == "nocurv")) {
+    "the curvature where the fit stopped"
+  } else "move along a direction the fit does not", fixed = TRUE)
+  # the unit: a row reading a "nocurv" parameter only, against one that
+  # also reads another lost parameter
+  V <- diag(c(1, NaN, NaN))
+  G <- rbind(c(1, 1, 0), c(1, 1, 1), c(1, 0, 0))
+  jc <- list(V = V, null = NULL, lost_pos = 2:3,
+             lost_why = c("nocurv", "flat"))
+  b <- jc_nonest(jc, G, 1:3)
+  expect_identical(as.vector(b), c(TRUE, TRUE, FALSE))
+  expect_identical(attr(b, "nocurv"), c(TRUE, FALSE, FALSE))
+})

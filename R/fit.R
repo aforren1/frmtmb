@@ -6455,8 +6455,16 @@ check_convergence <- function(fit, control) {
   # so does this, when the gradient is within grad_tol and every
   # standard error the check loses is a boundary one (se_check() then
   # gives the message)
-  bstop <- is.null(sep) && fit$opt$convergence != 0 &&
-    is.null(fit$importance) && se_boundary_stop(fit, g, control)
+  # A gradient above grad_tol on a coefficient at the end of its range,
+  # along which the likelihood is level, is the rounding of the density
+  # there (se_boundary_stop()); the rest of the gradient decides
+  bstop <- FALSE
+  if (is.null(sep) &&
+        (fit$opt$convergence != 0 || isTRUE(g > control$grad_tol)) &&
+        is.null(fit$importance)) {
+    bstop <- se_boundary_stop(fit, g, control, gvec)
+    if (isTRUE(bstop)) g <- attr(bstop, "grad") %||% g
+  }
   if (is.null(sep) && fit$opt$convergence != 0 && !bstop) {
     # Whether the stop is the maximum is measured, not read off the code:
     # nlminb's "false convergence (8)" also fires at the maximum (a group

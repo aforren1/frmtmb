@@ -2831,6 +2831,8 @@ the measurements.
   variance, seeds 7 and 12 (the shape of `dev/ci701-vc-spread.R`).
   Pre-existing: 0.70.0 and the ci701 build alike (lane ci701 review,
   R6).
+  CLOSED in the round of 2026-11-13 (lane selimit2): does not reproduce
+  on 0.82.0; vcov() and summary() give 0 warnings (seeds 7, 12).
 - **The dense `dmvnorm()` of a `us` block loses digits as a
   correlation runs to +/-1**: the outer gradient is noise above t of
   about 1000 (`dev/ci701-bcor-rank1.R`). Evaluating the block from its
@@ -2841,6 +2843,8 @@ the measurements.
   sdreport()'s SEs from the noisy Hessian** (4.7 percent low on the
   review-v29 fit) and its convergence and gradient warnings, at a
   point 3.2e-7 below the maximum (`dev/ci701-findings.md`).
+  CLOSED in the round of 2026-11-13 (lane selimit2): on 0.82.0 all 21
+  ulp-moved fits read 0.21767-8 and 0.22244-5, the rank-one model's.
 
 ## Filed at the 0.71.0 release (2026-10-14)
 
@@ -3019,6 +3023,7 @@ CLOSED in the round of 2026-11-11 (lane names): confint_varcorr()$block shows a 
   pins SE verdicts at a point 1.44e-4 below the maximum.
 - `fd_hessian()` keeps a step that leaves the matrix positive definite
   however large its rise.
+  CLOSED in the round of 2026-11-13 (lane selimit2): since 0.81.0 every column rising above tau_band is retaken whether or not the matrix factors.
 - Not done: a within-group or anova start for sigma and the group sd;
   families outside the rule (tweedie, compois, nbinom1, beta_binomial,
   the zero-inflated and hurdle families, von_mises, inverse.gaussian,
@@ -3370,6 +3375,7 @@ CLOSED in the round of 2026-11-11 (lane sampfront): samples.
 - `joint_cov_repair()` (a REML fit whose variance parameter is lost)
   still inverts the inner block `Qrr`, which under REML holds `beta`;
   not met on the designs measured.
+  CLOSED in the round of 2026-11-13 (lane selimit2): met at degree 7 with the sd at 0 (fitted SEs 3.3% off, silent); now inverted in gamma, kept as a factor.
 - frmtmb's REML AIC counts only the outer parameters (278.44 against
   lme4's 290.44 by the REML df convention; review finding 5).
   Pre-existing.
@@ -3401,6 +3407,8 @@ CLOSED in the round of 2026-11-11 (lane sampfront): samples.
 - A nonlinear body with random effects keeps 0.71.0's step: `nl_re`
   has SEs 2.05e-4 off. A step from the RMS of the body's Jacobian
   column was not built.
+  CLOSED in the round of 2026-11-13 (lane selimit2): 5.3e-7 on 0.82.0
+  (fd_hessian()'s retake, kept since 0.81.0).
 - `autoscale_prefit_converged()` and `autoscale_fit_sound()` decide
   with `optimHess()`; they could read the AD Hessian, which would
   change which start autoscale keeps.
@@ -4793,6 +4801,92 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-13
+
+### From lane selimit2
+
+Lane record: `dev/selimit2-findings.md`.
+
+- **LOW. The non-local test of a limit direction reads fitted()'s mean
+  only.** jc_limit_extrap() moves a limit direction over its level range
+  on the route of fitted()'s expected response (predict_mean_se()). The
+  other routes that call jc_nonest() (frm_linpred() on the response
+  scale, a dpar through fitted(dpar =), hypothesis(), conditional
+  effects, the category probabilities, the draws of predict()) keep the
+  derivative at the estimate. Where such a route reads a limit
+  direction beside parameters that keep their standard errors, a row
+  far outside the data can keep a finite one; not measured route by
+  route. Each route needs its quantity as a function of the moved
+  predictor.
+- **LOW. A joint end is found only where both sides are level two units
+  out.** se_limit_joint_dir() asks that, so that a weak interior
+  maximum far along a collinear pair (test-se-tier.R, standard errors of
+  7135) is not called an end. A joint run that stopped closer in (a
+  predictor at -12 rather than -22) keeps 0.82.0's "flat".
+- **LOW. A hurdle probability's two ends get different words.** With
+  `hu ~ f` and level b free of zeros, hu_b runs to 0 under the quiet
+  family-limit message ("drops that part of the model"), while hu sent
+  to 1 on a level all zero is a one-sided separation with a warning.
+  For a hurdle both are the bernoulli of zero against nonzero, so both
+  are a quasi-separation of that level's rows; zi toward 0 is the
+  family's limit (no excess zeros) and is not (review of lane selimit2,
+  item 2).
+- **LOW. se_limit_ranges() reads `obj$fn`.** Under one-block
+  quadrature that is the frozen tape; lane quadseam2's se_probe_fn()
+  (not in this tree) is the probe se_edge_limit() takes there. The
+  level ranges measured on quadseam2's runoff fits agree, and differ
+  only past the range (review of lane selimit2, item 7). Use it at the
+  merge.
+- **HIGH. A whitened REML fit above joint_root_max has no prediction
+  standard errors.** Above `options(frmtmb.joint_root_max)` (4000 joint
+  parameters) joint_cov_white_inner() forms no dense factor. Through the
+  round of 2026-11-13 the natural-coordinate inverse ran there and was
+  silently wrong: REML, degree-7 raw polynomial, `(1 | g)` with 4500
+  groups of 2 rows (4510 joint parameters), sd lost "boundary", fitted()
+  at x = 1, 1.5, 2 gave 0, 0.006780297, 0 against the conditional
+  0.026547773 0.006987372 0.024168042 (seed 2), and 0.028095623
+  0.007124937 0.027467583 against 0.026203606 0.006970559 0.025911831
+  (seed 3), the same on rellib-r21
+  (`dev/reviews/selimit2-short-3370ref.R`). Now those rows are NaN with
+  a warning. The exact fix: `a' Qrr^-1 a` for the predicted rows from
+  the sparse Cholesky of `Qg[r, r]` (solve with `M' a`, `M` the
+  whitener on the beta rows, no dense factor), plus `J Vf J'` through
+  `Jg` by solves. Seed 1 (sd not lost, the whole-joint route, not
+  joint_cov_repair()) reads 0.023272941 against a conditional lower
+  bound of 0.024359899 (4.5 percent low) on both builds: sdr_unwhiten()
+  forms no factor above the constant joint_root_max either.
+- **MEDIUM. A mixing weight's end is not certified.** The far check of
+  se_limit_joint_cert() for `theta` neither holds nor saturates the rows
+  it moves by less than 1e-3 of the largest move, and 0.82.0's
+  single-coefficient rule has no certificate at all: two gaussians 16
+  sd apart with a reversed pair 1e-8 apart in z get "theta1_z (at
+  -821.2, toward -Inf): the data separate the rows ... the maximum
+  likelihood estimate does not exist" on rellib-r21 and on this lane,
+  while theta times 1e4 raises the objective by 0.082 and times 1e6 by
+  43 (a finite MLE; `dev/reviews/selimit2-short-theta.R <arm> 1e-8`).
+  Certify a mixing weight's end, single or joint, by holding the rows it
+  moves by less than `se_sep_move` and checking each row's side, as for
+  the mean families.
+- **MEDIUM. asym_laplace() has no Hessian standard error by design**
+  (items 3389 and 3575). Every fit measured (dev/cdfs-dbg14.R's data,
+  gaussian data, a fixed quantile, zero_inflated_asym_laplace) stops
+  with every parameter "nocurv", code 8 or a gradient of 0.13 to 2.8,
+  and the false-convergence and gradient warnings, which describe a
+  stop short of a maximum (`dev/selimit2-asym.R`). The log density is
+  piecewise linear in the location, so its curvature is 0 almost
+  everywhere and the MLE is the quantile regression's. A user decision:
+  refuse the Hessian SE by name at fit time with words that say why,
+  or report a quantile-regression (sparsity) or sandwich covariance.
+- **LOW. 3404's AD Hessian is not a drop-in for autoscale's
+  optimHess().** autoscale_prefit_converged() and autoscale_fit_sound()
+  (R/autoscale.R, lane slopescale's file, not edited) take optimHess()
+  with its absolute step of 1e-3 in the fit's natural units. obj$he()
+  exists only without random effects; a fit with them would need
+  fit_outer_hessian()'s steps (outer_fd_steps()) instead. Their cutoffs
+  (reciprocal condition 1e-4 on the coefficient block, 1e-8 on the
+  whole) were measured on optimHess() matrices (dev/predfix-p2-prefit.R)
+  and would need remeasuring; which start autoscale keeps would change.
+
 ## Filed at the 0.82.0 release (2026-11-11)
 
 ### From lane boundfam
@@ -4811,6 +4905,8 @@ none is a regression of this release.
   negbinomial forms of `y ~ g` stay "flat". The treatment-coded
   `zi ~ f` with one level all zero is silent on both builds, with SEs
   of 5374 (dev/reviews/boundfam-short-*).
+  CLOSED in the round of 2026-11-13 (lane selimit2): joint ends
+  (se_limit_joint_dirs()); pois1max and every coding read "limit".
 - **MEDIUM. A zero-inflation probability sent to 1 is called the family's
   limiting case** (dev/reviews/boundfam-short-*, m7): with
   `zi ~ 0 + f` and one level all zero, zi_fa runs to +21.9. The
@@ -4821,12 +4917,16 @@ none is a regression of this release.
   right (zi_fa NaN, zi_fb 2.20 kept; 0.81.0 gave 4665 in silence);
   only the class and the text are wrong. Suggested rule: an end that
   sends zi, hu or zoi to 1 on some rows is a separation.
+  CLOSED in the round of 2026-11-13 (lane selimit2): that rule, as
+  proposed; the fit warns, zi_fb keeps its SE.
 - **LOW. A negbinomial shape at its limit stays "nocurv" behind a
   convergence warning** (dev/boundfam-findings.md, "Fix round"):
   seed 17 of poisson data, log shape 23.2, code 8 and a gradient of
   1.35e-3 above `grad_tol`. The convergence verdict makes the stop
   short, so the standard-error analysis is not applied, and the limit
   rule, which would fire there, is not asked.
+  CLOSED in the round of 2026-11-13 (lane selimit2): a level end's
+  gradient is left out (se_boundary_stop()); boundary message only.
 - **LOW. 3022 and 3037 are family fit-end checks, not the boundary rule**
   (dev/boundfam-findings.md, "Not done"): both stay open as filed.
 ### From lane quadseam
@@ -5430,6 +5530,8 @@ CLOSED at the 0.82.0 release: frmtmb.eam 0.13.2 and frmtmb.ode 0.7.4 need frmtmb
   undetermined. That a plain asym_laplace fit stops at code 8 is older than
   this round. `dev/reviews/rel082-short-probe1.R`, `short-p3.log`; release
   review, short check.
+  CLOSED in the round of 2026-11-13 (lane selimit2): rows that read only
+  "nocurv" parameters get their own words (se_pred_warn()).
 - **LOW. `jc_nonest()`'s move test is local to the estimate.** A `zi ~ x`
   fit at zi's end (seed 7, slope -0.32) reads `predict()` at new x = -10
   as 0.099 with a finite standard error 0.049, but any zi slope in about
@@ -5439,6 +5541,8 @@ CLOSED at the 0.82.0 release: frmtmb.eam 0.13.2 and frmtmb.ode 0.7.4 need frmtmb
   reads the derivative at the estimate only. Rows at x = -30, -60 and -100
   are NaN with the warning. 0.81.0 reads the same. Release review, short
   check (`dev/reviews/rel082-short-probe1.R`, `short-p3.log`).
+  CLOSED in the round of 2026-11-13 (lane selimit2): fitted() moves each
+  limit direction over its level range (jc_limit_extrap()); x = -10 NaN.
 
 ## Filed at the 0.81.0 release (2026-11-10)
 

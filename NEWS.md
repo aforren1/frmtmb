@@ -1,3 +1,78 @@
+# frmtmb (development version)
+
+## Convergence and standard errors
+
+* BREAKING: The standard-error check finds coefficients of one linear
+  predictor that have run to the end of their range together, where no
+  coefficient alone has. With `y ~ g` and group a all zero, the
+  intercept and `gb` run off together, and the check called both
+  "flat", while `y ~ 0 + g` called `ga` a limit. A treatment-coded
+  `zi ~ f` with one level all zero gave standard errors of 5374 and no
+  warning. These fits now get the limit verdict that a single
+  coefficient gets: the warning that the maximum likelihood estimate
+  does not exist, or the boundary message for a family parameter. The
+  combination that ran off has no standard error, and a prediction that
+  does not move along it (the mean of group b) keeps its standard error.
+  The verdict needs a proof from the rows the combination moves: for a
+  count or binary mean, every row moved toward 0 is 0 (and every
+  bernoulli row moved toward 1 is 1); for a zero-inflation or hurdle
+  probability, every row moved toward 1 is 0 and every row moved toward
+  0 is positive; a mixing weight must not lose likelihood at 0 or 1.
+  Without it the coefficients stay "flat".
+* BREAKING: A run that sends a zero-inflation, hurdle or
+  zero-one-inflation probability to 1 on some rows is a separation of
+  that probability's rows, as a bernoulli fitted to them is
+  quasi-separated. With `zi ~ 0 + f` and level a all zero, the check
+  gave the quiet boundary message, which said that the probability
+  "drops that part of the model". The fit now warns that the data
+  separate the rows of the probability. The other coefficients keep
+  their own verdicts.
+* BREAKING: `fitted()` gives NaN standard errors for a row that a
+  limit direction moves away from the data. The test read only the
+  derivative at the estimate. A `zi ~ x` fit whose zi ran to zero read
+  the expected count at a new `x = -10` with a standard error of 0.049,
+  but a zi slope that fits the data as well sends zi to 1 there. The
+  check now moves each limit direction over the range where the
+  log-likelihood stays level, and a row that moves by more than a
+  hundredth of its standard error gets NaN and the warning. Every row is
+  tested, inside the data or not: with `zi ~ x + z` and zi's `x` slope
+  at its end, a new row at `x = 1, z = 1` read 0.22 with a standard
+  error of 0.49, while the slope at its limit, which fits as well, gives
+  4.06. A parameter that the end leaves undetermined is moved with the
+  end at its limit, so a mixture whose weight ran to 0 keeps the
+  standard errors of its fitted values: at weight 0 that component's
+  parameters do not enter the mean.
+* BREAKING: A gradient above `grad_tol` along the direction of a
+  coefficient, or a combination of coefficients, at the end of its
+  range, along which the log-likelihood is level, no longer hides the
+  limit. The part of the gradient across that direction is still tested
+  against `grad_tol`. A
+  `negbinomial()` shape on poisson data stopped at a log shape of 23.2
+  with code 8 and a gradient of 1.35e-3 on the shape, which is rounding
+  of the density at that limit. The fit gave the false-convergence and
+  gradient warnings and kept the shape's standard error as "nocurv". It
+  now gets the boundary message for the shape at its limit.
+* The warning on predictions whose standard errors are NaN because a
+  parameter has no variance where the fit stopped (reason "nocurv")
+  now says so, and no longer says that they move along a direction the
+  fit does not determine. An `asym_laplace()` fit, which stops at false
+  convergence on the kinks of its likelihood, gave the wrong words. A
+  separation that the fit's warning names keeps the separation's words.
+* `fitted()`, `predict()` and the other predictions of a REML fit on an
+  ill-conditioned fixed design (one that frmtmb fits in the design's own
+  coordinates) whose variance parameter has no standard error now keep
+  their digits. The joint covariance was formed from the inner block in
+  the natural coordinates, whose condition number is the design's
+  squared. On a degree-7 raw polynomial with `(1 | g)` and the group sd
+  at zero, `fitted(re_formula = NA)` gave standard errors up to 3.3
+  percent wrong with no warning, while `vcov()` was right. The block is
+  now inverted in the design's coordinates and kept as a factor, up to
+  `options(frmtmb.joint_root_max = 4000)` joint parameters (fixed and
+  random). BREAKING: above that size such a fit's predictions that read
+  its coefficients get NaN standard errors and a warning that names the
+  option and `frmtmb.sample::frm_sample()`. Before, at 4510 joint
+  parameters, they were silently 0 or 7 percent high.
+
 # frmtmb 0.82.0
 
 ## Convergence and standard errors
