@@ -477,3 +477,73 @@ test_that("a non-finite residual is reported, not passed on silently", {
                  require = "1 of 150 one-step-ahead residuals are not finite")
   expect_identical(sum(is.nan(r)), 1L)
 })
+
+test_that("a censored count is randomized over its step of the window", {
+  # PIN: 0.82.0 refused every censored discrete fit. Left censoring at 1
+  # is Y <= 1 and right censoring at 6 is Y > 6, so an uncensored count
+  # lies in (1, 6] and its PIT is renormalized on F(6) - F(1)
+  z <- osa_design(seed = 31, n = 200)
+  mc <- exp(1.2 + 0.4 * z$x)
+  cases <- list(
+    poisson = list(y = stats::rpois(z$n, mc), fam = poisson(),
+                   F = function(q, dp) stats::ppois(q, dp$mu)),
+    negbinomial = list(y = stats::rnbinom(z$n, size = 3, mu = mc),
+                       fam = negbinomial(),
+                       F = function(q, dp) {
+                         stats::pnbinom(q, size = dp$shape, mu = dp$mu)
+                       }))
+  for (nm in names(cases)) {
+    cs <- cases[[nm]]
+    d <- data.frame(x = z$x, y = pmin(pmax(cs$y, 1), 6),
+                    cc = ifelse(cs$y <= 1, "left",
+                                ifelse(cs$y > 6, "right", "none")))
+    fit <- frm(y | cens(cc) ~ x, family = cs$fam, data = d)
+    r <- osa_r(fit)
+    u <- d$cc == "none"
+    expect_true(all(is.na(r[!u])), info = nm)
+    dp <- lapply(osa_dp(fit), function(v) rep_len(v, z$n)[u])
+    lo <- cs$F(1, dp)
+    wd <- cs$F(6, dp) - lo
+    ok <- osa_in_step(r[u], (cs$F(d$y[u] - 1, dp) - lo) / wd,
+                      (cs$F(d$y[u], dp) - lo) / wd)
+    expect_identical(sum(!ok), 0L, info = nm)
+  }
+})
+
+test_that("a censored count's blocks condition on every censored row", {
+  skip_on_cran()
+  # the row blocks against one call over the uncensored rows: the same
+  # one-step predictive, conditioned on every censoring event
+  set.seed(41)
+  G <- 15
+  n <- 150
+  d <- data.frame(x = stats::rnorm(n), g = factor(rep(seq_len(G), each = 10)))
+  yy <- stats::rpois(n, exp(1 + 0.3 * d$x + stats::rnorm(G, 0, 0.5)[d$g]))
+  d$y <- pmin(pmax(yy, 1), 7)
+  d$cc <- ifelse(yy <= 1, "left", ifelse(yy > 7, "right", "none"))
+  fit <- frm(y | cens(cc) ~ x + (1 | g), family = poisson(), data = d)
+  r1 <- withr::with_options(list(frmtmb.osa_block = 20L), osa_r(fit))
+  r2 <- withr::with_options(list(frmtmb.osa_block = Inf), osa_r(fit))
+  u <- d$cc == "none"
+  expect_true(all(is.finite(r1[u])))
+  expect_lt(max(abs(r1[u] - r2[u])) / max(abs(r2[u])), 1e-8)
+})
+
+test_that("a fractional weight on a continuous response reads a fresh copy", {
+  # PIN: 0.82.0 gave NA, with a warning, on every row of weight between 0
+  # and 1. With no group-level term a fresh copy of the row has the
+  # fitted distribution, so the residual is qnorm(F(y))
+  set.seed(4)
+  d <- data.frame(x = stats::rnorm(60), w = stats::runif(60, 0.2, 1.8))
+  d$y <- 1 + d$x + stats::rnorm(60)
+  d$w[1:2] <- 0
+  fit <- frm(y | weights(w) ~ x, data = d)
+  r <- osa_r(fit)
+  dp <- osa_dp(fit)
+  ref <- stats::qnorm(stats::pnorm(d$y, rep_len(dp$mu, 60),
+                                   rep_len(dp$sigma, 60)))
+  # a row of weight 0 is no part of the fit, and stays NA
+  expect_true(all(is.na(r[1:2])))
+  f <- d$w > 0
+  expect_lt(max(abs(r[f] - ref[f])) / max(abs(ref[f])), 1e-10)
+})

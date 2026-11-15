@@ -45,6 +45,12 @@ of \code{nu} is \code{logm1}, \code{log(nu - 1)}, which keeps it there. Under
 density is \code{NaN} there, as brms's is, in the fitted objective as well
 as on doubles.
 The variance is finite only for \code{nu > 2}; \code{residuals(type = "pearson")} divides by \code{Inf} where it is not.
+
+Where the data's tail is too heavy for a finite mean, the likelihood
+rises toward \code{nu = 1}, and \code{mu} and \code{nu} run to that edge together.
+A fit that stops there with the likelihood still rising in \code{nu}
+warns: its log-likelihood is a supremum, not a maximum, and \code{mu} and
+\code{nu} have no standard errors.
 }
 
 \section{Generalized extreme value}{
@@ -104,9 +110,14 @@ support's edge is a wall the sampler meets; it holds the range above
 A fit whose \code{xi} stops within 1e-3 of -1 with the likelihood not
 stationary in \code{xi} there warns: its log-likelihood is a supremum, not a
 maximum. A maximum inside that band gets a message. For
-\verb{-1 < xi < -0.5} the maximum exists but is not regular (Smith, 1985),
-so its standard errors do not have their usual meaning; outside the
-band no message says so.
+\verb{-1 < xi < -0.5} the maximum exists but is not regular (Smith, 1985):
+the standard errors of \code{mu}, \code{sigma} and \code{xi} are not asymptotically
+normal, so a Wald interval does not have its usual coverage. A fit
+with \code{xi} below -0.5 gets a message that says so, and points to the
+profile interval, which does not read the standard errors:
+\code{confint(fit, parm = "xi_(Intercept)", method = "profile")} for a
+scalar \code{xi}. It is a message and not a warning because a true \code{xi} in
+that range is a correct model.
 
 The mean, which \code{\link[=fitted]{fitted()}} returns, is
 \code{mu + sigma (gamma(1 - xi) - 1) / xi}, and \verb{mu + sigma * 0.5772...}

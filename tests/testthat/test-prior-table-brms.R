@@ -327,19 +327,33 @@ test_that("zero-density ends get no box; an Inf stop is not converged", {
   expect_true(zof(m8) > 1e3 * 1e-8)
   expect_lte(abs(m8$opt$objective - m10$opt$objective),
              1e-8 * abs(m8$opt$objective))
-  # with no bound it is not boxed: the fit fails as before, loudly,
-  # rather than stop at the end
-  expect_error(allow_warnings(frm(yneg ~ z, data = d, prior = sp()),
-                              c(w, "NA/NaN function evaluation")),
-               "optimizer failed", class = "frmtmb_error")
+  # with no bound, and in the closed box, the start the slope's least
+  # squares gives (below 0, where the density is 0) moves inside the
+  # support, and the same mode is found. 0.82.0 failed on "NA/NaN
+  # gradient evaluation" with no bound, and stopped at the box's end
+  # with the objective Inf (dev/famend-probe-beta22.R)
+  for (pr in list(sp(), sp(lb = 0, ub = 1))) {
+    mi <- allow_warnings(frm(yneg ~ z, data = d, prior = pr), w)
+    expect_identical(mi$opt$convergence, 0L)
+    expect_lte(abs(mi$opt$objective - m8$opt$objective),
+               1e-8 * abs(m8$opt$objective))
+  }
+  # a zero-density end gets no box: the fit with no bound ran with none
+  # on z, so the moved start, not a box, is what reaches the mode
+  nb <- allow_warnings(frm(yneg ~ z, data = d, prior = sp()), w)
+  iz <- which(frmtmb:::outer_par_names(nb) == "z")
+  expect_length(iz, 1L)
+  expect_false(any(is.finite(c(nb$cache$bounds$lower[iz],
+                               nb$cache$bounds$upper[iz]))))
   # and a mode inside is found with no bound, as before
   pos <- allow_warnings(frm(y ~ z, data = d, prior = sp()), w)
   expect_identical(pos$opt$convergence, 0L)
   expect_true(zof(pos) > 0 && zof(pos) < 1)
-  # the user's closed box at the end: a stop at an infinite objective
+  # the caller's start at the box's end: a stop at an infinite objective
   # is reported as not converged
   at0 <- allow_warnings(frm(yneg ~ z, data = d,
-                            prior = sp(lb = 0, ub = 1)),
+                            prior = sp(lb = 0, ub = 1),
+                            start = list(beta = c(1, 0))),
                         c("the objective is Inf", "gradient at the reported"),
                         require = "the objective is Inf")
   expect_identical(at0$opt$convergence, 1L)

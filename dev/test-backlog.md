@@ -2748,6 +2748,7 @@ the measurements.
   precision.
   CLOSED in the round of 2026-11-11 (lane boundfam): log phi2 at 23.4 gets the boundary message and a NaN SE; the other SEs are kept.
 - **The cs() ordinal-mixture wall has no message naming its cause.**
+  CLOSED in the round of 2026-11-13 (lane famend): a cs() effect that closes a row's own category is named by mixture_ord_degenerate_check(), with the row and the width; on dev/optima-csmix-wall.R's 20 data sets the 18 code-1 fits (widths 1.4e-15 to 2.3e-13) are named and the 2 converged ones (0.509, 0.893) are not.
 - **`mo(inc) * age` with the interaction's simplex at a face**
   (`dev/seflags-segapface.R`, seeds 2, 3, 5 of 6): the flat split along
   the face is not named; its SE is 1846 on a weight in [0, 1].
@@ -3003,6 +3004,7 @@ CLOSED in the round of 2026-11-11 (lane names): confint_varcorr()$block shows a 
 - **exgaussian's density** (`RTMBdist::dexgauss`) ends at "NA/NaN
   gradient" on a group sd 30 times sigma, 5 of 10 fits on both builds
   and from the true values too.
+  CLOSED in the round of 2026-11-13 (lane famend): does not reproduce on 0.81.0 or 0.82.0: 0 of 40 fits error, from the default start or the true values (dev/famend-probe-exg.R); 0.73.0's Mills-ratio density fixed it.
 
 #### Open - low
 
@@ -3064,6 +3066,7 @@ section C) and fix round 1 (`dev/famuni-findings.md`, section 12).
   parameterization: when the sample's best nu is below 1 the mean is
   infinite and the maximum is at the edge. Wanted: a message that names
   nu = 1 as the edge, as `gev_fit_check()` now names xi = -1.
+  CLOSED in the round of 2026-11-13 (lane famend): frechet_fit_check() warns (frmtmb_frechet_nu_edge) where nu is within 1e-3 of 1 and the log-likelihood does not fall along the scale-held ridge toward it; seed 9031 warns, and 77 interior maxima of the 80 probe fits do not (dev/famend-probe-frechet.R).
 - **GEV gradient NaN 19.5 to 20.3 scale units below the location.** An
   outside row near the `exp(700)` cap of `exp_neg_capped()` has a
   non-finite gradient at x in [-20.26, -19.47] (xi 0.06, sigma 1; 80 of
@@ -3072,6 +3075,7 @@ section C) and fix round 1 (`dev/famuni-findings.md`, section 12).
   40 mixtures failed); a single-component fit meets it only on a
   rejected step. Latent; the fix is a cap that also bounds the
   derivative.
+  CLOSED in the round of 2026-11-13 (lane famend): gev_parts() puts every outside row exactly on the clamp (0.82.0's rounding left some 7 ulps above it, at xi 0.44 to 0.84 too) and reads the ratio there through ad_min() at a constant 64 ulps below its clamp value, so the zero derivative meets the adjoint before the 1e15 slope does; the cap stays at exp(700). 0 of 6000 rows with a non-finite gradient at each of 12 xi from 0.001 to 10 and 0 of 75531 rows on xi 0.40 to 0.90 by 0.01 (0.82.0: 9 to 19 of 1200 sampled rows at each xi from 0.06 to 10), and every inside row's value, gradient and Hessian bit-identical, 19287 rows x slots (dev/famend-gevbit.R).
 - **SEs at -1 < xi < -0.5 carry no message.** The help page says the
   maximum is not regular there (Smith 1985); fits at xi -0.63 and -0.89
   return SEs silently. A MESSAGE is warranted, not a warning: a true xi
@@ -3079,6 +3083,7 @@ section C) and fix round 1 (`dev/famuni-findings.md`, section 12).
   should say that the SEs of `mu`, `sigma` and `xi` are not
   asymptotically normal there and point to `confint(method =
   "profile")`.
+  CLOSED in the round of 2026-11-13 (lane famend): gev_fit_check() gives the message frmtmb_gev_xi_nonregular below -0.5, with the call confint(fit, parm = "xi_(Intercept)", method = "profile"), which runs; fits at xi -0.663, -0.736 and -0.936 get it, -0.313 and -0.473 do not.
 
 ### Filed by lane illse (`dev/illse-findings.md`, sections 9 to 11)
 
@@ -3561,6 +3566,7 @@ findings 2 to 4 and "Item 1".
   "NA/NaN gradient evaluation" on 0.72.0 and 0.73.0 alike (a
   positive-support prior on a coefficient of either sign; review,
   "Check after fix round 2").
+  CLOSED in the round of 2026-11-13 (lane famend): a start where a prior's density is 0 moves inside its support (prior_start_inside()); the fit reaches the objective of the lb = 0 fit, which also stuck before (dev/famend-probe-gprior.R).
 
 ### Filed by lane cdfs (`dev/cdfs-findings.md`, sections 10 and 12; its review)
 
@@ -3617,6 +3623,7 @@ findings 2 to 4 and "Item 1".
   check of fix round 1).
 - `residuals(type = "osa")` stays refused on a censored discrete fit
   (its window would shift by one; no reference measures it).
+  CLOSED in the round of 2026-11-13 (lane famend): residuals(type = "osa") reads a censored count on the window (lo, hi]; poisson, negbinomial, binomial and zero-inflated poisson match the exact randomized PIT to 1.5e-13 (dev/famend-osa.R).
 
 ### Filed by lane nb2dm (`dev/nb2dm-findings.md`, "To file", "Not done", "Defects found and not fixed"; its review)
 
@@ -3646,6 +3653,7 @@ findings 2 to 4 and "Item 1".
   false convergence against an SE warning). The objectives agree at
   mirrored points to every digit, gradients included
   (`dev/nb2dm-rev-mirror.R`): nlminb's path on a flat ridge.
+  CLOSED in the round of 2026-11-13 (lane famend): fixed by lane boundfam at 0.82.0: both spellings name the limit, and their log-likelihoods agree to 1e-8 relative on 20 of 20 ulp-perturbed data sets (dev/famend-perturb.R).
 - brms's `tests.posterior_epred.R` and `tests.stancode.R` call both
   families, and neither file is in the ported-suite ledgers.
 
@@ -4793,6 +4801,57 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-13
+
+### From lane famend
+
+- LOW. **A right-censored poisson under single-block quadrature still
+  costs about 2 MB a row** (dev/famend-quadmem.R, the release review's
+  construction at 1440 rows): 2773 MB and 33.4 s after the Horner upper
+  sum of this round, against 3380 MB and 64.3 s before and 495 MB at
+  0.72.0. The lower sum and the blend of `poisson_cdf_log()` remain,
+  and the gamma, negative binomial and incomplete beta pairs keep
+  their 140 to 226 times `ppois()`. The residue of the CDF-pair cost
+  item of lane cdfs.
+- LOW. **A caller's start where a prior's density is 0, with no bound,
+  stops there at code 0 with the objective Inf** (dev/famend-probe-beta22.R,
+  `beta(2, 2)` on a slope with `start = list(beta = c(1, 0))`), on
+  0.82.0 and after this round alike, with only the gradient warning.
+  With a bound the final-stop guard reports code 1; without one it
+  does not. The start frmtmb chooses itself now moves inside the
+  support (`prior_start_inside()`); a caller's is used as given.
+- MEDIUM. **The GEV's tape log density is wrong far into its tails,
+  past `|x|` near 1e16** (pre-existing, 0.82.0 and this round alike;
+  `dev/reviews/famend-review-gevtail.R`): at `xi = -0.9`, `x = -1e19`
+  the tape gives +1e19, a positive log density, against
+  `evd::dgev()`'s -1.15e21; at `xi = 0.2`, `x = 1e17`, -1e17 against
+  -225. `ad_min(x, m) = x - ad_pos(x - m)` and `ad_max()` cancel to 0
+  once `|x|` passes 2^53, so `log1p_ratio()`'s clamp reads 0 and
+  returns 1, and the cap of `exp_neg_capped()` reads `exp(0)`. A
+  likelihood that rises without bound far off is a runaway an
+  optimizer can follow. Owner: the GEV family (`R/families-extreme.R`)
+  and the `ad_*` helpers (`R/families.R`).
+- LOW. **A negbinomial fit at its poisson limit that stops at code 1
+  gets the convergence warnings and no limit message** (owner: the SE
+  check's limit rule). Under OpenBLAS 0.3.26 LAPACK, the
+  `dev/nb2dm-rev-mirror.R` data of seed 4 with `x * (1 + 2e-15 * 9)`
+  stop at log shape 24.19, code 1, "false convergence (8)" with a
+  Newton gain of 0.00567, on the same flat ridge as the limit fits
+  (logLik 6.3e-10 relative from `negbinomial2`'s, which gets the limit
+  message); the other 20 roundings get the message
+  (`dev/reviews/famend-review-nbpert.R`). The test accepts both endings.
+- LOW. **The GEV's tape log survivor at `xi` near 0 or below is `-Inf`
+  with a `NaN` gradient far above the location** (pre-existing, 0.82.0
+  and this round alike; `dev/reviews/famend-short-xi0.R`, mu 0.3, sigma
+  `exp(-0.2)`, `xi` from -1e-4 to 1e-4): at `x` from 744.8 to 1e12
+  scale units above the location, `lccdf` is `-Inf` with a `NaN`
+  gradient and Hessian (588 rows), and at `x = 694.5` it is finite
+  with a `NaN` gradient (1 row). The exact value there is about `-x`.
+  On the tape, `log(-expm1(-exp_neg_capped(h)))` is `log(0)` once
+  `exp(-h)` underflows; the reader's path has `log_surv_exp_neg()` for
+  this, the tape does not. A right-censored row there makes the
+  objective infinite. Owner: the GEV family (`R/families-extreme.R`).
+
 ## Filed at the 0.82.0 release (2026-11-11)
 
 ### From lane boundfam
@@ -5723,9 +5782,11 @@ CLOSED in the round of 2026-11-11 (lane gpstop): the body is linearized again at
   binomial and negative binomial OSA residuals on the tape. Default OSA on
   a 2000-row poisson `(1 | g)` fit took 41.9 s (dev/reviews/2026-11-06-osa.md,
   short check, item 2).
+  CLOSED in the round of 2026-11-13 (lane famend): measured and not adopted: RTMB::pbeta() is 12.6 times cheaper per sweep, but on the one-step tape of a binomial (1 | g) fit it gave 704 of 800 non-finite residuals, and its log tail is -Inf at size 2000 (dev/famend-cost.R).
 - **MINOR. Fractional weights on a continuous response give `NA`.** The
   one-step CDF of a fresh copy of the row is defined there (`U = 0`) and
   could be returned; for a count `NA` stays right (osa review, item 8).
+  CLOSED in the round of 2026-11-13 (lane famend): a continuous response read off its CDF gives the fresh-copy residual for a weight in (0, 1); gaussian rows match qnorm(F(y)) to 2.3e-15, and a count keeps NA (dev/famend-osa.R).
 - **MINOR. Nested quadrature: an unsettled fit can carry a
   log-likelihood error of a few 1e-2** (1.7e-2 near separation, 6.2e-2 on
   70 of 72 ones). The lane then made the warning give the rule's own

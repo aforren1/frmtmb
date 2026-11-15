@@ -1327,7 +1327,7 @@ compat_hand_rules_tbl <- function() {
   r("cens()", "group:cdf_continuous", "works",
     "Supported through the whole surface; one-step-ahead residuals cover the uncensored rows only, see the residuals_osa rule.")
   r("cens()", "poisson", "works",
-    "brms 2.23.0's reading of the bound: right censoring at k is P(Y > k), poisson_lccdf(k), left censoring P(Y <= k), and an interval P(k < Y <= k2). Verified against brms's log density for all four codes and composed with trunc(lb = ); a censored row under both bounds is frmtmb's composition, not brms's (the cens() x trunc() row). A right-censored row is scored with the log survivor itself, the lower incomplete gamma, exact to the doubles' floor, where log(1 - F) was -Inf from P = 1e-16. A non-integer censoring bound is refused, and residuals(type = \"osa\") is refused.")
+    "brms 2.23.0's reading of the bound: right censoring at k is P(Y > k), poisson_lccdf(k), left censoring P(Y <= k), and an interval P(k < Y <= k2). Verified against brms's log density for all four codes and composed with trunc(lb = ); a censored row under both bounds is frmtmb's composition, not brms's (the cens() x trunc() row). A right-censored row is scored with the log survivor itself, the lower incomplete gamma, exact to the doubles' floor, where log(1 - F) was -Inf from P = 1e-16. A non-integer censoring bound is refused, and residuals(type = \"osa\") reads the uncensored rows inside the window the censoring points leave (the residuals_osa x cens() row).")
   # the discrete families with a CDF beside poisson and discrete_weibull
   for (f in compat_cdf_discrete) {
     stan <- switch(f, negbinomial = , negbinomial2 = ,
@@ -1343,7 +1343,7 @@ compat_hand_rules_tbl <- function() {
       } else {
         "The log survivor is computed directly, so a right-censored row deep in the upper tail keeps its digits. "
       },
-      "A non-integer censoring bound is refused, and residuals(type = \"osa\") is refused."))
+      "A non-integer censoring bound is refused, and residuals(type = \"osa\") reads the uncensored rows inside the window the censoring points leave (the residuals_osa x cens() row)."))
     tmean <- f %in% c("binomial", "negbinomial", "negbinomial2",
                       "geometric")
     r("trunc()", f, "conditional", paste0(
@@ -2069,11 +2069,11 @@ compat_hand_rules_tbl <- function() {
   r("residuals_osa", "hurdle_cumulative", "refused",
     "Refused by name, as for the other point-mass families: the density branches on y == 0 for the hurdle. Use dharma_residuals().")
   r("residuals_osa", "cens()", "conditional",
-    "Censored rows return NA: what is observed there is an event, not a value, so it carries no one-step CDF. The uncensored rows get residuals conditional on the censoring events, which needs one censoring point per side (type-I censoring). Row-varying censoring points and interval censoring are refused, and so is a DISCRETE family: a left-censored count at k is Y <= k, so an uncensored row's support is [lo + 1, hi] rather than the [lo, hi] the one-step window is built on.")
+    "Censored rows return NA: what is observed there is an event, not a value, so it carries no one-step CDF. The uncensored rows get residuals conditional on the censoring events, which needs one censoring point per side (type-I censoring). Row-varying censoring points and interval censoring are refused. An uncensored row is read inside the window (lo, hi] the censoring points leave, renormalized on F(hi) - F(lo). A count left-censored at lo is Y <= lo, so an uncensored count lies in lo + 1, ..., hi and is randomized over its own step; a core count family takes osa_method = \"cdf\" there.")
   r("residuals_osa", "trunc()", "conditional",
     "Each row is read inside its own window under the default osa_method = \"cdf\", so row-varying bounds work. Under oneStepGeneric (a family with no CDF) the bounds must be the same for every row, because TMB integrates over one domain.")
   r("residuals_osa", "weights()", "conditional",
-    "A weight is a frequency, as in the fitted likelihood: the residual of a row of weight w is that of the last of w copies of it, given the other w - 1, and later rows are conditioned on all w. A row of weight 0 is NA. Under osa_method = \"fullGaussian\", which a weighted gaussian() no longer takes by default, a weight is a precision, (y - mu) sqrt(w) / sigma.")
+    "A weight is a frequency, as in the fitted likelihood: the residual of a row of weight w is that of the last of w copies of it, given the other w - 1, and later rows are conditioned on all w. A row of weight 0 is NA. A weight between 0 and 1 gives the residual of a fresh copy of the row on a continuous response read off its CDF, and NA with a warning on a count, whose row mass TMB reads from the weighted density. Under osa_method = \"fullGaussian\", which a weighted gaussian() no longer takes by default, a weight is a precision, (y - mu) sqrt(w) / sigma.")
   r("residuals_osa", "kind:structure", "untested", "")
   r("emmeans", "kind:family", "conditional",
     "Takes brms's dpar =, nlpar =, resp =, epred = and re_formula = (see ?frmtmb-emmeans). A family with no mu needs dpar =. epred = TRUE needs one mean per row, so it is refused for the ordinal and categorical families.")

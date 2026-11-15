@@ -5096,6 +5096,52 @@ prior_dist_support <- function(dist) {
     c(-Inf, Inf))
 }
 
+#' Starting values moved inside their priors' supports.
+#'
+#' A prior with a bounded support on a parameter whose start lies where
+#' that density is 0 or outside it makes the objective infinite at the
+#' start, and nlminb cannot leave it. `gamma(2, 1)` on the coefficients
+#' of `shape ~ 0 + fac`, which start at 0, ended there at code 0 with a
+#' log-likelihood of NaN, with or without `lb = 0`
+#' (dev/famend-probe-gprior.R); from a start of 1 the same fit converges.
+#' brms has the same density and starts Stan inside it.
+#'
+#' Such a start is moved to a point the density holds well inside its
+#' support: the gamma's and the exponential's mean, the lognormal's
+#' median, the inverse gamma's mode, the beta's mean and the uniform's
+#' midpoint. Every start where the prior's density is positive keeps
+#' its value, so no fit that could leave its start moves. A parameter
+#' held at a constant is left alone, and a caller's `start` is written
+#' over this afterwards.
+#'
+#' @noRd
+prior_start_inside <- function(tpl, entries, frame) {
+  center <- function(d) {
+    switch(d$kind,
+      gamma = d$shape / d$rate,
+      exponential = 1 / d$rate,
+      lognormal = exp(d$location),
+      inv_gamma = d$scale / (d$shape + 1),
+      beta = d$shape1 / (d$shape1 + d$shape2),
+      uniform = (d$lower + d$upper) / 2)
+  }
+  held <- list(betad = frame[["betad_fixed_idx"]])
+  for (e in entries %||% list()) {
+    v <- center(e$dist)
+    sc <- e$scale %||% "internal"
+    if (is.null(v) || !sc %in% c("internal", "natural", "sd") ||
+          is.null(tpl[[e$comp]])) next
+    x <- tpl[[e$comp]][e$idx]
+    off <- entry_offset(e, tpl)
+    ld <- suppressWarnings(prior_logdens(x, e$dist, sc, e$link, off))
+    out <- which(!is.finite(ld) & !e$idx %in% held[[e$comp]])
+    if (!length(out) || length(ld) != length(x)) next
+    to <- switch(sc, internal = v, sd = log(v), natural = e$link$linkfun(v))
+    tpl[[e$comp]][e$idx[out]] <- to - off
+  }
+  tpl
+}
+
 #' The `mo()` simplexes a class `"simo"` specification names: brms's
 #' coef, the term's label with `1` appended (`mox1`, `mox:fb1`), in the
 #' linear predictor its `dpar` (or `nlpar`) and `resp` select, `mu`'s

@@ -7046,7 +7046,7 @@ mixture_ord_n_held <- function(fit, held) {
 #' the degenerate point had the higher likelihood than the best of 6
 #' other starts (dev/ordmix-rev-degen.R).
 #'
-#' A component is flagged in three cases (`mixture_ord_degeneracy()`):
+#' A component is flagged in four cases (`mixture_ord_degeneracy()`):
 #'
 #' - It is a step function: doubling its discrimination, which doubles
 #'   every latent distance of the component, changes the mixture's
@@ -7064,6 +7064,16 @@ mixture_ord_n_held <- function(fit, held) {
 #' - Two of its ordered thresholds are the same double, where the gap
 #'   floor of `ord_log_interior()` holds the category's probability at
 #'   about `exp(-692)`.
+#' - A `cs()` effect has closed a row's own category: the two thresholds
+#'   that bound it on that row are less than 1e-8 apart on the link
+#'   scale (`closed`). Past that point they cross and the category's
+#'   probability would be negative, so the likelihood stops at a wall
+#'   (`ord_touch_nan()`), and nlminb ends there at "false convergence".
+#'   On the 20 data sets of dev/optima-csmix-wall.R
+#'   (`mixture(cumulative(), sratio())` with `cs(z)`), the 18 fits that
+#'   stop at code 1 have a closed category, 1.4e-15 to 2.3e-13 wide, and
+#'   the 2 that converge have none narrower than 0.509
+#'   (dev/famend-repro.R, case csmix).
 #'
 #' Measured (dev/ordmix-p2-crit.R, dev/ordmix-p2-log-crit-sum.txt), the
 #' review's label (an `|estimate| > 30` or a non-finite standard error)
@@ -7085,7 +7095,8 @@ mixture_ord_degenerate_check <- function(fit, resp) {
   dg <- mixture_ord_degeneracy(fit, resp)
   step <- (dg$sharpen > -0.1) %in% TRUE
   runoff <- (dg$near > 50) %in% TRUE
-  bad <- step | runoff | dg$collapsed %in% TRUE
+  shut <- (dg$closed < 1e-8) %in% TRUE
+  bad <- step | runoff | dg$collapsed %in% TRUE | shut
   if (!any(bad)) return(invisible(NULL))
   fam <- fit$spec$responses[[resp]]$family
   what <- vapply(which(bad), function(i) {
@@ -7105,6 +7116,14 @@ mixture_ord_degenerate_check <- function(fit, resp) {
         paste0("two of its thresholds are the same number, where the ",
                "likelihood holds the category between them at about ",
                "exp(-692)")
+      },
+      if (shut[i]) {
+        rn <- rownames(fit$frame[["data_frame"]])[dg$closed_row[i]]
+        paste0("a cs() effect has closed a category: on row ",
+               rn %||% dg$closed_row[i], " the two thresholds of the ",
+               "observed category are ", format(signif(dg$closed[i], 2)),
+               " apart on the link scale, and past that they cross, ",
+               "where the category's probability would be negative")
       }), collapse = "; "), ")")
   }, "")
   ms <- fit$opt[["mixture_starts"]]
@@ -7210,6 +7229,8 @@ mixture_ord_degeneracy <- function(fit, resp) {
     reach <- 0
     near <- 0
     collapsed <- FALSE
+    closed <- Inf
+    closed_row <- NA_integer_
     # a threshold that bounds only categories no row takes (thres(x = )
     # above the data) runs off whatever the component does, and
     # thres_fit_check() already says so: it is left out here, or every
@@ -7228,6 +7249,20 @@ mixture_ord_degeneracy <- function(fit, resp) {
       if (!length(r) || !any(keep)) next
       M <- matrix(tg, length(r), length(tg), byrow = TRUE) - eta[r]
       if (!is.null(cs)) M <- M - cs[r, seq_along(tg), drop = FALSE]
+      if (ob$ordered && !is.null(cs) && length(tg) > 1L) {
+        # the width of each row's own category, between the two
+        # thresholds that cs() moves row by row
+        own <- y[r]
+        mid <- which(own >= 2 & own <= length(tg))
+        if (length(mid)) {
+          gap <- disc[r[mid]] * (M[cbind(mid, own[mid])] -
+                                   M[cbind(mid, own[mid] - 1L)])
+          if (any(!is.na(gap)) && min(gap, na.rm = TRUE) < closed) {
+            closed <- min(gap, na.rm = TRUE)
+            closed_row <- r[mid][which.min(gap)]
+          }
+        }
+      }
       A <- abs(disc[r] * M[, keep, drop = FALSE])
       reach <- max(reach, A, na.rm = TRUE)
       # an all-NaN column has no closest row, and min() of nothing
@@ -7276,6 +7311,7 @@ mixture_ord_degeneracy <- function(fit, resp) {
     out <- rbind(out, data.frame(component = k, reach = reach,
                                  collapsed = collapsed, sharpen = sharpen,
                                  near = near, cover = cover,
+                                 closed = closed, closed_row = closed_row,
                                  weight = mean(exp(rep(lpi[[k]],
                                                        length.out = n)))))
   }

@@ -1,3 +1,75 @@
+# frmtmb (development version)
+
+## Families
+
+* A `frechet()` fit whose `nu` runs to 1 warns, with class
+  `frmtmb_frechet_nu_edge`. In brms's parameterization `mu` is the
+  mean, which is infinite at `nu = 1`, so where the data's tail is too
+  heavy for a finite mean, `mu` and `nu` run to that edge together. The
+  fit only said before that two standard errors were not available
+  (`nu = 1 + 4.9e-9`, mean intercept 17.4). The check moves `nu` toward
+  the edge with the scale held, and warns only where the likelihood
+  does not fall that way. A predicted `nu` within 1e-3 of 1 gets a
+  message that names the distance.
+* A `gen_extreme_value()` fit with `xi` below -0.5 gets a message of
+  class `frmtmb_gev_xi_nonregular`. There the maximum is not regular
+  (Smith, 1985): the standard errors of `mu`, `sigma` and `xi` are not
+  asymptotically normal, and the message gives the profile interval,
+  which does not use them, as a call that runs:
+  `confint(fit, parm = "xi_(Intercept)", method = "profile")` for a
+  scalar `xi`. Before, such fits returned their standard errors in
+  silence.
+* The gradient of a `gen_extreme_value()` row outside its support,
+  about 19.5 to 20.6 scale units below its location, was `NaN` at `xi`
+  from 0.06 to 10. It is now finite. At every row inside the support,
+  the density, its CDF, the log survivor and their gradients are
+  unchanged to the bit. Outside the support the log density is a
+  barrier. It now uses the same clamped value of `1 + xi x` at every
+  row; before, rounding put some rows a few units in the last place
+  above it. At those rows the barrier, below -1e13, changes by up to a
+  factor of 1.2e5. At the other rows it changes by at most 1e-11
+  relative.
+* An ordinal mixture whose `cs()` effect closes a row's own category
+  (its two thresholds cross on that row) warns, and names the row and
+  the width of the category. Such a fit stops at "false convergence"
+  against that wall, and no warning named the cause before.
+* The poisson CDF pair of a count from 1 to 30 sums its upper tail in
+  one sweep of products in place of 39 log-sums, with the same values
+  to 6e-14 relative. The pair's tape is 3.3 times faster, and a
+  right-censored poisson `(1 | g)` fit of 1440 rows under quadrature
+  peaks at 2773 MB in place of 3380 MB.
+
+## Priors
+
+* A start where a prior's density is 0 or undefined moves inside the
+  prior's support. `gamma(2, 1)` on the coefficients of
+  `shape ~ 0 + fac`, which start at 0, left the fit at its start with a
+  log-likelihood of `NaN`, with or without `lb = 0`. `beta(2, 2)` on a
+  slope whose least-squares start is below 0 stopped on a NaN gradient
+  with no bound, and at the end of the box with `lb = 0, ub = 1`; both
+  now reach the mode that `lb = 1e-8` finds. Every start where the
+  prior's density is positive keeps its value, and a caller's `start`
+  is used as given.
+
+## Residuals
+
+* BREAKING: `residuals(type = "osa")` takes a censored count. An
+  uncensored row is read inside the window `(lo, hi]` that the
+  censoring points leave, and is randomized over its own step of the
+  CDF renormalized on that window. A count family with a CDF takes
+  `osa_method = "cdf"` there, and `"oneStepGeneric"` sums the mass over
+  `lo + 1, ..., hi`. Before, the call was refused. With no group-level
+  term the residuals of poisson, negbinomial, binomial and
+  zero-inflated poisson fits match the exact randomized PIT on the
+  window to 1.5e-13. A censored continuous response takes
+  `osa_method = "cdf"` on request; its default stays
+  `"oneStepGeneric"`, and both match the exact PIT to 1e-14.
+* BREAKING: On a continuous response read off its CDF, a row with a
+  weight between 0 and 1 gets the one-step residual of a fresh copy of
+  the row, given the rows before it. Before, it was `NA` with a
+  warning. A count keeps `NA` with the warning, and a row of weight 0
+  keeps `NA`.
+
 # frmtmb 0.82.0
 
 ## Convergence and standard errors

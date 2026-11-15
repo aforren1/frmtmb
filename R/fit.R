@@ -5545,6 +5545,7 @@ make_start <- function(frame, start, prior_entries = NULL,
   # [[ ]] throughout: $beta would partial-match nothing here today, but
   # the template's component names are a moving set
   for (p in placed) tpl[["beta"]][p$idx] <- p$value
+  tpl <- prior_start_inside(tpl, prior_entries, frame)
   # A family whose components cannot be told apart through an intercept
   # spreads their starts itself: an ordinal mixture that shares its
   # thresholds (mixture_ord_start_spread()). Before `start`, which wins.
