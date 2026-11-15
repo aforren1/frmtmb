@@ -22,6 +22,12 @@
 #' The variance is finite only for `nu > 2`; `residuals(type =
 #' "pearson")` divides by `Inf` where it is not.
 #'
+#' Where the data's tail is too heavy for a finite mean, the likelihood
+#' rises toward `nu = 1`, and `mu` and `nu` run to that edge together.
+#' A fit that stops there with the likelihood still rising in `nu`
+#' warns: its log-likelihood is a supremum, not a maximum, and `mu` and
+#' `nu` have no standard errors.
+#'
 #' @section Generalized extreme value:
 #' `gen_extreme_value()` has a location `mu`, a scale `sigma` and a
 #' shape `xi`. The density is
@@ -78,9 +84,14 @@
 #' A fit whose `xi` stops within 1e-3 of -1 with the likelihood not
 #' stationary in `xi` there warns: its log-likelihood is a supremum, not a
 #' maximum. A maximum inside that band gets a message. For
-#' `-1 < xi < -0.5` the maximum exists but is not regular (Smith, 1985),
-#' so its standard errors do not have their usual meaning; outside the
-#' band no message says so.
+#' `-1 < xi < -0.5` the maximum exists but is not regular (Smith, 1985):
+#' the standard errors of `mu`, `sigma` and `xi` are not asymptotically
+#' normal, so a Wald interval does not have its usual coverage. A fit
+#' with `xi` below -0.5 gets a message that says so, and points to the
+#' profile interval, which does not read the standard errors:
+#' `confint(fit, parm = "xi_(Intercept)", method = "profile")` for a
+#' scalar `xi`. It is a message and not a warning because a true `xi` in
+#' that range is a correct model.
 #'
 #' The mean, which [fitted()] returns, is
 #' `mu + sigma (gamma(1 - xi) - 1) / xi`, and `mu + sigma * 0.5772...`
@@ -315,6 +326,7 @@ fam_frechet <- function(link = "log", link_nu = "logm1") {
     ),
     type = "continuous",
     post = list(
+      fit_check = frechet_fit_check,
       mean_fn = function(dpars, aterms) dpars[["mu"]],
       var_fn = function(dpars, aterms) {
         nu <- dpars[["nu"]]
@@ -342,6 +354,122 @@ fam_frechet <- function(link = "log", link_nu = "logm1") {
       dpars[["mu"]] / gamma(1 - 1 / nu) * stats::rexp(n)^(-1 / nu)
     }
   )
+}
+
+#' Warn when a fitted `nu` has run to 1, its edge.
+#'
+#' In brms's parameterization `mu` is the mean, `scale gamma(1 - 1 / nu)`,
+#' which is infinite at `nu = 1`. Where the sample's best `nu` lies at or
+#' below 1, the likelihood rises toward that edge with `mu` and `nu`
+#' running together along a ridge, `log(mu) + log(nu - 1)` near constant:
+#' seed 9031 of dev/famuni-rev-frechet11.R ran to `nu = 1 + 4.9e-9`
+#' with the mean intercept at 17.38. Each coefficient alone costs
+#' likelihood there, so the boundary rule of the SE check, which moves
+#' one coefficient at a time, does not read it, and the fit only said
+#' that two standard errors were not available.
+#'
+#' A `nu` within 1e-3 of 1 is not by itself an edge, and the slope in
+#' `nu` alone, which `gev_fit_check()` reads for `xi`, does not tell: at
+#' seed 9031's stop it is +122, because `mu` has to move with `nu`. So a
+#' scalar `nu` is judged along the ridge (`frechet_ridge_gain()`): the
+#' log-likelihood three e-folds of `nu - 1` closer to the edge, with the
+#' intercept of `log(mu)` moved to hold the scale, less its value at
+#' the stop. Where it is not below 0 the likelihood does not fall toward
+#' the edge and the edge stopped the fit, which warns. On the probes of
+#' dev/famend-probe-frechet.R the edge fits gain and every interior
+#' maximum loses (the numbers are in dev/famend-findings.md). A
+#' predicted `nu`, a `mu` without a log link or an intercept, has no
+#' ridge to read and gets a message that names the distance only.
+#'
+#' @noRd
+frechet_fit_check <- function(fit, resp) {
+  multi <- length(fit$spec$responses) > 1L
+  nu <- tryCatch(
+    frm_linpred(fit, dpar = "nu", type = "response",
+                resp = if (multi) resp),
+    error = keep_missing(NULL))
+  if (!is.numeric(nu) || !length(nu) || !any(nu < 1 + 1e-3, na.rm = TRUE)) {
+    return(invisible(NULL))
+  }
+  lp <- fit$frame[["linpreds"]][[linpred_key(resp, "nu")]]
+  if (!is.null(lp[["constant"]])) return(invisible(NULL))
+  of <- if (multi) paste0("of response ", resp, " ")
+  at <- format(min(nu, na.rm = TRUE) - 1, digits = 3)
+  gain <- if (length(lp[["idx"]]) == 1L) {
+    tryCatch(frechet_ridge_gain(fit, resp, lp), error = function(e) NULL)
+  }
+  if (is.null(gain) || !is.finite(gain)) {
+    frm_message("frechet: nu ", of, "reaches 1 + ", at,
+                if (length(unique(nu)) > 1L) " on some rows", ", within ",
+                "1e-3 of the edge at nu = 1, where the mean, mu, is ",
+                "infinite. Check whether the fit stopped on that edge",
+                class = "frmtmb_frechet_nu_near_edge")
+    return(invisible(NULL))
+  }
+  if (gain < 0) return(invisible(NULL))
+  frm_warning("frechet: nu ", of, "ran to 1 + ", at, ", the edge at ",
+              "nu = 1, and the likelihood does not fall toward it (it ",
+              "changes by ", format(gain, digits = 3), " closer to the ",
+              "edge, mu moved to hold the scale): the edge, not a maximum, ",
+              "stopped the fit. mu is the mean, which is infinite at ",
+              "nu = 1, so mu and nu run to the edge together, and neither ",
+              "has a standard error there. A tail too heavy for a Frechet ",
+              "with a finite mean is the usual cause",
+              call. = FALSE, class = "frmtmb_frechet_nu_edge")
+  invisible(NULL)
+}
+
+#' The log-likelihood gained by moving a scalar `nu` three e-folds of
+#' `nu - 1` toward 1 with the scale held, from the fit's stop. The scale
+#' is `mu / gamma(1 - 1 / nu)`, so holding it moves `log(mu)` by the
+#' change in `lgamma(1 - 1 / nu)`, which the intercept of `mu`'s log
+#' link carries. Both points are evaluated as the tape evaluates them,
+#' `nu` through the link's inverse, so the step holds the scale to the
+#' tape's own rounding. `NULL` where `mu` has no log link or no
+#' intercept.
+#'
+#' TMB keeps the best point `fn()` has seen (`last.par.best`,
+#' `value.best`), and on an edge fit the probe toward the edge IS better,
+#' so without a restore the probe became the point `sdreport()`, the
+#' profile and the SE check read (dev/reviews/2026-11-13-famend.md, F2).
+#' The object's state is saved before the two evaluations and put back
+#' after them (`obj_state_save()`), as the differenced Hessian of
+#' `fit_assembled()` does.
+#'
+#' @noRd
+frechet_ridge_gain <- function(fit, resp, lp_nu) {
+  lp_mu <- fit$frame[["linpreds"]][[linpred_key(resp, "mu")]]
+  icpt <- match("(Intercept)", colnames(lp_mu[["X"]]))
+  if (!identical(lp_mu[["link"]]$name, "log") || is.na(icpt) ||
+        !is.null(lp_mu[["nl_body"]])) {
+    return(NULL)
+  }
+  p <- fit$opt$par
+  pos <- function(lp, k) {
+    fx <- if (identical(lp[["par"]], "betad")) fit$frame[["betad_fixed_idx"]]
+    free <- setdiff(seq_along(fit$frame[["par_template"]][[lp[["par"]]]]),
+                    fx)
+    which(names(p) == lp[["par"]])[match(lp[["idx"]][k], free)]
+  }
+  jn <- pos(lp_nu, 1L)
+  jm <- pos(lp_mu, icpt)
+  if (length(jn) != 1L || length(jm) != 1L || anyNA(c(jn, jm))) {
+    return(NULL)
+  }
+  lgs <- function(e) lgamma(1 - 1 / lp_nu[["link"]]$linkinv(e))
+  e0 <- p[[jn]]
+  # under the identity link the step is on nu itself, by the same factor
+  # of nu - 1
+  e1 <- if (identical(lp_nu[["link"]]$name, "logm1")) e0 - 3 else
+    1 + (e0 - 1) * exp(-3)
+  q <- p
+  q[jn] <- e1
+  q[jm] <- p[jm] + lgs(e1) - lgs(e0)
+  saved <- obj_state_save(fit$obj)
+  on.exit(obj_state_restore(fit$obj, saved), add = TRUE)
+  f0 <- fit$obj$fn(p)
+  f1 <- fit$obj$fn(q)
+  f0 - f1
 }
 
 # -------------------------------------------------- generalized extreme value
@@ -386,6 +514,24 @@ log1p_ratio <- function(z) {
 #' censoring point beyond the support needs. These are the pieces of the
 #' tape; on plain doubles the family reads `gev_parts_exact()`.
 #'
+#' The ratio `log1p(zc) / zc` in `h` is read through `ad_min()` at a
+#' constant just below its value at the clamp, `gev_ratio_top`. At the
+#' clamp its slope is about 1e15, and the reverse sweep carried
+#' `exp(-h)`, up to `exp(700)`, times that slope before the clamp's zero
+#' derivative met it: the product overflowed, and `Inf * 0` made the
+#' gradient `NaN` for every outside row 19.47 to 20.26 scale units below
+#' the location, at `xi` from 0.06 to 10 (dev/famend-repro.R, case
+#' gevgrad; dev/reviews/famend-review-gev.R). Through `ad_min()` the
+#' zero comes first. The constant is 64 ulps below the clamp's ratio,
+#' and the next `zc` above the clamp gives a ratio 0.1 lower, so only a
+#' row at the clamp reads it. Every outside row is put on the clamp to
+#' the bit, so every outside row reads it; every row inside the clamp
+#' has the same `zc`, `l` and `h` to the bit.
+#' Holding `exp(-h)` at `exp(500)` instead removed the band too, but it
+#' widened the region where the term has no derivative, and a nested
+#' quadrature fit of a GEV under OpenBLAS then read logLik `Inf`
+#' (dev/reviews/2026-11-13-famend.md, F1).
+#'
 #' @noRd
 gev_parts <- function(q, dpars) {
   x <- (q - dpars[["mu"]]) / dpars[["sigma"]]
@@ -398,9 +544,27 @@ gev_parts <- function(q, dpars) {
   # z + out rounds to -1 itself once |z| is large (at z = -27 the 1e-15
   # is below the spacing of 26), and log1p(-1) is -Inf: the second clamp
   # starts at -1 and is exact there (dev/famuni-cdfprobe.R)
-  zc <- ad_max(z + out, -1 + 1e-15)
-  list(l = log1p(zc), h = x * log1p_ratio(zc), out = out)
+  r <- ad_max(z + out, -1 + 1e-15)
+  # r can still sit above the clamp by the rounding of out: 7 ulps where out
+  # is in [8, 16), where the ratio's hold below does not reach and its
+  # slope of 5.6e14 overflows the gradient
+  # (dev/reviews/2026-11-13-famend-short.md). That excess is exact and
+  # below out, so subtracting it puts every outside row on the clamp to
+  # the bit (to |z| = 1e40). Inside, out is 0 and the two ad_pos()
+  # cancel exactly, in value and in the adjoint, where an ad_min() would
+  # halve a subnormal adjoint and lose its last bit
+  # (dev/famend-fix2-replay.R)
+  ex <- r - (-1 + 1e-15)
+  zc <- r - (ad_pos(ex) - ad_pos(ex - out))
+  list(l = log1p(zc), h = x * ad_min(log1p_ratio(zc), gev_ratio_top),
+       out = out)
 }
+
+# log1p_ratio() at gev_parts()'s clamp, where its blend weight is 0 and
+# it is the quotient itself, 64 ulps down: above every ratio an
+# unclamped row reaches, below the clamp's own
+gev_ratio_top <- log1p(-1 + 1e-15) / (-1 + 1e-15) *
+  (1 - 64 * .Machine$double.eps)
 
 #' Does a GEV density or CDF evaluation report the exact value? Only on
 #' plain doubles, for a reader that asks (`exact_support()`); a tape
@@ -573,6 +737,11 @@ rgev <- function(n, mu, sigma, xi) {
 #' A predicted `xi` has no one direction to read, and gets a warning
 #' that names the distance only.
 #'
+#' Below -0.5 and outside that band a fit gets the message of
+#' `gev_xi_nonregular()`, a `xi` held at a constant included: the
+#' non-regularity is in the support's end, `mu - sigma / xi`, so it is
+#' there in `mu` and `sigma` whether `xi` is estimated or not.
+#'
 #' @noRd
 gev_fit_check <- function(fit, resp) {
   multi <- length(fit$spec$responses) > 1L
@@ -580,13 +749,17 @@ gev_fit_check <- function(fit, resp) {
     frm_linpred(fit, dpar = "xi", type = "response",
                 resp = if (multi) resp),
     error = keep_missing(NULL))
-  if (!is.numeric(xi) || !length(xi) || !any(xi < -1 + 1e-3, na.rm = TRUE)) {
+  if (!is.numeric(xi) || !length(xi) || !any(xi < -0.5, na.rm = TRUE)) {
     return(invisible(NULL))
   }
   of <- if (multi) paste0("of response ", resp, " ")
   at <- format(min(xi, na.rm = TRUE), digits = 7)
   lp <- fit$frame[["linpreds"]][[linpred_key(resp, "xi")]]
-  if (!is.null(lp[["constant"]])) return(invisible(NULL))
+  # a constant is the user's xi, not a stop the edge can explain
+  if (!is.null(lp[["constant"]]) || !any(xi < -1 + 1e-3, na.rm = TRUE)) {
+    gev_xi_nonregular(fit, resp, of, at, length(unique(xi)) > 1L)
+    return(invisible(NULL))
+  }
   dll <- if (!dpar_has_predictor(fit$spec, lp)) gev_xi_slope(fit, lp)
   if (is.null(dll) || !is.finite(dll)) {
     frm_warning("gen_extreme_value: xi ", of, "reaches ", at, ", within ",
@@ -633,6 +806,45 @@ gev_xi_slope <- function(fit, lp) {
   # used, as grad_verdict() judges it
   u <- rep_len(fit$par_units %||% 1, length(p))
   -g[j] * u[j] / lp[["link"]]$mu_eta(eta)
+}
+
+#' The message for a GEV fit with `xi` below -0.5 and not near -1
+#' (`gev_fit_check()`). `of` names the response of a multivariate fit,
+#' `at` is the smallest `xi`, and `rows` says that `xi` varies by row.
+#' The profile call it gives names a parameter, because
+#' `confint(method = "profile")` needs `parm`: the first coefficient of
+#' `xi`, or of `mu` where `xi` is held at a constant.
+#'
+#' @noRd
+gev_xi_nonregular <- function(fit, resp, of, at, rows) {
+  nm <- character(0)
+  for (dp in c("xi", "mu")) {
+    lp <- fit$frame[["linpreds"]][[linpred_key(resp, dp)]]
+    if (length(nm) || is.null(lp) || !is.null(lp[["constant"]])) next
+    nm <- tryCatch(lp_outer_names(fit, lp), error = keep_missing(NULL))
+  }
+  parm <- if (length(nm)) nm[1L] else "<parameter>"
+  frm_message("gen_extreme_value: xi ", of,
+              if (rows) "reaches " else "is ", at,
+              if (rows) " on some rows", ", below -0.5. There the ",
+              "maximum of the likelihood is not regular (Smith, 1985): ",
+              "the standard errors of mu, sigma and xi are not ",
+              "asymptotically normal, so a Wald interval does not have its ",
+              "usual coverage. A profile interval does not use them: ",
+              "confint(fit, parm = \"", parm, "\", method = \"profile\")",
+              class = "frmtmb_gev_xi_nonregular")
+}
+
+#' The names `confint()` reads for the coefficients of linear predictor
+#' `lp`, in the order of `fit$opt$par`.
+#'
+#' @noRd
+lp_outer_names <- function(fit, lp) {
+  p <- fit$opt$par
+  fx <- if (identical(lp[["par"]], "betad")) fit$frame[["betad_fixed_idx"]]
+  free <- setdiff(seq_along(fit$frame[["par_template"]][[lp[["par"]]]]), fx)
+  j <- which(names(p) == lp[["par"]])[match(lp[["idx"]], free)]
+  outer_par_names(fit)[j[!is.na(j)]]
 }
 #' Generalized extreme value family, dpars `mu` (location), `sigma`
 #' (scale) and `xi` (shape).

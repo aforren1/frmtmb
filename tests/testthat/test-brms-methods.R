@@ -1123,22 +1123,24 @@ test_that("conditional_effects(conditions =) agrees on values", {
   expect_identical(cf$z, cb$z)
 })
 
-test_that("conditional_effects(dpar =) enumerates different effects", {
+test_that("conditional_effects(dpar =) enumerates brms's effects", {
   skip_unless_brms_fit()
 
-  # DIVERGENCE, in the effect LIST rather than in any value. Asked for
-  # sigma, brms returns a panel for every population-level predictor in
-  # the model, including the ones sigma does not depend on, where the
-  # curve is flat. frmtmb returns a panel only for sigma's own
-  # predictors. Values agree wherever both produce a panel.
+  # Asked for sigma, brms returns a panel for every population-level
+  # predictor in the model (get_all_effects()), including the ones sigma
+  # does not depend on, where the curve is flat. frmtmb does the same
+  # since the round of 2026-11-13; through 0.82.0 it returned sigma's
+  # own predictors alone.
   s <- brms_shape("r1")
   cb <- suppressWarnings(brms::conditional_effects(s$brmsfit,
                                                    dpar = "sigma"))
   cf <- suppressWarnings(conditional_effects(s$fit, dpar = "sigma"))
   expect_identical(names(cb), c("x", "z"))
-  expect_identical(names(cf), "x")
+  expect_identical(names(cf), names(cb))
   expect_exact_num(cb$x$estimate__, cf$x$estimate__,
                    label = "ce dpar=sigma estimate on the shared effect")
+  expect_exact_num(cb$z$estimate__, cf$z$estimate__,
+                   label = "ce dpar=sigma estimate on the flat effect")
   # brms's z panel is constant, which is what makes it uninformative
   # rather than wrong
   expect_lt(diff(range(cb$z$estimate__)), 1e-12)

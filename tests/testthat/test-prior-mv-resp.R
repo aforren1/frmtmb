@@ -188,10 +188,10 @@ test_that("rescor, cor and theta need no resp", {
   expect_identical(mvr_reached(f, d, set_prior("lkj(2)", class = "rescor")),
                    "thetar_1")
   expect_length(mvr_reached(f, d, set_prior("lkj(2)", class = "cor")), 2L)
-  # class theta on a standard deviation names its class, with the resp
+  # class thetacov on a standard deviation names its class, with the resp
   # that class needs here
   expect_error(mvr_reached(f, d, set_prior("normal(0, 1)",
-                                           class = "theta",
+                                           class = "thetacov",
                                            coef = "theta_1")),
                "resp = \"y1\"", class = "frmtmb_error")
 })

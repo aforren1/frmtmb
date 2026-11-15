@@ -33,10 +33,20 @@ ce_aterms <- function(rspec, nd, n) {
     # level is the boundary the fit read that level as
     v <- tryCatch(aterm_coerce(nm, eval(ex, nd, rspec$formula_env), rspec),
                   error = function(e) NULL)
+    v <- aterm_scalar(ex, v, nd)
     if (!is.null(v) && !length(v) %in% c(1L, n)) v <- NULL
+    # the fitted rows' values, whose length matches the grid's only by
+    # coincidence (resolution = 120 on a 120-row fit; backlog 5235)
+    rowless <- !is.null(v) && aterm_rowless(ex, v, nd)
+    if (rowless) v <- NULL
     if (is.null(v) && (nm %in% strict || is_custom_data_aterm(nm))) {
       frm_stop("conditional_effects() could not evaluate ",
                aterm_label(nm, ex), " on the effect grid",
+               if (rowless) {
+                 paste0(": it reads no column of the data, so its values ",
+                        "are not the grid's rows. Write it as a column of ",
+                        "the data")
+               },
                call. = FALSE)
     }
     if (!is.null(v)) av[[nm]] <- v
@@ -370,62 +380,146 @@ ce_plot_vars_any <- function(x, rspec, resp, rsv = TRUE) {
   unique(v)
 }
 
-#' Fitted interactions of ONE linear predictor as `"a:b"` effect
-#' pairs. brms plots interaction displays by default alongside the main
-#' effects, and a display that hides a fitted interaction invites
-#' reading the main-effect curves as the whole story. The display
-#' itself takes two variables, so a term of order three or more
-#' contributes the pair of its leading two variables (the rest sit at
-#' reference values, and `conditions =` pins them elsewhere). Term
-#' labels are parsed back to variables so `log(x):f` still yields the
-#' `x:f` pair; a component that is not one variable (a matrix column)
-#' drops its term from the default.
+#' The terms of `~ a * b * ...` over the parts of one special term, as
+#' variable sets: each part alone, then each pair. brms writes a special
+#' term's variables that way (`str2formula(vars, collapse = "*")` in
+#' `get_all_effects_type()`), and its default leaves out every set of
+#' more than two variables, so the triples are not built. A part is an
+#' expression (`exp(x)` of `s(exp(x))`) and stands for its variables.
 #'
 #' @noRd
-ce_lp_pairs <- function(lp) {
-  # a gp() term over several variables (its covariates and its by
-  # variable) is an interaction of all of them, as brms writes it with
-  # str2formula(vars, collapse = "*") in get_all_effects_type()
-  gp_pairs <- unlist(lapply(ce_gp_terms(lp), function(vv) {
-    if (length(vv) < 2L) return(character(0))
-    cb <- utils::combn(vv, 2L)
-    paste(cb[1L, ], cb[2L, ], sep = ":")
-  }))
-  out <- gp_pairs %||% character(0)
-  tt <- lp[["terms"]]
-  if (is.null(tt)) return(unique(out))
-  ord <- attr(tt, "order")
-  fac <- attr(tt, "factors")
-  if (is.null(ord) || !any(ord >= 2L)) return(unique(out))
-  for (k in which(ord >= 2L)) {
-    lbls <- rownames(fac)[fac[, k] > 0]
-    vs <- lapply(lbls, function(l) all.vars(str2lang(l)))
-    if (!all(lengths(vs) == 1L)) next
-    vv <- unique(unlist(vs))
-    if (length(vv) >= 2L) {
-      out <- c(out, paste(vv[1L], vv[2L], sep = ":"))
+ce_star <- function(parts) {
+  parts <- unique(parts[nzchar(parts)])
+  vs <- lapply(parts, function(p) all.vars(str2lang(p)))
+  out <- vs
+  if (length(vs) >= 2L) {
+    cb <- utils::combn(length(vs), 2L)
+    for (j in seq_len(ncol(cb))) {
+      out[[length(out) + 1L]] <- unique(c(vs[[cb[1L, j]]], vs[[cb[2L, j]]]))
     }
   }
+  out
+}
+
+#' The variable sets brms's `get_all_effects()` reads off ONE linear
+#' predictor: each fixed-effect term label and each `cs()` term (its
+#' `get_var_combs()`), then the `mo()`, `me()` and `mi()` terms, the
+#' smooths and the `gp()` terms, each through `ce_star()`. A term
+#' contributes the set of variables it reads, so `exp(x):z` is the one
+#' display `x:z` and `poly(x, 2)` is `x`. A nonlinear predictor
+#' contributes its covariates, alone and in pairs (brms's `btnl`
+#' method); its parameters' own predictors are read by the caller.
+#'
+#' A factor-smooth's own grouping factor is left out: the term is a
+#' group-level term here, which a population-level curve drops, so
+#' varying the factor would draw the same line once per level.
+#'
+#' @noRd
+ce_lp_effects <- function(lp, rspec) {
+  if (!is.null(lp[["nl_body"]])) {
+    cv <- setdiff(all.vars(lp[["nl_body"]]),
+                  c(rspec$nlpars, names(rspec$dpars),
+                    lp[["nl_dpar_refs"]]))
+    out <- as.list(cv)
+    if (length(cv) >= 2L) {
+      out <- c(out, utils::combn(cv, 2L, simplify = FALSE))
+    }
+    return(out)
+  }
+  out <- list()
+  tt <- lp[["terms"]]
+  if (!is.null(tt)) {
+    out <- lapply(attr(tt, "term.labels"), function(l) {
+      unique(all.vars(str2lang(l)))
+    })
+  }
+  for (ct in lp[["cs"]] %||% list()) {
+    ex <- ct[["expr"]] %||% str2lang(sub("^cs", "", ct[["label"]]))
+    lb <- attr(stats::terms(stats::as.formula(call("~", ex))),
+               "term.labels")
+    out <- c(out, lapply(lb, function(l) unique(all.vars(str2lang(l)))))
+  }
+  sp <- c(lapply(lp[["mo"]] %||% list(), function(m) {
+    c(deparse1(m[["expr"]]), all.vars(m[["mult_expr"]]))
+  }), lapply(lp[["me"]] %||% list(), function(m) {
+    c(m[["xvars"]], all.vars(m[["mult_expr"]]))
+  }), lapply(lp[["mi"]] %||% list(), function(m) {
+    c(m[["var"]], all.vars(m[["mult_expr"]]))
+  }))
+  for (s in sp) out <- c(out, ce_star(s))
+  for (si in lp[["smooths"]] %||% list()) {
+    by <- si$sm$by %||% "NA"
+    parts <- c(setdiff(si$sm$term, si$group_var %||% character(0)),
+               if (!identical(by, "NA")) by)
+    out <- c(out, ce_star(parts))
+  }
+  for (vv in ce_gp_terms(lp)) out <- c(out, ce_star(vv))
+  out
+}
+
+#' The grouping variables of the group-level terms `re_formula` keeps
+#' (`ce_kept_blocks()`): none under `NA`, every one under `NULL`, the
+#' named terms' under a formula. An `mm()` term's are its member columns.
+#'
+#' @noRd
+ce_kept_group_vars <- function(x, re_formula) {
+  bks <- (x$frame[["re_blocks"]] %||% list())[ce_kept_blocks(x, re_formula)]
+  g <- unlist(lapply(bks, function(bk) {
+    c(strsplit(bk[["group_name"]] %||% "", ":", fixed = TRUE)[[1L]],
+      unlist(lapply(bk[["components"]], function(cp) cp[["mm"]][["gvars"]])))
+  }))
+  unique(g[nzchar(g)])
+}
+
+#' A default pair with its numeric variable first, as brms's
+#' `prepare_cond_data(reorder = TRUE)` orders the default displays: the
+#' numeric variable is the axis and the factor the color, so `f * x`
+#' gives `x:f`. A factor, character or logical column counts as a
+#' factor, and so does a grouping variable of a term that `re_formula`
+#' keeps, whatever its type: brms reads its group variables off
+#' `update_re_terms(formula, re_formula)`, so at the default
+#' `re_formula = NA` there are none (`ce_kept_group_vars()`). Effects a
+#' caller names keep their order, as brms keeps them.
+#'
+#' @noRd
+ce_numeric_first <- function(effects, base, group_vars) {
+  is_fac <- function(v) {
+    col <- base[[v]]
+    v %in% group_vars || is.factor(col) || is.character(col) ||
+      is.logical(col)
+  }
+  out <- vapply(strsplit(effects, ":", fixed = TRUE), function(ev) {
+    if (length(ev) == 2L && is_fac(ev[1L]) && !is_fac(ev[2L])) ev <- ev[2:1]
+    paste(ev, collapse = ":")
+  }, "")
   unique(out)
 }
 
-#' The default interaction displays, walking nonlinear parameters the
-#' way ce_plot_vars() does so a chain of nlf() formulas contributes the
-#' interactions of the predictors at its far end.
+#' brms's default displays, `get_all_effects()`: per response, the
+#' variable sets of every distributional parameter's predictor, then of
+#' every nonlinear parameter's, without brms's reserved `intercept`,
+#' each set of one or two variables, each once. They do not depend on
+#' `dpar` or `resp`: brms reads the whole model whichever parameter and
+#' response it draws. Returned as `"a"` and `"a:b"` effect names.
 #'
 #' @noRd
-ce_plot_pairs <- function(x, rspec, lp, resp, seen = character(0)) {
-  p <- ce_lp_pairs(lp)
-  if (!is.null(lp[["nl_body"]])) {
-    reach <- c(lp[["nl_pars"]] %||% rspec$nlpars, lp[["nl_dpar_refs"]])
-    for (np in setdiff(reach, seen)) {
-      lpn <- x$frame[["linpreds"]][[linpred_key(resp, np)]]
-      if (!is.null(lpn)) {
-        p <- c(p, ce_plot_pairs(x, rspec, lpn, resp, c(seen, np)))
-      }
+ce_default_effects <- function(x) {
+  lps <- x$frame[["linpreds"]] %||% list()
+  out <- list()
+  rsv <- FALSE
+  for (r in names(x$spec$responses)) {
+    rspec <- x$spec$responses[[r]]
+    pars <- c(setdiff(names(rspec$dpars), rspec$nlpars), rspec$nlpars)
+    for (p in pars) {
+      lp <- lps[[linpred_key(r, p)]]
+      if (is.null(lp)) next
+      rsv <- rsv || isTRUE(lp[["rsv_lower"]])
+      out <- c(out, ce_lp_effects(lp, rspec))
     }
   }
-  unique(p)
+  if (rsv) out <- lapply(out, setdiff, c("intercept", "Intercept"))
+  out <- unique(out[lengths(out) >= 1L & lengths(out) <= 2L])
+  vapply(out, paste, "", collapse = ":")
 }
 
 #' The columns brms's `conditional_effects()` frame carries, in brms's
@@ -615,6 +709,8 @@ ce_dots <- function(dots) {
              "longer takes it: brms spells it `allow_new_levels`, and so ",
              "does this. Pass allow_new_levels =", call. = FALSE)
   }
+  # read by ce_snl(); brms's own argument, passed on to its predictions
+  dots[["sample_new_levels"]] <- NULL
   if (length(dots)) {
     # a warning let a misspelled argument change nothing and say so
     # only in passing; plan item 2.5e made every such dot an error
@@ -627,6 +723,61 @@ ce_dots <- function(dots) {
              call. = FALSE)
   }
   anl
+}
+
+#' brms's `sample_new_levels` of one call, from its dots: how a grid row
+#' at a new level is drawn on draws and in a bootstrap band. On draws
+#' the default is brms's, `"uncertainty"`: each draw lends the effects
+#' of a level the fit saw. `"gaussian"` draws from the estimated
+#' covariance, and `"old_levels"` lends one level for the whole call.
+#' `default` is the caller's: the fit method passes `"gaussian"`, since
+#' a bootstrap replicate holds the lent level's mode and not a draw of it
+#' (see `ce_snl_fit()`).
+#'
+#' @noRd
+ce_snl <- function(dots, default = "uncertainty") {
+  snl <- dots[["sample_new_levels"]] %||% default
+  ok <- c("uncertainty", "gaussian", "old_levels")
+  if (!is.character(snl) || length(snl) != 1L || !snl %in% ok) {
+    frm_stop("`sample_new_levels` must be one of ",
+             paste0("\"", ok, "\"", collapse = ", "), ", not ",
+             arg_desc(snl), call. = FALSE)
+  }
+  snl
+}
+
+#' The `sample_new_levels` a fit's display can honor: `"gaussian"`, its
+#' default, as `predict()` and `fitted()` have it. A bootstrap replicate
+#' lends a level's conditional MODE, whose spread is the group variance
+#' times the shrinkage, where brms lends a posterior draw of the level's
+#' effect: on 30 groups of 2 rows the "uncertainty" band was 29 percent
+#' narrower than brms's (dev/reviews/2026-11-13-parity2.md, F1). So
+#' `"uncertainty"` and `"old_levels"` are refused by name on
+#' `band = "boot"`, and on a band that draws nothing (Wald, profile) any
+#' rule but the gaussian law it already reads is refused, rather than
+#' changing nothing in silence.
+#'
+#' @noRd
+ce_snl_fit <- function(dots, band) {
+  snl <- ce_snl(dots, default = "gaussian")
+  if (identical(snl, "gaussian")) return(snl)
+  if (!identical(band, "boot")) {
+    frm_stop("conditional_effects(band = \"", band, "\") cannot honor ",
+             "sample_new_levels = \"", snl, "\": this band draws no new ",
+             "level; it adds the group-level term's variance for one, ",
+             "which is the \"gaussian\" law. Leave sample_new_levels ",
+             "unset, or draw from the posterior with ",
+             "frmtmb.sample::frm_sample(), whose display lends a level's ",
+             "draw", call. = FALSE)
+  }
+  frm_stop("conditional_effects(band = \"boot\") on a fit cannot honor ",
+           "sample_new_levels = \"", snl, "\": a refit holds each level's ",
+           "conditional mode and not a draw of its effect, so a lent ",
+           "level would carry none of its conditional variance and the ",
+           "band would be too narrow. Use sample_new_levels = ",
+           "\"gaussian\" (the default here, as in predict() and fitted()), ",
+           "or the posterior draws of frmtmb.sample::frm_sample(), where ",
+           "brms's \"uncertainty\" is the default", call. = FALSE)
 }
 
 #' The grouping variables a curve conditions on. Smooth, gp() and hsgp()
@@ -1511,8 +1662,10 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #'   `sum(k * p_k)`, which is brms's default. Only for an ordinal or
 #'   categorical family with no `dpar`; a nominal family has no ordered
 #'   categories to average and refuses `FALSE`.
-#' @param ... `allow_new_levels`, passed to [predict.frmtmb_fit()].
-#'   Anything else is reported as unknown, by name, against
+#' @param ... `allow_new_levels`, passed to [predict.frmtmb_fit()], and
+#'   brms's `sample_new_levels`, which sets how a new group level is
+#'   drawn (see "New group levels"; on a fit only `"gaussian"`). Anything
+#'   else is reported as unknown, by name, against
 #'   `conditional_effects()`.
 #' @return A named list of data frames (one per effect), in brms's
 #'   column layout: the varied variable(s), then every other model
@@ -1733,7 +1886,26 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #'   leaves it unset, the call is refused by name. brms also refuses the
 #'   unseen level.
 #'
-#' With `band = "boot"` and on draws, a new level is drawn as follows.
+#' On draws, a new level's effects follow brms's `sample_new_levels`,
+#' given in `...`:
+#'
+#' - `"uncertainty"` (the default, as in brms): in each posterior draw,
+#'   the effects of one level the fit saw, picked at random, at that
+#'   draw's values. For a `gr(g, by = f)` term the pick is among the
+#'   levels of the row's `f` level.
+#' - `"old_levels"`: the same, with one level picked for the whole call.
+#' - `"gaussian"`: a draw from the term's covariance at that draw.
+#'
+#' On a fit, `band = "boot"` draws a new level's effects from the term's
+#' covariance in each replicate (`"gaussian"`), as [predict.frmtmb_fit()]
+#' and [fitted.frmtmb_fit()] do. `"uncertainty"` and `"old_levels"` are
+#' refused there by name: a refit holds each level's conditional mode,
+#' not a draw of its effect, so a lent level would bring none of its
+#' conditional variance and the band would be too narrow where the
+#' levels are shrunk. The Wald band does not draw: it adds the term's
+#' variance for a new level, which is the `"gaussian"` law, and refuses
+#' any other value.
+#'
 #' The rows are predicted at a placeholder level of the term, and the
 #' draw replaces the effects of that level. The placeholder can change
 #' only a grouping column that no other part of the model reads: not a
@@ -1751,7 +1923,7 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' never has together: `g` and `h` keep their levels, and `g:h` reads a
 #' new level. With one new level in the call, the band on draws equals
 #' brms's at the same draws and the same seed, with
-#' `sample_new_levels = "gaussian"` (`dev/ceplot-crossed-brms.R`); with
+#' `sample_new_levels = "gaussian"` on both sides; with
 #' several, brms draws level by level and this draw by draw, so the
 #' bands agree in law but not number. A row whose grouping variable is
 #' unset there has no label to rename to, and is refused by name. A
@@ -1777,20 +1949,27 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' are refused: the sampled vector no longer aligns with the model's
 #' parameter template.
 #' @section Which predictors are plotted by default:
-#' Every variable of the selected linear predictor that the display can
-#' vary: its fixed-effect terms, its smooth terms and its `mo()` terms
-#' (whose design columns are placeholders, so the variable is read from
-#' the term itself). On a nonlinear fit they live one level down - the
-#' covariates the nonlinear formula reads, plus the terms of each
-#' nonlinear parameter's own predictor - and all of those are collected
-#' too. Matrix-valued columns are excluded, a grid over a matrix
-#' covariate not being a curve. Every fitted interaction whose
-#' components are single plottable variables adds an `"a:b"` display,
-#' as in brms: a fitted interaction hidden by default invites reading
-#' the main-effect curves as the whole story. The display takes two
-#' variables, so a three-way or deeper term contributes its leading
-#' pair, with the remaining variables at their reference values until
-#' `conditions =` pins them. Naming `effects =` overrides the search.
+#' brms's rule (`get_all_effects()`), over the predictors of EVERY
+#' distributional parameter of the response and then of every nonlinear
+#' parameter, whichever `dpar` the display draws:
+#'
+#' - each fixed-effect term and each `cs()` term is one display of the
+#'   variables it reads: `x * z` gives `x`, `z` and `x:z`, `exp(x):z`
+#'   gives `x:z` alone, and `poly(x, 2)` gives `x`;
+#' - each `mo()`, `me()`, `mi()`, smooth and `gp()` term gives its
+#'   variables (a `by` variable and a `mo(k):z` multiplier included)
+#'   alone and in pairs, so `t2(x, z)` and `mo(k):z` give `x`, `z` and
+#'   `x:z`;
+#' - a nonlinear formula gives its covariates alone and in pairs.
+#'
+#' A display of three or more variables is left out, as in brms; name
+#' its leading pair in `effects =` and pin the rest in `conditions =`.
+#' A variable that only a group-level term or an `offset()` reads is not
+#' a display, nor is a factor-smooth's own grouping factor (its curve is
+#' dropped at the population level). Matrix-valued columns are excluded,
+#' a grid over a matrix covariate not being a curve. On a multivariate
+#' model the displays of all responses are drawn for each response, as
+#' in brms. Naming `effects =` overrides the search.
 #'
 #' A response whose predictor reads `mi(x, idx = )` is refused by name.
 #' Such a term reads `x` on the row whose `index()` value equals the
@@ -1846,7 +2025,7 @@ ce_structure_check <- function(rspec) {
 ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
                            conditions, data, int_conditions = list(),
                            na_vars = character(0), surface = FALSE,
-                           too_far = 0) {
+                           too_far = 0, re_formula = NA) {
   base <- data %||% ce_base_frame(x)
   ce_mi_idx_check(x, resp)
 
@@ -1873,13 +2052,19 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
   vars <- setdiff(vars, mat_vars)
   named_effects <- !is.null(effects)
   if (is.null(effects)) {
-    # brms's default: the main effects AND the fitted two-way
-    # interactions, each side of a pair having survived the same
-    # plottability filter as the main effects
-    prs <- ce_plot_pairs(x, rspec, lp, resp)
-    prs <- prs[vapply(strsplit(prs, ":", fixed = TRUE),
-                      function(v) all(v %in% vars), TRUE)]
-    effects <- c(vars, prs)
+    # brms's default (get_all_effects()): one display per term of every
+    # parameter's predictor, of the variables that term reads, so
+    # exp(x):z is the one display x:z. A display whose variable the grid
+    # cannot vary (a matrix column, a variable not in the frame) is left
+    # out, as the old main-effect search left it out.
+    effects <- ce_default_effects(x)
+    ok_vars <- names(base)[vapply(base, function(v) !is.matrix(v), NA)]
+    dv <- unique(unlist(strsplit(effects, ":", fixed = TRUE)))
+    mat_vars <- union(mat_vars, intersect(dv, setdiff(names(base), ok_vars)))
+    effects <- effects[vapply(strsplit(effects, ":", fixed = TRUE),
+                              function(v) all(v %in% ok_vars), NA)]
+    effects <- ce_numeric_first(effects, base,
+                                ce_kept_group_vars(x, re_formula))
     if (!length(effects) && length(mat_vars)) {
       terms_on <- vapply(lp[["smooths"]] %||% list(), function(si) {
         if (any(smooth_pred_vars(si$sm) %in% mat_vars)) si$label else ""
@@ -2047,11 +2232,8 @@ ce_base_frame <- function(x) {
   mf <- x$frame[["data_frame"]]
   raw <- x$frame[["raw_vars"]]
   if (is.null(raw) || !nrow(mf) || nrow(raw) != nrow(mf)) return(mf)
-  add <- setdiff(names(raw), names(mf))
-  if (!length(add)) return(mf)
-  out <- mf
-  for (v in add) out[[v]] <- raw[[v]]
-  out
+  # the frame a refit reads, on the fitted rows
+  fit_refit_data(x)
 }
 
 #' The refusal of a display whose response reads `mi(x, idx = )`.
@@ -2562,6 +2744,9 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   # never called - and only on the branches that forward, which left
   # the ordinal display discarding arguments in silence
   allow_new_levels <- ce_dots(dots)
+  # read on every band, so a misspelled rule, or one a band cannot
+  # honor, is refused where it is not used too, as an unknown argument is
+  snl <- ce_snl_fit(dots, band)
   pop_level <- !inherits(re_formula, "formula") &&
     length(re_formula) == 1L && is.na(re_formula)
   mv <- length(x$spec$responses) > 1L
@@ -2708,7 +2893,8 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   na_vars <- ce_na_vars(x, pop_level)
   gb <- ce_grids_build(x, rspec, lp, effects, resp, dpar, resolution,
                        conditions, data, int_conditions, na_vars,
-                       surface = surface, too_far = too_far)
+                       surface = surface, too_far = too_far,
+                       re_formula = re_formula)
   base <- gb$base
   effects <- gb$effects
   cond_sets <- gb$cond_sets
@@ -2737,7 +2923,9 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
     # a new level's effects are DRAWN per replicate rather than left at
     # their zero modes; without that the interval collapsed onto the
     # population one while the frame's grouping column claimed otherwise
-    plan <- if (!pop_level) ce_level_plan(x, grids, base, re_formula)
+    plan <- if (!pop_level) {
+      ce_level_plan(x, grids, base, re_formula, snl)
+    }
     ce_boot_draws(x, grids, categorical, resp, pred_dpar, boot, seed,
                   re_formula, anl, plan)
   }

@@ -96,9 +96,12 @@ jcs_joint_cov <- function(fit) {
                       p = p, names = rn),
                  class = "frm_joint_sparse")
   lost <- meta$lost_pos
+  why <- meta$lost_why
   list(V = V, names = rn, null = meta$null, flat = meta$flat,
        units = meta$units, lost_pos = lost[!is.na(lost)], root = NULL,
-       Vrest = NULL)
+       Vrest = NULL,
+       lost_why = if (length(why) == length(lost)) why[!is.na(lost)],
+       limit_range = meta$limit_range)
 }
 
 # A block of a sparse joint covariance as a dense matrix: `V[i, j]` at

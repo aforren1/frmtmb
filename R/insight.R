@@ -191,6 +191,18 @@ get_predicted.frmtmb_fit <- function(x, data = NULL,
   # one number per row and response. A multivariate fit reads each response, or
   # the numbers carry no label of which is which
   one <- function(resp) {
+    rs1 <- x$spec$responses[[resp %||% 1L]]
+    fam <- rs1$family
+    # a count or a composition over categories is a matrix per row, and
+    # one number per row would be the matrix flattened with nothing to
+    # say which category a number is. brms 2.23.0 fails here too (in
+    # insight, "'length = 2' in coercion to 'logical(1)'")
+    if (ce_matrix_mean(fam)) {
+      frm_stop("insight::get_predicted() gives one number per row, and ",
+               "family '", fam[["family"]], "' predicts one per row and ",
+               "category. Use fitted() or predict(), which return them ",
+               "per category", call. = FALSE)
+    }
     if (identical(pr, "prediction")) {
       sm <- stats::predict(x, newdata = data, probs = c(a, 1 - a), resp = resp)
       return(list(est = sm[, "Estimate"], se = sm[, "Est.Error"],
@@ -200,8 +212,6 @@ get_predicted.frmtmb_fit <- function(x, data = NULL,
     # latent linear predictor is what one number per row can be, which
     # is what insight's default produced here before
     type <- if (identical(pr, "link")) "link" else "response"
-    rs1 <- x$spec$responses[[resp %||% 1L]]
-    fam <- rs1$family
     if (fam[["type"]] %in% c("ordinal", "categorical")) type <- "link"
     # one number per row: the shared part of a cs() term, and one predictor
     # of a family with several, which frm_linpred() stacks when none is named

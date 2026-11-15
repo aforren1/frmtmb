@@ -270,8 +270,13 @@ test_that("zero_inflated_asym_laplace is asym_laplace on its nonzero rows", {
             dry_run = "frame")
   # the exact integral is bounded at unit weights
   expect_null(check_weights_unbounded(fr$spec, fr, NULL, exact = TRUE))
-  r <- wu_fit(bf(yz ~ x + (1 | g)), family = f, data = d)
-  expect_true(is.finite(as.numeric(logLik(r$fit))))
+  # a group of six rows owns no effect, so this check lets it through;
+  # check_ald_laplace() refuses the fit for its own reason
+  # (test-ald-laplace.R)
+  fg <- frm(bf(yz ~ x + (1 | g)), family = f, data = d, dry_run = "frame")
+  expect_null(check_weights_unbounded(fg$spec, fg, NULL, exact = FALSE))
+  expect_error(frm(bf(yz ~ x + (1 | g)), family = f, data = d),
+               class = "frmtmb_ald_no_laplace")
 })
 
 
@@ -856,4 +861,204 @@ test_that("the sampler's verdict does not depend on the link", {
     expect_error(check_weights_unbounded(fr$spec, fr, pt, exact = TRUE,
                                          route = "sample"), improper)
   }
+})
+
+test_that("a hurdle or zero-inflated point mass neither grows nor stops it", {
+  # through 0.82.0 these families were outside the table and ran away:
+  # hurdle_lognormal to logLik 968.9 at log sigma -37.5, and
+  # zero_inflated_beta with its other rows' excess 4 and the zeros at
+  # weight 0.5 stopped at conv 0 at a point the objective rises from by
+  # 2.00 per unit of log phi (dev/wcheck2-4968.R). A row at the point
+  # mass reads only hu or zi, so the excess is the other rows'
+  d <- wu_data()
+  n <- nrow(d)
+  i0 <- seq_len(n) %% 5 == 0
+  d$yz <- ifelse(i0, 0, d$y)
+  d$yb <- stats::plogis(d$ly - mean(d$ly))
+  d$yb[i0] <- 0
+  d$yo <- d$yb
+  i1 <- seq_len(n) %% 7 == 0 & !i0
+  d$yo[i1] <- 1
+  cases <- list(
+    list(fam = hurdle_lognormal(), y = "yz", mass = i0),
+    list(fam = hurdle_gamma(), y = "yz", mass = i0),
+    list(fam = zero_inflated_beta(), y = "yb", mass = i0),
+    list(fam = zero_one_inflated_beta(), y = "yo", mass = i0 | i1))
+  for (cs in cases) {
+    m <- cs$mass
+    fo <- as.formula(paste(cs$y, "| weights(w) ~ x + (1 | obs)"))
+    # the other rows' excess is 4; the mass at 0.5 keeps sum(w) below n
+    d$w <- ifelse(m, 0.5, 1 + 4 / sum(!m))
+    expect_lt(sum(d$w), n)
+    err <- tryCatch(frm(fo, family = cs$fam, data = d),
+                    error = conditionMessage)
+    expect_match(err, wu_refusal)
+    expect_match(err, paste0("The ", sum(m), " rows at "), fixed = TRUE)
+    # the absent case: the mass at 3 puts sum(w) above n, and the other
+    # rows' excess is -2
+    d$w <- ifelse(m, 3, 1 - 2 / sum(!m))
+    expect_gt(sum(d$w), n)
+    r <- wu_fit(fo, family = cs$fam, data = d)
+    expect_true(is.finite(as.numeric(logLik(r$fit))))
+    expect_identical(r$fit$opt$convergence, 0L)
+    expect_length(r$warns, 0L)
+  }
+})
+
+test_that("two cells of sigma move with the centered intercept held", {
+  # A prior on the Intercept of sigma ~ 1 + fac holds b0 + means_X'b.
+  # With it held, sigma can still shrink on cell j's rows and grow on
+  # cell k's, and the objective gains E_j / n_j and loses W_k / n_k per
+  # unit; slopes of exactly +-0.100 along that direction on both sides
+  # of the boundary (dev/wcheck2-4977.R). 0.82.0 let the first case run
+  # to logLik 612.75 (conv 1)
+  olre <- "gives every observation its own random effect"
+  P <- function(...) set_prior(..., dpar = "sigma")
+  pic <- P("normal(0, 1)", class = "Intercept")
+  set.seed(20261111)
+  dc <- data.frame(obs = factor(seq_len(80)), x = stats::rnorm(80),
+                   fac = factor(rep(c("a", "b"), 40)))
+  dc$y <- 0.5 + 0.4 * dc$x +
+    stats::rnorm(80, 0, ifelse(dc$fac == "a", 0.6, 1.2))
+  fc <- bf(y | weights(w) ~ x + (1 | obs), sigma ~ 1 + fac)
+  frame_w <- function(d, fo, wa) {
+    d$w <- unname(wa[as.character(d$fac)])
+    allow_warnings(frm(fo, family = gaussian(), data = d,
+                       dry_run = "frame"), olre)
+  }
+  # E_b / n_b 0.5 against W_a / n_a 0.3
+  fr <- frame_w(dc, fc, c(a = 0.3, b = 1.5))
+  err <- tryCatch(check_weights_unbounded(fr$spec, fr, pic),
+                  error = conditionMessage)
+  expect_match(err, wu_refusal)
+  expect_match(err, "keep that intercept fixed", fixed = TRUE)
+  # a student_t prior on the contrast is free too; a normal one bounds it
+  expect_error(check_weights_unbounded(
+    fr$spec, fr, c(pic, P("student_t(3, 0, 2.5)", class = "b"))),
+    wu_refusal)
+  expect_null(check_weights_unbounded(fr$spec, fr,
+                                      c(pic, P("normal(0, 1)", class = "b"))))
+  # the absent case on the other side of the boundary: E_b / n_b 0.2
+  # against 0.3 (a bounded objective, slope -0.100)
+  fr2 <- frame_w(dc, fc, c(a = 0.3, b = 1.2))
+  expect_null(check_weights_unbounded(fr2$spec, fr2, pic))
+  # three cells: c falls and b rises with b0 held; the reference level a
+  # stays put
+  set.seed(20261113)
+  d3 <- data.frame(obs = factor(seq_len(90)), x = stats::rnorm(90),
+                   fac = factor(rep(c("a", "b", "c"), 30)))
+  d3$y <- 0.5 + 0.4 * d3$x + stats::rnorm(90)
+  f3 <- frame_w(d3, fc, c(a = 1, b = 0.3, c = 1.4))
+  err3 <- tryCatch(check_weights_unbounded(f3$spec, f3, pic),
+                   error = conditionMessage)
+  expect_match(err3, "the coefficient `facc` of sigma moves alone",
+               fixed = TRUE)
+  expect_match(err3, "rows that `facb` moves alone", fixed = TRUE)
+  expect_null(check_weights_unbounded(
+    f3$spec, frame_w(d3, fc, c(a = 1, b = 0.3, c = 1.2)), pic))
+  # the reference level falls
+  fa <- frame_w(d3, fc, c(a = 1.4, b = 0.3, c = 1))
+  erra <- tryCatch(check_weights_unbounded(fa$spec, fa, pic),
+                   error = conditionMessage)
+  expect_match(erra, "rows that none of `facb`, `facc` of sigma reaches",
+               fixed = TRUE)
+  expect_null(check_weights_unbounded(
+    fa$spec, frame_w(d3, fc, c(a = 1.2, b = 0.3, c = 1)), pic))
+  # a saturated design in another coding: each distinct row is a unit,
+  # so contr.sum and a full interaction are decided as treatment
+  # coding is (0.82.0's pair rule passed both; logLik 742.669 and 521.28,
+  # conv 1, dev/reviews/wcheck2-review-pair.R)
+  ds <- d3
+  contrasts(ds$fac) <- stats::contr.sum(3)
+  fs <- frame_w(ds, fc, c(a = 0.3, b = 1, c = 1.4))
+  errs <- tryCatch(check_weights_unbounded(fs$spec, fs, pic),
+                   error = conditionMessage)
+  expect_match(errs, wu_refusal)
+  expect_match(errs, "rows where `fac1` is -1 and `fac2` is -1",
+               fixed = TRUE)
+  expect_null(check_weights_unbounded(
+    fs$spec, frame_w(ds, fc, c(a = 0.3, b = 1, c = 1.2)), pic))
+  di <- data.frame(obs = factor(seq_len(96)), x = stats::rnorm(96),
+                   f1 = factor(rep(c("A", "B"), each = 48)),
+                   f2 = factor(rep(rep(c("C", "D"), each = 24), 2)))
+  di$y <- 0.5 + 0.4 * di$x + stats::rnorm(96)
+  cell <- paste0(di$f1, di$f2)
+  fi <- bf(y | weights(w) ~ x + (1 | obs), sigma ~ 1 + f1 * f2)
+  frame_i <- function(wc) {
+    di$w <- unname(wc[cell])
+    allow_warnings(frm(fi, family = gaussian(), data = di,
+                       dry_run = "frame"), olre)
+  }
+  fr_i <- frame_i(c(AC = 0.3, AD = 1, BC = 1, BD = 1.4))
+  expect_error(check_weights_unbounded(fr_i$spec, fr_i, pic), wu_refusal)
+  expect_null(check_weights_unbounded(
+    fr_i$spec, frame_i(c(AC = 0.3, AD = 1, BC = 1, BD = 1.2)), pic))
+  # a held column makes the moves a linear program that the rule does
+  # not solve: with normal(0, 1) on facb every pair moves facb, and the
+  # model is let through although c can fall while a and b rise
+  # together (filed; slope 13.7 on the review's data)
+  pb <- c(pic, P("normal(0, 1)", class = "b", coef = "facb"))
+  expect_null(check_weights_unbounded(
+    f3$spec, frame_w(d3, fc, c(a = 0.524, b = 0.416, c = 1.774)), pb))
+})
+
+test_that("the pair rule's cost does not grow with the pairs", {
+  # 0.82.0's first pair rule intersected row sets for every ordered pair
+  # of levels: 13.75 s on 4000 rows and 200 levels, against 0.16 s for
+  # the rest of the check (dev/reviews/wcheck2-review-time2.R). Counted,
+  # not timed: base::intersect() calls during one check
+  set.seed(3)
+  nn <- 2000
+  dd <- data.frame(obs = factor(seq_len(nn)), x = stats::rnorm(nn),
+                   fac = factor(sample(sprintf("l%03d", 1:100), nn,
+                                       replace = TRUE)))
+  dd$y <- stats::rnorm(nn)
+  dd$w <- stats::runif(nn, 0.9, 1.1)
+  fr <- allow_warnings(
+    frm(bf(y | weights(w) ~ x + (1 | obs), sigma ~ 1 + fac), data = dd,
+        family = gaussian(), dry_run = "frame"),
+    "gives every observation its own random effect")
+  pic <- set_prior("normal(0, 1)", class = "Intercept", dpar = "sigma")
+  counter <- new.env()
+  counter$calls <- 0L
+  suppressMessages(trace("intersect", where = baseenv(), print = FALSE,
+                         tracer = bquote(assign(
+                           "calls", get("calls", envir = .(counter)) + 1L,
+                           envir = .(counter)))))
+  on.exit(suppressMessages(untrace("intersect", where = baseenv())),
+          add = TRUE)
+  expect_null(check_weights_unbounded(fr$spec, fr, pic))
+  suppressMessages(untrace("intersect", where = baseenv()))
+  # one call reads the owned columns; 100 levels make 9900 pairs
+  expect_lt(counter$calls, 100L)
+})
+
+test_that("a prior's own error comes before the refusal", {
+  # a class b prior on the intercept of a centered sigma is refused by
+  # the prior resolver; on a model the weights check refuses, frm() gave
+  # the refusal and hid what is wrong with the prior
+  set.seed(20261111)
+  d <- data.frame(obs = factor(seq_len(80)), x = stats::rnorm(80))
+  d$y <- 0.5 + 0.4 * d$x + stats::rnorm(80)
+  d$w <- 1.1
+  fx <- bf(y | weights(w) ~ x + (1 | obs), sigma ~ 1 + x)
+  olre <- "gives every observation its own random effect"
+  P <- function(...) set_prior(..., dpar = "sigma")
+  allow_warnings(
+    expect_error(frm(fx, family = gaussian(), data = d,
+                     prior = P("normal(0, 1)", class = "b",
+                               coef = "Intercept")),
+                 "names an intercept that this model centers"),
+    olre)
+  allow_warnings(
+    expect_error(frm(fx, family = gaussian(), data = d,
+                     prior = P("normal(0, 1)", class = "b", coef = "z")),
+                 "Prior target not found"),
+    olre)
+  # the absent case: a valid prior that does not bound the model
+  allow_warnings(
+    expect_error(frm(fx, family = gaussian(), data = d,
+                     prior = P("student_t(3, 0, 2.5)", class = "Intercept")),
+                 wu_refusal),
+    olre)
 })

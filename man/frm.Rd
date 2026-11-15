@@ -127,8 +127,9 @@ of one vector and not others is refused.
 A nonlinear body can have more than one maximum, and nothing in a fit
 marks a second one. From the default start, \code{frm()} also fits from each
 sign pattern of the body's coefficients and returns the highest point
-(see "The default starting values" in \code{\link[=par_template]{par_template()}}). A \code{start}, or
-\code{options(frmtmb.nl_sign_probe = FALSE)}, skips that; a located prior
+(see "The default starting values" in \code{\link[=par_template]{par_template()}}). A \code{start},
+\code{frmtmb_control(nl_starts = FALSE)} or
+\code{options(frmtmb.nl_sign_probe = FALSE)} skips that; a located prior
 places the start and does not skip it. The point a pattern reaches can
 itself be a second maximum: the fit then converges with no warning and
 is still below the highest one, as on 1 of 89 such fits measured (1.84
@@ -179,7 +180,7 @@ releases before 0.49 are gone rather than aliased, and a call still
 using them fails as an unused argument; every outer parameter they
 could reach has a \code{set_prior()} class: a standard deviation class
 \code{"sd"}, on the sd scale, and an internal covariance parameter that
-no brms class names class \code{"theta"} (\code{coef = "theta_12"}). Two
+no brms class names class \code{"thetacov"} (\code{coef = "theta_12"}). Two
 kinds take no box: a correlation, random-effect, \code{rescor} or
 \code{unstr()}, which its class reaches only as a whole matrix (as in
 brms, it takes no \code{lb}/\code{ub}), and the internal parameters of a
@@ -270,7 +271,11 @@ until the rule taped at the estimate is stationary or a round
 changes the log-likelihood by less than the rule can resolve
 (1e-5). A fit still gaining after 10 rounds, such as one whose
 likelihood rises without bound, warns (class
-\code{frmtmb_quad_unsettled}).}
+\code{frmtmb_quad_unsettled}). As under the Laplace approximation, a
+standard deviation stopped near zero short of a larger maximum is
+restarted from a larger value, and the standard-error check gives
+its boundary and limit verdicts; on one block per row it reads a
+rule taped at each point it probes.}
 
 \item{importance}{Number of importance draws per group, or \code{0}
 (default) for none. A positive count replaces the Laplace

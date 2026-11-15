@@ -119,10 +119,13 @@ A case weight is a frequency, as \code{weights()} is in the likelihood
 (brms's reading): a row of weight \code{w} gets the residual of the last
 of \code{w} copies of it, given the other \code{w - 1}, and the later rows are
 conditioned on all \code{w} copies. A row of weight 0 is no part of the
-fitted likelihood and gets \code{NA}. A weight between 0 and 1 also gets
+fitted likelihood and gets \code{NA}. A weight between 0 and 1 on a
+continuous response read off its CDF (\code{osa_method = "cdf"}) gives the
+residual of a fresh copy of the row, given the rows before it; at a
+weight of 1 the two readings are the same. On a count it gets
 \code{NA}, with a warning: there TMB reads the row's mass from the weighted
-density, \code{p^w}, so a count's randomization would be wrong. A residual that
-\code{oneStepPredict()} cannot form is \code{NaN} with a warning.
+density, \code{p^w}, so a count's randomization would be wrong. A residual
+that \code{oneStepPredict()} cannot form is \code{NaN} with a warning.
 
 The cost grows faster than the number of rows: TMB makes three
 evaluations of the whole objective per row, each with an inner
@@ -143,17 +146,18 @@ row: what is observed there is an event (\code{Y > c}), not a value, and
 an event has no one-step CDF. The uncensored rows get residuals
 conditional on the censoring events, which needs one censoring point
 per side (type-I censoring); row-varying censoring times and interval
-censoring are refused, and so is a DISCRETE family. A discrete
-censoring bound is read on the integer lattice (left censoring at \code{k}
-is \code{Y <= k}, right censoring \code{Y > k}; see \code{\link[=frmtmb_family]{frmtmb_family()}}), so an
-uncensored count's support is \verb{[lo + 1, hi]} rather than the
-\verb{[lo, hi]} this window is built on, and no reference has measured
-the shifted window. Every other
-residual type works there.
+censoring are refused. An uncensored row is a draw that fell inside
+the window \verb{(lo, hi]} the censoring points leave, so its one-step CDF
+is renormalized on \code{F(hi) - F(lo)}. A count is read on the integer
+lattice, as its censoring bound is (left censoring at \code{k} is
+\code{Y <= k}, right censoring \code{Y > k}; see \code{\link[=frmtmb_family]{frmtmb_family()}}): an
+uncensored count lies in \verb{lo + 1, ..., hi}, and its residual is
+randomized over its own step of the renormalized CDF. A core count
+family with a CDF takes \code{osa_method = "cdf"} there, and a continuous
+family \code{"oneStepGeneric"} by default, which \code{"cdf"} reproduces.
 \code{\link[=dharma_residuals]{dharma_residuals()}} covers what is refused here: it scores each
-censored row on the event it observes, with any censoring times, an
-interval and a discrete family included (see its section "Censored
-responses").
+censored row on the event it observes, with any censoring times and
+an interval included (see its section "Censored responses").
 }
 \section{Ordinal and other category responses}{
 

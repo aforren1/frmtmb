@@ -2287,8 +2287,12 @@ recover_data.frmtmb_fit <- function(object, ..., data = NULL, resp = NULL,
   # "Perhaps a 'data' or 'params' argument is needed", which names
   # neither the reason nor the fix. A character value is emmeans's own
   # way for recover_data() to refuse: ref_grid() stops with that text.
-  # So every refusal is returned, not raised.
-  tryCatch({
+  # So a refusal is returned, not raised. The class of the condition is
+  # lost on that route, and no value can carry it: tryCatch() turns a
+  # character condition into a simpleError (dev/refits-findings.md,
+  # 4018). With `data` given, ref_grid() calls this outside try(), so
+  # there the condition is raised as it is, class and all.
+  run <- function() {
     tg <- emm_target(object, resp = resp, dpar = dpar, nlpar = nlpar,
                      re_formula = re_formula, epred = epred)
     # The grid holds the variables a transform reads (`z` of
@@ -2297,7 +2301,9 @@ recover_data.frmtmb_fit <- function(object, ..., data = NULL, resp = NULL,
     emmeans::recover_data(emm_call(object, tg), emm_terms(object, tg),
                           na.action = NULL,
                           data = data %||% ce_base_frame(object), ...)
-  }, error = function(e) conditionMessage(e))
+  }
+  if (!is.null(data)) return(run())
+  tryCatch(run(), error = function(e) conditionMessage(e))
 }
 
 #' @exportS3Method emmeans::emm_basis

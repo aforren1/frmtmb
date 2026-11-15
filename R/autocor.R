@@ -237,13 +237,13 @@
 #' eigenvalues are all non-positive; frmtmb refuses every matrix that is
 #' not positive definite. `se()` is refused beside it, as brms refuses it
 #' ("Invalid addition arguments for this model"). `mi()` on the response
-#' works, as in brms: each missing value is a latent coordinate of the
-#' joint draw, integrated out under the Laplace approximation, which on
-#' `gaussian()` is exact and gives the fit over the observed rows with
-#' `M` cut to them. On `student()` the Laplace error is a function of
-#' `nu` and the numbers of rows and of missing values alone, and the
-#' objective takes it off, so the fit is exact there too when no other
-#' density reads the values and no other random effect is integrated.
+#' works, as in brms: each missing value is a coordinate of the joint
+#' draw. When no other density reads it, the fit takes the exact margin of
+#' the observed rows, on `gaussian()` and `student()`, with random effects
+#' or `REML` too: the fit over the observed rows with `M` cut to them. Its
+#' `K_m'K_m` is `[M^-1]_mm` read once. Measured on 400 rows with 300
+#' missing and a random effect, a `student()` fit took 12 s against 49 s
+#' for the latent values it replaces, which were not exact there.
 #'
 #' The term has no parameter, and the mean of the response is `mu`.
 #' [fitted()], [predict()] and [simulate()] take `newdata` with one row
@@ -366,8 +366,10 @@
 #' brms's program declares and does not save. Under any other term they
 #' are named `latent_state[k]`: these are the chain's own states and not
 #' `err` or `zerr`, and `ma()`, `arma()` and `cosy()` have one extra state
-#' per group, so 60 rows in 12 groups have 72 states. brms's derived
-#' `err[k]` columns are not in the draws.
+#' per group, so 60 rows in 12 groups have 72 states. Beside the states,
+#' the draws carry brms's `err[k]`, one per row: `sderr * zerr[k]` under
+#' `ar(cov = FALSE)` and the latent residual itself under the other
+#' terms, which is what brms saves.
 #'
 #' After the fit, [fitted()], [frm_linpred()], [residuals()], [predict()] and
 #' [simulate()] read the conditional mode of `err` on the fitted rows. On new
@@ -1078,6 +1080,30 @@ autocor_check_fit <- function(x, predicted = FALSE) {
   invisible(TRUE)
 }
 
+#' Which outer parameters (`outer_par_map()`'s order) are `sigma`'s
+#' coefficients, on a fit with a residual correlation block: the ones
+#' whose meaning changed for a fit `autocor_check_block()` refuses.
+#'
+#' @noRd
+autocor_outer_sigma <- function(x) {
+  m <- outer_par_map(x)
+  out <- logical(length(m$comp))
+  if (!length(x$frame[["autocor"]])) return(out)
+  tpl <- x$frame[["par_template"]]
+  for (lp in x$frame[["linpreds"]]) {
+    if (!identical(lp[["dpar"]], "sigma")) next
+    cp <- lp[["par"]]
+    # outer_par_map() leaves a mapped constant's betad slot out
+    kept <- seq_along(tpl[[cp]])
+    if (identical(cp, "betad")) {
+      kept <- setdiff(kept, x$frame[["betad_fixed_idx"]])
+    }
+    pos <- which(m$comp == cp)[match(lp[["idx"]], kept)]
+    out[pos[!is.na(pos)]] <- TRUE
+  }
+  out
+}
+
 #' `autocor_check_fit()` for a method asked for one dpar: only `sigma`
 #' reads the parameter whose meaning changed.
 #'
@@ -1136,10 +1162,16 @@ autocor_natural <- function(theta, ac) {
 #'
 #' @noRd
 autocor_types <- function(ac) {
-  # a registered term reports its parameters as they are, on their own
-  # bounded scale, so the interval is the delta method's on that scale
+  # a registered term's bounded parameter keeps the raw-scale Wald
+  # interval, with its ends held inside the parameter's interval: sar()'s
+  # rho past 1 / max eigenvalue makes |I - rho W| change sign. The Wald
+  # interval on the logit of that interval covered 0.665 at rho = 0.9 on
+  # a 5 x 5 lattice, the raw one 0.935 (ML biases rho low there, and the
+  # logit squeezes the upper side). Its others are raw
   if (autocor_is_seam(ac)) {
-    return(rep("raw", length(autocor_natural(numeric(ac[["npar"]]), ac))))
+    out <- rep("raw", length(autocor_natural(numeric(ac[["npar"]]), ac)))
+    out[vapply(autocor_seam_bounded(ac), `[[`, 0L, "idx")] <- "clamped"
+    return(out)
   }
   # unconstrained coefficients under cov = FALSE, so no interval
   # transform: a Fisher-z would clamp an estimate that may leave (-1, 1)
@@ -1868,9 +1900,11 @@ mvt_std_loglik <- function(tZ, R, nu, w = NULL) {
 
 #' `varcorr_trans_rows()` for the residual blocks: one row per natural
 #' scale parameter, on the scale its interval is built on (Fisher-z for
-#' the bounded ones, the identity for higher-order AR/MA coefficients),
-#' with delta-method standard errors from the `thetaac` block of the
-#' outer covariance.
+#' the correlations, the identity for higher-order AR/MA coefficients and
+#' for a registered term's bounded parameter, type `"clamped"`), with
+#' delta-method standard errors from the `thetaac` block of the outer
+#' covariance. Columns `lo` and `hi` hold a clamped parameter's interval,
+#' `NA` on every other row, where `varcorr_untrans()` holds its ends.
 #'
 #' @noRd
 autocor_trans_rows <- function(fit) {
@@ -1887,6 +1921,11 @@ autocor_trans_rows <- function(fit) {
     t0 <- th[ac[["theta_idx"]]]
     Vth <- Vfull[pos[ac[["theta_idx"]]], pos[ac[["theta_idx"]]], drop = FALSE]
     types <- autocor_types(ac)
+    lo <- hi <- rep(NA_real_, length(types))
+    for (b in autocor_seam_bounded(ac)) {
+      lo[b$idx] <- b$lower
+      hi[b$idx] <- b$upper
+    }
     gfun <- function(tt) {
       v <- unname(autocor_natural(tt, ac))
       ifelse(types == "cor",
@@ -1908,7 +1947,7 @@ autocor_trans_rows <- function(fit) {
     se_t[bd | !is.finite(est_t) | !is.finite(se_t)] <- NA_real_
     rows[[length(rows) + 1L]] <- data.frame(
       block = ac[["block_label"]], term = names(autocor_natural(t0, ac)),
-      type = types, est_t = est_t, se_t = se_t,
+      type = types, est_t = est_t, se_t = se_t, lo = lo, hi = hi,
       stringsAsFactors = FALSE
     )
   }

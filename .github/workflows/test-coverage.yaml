@@ -25,6 +25,13 @@
 # the cache: the job removes every frmtmb.* package from the restored
 # library first, then installs core and the siblings. Each job also has
 # its own cache-version, so it restores only its own library.
+#
+# WHY A PLAN JOB. Every push used to run all nine jobs, one of them over
+# an hour, also for a commit that changed only dev/ or the docs. The
+# plan job lists the changed files and runs a job only when a file it
+# reads changed (.github/scripts/coverage-plan.py says which those are);
+# when the list cannot be made, it runs all of them. A skipped job keeps
+# its last Codecov report through carryforward (.github/codecov.yml).
 on:
   push:
     branches: [main, master]
@@ -34,7 +41,30 @@ on:
 name: test-coverage
 
 jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      core: ${{ steps.plan.outputs.core }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # the base of the comparison has to be in the clone
+          fetch-depth: 0
+      - name: List the jobs this commit needs
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.sha }}
+        run: python3 .github/scripts/coverage-plan.py >> "$GITHUB_OUTPUT"
+        shell: bash
+
   test-coverage:
+    needs: plan
+    if: needs.plan.outputs.core == 'true'
     # Pinned 2026-10-06: ubuntu-latest becomes Ubuntu 26.04 between
     # 2026-10-19 and 2026-11-19. Move with ubuntu-next.yaml (see there).
     runs-on: ubuntu-24.04
@@ -108,6 +138,8 @@ jobs:
         shell: bash
 
   extension-coverage:
+    needs: plan
+    if: needs.plan.outputs.matrix != '[]'
     runs-on: ubuntu-24.04
     # wide for a slow mirror, as in the core job; the step limit below
     # catches a wedged session
@@ -115,34 +147,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # `siblings` are the frmtmb extensions the package names in its
-        # DESCRIPTION (Imports or Suggests), in install order. learn
-        # imports eam. sample suggests latent, ode, eam and survival, and
-        # its tests of those pairs skip without them. eam suggests
-        # sample. A
-        # sibling gets its Imports only: its Suggests serve its own
-        # tests, which this job does not run. `absent` names the packages
-        # a test may skip as not installed for that reason; the skip gate
-        # below fails on any other (frmtmb.sample's preflight test reads
-        # RTMBode, which frmtmb.ode suggests).
-        include:
-          - pkg: frmtmb.coupling
-            siblings: ''
-          - pkg: frmtmb.eam
-            siblings: 'frmtmb.sample'
-          - pkg: frmtmb.latent
-            siblings: ''
-          - pkg: frmtmb.learn
-            siblings: 'frmtmb.eam'
-          - pkg: frmtmb.ode
-            siblings: ''
-          - pkg: frmtmb.sample
-            siblings: 'frmtmb.latent frmtmb.ode frmtmb.eam frmtmb.survival'
-            absent: 'RTMBode'
-          - pkg: frmtmb.survival
-            siblings: ''
-          - pkg: frmtmb.spatial
-            siblings: ''
+        # The rows are in .github/scripts/coverage-plan.py, which keeps
+        # the ones this commit needs. `siblings` are the frmtmb
+        # extensions the package names in its DESCRIPTION (Imports or
+        # Suggests), in install order. learn imports eam. sample suggests
+        # latent, ode, eam and survival, and its tests of those pairs
+        # skip without them. eam suggests sample. A sibling gets its
+        # Imports only: its Suggests serve its own tests, which this job
+        # does not run. `absent` names the packages a test may skip as
+        # not installed for that reason; the skip gate below fails on
+        # any other (frmtmb.sample's preflight test reads RTMBode, which
+        # frmtmb.ode suggests).
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
     name: coverage ${{ matrix.pkg }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}

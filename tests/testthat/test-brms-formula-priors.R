@@ -413,7 +413,7 @@ test_that("default_prior() and get_prior() are one function (brms)", {
   expect_identical(gp, dp)
   expect_identical(names(dp), c("prior", "class", "coef", "group", "resp",
                                 "dpar", "nlpar", "lb", "ub", "source"))
-  # brms's classes, and no class theta row: every covariance parameter
+  # brms's classes, and no class thetacov row: every covariance parameter
   # here has a class of its own, as in brms
   expect_setequal(unique(dp$class), c("b", "cor", "Intercept", "sd"))
   expect_equal(sum(dp$class == "b"), 4L)
@@ -699,7 +699,7 @@ test_that("two specifications for one slot are refused (brms)", {
 })
 
 test_that("a standard deviation has one slot, class sd", {
-  # through 0.76.0 default_prior() also listed it as class theta,
+  # through 0.76.0 default_prior() also listed it as class thetacov,
   # coef theta_1; that row named the same parameter a second time. On
   # the sd scale lognormal(-3, 0.05) is normal(-3, 0.05) on its log
   set.seed(6)
@@ -707,7 +707,7 @@ test_that("a standard deviation has one slot, class sd", {
   d$y <- 1 + stats::rnorm(9, 0, 0.8)[d$g] + stats::rnorm(90)
   f <- y ~ x + (1 | g)
   tab <- default_prior(f, data = d)
-  expect_false(any(tab$class == "theta"))
+  expect_false(any(tab$class == "thetacov"))
   free <- frm(f, d)
   pinned <- frm(f, d, prior = set_prior("lognormal(-3, 0.05)",
                                         class = "sd"))

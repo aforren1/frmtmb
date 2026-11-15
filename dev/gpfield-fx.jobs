@@ -1,0 +1,9 @@
+frmtmb tests/testthat/test-gp-field.R
+frmtmb tests/testthat/test-gp-kernels.R
+frmtmb tests/testthat/test-gp-multidim.R
+frmtmb tests/testthat/test-gp-predict-draw.R
+frmtmb tests/testthat/test-gp-by.R
+frmtmb tests/testthat/test-marginaleffects-re.R
+frmtmb tests/testthat/test-brms-lik-gp-exact.R
+frmtmb tests/testthat/test-gp-start.R
+frmtmb tests/testthat/test-predict-re-uncertainty.R

@@ -352,8 +352,12 @@ test_that("pp_check()'s loo weights are psis()'s on every draw", {
 test_that("newdata and the refits are refused, as loo() refuses them", {
   cs <- lp_case()
   d <- cs$ri
+  # rows the model was not fitted on: a subset of the fitted rows is
+  # taken since the round of 2026-11-13 (test-draws-brms-surface.R)
+  moved <- cs$dd[1:3, ]
+  moved$x[2] <- moved$x[2] + 1
   for (f in list(loo_epred, loo_linpred, loo_predict)) {
-    expect_error(f(d, newdata = cs$dd[1:3, ]), "cannot honor `newdata`")
+    expect_error(f(d, newdata = moved), "cannot honor `newdata`")
     expect_error(f(d, re_formula = NA), "cannot honor `re_formula`")
     expect_error(f(d, allow_new_levels = TRUE),
                  "cannot honor `allow_new_levels`")
@@ -361,10 +365,10 @@ test_that("newdata and the refits are refused, as loo() refuses them", {
                  "cannot honor moment_match = TRUE")
     expect_error(f(d, save_psis = TRUE), "has no argument `save_psis`")
   }
-  expect_error(loo_predictive_interval(d, newdata = cs$dd[1:3, ]),
+  expect_error(loo_predictive_interval(d, newdata = moved),
                "loo_predictive_interval() cannot honor `newdata`",
                fixed = TRUE)
-  expect_error(loo_R2(d, newdata = cs$dd[1:3, ]), "cannot honor `newdata`")
+  expect_error(loo_R2(d, newdata = moved), "cannot honor `newdata`")
   # brms 2.23.0 reads `scale` nowhere, so it is named rather than ignored
   expect_error(loo_linpred(d, scale = "response"),
                "has no argument `scale`")

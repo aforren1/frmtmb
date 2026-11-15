@@ -23,7 +23,8 @@ frmtmb_control(
   verbose = NULL,
   quad_nodes = c(11L, 15L),
   quad_max_gb = 4,
-  starts = NULL
+  starts = NULL,
+  nl_starts = TRUE
 )
 }
 \arguments{
@@ -115,10 +116,19 @@ are never touched, and the whole step is a silent no-op when
 nothing qualifies. Compatible with \code{profile = TRUE}. Under
 \code{prior} or bounds, the first stage applies them to the scaled
 coefficients; the second stage is the fit that is reported.
-A random slope on a rescaled column (\code{(1 + x | g)}) is rescaled
-with it in \code{us()}, \code{diag()} and the Student-t blocks, its log
-standard deviation and its effects mapped back exactly; other
-covariance structures keep their slope unscaled. The pre-fit's own
+A random-effect column with more than two distinct values is
+divided by its root mean square, whether or not a fixed effect
+reads the same column (\code{(1 + x | g)} and \code{y ~ 1 + (0 + x | g)}
+alike). Its log standard deviation and its effects are mapped back
+exactly. This is done where it is an exact reparameterization: in a
+structure with a standard deviation per column (\code{us()}, \code{||},
+\code{cs()}, \code{toep()}, \code{hetar1()}, \code{gr()} with \code{cov}, \code{prec}, \code{cor = FALSE} or \code{dist = "student"}), and in a structure with one standard
+deviation (\code{ar1()}, \code{homdiag()}, \code{homcs()} and the rest) when each
+of its columns qualifies. A structure that another package
+registers is rescaled when its density passes the same test. A
+slope that is not rescaled keeps its column. A message names it
+under \code{TRUE}, or when a fixed effect on the same column is
+rescaled. The pre-fit's own
 warnings are not shown. Under the default, a pre-fit that errors
 or does not converge in its coefficients never makes the reported
 fit less diagnostic than \code{autoscale = FALSE}: the default then
@@ -130,11 +140,14 @@ does. The default, \code{NULL}, does it when a qualifying column has a
 standard deviation below 1e-3 and its coefficient is optimized
 directly (not a \code{mu} coefficient under \code{REML = TRUE} or
 \code{profile = TRUE}, which the inner solver integrates), or when a
-column carrying such a random slope has one below 0.05. Without
+random-effect column that the plan rescales has a standard
+deviation of its nonzero values below 0.05. Without
 it such a fit can stop short and report convergence: a poisson
 \code{y ~ 0 + x} with \code{x} on a 1e-6 scale lost 62.6 log-likelihood
 units against \code{\link[stats:glm]{stats::glm()}}, and a random slope on a column
-spread 0.01 lost up to 14.4. Every other fit is the fit
+spread 0.01 lost up to 14.4, and a poisson random slope with no
+fixed effect on a column spread 1e-4 up to 111. Every other fit is
+the fit
 \code{autoscale = FALSE} gives, bit for bit. A column that is far from
 zero against its spread, such as \code{x + 1e6}, does not need this
 option: whatever its value, the optimizer steps in coordinates in
@@ -330,8 +343,10 @@ default fit converged, only a point the degenerate check passes
 replaces it, and a fit with no step function that did not converge
 is kept as it is.
 \item When a start reached a step function above the point returned,
-\code{\link[=frm]{frm()}} warns with class \code{frmtmb_mixture_step_start}. \code{logLik()}
-and the information criteria are those of the point returned.
+\code{\link[=frm]{frm()}} says so in a message of class
+\code{frmtmb_mixture_step_start}, not a warning: the point returned is
+the better answer. \code{logLik()} and the information criteria are
+those of the point returned.
 }
 
 A point the degenerate check passes is not always a clean maximum:
@@ -380,6 +395,19 @@ draws come from a private stream with a named generator and a fixed
 seed, so a fit neither reads nor changes the session's random state,
 and the same call gives the same fit under any \code{\link[=RNGkind]{RNGkind()}}. \code{0}
 turns the starts off. A model of other families is not affected.}
+
+\item{nl_starts}{Whether a fit with a nonlinear body runs the sign
+probe and the pole restart. The sign probe, from the default start
+only, fits from each sign pattern of the body's coefficients (message
+class \code{frmtmb_nl_multistart}). The pole restart fits from beyond a
+pole of the body that holds the fit (message class
+\code{frmtmb_nl_pole_start}; from a \code{start} of your own, a warning of class
+\code{frmtmb_nl_pole} that the point is not the maximum). \code{TRUE} (default)
+runs both. \code{FALSE} turns off the sign probe and the pole restart. A
+fit can still restart from a saddle point (message class
+\code{frmtmb_nl_restart}); this switch does not change that, nor the
+warning that a fit is on a ridge to a limit of its body
+(\code{frmtmb_nl_limit}).}
 }
 \value{
 A list of control settings.

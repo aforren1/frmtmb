@@ -185,9 +185,11 @@ test_that("rows that are not a subset of the fitted ones are refused", {
     expect_match(e, why[[nm]], fixed = TRUE, info = nm)
     expect_error(psis(ds, nd), "does not take newdata", info = nm)
   }
-  # the loo_*() functions take the fitted rows or none, and say so
-  expect_error(loo_epred(ds, newdata = dd[1:5, ]),
-               "columns; the loo_*() functions do not", fixed = TRUE)
+  # the loo_*() functions take a subset too since the round of
+  # 2026-11-13 (test-draws-brms-surface.R), and refuse these rows in
+  # log_lik()'s words
+  expect_error(loo_epred(ds, newdata = moved),
+               "the loo_*() functions and the loo_* types", fixed = TRUE)
 })
 
 test_that("a subset is refused where its columns are not brms's answer", {

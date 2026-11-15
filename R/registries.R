@@ -35,6 +35,86 @@ registry_load_order <- function(pkgs) {
   out
 }
 
+#' The key a registered function is known by, or a fresh environment
+#' when its sameness cannot be proved. A `pkgload::load_all()` of an
+#' extension runs its `.onLoad()` again with new closures, so identity
+#' cannot be the key; two closures one factory made for different values
+#' do different things, so code alone cannot be it either. A merge drops
+#' a check with no word and a duplicate only runs one twice, so the key
+#' merges only what is provably the same: the same code, and the same
+#' values in every environment from the function's own up to the first
+#' namespace, the global environment, base or empty. An environment or
+#' an external pointer among those values is written by `serialize()` by
+#' its contents or not at all, so equal bytes would not prove the same
+#' object; meeting one makes the key unique. So does meeting any other
+#' named environment on the walk (`attr(e, "name")`, an `attach()`ed
+#' one): its name says nothing of its values, and above an attached one
+#' lies the search path.
+#'
+#' @noRd
+registration_key <- function(fn) {
+  attr(fn, "frmtmb_registration_key") <- NULL
+  env <- environment(fn) %||% baseenv()
+  owner <- environmentName(topenv(env))
+  seen <- new.env(parent = emptyenv())
+  seen$ref <- FALSE
+  hook <- function(x) {
+    seen$ref <- TRUE
+    NULL
+  }
+  frames <- list()
+  while (!registration_named_env(env)) {
+    if (nzchar(environmentName(env))) return(new.env(parent = emptyenv()))
+    frames[[length(frames) + 1L]] <- tryCatch(
+      serialize(as.list(env, all.names = TRUE, sorted = TRUE), NULL,
+                refhook = hook),
+      error = function(e) {
+        seen$ref <- TRUE
+        NULL
+      })
+    if (seen$ref) return(new.env(parent = emptyenv()))
+    env <- parent.env(env)
+  }
+  # deparse() leaves the srcref out by default, so a load_all() closure
+  # and an installed one of the same code share a key
+  list(owner = owner, code = paste(deparse(fn), collapse = "\n"),
+       frames = frames)
+}
+
+#' Where the walk of `registration_key()` stops: an environment a reload
+#' does not copy, so that the same closure reloaded meets the same one.
+#'
+#' @noRd
+registration_named_env <- function(env) {
+  isNamespace(env) || identical(env, globalenv()) ||
+    identical(env, baseenv()) || identical(env, emptyenv())
+}
+
+#' `fns` with `fn` registered once: a function whose key matches an
+#' entry's, or the very same function, replaces that entry in place, so a
+#' reloaded extension's check runs once per fit and keeps its position,
+#' which is its order. Anything else is appended. Each entry carries its
+#' key, computed once, so a registration does not serialize every other
+#' entry's captured values again.
+#'
+#' @noRd
+register_once <- function(fns, fn) {
+  key <- registration_key(fn)
+  plain <- fn
+  attr(plain, "frmtmb_registration_key") <- NULL
+  attr(fn, "frmtmb_registration_key") <- key
+  for (i in seq_along(fns)) {
+    old <- fns[[i]]
+    k <- attr(old, "frmtmb_registration_key", exact = TRUE)
+    attr(old, "frmtmb_registration_key") <- NULL
+    if (identical(old, plain) || (!is.null(k) && identical(k, key))) {
+      fns[[i]] <- fn
+      return(fns)
+    }
+  }
+  c(fns, list(fn))
+}
+
 #' Save frmtmb's registries, and restore them when a test ends
 #'
 #' A test that registers a covariance structure, a residual correlation
@@ -49,7 +129,8 @@ registry_load_order <- function(pkgs) {
 #' before the test. A frmtmb package that loads inside the scope keeps
 #' its registrations: after the restore, the `.onLoad()` of every
 #' `frmtmb.*` namespace that appeared in the scope runs again, in the
-#' order they loaded.
+#' order they loaded. A package load hook ([setHook()]) that other code
+#' sets inside the scope stays set.
 #'
 #' @param env The environment whose exit restores the registries; the
 #'   default is the caller's, which in a `test_that()` block is the test.
@@ -93,16 +174,20 @@ frmtmb_local_registries <- function(env = parent.frame()) {
   seen$order <- character()
   cand <- setdiff(unique(list.files(.libPaths(), "^frmtmb[.]")),
                   saved$loaded)
-  old_hooks <- lapply(cand, function(p) getHook(packageEvent(p, "onLoad")))
-  for (p in cand) {
-    setHook(packageEvent(p, "onLoad"), local({
-      q <- p
-      function(...) seen$order <- c(seen$order, q)
-    }))
-  }
+  mine <- lapply(cand, function(p) {
+    force(p)
+    function(...) seen$order <- c(seen$order, p)
+  })
+  # the restore removes only this scope's own hooks, by identity: a hook
+  # another party set inside the scope is theirs and has to survive it.
+  # It is scheduled before any hook is set, so an error while setting
+  # them cannot leave one behind.
   withr::defer({
     for (i in seq_along(cand)) {
-      setHook(packageEvent(cand[[i]], "onLoad"), old_hooks[[i]], "replace")
+      ev <- packageEvent(cand[[i]], "onLoad")
+      now <- getHook(ev)
+      keep <- Filter(function(h) !identical(h, mine[[i]]), now)
+      setHook(ev, keep, "replace")
     }
     contrib$features <- saved$features
     contrib$rules <- saved$rules
@@ -126,5 +211,8 @@ frmtmb_local_registries <- function(env = parent.frame()) {
       if (is.function(hook)) hook(dirname(getNamespaceInfo(p, "path")), p)
     }
   }, envir = env)
+  for (i in seq_along(cand)) {
+    setHook(packageEvent(cand[[i]], "onLoad"), mine[[i]])
+  }
   invisible(saved)
 }

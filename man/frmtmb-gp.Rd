@@ -3,6 +3,8 @@
 \name{frmtmb-gp}
 \alias{frmtmb-gp}
 \alias{frmtmb_gp_nugget}
+\alias{frmtmb_gp_laplace}
+\alias{frmtmb_gp_basis}
 \title{Exact Gaussian processes and their nugget}
 \value{
 \code{gp()} is a formula term, not a free-standing function: \code{bf()}
@@ -58,12 +60,55 @@ field and for predictions, and at low noise it needs long chains (at sigma
 1e-3 and 15 rows, Rhat on \code{sdgp} read 1.04 to 2.37 on short chains, and 1.03
 on \code{sigma} and 1.07 on \code{sdgp} after an hour, and not yet converged).
 \code{gp(x, k = )} has no nugget and reaches brms's numbers when \code{k} is large
-enough for the field. Too small a \code{k} is a different failure, with no
-warning and with \code{convergence} 0: \code{sin(8 * x)} on 0 to 6 with noise 1e-3 at
-\code{k = 30} has a basis that stops
+enough for the field. Too small a \code{k} is a different failure. Where the
+length scale runs below a tenth of the spacing the basis resolves, every
+basis function gets the same prior weight, the data determine \code{sdgp^2}
+times the product of the length scales but not each one, and \code{frm()} warns
+with class
+\code{frmtmb_gp_basis}. The fitted field and its predictions hold there; only its
+smoothness is not read. A modest \code{k} ends there often: \code{sin(x)} on 0 to 10
+at \code{k = 10} reads its highest log-likelihood at that limit. Short of that
+there is no warning and \code{convergence} is 0:
+\code{sin(8 * x)} on 0 to 6 with noise 1e-3 at \code{k = 30} has a basis that stops
 at frequency 6.5, so it reads \code{sigma} 720 times high; \code{k = 60} reads it.
 Compare several \code{k}. A smooth trend written as fixed effects also lowers what
 the field has to carry.
+}
+
+\section{Kernels}{
+
+\verb{cov =} takes brms's four kernels: \code{"exp_quad"} (the default), \code{"matern52"},
+\code{"matern32"} and \code{"exponential"}, which \code{"matern12"} also names. Each is
+brms's, exact and approximate: an isotropic exact field reads the Euclidean
+distance, an anisotropic one (\code{iso = FALSE}) is the product of one kernel per
+dimension, and the approximate form takes brms's spectral densities, which
+for an anisotropic Matern field weigh each frequency by its own length
+scale. So, as in brms, an anisotropic Matern field is not one kernel in its
+exact and its approximate form. \code{\link[=frm_extra_cov_deriv]{frm_extra_cov_deriv()}} reads the squared
+exponential kernel only.
+}
+
+\section{The Laplace check}{
+
+The field of a family that is not gaussian is integrated out by the Laplace
+approximation, which can fail. On a \code{student()} response with a step in the
+field, the Laplace value stood 2.7 below the marginal likelihood that
+importance sampling reads at the same point, and on bernoulli rows where
+the field turns to white noise, far above it. \code{frm()} warns with class
+\code{frmtmb_gp_laplace} where the inner Hessian at the optimum has an eigenvalue
+below 0.01 (a field's coefficients and their unit prior give 1 or more), or
+where the first-order correction to the approximation is more than 1 in
+log-likelihood. The inner Hessian holds every random effect of the model,
+so its reading runs only where each one sits in a linear predictor that
+holds an exact field. The correction runs where they all sit in one such
+predictor, on one response with no residual term. On a gaussian or
+lognormal mean with the identity link neither runs: the approximation is
+exact there. The correction tracks importance sampling within a factor of
+about 1.5: on 20 bernoulli fits of \code{2 * sin(3 * x)} it warned on 2, where
+importance sampling read the Laplace value 0.90 and 0.70 off.
+Where it warns, the estimates and the log-likelihood rest on the
+approximation, and the model's maximum can be elsewhere:
+\code{frmtmb.sample::frm_sample()} reads the model without it.
 }
 
 \section{The order of the field}{

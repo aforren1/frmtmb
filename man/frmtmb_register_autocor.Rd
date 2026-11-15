@@ -19,6 +19,7 @@ frmtmb_register_autocor(
   usage = NULL,
   compat_note = NULL,
   jacobian = NULL,
+  margin = NULL,
   replace = FALSE,
   package = compat_registrant_name(parent.frame())
 )
@@ -72,6 +73,8 @@ the registration.}
 \item{jacobian}{\code{NULL}, or \verb{function(sigma, theta, aux)} giving the
 Jacobian of \code{whiten} in \code{y}; see "The Jacobian".}
 
+\item{margin}{\code{NULL}, or \verb{function(rows, aux)}; see "The margin".}
+
 \item{replace, package}{As in \code{\link[=frmtmb_register_covstruct]{frmtmb_register_covstruct()}}. A fit
 records the package, so that a fit read where it is not installed
 is refused by its name.}
@@ -112,16 +115,16 @@ The term holds for all the rows of a response at once, so the
 likelihood does not factor into rows. frmtmb therefore refuses the
 term with \code{weights()}, \code{cens()}, \code{trunc()}, \code{se()}, \code{rescor = TRUE},
 a mixture, a non-linear formula and \code{quadrature}. \code{mi()} on the
-response works: a missing value is a coordinate of the joint draw,
-a latent value that \code{whiten()} receives with the observed ones and
-that the fit integrates out under the Laplace approximation, exact
-on \code{gaussian()}. On \code{student()} the joint is one multivariate t, whose
-Laplace error is a function of \code{nu} and the numbers of rows and of
-missing values alone; the objective takes it off, so the fit is exact
-there too when no other density reads the values and no other random
-effect is integrated. The term's fixed data describe the
-rows of the data, so \code{\link[=fitted]{fitted()}}, \code{\link[=predict]{predict()}} and \code{\link[=simulate]{simulate()}} take
-\code{newdata} with one row per row of the term's matrix, read in their
+response works: a missing value is a coordinate of the joint draw. A
+missing value that no other density reads leaves the fit, which takes
+the exact margin of the rows that remain (see "The margin"); one that
+another density reads stays a latent value that \code{whiten()} receives
+with the observed ones, integrated out under the Laplace
+approximation. \code{frmtmb.sample::frm_sample()} samples every missing
+value, as brms does. The term's fixed data
+describe the rows of the data, so \code{\link[=fitted]{fitted()}}, \code{\link[=predict]{predict()}} and
+\code{\link[=simulate]{simulate()}} take \code{newdata} with one row per row of the term's matrix,
+read in their
 order (a counterfactual on the same units, as brms takes it). When
 the fit dropped rows for missing values, \code{newdata} covers them too:
 the term is built again over every row, its parameters held at
@@ -209,7 +212,30 @@ one row per parameter, in the order of \code{natural}. Then
 \code{set_prior(class = "<natural name>")} puts a density on the natural
 parameter, carried to \code{theta} with the log-Jacobian of the map, and
 \code{frmtmb_autocor_pars()} reports the interval, from which
-frmtmb.sample takes brms's flat default on it.
+frmtmb.sample takes brms's flat default on it. \code{\link[=summary]{summary()}} and
+\code{\link[=confint_varcorr]{confint_varcorr()}} give the parameter the delta-method Wald interval
+on its natural scale with its ends held inside \verb{(lower, upper)} (type
+\code{"clamped"}).
+}
+
+\section{The margin}{
+
+On the maximum-likelihood route a missing value of the response that
+no other density reads leaves the fit, and the fit takes the exact
+margin of the rows that remain. With \code{K_m} the columns of \code{K} at the
+\code{m} missing rows, it needs \verb{G = K_m'K_m}, an \verb{m x m} matrix, and
+\verb{v = K_m'u} at the innovations \code{u}. Without a \code{margin} slot frmtmb reads
+\code{K_m} off \code{whiten()} at each unit vector: one call per missing value on
+the tape, and an \verb{n x m} dense block. \code{margin(rows, aux)} runs on
+numbers once per objective, with the missing rows, and returns
+\verb{function(u, sigma, theta)} giving \code{list(G, v)} on the tape, with
+\code{sigma} as \code{whiten} receives it. \code{fcor()}'s reads \code{G} off \code{M^-1} once,
+and \code{sar()}'s off three sparse products of \code{W}. When the objective is
+built, a given slot is checked in full, every entry of \code{G} and \code{v},
+against the calls of \code{whiten()} at one generic value of \code{sigma} and
+the parameters, off the tape; a slot that disagrees is refused by the
+term's name. The check holds at that value only: it is not a proof
+that the slot is right at every value.
 }
 
 \section{Testing a term}{

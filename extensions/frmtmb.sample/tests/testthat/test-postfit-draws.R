@@ -370,9 +370,13 @@ test_that("on draws, an mm() term reads a level per member", {
   d$y <- stats::rnorm(200, 1 + 0.5 * d$x + 0.5 * (u[d$g1] + u[d$g2]), 0.5)
   ds <- hand_draws(frm(bf(y ~ x + (1 | mm(g1, g2))), family = gaussian(),
                        data = d), n = 40)
+  # the gaussian law, which the Wald band reads: under brms's default
+  # "uncertainty" an unset member lends an observed level's draw, level 2
+  # among them, so the shift below would not be half of 10
   at <- function(o, cond) {
     conditional_effects(o, "x", resolution = 3, re_formula = NULL,
-                        conditions = cond, seed = 1)$x
+                        conditions = cond, seed = 1,
+                        sample_new_levels = "gaussian")$x
   }
   moved <- ds
   col <- "r_mmg1g2[2,Intercept]"
@@ -462,9 +466,12 @@ test_that("on draws, crossed terms at an unseen combination answer", {
   fc <- frm(bf(y ~ x + (1 | g) + (1 | h) + (1 | g:h)), family = gaussian(),
             data = dc)
   ds <- hand_draws(fc, n = 200)
+  # the gaussian law, which the Wald band and the brms comparison above
+  # read; brms's default "uncertainty" lends an observed g:h level
   at <- function(o, cond, ...) {
     conditional_effects(o, "x", resolution = 3, re_formula = NULL,
-                        conditions = cond, ...)$x
+                        conditions = cond, sample_new_levels = "gaussian",
+                        ...)$x
   }
   new <- list(g = "1", h = "1")
   a <- at(ds, new, seed = 1)

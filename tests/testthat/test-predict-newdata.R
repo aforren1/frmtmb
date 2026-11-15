@@ -101,3 +101,70 @@ test_that("predict(newdata =) draws a correlated residual on the new rows", {
   fg <- frm(bf(y ~ x), family = gaussian(), data = da)
   expect_identical(nrow(predict(fg, newdata = da[1:5, ])), 5L)
 })
+
+test_that("a group-level design is rebuilt under the fit's contrasts", {
+  # backlog 5353: the population-level design read the stored contrasts
+  # and the group-level one the session's, so a fit made under contr.sum
+  # refused every prediction once the option was reset ("columns:
+  # (Intercept), fb, fc vs (Intercept), f1, f2")
+  set.seed(7)
+  dc <- data.frame(f = factor(sample(c("a", "b", "c"), 90, TRUE)),
+                   g = factor(rep(1:10, each = 9)), x = stats::rnorm(90))
+  dc$g2 <- factor(rep(c(2:10, 1), each = 9), levels = 1:10)
+  dc$y <- as.numeric(dc$f) + stats::rnorm(10)[dc$g] + stats::rnorm(90)
+  q <- function(...) suppressWarnings(suppressMessages(frm(...)))
+  nd <- dc[c(1:6, 30), ]
+  withr::with_options(list(contrasts = c("contr.sum", "contr.poly")), {
+    fc <- q(y ~ f + (1 + f | g), data = dc)
+    ref <- fitted(fc, newdata = nd)[, "Estimate"]
+    ref_p <- fitted(fc, newdata = nd, re_formula = ~ (1 + f | g))[,
+                                                                "Estimate"]
+    fm <- q(y ~ x + (1 + f | mm(g, g2)), data = dc)
+    ref_m <- fitted(fm, newdata = nd)[, "Estimate"]
+  })
+  expect_identical(fc$frame$re_blocks[[1L]]$cnms,
+                   c("(Intercept)", "f1", "f2"))
+  withr::with_options(list(contrasts = c("contr.treatment", "contr.poly")), {
+    expect_equal(fitted(fc, newdata = nd)[, "Estimate"], ref)
+    expect_equal(fitted(fc, newdata = nd,
+                        re_formula = ~ (1 + f | g))[, "Estimate"], ref_p)
+    expect_equal(fitted(fm, newdata = nd)[, "Estimate"], ref_m)
+  })
+  # the in-sample rows agree with newdata of the same rows
+  expect_equal(unname(fitted(fc)[c(1:6, 30), "Estimate"]), unname(ref))
+  # the guard's condition absent: a fit under the default contrasts
+  # predicts the same under either option
+  ft <- q(y ~ f + (1 + f | g), data = dc)
+  r0 <- fitted(ft, newdata = nd)[, "Estimate"]
+  withr::with_options(list(contrasts = c("contr.sum", "contr.poly")), {
+    expect_equal(fitted(ft, newdata = nd)[, "Estimate"], r0)
+  })
+})
+
+test_that("a transformed factor in a group-level term keeps the fit's contrasts", {
+  # review of 2026-11-13, F1: `(1 + factor(cyl) | g)` stored no contrasts,
+  # since the model frame holds `factor(cyl)` and no `cyl`, so the term was
+  # rebuilt under the session's option: 0.483 off, silently, under
+  # contr.helmert (whose columns are named as contr.sum's), and refused
+  # under contr.treatment
+  set.seed(7)
+  dc <- data.frame(g = factor(rep(1:10, each = 9)),
+                   cyl = sample(c(4, 6, 8), 90, TRUE))
+  dc$y <- dc$cyl / 4 + stats::rnorm(10)[dc$g] + stats::rnorm(90)
+  q <- function(...) suppressWarnings(suppressMessages(frm(...)))
+  nd <- dc[c(1:6, 30), ]
+  for (fml in list(y ~ 1 + (1 + factor(cyl) | g),
+                   y ~ factor(cyl) + (1 + factor(cyl) | g))) {
+    withr::with_options(list(contrasts = c("contr.sum", "contr.poly")), {
+      fc <- q(fml, data = dc)
+      ref <- fitted(fc, newdata = nd)[, "Estimate"]
+    })
+    expect_equal(unname(fitted(fc)[c(1:6, 30), "Estimate"]), unname(ref))
+    for (o in list(c("contr.helmert", "contr.poly"),
+                   c("contr.treatment", "contr.poly"))) {
+      withr::with_options(list(contrasts = o), {
+        expect_equal(fitted(fc, newdata = nd)[, "Estimate"], ref)
+      })
+    }
+  }
+})

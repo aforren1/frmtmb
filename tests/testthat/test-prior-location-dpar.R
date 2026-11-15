@@ -217,11 +217,17 @@ test_that("nonlinear: class b with no nlpar is refused, slopes or not", {
 
 # frmtmb's own spellings, kept by the user's decision of 2026-09-24
 # although brms refuses both. They pass on 0.62.0 too.
-test_that("cor with resp and Intercept with nlpar stay accepted", {
+test_that("cor with resp is refused; Intercept with nlpar stays accepted", {
   d <- ld_data()
   f <- bf(mvbind(y1, y2) ~ x + (1 + x | g)) + set_rescor(FALSE)
+  # brms refuses cor with resp ("L_y1"), and so does frmtmb since the
+  # user's decision of 2026-11-13; the group spelling reaches both
+  expect_error(ld_reached(f, d, set_prior("lkj(2)", class = "cor",
+                                          resp = "y1")),
+               "do not correspond to any model parameter: L_y1",
+               fixed = TRUE)
   expect_length(ld_reached(f, d, set_prior("lkj(2)", class = "cor",
-                                           resp = "y1")), 1L)
+                                           group = "g")), 2L)
   fnl <- bf(ynl ~ a * exp(-b * ax), a ~ 1 + z, b ~ 1, nl = TRUE)
   expect_identical(ld_reached(fnl, d, set_prior("normal(0, 5)",
                                                 class = "Intercept",

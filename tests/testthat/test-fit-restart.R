@@ -1,7 +1,9 @@
 # Fits that ended at a lower maximum with nothing to mark it
 # (R/fit-restart.R): a prior far from the data's value of a coefficient,
 # and a nonlinear body on a ridge that runs to a limit. Each defect test
-# below was seen to fail on 0.81.0 (dev/nlstop-findings.md).
+# below was seen to fail on 0.81.0 (dev/nlstop-findings.md); those from a
+# bending ridge on were seen to fail on 0.82.0 (dev/nlstop2-findings.md).
+# Then a body's poles among the rows.
 
 # A fit's messages, recorded and muffled, and the warnings `allowed`
 # names, recorded and muffled by allow_warnings(); any other warning
@@ -168,8 +170,10 @@ mm_data <- function(seed, family) {
                   g = factor(sample(1:15, n, TRUE)))
   d$ug <- rnorm(15, 0, 0.4)[d$g]
   lat <- 3 * d$xp / (1 + d$xp)
+  d$nt <- 10L
   d$y <- switch(family,
                 bernoulli = rbinom(n, 1, plogis(lat - 2)),
+                binomial = rbinom(n, 10, plogis(lat - 2)),
                 gaussian = lat + rnorm(n, 0, 0.5))
   d
 }
@@ -219,4 +223,102 @@ test_that("an identified body, or a coefficient near 0, gives no limit", {
   got2 <- fit_conds(frm(bf(y ~ b1 * exp(b2 * x), b1 + b2 ~ 1, nl = TRUE),
                         data = d2))
   expect_false(has_class(got2$conds, "frmtmb_nl_limit"))
+})
+
+test_that("a ridge that bends is read after a step across it", {
+  # a * (exp(b * x) - 1) on linear data: 0.82.0 stopped at a 1.40e4, b
+  # 1.44e-4, code 0, with no warning, 0.0033 below the ridge's own value at
+  # (1000 a, b / 1000) (review of lane nlstop, MINOR 1)
+  set.seed(2)
+  d <- data.frame(x = runif(1000, 0, 3))
+  d$y <- 2 * d$x + rnorm(1000, 0, 0.5)
+  # by rounding the fit ends on the ridge at code 0 with the limit
+  # warning, at code 0 with the gradient warning, or further along at code
+  # 1 with the optimizer's warnings (dev/nlstop2-ulp.R explin; review of
+  # lane nlstop2, F1); every ending warns, and the check itself finds the
+  # ridge from each
+  got <- fit_conds(frm(bf(y ~ a * (exp(b * x) - 1), a + b ~ 1, nl = TRUE),
+                       data = d, start = list(beta = c(2, 0.5))),
+                   allowed = c("The data do not determine the coefficients",
+                               "Optimizer did not report convergence",
+                               "Large maximum absolute gradient"))
+  expect_true(any(vapply(got$conds, inherits, NA, "warning")))
+  expect_false(is.null(nl_limit_message(got$value)))
+})
+
+test_that("a fit between the poles of its body is taken beyond them", {
+  skip_on_cran()
+  # binomial Vm * xp / (K + xp), xp in 0.1 to 5: 0.82.0 stopped at code 0
+  # with no warning at K -0.1825 (seed 11), between the poles of rows
+  # inside the data, and at K -0.1103 (seed 44), beside the pole of the
+  # smallest xp; a start at K -6 reaches the maxima at K -6.0152 and
+  # -6.4531, 4.32 and 0.92 higher (review of lane nlstop, MINOR 3)
+  for (seed in c(11, 44)) {
+    d <- mm_data(seed, "binomial")
+    fm <- bf(y | trials(nt) ~ Vm * xp / (K + xp), Vm + K ~ 1, nl = TRUE)
+    ref <- frm(fm, family = binomial(), data = d,
+               start = list(beta = c(-0.1, -6)))
+    tol <- ref$control$grad_tol
+    got <- fit_conds(frm(fm, family = binomial(), data = d))
+    fit <- got$value
+    expect_true(has_class(got$conds, "frmtmb_nl_pole_start"))
+    expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(ref))), tol)
+    expect_lt(fit$estimates$beta[[2L]], -max(d$xp))
+    # every rounding of the covariate a few ulps apart
+    for (k in 1:4) {
+      dk <- d
+      dk$xp <- dk$xp * (1 + 2e-15 * k)
+      gk <- fit_conds(frm(fm, family = binomial(), data = dk))
+      expect_lt(as.numeric(logLik(ref)) - as.numeric(logLik(gk$value)), tol)
+    }
+  }
+})
+
+test_that("a given start between the poles keeps its fit, with a warning", {
+  skip_on_cran()
+  # bernoulli seed 55 from K -2.5: 0.82.0 stopped at code 0 with no
+  # warning at K -1.00, a pole inside the data, 1.38 below the linear
+  # limit the start beyond the poles reaches
+  d <- mm_data(55, "bernoulli")
+  got <- fit_conds(frm(mm_body, family = bernoulli(), data = d,
+                       start = list(beta = c(-2, -2.5))),
+                   allowed = "A start beyond the poles")
+  fit <- got$value
+  expect_true(has_class(got$conds, "frmtmb_nl_pole"))
+  K <- fit$estimates$beta[[2L]]
+  expect_true(K > -max(d$xp) && K < -min(d$xp))
+})
+
+test_that("a body clear of its poles takes no start beyond them", {
+  # gaussian seed 55: K 0.92, 1.05 from the nearest pole, whose gaps are
+  # 0.012; no warning is allowed, so any would reach testthat
+  d <- mm_data(55, "gaussian")
+  got <- fit_conds(frm(mm_body, data = d))
+  fit <- got$value
+  expect_false(has_class(got$conds, "frmtmb_nl_pole_start"))
+  lp <- Filter(function(q) !is.null(q$nl_body), fit$frame$linpreds)[[1L]]
+  wl <- nl_pole_walls(fit$frame, lp, fit$estimates, "beta", 2L,
+                      nl_denoms(lp$nl_body))
+  # the walls of K are read, at -xp, and K is clear of them
+  expect_length(wl, 1L)
+  expect_equal(c(wl[[1L]]$lo, wl[[1L]]$hi), -rev(range(d$xp)),
+               tolerance = 1e-8)
+  expect_false(nl_pole_pressed(wl[[1L]]))
+  expect_null(nl_pole_escape(function(...) stop("no refit"), fit$frame, fit))
+  # walls on both sides of the fit, 1 + b * x with x of both signs: the
+  # denominator is positive on every row, and the fit is 10.4 median gaps
+  # from the nearest wall (dev/nlstop2-gaps.R, seed 1)
+  set.seed(1)
+  d2 <- data.frame(x = rnorm(300))
+  d2$y <- 2 / (1 + 0.1 * d2$x) + rnorm(300, 0, 0.3)
+  got2 <- fit_conds(frm(bf(y ~ a / (1 + b * x), a + b ~ 1, nl = TRUE),
+                        data = d2))
+  f2 <- got2$value
+  lp2 <- Filter(function(q) !is.null(q$nl_body), f2$frame$linpreds)[[1L]]
+  wl2 <- nl_pole_walls(f2$frame, lp2, f2$estimates, "beta", 2L,
+                       nl_denoms(lp2$nl_body))
+  expect_true(wl2[[1L]]$lo < f2$estimates$beta[[2L]] &&
+                wl2[[1L]]$hi > f2$estimates$beta[[2L]])
+  expect_false(nl_pole_pressed(wl2[[1L]]))
+  expect_null(nl_pole_escape(function(...) stop("no refit"), f2$frame, f2))
 })

@@ -170,12 +170,12 @@ test_that("a flat run non-centers, its sd tail being integrable", {
   expect_identical(plan$idx, 1L)
 })
 
-test_that("class theta on a random-effect parameter is refused here too", {
+test_that("class thetacov on a random-effect parameter is refused here too", {
   # through 0.76.0 one theta_4 prior retired the default lkj(1) on all
   # three correlations of the block
   d <- fp_data()
   fit <- frm(y ~ x + (1 + x + z | g), data = d, dry_run = "objective")
-  expect_error(fp_rp(fit, set_prior("normal(0, 1)", class = "theta",
+  expect_error(fp_rp(fit, set_prior("normal(0, 1)", class = "thetacov",
                                     coef = "theta_4")),
                "has a class of its own", class = "frmtmb_error")
 })

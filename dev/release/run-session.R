@@ -21,10 +21,14 @@
 # cannot load one never meets the registrations it makes.
 #
 # After each file the runner compares frmtmb's registries, the options,
-# the environment variables, the search path and the global environment
-# with what they were before the file, and prints a LEAK line for each
-# difference. A file must leave every registry as it found it
-# (dev/lane-rules.md, "Test isolation").
+# the environment variables, the search path, the global environment and
+# the session state of every loaded extension with what they were
+# before the file, and prints a LEAK line for each difference. A file
+# must leave every registry as it found it (dev/lane-rules.md, "Test
+# isolation"). An extension's session state has no restore seam, so its
+# lines carry the tag [extension session state]: they name the file
+# that filled a once-per-session cache, for the day a later file depends
+# on it. The RNG state is not compared: most files seed it.
 #
 # The caller sets the tier's environment (NOT_CRAN, gates) as for
 # run-par.sh. Output, on stdout:
@@ -37,7 +41,7 @@
 local({
 # The same libraries as run-tests.R: FRMTMB_RELLIB ahead of the release
 # library, for a lane's build. Change LIB in both files at a release.
-LIB <- "C:/Users/adf44/source/r/rellib-r21"
+LIB <- "C:/Users/adf44/source/r/rellib-r22"
 .libPaths(c(if (nzchar(Sys.getenv("FRMTMB_RELLIB"))) {
   Sys.getenv("FRMTMB_RELLIB")
 }, LIB, "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
@@ -122,7 +126,41 @@ snap <- function() {
     envvars = as.list(Sys.getenv()),
     `search path` = search(),
     globals = setdiff(ls(globalenv(), all.names = TRUE), ".Random.seed"),
-    namespaces = loadedNamespaces())
+    namespaces = loadedNamespaces(),
+    `extension state` = ext_state())
+}
+# An extension's once-per-session state (frmtmb.ode's ode_warned, the
+# eam gd_cache, frmtmb.sample's draws_call_state) has no restore seam,
+# so a file that fills it decides what the files after it see: a warning
+# given once per session is not given again. Every top-level environment
+# of each loaded frmtmb.* namespace is read, found rather than listed,
+# so a new one is covered by existing (backlog, testiso).
+ext_state <- function() {
+  out <- list()
+  for (q in grep("^frmtmb[.]", loadedNamespaces(), value = TRUE)) {
+    qns <- asNamespace(q)
+    for (nm in ls(qns, all.names = TRUE)) {
+      if (nm %in% c(".__NAMESPACE__.", ".__S3MethodsTable__.") ||
+          bindingIsActive(nm, qns)) next
+      e <- get(nm, envir = qns, inherits = FALSE)
+      if (is.environment(e) && !isNamespace(e) &&
+          !identical(e, globalenv()) && !inherits(e, "R6ClassGenerator")) {
+        out[[paste0(q, "::", nm)]] <- as.list(e, all.names = TRUE)
+      }
+    }
+  }
+  out
+}
+ext_state_leaks <- function(f, b, x) {
+  for (k in union(names(b), names(x))) {
+    nm <- union(names(b[[k]]), names(x[[k]]))
+    moved <- nm[!vapply(nm, function(n) {
+      identical(b[[k]][[n]], x[[k]][[n]])
+    }, TRUE)]
+    if (!length(moved)) next
+    cat("LEAK ", f, " ", k, ": ", paste(moved, collapse = " "),
+        " [extension session state]\n", sep = "")
+  }
 }
 leaks <- function(f, before, after) {
   # A namespace cannot be unloaded safely, so a new one is information,
@@ -144,7 +182,9 @@ leaks <- function(f, before, after) {
     cat("LEAK ", f, " notices: removed ", paste(gone, collapse = " "),
         "\n", sep = "")
   }
-  for (k in setdiff(names(before), c("namespaces", "notices"))) {
+  ext_state_leaks(f, before$`extension state`, after$`extension state`)
+  for (k in setdiff(names(before), c("namespaces", "notices",
+                                      "extension state"))) {
     b <- before[[k]]
     x <- after[[k]]
     if (identical(b, x)) next

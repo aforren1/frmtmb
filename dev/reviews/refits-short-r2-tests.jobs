@@ -1,0 +1,4 @@
+frmtmb tests/testthat/test-refit-plumbing.R
+frmtmb tests/testthat/test-sandwich.R
+frmtmb tests/testthat/test-influence-plot.R
+frmtmb tests/testthat/test-refit-data.R

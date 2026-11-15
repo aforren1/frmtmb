@@ -78,6 +78,66 @@ test_that("REML on a degree-7 raw polynomial gets the exact covariance", {
   expect_lt(max(abs(fixef(fit)[, "Estimate"] - gl$beta) / se), 1e-3)
 })
 
+test_that("a whitened REML fit with a lost sd predicts through the factor", {
+  skip_on_cran()
+  # Backlog item 3370. With no group effect the sd runs to 0 and is lost,
+  # so the joint covariance is repaired (joint_cov_repair()), which
+  # inverted the inner block in natural coordinates, where beta's block
+  # has the design's condition number squared. vcov() kept its digits;
+  # fitted(re_formula = NA) was 0.7 to 3.2 percent off at degree 7
+  # (seeds 1 to 5, dev/selimit2-3370.R). With the sd at 0 the GLS weights
+  # are 1, so the conditional covariance is s2 (X'X)^-1, and the variance
+  # parameters move the estimate by nothing
+  set.seed(1)
+  d <- data.frame(x = stats::runif(200, 1, 2),
+                  g = factor(rep(1:20, length.out = 200)))
+  y0 <- sin(3 * d$x) + stats::rnorm(200, 0, 0.3)
+  for (k in 1:7) d[[paste0("x", k)]] <- d$x^k
+  fo <- y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + (1 | g)
+  X <- stats::model.matrix(~ x1 + x2 + x3 + x4 + x5 + x6 + x7, d)
+  nd <- data.frame(x = c(1, 1.25, 1.5, 1.75, 2), g = d$g[1])
+  for (k in 1:7) nd[[paste0("x", k)]] <- nd$x^k
+  A <- stats::model.matrix(~ x1 + x2 + x3 + x4 + x5 + x6 + x7, nd)
+  lost <- 0L
+  for (k in 0:19) {
+    d$y <- y0 * (1 + 2e-15 * k)
+    fit <- frm(fo, data = d, REML = TRUE)
+    expect_false(is.null(fit$beta_whiten))
+    lost <- lost + identical(unname(sdr_of(fit)$se_lost), "boundary")
+    th <- fit$opt$par
+    gl <- reml_gls(X, d$y, d$g, exp(2 * (th[["theta"]] - th[["betad"]])))
+    vref <- exp(2 * th[["betad"]]) * rowSums((A %*% gl$Ri)^2)
+    fp <- fitted(fit, newdata = nd, re_formula = NA)
+    expect_lt(max(abs(unname(fp[, "Est.Error"]) / sqrt(vref) - 1)), 1e-6)
+  }
+  expect_gt(lost, 0L)
+})
+
+test_that("a whitened REML fit above the size limit refuses its SEs", {
+  # Review of lane selimit2, F4b. Above options(frmtmb.joint_root_max)
+  # the whitened inverse is not formed, and the natural one gave standard
+  # errors of exactly 0 or 7 percent high at 4510 joint parameters, with
+  # no warning. The limit is lowered here so the fit stays small (30
+  # joint parameters)
+  set.seed(1)
+  d <- data.frame(x = stats::runif(200, 1, 2),
+                  g = factor(rep(1:20, length.out = 200)))
+  d$y <- sin(3 * d$x) + stats::rnorm(200, 0, 0.3)
+  for (k in 1:7) d[[paste0("x", k)]] <- d$x^k
+  fit <- frm(y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + (1 | g), data = d,
+             REML = TRUE)
+  expect_false(is.null(fit$beta_whiten))
+  expect_identical(unname(sdr_of(fit)$se_lost), "boundary")
+  withr::local_options(frmtmb.joint_root_max = 20)
+  nd <- data.frame(x = c(1, 1.5, 2), g = d$g[1])
+  for (k in 1:7) nd[[paste0("x", k)]] <- nd$x^k
+  fp <- allow_warnings(fitted(fit, newdata = nd, re_formula = NA),
+                       "frmtmb.joint_root_max",
+                       require = "above 20 joint parameters")
+  expect_true(all(is.nan(fp[, "Est.Error"])))
+  expect_true(all(is.finite(fp[, "Estimate"])))
+})
+
 test_that("a well-conditioned REML fit keeps its natural coordinates", {
   # the guard's absent case: degree 2 is far below the condition number
   # at which the design's coordinates are taken

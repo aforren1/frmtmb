@@ -131,9 +131,8 @@ test_that("cs() and thres(gr = ) reach each component, as brms reads them", {
   d <- omx_data(20261006)
   # cs(): each component its own coefficients, off its own thresholds
   # the density is compared at the point the fit keeps, whichever it is;
-  # a start may pass over a higher step function and say so
-  fit <- allow_warnings(frm(bf(y ~ cs(x)), family = mixture(sratio(), acat()),
-                            data = d), "jittered starts reached a higher")
+  # a start may pass over a higher step function and say so in a message
+  fit <- frm(bf(y ~ cs(x)), family = mixture(sratio(), acat()), data = d)
   expect_true(all(c("bcs_mu1_x[1]", "bcs_mu2_x[3]") %in% variables(fit)))
   for (move in c(0, 0.1)) {
     est <- fit$obj$env$parList(omx_par(fit, move))
@@ -363,11 +362,21 @@ test_that("simulate() draws from the fitted category distribution", {
   # of 20 ulp-moved fits here, and the macOS runner, at the same
   # log-likelihood to 1e-4 as those that report convergence
   # (dev/ci701-findings.md)
+  # A degenerate boundary is named in the fit-end warning or, where a
+  # jittered start passed over one, in the step-start message, a message
+  # since the user's decision of 2026-11-13
+  said <- character(0)
   fit <- allow_warnings(
-    frm(bf(y | thres(gr = g) ~ x), family = mixture(cumulative(), sratio()),
-        data = d),
-    c("degenerate boundary", "did not report convergence"),
-    require = "degenerate boundary")
+    withCallingHandlers(
+      frm(bf(y | thres(gr = g) ~ x),
+          family = mixture(cumulative(), sratio()), data = d),
+      frmtmb_mixture_step_start = function(m) {
+        said <<- c(said, conditionMessage(m))
+        invokeRestart("muffleMessage")
+      },
+      warning = function(w) said <<- c(said, conditionMessage(w))),
+    c("degenerate boundary", "did not report convergence"))
+  expect_true(any(grepl("degenerate boundary", said, fixed = TRUE)))
   # the collapsed thresholds have no standard error, so the rows whose
   # probabilities move with them get none either, said once (lane
   # setier: fitted() reads the covariance that holds them)
@@ -761,6 +770,9 @@ test_that("the degenerate check says only what it found", {
   # whether nlminb stops on it with "singular convergence (7)" is
   # rounding (it does with OpenBLAS 0.3.26, dev/ciharden-findings.md).
   # That is the optimizer's verdict, not the check's, so it may come.
+  # So may the standard-error check's list of lost parameters: where the
+  # check names a threshold by its standard error, that list stands
+  # beside it (review of 2026-11-13, F3), and here it names six.
   set.seed(20261005 + 11)
   n <- 400
   x <- rnorm(n)
@@ -774,7 +786,8 @@ test_that("the degenerate check says only what it found", {
     frm(bf(y ~ x), family = mixture(cumulative(), cumulative(),
                                     cumulative()), data = d,
         control = omx_one_start),
-    c("degenerate boundary", "Optimizer did not report convergence"),
+    c("degenerate boundary", "Optimizer did not report convergence",
+      "Standard errors are not available"),
     require = "degenerate boundary")
 })
 
@@ -783,11 +796,16 @@ test_that("thres(x = ) above the data warns once per threshold block", {
   # allowed by its threshold, not by "bound": the degenerate warning
   # says "boundary", and a threshold above the data is not a degenerate
   # component (it runs off whatever the component does, and the check
-  # leaves it out; its latent distance was 2.2e7 before)
+  # leaves it out; its latent distance was 2.2e7 before). The sratio
+  # component's third threshold, which the data do place, ends at -16.7
+  # with a standard error of 4846 on this point (dev/silent2-probe-thres4.R),
+  # which the degenerate check reports; whether a start ends there is
+  # rounding
   allow_warnings(
     frm(bf(y | thres(4) ~ x), family = mixture(cumulative(), sratio()),
         data = d),
-    "Intercept[4]", require = "Intercept[4]")
+    c("Intercept[4]", "a threshold the data do not place"),
+    require = "Intercept[4]")
   w <- character()
   withCallingHandlers(
     frm(bf(y | thres(4) ~ x), family = mixture(cumulative(), sratio(),
@@ -812,4 +830,153 @@ test_that("conditional_effects() shows the mixture's category probabilities", {
               1e3 * .Machine$double.eps)
   }
   expect_true(all(is.finite(ce$se__)))
+})
+
+# the two-class process of dev/ordstart-starts.R, whose 40 default fits
+# and the review's 145 are the controls of dev/silent2-findings.md
+omx_flat_data <- function(seed, n = 300) {
+  set.seed(seed)
+  d <- data.frame(x = rnorm(n), z = rnorm(n))
+  cls <- stats::rbinom(n, 1, 0.4)
+  lat <- ifelse(cls == 1, 1.5 * d$x + 1, -0.8 * d$x - 1) + stats::rlogis(n)
+  d$y <- 1L + (lat > -1 + 0.1 * d$z) + (lat > 0) + (lat > 1 - 0.1 * d$z)
+  d
+}
+
+# the largest standard error fixef() reports for a threshold
+omx_thres_se <- function(fit) {
+  fx <- suppressWarnings(fixef(fit))
+  max(fx[grep("_Intercept[[]", rownames(fx)), "Est.Error"])
+}
+
+test_that("a threshold the data do not place warns", {
+  # backlog 5207: cum_sratio seed 16 put component 2's first threshold at
+  # -39.8, near 33 (short of the near > 50 cut), standard error 1.75e7,
+  # and passed with no warning through 0.82.0. Any ending is valid that
+  # warns where a threshold's standard error is that of a flat direction
+  # and is silent where none is.
+  w <- omx_warnings(fit <- frm(bf(y ~ x + z),
+                               family = mixture(cumulative(), sratio()),
+                               data = omx_flat_data(16)))
+  degen <- any(grepl("degenerate boundary", w, fixed = TRUE))
+  expect_identical(degen, omx_thres_se(fit) > 100)
+  if (degen) {
+    expect_true(any(grepl("component 2 (", w, fixed = TRUE)))
+  }
+  # the guard's condition absent: sound fits of the same process, whose
+  # largest threshold standard errors are 1.41 and 1.4, stay silent
+  for (fam in list(mixture(cumulative(), sratio()),
+                   mixture(cumulative(), cumulative()))) {
+    w <- omx_warnings(fit <- frm(bf(y ~ x + z), family = fam,
+                                 data = omx_flat_data(2)))
+    expect_false(any(grepl("degenerate boundary", w, fixed = TRUE)))
+    expect_lt(omx_thres_se(fit), 100)
+  }
+})
+
+test_that("two thresholds the same up to rounding are collapsed", {
+  # backlog 5167: the test was exact equality, so cum_cum seed 5's tied
+  # default warned and a point 1e-15 apart, of the same likelihood, did
+  # not
+  fit <- frm(bf(y ~ x + z), family = mixture(cumulative(), cumulative()),
+             data = omx_flat_data(7), control = omx_one_start)
+  comp <- frmtmb:::ord_lp_block(fit$frame, fit$spec,
+                                fit$frame$linpreds[["y.mu1"]])$comp
+  at_gap <- function(gap) {
+    g <- fit
+    g$estimates[[comp]][2L] <- log(gap)
+    frmtmb:::mixture_ord_degeneracy(g, "y")$collapsed[1L]
+  }
+  expect_true(at_gap(1e-15))
+  expect_true(at_gap(1e-300))
+  # the guard's condition absent: a gap the doubles resolve
+  expect_false(at_gap(1e-8))
+  expect_false(frmtmb:::mixture_ord_degeneracy(fit, "y")$collapsed[1L])
+})
+
+test_that("an exact reader reads a closed category as -Inf", {
+  # backlog 5524: the gap floor of an ordinal mixture held a category
+  # between tied thresholds at about log(1e-300) for log_lik() of draws
+  # too, where its probability is 0
+  fit <- frm(bf(y ~ x + z), family = mixture(cumulative(), cumulative()),
+             data = omx_flat_data(7), control = omx_one_start)
+  g <- fit
+  comps <- vapply(1:2, function(k) {
+    frmtmb:::ord_lp_block(fit$frame, fit$spec,
+                          fit$frame$linpreds[[paste0("y.mu", k)]])$comp
+  }, "")
+  for (cp in comps) g$estimates[[cp]][2L] <- -800
+  fam <- g$spec$responses$y$family
+  y <- g$frame$y$y
+  dpv <- frmtmb:::eval_dpars(g)$y
+  av <- g$frame$aterm_values$y
+  ex <- frmtmb:::fit_extras(g, "y")
+  rd <- function(exact) {
+    as.numeric(frmtmb:::row_lpdf(fam, y, y, dpv, av, ex, exact = exact))
+  }
+  ex_v <- rd(TRUE)
+  fl_v <- rd(FALSE)
+  closed <- y == 2L
+  expect_true(any(closed))
+  expect_true(all(ex_v[closed] == -Inf))
+  expect_true(all(is.finite(fl_v[closed])))
+  # the guard's condition absent: every other row reads the same value
+  expect_identical(ex_v[!closed], fl_v[!closed])
+  # and the fit's own objective keeps the floor at that point
+  p <- fit$opt$par
+  for (cp in comps) p[names(p) == cp] <- g$estimates[[cp]]
+  expect_true(is.finite(fit$obj$fn(p)))
+})
+
+test_that("a threshold with no standard error is said so, beside the SE list", {
+  # review of 2026-11-13, F3: on the review sweep's cs_sr_acat seed 1 the
+  # degenerate warning quoted a standard error of 334, "flat along it",
+  # read from covariance entries the standard-error check had lost, and
+  # it silenced that check's warning, which also names two cs()
+  # coefficients
+  set.seed(1)
+  n <- 300
+  d <- data.frame(x = rnorm(n), z = rnorm(n))
+  cls <- stats::rbinom(n, 1, 0.4)
+  lat <- ifelse(cls == 1, 1.5 * d$x + 1, -0.8 * d$x - 1) + stats::rlogis(n)
+  d$y <- 1L + rowSums(outer(lat, stats::quantile(lat, 1:3 / 4), ">"))
+  w <- omx_warnings(fit <- frm(bf(y ~ cs(x) + z),
+                               family = mixture(sratio(), acat()), data = d))
+  fx <- suppressWarnings(fixef(fit))
+  lost <- any(is.nan(fx[grep("^mu2_Intercept", rownames(fx)), "Est.Error"]))
+  degen <- grep("degenerate boundary", w, value = TRUE, fixed = TRUE)
+  # every ending: a quoted standard error is never one summary() lacks
+  expect_false(lost && any(grepl("its standard error is", degen,
+                                 fixed = TRUE)))
+  if (lost && length(degen)) {
+    expect_true(any(grepl("has no standard error", degen, fixed = TRUE)))
+    expect_true(any(grepl("Standard errors are not available", w,
+                          fixed = TRUE)))
+  }
+  # on this point (logLik -404.9916) both are said
+  if (abs(as.numeric(logLik(fit)) + 404.9916) < 1e-3) {
+    expect_true(lost)
+    expect_true(any(grepl("has no standard error", degen, fixed = TRUE)))
+    expect_true(any(grepl("bcs", w, fixed = TRUE)))
+  }
+})
+
+test_that("a degenerate fit with random effects names the starts to run", {
+  # backlog 5214: such a fit runs no jittered starts by default, so the
+  # warning's "Compare several starts (frm(start = ))" pointed nowhere
+  skip_on_cran()
+  # its sd of g ends at 0, which a message says (not checked here)
+  w <- omx_warnings(suppressMessages(frm(
+    bf(y ~ x + z + (1 | g)), family = mixture(cumulative(), sratio()),
+    data = transform(omx_flat_data(9), g = factor(rep_len(1:20, 300))))))
+  degen <- grep("degenerate boundary", w, value = TRUE, fixed = TRUE)
+  expect_true(length(degen) > 0L)
+  expect_true(all(grepl("frmtmb_control(starts = 10)", degen, fixed = TRUE)))
+  # the guard's condition absent: without random effects the starts run,
+  # and the text does not ask for them
+  w <- omx_warnings(frm(bf(y ~ x + z), family = mixture(cumulative(),
+                                                        sratio()),
+                        data = omx_flat_data(16)))
+  expect_false(any(grepl("frmtmb_control(starts = 10)", w, fixed = TRUE)))
+  expect_true(any(grepl("degenerate boundary", w, fixed = TRUE)))
 })

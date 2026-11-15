@@ -65,7 +65,7 @@ brmsfit-methods:157	frmtmb	pass
 brmsfit-methods:162	frmtmb	divergence	plot() of a surface display with plot = FALSE returns frmtmb's base-graphics plot objects now (lane ceplot, classes frmtmb_ce_plot and frmtmb_hyp_plot), with brms's arguments; the row asserts is(object, 'ggplot'), and frmtmb does not depend on ggplot2, so it cannot return one
 brmsfit-methods:164	frmtmb	divergence	plot(stype = , plot = FALSE) returns frmtmb's base-graphics plot objects now (lane ceplot, classes frmtmb_ce_plot and frmtmb_hyp_plot), with brms's arguments; the row asserts is(object, 'ggplot'), and frmtmb does not depend on ggplot2, so it cannot return one
 brmsfit-methods:167	frmtmb	cannot transfer	conditional_effects() takes spaghetti now (lane postfit2); on a maximum-likelihood fit it needs band = 'boot', one curve per refit, and this call's default Wald band is refused by name: the fit has only its estimate
-brmsfit-methods:169	frmtmb	divergence	plot() of the spaghetti display of brmsfit-methods:167 with plot = FALSE returns frmtmb's base-graphics plot objects now (lane ceplot, classes frmtmb_ce_plot and frmtmb_hyp_plot), with brms's arguments; the row asserts is(object, 'ggplot'), and frmtmb does not depend on ggplot2, so it cannot return one
+brmsfit-methods:169	frmtmb	cannot transfer	plot() of the spaghetti display of brmsfit-methods:167, whose call is refused on a maximum-likelihood fit (row 167: one curve per draw needs draws, and its Wald band is refused by name), so the line reads a stale name and plots nothing; the base-graphics plot objects against is(object, 'ggplot') are measured at brmsfit-methods:162 and :164
 brmsfit-methods:170	frmtmb	pass	
 brmsfit-methods:177	frmtmb	pass	
 brmsfit-methods:179	frmtmb	pass	

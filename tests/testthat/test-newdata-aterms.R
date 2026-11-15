@@ -419,3 +419,83 @@ test_that("a grid that cannot evaluate a vreal() payload is refused", {
   expect_length(draws, nrow(nd))
   expect_true(all(is.finite(draws)))
 })
+
+test_that("a payload whose length matches the new rows by chance is refused", {
+  # backlog 5235: a value that reads no column of the new rows is the
+  # fitted rows' values. Through 0.82.0 a 120-row grid or newdata on a
+  # 120-row fit paired them row by row: rows 1 and 2 of a grid with
+  # nearly equal x came out 6.6 times apart (dev/silent2-repro.R)
+  scaled <- custom_family(
+    "nd_scaled", dpars = c("mu", "sigma"),
+    links = list(mu = "identity", sigma = "log"),
+    lpdf = function(y, dpars, aterms) {
+      RTMB::dnorm(y, dpars[["mu"]] * aterms[["vreal1"]], dpars[["sigma"]],
+                  log = TRUE)
+    },
+    post = list(mean_fn = function(dpars, aterms) {
+      dpars[["mu"]] * aterms[["vreal1"]]
+    }),
+    sim = function(dpars, aterms, n) {
+      stats::rnorm(n, dpars[["mu"]] * aterms[["vreal1"]], dpars[["sigma"]])
+    })
+  set.seed(3)
+  n <- 120
+  d <- data.frame(x = stats::rnorm(n), s = rep_len(c(1, 3), n))
+  d$y <- (1 + 0.5 * d$x) * d$s + stats::rnorm(n, 0, 0.3)
+  fe <- frm(bf(y | vreal(rep_len(c(1, 3), 120)) ~ x), family = scaled,
+            data = d)
+  nd <- data.frame(x = seq(-2, 2, length.out = n))
+  msg <- "it reads no column of newdata"
+  expect_error(fitted(fe, newdata = nd), msg, fixed = TRUE)
+  expect_error(predict(fe, newdata = nd), msg, fixed = TRUE)
+  expect_error(conditional_effects(fe, effects = "x", resolution = n),
+               "it reads no column of the data", fixed = TRUE)
+  expect_error(conditional_effects(fe, effects = "x", resolution = n,
+                                   method = "predict"),
+               "reads no column", fixed = TRUE)
+  # the fitted rows themselves still read it, row by row
+  mu_fit <- as.vector(frm_linpred(fe, dpar = "mu"))
+  expect_equal(unname(fitted(fe)[, "Estimate"]), mu_fit * d$s)
+  # the guard's condition absent: the payload as a column follows newdata
+  fc <- frm(bf(y | vreal(s) ~ x), family = scaled, data = d)
+  nd$s <- rep_len(c(3, 1), n)
+  mu <- as.vector(frm_linpred(fc, newdata = nd, dpar = "mu"))
+  expect_equal(unname(fitted(fc, newdata = nd)[, "Estimate"]), mu * nd$s)
+})
+
+test_that("a payload of one repeated value is that value on any rows", {
+  # review of 2026-11-13, F5: vreal(rep(2, 120)) was refused on 120 new
+  # rows and on a 120-row grid, where its value is the constant 2
+  scaled <- custom_family(
+    "nd_scaled2", dpars = c("mu", "sigma"),
+    links = list(mu = "identity", sigma = "log"),
+    lpdf = function(y, dpars, aterms) {
+      RTMB::dnorm(y, dpars[["mu"]] * aterms[["vreal1"]], dpars[["sigma"]],
+                  log = TRUE)
+    },
+    post = list(mean_fn = function(dpars, aterms) {
+      dpars[["mu"]] * aterms[["vreal1"]]
+    }),
+    sim = function(dpars, aterms, n) {
+      stats::rnorm(n, dpars[["mu"]] * aterms[["vreal1"]], dpars[["sigma"]])
+    })
+  set.seed(3)
+  n <- 120
+  d <- data.frame(x = stats::rnorm(n))
+  d$y <- 2 * (1 + 0.5 * d$x) + stats::rnorm(n, 0, 0.3)
+  fk <- frm(bf(y | vreal(rep(2, 120)) ~ x), family = scaled, data = d)
+  for (nd in list(data.frame(x = seq(-2, 2, length.out = n)),
+                  data.frame(x = c(-1, 1)))) {
+    mu <- as.vector(frm_linpred(fk, newdata = nd, dpar = "mu"))
+    expect_equal(unname(fitted(fk, newdata = nd)[, "Estimate"]), 2 * mu)
+  }
+  ce <- conditional_effects(fk, effects = "x", resolution = n)[[1L]]
+  mu <- as.vector(frm_linpred(fk, newdata = data.frame(x = ce$x),
+                              dpar = "mu"))
+  expect_equal(ce$estimate__, 2 * mu)
+  # a payload that varies still refuses on the fit's own rows, and says
+  # how to get them
+  fe <- frm(bf(y | vreal(rep_len(c(1, 3), 120)) ~ x), family = scaled,
+            data = d)
+  expect_error(fitted(fe, newdata = d), "Leave newdata out", fixed = TRUE)
+})

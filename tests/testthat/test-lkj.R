@@ -293,12 +293,12 @@ test_that("cs, ar1 and gr(cov =) take the prior their map calls for", {
 test_that("a correlation has one slot, class cor", {
   dd <- lkj_data()
   fit <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd)
-  # class theta on the correlation was a second slot, and the one
+  # class thetacov on the correlation was a second slot, and the one
   # written later retired the other; it is refused in either order
   for (pl in list(set_prior("lkj(2)", class = "cor") +
-                    set_prior("normal(0, 1)", class = "theta",
+                    set_prior("normal(0, 1)", class = "thetacov",
                               coef = "theta_3"),
-                  set_prior("normal(0, 1)", class = "theta",
+                  set_prior("normal(0, 1)", class = "thetacov",
                             coef = "theta_3") +
                     set_prior("lkj(2)", class = "cor"))) {
     expect_error(frmtmb:::resolve_prior_input(fit, pl),

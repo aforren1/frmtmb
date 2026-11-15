@@ -1,0 +1,2 @@
+frmtmb tests/testthat/test-se-limit.R
+frmtmb tests/testthat/test-ordinal-mixture.R

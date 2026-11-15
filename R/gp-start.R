@@ -539,14 +539,14 @@ gp_marginal_max <- function(frame, keep = 3L, distinct = 6L) {
   tryCatch(gp_marginal_opt(s, keep, distinct), error = function(e) NULL)
 }
 
-gp_marginal_opt <- function(s, keep = 3L, distinct = 4L) {
+gp_marginal_opt <- function(s, keep = 3L, distinct = 4L,
+                            lrs = log(10^c(1, -1, -3, -6, -9))) {
   frame <- s$frame
   blocks <- frame[["re_blocks"]]
   gpi <- which(vapply(blocks, function(b) {
     identical(b[["covstruct"]], "gp")
   }, NA))
   has_se <- any(s$se2 > 0)
-  lrs <- log(10^c(1, -1, -3, -6, -9))
   res <- if (ncol(s$X)) {
     s$y - s$X %*% qr.solve(s$X * sqrt(s$nj), s$y * sqrt(s$nj))
   } else s$y
@@ -1052,7 +1052,17 @@ gp_start_scan <- function(obj, template, frame, start, to_beta = identity,
                           body = TRUE, relin = body) {
   bks <- Filter(function(bk) identical(bk[["covstruct"]], "gp"),
                 frame[["re_blocks"]] %||% list())
-  if (!length(bks) || !is.null(start[["theta"]])) return(obj)
+  if (!is.null(start[["theta"]])) return(obj)
+  if (!length(bks)) {
+    if (relin && any(vapply(frame[["re_blocks"]] %||% list(), function(bk) {
+      identical(bk[["covstruct"]], "hsgp")
+    }, NA))) {
+      obj$env$.frmtmb_gp_relin <- list(
+        start = function(obj, par) gp_hsgp_relin(obj, frame, par),
+        regular = function(obj, o, tol) gp_relin_regular(obj, frame, o, tol))
+    }
+    return(obj)
+  }
   val <- function(tpl) {
     p <- outer_from_template(tpl, obj, frame)
     if (is.null(p)) return(NA_real_)
@@ -1097,9 +1107,13 @@ gp_start_scan <- function(obj, template, frame, start, to_beta = identity,
     }
   }
   out <- gp_start_scan_units(obj, template, frame, val, covered)
-  if (relin && gp_body_relin_applies(frame, template, to_beta)) {
+  rl_body <- relin && gp_body_relin_applies(frame, template, to_beta)
+  rl_mean <- relin && gp_mean_relin_applies(frame, template, to_beta)
+  if (rl_body || rl_mean) {
     out$env$.frmtmb_gp_relin <- list(
-      start = function(obj, par) gp_body_relin(obj, frame, par),
+      start = function(obj, par) {
+        gp_relin_start(obj, frame, par, rl_body, rl_mean)
+      },
       regular = function(obj, o, tol) gp_relin_regular(obj, frame, o, tol))
   }
   body <- intersect(covered, w[["body"]])
@@ -1264,6 +1278,246 @@ gp_body_relin <- function(obj, frame, par) {
   p
 }
 
+#' Whether a fit gets a start from its mean's working marginal read at its
+#' own optimum (gp_mean_relin()): an exact gp() in a linear predictor that
+#' is no nonlinear body's parameter, outside the marginal of the model
+#' (gp_marginal_max(), which `gp_start_scan()` asks first), and a `beta`
+#' the tape holds in its natural coordinates.
+#'
+#' @noRd
+gp_mean_relin_applies <- function(frame, template, to_beta = identity) {
+  b0 <- template[["beta"]]
+  if (length(b0)) {
+    probe <- seq_along(b0) + 0.5
+    if (!isTRUE(all.equal(to_beta(probe), probe, tolerance = 0))) {
+      return(FALSE)
+    }
+  }
+  length(gp_mean_relin_keys(frame)) > 0L
+}
+
+#' The linear predictors whose exact gp() blocks gp_mean_relin() reads.
+#'
+#' @noRd
+gp_mean_relin_keys <- function(frame) {
+  keys <- character(0)
+  for (bk in frame[["re_blocks"]] %||% list()) {
+    if (!identical(bk[["covstruct"]], "gp")) next
+    key <- gp_block_lp(bk, frame)
+    lp <- frame[["linpreds"]][[key]]
+    if (is.null(lp) || !is.null(lp[["nl_body"]]) ||
+          !is.null(lp[["constant"]]) || !identical(lp[["par"]], "beta")) {
+      next
+    }
+    nl <- frame[["spec"]]$responses[[lp[["resp"]]]]$nlpars %||% character(0)
+    if (lp[["dpar"]] %in% nl) next
+    keys <- c(keys, key)
+  }
+  unique(keys)
+}
+
+#' A fit-like list at the outer point `par`, the inner modes solved, for
+#' the numeric readers of a fit (eval_dpars(), row_lpdf()) before the fit
+#' exists, or `NULL` where parList() does not map back to `par`.
+#'
+#' @noRd
+gp_relin_pfit <- function(obj, frame, par) {
+  pl <- solved_par_list(obj, par)
+  p0 <- outer_from_template(pl, obj, frame)
+  if (is.null(p0) || !isTRUE(all.equal(unname(p0), unname(par),
+                                       tolerance = 1e-12))) {
+    return(NULL)
+  }
+  for (nm in intersect(names(frame[["par_template"]]), names(pl))) {
+    names(pl[[nm]]) <- names(frame[["par_template"]][[nm]])
+  }
+  structure(list(frame = frame, spec = frame[["spec"]], estimates = pl,
+                 cache = new.env(parent = emptyenv())),
+            class = "frmtmb_fit")
+}
+
+#' Each row's log density at the fit (`pfit`) with linear predictor `key`
+#' shifted by `k * h` for each `k`, times the row's case weight: a matrix,
+#' one column per shift. The family's own density (row_lpdf()), so a family
+#' needs no slot for its derivatives.
+#'
+#' @noRd
+gp_row_ll_shift <- function(pfit, key, ks, h) {
+  fr <- pfit$frame
+  lp <- fr[["linpreds"]][[key]]
+  r <- lp[["resp"]]
+  fam <- pfit$spec$responses[[r]]$family
+  y <- fr[["y"]][[r]]
+  av <- fr[["aterm_values"]][[r]]
+  ex <- fit_extras(pfit, r)
+  w <- av[["weights"]] %||% 1
+  off0 <- lp[["offset"]]
+  if (!length(off0)) off0 <- 0
+  vapply(ks, function(k) {
+    f2 <- pfit
+    f2$frame[["linpreds"]][[key]][["offset"]] <- off0 + k * h
+    dp <- eval_dpars(f2)[[r]]
+    w * as.numeric(row_lpdf(fam, y, y, dp, av, ex))
+  }, numeric(NROW(lp[["X"]])))
+}
+
+#' The exact gp() blocks of a fit's linear predictors that are no body's,
+#' read again at the fit's optimum `par`: the marginal of the field with
+#' each row's log density replaced by its quadratic at the inner mode,
+#' `y_w = u + g / w` with known noise `1 / w`, `g` and `w` the row's first
+#' and negative second derivative in its predictor `u`. Where the density
+#' is gaussian in `u`, as under `sigma ~ z`, this is the model's marginal
+#' at the fit's other coefficients. Returns `list(idx, theta)` for the
+#' blocks it read, or `NULL`.
+#'
+#' The start the working response gives (gp_start_working()) reads `y` on
+#' the link's scale with unit noise. On low-count Poisson and with a
+#' modeled sigma it stopped 1.59 and 1.45 short of a regular maximum at
+#' code 0 (dev/gpstop-findings.md, the 150 rows).
+#'
+#' @noRd
+gp_mean_relin <- function(obj, frame, par) {
+  pfit <- gp_relin_pfit(obj, frame, par)
+  if (is.null(pfit)) return(NULL)
+  est <- pfit$estimates
+  cvec <- expand_b(frame, est[["b"]], est[["theta"]])
+  idx <- integer(0)
+  theta <- numeric(0)
+  for (key in gp_mean_relin_keys(frame)) {
+    lp <- frame[["linpreds"]][[key]]
+    rb <- Filter(function(bk) {
+      identical(bk[["covstruct"]], "gp") && gp_block_lp(bk, frame) == key
+    }, frame[["re_blocks"]])
+    h <- 1e-3
+    l <- tryCatch(gp_row_ll_shift(pfit, key, c(-1, 0, 1), h),
+                  error = function(e) NULL)
+    if (is.null(l)) next
+    g <- (l[, 3L] - l[, 1L]) / (2 * h)
+    w <- -(l[, 3L] - 2 * l[, 2L] + l[, 1L]) / h^2
+    X <- as.matrix(lp[["X"]])
+    Z <- lp_Z(pfit, lp)
+    u <- as.vector(X %*% est[["beta"]][lp[["idx"]]]) +
+      as.vector(Z %*% cvec)
+    gc <- unlist(lapply(rb, `[[`, "c_idx"))
+    # the predictor's other blocks stay at their modes
+    oc <- setdiff(seq_len(ncol(Z)), gc)
+    yt <- u + g / w
+    if (length(oc)) yt <- yt - as.vector(Z[, oc, drop = FALSE] %*% cvec[oc])
+    ok <- is.finite(yt) & is.finite(w) & w > 0
+    if (any(ok)) ok <- ok & w > 1e-8 * max(w[ok])
+    n <- sum(ok)
+    if (n < 3L) next
+    at <- 0L
+    from <- integer(0)
+    for (i in seq_along(rb)) {
+      ti <- rb[[i]][["theta_idx"]]
+      rb[[i]][["theta_idx"]] <- at + seq_along(ti)
+      at <- at + length(ti)
+      from <- c(from, ti)
+    }
+    q <- qr(X[ok, , drop = FALSE])
+    keep <- sort(q$pivot[seq_len(q$rank)])
+    fr <- list(re_blocks = rb,
+               par_template = list(theta = numeric(at),
+                                   beta = numeric(length(keep))))
+    # the noise is known, so the ratio of noise to field has no grid
+    m <- tryCatch(gp_marginal_opt(
+      gp_marginal_data(yt[ok], X[ok, keep, drop = FALSE],
+                       Z[ok, , drop = FALSE], rb, 1 / w[ok],
+                       rep(1, n), FALSE, seq_along(keep), fr),
+      lrs = 0),
+      error = function(e) NULL)
+    if (is.null(m) || !all(is.finite(m$theta))) next
+    idx <- c(idx, from)
+    theta <- c(theta, m$theta)
+  }
+  if (length(idx)) list(idx = idx, theta = theta)
+}
+
+#' A start for the exact gp() blocks from the readings at the fit's
+#' optimum `par`, of the nonlinear body (gp_body_relin()) and of the other
+#' linear predictors (gp_mean_relin()), or `NULL` where neither reads
+#' another length scale.
+#'
+#' @noRd
+gp_relin_start <- function(obj, frame, par, body, mean) {
+  p <- if (body) gp_body_relin(obj, frame, par)
+  if (!mean) return(p)
+  base <- p %||% par
+  m <- gp_mean_relin(obj, frame, base)
+  if (is.null(m)) return(p)
+  pl <- obj$env$parList(base)
+  th0 <- as.numeric(pl[["theta"]])
+  th <- th0
+  th[m$idx] <- m$theta
+  li <- unlist(lapply(frame[["re_blocks"]], function(bk) {
+    if (identical(bk[["covstruct"]], "gp") &&
+          any(bk[["theta_idx"]] %in% m$idx)) bk[["theta_idx"]][-1L]
+  }))
+  if (!length(li) || max(abs(th[li] - th0[li])) <= log(1.1)) return(p)
+  pl[["theta"]][] <- th
+  q <- outer_from_template(pl, obj, frame)
+  if (is.null(q) || !all(is.finite(q))) return(p)
+  q
+}
+
+#' A start for the approximate gp() blocks of a fit with no exact one: the
+#' best of a grid of length scales and sds read from the objective at the
+#' fit's optimum `par`, with every other coefficient where the fit put it,
+#' or `NULL`. The length scales run from the positions' span down to half
+#' the basis's spacing, and only those more than a factor 1.1 from the
+#' fit's are read.
+#'
+#' The sds read are the fit's own times 0.3, 1 and 3, and the predictor's
+#' unit times 0.1 and 1. The Hilbert-space field gets no start of its own:
+#' `a * exp(b * z)` with
+#' `b ~ gp(x, k = 20)` stopped 1.18 below a theta start, and `pow_a` with
+#' `a ~ gp(x, k = 12)` at a length scale of 3e-5 where every basis
+#' function weighs the same, 0.94 below a regular maximum, each at code 0
+#' with no warning (dev/gpfield-findings.md, 5139).
+#'
+#' @noRd
+gp_hsgp_relin <- function(obj, frame, par) {
+  pl <- obj$env$parList(par)
+  p0 <- outer_from_template(pl, obj, frame)
+  if (is.null(p0) || !isTRUE(all.equal(unname(p0), unname(par),
+                                       tolerance = 1e-12))) {
+    return(NULL)
+  }
+  th0 <- as.numeric(pl[["theta"]])
+  units <- tryCatch(predictor_units(frame), error = function(e) numeric(0))
+  best <- list(value = Inf, par = NULL)
+  for (bk in frame[["re_blocks"]] %||% list()) {
+    if (!identical(bk[["covstruct"]], "hsgp")) next
+    key <- gp_block_lp(bk, frame)
+    u <- if (key %in% names(units)) units[[key]] else 1
+    span <- bk[["gp_span"]] %||% 1
+    sp <- min(bk[["gp_spacing"]] %||% (span / 10))
+    rs <- span * 2^-(0:10)
+    rs <- rs[rs >= sp / 2]
+    li <- bk[["theta_idx"]][-1L]
+    # the fit's own sd beside the predictor's unit: a field in an exponent's
+    # coefficient reads sd 0.05, where the unit is 1
+    sds <- c(exp(th0[bk[["theta_idx"]][1L]]) * c(0.3, 1, 3), u * c(0.1, 1))
+    for (r in rs) {
+      if (max(abs(log(r) - th0[li])) <= log(1.1)) next
+      for (s in sds) {
+        th <- th0
+        th[bk[["theta_idx"]][1L]] <- log(s)
+        th[li] <- log(r)
+        pl[["theta"]][] <- th
+        p <- outer_from_template(pl, obj, frame)
+        if (is.null(p)) next
+        v <- tryCatch(obj$fn(p), error = function(e) NA_real_)
+        if (isTRUE(is.finite(v)) && v < best$value) {
+          best <- list(value = v, par = p)
+        }
+      }
+    }
+  }
+  best$par
+}
+
 #' Whether a relinearized descent `o` ended at a regular maximum: code 0,
 #' its gradient within `tol`, an inner Hessian whose smallest eigenvalue
 #' is not near 0, and each length scale between half the median distance
@@ -1287,6 +1541,14 @@ gp_relin_regular <- function(obj, frame, o, tol) {
   pl <- obj$env$parList(o$par)
   th <- as.numeric(pl[["theta"]])
   for (bk in frame[["re_blocks"]] %||% list()) {
+    if (identical(bk[["covstruct"]], "hsgp")) {
+      if (gp_basis_white(bk, th[bk[["theta_idx"]]]) ||
+            any(th[bk[["theta_idx"]][-1L]] >
+                  log(10 * (bk[["gp_span"]] %||% 1)))) {
+        return(FALSE)
+      }
+      next
+    }
     if (!identical(bk[["covstruct"]], "gp")) next
     D <- sqrt(Reduce(`+`, bk[["aux_D2"]]))
     if (NROW(D) < 2L || !any(D > 0)) next
@@ -1452,4 +1714,255 @@ gp_scan_sigma_slot <- function(frame, bk) {
     return(structure(l[["idx"]][icpt], linkfun = l[["link"]]$linkfun))
   }
   NULL
+}
+
+#' Whether an approximate gp() block's length scales `theta[-1]` lie under
+#' `gp_basis_white_frac` of the basis's spacing in every dimension, where
+#' every basis function takes nearly the same prior sd: the field is then
+#' white noise over the basis, and only `sdgp^2 lscale^D` is determined.
+#'
+#' @noRd
+gp_basis_white <- function(bk, theta) {
+  sp <- bk[["gp_spacing"]]
+  if (is.null(sp)) return(FALSE)
+  ls <- exp(theta[-1L])
+  if (length(ls) == 1L) ls <- rep(ls, length(sp))
+  isTRUE(all(ls < gp_basis_white_frac * sp))
+}
+
+# At a tenth of the spacing the spectral density of the squared
+# exponential kernel falls by 5 percent from the basis's lowest frequency
+# to its highest. The regular maxima of the gate rows read 0.45 and 4.3 of
+# the spacing, their white stops 3e-5 (dev/gpfield-findings.md, 5139).
+gp_basis_white_frac <- 0.1
+
+#' The warning for an approximate gp() whose length scale ran under the
+#' basis's spacing (gp_basis_white()), or `NULL`.
+#'
+#' @noRd
+gp_basis_message <- function(fit) {
+  hits <- character(0)
+  th <- fit$estimates[["theta"]]
+  cvec <- NULL
+  for (bk in fit$frame[["re_blocks"]] %||% list()) {
+    if (!identical(bk[["covstruct"]], "hsgp")) next
+    if (!gp_basis_white(bk, th[bk[["theta_idx"]]])) next
+    # a field whose sd ran to 0 is absent, and its length scale with it:
+    # the standard-error check says so, and this would only add noise
+    cvec <- cvec %||% expand_b(fit$frame, fit$estimates[["b"]], th)
+    lp <- fit$frame[["linpreds"]][[gp_block_lp(bk, fit$frame)]]
+    if (!is.null(lp)) {
+      Z <- lp_Z(fit, lp)
+      fld <- as.vector(Z[, bk[["c_idx"]], drop = FALSE] %*%
+                         cvec[bk[["c_idx"]]])
+      eta <- as.vector(Z %*% cvec)
+      if (ncol(lp[["X"]])) {
+        eta <- eta + as.vector(as.matrix(lp[["X"]]) %*%
+                                 fit$estimates[[lp[["par"]]]][lp[["idx"]]])
+      }
+      if (max(abs(fld)) <= 1e-6 * max(abs(eta))) next
+    }
+    hits <- c(hits, bk[["group_name"]] %||% bk[["term_label"]])
+  }
+  if (!length(hits)) return(NULL)
+  paste0("The length scale of the approximate gp() ",
+         if (length(hits) > 1L) "terms " else "term ",
+         paste(hits, collapse = ", "), " ran below a tenth of the spacing ",
+         "its basis resolves. There every basis function gets the same ",
+         "prior weight, and the data ",
+         "determine sdgp^2 times the product of the length scales, not ",
+         "sdgp and the length scales apart, so their estimates and ",
+         "standard errors say nothing about the field's smoothness. The ",
+         "fitted field and its predictions hold. To read the smoothness, ",
+         "raise k, or fit the exact gp() without k")
+}
+
+#' The first-order correction to the Laplace approximation of a fit whose
+#' random effects all sit in the linear predictor of one exact gp():
+#' `-1/8 sum(h4 v_ii^2) + 1/8 sum(h3_i h3_j v_ii v_jj v_ij) +
+#' 1/12 sum(h3_i h3_j v_ij^3)`, with `h3` and `h4` each row's derivatives
+#' of minus its log density in that predictor `u` and `v` the covariance of
+#' `u` at the inner mode, `A H^-1 A'`. The marginal is about the Laplace
+#' value plus this. `NULL` where the fit is outside that scope.
+#'
+#' Measured against importance sampling at the fit's own point
+#' (dev/gpfield-tkrun.R): `student()` on a step field 2.17 against 2.72 and
+#' 1.72 against 2.67, a poisson field 0.004 against 0.016, bernoulli 0.240
+#' against 0.234 (dev/gpfield-findings.md, 5125).
+#'
+#' @noRd
+gp_laplace_tk <- function(fit) {
+  fr <- fit$frame
+  bks <- Filter(function(b) identical(b[["covstruct"]], "gp"),
+                fr[["re_blocks"]] %||% list())
+  if (!length(bks) || length(fr[["autocor"]]) ||
+        length(fr[["me"]]$terms) || length(fit$spec$responses) != 1L) {
+    return(NULL)
+  }
+  key <- gp_block_lp(bks[[1L]], fr)
+  keys <- vapply(fr[["re_blocks"]], gp_block_lp, "", frame = fr)
+  if (!nzchar(key) || any(keys != key)) return(NULL)
+  lp <- fr[["linpreds"]][[key]]
+  env <- fit$obj$env
+  fit$obj$fn(fit$opt$par)
+  H <- env$spHess(env$last.par, random = TRUE)
+  H@factors <- list()
+  Ch <- Matrix::Cholesky(Matrix::forceSymmetric(H), LDL = FALSE)
+  A <- lp_Z(fit, lp) %*% rr_jacobians(fit)$Jb
+  # rows with one row of A share every entry of v, so the sums run over the
+  # distinct rows, with each one's derivatives summed: the positions, not
+  # the rows, and no n x n matrix
+  hk <- as.vector(A %*% cos(seq_len(ncol(A))))
+  J <- match(hk, unique(hk))
+  if (max(J) > gp_laplace_max_rows) return(NULL)
+  Au <- A[match(seq_len(max(J)), J), , drop = FALSE]
+  v <- as.matrix(Au %*% Matrix::solve(Ch, Matrix::t(Au)))
+  dvu <- pmax(diag(v), 0)
+  dv <- dvu[J]
+  # a step of a share of each row's own posterior sd in u, so the stencil
+  # reads neither the response's units nor a row the field barely moves
+  h <- 0.05 * sqrt(dv)
+  h[!(h > 0)] <- 1e-3
+  l <- gp_row_ll_shift(fit, key, -2:2, h)
+  h3 <- -(l[, 5L] - 2 * l[, 4L] + 2 * l[, 2L] - l[, 1L]) / (2 * h^3)
+  h4 <- -(l[, 5L] - 4 * l[, 4L] + 6 * l[, 3L] - 4 * l[, 2L] + l[, 1L]) / h^4
+  # a row the field does not reach adds nothing
+  h3[dv == 0] <- 0
+  h4[dv == 0] <- 0
+  h3 <- rowsum(h3, J, reorder = TRUE)[, 1L]
+  h4 <- rowsum(h4, J, reorder = TRUE)[, 1L]
+  -sum(h4 * dvu^2) / 8 + sum(outer(h3 * dvu, h3 * dvu) * v) / 8 +
+    sum(outer(h3, h3) * v^3) / 12
+}
+
+# Above this many distinct rows of the field's design the check's dense
+# covariance of the latent predictor is not read: the exact field's limit,
+# 500 positions, times a few levels of another term.
+gp_laplace_max_rows <- 2000L
+
+#' Whether every exact gp() block sits in the mean of a gaussian or
+#' lognormal response with the identity link and no censored or truncated
+#' row: the log density is quadratic
+#' in that predictor, the Laplace value is the marginal, and the check has
+#' nothing to read.
+#'
+#' @noRd
+gp_laplace_exact <- function(fit, bks) {
+  fr <- fit$frame
+  all(vapply(bks, function(bk) {
+    lp <- fr[["linpreds"]][[gp_block_lp(bk, fr)]]
+    if (is.null(lp) || !identical(lp[["dpar"]], "mu") ||
+          !is.null(lp[["nl_body"]])) {
+      return(FALSE)
+    }
+    fam <- fit$spec$responses[[lp[["resp"]]]]$family[["family"]] %||% ""
+    av <- fr[["aterm_values"]][[lp[["resp"]]]]
+    # a censored or truncated row reads a probability, not a density
+    fam %in% c("gaussian", "lognormal") &&
+      is.null(av[["cens"]]) && is.null(av[["trunc_lb"]]) &&
+      is.null(av[["trunc_ub"]]) &&
+      isTRUE(all.equal(lp[["link"]]$linkfun(c(2, 3)), c(2, 3)))
+  }, NA))
+}
+
+# The size of the first-order correction above which the Laplace value of a
+# field is not a number to report as the marginal: the gate of the
+# residual-term note (latres_laplace_reason()). Regular fits read up to
+# 0.24, the student step fields 1.72 and 2.17, the white bernoulli fields
+# -23 and 2660 (dev/gpfield-findings.md, 5112 and 5125).
+gp_laplace_tk_max <- 1
+
+#' The warning for a fit with an exact gp() at a point where the Laplace
+#' approximation does not hold: an inner Hessian near singular (an
+#' eigenvalue under `gp_relin_inner_ev_min`, where a field's coefficients
+#' with their unit prior hold 1 or more), or a first-order correction
+#' (gp_laplace_tk()) above `gp_laplace_tk_max`. `NULL` otherwise, or where
+#' it cannot be read: a diagnostic of a finished fit may not lose it.
+#'
+#' @noRd
+gp_laplace_message <- function(fit) {
+  bks <- Filter(function(b) identical(b[["covstruct"]], "gp"),
+                fit$frame[["re_blocks"]] %||% list())
+  if (!length(bks) || gp_laplace_exact(fit, bks)) return(NULL)
+  lab <- paste(vapply(bks, function(bk) {
+    bk[["group_name"]] %||% bk[["term_label"]] %||% ""
+  }, ""), collapse = ", ")
+  tail <- paste0(" The reported log-likelihood and the estimates rest on ",
+                 "that approximation: the model's marginal likelihood can ",
+                 "differ from it, and its maximum can lie elsewhere. ",
+                 "frmtmb.sample::frm_sample() reads the model without it")
+  # the inner Hessian holds every random effect, so its eigenvalue is the
+  # field's only where every block sits in a predictor that holds a field
+  fr <- fit$frame
+  gk <- vapply(bks, gp_block_lp, "", frame = fr)
+  ak <- vapply(fr[["re_blocks"]], gp_block_lp, "", frame = fr)
+  sing <- all(ak %in% gk) && tryCatch(suppressWarnings(
+    !gp_inner_pd(fit$obj, fit$opt$par, gp_relin_inner_ev_min)),
+    error = function(e) FALSE)
+  if (isTRUE(sing)) {
+    return(paste0("The Laplace approximation does not hold at this fit's ",
+                  "optimum for the exact gp() term ", lab, ": the inner ",
+                  "Hessian is near singular (an eigenvalue below ",
+                  gp_relin_inner_ev_min, ", where the field's coefficients ",
+                  "and their unit prior hold 1 or more), and the Laplace ",
+                  "value there gains minus half its log.", tail))
+  }
+  tk <- tryCatch(suppressWarnings(gp_laplace_tk(fit)),
+                 error = function(e) NULL)
+  if (is.null(tk) || (is.finite(tk) && abs(tk) <= gp_laplace_tk_max)) {
+    return(NULL)
+  }
+  paste0("The Laplace approximation is not reliable at this fit's optimum ",
+         "for the exact gp() term ", lab, ": its first-order correction ",
+         "is ", if (is.finite(tk)) format(signif(tk, 3)) else "not finite",
+         " in log-likelihood, more than ", gp_laplace_tk_max, ".", tail)
+}
+
+#' Say a fit's gp() warnings (gp_nugget_message(), gp_end_messages()) once,
+#' and return the fit. The user's own fit says them at its end; a model with
+#' a nonlinear body can return a refit instead (nl_fit_probed(): a sign
+#' probe's or a saddle restart's), which runs unannounced, so frm() asks
+#' again of the fit it returns. A white field on bernoulli rows came back
+#' that way from the probe with no warning, its Laplace value 22 above
+#' importance sampling's (dev/reviews/2026-11-13-gpfield.md, F1).
+#' Quadrature and importance sampling leave no Laplace field to check.
+#'
+#' @noRd
+gp_end_warn <- function(fit) {
+  cache <- fit$cache
+  if (!is.environment(cache) || isTRUE(cache$gp_end_said) ||
+        isTRUE(fit$quadrature) || !is.null(fit$importance)) {
+    return(fit)
+  }
+  cache$gp_end_said <- TRUE
+  gp_msg <- gp_nugget_message(fit)
+  if (!is.null(gp_msg)) {
+    frm_warning(gp_msg, call. = FALSE, class = "frmtmb_gp_nugget")
+  }
+  for (gm in gp_end_messages(fit)) {
+    frm_warning(gm$text, call. = FALSE, class = gm$class)
+  }
+  fit
+}
+
+#' The warnings frm() gives at the end of a fit with a gp() term, each a
+#' `list(text, class)`, besides the nugget's (gp_nugget_message()). The
+#' checks evaluate the objective; its state is put back.
+#'
+#' @noRd
+gp_end_messages <- function(fit) {
+  out <- list()
+  if (!is.null(fit$obj)) {
+    saved <- obj_state_save(fit$obj)
+    on.exit(obj_state_restore(fit$obj, saved), add = TRUE)
+  }
+  m <- tryCatch(gp_laplace_message(fit), error = function(e) NULL)
+  if (!is.null(m)) {
+    out[[length(out) + 1L]] <- list(text = m, class = "frmtmb_gp_laplace")
+  }
+  m <- tryCatch(gp_basis_message(fit), error = function(e) NULL)
+  if (!is.null(m)) {
+    out[[length(out) + 1L]] <- list(text = m, class = "frmtmb_gp_basis")
+  }
+  out
 }

@@ -819,10 +819,17 @@ poisson_cdf_log <- function(q, mu, qmax = 30L, K = 40L) {
       add <- as.numeric(j <= qs)
       s <- add * RTMB::logspace_add(s, lpmf(pmin(j, qs))) + (1 - add) * s
     }
-    up <- lpmf(qs + 1)
-    for (k in seq.int(2L, K)) up <- RTMB::logspace_add(up, lpmf(qs + k))
-    lr <- ad_min(lm - log(qs + K + 1), -0.01)
-    ldir <- RTMB::logspace_add(up, lpmf(qs + K) + lr - log1m_exp_ad(lr))
+    # the next K masses and the remainder as one Horner sweep of
+    # products, pmf(q + 1) (1 + r_2 (1 + r_3 (... (1 + r_K / (1 - rr))))),
+    # r_k = m / (q + k): 39 logspace_add() terms made the survivor's tape
+    # 7 times this one's (dev/famend-cost-pois.R). m is held at q + K + 1,
+    # which keeps every product below 14^40; past that the survivor is
+    # within 1e-7 of 1, where this arm is weighted 0
+    mc <- ad_min(m, qs + K + 1)
+    rr <- ad_min(mc / (qs + K + 1), exp(-0.01))
+    h <- 1 / (1 - rr)
+    for (k in seq.int(K, 2L)) h <- 1 + mc / (qs + k) * h
+    ldir <- lpmf(qs + 1) + log(h)
     lc <- log1m_exp_ad(s)
     w <- ad_smooth01((log(1e-3) - lc) / 2)
     # where the survivor is the small tail, F is its complement too: as a

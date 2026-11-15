@@ -129,7 +129,9 @@
 #' `latres_shifted(fit, lat, resp)` gives the fit back with one draw of them
 #' in the predictor of `mu`. `autocor_cond_strip_latent(fit)` marks a fit whose
 #' predictions read a grid: its latent residuals are not read there, as brms's
-#' `incl_autocor = FALSE` drops them.
+#' `incl_autocor = FALSE` drops them. `latres_err(theta, b, blk)` is brms's
+#' `err` of one latent block at one draw, per row: the block's `theta`
+#' (log `sderr` first) and its states `b` in, one value per row out.
 #'
 #' `arma_cond_resp(fit)` names the responses carrying brms's default
 #' `cov = FALSE` form of `ar()`, `ma()` or `arma()`, and
@@ -390,7 +392,9 @@
 #' attribute from a draws-by-rows matrix `m` over the rows of `grid`;
 #' `ce_spaghetti_check()` raises brms's refusal of `spaghetti` together
 #' with `surface`; `ce_check_distance()` validates `select_points` and
-#' `too_far`. `ce_grids_build()` takes `surface` and `too_far`, and
+#' `too_far`. `ce_grids_build()` takes `surface`, `too_far` and
+#' `re_formula` (whose kept terms' grouping variables order a default
+#' pair as factors), and
 #' `ce_finalize()` takes `select_points`, `pred_vars` (the grid's own
 #' `pred_vars`) and `draws_by_eff`, a list by effect of the draws
 #' matrices whose columns are that effect's rows.
@@ -405,23 +409,29 @@
 #'
 #' `ce_dots()` is the argument surface itself: it pulls
 #' `allow_new_levels` out of a call's dots, returns whether it was set,
-#' and REFUSES whatever is left, naming it. An extension that
-#' hand-rolls the same check accepts a different set of arguments from
+#' and REFUSES whatever is left but `sample_new_levels`, naming it.
+#' `ce_snl(dots)` reads that one, brms's rule for drawing a new level
+#' (`"uncertainty"` by default), which `ce_level_plan()` takes. An
+#' extension that hand-rolls the same check accepts a different set of
+#' arguments from
 #' the fit method, which is how `allow_new_levels` came to work on a
 #' fit and warn on draws.
 #'
 #' Three more serve one purpose between them: brms's rule for which
 #' group a grid row reads. `ce_group_vars()` names the grouping
 #' variables a `re_formula = NULL` call blanks where the grid does not
-#' set them. `ce_level_plan(fit, grids, base, re_formula)` then decides,
+#' set them. `ce_level_plan(fit, grids, base, re_formula,
+#' sample_new_levels)` then decides,
 #' per row and per group-level block, whether the row reads a level the
 #' fit saw or a NEW one (unset, unseen, or a combination a nested term
 #' never saw), and places each new one at a placeholder level of its
 #' block. A row reads only the block of its own level of a `gr(g, by =
 #' f)` term, and each new member value of an `mm()` term is its own new
 #' level. `ce_plan_eval(f, plan, gi, cache, ...)` evaluates grid `gi` at
-#' the parameters of `f`, drawing every new level from the covariance
-#' `f`'s own `theta` implies, once per distinct level: a sampler calls
+#' the parameters of `f`, drawing every new level by the plan's rule
+#' (an observed level's effects in `f` under `"uncertainty"`, or a draw
+#' from the covariance `f`'s own `theta` implies under `"gaussian"`),
+#' once per distinct level: a sampler calls
 #' it per POSTERIOR DRAW, with a fresh `cache` environment per draw,
 #' where the fit method calls it per bootstrap replicate, so the
 #' construction is the same and the frames stay comparable.
@@ -593,6 +603,8 @@
 #' @aliases ce_structure_check
 #' @aliases ce_re_formula
 #' @aliases ce_dots
+#' @aliases ce_snl
+#' @aliases latres_err
 #' @aliases find_linpred
 #' @aliases arg_unset
 #' @aliases re_form_arg
@@ -676,6 +688,8 @@
 #'   ce_method, ce_predict_family_check, ce_sim_one, pp_check_resp,
 #'   ce_cats_display, ce_display_kind, ce_pred_dpar, ce_group_vars,
 #'   ce_structure_check, ce_re_formula, ce_dots, find_linpred,
+#'   ce_snl,
+#'   latres_err,
 #'   arg_unset, re_form_arg, frm_check_dots, frm_install_generics,
 #'   fam_is_category_valued, predict_category_props, vcov_estimated,
 #'   brms_summary_matrix, brms_summary_array, brms_summarize_draws,
@@ -734,8 +748,10 @@ frmtmb_register_prior_defaults <- function(provider) {
              "provider(spec, frame), not ", arg_desc(provider),
              call. = FALSE)
   }
+  # a reload registers the same provider again; it replaces itself when
+  # provably the same (registration_key()), and is kept otherwise
   frmtmb_prior_defaults$providers <-
-    c(frmtmb_prior_defaults$providers, list(provider))
+    register_once(frmtmb_prior_defaults$providers, provider)
   invisible(NULL)
 }
 

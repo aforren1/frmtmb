@@ -50,7 +50,7 @@ new_par_template <- function(tpl, frame, fitted) {
 #' [frm_simulate()]'s `newparams =`, and every box constraint all need:
 #' these are the names a bound resolves to, and the names
 #' [set_prior()]'s `coef` takes for a covariance parameter that no brms
-#' class names (`class = "theta"`, `coef = "theta_12"`).
+#' class names (`class = "thetacov"`, `coef = "theta_12"`).
 #'
 #' On a fitted model the values are the estimates. On a formula and
 #' data the frame is assembled but nothing is fitted, and the values are
@@ -118,7 +118,8 @@ new_par_template <- function(tpl, frame, fitted) {
 #' set reads -193.4967 from the default start alone and -189.999 with the
 #' patterns. This makes a fit 1.2 to 2.8 times as slow with two or three such
 #' coefficients, 3.5 to 5.4 times with four, and up to 47 times with five. A
-#' `start`, or `options(frmtmb.nl_sign_probe = FALSE)`, skips it; a located
+#' `start`, `frmtmb_control(nl_starts = FALSE)` or
+#' `options(frmtmb.nl_sign_probe = FALSE)` skips it; a located
 #' prior does not. The patterns are not a proof: a `start` elsewhere, or a
 #' located prior, can still show a higher maximum. [frm_allfit()] cannot, as
 #' its optimizers start from one point.
@@ -346,17 +347,22 @@ nl_beta_positions <- function(frame) {
 #' random effect at its start of 0: each parameter it reads through its
 #' design, then the bodies in dependency order. `NULL` for a body that
 #' reads a `ps()` block, which has no value before its closure exists.
+#' With `exprs`, a list of parts of `lp`'s body, the value of each part
+#' there instead (nl_pole_walls() reads the body's denominators).
 #'
 #' @noRd
-nl_body_at <- function(frame, lp, tpl) {
+nl_body_at <- function(frame, lp, tpl, exprs = NULL) {
   vals <- list()
   for (q in frame[["linpreds"]]) {
     if (!identical(q[["resp"]], lp[["resp"]])) next
     if (!is.null(q[["nl_body"]])) {
       if (length(q[["ps_terms"]] %||% list())) return(NULL)
-      eta <- eval(q[["nl_body"]],
-                  c(vals[c(q[["nl_pars"]], q[["nl_dpar_refs"]])],
-                    q[["data_list"]]),
+      at <- c(vals[c(q[["nl_pars"]], q[["nl_dpar_refs"]])], q[["data_list"]])
+      if (!is.null(exprs) && identical(q[["dpar"]], lp[["dpar"]])) {
+        env <- ad_overload_env(q[["nl_env"]], q[["nl_body"]])
+        return(lapply(exprs, function(x) as.numeric(eval(x, at, env))))
+      }
+      eta <- eval(q[["nl_body"]], at,
                   ad_overload_env(q[["nl_env"]], q[["nl_body"]]))
     } else {
       b <- tpl[[q[["par"]]]][q[["idx"]]]
@@ -1387,6 +1393,7 @@ nl_probe_scale <- function(frame, lp, tpl, probed) {
 #' sampling, with a custom optimizer or one asked to stop early
 #' (optctrl_stops_earlier()), when every coefficient is an added term
 #' (`a + b * x`, whose only maxima are the family's), or under
+#' `frmtmb_control(nl_starts = FALSE)` or
 #' `options(frmtmb.nl_sign_probe = FALSE)`.
 #'
 #' @noRd
@@ -1394,6 +1401,7 @@ nl_sign_probe <- function(run, frame, fit) {
   obj <- fit$obj
   ctl <- fit$control
   if (!isTRUE(getOption("frmtmb.nl_sign_probe", TRUE)) ||
+        isFALSE(ctl$nl_starts) ||
         is.null(obj) || is.null(fit$opt) || !is.finite(fit$opt$objective) ||
         isTRUE(fit$quadrature) || !is.null(fit$importance) ||
         !is.null(fit$beta_whiten) || isTRUE(ctl$profile) ||
@@ -1595,9 +1603,25 @@ nl_fit_probed <- function(run, frame, start, prior) {
   }
   pr <- if (is.null(start)) nl_sign_probe(run, frame, fit)
   if (is.null(pr)) {
-    say(held$c)
-    limit(fit, held$c)
-    return(fit)
+    pe <- tryCatch(nl_pole_escape(run, frame, fit), error = keep_missing(NULL))
+    if (is.null(pe)) {
+      say(held$c)
+      limit(fit, held$c)
+      return(fit)
+    }
+    if (!is.null(start)) {
+      # the caller's start is kept; that it is not the maximum is news
+      say(held$c)
+      nl_pole_warning(pe, fit)
+      return(fit)
+    }
+    say(Filter(function(cnd) {
+      !inherits(cnd, c("warning", "frmtmb_nl_local", "frmtmb_nl_restart"))
+    }, held$c))
+    nl_pole_message(pe)
+    say(pe$held)
+    limit(pe$fit, pe$held)
+    return(pe$fit)
   }
   # what the first fit's stop was, or a restart it kept, is no longer the
   # answer
@@ -1616,6 +1640,15 @@ nl_fit_probed <- function(run, frame, start, prior) {
     ", optimizer return code ", format(pr$fit$opt$convergence), ", and frm() ",
     "returns that fit. Give `start` to choose your own",
     class = "frmtmb_nl_multistart")
+  pe <- if (pr$settled) {
+    tryCatch(nl_pole_escape(run, frame, pr$fit), error = keep_missing(NULL))
+  }
+  if (!is.null(pe)) {
+    nl_pole_message(pe)
+    say(pe$held)
+    limit(pe$fit, pe$held)
+    return(pe$fit)
+  }
   say(pr$held)
   if (!pr$settled) {
     lt <- nl_ll_pair(pr$ll_tape, pr$ll1)

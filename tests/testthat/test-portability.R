@@ -197,7 +197,10 @@ test_that("FN-10: lf() adds parameter formulas to a bf()", {
   expect_error(lf(~x), "two-sided")
   expect_error(lf(), "at least one")
   expect_error(lf(sigma ~ x, sigma ~ z), "Duplicated")
-  expect_error(bf(y ~ x, sigma ~ z) + lf(sigma ~ x), "already sets")
+  # a later lf() replaces the earlier formula, as brms 2.23.0 does
+  f <- NULL
+  expect_message(f <- bf(y ~ x, sigma ~ z) + lf(sigma ~ x), "Replacing")
+  expect_identical(deparse1(f$pforms$sigma), "sigma ~ x")
   expect_error(mvbf(bf(y ~ x), bf(z ~ x)) + lf(sigma ~ x),
                "which response")
 })

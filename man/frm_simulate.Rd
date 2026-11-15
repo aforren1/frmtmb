@@ -119,7 +119,7 @@ from it - the analog of brms's \code{sample_prior = "only"} followed by
 \code{posterior_predict()}. Draws are taken on the scale each class
 defines: class \code{"b"}/\code{"Intercept"} on the link scale, class \code{"sd"}
 on the natural SD scale (mapped to \code{theta} afterwards), class
-\code{"theta"} on the internal scale. \code{lb}/\code{ub} truncate by rejection.
+\code{"thetacov"} on the internal scale. \code{lb}/\code{ub} truncate by rejection.
 The drawn values come back as \code{attr(result, "pars")}, one row per
 simulation, so a prior-predictive check can relate parameters to
 outcomes.

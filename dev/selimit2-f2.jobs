@@ -1,0 +1,3 @@
+frmtmb tests/testthat/test-se-limit.R
+frmtmb tests/testthat/test-se-tier.R
+frmtmb tests/testthat/test-mi-families.R

@@ -155,9 +155,11 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   # re_formula = NULL means a NEW group here exactly as it does on the
   # fit side: the grid's grouping column says so with NA. Where the fit
   # method draws that group's effects per BOOTSTRAP replicate, this one
-  # draws them per POSTERIOR DRAW, from that draw's own theta - which
-  # is brms's construction, and the reason its curve for an unobserved
-  # group is not the population curve under another name.
+  # draws them per POSTERIOR DRAW, from that draw's own parameters (an
+  # observed level's effects under brms's default "uncertainty", a draw
+  # from that draw's theta under "gaussian") - which is brms's
+  # construction, and the reason its curve for an unobserved group is
+  # not the population curve under another name.
   pop_level <- !inherits(re_formula, "formula") &&
     length(re_formula) == 1L && is.na(re_formula)
   # a grouping variable the grid sets keeps its value; core's
@@ -166,11 +168,23 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   na_vars <- ce_na_vars(fit, pop_level)
   gb <- ce_grids_build(fit, rspec, lp, effects, resp, dpar, resolution,
                        conditions, data, int_conditions, na_vars,
-                       surface = surface, too_far = too_far)
+                       surface = surface, too_far = too_far,
+                       re_formula = re_formula)
   ce_spaghetti_check(spaghetti, surface, gb$grids, gb$base)
   # a display holds a me(gr = ) group at NA, a new level per row
   anl <- allow_new_levels || !pop_level || length(ce_na_vars(fit, TRUE)) > 0L
-  plan <- if (!pop_level) ce_level_plan(fit, gb$grids, gb$base, re_formula)
+  # brms's sample_new_levels, "uncertainty" by default: a new level lends
+  # an observed level's effects in each draw
+  plan <- if (!pop_level) {
+    ce_level_plan(fit, gb$grids, gb$base, re_formula, ce_snl(dots))
+  }
+  # a laplace refusal names the gaussian rule where the plan lends a level
+  if (!is.null(plan) && ce_plan_has_new(plan) &&
+        !identical(plan$snl, "gaussian")) {
+    old_lends <- draws_call_state$snl_lends
+    draws_call_state$snl_lends <- TRUE
+    on.exit(draws_call_state$snl_lends <- old_lends, add = TRUE)
+  }
   # the seed governs every random number the call takes: the new-level
   # draws of a plan, and the simulated responses of method = "predict"
   if (!is.null(seed) &&
@@ -241,9 +255,26 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   sim_one <- if (predict) {
     function(fit, nd) ce_sim_one(fit, nd, resp, re_formula, anl)
   }
+  # every predicted dpar at one grid, on the link scale, one column per
+  # dpar: what a simulated response reads besides its expected value
+  dp_names <- names(rspec$dpars)[vapply(names(rspec$dpars), function(d) {
+    !is.null(fit$frame[["linpreds"]][[paste(resp, d, sep = ".")]])
+  }, NA)]
+  dp_one <- function(fit, nd) {
+    vapply(dp_names, function(d) {
+      rep_len(as.vector(frm_linpred(fit, newdata = nd, dpar = d, resp = resp,
+                                    re_formula = re_formula,
+                                    allow_new_levels = anl, type = "link")),
+              nrow(nd))
+    }, numeric(nrow(nd)))
+  }
   # on laplace draws the watch reads the expected values, which the
   # probe read too: whether a simulated value is missing says less about
-  # what it read
+  # what it read. With method = "predict" it reads every dpar as well,
+  # as posterior_predict()'s does: the expected value of a gaussian does
+  # not read sigma, so `sigma ~ (1 | h)` drew an all-NA band unrefused
+  # (backlog 5362). Each dpar's cells are in the expected values' order,
+  # so the design skip applies to them cell by cell.
   M <- matrix(NA_real_, length(rows), sum(lens))
   for (i in seq_along(rows)) {
     one <- watch(function(fill) {
@@ -264,8 +295,23 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
           }
         }), use.names = FALSE)
       }
+      # each grid's rows x dpars, regrouped dpar by dpar across the grids
+      grid_dp <- function() {
+        per <- lapply(seq_along(gb$grids), function(gi) {
+          v <- if (is.null(plan)) {
+            dp_one(fi, gb$grids[[gi]]$nd)
+          } else {
+            ce_plan_eval(fi, plan, gi, cache, poly, resp, pred_dpar,
+                         re_formula, anl, one = dp_one)
+          }
+          matrix(v, ncol = length(dp_names))
+        })
+        lapply(seq_along(dp_names), function(j) {
+          unlist(lapply(per, function(m) m[, j]), use.names = FALSE)
+        })
+      }
       list(val = grid_vals(sim_one),
-           ev = if (lap && predict) grid_vals(NULL))
+           ev = if (lap && predict) c(list(grid_vals(NULL)), grid_dp()))
     }, function(o) if (predict) o$ev else o$val)
     M[i, ] <- one$val
   }

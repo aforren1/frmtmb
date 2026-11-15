@@ -1,3 +1,826 @@
+# frmtmb 0.83.0
+
+## Convergence and standard errors
+
+* BREAKING: The standard-error check finds coefficients of one linear
+  predictor that have run to the end of their range together, where no
+  coefficient alone has. With `y ~ g` and group a all zero, the
+  intercept and `gb` run off together, and the check called both
+  "flat", while `y ~ 0 + g` called `ga` a limit. A treatment-coded
+  `zi ~ f` with one level all zero gave standard errors of 5374 and no
+  warning. These fits now get the limit verdict that a single
+  coefficient gets: the warning that the maximum likelihood estimate
+  does not exist, or the boundary message for a family parameter. The
+  combination that ran off has no standard error, and a prediction that
+  does not move along it (the mean of group b) keeps its standard error.
+  The verdict needs a proof from the rows the combination moves: for a
+  count or binary mean, every row moved toward 0 is 0 (and every
+  bernoulli row moved toward 1 is 1); for a zero-inflation or hurdle
+  probability, every row moved toward 1 is 0 and every row moved toward
+  0 is positive; a mixing weight must not lose likelihood at 0 or 1.
+  Without it the coefficients stay "flat".
+
+* BREAKING: A run that sends a zero-inflation, hurdle or
+  zero-one-inflation probability to 1 on some rows is a separation of
+  that probability's rows, as a bernoulli fitted to them is
+  quasi-separated. With `zi ~ 0 + f` and level a all zero, the check
+  gave the quiet boundary message, which said that the probability
+  "drops that part of the model". The fit now warns that the data
+  separate the rows of the probability. The other coefficients keep
+  their own verdicts.
+
+* BREAKING: `fitted()` gives NaN standard errors for a row that a
+  limit direction moves away from the data. The test read only the
+  derivative at the estimate. A `zi ~ x` fit whose zi ran to zero read
+  the expected count at a new `x = -10` with a standard error of 0.049,
+  but a zi slope that fits the data as well sends zi to 1 there. The
+  check now moves each limit direction over the range where the
+  log-likelihood stays level, and a row that moves by more than a
+  hundredth of its standard error gets NaN and the warning. Every row is
+  tested, inside the data or not: with `zi ~ x + z` and zi's `x` slope
+  at its end, a new row at `x = 1, z = 1` read 0.22 with a standard
+  error of 0.49, while the slope at its limit, which fits as well, gives
+  4.06. A parameter that the end leaves undetermined is moved with the
+  end at its limit, so a mixture whose weight ran to 0 keeps the
+  standard errors of its fitted values: at weight 0 that component's
+  parameters do not enter the mean.
+
+* BREAKING: A gradient above `grad_tol` along the direction of a
+  coefficient, or a combination of coefficients, at the end of its
+  range, along which the log-likelihood is level, no longer hides the
+  limit. The part of the gradient across that direction is still tested
+  against `grad_tol`. A
+  `negbinomial()` shape on poisson data stopped at a log shape of 23.2
+  with code 8 and a gradient of 1.35e-3 on the shape, which is rounding
+  of the density at that limit. The fit gave the false-convergence and
+  gradient warnings and kept the shape's standard error as "nocurv". It
+  now gets the boundary message for the shape at its limit.
+
+* The warning on predictions whose standard errors are NaN because a
+  parameter has no variance where the fit stopped (reason "nocurv")
+  now says so, and no longer says that they move along a direction the
+  fit does not determine. An `asym_laplace()` fit, which stops at false
+  convergence on the kinks of its likelihood, gave the wrong words. A
+  separation that the fit's warning names keeps the separation's words.
+
+* `fitted()`, `predict()` and the other predictions of a REML fit on an
+  ill-conditioned fixed design (one that frmtmb fits in the design's own
+  coordinates) whose variance parameter has no standard error now keep
+  their digits. The joint covariance was formed from the inner block in
+  the natural coordinates, whose condition number is the design's
+  squared. On a degree-7 raw polynomial with `(1 | g)` and the group sd
+  at zero, `fitted(re_formula = NA)` gave standard errors up to 3.3
+  percent wrong with no warning, while `vcov()` was right. The block is
+  now inverted in the design's coordinates and kept as a factor, up to
+  `options(frmtmb.joint_root_max = 4000)` joint parameters (fixed and
+  random). BREAKING: above that size such a fit's predictions that read
+  its coefficients get NaN standard errors and a warning that names the
+  option and `frmtmb.sample::frm_sample()`. Before, at 4510 joint
+  parameters, they were silently 0 or 7 percent high.
+
+* BREAKING: `autoscale` rescales a random-effect column whether or not a
+  fixed effect reads the same column. Before, `y ~ 1 + (0 + x | g)` and
+  `y ~ 1 + (1 + x | g)` with `x` spread 1e-4 or 1e-5 stayed at their
+  start (slope sd 1) with optimizer code 0. They were 1.7 to 12.7
+  log-likelihood units short on gaussian data and up to 111 on poisson
+  data, and most gave no warning. Now each of 48 such fits is within
+  3e-9 units of the best optimum that frmtmb, lme4 and glmmTMB find
+  with `x` at either spread.
+  - The scale of a random-effect column is its root mean square,
+    because a random slope is not centered. The default engages, as
+    before, when the standard deviation of the column's nonzero values
+    is below 0.05.
+  - A column is rescaled in every covariance structure where this is
+    an exact reparameterization: a structure with a standard deviation
+    per column (`us()`, `||`, `cs()`, `toep()`, `hetar1()`, the `gr()`
+    blocks, the Student-t blocks), and a structure with one standard
+    deviation (`ar1()`, `homdiag()`, `homcs()`, `homtoep()`, `ou()` and
+    the spatial structures) when each of its columns qualifies. This
+    includes `mm()` terms, nested terms, `|ID|` terms and terms of a
+    distributional parameter. Before, only `us()`, `diag()` and the
+    Student-t blocks were rescaled.
+  - A structure that another package registers is rescaled when its
+    density passes the same test at fit time.
+  - Under `autoscale = TRUE`, the message that names a slope
+    `autoscale` cannot rescale is now also given when nothing else is
+    planned.
+
+* A standard deviation that a fit left at its start, where a much
+  larger value raises the log-likelihood, is no longer called "at
+  zero" in a boundary message. With `autoscale = FALSE`, a random slope
+  on a column spread 1e-5 stopped at sd 1, 9.2 units short of its
+  maximum near 5e4, and the fit said that the sd was at zero. The
+  standard-error check now counts the gain it finds 10 units up on the
+  log scale, so the fit warns that it stopped short.
+
+* BREAKING: The escape from a family's declared stationary point is
+  asked again from the optimum it keeps, while it gains, once per
+  predictor that sat on its point. Each restart moves one predictor off
+  its point, so with two on their points one pass moved only one: both
+  alphas of `mixture(skew_normal(), skew_normal())` started at 0 ended 7
+  to 9 log-likelihood units below the fit from the default start, and
+  both states of `frmtmb.latent::hmm(2, skew_normal())` 20 to 25 units
+  below. Both now reach that fit.
+
+## Quadrature
+
+* BREAKING: With `quadrature = TRUE` on one random-effect block per row,
+  a standard deviation that stops near zero short of an interior
+  maximum is restarted from a larger value, as under the Laplace
+  approximation. The check reads a Gauss-Kronrod rule taped at each
+  larger value, and the restart tapes a rule at its start. Before, the
+  fit stayed there with code 0 and no warning: a skew normal with
+  `(1 | g)` started at alpha's stationary point stopped with the group
+  standard deviation at exp(-20.4), 5.5e-2 below the maximum at
+  exp(-2.55). It now ends 3.8e-7 below the fit from the default start.
+  `fit$opt$sd_escape` records the gain.
+
+* BREAKING: With `quadrature = TRUE` on one block per row, a coefficient
+  that runs off to infinity gets a NaN standard error and the same
+  warning as under the Laplace approximation, and the parameters it
+  leaves undetermined lose theirs. The check reads a rule taped at each
+  point it probes. Before, a poisson level whose counts are all zero had
+  a coefficient of -22.5 with a standard error of 7471 and no warning.
+
+## Fitting
+
+* BREAKING: A nonlinear fit that stops beside a pole of its body, where a
+  denominator of the body is 0, is optimized again from beyond the poles.
+  A denominator that is affine in a coefficient, such as `K + xp` in
+  `Vm * xp / (K + xp)`, is 0 at one value of the coefficient for each
+  row, and the optimizer cannot cross these values. Where the
+  denominator takes both signs over the rows, or the fit is nearer one
+  of these values than they are to each other, the optimizer runs from
+  past each end of the band they make. From the default start, a better
+  maximum is returned with a message of class `frmtmb_nl_pole_start`.
+  Example: a binomial Michaelis-Menten fit stopped at code 0 with no
+  warning at K = -0.18, between the poles of two rows; the fit is now at
+  K = -6.02, 4.32 higher in log-likelihood. From a given `start`, the fit
+  is kept and a warning of class `frmtmb_nl_pole` gives the higher value.
+  A run that ends against a pole, where the likelihood has a supremum and
+  no maximum, is not kept.
+
+* The warning of class `frmtmb_nl_limit` (a nonlinear fit on a ridge to
+  a limit of its body) now reads the ridge after one Newton step across
+  it. `a * (exp(b * x) - 1)` on linear data stopped 0.0033 below the
+  ridge's value at code 0 with no warning, because the move along the
+  flattest direction left the ridge where it bends.
+
+* `frmtmb_control(nl_starts = FALSE)` turns off the sign probe and the
+  pole restart of a nonlinear fit: the fits from each sign pattern of
+  the body's coefficients and the fits from beyond a pole of the body.
+  The default, `TRUE`, keeps them. A fit can still restart from a
+  saddle point (message class `frmtmb_nl_restart`); this switch does
+  not change that.
+
+## Gaussian processes
+
+* `gp()` takes brms's other kernels, `cov = "matern52"`, `"matern32"` and
+  `"exponential"` (also spelled `"matern12"`), exact and approximate, with
+  brms's kernels and spectral densities. Before, `frm()` refused them. As in
+  brms, an anisotropic exact field is a product of one kernel per dimension.
+  `frm_extra_cov_deriv()` refuses a term with a kernel other than
+  `"exp_quad"`.
+
+* BREAKING: `predict()` draws a `gp()` term's coefficients with the other
+  estimates, at every `re_formula`, and at a position the fit did not see it
+  draws the field there given the drawn field, as brms's draws carry them.
+  An exact field takes the inner mode at each replicate's own parameters.
+  Before, the field stayed at its mode while the intercept it can absorb
+  was drawn: on a 30-row example the spread at a fitted position was 8
+  times brms's, and far past the positions it was half of brms's. Now it is
+  within 13 percent of brms's at each of five positions. Each replicate
+  takes Newton steps on numbers from the fit's field to its own mode, one
+  step on a gaussian mean, and factors the kernel there once for its field:
+  on a gaussian field at 500 positions and a poisson one at 300, a draw
+  takes 0.9 to about 2 times as long as before. Beside another random effect or
+  in a nonlinear body it solves the inner problem on the tape, which took 3
+  to 21 times as long.
+
+* BREAKING: an exact `gp()` in a linear predictor of a family other than
+  the gaussian is read again at the fit's optimum: its marginal with each
+  row's log density replaced by its quadratic there. Where that reads another
+  length scale, a descent runs from it, and the fit keeps it only at a
+  regular maximum that is higher. On low-count Poisson counts the default
+  stopped 1.59 below such a maximum, at code 0 with no warning. It runs on
+  the user's own fit with no `start`.
+
+* BREAKING: an approximate `gp(k = )` in a model with no exact `gp()` gets
+  the same second reading, from a grid of length scales and standard
+  deviations read at the fit's optimum. Its fits had no start of their own,
+  and stopped 1.18 and 0.94 short, each at code 0 with no warning.
+
+* BREAKING: `frm()` warns with class `frmtmb_gp_laplace` where the Laplace
+  approximation of an exact `gp()` field does not hold at the optimum: the
+  inner Hessian has an eigenvalue below 0.01, or the first-order correction
+  to the approximation is more than 1 in log-likelihood. On a `student()`
+  response with a step in the field the default stopped where the Laplace
+  value stood 2.7 below the marginal likelihood, and on bernoulli rows at a
+  white-noise field far above it, each with no warning. The check reads the
+  fit `frm()` returns, a nonlinear model's refit from a sign probe or a
+  saddle restart included. The correction overstates the error by up to
+  about 1.5 times: on 20 bernoulli fits of a wiggly field it warned on 2,
+  where importance sampling read the Laplace value 0.90 and 0.70 off. See
+  `?frmtmb-gp`.
+
+* BREAKING: `frm()` warns with class `frmtmb_gp_basis` where the length
+  scale of an approximate `gp(k = )` runs below a tenth of the spacing its
+  basis resolves. There every basis function gets the same prior weight,
+  and the data determine `sdgp^2` times the product of the length scales
+  but not each one. The fitted field and its predictions hold. A modest `k`
+  ends there often: 13 of 30 gaussian fits of fields drawn from a squared
+  exponential kernel did, with `k` from 5 to 20, each at the likelihood's
+  maximum.
+
+## Priors
+
+* BREAKING: frmtmb's own class for the internal covariance parameters
+  that no brms class names is now `"thetacov"`, where it was `"theta"`.
+  Write `set_prior("", class = "thetacov", coef = "theta_12", lb = -2)`;
+  `default_prior()` lists those rows under `"thetacov"`. The parameter
+  names (`theta_12`, `thetaac_1`) do not change.
+
+* BREAKING: class `"theta"` is now brms's class of the same name: the
+  mixing weights of a `mixture()`, as one simplex, where no weight has a
+  formula or a fixed value. `default_prior()` lists one `theta` row per
+  such response, `(flat)` on the default route and brms's
+  `dirichlet(1)` on `route = "sample"`. `set_prior("dirichlet(2)",
+  class = "theta")` puts a Dirichlet density on the weights, with one
+  concentration or one per component. It takes `dirichlet()` and
+  nothing else, and no `coef`, `group`, `dpar`, `nlpar`, `lb` or `ub`;
+  in a multivariate model it takes `resp`. Each refusal uses brms's
+  words. One weight is not a class: `class = "theta1"` is refused, as
+  brms refuses it. A brms prior table with a `theta` row carries over,
+  and a table passed back gives the same fit.
+
+* In `frm()`, a class `"theta"` prior is the density of the log ratios
+  that the fit holds: the Dirichlet on the weights times the Jacobian
+  of the softmax. This is the density that `frmtmb.sample::frm_sample()`
+  samples, so the MAP fit is the mode of that posterior.
+
+* BREAKING: a class `"cor"` prior with `resp` is refused, as brms
+  refuses it ("The following priors do not correspond to any model
+  parameter: L_g__y2 ~ lkj(5)"). A correlation prior is keyed by
+  `group` alone, and reaches the correlated blocks of that group in
+  every response.
+
+* BREAKING: `lb` or `ub` on class `"Intercept"` is refused where that
+  intercept is centered, that is, where its formula has predictors
+  whose means are not zero. brms bounds the intercept at the predictor
+  means, and the class's density reads that intercept, but `frm()`
+  bounded the intercept at zero, which is another number: with
+  `x = z + 10` and `lb = 3`, the slope fell from lm()'s 0.405 to 0.208
+  under a bound that brms does not apply. Center the predictors, or
+  bound the intercept at zero with `bf(..., center = FALSE)` and
+  `class = "b", coef = "Intercept"`.
+
+* A bound of your own at an end of a prior's support where the density
+  is zero or infinite (`lognormal()`, `gamma(2, 2)` or `gamma(0.5, 1)`
+  with `lb = 0`, `beta(2, 2)` with `lb = 0` and `ub = 1`) no longer
+  leaves `frm()` stopped on the bound. The fit runs in the box first,
+  as before, so a fit whose maximum is inside the box does not change.
+  Where that run stops on such an end, or fails beside it, the fit is
+  run again in a coordinate where the end is out of reach. Under
+  `beta(2, 2)`, a slope that the data put below 0 ended at 0 with the
+  objective `Inf`; it now ends at the mode, 0.0068, with the objective
+  129.86. Under `gamma(0.5, 1)` on a `poisson("identity")` slope, the
+  fit failed with "NA/NaN gradient evaluation"; it now ends at the
+  maximum, 1.3833. With an exposure of 1e7 per row, the same model
+  ends at its maximum, 4.854e-10, very near the end.
+
+* BREAKING: where the fit ends beside an end at which the prior's
+  density is infinite, `frm()` evaluates the log posterior at points
+  that approach that end, down to the nearest double. If it rises at
+  every point and passes the best fit found, the log posterior has no
+  maximum, and `frm()` stops with an error. An example is `gamma(0.5,
+  1)` with `lb = 0` on a gaussian slope that the data put below 0,
+  which ended at the bound with the objective `-Inf` and code 1. If the
+  log posterior does not rise so, the best point found is returned.
+  Where that point is nearer the end than the fit stopped, the fit has
+  code 1 and a warning says so. Where the fit ends inside, away from
+  that end, and the log posterior at the nearest double past the end is
+  higher than at the fit, the posterior has no maximum and the fit is a
+  local mode. The fit is returned with a warning of class
+  `frmtmb_prior_unbounded_local` that names the parameter and the end.
+  With `gamma(0.5, 1)` and `lb = 0` on `x` in a gaussian `y ~ x + z`,
+  the fit ended at the bound before, with the objective `-Inf` and code
+  1; the fit now ends at the local mode, 0.393, with that warning.
+  `frmtmb.sample::frm_sample()` samples a posterior with no maximum,
+  with the bound on the class row.
+
+* A bound that goes through a link is moved inside until the inverse
+  link takes it inside the bound, so that the parameter at the bound is
+  in the density's support. `uniform(0, 0.3)` on `zi` stopped at code
+  1 with the objective 186.1733, because `plogis(qlogis(0.3))` is
+  0.30000000000000004; it now converges at the bound at 185.9493. A
+  bound that no value maps inside is refused by name.
+
+* BREAKING: a lower bound above the support of its parameter is refused
+  as an empty box. `set_prior("", class = "zi", lb = 2)` was dropped
+  without a word, and the fit had no bound. A lower bound below the
+  support, such as `lb = -1` on `zi`, still constrains nothing.
+
+* `frm_simulate()` refuses a `dirichlet()` prior with a message that
+  says why: one draw per parameter is no draw from a density on a
+  whole simplex. A simplex of two weights stopped with "No sampler for
+  prior kind 'dirichlet'".
+
+* A start where a prior's density is 0 or undefined moves inside the
+  prior's support. `gamma(2, 1)` on the coefficients of
+  `shape ~ 0 + fac`, which start at 0, left the fit at its start with a
+  log-likelihood of `NaN`, with or without `lb = 0`. `beta(2, 2)` on a
+  slope whose least-squares start is below 0 stopped on a NaN gradient
+  with no bound, and at the end of the box with `lb = 0, ub = 1`; both
+  now reach the mode that `lb = 1e-8` finds. Every start where the
+  prior's density is positive keeps its value, and a caller's `start`
+  is used as given.
+
+## Ordinal mixtures
+
+* BREAKING: the finding that a jittered start of an ordinal mixture
+  reached a higher step function is a message of class
+  `frmtmb_mixture_step_start`, not a warning. The point the fit returns
+  is the better answer, so nothing about it calls for a warning.
+
+* BREAKING: Two thresholds of an ordinal-mixture component that are the
+  same number up to rounding (8 units in the last place) count as
+  collapsed, as two thresholds that are the same double did. Before, a
+  point warned and a point 1e-15 from it, of the same likelihood, did
+  not.
+
+* BREAKING: The degenerate-boundary warning of an ordinal mixture finds a
+  threshold that the data do not place: one whose standard error is
+  above 100 on the latent scale. Such a threshold lies on a flat
+  direction of the likelihood. An example is a threshold at -39.8 with a
+  standard error of 1.75e7 that passed without a warning, because no row
+  was 50 latent units from it. Where the standard-error check finds no
+  standard error for such a threshold, the warning says so and the
+  standard-error warning that names the parameters stays. No fit moves.
+  On an ordinal mixture with random effects the degenerate warning names
+  `frmtmb_control(starts = 10)`, because such a fit runs no jittered
+  starts by default.
+
+* An ordinal mixture whose `cs()` effect closes a row's own category
+  (its two thresholds cross on that row) warns, and names the row and
+  the width of the category. Such a fit stops at "false convergence"
+  against that wall, and no warning named the cause before.
+
+## Families
+
+* A `frechet()` fit whose `nu` runs to 1 warns, with class
+  `frmtmb_frechet_nu_edge`. In brms's parameterization `mu` is the
+  mean, which is infinite at `nu = 1`, so where the data's tail is too
+  heavy for a finite mean, `mu` and `nu` run to that edge together. The
+  fit only said before that two standard errors were not available
+  (`nu = 1 + 4.9e-9`, mean intercept 17.4). The check moves `nu` toward
+  the edge with the scale held, and warns only where the likelihood
+  does not fall that way. A predicted `nu` within 1e-3 of 1 gets a
+  message that names the distance.
+
+* A `gen_extreme_value()` fit with `xi` below -0.5 gets a message of
+  class `frmtmb_gev_xi_nonregular`. There the maximum is not regular
+  (Smith, 1985): the standard errors of `mu`, `sigma` and `xi` are not
+  asymptotically normal, and the message gives the profile interval,
+  which does not use them, as a call that runs:
+  `confint(fit, parm = "xi_(Intercept)", method = "profile")` for a
+  scalar `xi`. Before, such fits returned their standard errors in
+  silence.
+
+* The gradient of a `gen_extreme_value()` row outside its support,
+  about 19.5 to 20.6 scale units below its location, was `NaN` at `xi`
+  from 0.06 to 10. It is now finite. At every row inside the support,
+  the density, its CDF, the log survivor and their gradients are
+  unchanged to the bit. Outside the support the log density is a
+  barrier. It now uses the same clamped value of `1 + xi x` at every
+  row; before, rounding put some rows a few units in the last place
+  above it. At those rows the barrier, below -1e13, changes by up to a
+  factor of 1.2e5. At the other rows it changes by at most 1e-11
+  relative.
+
+* The poisson CDF pair of a count from 1 to 30 sums its upper tail in
+  one sweep of products in place of 39 log-sums, with the same values
+  to 6e-14 relative. The pair's tape is 3.3 times faster, and a
+  right-censored poisson `(1 | g)` fit of 1440 rows under quadrature
+  peaks at 2773 MB in place of 3380 MB.
+
+## Residuals
+
+* BREAKING: `residuals(type = "osa")` takes a censored count. An
+  uncensored row is read inside the window `(lo, hi]` that the
+  censoring points leave, and is randomized over its own step of the
+  CDF renormalized on that window. A count family with a CDF takes
+  `osa_method = "cdf"` there, and `"oneStepGeneric"` sums the mass over
+  `lo + 1, ..., hi`. Before, the call was refused. With no group-level
+  term the residuals of poisson, negbinomial, binomial and
+  zero-inflated poisson fits match the exact randomized PIT on the
+  window to 1.5e-13. A censored continuous response takes
+  `osa_method = "cdf"` on request; its default stays
+  `"oneStepGeneric"`, and both match the exact PIT to 1e-14.
+
+* BREAKING: On a continuous response read off its CDF, a row with a
+  weight between 0 and 1 gets the one-step residual of a fresh copy of
+  the row, given the rows before it. Before, it was `NA` with a
+  warning. A count keeps `NA` with the warning, and a row of weight 0
+  keeps `NA`.
+
+## Weighted models with an observation-level effect
+
+* BREAKING: The check that refuses a weighted likelihood with no maximum
+  now includes `hurdle_lognormal()`, `hurdle_gamma()`,
+  `zero_inflated_beta()` and `zero_one_inflated_beta()`. A row at the
+  point mass (an exact 0, or an exact 1 for the zero-one-inflated beta)
+  does not count: its probability is `hu`, `zi` or `zoi`, which does not
+  depend on `mu` or on the dispersion. The excess is the sum of `w - 1`
+  over the other rows. Before, these models ran away (a
+  `hurdle_lognormal()` fit with weights of 1.5 reached a log-likelihood
+  of 968.9 at a log sigma of -37.5), or stopped with no warning at a
+  point from which the objective increases without bound.
+
+* BREAKING: A prior on the intercept of a dispersion formula such as
+  `sigma ~ 1 + fac` no longer keeps the check from a model that it
+  cannot bound. frmtmb puts that prior on the intercept at the
+  predictor means, and sigma can decrease on one set of rows and
+  increase on another without a change to that intercept. The
+  likelihood then has no maximum when the mean of `w - 1` over the rows
+  of the first set is more than the mean weight of the second. The check
+  tests pairs of these sets when sigma has the log link and each
+  coefficient that the pair moves has no prior, a flat prior or a
+  `student_t()` prior:
+  - When the distinct rows of sigma's design are as many as its rank
+    (one factor in any coding, such as `contr.sum()`, or a full
+    interaction of factors), each set is the rows of one distinct row,
+    and the test is exact when no coefficient has another prior.
+  - Otherwise (a numeric variable beside a factor, or two factors
+    without their interaction), each set is the rows of one treatment
+    column, or the reference level. A model that is unbounded only in
+    another direction is not refused.
+
+  Before, a model with weights of 0.3 and 1.5 on two levels reached a
+  log-likelihood of 612.75.
+
+* When the check refuses a model that also has an invalid prior, `frm()`
+  now gives the error about the prior first. Before, the refusal hid it.
+
+* The warnings about an observation-level effect and about a grouping
+  factor with one level now write a term of a multivariate model as its
+  formula does, followed by the response: "`1 | obs` of response y".
+  Before, they wrote "`y 1 | obs`".
+
+## asym_laplace() with random effects
+
+* BREAKING: `frm()` refuses an `asym_laplace()` or
+  `zero_inflated_asym_laplace()` model whose random effects enter `mu`
+  through the identity link, under the Laplace approximation (the
+  default): `(1 | g)`, correlated or uncorrelated slopes, `s()`, `t2()`,
+  an approximate `gp(k = )`, `ar1()`, `cs()`, `homdiag()` and
+  `gr(cov = )`. The log density
+  is linear in `mu` on each side of its mode, so the data give these
+  effects no curvature, and the approximation never falls as their
+  standard deviation grows: it has no maximum. Before, such fits ended
+  wherever the optimizer stopped, with a false-convergence warning;
+  their standard deviation and log-likelihood had no meaning. Use
+  `frmtmb.sample::frm_sample()`. The check does not refuse a model with
+  another link, `cens()` or `trunc()`, `mi()` or `me()`, a random effect
+  in `sigma`, `quantile` or `zi`, a Student-t random effect (`gr(dist =
+  "student")`) or another package's structure in the same `mu`, a prior
+  on the random effects' standard deviation, an exact `gp()`, another
+  structure, `quadrature = TRUE` or `importance`.
+
+## Residual correlation terms
+
+* BREAKING: a missing value of the response of `fcor()` or a registered
+  term such as `sar()` that no other density reads now leaves `frm()`'s
+  fit, which takes the exact marginal density of the observed rows under
+  the model over every row, on `gaussian()` and `student()`. For
+  `fcor()` that is the fit over the observed rows with `M` cut to them.
+  For `sar()` it is not `sar()` of `W` cut to the observed rows: the
+  missing locations still carry the spatial process between the observed
+  ones. Such values are no longer in `fit$estimates$miss`;
+  `frmtmb.sample::frm_sample()` still samples every one. Before, they
+  were latent under the Laplace approximation, which was silently wrong
+  in three cases: `student()` with a random effect beside the term or
+  `REML = TRUE` (with `REML = TRUE` the fit was still marked exact), and
+  `gaussian()` with a random effect in `sigma`. The measured errors of
+  the log-likelihood ran from 0.21 nats (`gaussian()`, a random effect in
+  `sigma`) through 4.66 nats (`student()` `fcor()`, half of 60 rows
+  missing) to 45.17 nats (`student()` `sar()`, 300 of 400 rows missing).
+  The latent values were also slow and large: with 200 of 1000 rows
+  missing and a random effect, a `student()` `fcor()` fit took 197 s and
+  25 GB. The margin takes 25 s and 2.2 GB there, and 12 s and 1.1 GB
+  with 300 of 400 missing (49 s and 7.1 GB before); `sar()`'s takes 1.7
+  to 2.1 times as long as before and about 30 percent more memory with
+  300 of 400 missing (0.6 against 0.5 GB), and 1.2 to 1.7 times as long
+  with 100 to 200 missing.
+
+* `frmtmb_register_autocor()` takes a `margin` slot that gives the
+  margin's `K_m'K_m` and `K_m'u` without one call of `whiten()` per
+  missing value. `fcor()` and frmtmb.spatial's `sar()` have one. When the
+  objective is built, a given slot is checked in full against `whiten()`
+  at one value of the parameters, and refused by the term's name when
+  it disagrees there; that check is not a proof for every value.
+
+* BREAKING: `confint_varcorr()`, `summary()` and `frm_multiple()` hold
+  the ends of a registered residual term's bounded parameter, such as
+  `sar()`'s rho, inside its interval (type `"clamped"`, was `"raw"`).
+  The delta-method interval passed the end of rho's interval, where
+  `|I - rho W|` changes sign, in 133 of 200 fits of a 5 x 5 lattice at
+  rho = 0.9. The estimate, the standard error and the coverage (0.935
+  there, 0.930 on a 10 x 10 lattice) are unchanged. `frm_multiple()`
+  pools the parameter on its own scale.
+
+* BREAKING: The warning that a latent residual's Laplace approximation
+  is biased (class `frmtmb_latres_laplace`) is no longer given where each
+  row's log density is quadratic in its linear predictor, as on a
+  lognormal: there the approximation is exact. It fired on 1 of 10
+  lognormal fits with `ar(cov = TRUE)`, on the weight-0 spelling of an
+  unread `mi()` response and not on the `mi()` spelling.
+
+## Response coding and refits
+
+* An uncorrelated term over a known covariance or precision,
+  `(0 + f || gr(g, cov = A))`, `(0 + f | gr(g, cov = A, cor = FALSE))`
+  or the same over `gr(g, prec = Q)`, fits a factor: each column of the
+  term has its own sd over the known matrix, as in brms 2.23.0. Before,
+  a factor in such a term was refused. The log-likelihood equals that
+  of the same columns written as numeric variables, and the gaussian
+  marginal density written out. `(1 + f || gr(g, cov = A))` codes the
+  factor with the formula's contrasts, as brms does: its columns are
+  `Intercept`, `fb` and `fc`. The multi-membership `mm(g1, g2, cov =
+  A)` keeps lme4's split of the term, and a factor there is still
+  refused.
+
+* BREAKING: A character ordinal response is refused in brms's words,
+  with the response's name: "Family 'cumulative' requires either
+  positive integers or ordered factors as responses." This holds for
+  text that spells the category codes (`"1"`, `"2"`, ...), which fitted
+  before, as brms 2.23.0 refuses it too. Give the codes as integers or
+  the labels as an ordered factor. Before, labels such as `"none"` and
+  `"mild"` stopped with "missing value where TRUE/FALSE needed".
+
+* `fitted(newdata = )` on a multivariate ordinal fit takes a one-row
+  `newdata`. Before, it stopped with R's `vapply()` error.
+
+* BREAKING: `y ~ . - w` is expanded without the columns that the
+  formula removes, so `formula(fit)` is `y ~ (x + z)`, where it was
+  `y ~ (x + z + w) - w`, as brms stores it. So the fit refits on data
+  without `w`, as brms reads the same formula there. A removed column
+  that the formula reads elsewhere, as in `. - w + w:x`, stays.
+
+* BREAKING: `refit(newresp = )` of a `bernoulli()` fit reads the
+  response's own two values first, as `residuals(newdata = )` and brms
+  read a new response, and a vector of 0 and 1 that is not the fit's
+  values as the 0/1 codes that `simulate()` returns. Before, the values
+  were refused, and a vector of 0 and 1 was always the codes: on a fit
+  coded 1 and 2, `refit()` read 1 as a success where `residuals()` read
+  it as a failure. A vector that reads both ways with different results
+  (all 1s on that fit) is refused; a factor states values and a logical
+  states codes. `frm_bootstrap()` passes its draws as codes.
+
+* BREAKING: `update()` takes `na.action`, `se` and `verbose` from the
+  fit when it does not get them. Before, it read them from the stored
+  call where `update()` was called. So a fit made inside a function
+  with a local `na.action` could not be updated, and an object of the
+  same name in the workspace became the argument.
+
+* BREAKING: `update(fit, ~ . - x)` records a readable call: `getCall()`
+  gives `frm(formula = z ~ x + (1 | g), data = dd)`, or a
+  `frmtmb::bf()` call where the model has parameter formulas. Before,
+  it held the deparsed `bf()` object, thousands of characters long.
+
+* BREAKING: `vcov_cluster(cluster = ~ v)` reads `v` from the data
+  first: the fit's own columns, then the data that the fit's call
+  names, and the formula's environment only when the data lack `v`, as
+  `sandwich::vcovCL()` reads it. Before, an object `v` in the workspace
+  of the right length was read in place of the data's column. The
+  call's data are read only when they still hold the fitted rows and
+  values, matched by name; data whose rows changed since the fit are
+  refused. Before, they were read by position, so reordered rows gave
+  each row another row's cluster. When the data the call names are
+  gone, `v` is not read from the workspace either: the call is refused.
+  The response of a `refit()` is not compared with the call's data, so
+  a refit of a matrix response reads its cluster from them.
+
+* BREAKING: `influence()` of a `refit()` deletes rows of the refit's
+  response. Before, it deleted rows of the original fit's response, so
+  the table was the original fit's.
+
+* BREAKING: `influence()` keeps the smooth basis of the fit in every
+  deletion refit, as it keeps a `poly()` or `ns()` basis, so its tables
+  for a fit with `s()` or `t2()` change. Before, the basis was built
+  again from the rows that stayed, so its knots moved and a coefficient
+  change held a change of basis.
+
+* `confint(parm = )` of a fit saved by frmtmb 0.76.0 or earlier with
+  `ar(cov = TRUE)` answers for the parameters other than `sigma` and
+  its coefficients. Their estimates and standard errors do not change
+  when only `sigma` is reparameterized.
+
+* `marginaleffects::predictions()` works on a fit whose data hold a
+  matrix column, such as a `multinomial()` response. marginaleffects
+  puts the data in a data.table, which cannot hold a matrix column, so
+  the fit gives it the data with that column split (`Y.a`, `Y.b`, ...).
+
+* `emmeans::ref_grid(fit, data = )` raises a refusal of the fit with
+  its class (`frmtmb_error`). Without `data`, emmeans's own protocol
+  turns the refusal into a text.
+
+## brms surface
+
+* BREAKING: `conditional_effects()` picks its default displays by brms's
+  rule (`get_all_effects()`): one display per term, of the variables
+  the term reads, over the predictors of every distributional and
+  nonlinear parameter, whichever `dpar` is drawn. `exp(x):z` is the one
+  display `x:z`, `t2(x, z)` and `mo(k):z` add their pair, `sigma ~ z`
+  adds `z`, a `cs()` term adds its variable, and a variable that only
+  an interaction reads is no longer a display of its own
+  (`poly(x, 2) + z + x:w` gives `x`, `z` and `x:w`). A pair puts its
+  numeric variable first, as brms does, so `f * x` gives `x:f`. On a
+  multivariate model each response draws the displays of all responses.
+
+* `conditional_effects()` of a fit takes brms's `sample_new_levels =
+  "gaussian"`, which is what its bands already use for a new group
+  level. `"uncertainty"` and `"old_levels"` are refused by name: a
+  bootstrap refit holds each level's conditional mode and not a draw of
+  its effect, so a lent level would make the band too narrow. A band
+  that draws nothing (Wald, profile) refuses any value but
+  `"gaussian"`.
+
+* `s()` of an expression, such as `s(exp(x))`, fits, as in brms. A
+  smooth of a non-syntactic column name (`` s(`my x`) ``) is refused by
+  name, as brms cannot parse it either.
+
+* An integer `mo()` variable with `attr(x, "min")` codes its categories
+  from that minimum, as brms does at the fit. New data are coded from
+  the same minimum.
+
+* BREAKING: A later `lf()` or `nlf()` replaces a parameter that the
+  `bf()` it is added to already sets, with brms's message "Replacing
+  initial definitions of parameters". It used to stop.
+
+* BREAKING: The `df` of `logLik()` for a REML fit counts the fixed
+  effects, as lme4's does, so `AIC()` and `BIC()` agree with lme4's.
+
+* BREAKING: `frm(drop_unused_levels = FALSE)` keeps an unused level of a
+  grouping factor as a level of its group-level term, as brms's
+  `standata()` does. Its effect is 0 with its prior's variance.
+
+* BREAKING: `variables()` keeps the intercept of `0 + Intercept` (or
+  `center = FALSE`) in its place among the coefficients, as brms does:
+  `b_sigma_Intercept` comes before `b_Intercept` in
+  `bf(y ~ 0 + Intercept + x, sigma ~ z)`.
+
+* `default_prior()` answers a model with an `rr()` term. It stopped
+  with "arguments imply differing number of rows".
+
+* `conditional_effects()` of a `frm_multiple()` result takes
+  `int_conditions`. It stopped with "matched by multiple actual
+  arguments".
+
+* `insight::get_predicted()` refuses a family that predicts one value
+  per category (`multinomial()`, `dirichlet()` and the other simplex
+  families) by name. It returned the values flattened, with nothing to
+  say which category each was.
+
+## Predictions
+
+* BREAKING: `predict()` checks its parameter draws against the
+  log-likelihood, once per fit. At 20 test draws (40 near the
+  threshold) it compares the drop in the log-likelihood with the drop
+  that the normal law of the estimates gives at the same point. Where
+  the median excess is above 1 and above 0.15 times the median drop of
+  the normal law, each draw is weighted by the likelihood over the
+  density it was drawn from, the weights are Pareto smoothed with
+  `loo::psis()`, and the draws are resampled by them. A parameter that
+  `predict()` holds at its estimate in part of the draws keeps that
+  part. A message of class `frmtmb_draw_reweighted` gives the Pareto k.
+  Where k is above 0.7, a warning of class `frmtmb_draw_pareto` says
+  that the weights are not reliable and names
+  `frmtmb.sample::frm_sample()`. On a weakly identified mixture that is
+  the usual outcome. The test draws do not use the random number
+  stream, and where the check does not fire the draws are as before,
+  bit for bit. Before, a weakly identified mixture drew from a normal
+  law that the likelihood does not support:
+  - `mixture(gaussian(), gaussian())` on data from one component: over
+    6 data sets where the check fires, the 90% interval covered the
+    true predictive law 0.950 of the time and the predictive means
+    were 0.187 from the truth on average. Now 0.906 and 0.065.
+  - `mixture(poisson(), poisson())` on data from one component, over
+    12 such data sets: the mean error fell from 0.381 to 0.113.
+  - `mixture(cumulative(), cumulative())` over 26 such data sets: the
+    mean error of the category shares fell from 0.080 to 0.032.
+  The check did not fire on 310 GLM and GLMM fits, nor on
+  zero-inflated and hurdle fits at or away from the end of the range,
+  nor on GLMs with one coefficient per level of a factor (poisson,
+  bernoulli, gamma and gaussian; 10 to 500 levels of 2 to 20 rows). On
+  those the summed excess reached 7.4, but stayed under 0.12 times the
+  normal law's drop.
+
+* BREAKING: `predict()`'s narrowing of a steep side no longer jumps at
+  its threshold. A side where the log-likelihood falls by 2 within 0.4
+  of the normal law's distance is narrowed as before. Between 0.4 and
+  0.5 the narrowing now fades linearly to none. Before, the 98% width
+  of a new level's prediction stepped from 5.36 to 5.76 between two
+  neighboring data sets. On 25 random-slope and random-intercept fits
+  with such a side, the 90% and 98% intervals of a new level covered
+  0.886 and 0.974 of the true law, and now cover 0.902 and 0.981.
+
+* `?predict.frmtmb_fit` says why the mean of `predict()`'s draws and
+  `fitted()` can differ by more than Monte Carlo error.
+
+## Silent wrong answers fixed
+
+* BREAKING: `anova()` compares the rows that each likelihood reads, not
+  only how many there are. Two fits of 72 rows each, one of rows 1 to 72
+  and one of rows 9 to 80, or two fits whose predictors miss values on
+  different rows, were compared as if they had the same data. Now
+  `anova()` stops and says the fits are of different data. Rows given in
+  another order, or under row names that start again at 1, still
+  compare, and so does one response under two names (`y` and `I(y)`)
+  or stored as an integer, an ordered factor of the same labels or a
+  logical. A factor response is compared by its labels, not its codes.
+
+* BREAKING: An addition term whose value reads no column of the data,
+  such as `vreal(rep_len(c(1, 3), 120))`, is refused on new data and on
+  a `conditional_effects()` grid of more than one row. Its values are
+  those of the fitted rows. Before, new data or a grid of the same
+  length (120 rows, or `resolution = 120`) read them row by row, as if
+  they were the new rows' values. The fitted rows read the term as
+  before. Write such a value as a column of the data. A value whose
+  elements are all the same, such as `vreal(rep(2, 120))`, is that one
+  value on any rows.
+
+* BREAKING: A prediction rebuilds a group-level term's design under the
+  contrasts of the fit, as the population-level design already did. A
+  model fitted under `options(contrasts = c("contr.sum", "contr.poly"))`
+  refused every prediction of `y ~ f + (1 + f | g)` with new data after
+  the option was reset ("Random-effect design ... does not match the
+  fitted model").
+  The same holds for a transformed factor such as `factor(cyl)`, for
+  `mm()` terms and for a `re_formula` that names part of a term. With a
+  transformed factor the prediction was silently wrong when the two codings
+  name their columns alike (`contr.sum` and `contr.helmert`).
+
+* BREAKING: `log_lik()` of draws reads a category of an ordinal mixture
+  that sits between two tied thresholds as `-Inf`, its exact value, so
+  `loo()` of such draws reads `-Inf` too. Before, it read the floor of
+  about -690.8 that the fit uses. The fit is unchanged.
+
+## Compatibility table
+
+* `frm_compat()`: `REML` with `mi()` is "conditional", and `REML` with a
+  predictor `mi(x)` has a rule of its own, also "conditional". Where a
+  predictor `mi(x)` reads missing values, REML integrates the slope on
+  `mi(x)` together with the latent values it multiplies. The integrand
+  is then not gaussian, so the criterion is the Laplace approximation,
+  not the exact restricted likelihood, as for `me()`. With nothing
+  missing, or a missing response that no density reads, REML is exact.
+
+* `frm_compat()`: `rate()` with `cens()` and `rate()` with `trunc()`
+  "work". The log-likelihood of `poisson()`, `negbinomial()` and
+  `geometric()` with `rate()` and censoring or truncation equals brms
+  2.23.0's at the same parameters.
+
+## For extension packages
+
+* `frmtmb_register_frame_check()` replaces an earlier registration
+  when the two are provably the same: the same function, or the same
+  code over environments that held the same values at registration, up
+  to the namespace, with no environment, external pointer or named
+  environment among them. Every other registration is kept, including
+  closures one factory made for different values and closures over two
+  environments with equal contents. On a reload of the registering
+  package, a function defined at the top level of its namespace and an
+  anonymous closure that `.onLoad()` passes straight in now merge, so
+  they no longer run once more per fit after each reload; a closure
+  that `.onLoad()` first binds to a name, or one beside a formula, is
+  still added again (a harmless duplicate). The prior defaults that
+  frmtmb.sample registers behave the same way; a `pkgload::load_all()`
+  after `library()` passes a different library path and adds one
+  provider.
+
+* `frmtmb_local_registries()` keeps a package load hook (`setHook()`)
+  that other code sets inside its scope. Before, the restore dropped it.
+
+* The sampling API adds `ce_snl()` and `latres_err()`.
+
+## Documentation
+
+* `?huber` now gives the measured risk of the Laplace approximation with
+  group-level terms, and when `quadrature = TRUE` helps: it reached the
+  maximum on all 40 measured fits of a scalar `(1 | g)` term in the mean
+  with the identity link, at a higher cost. It also says where quadrature fails:
+  a group-level term in `sigma` or the log link.
+
+* `frmtmb_family()`: the `lcdf` argument says that the slot returns the
+  CDF on the probability scale, not its log, despite the name.
+
+* The "inputs" vignette says that, in a maximum-likelihood fit with no
+  random effect and no prior, a constant `weights()` value on every row
+  multiplies the log-likelihood and leaves every estimate, `sigma`
+  included, unchanged. A prior, a random effect or `REML = TRUE` changes
+  that, because the weight does not multiply their terms. lme4's
+  precision weights change `sigma` instead.
+
 # frmtmb 0.82.1
 
 ## Bug fixes

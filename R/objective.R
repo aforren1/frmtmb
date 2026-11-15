@@ -698,9 +698,6 @@ build_objective <- function(frame) {
   ac_ents <- lapply(acs, function(ac) {
     if (autocor_is_seam(ac)) ac_block_entry(ac)
   })
-  # missing values a registered term's student() density alone integrates
-  # out, whose Laplace error is a constant the objective takes off
-  seam_t_m <- autocor_seam_t_missing(frame)
 
   # the latent residuals that act on mu after the inverse link: brms's AR
   # part there, and the support of a mean they can push out of it
@@ -727,6 +724,8 @@ build_objective <- function(frame) {
   clw_idx <- frame[["cluster_w"]]
   # rows the maximum-likelihood route takes out, as a weight (mi_ml_frame())
   mi_gone <- list()
+  # a registered term's margin over the rows that remain, set up once
+  seam_margin <- list()
   for (vn in names(frame[["mi_map"]] %||% list())) {
     gone <- frame[["mi_map"]][[vn]][["unread"]]
     if (!length(gone)) next
@@ -737,6 +736,10 @@ build_objective <- function(frame) {
     # of its patterns: the margin of the rows that remain
     if (!is.null(acs[[vn]])) {
       acs[[vn]] <- autocor_drop_rows(acs[[vn]], gone)
+    }
+    if (autocor_is_seam(acs[[vn]])) {
+      seam_margin[[vn]] <- autocor_seam_margin_setup(ac_ents[[vn]],
+                                                     acs[[vn]], gone)
     }
   }
 
@@ -986,13 +989,19 @@ build_objective <- function(frame) {
             mu_r <- dparv[[r]]$mu
             if (length(mu_r) == 1L) mu_r <- mu_r + numeric(n)
             nu <- if (isTRUE(ac[["student"]])) dparv[[r]]$nu[1] else NULL
+            sm <- seam_margin[[r]]
+            if (!is.null(sm)) {
+              # the rows no other density reads have left (mi_ml_frame()):
+              # the exact margin of the rest, read at any value of theirs
+              yl[sm$rows] <- mu_r[sm$rows]
+              nll <- nll - autocor_seam_margin_loglik(
+                ac_ents[[r]], yl, mu_r, dparv[[r]]$sigma,
+                pars[["thetaac"]][ac[["theta_idx"]]], ac, nu, sm)
+              next
+            }
             nll <- nll - autocor_seam_loglik(
               ac_ents[[r]], yl, mu_r, dparv[[r]]$sigma,
               pars[["thetaac"]][ac[["theta_idx"]]], ac, nu)
-            if (!is.null(seam_t_m[[r]])) {
-              nll <- nll + autocor_seam_t_laplace(nu, length(yl),
-                                                  seam_t_m[[r]])
-            }
             next
           }
           tac <- pars[["thetaac"]][ac[["theta_idx"]]]

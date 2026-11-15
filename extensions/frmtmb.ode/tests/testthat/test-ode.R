@@ -125,11 +125,13 @@ test_that("a covariate constant within group is allowed", {
 test_that("a missing backend names the r-universe repository", {
   # this is the CRAN case: RTMBode is not on CRAN and the check farm
   # will not install it, so the error has to say where it comes from
-  local_mocked_bindings(ode_has_pkg = function(pkg) pkg != "RTMBode")
+  local_mocked_bindings(ode_has_pkg = function(pkg) pkg != "RTMBode",
+                        .package = "frmtmb.ode")
   expect_error(frm_ode(function(t, y, p) list(-y), init = list(1),
                        times = 1, parms = list(1)),
                "kaskr\\.r-universe\\.dev")
-  local_mocked_bindings(ode_has_pkg = function(pkg) FALSE)
+  local_mocked_bindings(ode_has_pkg = function(pkg) FALSE,
+                        .package = "frmtmb.ode")
   expect_error(frm_ode(function(t, y, p) list(-y), init = list(1),
                        times = 1, parms = list(1)),
                "RTMBode and deSolve packages")

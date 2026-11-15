@@ -88,7 +88,12 @@
 #'   whole: `group` selects the `gr =` variable, and no `coef`. The
 #'   three take no `resp`, `dpar` or `nlpar`, because one set of latent
 #'   values serves the whole model.
-#' - `"theta"`: frmtmb's own class, for the internal covariance
+#' - `"theta"`: the mixing weights of a [mixture()], as one simplex,
+#'   brms's class of the same name. `dirichlet(alpha)` only, with
+#'   `alpha` one number or one per component, and no `coef`, `group`,
+#'   `dpar`, `nlpar`, `lb` or `ub`. It exists where no weight has a
+#'   formula or a fixed value, as in brms. See Mixture weights.
+#' - `"thetacov"`: frmtmb's own class, for the internal covariance
 #'   parameters that no brms class names, on the internal scale: a
 #'   `toep()` correlation, the parameter of a covariance structure an
 #'   extension registers (a `car()` dependence), and a residual term's
@@ -96,13 +101,13 @@
 #'   name (`"theta_12"`, `"thetaac_1"`), as [default_prior()] lists
 #'   it; with no `coef` the class covers every random-effect parameter
 #'   of that kind. A parameter that a class reaches has that class as
-#'   its one slot, as in brms, which has no class `"theta"`: a standard
-#'   deviation (`"sd"`, `"sdgp"`), a `gp()` length scale (`"lscale"`),
-#'   a correlation an LKJ density fits (`"cor"`), a residual
-#'   correlation (`"rescor"`, `"ar"`, `"ma"`, `"cosy"`, `"cortime"`,
-#'   frmtmb.spatial's `"lagsar"`), the SD of a latent residual
-#'   (`"sderr"`). Its internal row is not listed, and a
-#'   class `"theta"` prior on it is refused with the class to use.
+#'   its one slot, as in brms, which has no class for these parameters:
+#'   a standard deviation (`"sd"`, `"sdgp"`), a `gp()` length scale
+#'   (`"lscale"`), a correlation an LKJ density fits (`"cor"`), a
+#'   residual correlation (`"rescor"`, `"ar"`, `"ma"`, `"cosy"`,
+#'   `"cortime"`, frmtmb.spatial's `"lagsar"`), the SD of a latent
+#'   residual (`"sderr"`). Its internal row is not listed, and a
+#'   class `"thetacov"` prior on it is refused with the class to use.
 #' - a DISTRIBUTIONAL parameter's own name (`"sigma"`, `"shape"`,
 #'   `"phi"`, `"zi"`, `"nu"`, ...): a density on that parameter ITSELF,
 #'   on its NATURAL scale, with the inverse link's log-Jacobian
@@ -113,15 +118,14 @@
 #' In a MULTIVARIATE model, every specification of class `"b"`,
 #' `"Intercept"`, `"sd"`, `"ar"`, `"ma"`, `"cosy"` or `"cortime"`, and
 #' every distributional parameter's own class, names its response with
-#' `resp`. A specification without `resp` is refused, as brms refuses
-#' it: write one specification per response. Classes `"rescor"` and
-#' `"theta"` take no `resp`, and `"cor"` needs none. On a model with ONE
+#' `resp`, and so does class `"theta"`. A specification without `resp`
+#' is refused, as brms refuses it: write one specification per
+#' response. Classes `"rescor"`, `"cor"` and `"thetacov"` take no
+#' `resp`: brms keys a correlation prior by `group` alone and refuses
+#' `"cor"` with `resp`, and so does frmtmb. On a model with ONE
 #' response, `resp` is refused, as in brms.
 #'
-#' Two spellings are frmtmb's own, and brms refuses both: `"cor"` with
-#' `resp`, which narrows the prior to that response's blocks
-#' ([default_prior()] lists one `"cor"` row per group, with no `resp`,
-#' as brms does), and
+#' One spelling is frmtmb's own, and brms refuses it:
 #' `"Intercept"` with `nlpar`, which is stored as brms's slot of the same
 #' parameter, class `"b"` with `coef = "Intercept"` and that `nlpar`
 #' (see Nonlinear parameters). A centered intercept has one slot, class
@@ -275,16 +279,47 @@
 #' means. brms warns about such a prior and asks for `lb` and `ub`;
 #' frmtmb gives the same warning and the fit those bounds give. A
 #' density that is zero or infinite at the end (`beta(2, 2)`,
-#' `lognormal()`, `gamma(0.5, 1)`) is not boxed: give `lb` and `ub`
-#' just inside its support, as `lb = 1e-8`. A fit that stops where the
-#' objective is not finite is reported as not converged.
+#' `lognormal()`, `gamma(0.5, 1)`) is not boxed. A bound of your own at
+#' such an end works as follows. [frm()] fits in the closed box first,
+#' so a maximum inside the box is the one the box gives. Where that run
+#' stops on such an end, or fails beside it, frm() runs again in the
+#' coordinate `u` with the coefficient `lb + exp(u)` (`ub - exp(u)` for
+#' an upper bound, a logit between two), where the end is out of reach.
+#' The objective is not changed, so there is no Jacobian, as in brms's
+#' optimizing. Where the density is zero at the end, as `lognormal()`
+#' with `lb = 0`, the posterior is zero there, and this run stops at the
+#' mode. Where the density is infinite at the end, as `gamma(0.5, 1)`
+#' with `lb = 0`, frm() evaluates the log posterior toward that end.
+#' Where the fit ends beside the end and the log posterior rises at
+#' every point down to the nearest double, past the best fit found, the
+#' posterior has no maximum, and frm() refuses the fit; where it rises
+#' without that proof, the best point found is returned at code 1 with
+#' a warning. Where the fit ends inside and the log posterior at the
+#' nearest double past the end is higher, the fit is a local mode, and
+#' a warning of class `frmtmb_prior_unbounded_local` says so. A fit that
+#' stops where the objective is not finite is reported as not converged.
+#'
+#' A bound that goes through a link (`lb` on `class = "sigma"` under its
+#' log link) is moved inside until the inverse link takes it inside the
+#' bound, so that the parameter at the bound is inside the density's
+#' support: `plogis(qlogis(0.3))` is 0.30000000000000004. A bound that
+#' no value maps inside is refused by name.
+#'
+#' `lb`/`ub` on class `"Intercept"` is refused where that intercept is
+#' centered, that is, where its formula has predictors whose means are
+#' not zero. brms bounds the intercept at the predictor means, and so
+#' would the class's density (see Where an intercept prior lands), but
+#' frm() holds the intercept at zero, and a box on it would bound a
+#' different number. Center the predictors, or bound the intercept at
+#' zero with `bf(..., center = FALSE)` and `class = "b"`,
+#' `coef = "Intercept"`.
 #'
 #' The scale is the parameter's own: class `"sd"` bounds a standard
 #' deviation on the sd scale (frmtmb stores its log), classes `"ar"`,
 #' `"ma"` and `"cosy"` bound the natural coefficient of a residual
-#' structure, and class `"theta"` bounds an internal covariance
+#' structure, and class `"thetacov"` bounds an internal covariance
 #' parameter itself, one position at a time with `coef = "theta_12"`,
-#' where no class reaches that parameter (see class `"theta"` above).
+#' where no class reaches that parameter (see class `"thetacov"` above).
 #' A correlation takes no bound, as in brms: a correlation matrix's
 #' entries are not free of one another, and brms writes a Stan program
 #' that does not parse for `lb` on class `"cor"`. Everything else is
@@ -353,6 +388,36 @@
 #' `"sigma"`, its `lb` and `ub`, and under `sigma ~ x` a prior on the
 #' intercept of `sigma` (`class = "Intercept", dpar = "sigma"`, the log
 #' innovation sd), are brms's priors on the same parameter.
+#'
+#' @section Mixture weights:
+#' A [mixture()] with no formula and no fixed value on any of its
+#' weights `theta1 ... thetaK` has one simplex of weights, as in brms.
+#' Class `"theta"` puts a Dirichlet density on that simplex:
+#' `set_prior("dirichlet(2)", class = "theta")`, or one concentration
+#' per component in component order, `"dirichlet(c(5, 1, 1))"`. In a
+#' multivariate model, `resp` names the response. [default_prior()]
+#' lists the row, with brms's `dirichlet(1)` on `route = "sample"`.
+#'
+#' frmtmb holds the weights as `K - 1` log ratios against one
+#' reference component. In [frm()], the density is the density of
+#' these log ratios: the Dirichlet on the weights times the Jacobian of
+#' the softmax, which is the product of the weights. Up to a constant,
+#' it is `sum(alpha_k * log(w_k))`. That is also the density that
+#' frmtmb.sample's `frm_sample()` samples, so the MAP fit is the mode of
+#' the posterior the sampler draws from. Thus the MAP fit under
+#' `dirichlet(alpha)` maximizes the likelihood times
+#' `dirichlet(alpha + 1)` on the weights, and `dirichlet(1)` pulls the
+#' weights toward equal values.
+#' Every concentration above 0 gives a maximum. Without a class
+#' `"theta"` prior, frm() applies no density to the weights, and the
+#' row of `route = "fit"` shows `(flat)`.
+#'
+#' A weight with a formula of its own (`theta1 ~ x`) or a fixed value
+#' (`theta1 = 0.3`) removes the simplex, and class `"theta"` is then
+#' refused, as in brms. One weight is never a class: `class = "theta1"`
+#' is refused where the weights are a simplex, as brms refuses it. A
+#' weight with a formula takes a prior on its linear predictor, as
+#' class `"Intercept"` or `"b"` with `dpar = "theta1"`.
 #'
 #' @section The LKJ prior:
 #' `lkj(eta)` is the density `det(C)^(eta - 1)` over a block's
@@ -435,8 +500,9 @@
 #'   log-Jacobian, which is the change of variables class `"sd"`
 #'   performs. A bound travels with it, so `lb = 0` on a log-linked
 #'   dispersion becomes no constraint rather than a floor of 1.
-#' - `simo` and `sbhaz` keep their meaning too: a `dirichlet()` on a
-#'   `mo()` simplex and on a `cox()` baseline. So do `meanme`, `sdme`
+#' - `simo`, `sbhaz` and `theta` keep their meaning too: a `dirichlet()`
+#'   on a `mo()` simplex, on a `cox()` baseline and on a mixture's
+#'   weights. So do `meanme`, `sdme`
 #'   and `corme`, the hyperparameters of a `me()` term, brms's `lkj(1)`
 #'   default on `corme` included.
 #' - `sds` is the standard deviation of a smooth's penalized part, brms's
@@ -445,7 +511,7 @@
 #'   `"s(x, by = f)"`), and a term with several standard deviations
 #'   (a `t2()` or a by-smooth) takes the density on each of them, as in
 #'   brms. Class `"sd"` does not reach a smooth.
-#' - `theta`/`theta1`/`theta2`, `sdcar` and `car` are refused by
+#' - `theta1`/`theta2`, `sdcar` and `car` are refused by
 #'   name, each saying where frmtmb keeps that quantity instead. A
 #'   refusal is deliberate: translating one of them would produce a
 #'   different model rather than no model.
@@ -506,10 +572,12 @@
 #' @param prior Distribution string, e.g. `"normal(0, 5)"`, or a
 #'   [prior_normal()]/[prior_t()]/[prior_lkj()] object, or `""` for
 #'   bounds only.
-#' @param class `"b"`, `"Intercept"`, `"sd"`, `"sds"`, `"cor"`, `"theta"`, one
+#' @param class `"b"`, `"Intercept"`, `"sd"`, `"sds"`, `"cor"`,
+#'   `"thetacov"`, one
 #'   of the residual-structure classes `"ar"`, `"ma"`, `"cosy"`,
-#'   `"cortime"` and `"rescor"`, the simplex classes `"simo"` and
-#'   `"sbhaz"`, the `me()` classes `"meanme"`, `"sdme"` and `"corme"`,
+#'   `"cortime"` and `"rescor"`, the simplex classes `"simo"`, `"sbhaz"`
+#'   and `"theta"` (a mixture's weights), the `me()` classes `"meanme"`,
+#'   `"sdme"` and `"corme"`,
 #'   or a distributional parameter's own
 #'   name (`"sigma"`, `"shape"`, ...). See A distributional parameter's
 #'   own class.
@@ -518,16 +586,16 @@
 #'   `group`), to one smooth term (class `"sds"`), name the simplex of
 #'   class `"simo"`, name one `me()`
 #'   variable of class `"meanme"` or `"sdme"`, or name one internal
-#'   parameter of class `"theta"`. A coefficient is
+#'   parameter of class `"thetacov"`. A coefficient is
 #'   named as brms names it and as [default_prior()] lists it: `logxp`
 #'   for the column of `log(xp)`, `IxE2` for `I(x^2)`. The name of the
 #'   design column, `log(xp)`, also works.
 #' @param group Restrict class `"sd"` or `"cor"` to one grouping factor,
 #'   or class `"corme"` to the `me()` terms of one `gr =` variable.
 #' @param resp Response of a multivariate model. Required there for
-#'   every class except `"cor"`, `"rescor"`, `"theta"` and the `me()`
-#'   classes; refused on a model with one response and on classes
-#'   `"rescor"`, `"meanme"`, `"sdme"` and `"corme"`.
+#'   every class except `"cor"`, `"rescor"`, `"thetacov"` and the
+#'   `me()` classes; refused on a model with one response and on classes
+#'   `"cor"`, `"rescor"`, `"meanme"`, `"sdme"` and `"corme"`.
 #' @param dpar Distributional parameter (default: the location
 #'   parameters).
 #' @param nlpar Nonlinear parameter of an `nl = TRUE` formula. See
@@ -598,7 +666,9 @@
 #' set_prior("lkj(2)", class = "rescor")
 #' # and one internal covariance parameter that no class names, such
 #' # as a toep() correlation, by its name as get_prior() lists it
-#' set_prior("", class = "theta", coef = "theta_12", lb = -2, ub = 2)
+#' set_prior("", class = "thetacov", coef = "theta_12", lb = -2, ub = 2)
+#' # a mixture's weights are one simplex, brms's class "theta"
+#' set_prior("dirichlet(2)", class = "theta")
 #'
 #' # class "cor" addresses a correlated block as a whole, brms's
 #' # spelling; eta > 1 pulls the correlation toward zero
@@ -643,7 +713,7 @@ set_prior <- function(prior = "", class = "b", coef = "", group = "",
 #' The bounds a class has of its own, brms 2.23.0's: `lb = 0` on the
 #' standard deviations and length scales, the bounds of `dpar_bounds()`
 #' on a distributional parameter's own class, none on a coefficient, an
-#' intercept or frmtmb's internal `theta`.
+#' intercept or frmtmb's internal `thetacov`.
 #'
 #' @noRd
 prior_class_bounds <- function(s) {
@@ -784,8 +854,8 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
     # whole correlation matrix whose entries are not free of one
     # another; accepting it here would silently drop it. Each
     # correlation has one prior slot, its class, as in brms
-    # (autocor_class_coefs(), cov_class_coefs()), so class "theta" is
-    # no route for a bound on one either
+    # (autocor_class_coefs(), cov_class_coefs()), so class "thetacov"
+    # is no route for a bound on one either
     frm_stop("class = \"", class, "\" takes no lb/ub: the bound would apply ",
              "to a whole correlation matrix. brms applies none either; ",
              "a correlation has one prior slot, this class, and lkj() is ",
@@ -804,13 +874,28 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
   # `class = "Intercept", dpar = "sigma"`, here gave one prior two
   # refusal points
   is_dir <- identical(dist$kind, "dirichlet")
-  simplex_classes <- c("simo", "sbhaz")
+  simplex_classes <- c("simo", "sbhaz", "theta")
+  # the covariance class's spelling through 0.82.0: its coef names an
+  # internal parameter, which no mixture weight is
+  if (identical(class, "theta") &&
+        grepl("^theta(ac|r)?_[0-9]+$", coef)) {
+    frm_stop("class = \"theta\" is a mixture's weights, and coef = \"",
+             coef, "\" names an internal covariance parameter. Write ",
+             "class = \"thetacov\", coef = \"", coef, "\", the class ",
+             "default_prior() lists it under", call. = FALSE)
+  }
   if (class %in% simplex_classes) {
     if (!is_dir && !is.null(dist)) {
       frm_stop("Currently 'dirichlet' is the only valid prior for simplex ",
                "parameters: class = \"", class, "\" takes dirichlet(alpha), ",
-               "e.g. set_prior(\"dirichlet(c(2, 1, 1))\", class = \"simo\", ",
-               "coef = \"mox1\")", call. = FALSE)
+               "e.g. set_prior(\"dirichlet(c(2, 1, 1))\", class = \"",
+               class, "\"", if (identical(class, "simo")) {
+                 ", coef = \"mox1\""
+               }, ")", if (identical(class, "theta")) {
+                 paste0(". Class \"theta\" is a mixture's weights; an ",
+                        "internal covariance parameter is class ",
+                        "\"thetacov\"")
+               }, call. = FALSE)
     }
     if (!is.na(lb) || !is.na(ub)) {
       frm_stop("class = \"", class, "\" takes no lb/ub: a simplex is ",
@@ -820,6 +905,24 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
       frm_stop("class = \"sbhaz\" is the whole baseline simplex of a cox() ",
                "response (frmtmb.survival), so coef and group name nothing ",
                "it can narrow to", call. = FALSE)
+    }
+    # brms 2.23.0 names the parameter such a row would need and refuses
+    # it ("theta_a", "theta_theta1"; dev/priors2-brms.R, M14 to M17, M30)
+    narrow <- c(dpar = dpar, nlpar = nlpar, coef = coef, group = group)
+    narrow <- narrow[nzchar(narrow)]
+    if (identical(class, "theta") && length(narrow)) {
+      frm_stop("The following priors do not correspond to any model ",
+               "parameter: theta_", narrow[[1L]], " ~ ",
+               if (is.null(dist)) "(flat)" else if (is.character(prior)) {
+                 prior
+               } else prior_dist_string(dist),
+               ". ",
+               "class = \"theta\" is the whole simplex of a mixture's ",
+               "weights, one per response, so ", names(narrow)[1L],
+               " = \"", narrow[[1L]], "\" names nothing it can narrow to. ",
+               "A weight with a formula of its own takes class = ",
+               "\"Intercept\" or \"b\" with dpar = \"theta1\"",
+               call. = FALSE)
     }
   }
   if (identical(class, "simo")) {
@@ -910,8 +1013,11 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
 #' @noRd
 frmtmb_prior_classes <- c("b", "Intercept", "sd", "sds", "sdgp", "lscale",
                           "cor",
-                          "theta", "ar", "ma", "cosy", "cortime", "rescor",
-                          "delta", "simo", "sbhaz", "lncor",
+                          "thetacov",
+                          "ar", "ma", "cosy", "cortime", "rescor",
+                          "delta", "simo", "sbhaz",
+                          "theta",
+                          "lncor",
                           "meanme", "sdme", "corme",
                           "sderr")
 
@@ -1428,7 +1534,8 @@ brms_direct_prior_classes <- c("b", "Intercept", "sd", "sds", "sdgp",
                                "lscale", "cor", "ar", "ma", "cosy", "cortime",
                                "rescor", "delta", "simo", "sbhaz", "lncor",
                                "meanme", "sdme", "corme",
-                               "sderr")
+                               "sderr",
+                               "theta")
 
 #' Why a brms class cannot be carried over, or `NULL` when it can.
 #'
@@ -1439,22 +1546,30 @@ brms_direct_prior_classes <- c("b", "Intercept", "sd", "sds", "sdgp",
 #'
 #' @noRd
 brms_prior_class_refusal <- function(cls) {
-  # brms spells a mixture proportion theta1, theta2, ...; frmtmb's
-  # "theta" is the raw internal covariance vector. The whole prefix is
-  # refused, because the bare word is the only spelling that used to be
-  # caught and "theta2" then fell through to advice that does not work
-  if (startsWith(cls, "theta")) {
-    return(paste0("brms's \"", cls, "\" is a mixture proportion, and ",
-                  "frmtmb's \"theta\" is the raw internal covariance ",
-                  "vector: the word names two unrelated sets of ",
-                  "parameters, so the row cannot be carried over. A ",
-                  "mixture proportion that has its OWN predictor is ",
-                  "addressed as class = \"Intercept\" with dpar = that ",
-                  "proportion's name, on the link scale where brms puts ",
-                  "it too, and get_prior() lists the ones this model ",
-                  "has. The proportion brms holds as the reference ",
-                  "component is a parameter on neither side, and its ",
-                  "row applies nothing in brms either. "))
+  # brms spells one mixture proportion theta1, theta2, ...: a class only
+  # where it is the reference of predicted weights, whose row applies
+  # nothing in brms (dev/priors2-brms.R, M3), and no parameter where the
+  # weights are the simplex class "theta" (M12, M13)
+  if (grepl("^theta[0-9]+$", cls)) {
+    return(paste0("brms's \"", cls, "\" is one mixture proportion. Where ",
+                  "no proportion has a formula or a fixed value, the ",
+                  "proportions are one simplex, class = \"theta\" with a ",
+                  "dirichlet() prior, as in brms. A mixture proportion ",
+                  "that has its OWN predictor is addressed as ",
+                  "class = \"Intercept\" with dpar = that proportion's ",
+                  "name, on the link scale where brms puts it too, and ",
+                  "get_prior() lists the ones this model has. The ",
+                  "proportion brms holds as the reference component is a ",
+                  "parameter on neither side, and its row applies nothing ",
+                  "in brms either. "))
+  }
+  # the internal covariance vector's class was "theta" through 0.82.0;
+  # any other word on that stem names neither it nor a weight
+  if (startsWith(cls, "theta") && !cls %in% c("theta", "thetacov")) {
+    return(paste0("\"", cls, "\" is no class. A mixture's weights are ",
+                  "class = \"theta\", and an internal covariance ",
+                  "parameter that no brms class names is class = ",
+                  "\"thetacov\" with the coef default_prior() lists. "))
   }
   switch(cls,
     sdcar = paste0(
@@ -1466,9 +1581,9 @@ brms_prior_class_refusal <- function(cls) {
       "brms's \"car\" is the spatial dependence parameter of a car() ",
       "term, which frmtmb keeps in the raw internal covariance vector ",
       "rather than in a class of its own. Address it as ",
-      "class = \"theta\" with the coef default_prior() lists under ",
-      "class \"theta\" for the term (its standard deviation is class ",
-      "\"sd\"), remembering that a theta prior is on the INTERNAL ",
+      "class = \"thetacov\" with the coef default_prior() lists under ",
+      "class \"thetacov\" for the term (its standard deviation is class ",
+      "\"sd\"), remembering that a thetacov prior is on the INTERNAL ",
       "scale. "),
     NULL)
 }
@@ -2048,7 +2163,9 @@ priorlist_from_rows <- function(x, what, mark = FALSE) {
 #' interval (brms's -1 and 1 on a first-order `cov = TRUE` `ar` or `ma`;
 #' for `cosy`, frm()'s window `-1/(d - 1)` to 1 on the default route and
 #' brms's 0 to 1 on `route = "sample"`); class `"rescor"` has one row
-#' and takes no `resp`; and class `"theta"` rows name the internal
+#' and takes no `resp`; class `"theta"` has one row per mixture
+#' response whose weights are a simplex, as in brms; and class
+#' `"thetacov"` rows name the internal
 #' covariance parameters that no brms class reaches (a `toep()`
 #' correlation, a registered structure's own parameter), on the
 #' internal scale. A parameter that a class reaches (a standard
@@ -2075,7 +2192,7 @@ priorlist_from_rows <- function(x, what, mark = FALSE) {
 #' brms. See the Ordinal thresholds section of [set_prior()].
 #'
 #' @section Where the table differs from brms's:
-#' The class `"theta"` rows are frmtmb's own. They name the internal
+#' The class `"thetacov"` rows are frmtmb's own. They name the internal
 #' covariance parameters that no brms class names, such as a `car()`
 #' dependence parameter or a `toep()` correlation, and appear only for
 #' a model that has one. brms has no such class, and has none of those
@@ -2088,6 +2205,11 @@ priorlist_from_rows <- function(x, what, mark = FALSE) {
 #'
 #' A flat slot reads `"(flat)"` in the `prior` column, where brms stores
 #' an empty string and prints `(flat)`.
+#'
+#' A mixture's `theta` row and a `mo()` term's `simo` row read
+#' `"(flat)"` on the default route, where brms prints `dirichlet(1)`:
+#' [frm()] applies no density to a simplex unless a row of yours gives
+#' one. `route = "sample"` lists brms's `dirichlet(1)`.
 #'
 #' The `lb` and `ub` of a distributional parameter's own class row are
 #' the ends brms declares where frmtmb's link holds the parameter (a log
@@ -2385,15 +2507,16 @@ fill_prior_table <- function(tab, pl) {
 #' `order(resp, dpar, ...)`: class by class, and within class `"sd"`
 #' every class-wide row first, then group by group, the responses inside
 #' each (dev/prilabel-rev-log/brmsfit.txt, dev/brmsnames-1024-order.R).
-#' frmtmb's own class `"theta"`, which brms does not have, stays last.
+#' frmtmb's own class `"thetacov"`, which brms does not have, stays
+#' last.
 #'
 #' @noRd
 prior_rows_sd_order <- function(tab) {
   if (nrow(tab) < 2L) return(tab)
-  keep <- which(tab$class != "theta")
+  keep <- which(tab$class != "thetacov")
   s <- as.data.frame(tab)[keep, , drop = FALSE]
   idx <- c(keep[with(s, order(class, group, resp, dpar, nlpar, coef))],
-           which(tab$class == "theta"))
+           which(tab$class == "thetacov"))
   # assigned in place, so the table keeps its class and attributes
   tab[seq_len(nrow(tab)), ] <- tab[idx, , drop = FALSE]
   tab
@@ -2618,11 +2741,10 @@ prior_table <- function(spec, frame, route) {
     if (nzchar(dpar_lab) && !lp[["dpar"]] %in% rspec$primary_dpars &&
           !dpar_has_predictor(spec, lp)) {
       # unless the class is one this package refuses BY NAME. A mixture
-      # proportion is a predictor-free dpar whose word collides with
-      # frmtmb's own "theta", so `set_prior()` refuses it and points at
-      # a spelling the shape gate then refuses back. Advertising a slot
-      # nothing can fill is worse than leaving it out, and a flat row
-      # for an unnameable class is already left out one branch above
+      # proportion is a predictor-free dpar that is no class of its own:
+      # the weights together are the simplex class "theta", listed
+      # below, as brms lists them. Advertising a slot nothing can fill
+      # is worse than leaving it out
       if (!is.null(brms_prior_class_refusal(lp[["dpar"]]))) next
       if (length(cn)) {
         # brms prints the parameter's declared interval here (sigma
@@ -2698,6 +2820,9 @@ prior_table <- function(spec, frame, route) {
     # has a row for each, and below each group row one per coefficient
     # (sd_spec_reach() is the rule the rows describe)
     sp <- block_sd_prefix(spec, frame, bk)
+    # a block with no standard deviation of its own (rr(), whose
+    # loadings carry its scale) has no sd row to list
+    if (!nrow(sp)) next
     cf <- block_sd_coefs(frame, bk)
     sd_rows[[length(sd_rows) + 1L]] <- data.frame(
       group = bk[["group_name"]], nlpar = sp$nlpar, dpar = sp$dpar,
@@ -2816,8 +2941,14 @@ prior_table <- function(spec, frame, route) {
     add(tm$name, resp = if (multi) tm$resp else "",
         dflt = if (identical(route, "sample")) "dirichlet(1)")
   }
+  # and on a mixture's weights where no weight has a formula or a fixed
+  # value, brms's class theta, one row per such response
+  for (mw in mix_weight_simplexes(spec, frame)) {
+    add("theta", resp = if (multi) mw$resp else "",
+        dflt = if (identical(route, "sample")) "dirichlet(1)")
+  }
 
-  # class "theta" is the internal spelling of the covariance parameters
+  # class "thetacov" is the internal spelling of the covariance parameters
   # brms has no class for, across all three covariance components, so
   # these rows name one internal parameter on its own.
   #
@@ -2843,17 +2974,17 @@ prior_table <- function(spec, frame, route) {
   th_all <- frame[["par_template"]][["theta"]] %||% numeric(0)
   if (length(th_all) &&
         any(!par_template_names(th_all, "theta") %in% own_class)) {
-    add("theta")
+    add("thetacov")
   }
-  for (nm in theta_rows) add("theta", coef = nm)
+  for (nm in theta_rows) add("thetacov", coef = nm)
 
   out <- unique(do.call(rbind, acc$rows))
   # brms's row order (.default_prior(): resp, dpar, nlpar, class, group,
   # coef, with R's order(), locale and all), so b comes before cor,
-  # Intercept and sd; frmtmb's own class "theta", which brms does not
+  # Intercept and sd; frmtmb's own class "thetacov", which brms does not
   # have, stays last in its own order
   if (!is.null(out)) {
-    own <- out$class == "theta"
+    own <- out$class == "thetacov"
     brm <- out[!own, , drop = FALSE]
     brm <- brm[with(brm, order(resp, dpar, nlpar, class, group, coef)), ,
                drop = FALSE]
@@ -3634,8 +3765,8 @@ check_prior_slots <- function(prior) {
   invisible(prior)
 }
 
-#' The covariance components class `"theta"` addresses, in the order it
-#' searches them for a `coef` name.
+#' The covariance components class `"thetacov"` addresses, in the order
+#' it searches them for a `coef` name.
 #'
 #' @noRd
 theta_components <- c("theta", "thetaac", "thetar")
@@ -3644,11 +3775,14 @@ theta_components <- c("theta", "thetaac", "thetar")
 #' model, so that a specification without `resp` names no row there.
 #' Class `"sd"` is keyed the same way and is resolved per standard
 #' deviation by `sd_spec_reach()`. Classes `"cor"` and `"rescor"` carry
-#' no prefix in brms, and `"theta"` is frmtmb's own.
+#' no prefix in brms, and `"thetacov"` is frmtmb's own. A mixture's
+#' weights, class `"theta"`, are one simplex per response (brms 2.23.0
+#' refuses the row without `resp`, dev/priors2-brms.R, M22).
 #'
 #' @noRd
 resp_keyed_prior_classes <- c("b", "Intercept", "ar", "ma", "cosy",
-                              "cortime", "delta")
+                              "cortime", "delta",
+                              "theta")
 
 #' Why a specification with no `resp` cannot apply to this model, or
 #' `NULL`.
@@ -3735,7 +3869,7 @@ resp_missing_refusal <- function(spec, frame, s) {
          })
 }
 
-#' Which component and positions a class `"theta"` specification names.
+#' Which component and positions a class `"thetacov"` specification names.
 #' An empty `coef` means the whole `theta` component, which the caller
 #' narrows to the positions no class reaches (`cov_class_coefs()`); a
 #' `coef` is matched against the internal names of all three covariance
@@ -3752,7 +3886,7 @@ theta_coef_target <- function(frame, coef) {
   if (!nzchar(coef %||% "")) {
     n <- length(nms_of("theta"))
     if (!n) {
-      frm_stop("class = \"theta\" names no parameter: this model has no ",
+      frm_stop("class = \"thetacov\" names no parameter: this model has no ",
                "random-effect covariance parameters. A residual-",
                "correlation parameter is addressed by its class (\"ar\", ",
                "\"ma\", \"cosy\", \"cortime\"), as in brms, and one with ",
@@ -3773,7 +3907,7 @@ theta_coef_target <- function(frame, coef) {
     }
   }
   have <- unlist(lapply(theta_components, nms_of), use.names = FALSE)
-  frm_stop("class = \"theta\" coef = ", encodeString(coef, quote = "\""),
+  frm_stop("class = \"thetacov\" coef = ", encodeString(coef, quote = "\""),
            " names no covariance parameter of this model. It has ",
            if (length(have)) paste(have, collapse = ", ") else "none",
            call. = FALSE)
@@ -3788,9 +3922,9 @@ theta_coef_target <- function(frame, coef) {
 #' LKJ density fits is class `"cor"`, and a residual correlation is
 #' `"rescor"`. Every other position of `theta` (a `toep()` correlation,
 #' a registered structure's own parameter such as a `car()` dependence)
-#' has no class, and class `"theta"` is its one spelling.
+#' has no class, and class `"thetacov"` is its one spelling.
 #'
-#' One parameter, one slot: class `"theta"` on a position listed here
+#' One parameter, one slot: class `"thetacov"` on a position listed here
 #' was a second spelling of it, and whichever of the two was written
 #' later silently replaced the other.
 #'
@@ -3868,7 +4002,7 @@ cov_class_coefs <- function(spec, frame) {
   out
 }
 
-#' The refusal of a class `"theta"` specification on a parameter that
+#' The refusal of a class `"thetacov"` specification on a parameter that
 #' `cov_class_coefs()` gives a class: it names that class with the
 #' fields of its row, and says what the class's scale is, because the
 #' internal parameter is not on it.
@@ -3877,6 +4011,8 @@ cov_class_coefs <- function(spec, frame) {
 cov_class_refusal <- function(row) {
   f <- c(group = row$group, coef = row$coef, resp = row$resp,
          dpar = row$dpar, nlpar = row$nlpar)
+  # brms keys a correlation prior by group alone and refuses the rest
+  if (identical(row$class, "cor")) f <- f["group"]
   f <- f[nzchar(f)]
   call <- paste0("set_prior(..., class = \"", row$class, "\"",
                  if (length(f)) {
@@ -3896,16 +4032,15 @@ cov_class_refusal <- function(row) {
                  "correlation matrix and no lb/ub, as in brms, which has ",
                  "no prior on one correlation alone.",
                  if (nzchar(row$resp)) {
-                   paste0(" resp = narrows class \"cor\" to that ",
-                          "response's blocks, which is frmtmb's own ",
-                          "spelling: brms refuses it, and its cor row with ",
-                          "group alone reaches every response's block.")
+                   paste0(" Its cor row takes no resp, as in brms: it ",
+                          "reaches the blocks of that group in every ",
+                          "response.")
                  }),
     rescor = paste0(" It takes lkj() on the whole residual correlation ",
                     "matrix and no lb/ub, as in brms."),
     paste0(" Its density and lb/ub are on the ", noun, " itself, not on ",
            "the log that frmtmb holds."))
-  paste0("class = \"theta\", coef = \"", row$name, "\" is the internal ",
+  paste0("class = \"thetacov\", coef = \"", row$name, "\" is the internal ",
          "parameter of ", what, ", which has a class of its own, as in ",
          "brms. Write the prior as ", call, "; one parameter takes one ",
          "prior.", scale)
@@ -4723,7 +4858,7 @@ resolve_priorlist <- function(fit, pl) {
       frm_stop("class = \"", sc, "\" names a parameter of ",
                ap$term[ap$name == sc][1L], ", whose term declares no ",
                "interval, so a density on it cannot be carried to the ",
-               "internal parameter. Write it there: class = \"theta\", ",
+               "internal parameter. Write it there: class = \"thetacov\", ",
                "coef = \"", ap$coef[ap$name == sc][1L], "\"",
                call. = FALSE)
     }
@@ -4778,6 +4913,11 @@ resolve_priorlist <- function(fit, pl) {
         # before it can box an internal parameter. brms writes lb = 0 on
         # every dispersion default, and on a log-linked sigma that is
         # log(0) = -Inf, not a floor of 1 (see R3 of the punch re-check)
+        if (identical(s$class, "Intercept") && (!is.na(s$lb) ||
+                                                  !is.na(s$ub)) &&
+              center_offset_material(frame, pm$offset)) {
+          frm_stop(centered_bound_refusal(s), call. = FALSE)
+        }
         if (!is.na(s$lb)) st$lower[tg$name] <- internal_bound(s$lb, pm, "lb")
         if (!is.na(s$ub)) st$upper[tg$name] <- internal_bound(s$ub, pm, "ub")
         st$box[[key]] <- tg$name
@@ -4859,19 +4999,23 @@ resolve_priorlist <- function(fit, pl) {
     } else if (s$class %in% c("sdgp", "lscale")) {
       resolve_gp_class(s)
     } else if (s$class == "cor") {
-      # brms keys a correlation prior by group alone and refuses a dpar
-      # or an nlpar on it (L_mub, L_a), so a script that names one would
-      # fit a model brms does not have. `resp` stays accepted, frmtmb's
-      # own spelling (the user's decision of 2026-09-24)
-      for (f in c("dpar", "nlpar")) {
+      # brms keys a correlation prior by group alone and refuses a dpar,
+      # an nlpar or a resp on it (L_mub, L_a, L_g__y2), so a script that
+      # names one would fit a model brms does not have. `resp` was
+      # frmtmb's own spelling until the user's decision of 2026-11-13
+      for (f in c("dpar", "nlpar", "resp")) {
         v <- s[[f]] %||% ""
         if (!nzchar(v)) next
-        frm_stop("class = \"cor\" takes no ", f, ": brms keys a ",
-                 "correlation prior by group alone, so ", f, " = \"", v,
-                 "\" names a prior brms refuses (\"The following priors ",
-                 "do not correspond to any model parameter\"). Drop ", f,
-                 "; group = selects the grouping factor, and a prior ",
-                 "without one covers every correlated block",
+        if (identical(f, "resp")) v <- brms_stan_name(v)
+        g <- s$group %||% ""
+        frm_stop("The following priors do not correspond to any model ",
+                 "parameter: L_", if (nzchar(g)) paste0(g, "__"), v, " ~ ",
+                 s$prior %||% prior_dist_string(s$dist), ". class = ",
+                 "\"cor\" takes no ", f, ": brms keys a correlation prior ",
+                 "by group alone. Drop ", f, " = \"", v, "\"; group = ",
+                 "selects the grouping factor, and reaches its correlated ",
+                 "blocks in every response and parameter. A prior without ",
+                 "a group covers every correlated block",
                  call. = FALSE)
       }
       hit <- FALSE
@@ -4916,6 +5060,15 @@ resolve_priorlist <- function(fit, pl) {
                  }, call. = FALSE)
       }
     } else if (s$class == "theta") {
+      # a mixture's weights: one Dirichlet over the simplex, in the
+      # softmax chart the log ratios are, with that chart's Jacobian, as
+      # frm_sample() samples it (mix_weight_entry())
+      e <- mix_weight_entry(fit, s)
+      if (!is.null(e)) {
+        claim(e$comp, e$idx)
+        st$assigned[[nm_of(e$comp, e$idx)]] <- e
+      }
+    } else if (s$class == "thetacov") {
       # The raw internal escape hatch. All three covariance components
       # share one internal naming scheme, and their names are distinct,
       # so `coef` names the COMPONENT as well as the position:
@@ -4940,11 +5093,11 @@ resolve_priorlist <- function(fit, pl) {
         # the class-wide spelling covers the positions no class reaches
         tgt$idx <- setdiff(tgt$idx, cc$idx)
         if (!length(tgt$idx)) {
-          frm_stop("class = \"theta\" names no parameter here: every ",
+          frm_stop("class = \"thetacov\" names no parameter here: every ",
                    "random-effect covariance parameter of this model has ",
                    "a class of its own, as in brms (",
                    paste(unique(cc$class), collapse = ", "), "). Class ",
-                   "\"theta\" is the spelling of a parameter brms has no ",
+                   "\"thetacov\" is the spelling of a parameter brms has no ",
                    "class for, such as a toep() correlation, and ",
                    "default_prior() lists those rows", call. = FALSE)
         }
@@ -4953,7 +5106,7 @@ resolve_priorlist <- function(fit, pl) {
       hit <- intersect(nms[tgt$idx], own$coef)
       if (length(hit)) {
         k <- match(hit[1L], own$coef)
-        frm_stop("class = \"theta\", coef = \"", hit[1L], "\" is the ",
+        frm_stop("class = \"thetacov\", coef = \"", hit[1L], "\" is the ",
                  "internal parameter of ", own$class[k], ", which has a ",
                  "class of its own, as in brms. Write the prior with ",
                  "class = \"", own$class[k], "\"",
@@ -5025,7 +5178,84 @@ resolve_priorlist <- function(fit, pl) {
     }
   }
   support_box(st)
-  list(entries = unname(st$assigned), lower = st$lower, upper = st$upper)
+  ends <- box_end_density(st)
+  list(entries = unname(st$assigned), lower = st$lower, upper = st$upper,
+       open_lower = ends$open_lower, open_upper = ends$open_upper,
+       inf_lower = ends$inf_lower, inf_upper = ends$inf_upper,
+       end_labels = ends$end_labels)
+}
+
+#' The box ends at which a prior's density is 0 or infinite: a bound at
+#' the end of the density's support, such as `lb = 0` under
+#' `lognormal()`, `beta(2, 2)` or `gamma(0.5, 1)`.
+#'
+#' Both kinds are listed in `open_lower` and `open_upper` (parameter
+#' names), and the infinite ones in `inf_lower` and `inf_upper` too;
+#' `end_labels$lower` and `end_labels$upper` say, per name, which prior
+#' and end. At a zero-density
+#' end the posterior is 0, so the end is never the maximum, but a closed
+#' box let the optimizer stop on it with an infinite objective (backlog
+#' 5005: z = 0 at objective Inf where the mode is 129.8616523 at z =
+#' 0.006822082). At an infinite-density end the posterior has no
+#' maximum only where the likelihood stays finite there, which the prior
+#' alone cannot tell: poisson("identity") with `gamma(0.5, 1)` on `b`,
+#' `lb = 0`, has its maximum inside, at 1.3833 (review of this lane, F1).
+#' frm() fits in the box first and refits in an open chart when it stops
+#' on such an end (open_end_rescue()). `st` is the resolver's state.
+#'
+#' @noRd
+box_end_density <- function(st) {
+  out <- list(open_lower = character(0), open_upper = character(0),
+              inf_lower = character(0), inf_upper = character(0),
+              end_labels = list(lower = character(0),
+                                upper = character(0)))
+  for (key in names(st$box)) {
+    e <- st$assigned[[key]]
+    if (is.null(e)) next
+    off <- e$offset
+    if (!is.null(off) && !(is.numeric(off) && all(off == 0))) next
+    sup <- prior_dist_support(e$dist)
+    nm <- st$box[[key]]
+    pm <- list(scale = e$scale, link = e$link)
+    for (k in 1:2) {
+      side <- c("lb", "ub")[k]
+      have <- (if (k == 1L) st$lower else st$upper)[nm]
+      if (!is.finite(sup[k]) || !isTRUE(is.finite(have))) next
+      b <- tryCatch(internal_bound(sup[k], pm, side), error = function(e) NA)
+      if (!isTRUE(b == have)) next
+      at_end <- prior_end_density(e$dist, k)
+      if (identical(at_end, "finite")) next
+      if (k == 1L) out$open_lower <- c(out$open_lower, nm) else
+        out$open_upper <- c(out$open_upper, nm)
+      if (identical(at_end, "infinite")) {
+        if (k == 1L) out$inf_lower <- c(out$inf_lower, nm) else
+          out$inf_upper <- c(out$inf_upper, nm)
+      }
+      # one label per end: beta(0.5, 2) on [0, 1] is infinite at 0 and
+      # zero at 1, and a refusal must name the end that is infinite
+      out$end_labels[[k]][[nm]] <- paste0(nm, " (",
+                                          prior_dist_string(e$dist), ", ",
+                                          side, " = ", format(sup[k]), ")")
+    }
+  }
+  out
+}
+
+#' The limit of a prior's density at the lower (`k = 1`) or upper
+#' (`k = 2`) end of its support: `"zero"`, `"finite"` or `"infinite"`.
+#' Read off the density's form, because the value there is often NaN on
+#' doubles (`lognormal()` at 0 is `-Inf + Inf`) where the limit is 0.
+#'
+#' @noRd
+prior_end_density <- function(dist, k) {
+  by_shape <- function(a) {
+    if (a > 1) "zero" else if (a == 1) "finite" else "infinite"
+  }
+  switch(dist$kind %||% "",
+    lognormal = , inv_gamma = "zero",
+    gamma = by_shape(dist$shape),
+    beta = by_shape(if (k == 1L) dist$shape1 else dist$shape2),
+    "finite")
 }
 
 #' Box a parameter to the support of its density where no bound says
@@ -5094,6 +5324,52 @@ prior_dist_support <- function(dist) {
     beta = c(0, 1),
     exponential = , gamma = , inv_gamma = , lognormal = c(0, Inf),
     c(-Inf, Inf))
+}
+
+#' Starting values moved inside their priors' supports.
+#'
+#' A prior with a bounded support on a parameter whose start lies where
+#' that density is 0 or outside it makes the objective infinite at the
+#' start, and nlminb cannot leave it. `gamma(2, 1)` on the coefficients
+#' of `shape ~ 0 + fac`, which start at 0, ended there at code 0 with a
+#' log-likelihood of NaN, with or without `lb = 0`
+#' (dev/famend-probe-gprior.R); from a start of 1 the same fit converges.
+#' brms has the same density and starts Stan inside it.
+#'
+#' Such a start is moved to a point the density holds well inside its
+#' support: the gamma's and the exponential's mean, the lognormal's
+#' median, the inverse gamma's mode, the beta's mean and the uniform's
+#' midpoint. Every start where the prior's density is positive keeps
+#' its value, so no fit that could leave its start moves. A parameter
+#' held at a constant is left alone, and a caller's `start` is written
+#' over this afterwards.
+#'
+#' @noRd
+prior_start_inside <- function(tpl, entries, frame) {
+  center <- function(d) {
+    switch(d$kind,
+      gamma = d$shape / d$rate,
+      exponential = 1 / d$rate,
+      lognormal = exp(d$location),
+      inv_gamma = d$scale / (d$shape + 1),
+      beta = d$shape1 / (d$shape1 + d$shape2),
+      uniform = (d$lower + d$upper) / 2)
+  }
+  held <- list(betad = frame[["betad_fixed_idx"]])
+  for (e in entries %||% list()) {
+    v <- center(e$dist)
+    sc <- e$scale %||% "internal"
+    if (is.null(v) || !sc %in% c("internal", "natural", "sd") ||
+          is.null(tpl[[e$comp]])) next
+    x <- tpl[[e$comp]][e$idx]
+    off <- entry_offset(e, tpl)
+    ld <- suppressWarnings(prior_logdens(x, e$dist, sc, e$link, off))
+    out <- which(!is.finite(ld) & !e$idx %in% held[[e$comp]])
+    if (!length(out) || length(ld) != length(x)) next
+    to <- switch(sc, internal = v, sd = log(v), natural = e$link$linkfun(v))
+    tpl[[e$comp]][e$idx[out]] <- to - off
+  }
+  tpl
 }
 
 #' The `mo()` simplexes a class `"simo"` specification names: brms's
@@ -5181,6 +5457,104 @@ family_simplex_targets <- function(fit, s) {
   out
 }
 
+#' The mixing weights of each mixture response where no weight has a
+#' formula, a fixed value or an equation: brms's simplex `theta`, which
+#' class `"theta"` names. brms 2.23.0 declares the simplex by the same
+#' rule (dev/priors2-brms.R, M1 to M4, M19, M25). For each such
+#' response: its name `resp`, the number of components `K`, the
+#' reference component `ref` whose log ratio the family holds at 0, and
+#' `idx`, the `betad` positions of the other `K - 1` log ratios in
+#' component order. A weight that is a location parameter (frmtmb.latent's
+#' `lca()`, whose main formula is the gating predictor) is no simplex.
+#'
+#' @noRd
+mix_weight_simplexes <- function(spec, frame) {
+  out <- list()
+  fixed <- frame[["betad_fixed_idx"]] %||% integer(0)
+  r1 <- names(spec$responses)[1L]
+  for (r in names(spec$responses)) {
+    rspec <- spec$responses[[r]]
+    K <- rspec$family[["mix"]][["K"]]
+    if (is.null(K)) next
+    ref <- rspec$family[["mix"]][["ref"]] %||% K
+    idx <- integer(0)
+    for (k in setdiff(seq_len(K), ref)) {
+      dp <- paste0("theta", k)
+      hit <- Filter(function(lp) {
+        identical(lp[["resp"]] %||% r1, r) && identical(lp[["dpar"]], dp)
+      }, frame[["linpreds"]])
+      lp <- if (length(hit) == 1L) hit[[1L]]
+      scalar <- !is.null(lp) && identical(lp[["par"]], "betad") &&
+        !dp %in% rspec$primary_dpars &&
+        is.null(lp[["constant"]]) && is.null(lp[["equate"]]) &&
+        is.null(lp[["nl_body"]]) &&
+        identical(colnames(lp[["X"]]), "(Intercept)") &&
+        !dpar_has_predictor(spec, lp) && !any(lp[["idx"]] %in% fixed)
+      if (!scalar) {
+        idx <- NULL
+        break
+      }
+      idx <- c(idx, as.integer(lp[["idx"]]))
+    }
+    if (length(idx) != K - 1L) next
+    out[[length(out) + 1L]] <- list(resp = r, K = K, ref = ref, idx = idx)
+  }
+  out
+}
+
+#' The resolved entry of a class `"theta"` specification: one Dirichlet
+#' over the simplex of a mixture's weights, read in the softmax chart of
+#' the `K - 1` log ratios the fit holds, with that chart's Jacobian
+#' (`dirichlet_logdens()`). That is the density frmtmb.sample samples,
+#' so a MAP fit is the mode of the posterior a sampler draws. `NULL` for
+#' `""`, brms's flat Dirichlet, which applies nothing; a model without
+#' such a simplex is refused in brms's words either way.
+#'
+#' @noRd
+mix_weight_entry <- function(fit, s) {
+  mw <- mix_weight_simplexes(fit$spec, fit$frame)
+  if (nzchar(s$resp %||% "")) {
+    mw <- Filter(function(m) identical(m$resp, s$resp), mw)
+  }
+  if (!length(mw)) {
+    rs <- if (nzchar(s$resp %||% "")) {
+      fit$spec$responses[s$resp]
+    } else {
+      fit$spec$responses
+    }
+    is_mix <- any(vapply(rs, function(r) {
+      !is.null(r$family[["mix"]])
+    }, NA))
+    frm_stop("The following priors do not correspond to any model ",
+             "parameter: theta",
+             if (nzchar(s$resp %||% "")) {
+               paste0("_", brms_stan_name(s$resp))
+             }, " ~ ", s$prior %||% "", ". class = \"theta\" is the ",
+             "simplex of a mixture's weights, ",
+             if (is_mix) {
+               paste0("and a weight with a formula of its own or a fixed ",
+                      "value removes it, as in brms. Such a weight takes a ",
+                      "prior on its linear predictor, as class = ",
+                      "\"Intercept\" or \"b\" with dpar = \"theta1\"")
+             } else {
+               paste0("and this model has no mixture(). An internal ",
+                      "covariance parameter is class = \"thetacov\"")
+             }, call. = FALSE)
+  }
+  if (is.null(s$dist)) return(NULL)
+  m <- mw[[1L]]
+  a <- s$dist$alpha
+  if (length(a) != 1L && length(a) != m$K) {
+    frm_stop("Invalid Dirichlet prior. Expected input of length ", m$K,
+             " for class \"theta\", the ", m$K, " weights of the ",
+             "mixture; got ", length(a), call. = FALSE)
+  }
+  dist <- dirichlet_dist(a, m$K, "softmax")
+  dist$ref <- m$ref
+  list(comp = "betad", idx = m$idx, dist = dist, scale = "internal",
+       lb = NA, ub = NA)
+}
+
 #' brms's rules for a simplex, applied at the fit to a class that only
 #' the fit can tell is a simplex: one a family declares
 #' (`frmtmb_family(simplex_pars =)`). `set_prior()` applies the same
@@ -5210,7 +5584,7 @@ prior_simplex_check <- function(s, fam_simplex) {
     paste0("class = \"", said, "\"")
   }
   is_dir <- identical(s$dist$kind, "dirichlet")
-  if (cls %in% c("simo", "sbhaz")) return(s)
+  if (cls %in% c("simo", "sbhaz", "theta")) return(s)
   if (said %in% fam_simplex) {
     if (!is_dir) {
       frm_stop("Currently 'dirichlet' is the only valid prior for simplex ",
@@ -5235,17 +5609,15 @@ prior_simplex_check <- function(s, fam_simplex) {
     s$class <- said
     s$dpar <- ""
   } else if (is_dir) {
-    # brms's class "theta" of a mixture is the Dirichlet on its mixing
-    # proportions, a different set of parameters from frmtmb's theta
-    mix <- if (startsWith(said, "theta")) {
-      paste0(". In brms, class = \"", said, "\" of a mixture() takes a ",
-             "dirichlet() on the mixing proportions; ",
-             trimws(brms_prior_class_refusal(said)))
+    # one mixture proportion is no simplex; the weights together are
+    mix <- if (!is.null(hint <- brms_prior_class_refusal(said))) {
+      paste0(". ", trimws(hint))
     } else ""
     frm_stop("dirichlet() is the density of a simplex; it belongs to ",
              "class = \"simo\" (a mo() simplex), class = \"sbhaz\" (the ",
-             "baseline of a cox() model, frmtmb.survival) or a simplex a ",
-             "family declares, not ", written, mix, call. = FALSE)
+             "baseline of a cox() model, frmtmb.survival), class = ",
+             "\"theta\" (a mixture's weights) or a simplex a family ",
+             "declares, not ", written, mix, call. = FALSE)
   }
   s
 }
@@ -5354,6 +5726,55 @@ coef_placement <- function(s, tg) {
     return(list(scale = "internal", link = NULL, offset = ctr))
   }
   list(scale = "natural", link = tg$link, offset = ctr)
+}
+
+#' The refusal of `lb`/`ub` on a centered intercept (backlog 5646).
+#'
+#' brms 2.23.0 bounds class `"Intercept"` on its temporary intercept for
+#' centered predictors (`real<lower=3> Intercept;`, and
+#' `Intercept_sigma` under `sigma ~ x`; dev/priors2-brms.R, I1, I2,
+#' I4), and frmtmb's own `"Intercept"` density reads that intercept
+#' too. frm() holds the intercept at zero, so a box there bounded
+#' another number: with `x = z + 10` and `lb = 3`, the intercept at
+#' zero sat at 3.0000 and the slope fell to 0.2078 from lm()'s 0.4055,
+#' where brms's bound binds nothing (dev/priors2-frm.R, I0 and I1). A
+#' bound on the centered intercept is a linear constraint on the
+#' parameters frm() holds, which its box cannot express, so it is
+#' refused rather than read as another bound.
+#'
+#' @noRd
+centered_bound_refusal <- function(s) {
+  dp <- s$dpar %||% ""
+  paste0("lb/ub on class = \"Intercept\"",
+         if (nzchar(dp)) paste0(", dpar = \"", dp, "\""),
+         " is a bound on the intercept at the means of the predictors, ",
+         "which is where brms puts it (its temporary intercept for ",
+         "centered predictors) and what this class's density reads. ",
+         "frm() holds the intercept at zero, and a box on it would bound ",
+         "a different number, so the bound is refused. Center the ",
+         "predictors, which makes the two intercepts one; or bound the ",
+         "intercept at zero, frmtmb's own spelling: bf(..., center = ",
+         "FALSE) with class = \"b\", coef = \"Intercept\"")
+}
+
+#' Does brms's centering offset `off` (lp_center_offset()) move the
+#' intercept by more than rounding? A column whose mean is within
+#' `sqrt(.Machine$double.eps)` of its standard deviation is centered
+#' already, as `scale()` leaves it (a mean near 1e-17), and there the
+#' bound on the intercept at zero is brms's bound, so it is not refused.
+#'
+#' @noRd
+center_offset_material <- function(frame, off) {
+  if (is.null(off) || !length(off$idx)) return(FALSE)
+  for (lp in frame[["linpreds"]]) {
+    if (!identical(lp[["par"]], off$comp)) next
+    j <- match(off$idx, lp[["idx"]])
+    if (anyNA(j)) next
+    X <- lp[["X"]][, j, drop = FALSE]
+    s <- apply(as.matrix(X), 2L, stats::sd)
+    return(any(abs(off$w) > sqrt(.Machine$double.eps) * s))
+  }
+  TRUE
 }
 
 #' Does this distributional parameter have a PREDICTOR, in the sense
@@ -5517,21 +5938,81 @@ dpar_shape_refusal <- function(fit, s) {
 #' @noRd
 internal_bound <- function(v, pm, which) {
   if (identical(pm$scale, "internal")) return(v)
-  lf <- if (identical(pm$scale, "sd")) log else pm$link$linkfun
+  is_sd <- identical(pm$scale, "sd")
+  lf <- if (is_sd) log else pm$link$linkfun
   b <- suppressWarnings(as.numeric(lf(v)))
-  if (is.finite(b)) return(b)
+  if (is.finite(b)) {
+    return(bound_inside(b, v, if (is_sd) exp else pm$link$linkinv, which))
+  }
   # the bound lies outside the parameter's own support. Below it a lower
   # bound constrains nothing, which is exactly brms's lb = 0 on a
   # log-linked dispersion parameter; an upper bound there would be an
   # empty box and is a question about intent rather than a number to
   # invent
-  if (identical(which, "lb") && (is.nan(b) || b == -Inf)) return(-Inf)
+  if (identical(which, "lb") && isTRUE(b == -Inf)) return(-Inf)
+  # a NaN says only that v is outside the support, not on which side:
+  # qlogis(2) is NaN as qlogis(-1) is, and zi lb = 2 was dropped without
+  # a word where it is an empty box (review of lane priors2)
+  if (identical(which, "lb") && is.nan(b)) {
+    li <- if (is_sd) exp else pm$link$linkinv
+    big <- .Machine$double.xmax
+    floor_v <- suppressWarnings(min(as.numeric(li(c(-big, big)))))
+    if (isTRUE(v <= floor_v)) return(-Inf)
+  }
   # isTRUE(), because a bound outside the support maps to NaN and
   # `NaN == Inf` is NA, which would make the `if` itself the error
   # instead of the sentence below
   if (identical(which, "ub") && isTRUE(b == Inf)) return(Inf)
   frm_stop(which, " = ", v, " is outside the support of the parameter this ",
            "prior is about, so it describes an empty box", call. = FALSE)
+}
+
+#' An internal bound `b`, moved inward until the inverse link takes it
+#' inside the user's bound `v`. Rounding through the link can land one
+#' ulp outside: `plogis(qlogis(0.3))` is 0.30000000000000004, past the
+#' end of `uniform(0, 0.3)`, where the density is 0, so a fit whose
+#' maximum is at the bound stopped short with code 1 (backlog 5027; 37
+#' of 99 ends land outside through the logit, 11 of 100 through the
+#' log, dev/priors2-ulp.R). Where the inverse link is flat in ulps of
+#' `b`, near 1 through the logit, one ulp of `v` takes many of `b`, so
+#' the step doubles until it lands inside (a first version stepped one
+#' ulp 64 times and left 61 of 602 such ends outside, review of lane
+#' priors2, F3), and a bisection then takes the inside point nearest
+#' `b`. A bound no internal value maps inside is refused by name.
+#'
+#' @noRd
+bound_inside <- function(b, v, linkinv, which) {
+  inside <- function(x) {
+    y <- suppressWarnings(as.numeric(linkinv(x)))
+    if (identical(which, "lb")) isTRUE(y >= v) else isTRUE(y <= v)
+  }
+  if (inside(b)) return(b)
+  sgn <- if (identical(which, "lb")) 1 else -1
+  step <- max(abs(b) * .Machine$double.eps, 2^-1074)
+  out <- b
+  x <- NA_real_
+  while (is.finite(step)) {
+    cand <- b + sgn * step
+    if (inside(cand)) {
+      x <- cand
+      break
+    }
+    out <- cand
+    step <- 2 * step
+  }
+  if (is.na(x)) {
+    frm_stop(which, " = ", format(v, digits = 17), " cannot be carried ",
+             "through the link: no value of the internal parameter maps ",
+             "inside it, so the box would hold the parameter outside the ",
+             "bound written", call. = FALSE)
+  }
+  # the inside point nearest b, between the last step outside and x
+  repeat {
+    mid <- (out + x) / 2
+    if (mid == out || mid == x) break
+    if (inside(mid)) x <- mid else out <- mid
+  }
+  x
 }
 
 #' Log density of one prior entry value (AD-safe), with the change of
@@ -5917,7 +6398,16 @@ dirichlet_logdens <- function(z, dist) {
   # one weight, fixed at 1: no coordinate and a density of 1
   if (D < 2L) return(0)
   if (identical(dist$chart, "softmax")) {
-    v <- c(0, z)
+    # the reference component's log ratio is 0; a mo() simplex has it
+    # first, a mixture's weights where the family puts it (`ref`)
+    ref <- dist$ref %||% 1L
+    v <- if (ref <= 1L) {
+      c(0, z)
+    } else if (ref > length(z)) {
+      c(z, 0)
+    } else {
+      c(z[seq_len(ref - 1L)], 0, z[seq.int(ref, length(z))])
+    }
     lse <- v[1L]
     for (k in seq_along(v)[-1L]) lse <- RTMB::logspace_add(lse, v[k])
     # log w = v - lse, computed without forming w

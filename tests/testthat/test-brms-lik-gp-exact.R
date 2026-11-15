@@ -113,7 +113,37 @@ test_that("the approximate gp() on unsorted positions needs no reorder", {
   skip_unless_brms_fit()
   dd <- gpx_data()
   stopifnot(is.unsorted(dd$x))
-  fit <- frm(bf(y ~ gp(x, k = 10)), family = gaussian(), data = dd)
+  # on 13 distinct positions the likelihood's maximum is the white limit of
+  # the basis, 0.025 above a length scale of 0.4 of its spacing, and the
+  # fit says that the length scale is not determined there
+  # (dev/gpfield-dbg6.R)
+  fit <- allow_warnings(frm(bf(y ~ gp(x, k = 10)), family = gaussian(),
+                            data = dd), "spacing its basis resolves")
   expect_identical(fit$frame$re_blocks[[1L]]$covstruct, "hsgp")
   brms_lp_check(brms::bf(y ~ gp(x, k = 10)), gaussian(), dd, fit, joint = TRUE)
+})
+
+test_that("brms's Matern and exponential kernels are brms's program", {
+  # exact on unsorted positions, isotropic and anisotropic, and the
+  # approximate form with brms's spectral densities; the exact rows read
+  # frmtmb's relative nugget, as the rows above do
+  skip_unless_brms_fit()
+  dd <- gpx_data()
+  for (cv in c("matern52", "matern32", "exponential")) {
+    # the kernel written into each formula: brms's helpers rebuild a
+    # formula away from the environment that holds `cv`
+    f1 <- eval(bquote(y ~ gp(x, cov = .(cv))))
+    f2 <- eval(bquote(ybz ~ gp(x, z, cov = .(cv), iso = FALSE)))
+    f3 <- eval(bquote(y ~ gp(x, k = 10, cov = .(cv))))
+    fit <- frm(bf(f1), family = gaussian(), data = dd)
+    expect_identical(fit$opt$convergence, 0L)
+    brms_lp_check(brms::bf(f1), gaussian(), dd, fit, joint = TRUE,
+                  code_fix = gpx_rel_nugget)
+    fit <- frm(bf(f2), family = gaussian(), data = dd)
+    brms_lp_check(brms::bf(f2), gaussian(), dd, fit, joint = TRUE,
+                  code_fix = gpx_rel_nugget)
+    fit <- allow_warnings(frm(bf(f3), family = gaussian(), data = dd),
+                          "spacing its basis resolves")
+    brms_lp_check(brms::bf(f3), gaussian(), dd, fit, joint = TRUE)
+  }
 })

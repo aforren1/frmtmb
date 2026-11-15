@@ -205,8 +205,14 @@ test_that("prior bounds address dpar and resp coefficients", {
   rid <- frmtmb:::resolve_prior_input(fd,
     set_prior("", dpar = "sigma", lb = -1, ub = 1))
   expect_identical(names(rid$lower), "sigma_z")
-  # class "b" excludes the intercept, exactly as it does without a dpar
-  rii <- frmtmb:::resolve_prior_input(fd,
+  # class "b" excludes the intercept, exactly as it does without a dpar;
+  # the intercept of sigma ~ z is centered, and brms bounds it there, so
+  # a bound on it is refused, and one on an uncentered one is kept
+  expect_error(frmtmb:::resolve_prior_input(fd,
+    set_prior("", class = "Intercept", dpar = "sigma", lb = -0.5)),
+    "is a bound on the intercept at the means", fixed = TRUE)
+  f1 <- frm(bf(y ~ x, sigma ~ 1) + gaussian(), data = dd)
+  rii <- frmtmb:::resolve_prior_input(f1,
     set_prior("", class = "Intercept", dpar = "sigma", lb = -0.5))
   expect_identical(names(rii$lower), "sigma_(Intercept)")
   expect_true(all(!is.na(match(names(rid$lower), outer_par_names(fd)))))
@@ -222,10 +228,10 @@ test_that("prior bounds address dpar and resp coefficients", {
 test_that("class sd bounds one standard deviation or all of them", {
   dd <- sim_lmm(seed = 305)
   fit <- frm(bf(y ~ x + (1 + x | g)) + gaussian(), data = dd)
-  # every position of this block has a class (sd, cor), so class theta
-  # names none of them, as brms has no class theta
+  # every position of this block has a class (sd, cor), so class thetacov
+  # names none of them, as brms has no class thetacov
   expect_error(frmtmb:::resolve_prior_input(fit,
-    set_prior("", class = "theta", lb = -2, ub = 2)),
+    set_prior("", class = "thetacov", lb = -2, ub = 2)),
     "names no parameter here", class = "frmtmb_error")
 
   all_sd <- frmtmb:::resolve_prior_input(fit,
@@ -241,14 +247,14 @@ test_that("class sd bounds one standard deviation or all of them", {
   expect_equal(unname(one$lower), -1)
   expect_equal(unname(one$upper), 1)
 
-  # class theta still bounds, class-wide, the parameters no class
+  # class thetacov still bounds, class-wide, the parameters no class
   # reaches: a toep() block's banded correlations, theta_4 and theta_5
   # here, and none of its standard deviations
   dd$tf <- factor(rep(1:3, length.out = nrow(dd)))
   ft <- frm(bf(y ~ x + toep(0 + tf | g)) + gaussian(), data = dd,
             dry_run = "objective")
   tb <- frmtmb:::resolve_prior_input(ft,
-    set_prior("", class = "theta", lb = -2, ub = 2))
+    set_prior("", class = "thetacov", lb = -2, ub = 2))
   expect_identical(sort(names(tb$lower)), c("theta_4", "theta_5"))
   expect_identical(unname(tb$upper), c(2, 2))
 })

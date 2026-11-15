@@ -1,0 +1,9 @@
+frmtmb tests/testthat/test-thres-refit.R
+frmtmb tests/testthat/test-data2.R
+frmtmb tests/testthat/test-mo-coding.R
+frmtmb tests/testthat/test-se-reparam-inv.R
+frmtmb tests/testthat/test-v15.R
+frmtmb tests/testthat/test-methods-audit.R
+frmtmb.eam extensions/frmtmb.eam/tests/testthat/test-ndt-seam.R
+frmtmb.eam extensions/frmtmb.eam/tests/testthat/test-ndt-bound.R
+frmtmb.learn extensions/frmtmb.learn/tests/testthat/test-rlddm-ndt.R

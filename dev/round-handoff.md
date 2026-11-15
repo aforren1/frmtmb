@@ -9,12 +9,51 @@ releases, 2026-09-30 at the 0.67.0 release, 2026-10-06 at the
 0.74.0 release, 2026-10-24 at the 0.75.0 release, 2026-10-27 at the
 0.76.0 release, 2026-10-28 at the 0.77.0 release, 2026-10-29 at the
 0.78.0 release, 2026-11-04 at the 0.79.0 release, 2026-11-07 at the
-0.80.0 release, 2026-11-10 at the 0.81.0 release and 2026-11-12 at the
-0.82.0 release. Read this, then
+0.80.0 release, 2026-11-10 at the 0.81.0 release, 2026-11-12 at the
+0.82.0 release and 2026-11-14 at the 0.83.0 release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
 anything: the library has been lost EIGHT times, and the last three
 losses each followed processes being killed, not low disk.
+
+## The 0.83.0 round, opened 2026-11-13, consolidated 2026-11-14
+
+`dev/round-20261113.md` is this round's record, and `dev/rel083-log.md` the
+consolidator's running log. Fourteen lanes off `ec8178d3` (0.82.0), each with
+`dev/<lane>-findings.md` and `dev/reviews/2026-11-13-<lane>.md` and `-short.md`, merged
+onto `8159568e` (0.82.1, lane ci082's CI fix) in the order selimit2, quadseam2,
+slopescale, nlstop2, priors2, famend, silent2, arspat2, refits, parity2, wcheck2,
+gpfield, predraw2, hygiene (`dev/rel083-merge.sh`, `-fix-*.R`, `-news.R`,
+`-release-fix.sh`, `-nl-starts.R`). Three files conflicted, each resolved by a script.
+The survey's headline is 89.3, Wald [84.8, 93.9]: p072 (asym_laplace x gr_cov) is a
+decided refusal. The ported suite moves no row.
+
+Versions: frmtmb **0.83.0**; frmtmb.sample **0.30.0** and frmtmb.spatial **0.5.0**, both
+needing 0.83.0; frmtmb.latent 0.7.5 (tests only, floor 0.83.0). ode, eam, learn,
+coupling and survival keep theirs. The library is `C:/Users/adf44/source/r/rellib-r22`;
+`rellib-r21` keeps 0.82.0.
+
+### What to know next time
+
+- Eight of fourteen lanes ended on FIX answered by a fix round no written short check
+  read. Read every lane's last verdict and the files' mtimes first; the coordinator then
+  verified them by named checks (`dev/round-20261113.md`, "Lanes").
+- Two lanes' merge notes for one conflict can disagree (famend and priors2 on the `at0`
+  block); the later, reviewed note is the one to apply, and say so.
+- A survey pair can be pinned by an old row of `dev/equiv-data/adjudication.tsv`: p072's
+  measured verdict moved to a refusal but its 0.80.0 adjudication kept it "equivalent".
+  Read `verdict_measured` against the adjudicated verdict for every changed pair, and
+  rerun `dev/equiv-summary.R <outdir> --record` after an adjudication edit.
+- famend's start move (inside every fit with a prior) moved other lanes' tables (priors2
+  at 1e-12, a wcheck2 row that now fits); attribute by the lane library over the base.
+- No `git status` or `git diff` in any tree: list a tree's paths with `git ls-files`
+  plus `git hash-object --stdin-paths` against `git ls-files -s`
+  (`dev/rel083-list.sh`), and use `git diff-tree` between commits.
+- hygiene's `run-session.R` prints extension session state as LEAK lines tagged
+  `[extension session state]`; the 0.82.0 summary script counts them as untagged.
+- The selimit2 SE comparison is keyed by test (`dev/rel083-se-traced.R` writes a TEST
+  line per `test_that()`; `dev/rel083-se-cmp.R`): a file whose new tests add fits shifts
+  no record of another test.
 
 ## The 0.82.0 round, opened 2026-11-11, consolidated 2026-11-11 to 2026-11-12
 

@@ -381,23 +381,29 @@ cov_from_hessian <- function(fit, H, E = NULL, exact = FALSE) {
     list(V = V, shown = V, lost = none, tier = 1L)
   }
   p <- fit$opt$par
+  # se_edge_limit()'s answer, NULL where it does not run
+  el <- NULL
   held <- se_bound_held(fit, p, H)
   edge <- se_edge_sd(fit, H) | ec
   # a coefficient run to the end of its range, and what it leaves
-  # undetermined. Not under quadrature or importance sampling, which
-  # give no boundary verdict either (se_edge_sd())
-  if (!isTRUE(fit$quadrature) && is.null(fit$importance)) {
+  # undetermined. Not on the nested quadrature route or under importance
+  # sampling, which give no boundary verdict either (se_edge_sd())
+  if (se_edge_probed(fit) && is.null(fit$importance)) {
     # a probe that fails leaves the other rules' verdicts
-    edge <- edge | tryCatch(se_edge_limit(fit, H, held | edge),
-                            error = keep_missing(logical(np)))
+    el <- tryCatch(se_edge_limit(fit, H, held | edge),
+                   error = keep_missing(logical(np)))
+    edge <- edge | as.vector(el)
   }
+  # combinations of coefficients run off together, which tier 3 removes
+  # as directions (se_limit_joint_dirs())
+  joint <- attr(el, "joint")
   # before the tiers: on an ill-conditioned fixed design the natural
   # inverse is inaccurate whichever tier accepts it (se_reparam_cov())
-  if (!any(held) && !any(edge)) {
+  if (!any(held) && !any(edge) && !NCOL(joint)) {
     rp <- se_reparam_cov(fit, H, p)
     if (!is.null(rp)) return(rp)
   }
-  if (!is.null(tier1) &&
+  if (!is.null(tier1) && !NCOL(joint) &&
         !se_tier3_could_act(fit, H, E, exact, held, edge)) {
     return(tier1)
   }
@@ -426,7 +432,7 @@ cov_from_hessian <- function(fit, H, E = NULL, exact = FALSE) {
     # estimate of 0.99 along a ridge the likelihood is flat on. This
     # also asks for positive definiteness, which tier 1 did not: tier 2
     # is reached only when tier 1's standard errors were not finite.
-    Vs <- if (min(ev) > se_flat_tol * max(abs(ev)) &&
+    Vs <- if (min(ev) > se_flat_tol * max(abs(ev)) && !NCOL(joint) &&
                 !se_tier3_could_act(fit, H, E, exact, held, edge)) {
       try(solve(S), silent = TRUE)
     }
@@ -442,7 +448,8 @@ cov_from_hessian <- function(fit, H, E = NULL, exact = FALSE) {
   }
   # the covariance tier 3 builds is not needed where tier 1 stands
   lazy <- !is.null(tier1) && !replaced
-  an <- se_tier3(fit, H, E, p, exact, held, edge, lazy = lazy)
+  an <- se_tier3(fit, H, E, p, exact, held, edge, lazy = lazy,
+                 joint = joint)
   # Tier 3 removed nothing, so a log sd the route deferred to it
   # (se_reparam_defer()) is interior, and the route may take the whole
   # Hessian: an sd at 0.033 times sigma on a degree-7 raw polynomial
@@ -791,19 +798,23 @@ se_edge_limit <- function(fit, H, skip = logical(NROW(H))) {
   # a row the Hessian cannot give is asked of the objective itself: a
   # negbinomial shape at exp(23.2) had a row that was not finite and
   # read level both ways (review of lane boundfam, m1)
-  cand <- cand[!skip[cand] & (!is.finite(hd[cand]) |
-                                hd[cand] <= se_edge_screen)]
-  if (!length(cand)) return(out)
+  cand <- cand[!skip[cand]]
+  one <- cand[!is.finite(hd[cand]) | hd[cand] <= se_edge_screen]
+  jd <- se_limit_joint_dirs(fit, H, p, u, cand, om)
+  if (!length(one) && !length(jd)) return(out)
   obj <- fit$obj
   saved <- obj_state_save(obj)
   on.exit(obj_state_restore(obj, saved), add = TRUE)
-  fn <- function(q) tryCatch(se_quiet(obj$fn(q)), error = function(e) NA_real_)
+  # under one-block quadrature a rule taped at each point: the fit's own
+  # is frozen at the estimate (se_probe_fn())
+  pf <- se_probe_fn(fit)
+  fn <- function(q) tryCatch(se_quiet(pf(q)), error = function(e) NA_real_)
   f0 <- fn(p)
   if (!is.finite(f0)) return(out)
   tol <- fit$control$grad_tol %||% 1e-3
   dir <- numeric(np)
   gain <- numeric(np)
-  for (j in cand) {
+  for (j in one) {
     s <- se_limit_dir(function(t) {
       q <- p
       q[j] <- p[j] + t * u[j]
@@ -813,12 +824,49 @@ se_edge_limit <- function(fit, H, skip = logical(NROW(H))) {
     gain[j] <- attr(s, "gain") %||% 0
   }
   lim <- which(dir != 0)
-  if (!length(lim)) return(out)
-  rise <- gain[lim] > tol
-  # a probability's slope that sends some rows to 0 and others to 1 is a
-  # separation of that parameter's model, and every coefficient of it is
-  # undetermined, as in a separated bernoulli mean
-  sp <- se_limit_separating(fit, lim, om)
+  # one end per coefficient, then the combinations that run off together
+  ends <- lapply(lim, function(j) {
+    w <- numeric(np)
+    w[j] <- dir[j]
+    list(pos = j, w = w, gain = gain[j], joint = FALSE)
+  })
+  # beside a coefficient at its end alone, a combination through it
+  # (se_limit_joint_dirs())
+  # (not through the rest of a probability one coefficient separates,
+  # which that separation leaves undetermined already)
+  if (length(lim)) {
+    so <- unlist(attr(se_limit_separating(fit, ends, om), "others"))
+    jd <- se_limit_joint_dirs(fit, H, p, u, setdiff(cand, so), om, lim)
+  }
+  for (w in jd) {
+    s <- se_limit_joint_dir(fn, f0, p, w, H, attr(w, "z"))
+    if (s == 0) next
+    # a level ray is no proof: the rows it moves must be certified, and
+    # the direction kept is the one the certificate holds them on
+    wc <- se_limit_joint_cert(fit, fn, f0, p, s * as.vector(w), om)
+    if (is.null(wc)) next
+    wc <- wc / sqrt(sum((wc / u)^2))
+    wc[abs(wc) <= 1e-6 * max(abs(wc))] <- 0
+    # the coefficients that ran off alone are that end already; the
+    # others of a combination through them lose their rows with them
+    ends[[length(ends) + 1L]] <- list(pos = setdiff(which(wc != 0), lim),
+                                      w = wc,
+                                      gain = attr(s, "gain") %||% 0,
+                                      joint = TRUE,
+                                      rows = any(wc[lim] != 0))
+  }
+  if (!length(ends)) return(out)
+  epos <- lapply(ends, `[[`, "pos")
+  lim <- unlist(epos)
+  # each end's forward direction, in natural units
+  mv <- Reduce(`+`, lapply(ends, function(e) e$w / u))
+  erise <- vapply(ends, function(e) e$gain > tol, NA)
+  rise <- rep(erise, lengths(epos))
+  # a probability run off on some rows toward 1, or toward 0 on some and
+  # 1 on others, is a separation of that parameter's model, as in a
+  # separated bernoulli mean; in the second case every other coefficient
+  # of it is undetermined too
+  sp <- se_limit_separating(fit, ends, om)
   sepo <- setdiff(unlist(attr(sp, "others")), c(lim, which(skip)))
   und <- integer(0)
   rest <- setdiff(which(!skip), c(lim, sepo))
@@ -826,60 +874,353 @@ se_edge_limit <- function(fit, H, skip = logical(NROW(H))) {
   # the stop: the coherence of frmtmb.coupling's test fit had a maximum
   # about 6 units out (review of lane boundfam, m3)
   if (length(rest) && !any(rise)) {
-    q <- p
-    q[lim] <- p[lim] + dir[lim] * se_edge_step * u[lim]
+    q <- p + mv * se_edge_step * u
     c0 <- se_limit_curv(fit, p, rest, u)
     c1 <- se_limit_curv(fit, q, rest, u)
     und <- c(und, rest[is.finite(c0) & is.finite(c1) & abs(c0) > 0 &
                          abs(c1) < se_limit_decay * abs(c0)])
   }
-  out[c(lim, sepo, und)] <- TRUE
+  # A joint end is not held here coefficient by coefficient: only its
+  # combination is at the end, and the others stay determined (on
+  # `y ~ g` with group a all zero, the mean of group b). Tier 3 removes
+  # that one direction (attribute `joint`, se_tier3()).
+  jt <- vapply(ends, `[[`, NA, "joint")
+  rows <- vapply(ends, function(e) isTRUE(e$rows), NA)
+  single <- unlist(epos[!jt | rows])
+  out[c(single, sepo, und)] <- TRUE
+  if (any(jt & !rows)) {
+    attr(out, "joint") <- do.call(cbind, lapply(ends[jt & !rows], `[[`, "w"))
+  }
+  wdir <- sign(Reduce(`+`, lapply(ends, `[[`, "w")))[lim]
   if (is.environment(fit$cache)) {
     fit$cache$se_limit <- list(
       kind = stats::setNames(c(rep("end", length(lim)),
                                rep("sepother", length(sepo)),
                                rep("undefined", length(und))),
                              om$names[c(lim, sepo, und)]),
-      dir = stats::setNames(dir[lim], om$names[lim]),
+      dir = stats::setNames(wdir, om$names[lim]),
       est = stats::setNames(p[lim], om$names[lim]),
       rise = stats::setNames(rise, om$names[lim]),
-      sep = stats::setNames(as.vector(sp), om$names[lim]),
-      gain = stats::setNames(gain[lim], om$names[lim]), par = p)
+      sep = stats::setNames(rep(as.vector(sp), lengths(epos)),
+                            om$names[lim]),
+      sep1 = stats::setNames(rep(attr(sp, "one"), lengths(epos)),
+                             om$names[lim]),
+      gain = stats::setNames(rep(vapply(ends, `[[`, 0, "gain"),
+                                 lengths(epos)), om$names[lim]),
+      joint = stats::setNames(rep(jt, lengths(epos)), om$names[lim]),
+      jw = if (any(jt)) do.call(cbind, lapply(ends[jt], `[[`, "w")),
+      par = p)
   }
   out
 }
 
-#' Which of the end coefficients `js` (outer positions) separate the rows
-#' of a probability parameter (`zi`, `hu`, `zoi`, `coi`, a mixing
-#' `theta`): a column with rows of both signs, so that the run sends the
-#' probability to 0 on some rows and to 1 on others. An intercept, or a
-#' column whose rows all move one way (a factor level's indicator), is the
-#' family's limiting case on those rows instead. Attribute `others`: for
-#' each, the outer positions of the other coefficients of that predictor.
-#'
-#' On `bf(y ~ 1, zi ~ x)` with every row below x = 0 a zero, zi_x ran to
-#' -1707 and zi_(Intercept), a 2-unit step of the slope moving the
-#' boundary by 0.1 percent, kept a standard error of 1063 under the quiet
-#' message (review of lane boundfam, M1).
+#' se_limit_dir() for a joint direction `w` (se_limit_joint_dirs()), with
+#' two more conditions, since an estimate far out along a weak direction
+#' is what collinear columns give too. Both sides must be level at
+#' `se_edge_step`, and the loss on the way back to zero must exceed
+#' `se_joint_quad` times what the curvature along `w` at the stop
+#' (`w' H w`) and its slope predict for a quadratic. A run toward
+#' infinity, whose curvature has decayed there, loses millions of times
+#' more (`y ~ g` with group a all zero: about 50 against 7e-6); a weak
+#' interior maximum loses what the quadratic says. On test-se-tier.R's
+#' poisson pair at a correlation of 1 - 5e-11 (standard errors of 7135,
+#' the fit 0.07 short of the maximum) the ray rose 1e-4 one way and the
+#' first version called both coefficients a limit.
 #'
 #' @noRd
-se_limit_separating <- function(fit, js, om = outer_par_map(fit)) {
-  out <- logical(length(js))
-  others <- vector("list", length(js))
+se_limit_joint_dir <- function(fn, f0, p, w, H, z) {
+  at <- function(t) fn(p + t * w) - f0
+  d <- c(at(se_edge_step), at(-se_edge_step))
+  if (!all(is.finite(d) & d <= se_edge_tol)) return(0)
+  s <- se_limit_dir(at, z)
+  if (s == 0) return(0)
+  zb <- max(se_sd_far, abs(z))
+  back <- at(-s * zb)
+  cv <- abs(sum(w * drop(H %*% w)))
+  q <- 0.5 * cv * zb^2 + max(abs(d)) / se_edge_step * zb
+  if (!is.finite(back) || !is.finite(q) || back <= se_joint_quad * q) {
+    return(0)
+  }
+  s
+}
+
+#' How many times its quadratic prediction the way back must lose for a
+#' joint direction to be an end (se_limit_joint_dir()).
+#'
+#' @noRd
+se_joint_quad <- 10
+
+#' Whether the joint direction `w` (forward, raw units) is a recession
+#' direction of the likelihood, proved from the rows it moves rather than
+#' from the ray's level. A level ray alone also passes an interior
+#' maximum whose curvature is below about 5e-7: poisson `y ~ x` with one
+#' count at x = 15 and another at 15 - 1e-4 has a finite MLE, yet the ray
+#' was level to 1e-6 two and fourteen units out and the fit was told the
+#' MLE does not exist (review of lane selimit2, F2;
+#' dev/reviews/selimit2-review-fp.R).
+#'
+#' The direction is measured at the stop, so a row it should not move
+#' moves by rounding of the run (on `zi ~ f`, level b's rows by 8e-8 of
+#' level a's). Rows that move by at most `se_sep_move` of the largest
+#' move, the way their outcome rules out, are held first: `w` is
+#' projected on the coefficients that leave them in place, and where none
+#' is left there is no end (the two counts 1e-4 apart above hold both
+#' coefficients). Then a row moves when its predictor moves by more than
+#' 1e-8 of the largest move. Returns the projected direction, or NULL.
+#'
+#' For a count or binary mean, a log or logit link's limit: every
+#' row moved down must be 0 (and, for a bernoulli, every row moved up 1;
+#' a count moved up refuses). For `hu`, every row moved up must be 0 and
+#' every row moved down positive; for `zi` the same, except that a zero
+#' moved down loses a bounded amount (to the count density's own zero);
+#' for `zoi`, up 0 or 1 and down strictly between; for `coi`, among the
+#' rows at 0 or 1, up 1 and down 0. Each row's log density is then
+#' nondecreasing along the ray, so the supremum is at infinity. A mixing
+#' weight (`theta`), and zi on a zero moved down, saturate: each row's
+#' log density is monotone and bounded along the ray, so the objective
+#' with every moved row 40 units past its own predictor must not have
+#' risen by more than `se_edge_tol`. Any other predictor is not
+#' certified, and its coefficients keep the "flat" verdict they had
+#' without the joint search.
+#'
+#' @noRd
+se_limit_joint_cert <- function(fit, fn, f0, p, w, om = outer_par_map(fit)) {
+  ok <- se_limit_joint_cert1(fit, fn, f0, p, w, om)
+  if (isTRUE(ok)) attr(ok, "w") else NULL
+}
+
+#' se_limit_joint_cert()'s test: TRUE with attribute `w`, or FALSE.
+#'
+#' @noRd
+se_limit_joint_cert1 <- function(fit, fn, f0, p, w, om) {
+  sup <- which(w != 0)
+  if (!length(sup)) return(FALSE)
   for (lp in fit$frame[["linpreds"]] %||% list()) {
-    if (!grepl("^(zi|hu|zoi|coi|theta)[0-9]*$", lp[["dpar"]] %||% "")) next
+    pos <- tryCatch(se_lp_outer_pos(fit, lp, om), error = function(e) NULL)
+    if (!length(pos) || !all(sup %in% pos)) next
+    X <- lp[["X"]]
+    if (is.null(X) || NCOL(X) != length(pos)) return(FALSE)
+    X <- as.matrix(patch_mo_cols(fit, lp, X))
+    a <- as.numeric(X %*% w[pos])
+    if (!length(a) || !all(is.finite(a)) || !any(a != 0)) return(FALSE)
+    dp <- lp[["dpar"]] %||% "mu"
+    # the objective with every row the direction moves by more than
+    # `se_sep_move` of the most 40 units past its own predictor (each
+    # row's log density is monotone along the ray, and the rows moved
+    # less move by less)
+    far <- function() {
+      eta <- as.numeric(X %*% p[pos])
+      m <- abs(a) > se_sep_move * max(abs(a))
+      t <- max((40 + abs(eta[m])) / abs(a[m]))
+      if (!is.finite(t) || t > 1e12) return(FALSE)
+      d <- fn(p + t * w) - f0
+      is.finite(d) && d <= se_edge_tol
+    }
+    if (grepl("^theta[0-9]*$", dp)) {
+      return(if (far()) structure(TRUE, w = w) else FALSE)
+    }
+    rs <- fit$spec$responses
+    r <- if (!is.null(lp[["resp"]]) && lp[["resp"]] %in% names(rs)) {
+      rs[[lp[["resp"]]]]
+    } else if (length(rs) == 1L) rs[[1L]]
+    fam <- r[["family"]][["family"]] %||% ""
+    y <- fit$frame[["y"]][[lp[["resp"]] %||% 1L]]
+    if (!is.numeric(y) || length(y) != length(a) || anyNA(y)) return(FALSE)
+    count <- c("poisson", "negbinomial", "negbinomial2", "geometric",
+               "binomial", "zero_inflated_poisson",
+               "zero_inflated_negbinomial", "zero_inflated_binomial")
+    if (dp %in% c("mu", "") && !(fam %in% c("bernoulli", count))) {
+      return(FALSE)
+    }
+    if (!grepl("^(mu|zi|hu|zoi|coi)[0-9]*$", dp) && !identical(dp, "")) {
+      return(FALSE)
+    }
+    # per row: a move its outcome rules out (`bad`), and a zero moved
+    # toward no inflation, which loses a bounded amount (`soft`)
+    viol <- function(a) {
+      tol <- 1e-8 * max(abs(a))
+      up <- a > tol
+      dn <- a < -tol
+      e <- y %in% c(0, 1)
+      soft <- logical(length(a))
+      bad <- if (dp %in% c("mu", "")) {
+        if (fam == "bernoulli") {
+          (dn & y != 0) | (up & y != 1)
+        } else up | (dn & y != 0)
+      } else if (grepl("^hu", dp)) {
+        (up & y != 0) | (dn & !(y > 0))
+      } else if (grepl("^zi", dp)) {
+        soft <- dn & y == 0
+        up & y != 0
+      } else if (grepl("^zoi", dp)) {
+        (up & !e) | (dn & e)
+      } else {
+        (up & e & y != 1) | (dn & e & y != 0)
+      }
+      list(bad = bad, soft = soft)
+    }
+    v <- viol(a)
+    # rows moved by rounding of the run in a way their outcome rules out
+    # are held, and the direction projected to leave them in place
+    hold <- (v$bad | v$soft) & abs(a) <= se_sep_move * max(abs(a))
+    if (any(hold)) {
+      w0 <- max(abs(w[pos]))
+      q <- qr(t(X[hold, , drop = FALSE]))
+      if (q$rank) {
+        Qh <- qr.Q(q)[, seq_len(q$rank), drop = FALSE]
+        w[pos] <- w[pos] - drop(Qh %*% crossprod(Qh, w[pos]))
+      }
+      a <- as.numeric(X %*% w[pos])
+      if (!all(is.finite(a)) || max(abs(a)) == 0 ||
+            max(abs(w[pos])) <= sqrt(.Machine$double.eps) * w0) {
+        return(FALSE)
+      }
+      v <- viol(a)
+    }
+    if (any(v$bad)) return(FALSE)
+    if (any(v$soft) && !far()) return(FALSE)
+    return(structure(TRUE, w = w))
+  }
+  FALSE
+}
+
+#' Combinations of one linear predictor's coefficients that have run off
+#' together (se_edge_limit()), where no coefficient alone has: on a
+#' poisson `y ~ g` with group a all zero, the intercept ran to -22.3 and
+#' gb to 23.5, and on `y ~ x` with the one count at the largest x the
+#' intercept ran to -436.5 and x to 208.8. Each coefficient alone moves
+#' rows the data hold, so neither reads as an end, and 0.82.0 called both
+#' "flat", where `y ~ 0 + g` read the same fit as a limit; a
+#' treatment-coded `zi ~ f` with one level all zero stayed silent with
+#' standard errors of 5374 (dev/selimit2-findings.md, item 4800).
+#'
+#' The candidate is the estimate's own direction within the predictor's
+#' flat subspace: the eigenvectors of its block of the Hessian, in natural
+#' units, whose curvature is at most `se_edge_screen`. A run toward
+#' infinity is what put the estimate far out along it. se_edge_limit()
+#' then asks the ray along it as it asks one coefficient
+#' (se_limit_dir()). A predictor whose block curves by more than
+#' `se_edge_screen` in every direction (a Cholesky factor of the block
+#' less that much exists) gives none, without an evaluation. Returns one
+#' direction per predictor that has one, over the outer parameters in
+#' raw units, of unit length in natural units, with attribute `z`, the
+#' estimate's own coordinate along it.
+#'
+#' `lim` are the coefficients found at their end one at a time. The
+#' search then runs over the others, with those adjusting as the
+#' curvature has them (the Schur complement of their block): with `zi ~
+#' f`, group b's zi ran to 0 through zi_fb alone, and group a's to 1
+#' only together with it, along (zi_(Intercept), zi_fb) = (1, -1), which
+#' a search that left zi_fb out could not see.
+#'
+#' @noRd
+se_limit_joint_dirs <- function(fit, H, p, u, cand, om = outer_par_map(fit),
+                                lim = integer(0)) {
+  out <- list()
+  np <- length(p)
+  if (length(cand) < 2L) return(out)
+  for (lp in fit$frame[["linpreds"]] %||% list()) {
+    pos <- tryCatch(se_lp_outer_pos(fit, lp, om), error = function(e) NULL)
+    pos <- intersect(pos, cand)
+    if (length(pos) < 2L || length(pos) > sep_p_max) next
+    Hb <- H[pos, pos, drop = FALSE] * outer(u[pos], u[pos])
+    if (!all(is.finite(Hb))) next
+    Hb <- (Hb + t(Hb)) / 2
+    l <- which(pos %in% lim)
+    r <- setdiff(seq_along(pos), l)
+    if (!length(r)) next
+    Hc <- Hb[r, r, drop = FALSE]
+    B <- NULL
+    if (length(l)) {
+      B <- tryCatch(solve(Hb[l, l, drop = FALSE], Hb[l, r, drop = FALSE]),
+                    error = function(e) NULL)
+      if (is.null(B) || !all(is.finite(B))) next
+      Hc <- Hc - Hb[r, l, drop = FALSE] %*% B
+      Hc <- (Hc + t(Hc)) / 2
+    }
+    pd <- tryCatch(chol(Hc - diag(se_edge_screen, length(r))),
+                   error = function(e) NULL)
+    if (!is.null(pd)) next
+    e <- eigen(Hc, symmetric = TRUE)
+    fl <- e$values <= se_edge_screen
+    Nf <- e$vectors[, fl, drop = FALSE]
+    z <- p[pos] / u[pos]
+    # weighted toward the flattest directions, as a Newton step within the
+    # subspace would be: with `zi ~ f` the contrast of the level left
+    # with rows (curvature 0.05) sits beside the run (2e-8), and the plain
+    # projection mixed them
+    dr <- drop(Nf %*% (crossprod(Nf, z[r]) /
+                         pmax(abs(e$values[fl]), .Machine$double.xmin)))
+    d <- numeric(length(pos))
+    d[r] <- dr
+    if (length(l)) d[l] <- -drop(B %*% dr)
+    nd <- sqrt(sum(d^2))
+    if (!is.finite(nd) || nd == 0) next
+    d <- d / nd
+    # a coefficient the direction hardly moves is not part of it
+    d[abs(d) < 1e-6 * max(abs(d))] <- 0
+    if (sum(d != 0) < 2L || !any(d[r] != 0)) next
+    w <- numeric(np)
+    w[pos] <- d * u[pos]
+    out[[length(out) + 1L]] <- structure(w, z = sum(d * z))
+  }
+  out
+}
+
+#' Which of the `ends` (se_edge_limit(): `pos`, the forward direction `w`)
+#' separate the rows of a probability parameter (`zi`, `hu`, `zoi`,
+#' `coi`, a mixing `theta`). Two cases:
+#'
+#' - the run sends the probability to 0 on some rows and to 1 on others
+#'   (the direction moves rows both ways); every other coefficient of that
+#'   predictor is undetermined too (attribute `others`). On `bf(y ~ 1, zi ~
+#'   x)` with every row below x = 0 a zero, zi_x ran to -1707 and
+#'   zi_(Intercept), a 2-unit step of the slope moving the boundary by 0.1
+#'   percent, kept a standard error of 1063 under the quiet message
+#'   (review of lane boundfam, M1).
+#' - the run sends a zero-inflation, hurdle or zero-one-inflation
+#'   probability to 1 on some rows: those rows' outcomes are the inflated
+#'   value alone, as a bernoulli fitted to them is quasi-separated. With
+#'   `zi ~ 0 + f` and level a all zero, zi_fa ran to 21.9 under the quiet
+#'   message that the probability "drops that part of the model"
+#'   (dev/selimit2-findings.md, item 4814). The other coefficients keep
+#'   their own verdicts, as the bernoulli's do.
+#'
+#' Toward 0 alone, the family's limiting case on those rows (no excess
+#' zeros), is not a separation, nor is a mixing weight or `coi` toward
+#' either end alone.
+#'
+#' @noRd
+se_limit_separating <- function(fit, ends, om = outer_par_map(fit)) {
+  out <- logical(length(ends))
+  one <- logical(length(ends))
+  others <- vector("list", length(ends))
+  for (lp in fit$frame[["linpreds"]] %||% list()) {
+    dp <- lp[["dpar"]] %||% ""
+    if (!grepl("^(zi|hu|zoi|coi|theta)[0-9]*$", dp)) next
+    to1 <- grepl("^(zi|hu|zoi)[0-9]*$", dp)
     pos <- tryCatch(se_lp_outer_pos(fit, lp, om), error = function(e) NULL)
     X <- lp[["X"]]
     if (!length(pos) || is.null(X) || NCOL(X) != length(pos)) next
-    for (i in which(js %in% pos)) {
-      x <- as.numeric(X[, match(js[i], pos)])
-      if (any(x > 0) && any(x < 0)) {
+    X <- patch_mo_cols(fit, lp, X)
+    for (i in seq_along(ends)) {
+      if (!all(ends[[i]]$pos %in% pos)) next
+      v <- as.numeric(X %*% ends[[i]]$w[pos])
+      # a row the run moves at a thousandth of the pace of the rows it
+      # sends off stays where it is; a joint end measured at the stop
+      # carries that much of its neighbors (`zi ~ f`'s level b)
+      tv <- se_sep_move * max(abs(v))
+      up <- any(v > tv)
+      if (up && any(v < -tv)) {
         out[i] <- TRUE
-        others[[i]] <- setdiff(pos, js[i])
+        others[[i]] <- setdiff(pos, ends[[i]]$pos)
+      } else if (to1 && up) {
+        out[i] <- TRUE
+        one[i] <- TRUE
       }
     }
   }
-  structure(out, others = others)
+  structure(out, others = others, one = one)
 }
 
 #' The parameters whose draws a prediction may hold where the fit is a
@@ -959,7 +1300,8 @@ se_limit_info <- function(fit) {
   li <- if (is.environment(fit$cache)) fit$cache$se_limit
   if (is.null(li) || !identical(li$par, fit$opt$par)) {
     return(list(kind = character(0), dir = numeric(0), est = numeric(0),
-                rise = logical(0), sep = logical(0), gain = numeric(0)))
+                rise = logical(0), sep = logical(0), sep1 = logical(0),
+                gain = numeric(0), joint = logical(0)))
   }
   li
 }
@@ -1012,7 +1354,14 @@ se_limit_family_par <- function(fit, pos, om = outer_par_map(fit)) {
 #' @noRd
 se_limit_curv <- function(fit, x, ks, u) {
   obj <- fit$obj
-  if (!length(obj$env$random)) {
+  # one-block quadrature: the differences of a rule taped at `x`, since
+  # the fit's own is frozen at the estimate and a Gauss-Kronrod tape's AD
+  # Hessian can be NaN in every entry (dev/quadseam-findings.md)
+  obj_at <- attr(quad_reanchored_fn(fit), "obj_at")
+  if (is.function(obj_at)) {
+    obj <- tryCatch(obj_at(x), error = function(e) NULL)
+    if (is.null(obj)) return(rep(NA_real_, length(ks)))
+  } else if (!length(obj$env$random)) {
     Hx <- tryCatch(se_quiet(obj$he(x)), error = function(e) NULL)
     if (!is.matrix(Hx) || !all(dim(Hx) == length(x))) {
       return(rep(NA_real_, length(ks)))
@@ -1042,6 +1391,19 @@ se_limit_curv <- function(fit, x, ks, u) {
 #'
 #' @noRd
 se_limit_decay <- 0.5
+
+#' The cosine, in the unit-diagonal metric, above which an eigenvector of
+#' tier 3 stands for a joint end of se_edge_limit(). Far along a run the
+#' Hessian vanishes along it and the eigenvector converges to it.
+#'
+#' @noRd
+se_joint_cos <- 0.9
+
+#' The share of the largest move below which se_limit_separating() counts
+#' a row as not moved by an end.
+#'
+#' @noRd
+se_sep_move <- 1e-3
 
 #' Tier 3 of cov_from_hessian(): which parameters have no standard
 #' error, why, and the covariance of the rest.
@@ -1103,7 +1465,7 @@ se_limit_decay <- 0.5
 #'
 #' @noRd
 se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
-                     edge = logical(0), lazy = FALSE) {
+                     edge = logical(0), lazy = FALSE, joint = NULL) {
   np <- NROW(H)
   nm <- outer_par_names(fit)
   why <- character(np)
@@ -1158,7 +1520,7 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
   ritz_flat <- NULL
   # the rest of an ill-conditioned design in its own coordinates, where
   # the eigenvalues below are rounding (se_reparam_cov())
-  rp <- if (length(free) >= 2L && length(free) < np) {
+  rp <- if (length(free) >= 2L && length(free) < np && !NCOL(joint)) {
     se_reparam_cov(fit, H, p, free)
   }
   if (!is.null(rp)) {
@@ -1347,6 +1709,21 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
         thr[S] <- se_flat_tol * big
         thr[S[sp$confirmed]] <- 0
       }
+    }
+    # A combination of coefficients run off together (se_edge_limit())
+    # is removed whatever its curvature: the probe measured the ray, and
+    # its eigenvalue sits just above the flat threshold where the run
+    # stopped early (a treatment-coded `zi ~ f` with level a all zero,
+    # 2e-8 of the largest). The eigenvector it is closest to stands for
+    # it, which a run far along it puts within a few degrees.
+    for (k in seq_len(NCOL(joint))) {
+      w <- joint[, k]
+      if (any(w[-free] != 0)) next
+      ws <- w[free] * Df
+      ws <- ws / sqrt(sum(ws^2))
+      cs <- abs(drop(crossprod(e$vectors, ws)))
+      kk <- which.max(cs)
+      if (cs[kk] > se_joint_cos) keep[kk] <- FALSE
     }
     # A curvature the objective confirms below machine epsilon of the
     # largest cannot be held beside the others in one double-precision
@@ -2403,6 +2780,153 @@ se_null_drop_held <- function(fit, sdr) {
   sdr
 }
 
+#' se_limit_ranges() for the limit parameters of `sdr$se_lost` that a
+#' prediction may move along (an end that is not a separation, or a
+#' parameter it leaves undetermined), or NULL. get_joint_cov() asks it
+#' once per fit, so a fit that is never predicted from pays nothing.
+#'
+#' @noRd
+se_limit_ranges_of <- function(fit, sdr) {
+  lost <- sdr$se_lost
+  if (!any(lost == "limit")) return(NULL)
+  li <- se_limit_info(fit)
+  ln <- names(lost)[lost == "limit"]
+  ok <- li$kind[ln] %in% c("end", "undefined") & !(li$sep[ln] %in% TRUE)
+  tryCatch(se_limit_ranges(fit, ln[ok]), error = keep_missing(NULL))
+}
+
+#' How far each limit direction can move with the likelihood level, for
+#' jc_limit_extrap().
+#'
+#' The move test of jc_nonest() reads a quantity's derivative at the
+#' estimate, which says nothing about a row outside the data: a `zi ~ x`
+#' fit whose zi ran to its end (seed 7 of the release review, zi_x at
+#' -0.32 and undetermined) read the expected count at new x = -10 as
+#' 0.099 with a standard error of 0.049, where a slope of -3 fits as well
+#' and sends zi to 1 there (dev/selimit2-findings.md, item 5433).
+#'
+#' One direction per limit parameter, a joint end as one (`jw`), each
+#' scaled to unit length in natural units (se_limit_units()). The level
+#' range is found by doubling from half a unit to 1024 units each way,
+#' the rest held, while the objective stays within `se_edge_tol` of the
+#' stop's; that is up to 24 evaluations per direction for at most
+#' `se_range_dirs` directions, paid once by a fit with a limit that is
+#' predicted from.
+#'
+#' An undetermined parameter is moved with the ends at the far end of
+#' their level ranges, toward their limits (`base`), and its own range is
+#' measured there. The limit is the model the fit describes, so only what
+#' moves there is undetermined. On frmtmb.eam's `mixture(wiener(max_ndt
+#' = 0.4), lognormal())` with the wiener weight's logit at -23.4, the
+#' wiener parameters moved at the stop shifted every fitted row's mean
+#' (the mixture's mean is unbounded in the boundary separation, times a
+#' weight of 6e-11) and gave 232 of 300 residuals a NaN standard error;
+#' with the weight at 0 they do not enter the mean. The `zi ~ x` slope
+#' above, with zi's intercept 1024 units further down, still sends zi to
+#' 1 at x = -10 and leaves x = 3 where it is.
+#'
+#' Each entry: `pos` (outer positions), `w` (the direction, raw units),
+#' `base` (the ends' shift, or NULL) and `t`, a grid over the level range.
+#'
+#' @noRd
+se_limit_ranges <- function(fit, names) {
+  if (!length(names)) return(NULL)
+  li <- se_limit_info(fit)
+  om <- outer_par_map(fit)
+  p <- fit$opt$par
+  np <- length(p)
+  u <- se_limit_units(fit, om)
+  unit <- function(w) w / sqrt(sum((w / u)^2))
+  axis <- function(n, s = 1) {
+    w <- numeric(np)
+    w[match(n, om$names)] <- s
+    unit(w)
+  }
+  jw <- if (is.matrix(li$jw) && NROW(li$jw) == np) li$jw
+  dirs <- list()
+  und <- logical(0)
+  jn <- names[li$joint[names] %in% TRUE]
+  for (n in setdiff(names, jn)) {
+    dirs[[length(dirs) + 1L]] <- axis(n)
+    und <- c(und, identical(unname(li$kind[n]), "undefined"))
+  }
+  for (k in seq_len(if (length(jn)) NCOL(jw) else 0L)) {
+    # only a combination through a parameter asked for
+    if (!any(om$names[jw[, k] != 0] %in% jn)) next
+    dirs[[length(dirs) + 1L]] <- unit(jw[, k])
+    und <- c(und, FALSE)
+  }
+  # a bound on the evaluations; the directions past it keep the move test
+  # at the estimate alone
+  keep <- seq_len(min(length(dirs), se_range_dirs))
+  dirs <- dirs[keep]
+  und <- und[keep]
+  obj <- fit$obj
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  fn <- function(q) tryCatch(se_quiet(obj$fn(q)), error = function(e) NA_real_)
+  f0 <- fn(p)
+  if (!is.finite(f0)) return(NULL)
+  level <- function(q) {
+    d <- fn(q) - f0
+    is.finite(d) && d <= se_edge_tol
+  }
+  reach <- function(q, w, s) {
+    t <- 0
+    for (k in seq_len(se_range_steps)) {
+      tk <- 0.5 * 2^(k - 1L)
+      if (!level(q + s * tk * w)) break
+      t <- tk
+    }
+    t
+  }
+  base <- numeric(np)
+  if (any(und)) {
+    ends <- names(li$kind)[li$kind %in% "end"]
+    ends <- ends[!(li$rise[ends] %in% TRUE)]
+    ev <- lapply(ends[!(li$joint[ends] %in% TRUE)], function(n) {
+      axis(n, sign(li$dir[[n]]))
+    })
+    for (k in seq_len(NCOL(jw))) ev[[length(ev) + 1L]] <- unit(jw[, k])
+    for (v in ev) base <- base + reach(p, v, 1) * v
+    # ends that interact may not be level together at their far ends
+    for (k in seq_len(se_range_steps)) {
+      if (level(p + base)) break
+      base <- base / 2
+    }
+    if (!level(p + base)) base <- numeric(np)
+  }
+  out <- list()
+  for (i in seq_along(dirs)) {
+    w <- dirs[[i]]
+    q <- if (und[i]) p + base else p
+    ext <- c(reach(q, w, -1), reach(q, w, 1))
+    if (all(ext == 0)) next
+    out[[length(out) + 1L]] <- list(
+      pos = seq_len(np), w = w, base = if (und[i] && any(base != 0)) base,
+      t = seq(-ext[1L], ext[2L], length.out = se_range_grid))
+  }
+  out
+}
+
+#' The steps of se_limit_ranges()'s doubling search: half a natural unit
+#' to `0.5 * 2^11 = 1024` units.
+#'
+#' @noRd
+se_range_steps <- 12L
+
+#' The points of se_limit_ranges()'s grid over a level range.
+#'
+#' @noRd
+se_range_grid <- 41L
+
+#' The most limit directions se_limit_ranges() measures, at up to 24
+#' evaluations each: a factor with many levels at their end would
+#' otherwise pay that per level.
+#'
+#' @noRd
+se_range_dirs <- 50L
+
 #' The fit-time standard-error check.
 #'
 #' Runs on the user's own call, after every other fit-time verdict, on
@@ -2887,6 +3411,15 @@ se_sd_gain_up0 <- function(fit, k) {
   # (test-diagnostics-ux.R's flat peak) moves it by nothing
   far <- at(p[thpos[k]] + se_sd_far)
   moved <- max(abs(c(gain, far[is.finite(far)], 0)))
+  # and a gain out there is a stop short of a maximum the grid does not
+  # reach: the grid is on the response's scale, and the sd of a random
+  # slope on a column spread 1e-5 has its maximum near 1e5 times that.
+  # Under autoscale = FALSE such a stop at sd 1, 9.2 units short, was
+  # called "at zero" (dev/slopescale-findings.md)
+  if (isTRUE(far > max(c(0, gain)))) {
+    best <- p[thpos[k]] + se_sd_far
+    gain <- c(gain, far)
+  }
   structure(if (length(gain)) max(0, gain) else 0, moved = moved,
             at = best)
 }
@@ -3500,32 +4033,42 @@ se_lost_clauses <- function(fit, lost) {
   lost[hit] <- paste0("limit_", ifelse(
     li$kind[hn] %in% c("undefined", "sepother"), li$kind[hn],
     ifelse(li$rise[hn] %in% TRUE, "rise",
-           ifelse(li$sep[hn] %in% TRUE, "sep", "end"))))
-  text <- function(r, one) {
+           ifelse(li$sep1[hn] %in% TRUE, "sep1",
+                  ifelse(li$sep[hn] %in% TRUE, "sep", "end")))))
+  # coefficients that ran off only in combination say so
+  together <- function(n) {
+    if (any(li$joint[n] %in% TRUE)) " together" else ""
+  }
+  text <- function(r, one, n) {
     it <- if (one) "it" else "them"
+    moves <- paste0(if (one) "it moves" else "they move", together(n))
     switch(r,
       bound = paste0("a bound holds ", it, ", so the fit is a constrained ",
                      "optimum there"),
       limit_sep = paste0("the data separate the rows of ",
                          if (one) "its" else "their",
-                         " probability: as ", if (one) "it moves" else
-                           "they move",
+                         " probability: as ", moves,
                          " further, the probability goes to 0 on some rows ",
                          "and to 1 on others and the likelihood does not ",
                          "fall, so the maximum likelihood estimate does not ",
                          "exist"),
+      limit_sep1 = paste0("the data separate the rows of ",
+                          if (one) "its" else "their",
+                          " probability: as ", moves, " further, ",
+                          "the probability goes to 1 on some rows, whose ",
+                          "outcomes are all the inflated value, and the ",
+                          "likelihood does not fall, so the maximum ",
+                          "likelihood estimate does not exist"),
       limit_sepother = paste0("the other coefficients of that probability, ",
                               "which the separation leaves undetermined"),
-      limit_end = paste0("the likelihood does not fall as ",
-                         if (one) "it moves" else "they move",
+      limit_end = paste0("the likelihood does not fall as ", moves,
                          " further toward the end of ",
                          if (one) "its range" else "their ranges",
                          ", so the maximum likelihood estimate does not ",
                          "exist and the optimizer stopped where its ",
                          "tolerances did"),
       limit_rise = paste0("the likelihood is level where the fit stopped ",
-                          "and still rises as ",
-                          if (one) "it moves" else "they move",
+                          "and still rises as ", moves,
                           " further the way shown, so the fit stopped on ",
                           "the way up and not at a maximum, if there is ",
                           "one"),
@@ -3593,7 +4136,7 @@ se_lost_clauses <- function(fit, lost) {
                       "along it)"))
   }
   out <- character(0)
-  for (r in c("bound", "limit_end", "limit_rise", "limit_sep",
+  for (r in c("bound", "limit_end", "limit_rise", "limit_sep", "limit_sep1",
               "limit_sepother", "limit_undefined", "boundary",
               "separation", "short", "flat", "illcond", "concave",
               "nonfinite", "nocurv")) {
@@ -3602,7 +4145,7 @@ se_lost_clauses <- function(fit, lost) {
     lab <- if (r == "boundary") se_boundary_labels(fit, n) else {
       vapply(n, label, "")
     }
-    if (r %in% c("limit_end", "limit_rise", "limit_sep")) {
+    if (r %in% c("limit_end", "limit_rise", "limit_sep", "limit_sep1")) {
       lab <- paste0(lab, " (at ", vapply(n, function(k) {
         format(li$est[[k]], digits = 4)
       }, ""), ", toward ", ifelse(li$dir[n] > 0, "+Inf", "-Inf"),
@@ -3612,7 +4155,7 @@ se_lost_clauses <- function(fit, lost) {
       }, ")")
     }
     out <- c(out, paste0(paste(lab, collapse = ", "), ": ",
-                         text(r, length(n) == 1L)))
+                         text(r, length(n) == 1L, n)))
   }
   out
 }
@@ -3716,10 +4259,22 @@ se_lost_message <- function(fit, lost) {
 #' say why.
 #'
 #' @noRd
+#' Attribute `nocurv` marks the rows whose only cause is a lost parameter
+#' of reason "nocurv" (a curvature that gives no variance, such as at a
+#' stop short of the maximum), which se_pred_warn() words apart.
+#'
+#' @noRd
 jc_nonest <- function(jc, G, pos) {
   n <- NROW(G)
   if (!n || !length(pos)) return(rep(FALSE, n))
-  jc_nonest_null(jc, G, pos) | jc_nan_lost(jc, G, pos)
+  nul <- as.vector(jc_nonest_null(jc, G, pos))
+  nan <- jc_nan_lost(jc, G, pos)
+  out <- nul | as.vector(nan)
+  nc <- attr(nan, "nocurv")
+  if (length(nc) == n && any(nc & !nul)) attr(out, "nocurv") <- nc & !nul
+  sz <- attr(nan, "size")
+  if (length(sz) == n && any(sz)) attr(out, "size") <- sz
+  out
 }
 
 #' The rows of `G` that read a lost parameter (`jc$lost_pos`) whose
@@ -3739,16 +4294,110 @@ jc_nan_lost <- function(jc, G, pos) {
   lp <- jc$lost_pos
   V <- jc$V
   if (!length(lp) || is.null(V)) return(out)
-  lp <- lp[!is.na(lp) & lp >= 1L & lp <= NROW(V)]
+  why <- jc$lost_why
+  if (length(why) != length(lp)) why <- rep(NA_character_, length(lp))
+  ok <- !is.na(lp) & lp >= 1L & lp <= NROW(V)
+  lp <- lp[ok]
+  why <- why[ok]
   dv <- vapply(lp, function(i) as.numeric(V[i, i]), 0)
   j <- match(lp[!is.finite(dv)], pos)
+  nc <- why[!is.finite(dv)] %in% "nocurv"
+  sz <- why[!is.finite(dv)] %in% "size"
+  nc <- nc[!is.na(j)]
+  sz <- sz[!is.na(j)]
   j <- j[!is.na(j)]
   if (!length(j)) return(out)
+  cnt <- function(M) {
+    if (inherits(M, "Matrix")) as.numeric(Matrix::rowSums(M)) else {
+      rowSums(as.matrix(M))
+    }
+  }
   Gj <- abs(G[, j, drop = FALSE]) > 0
-  if (inherits(Gj, "Matrix")) {
-    as.numeric(Matrix::rowSums(Gj)) > 0
-  } else rowSums(as.matrix(Gj)) > 0
+  out <- cnt(Gj) > 0
+  # every such parameter the row reads is one without curvature; and the
+  # rows that read one lost to the size limit (joint_cov_repair())
+  other <- if (any(!nc)) cnt(Gj[, !nc, drop = FALSE]) > 0 else FALSE
+  any_sz <- if (any(sz)) cnt(Gj[, sz, drop = FALSE]) > 0 else FALSE
+  structure(out, nocurv = out & !other, size = out & any_sz)
 }
+
+#' The reasons of `sdr$se_lost`, unnamed, as jc_nan_lost() reads them. A
+#' coefficient the separation check named (check_convergence()'s
+#' `se_sep_named`) is "separation" whatever reason the Hessian gave it.
+#' Under OpenBLAS 0.3.26 and 0.3.32 test-se-limit.R's separated
+#' bernoulli stops at code 1 with every coefficient "nocurv", and its
+#' fitted values were told they read a stop without curvature, beside a
+#' fit warning that named the separation.
+#'
+#' @noRd
+se_lost_why <- function(fit, sdr) {
+  lost <- sdr$se_lost
+  why <- unname(lost)
+  sep <- if (is.environment(fit$cache)) fit$cache$se_sep_named
+  why[names(lost) %in% sep & why %in% "nocurv"] <- "separation"
+  why
+}
+
+#' The rows of a prediction that a limit direction leaves undetermined
+#' away from the estimate (se_limit_ranges(), `jc$limit_range`): moved
+#' along the direction anywhere within the range where the likelihood is
+#' level, with the ends at their limits first where the entry has a
+#' `base`, the quantity changes by more than `se_limit_move` of its
+#' standard error `se`. Every row is asked. `preds` holds, per linear
+#' predictor the quantity reads, its values `eta` and its design `A` over
+#' the joint positions `coef_pos`; `value(etas)` gives the quantity per
+#' row at a list of those predictors' values, the rest held.
+#'
+#' On the `zi ~ x` fit of se_limit_ranges() the fitted rows stay put over
+#' the range; new x = -10 moves from 0.099 to 0 against a standard error
+#' of 0.049, while x = 3, where zi stays below 2e-6, moves by 1e-4 of its
+#' standard error (dev/selimit2-findings.md, item 5433). On a ZIP with
+#' `zi ~ x + z` and zi_x at its end, a new row at (x, z) = (1, 1), inside
+#' every column's range, reads 0.22 at the stop and 4.06 at the limit,
+#' 8.3 standard errors apart (review of lane selimit2, F3).
+#'
+#' @noRd
+jc_limit_extrap <- function(jc, preds, value, se) {
+  n <- length(se)
+  out <- rep(FALSE, n)
+  if (!length(jc$limit_range) || !n || !length(preds)) return(out)
+  eta0 <- lapply(preds, `[[`, "eta")
+  if (!all(lengths(eta0) == n)) return(out)
+  # each predictor's move along a coefficient vector over `pos`
+  move <- function(vec, pos) {
+    lapply(preds, function(pr) {
+      j <- match(pr$coef_pos, pos)
+      wd <- vec[j]
+      wd[is.na(wd)] <- 0
+      if (!any(wd != 0)) return(0)
+      as.numeric(pr$A %*% wd)
+    })
+  }
+  at <- function(a, b, t) {
+    Map(function(e, ai, bi) e + bi + ai * t, eta0, a, b)
+  }
+  v0 <- NULL
+  for (e in jc$limit_range) {
+    a <- move(e$w, e$pos)
+    if (all(vapply(a, function(x) all(x == 0), NA))) next
+    b <- if (length(e$base)) move(e$base, e$pos) else lapply(a, function(x) 0)
+    if (is.null(v0)) v0 <- value(eta0)
+    mv <- rep(0, n)
+    for (t in e$t) {
+      mv <- pmax(mv, abs(value(at(a, b, t)) - v0), na.rm = TRUE)
+    }
+    out <- out | (mv > se_limit_move * se) %in% TRUE
+  }
+  out
+}
+
+#' The share of a prediction's standard error by which a move within a
+#' limit direction's level range makes it undetermined
+#' (jc_limit_extrap()). Below it the reported standard error changes no
+#' digit that matters.
+#'
+#' @noRd
+se_limit_move <- 0.01
 
 #' jc_nonest() over the null basis: the directions the propagation
 #' covariance leaves out.
@@ -3852,6 +4501,34 @@ se_pred_tol <- 1e-6
 #' @noRd
 se_pred_warn <- function(bad, what = "predictions") {
   if (!any(bad)) return(invisible(NULL))
+  # rows that read coefficients of a REML fit too large for their accurate
+  # covariance (joint_cov_repair(), joint_root_limit())
+  sz <- attr(bad, "size")
+  if (length(sz) == length(bad) && any(sz %in% TRUE)) {
+    frm_warning(sum(sz %in% TRUE), " of ", length(bad), " ", what,
+                " read coefficients whose covariance this REML fit cannot ",
+                "give accurately above ", format(joint_root_limit()),
+                " joint parameters, so their standard errors are NaN; ",
+                "raise options(frmtmb.joint_root_max = ), at memory that ",
+                "grows with its square, or draw from the fit with ",
+                "frmtmb.sample::frm_sample()", call. = FALSE,
+                class = "frmtmb_se_lost_prediction")
+    if (all(sz[bad %in% TRUE] %in% TRUE)) return(invisible(NULL))
+  }
+  # A parameter whose curvature where the fit stopped gives no variance
+  # is not a direction the data leave open: on an asym_laplace() fit,
+  # which stops at false convergence on the kinks of its likelihood, every
+  # parameter is "nocurv" (dev/selimit2-findings.md, item 5423)
+  nc <- attr(bad, "nocurv")
+  if (length(nc) == length(bad) && all(nc[bad %in% TRUE] %in% TRUE)) {
+    frm_warning(sum(bad), " of ", length(bad), " ", what, " read a ",
+                "parameter whose variance the curvature where the fit ",
+                "stopped does not give (a stop short of the maximum, or a ",
+                "log density with a kink), so their standard errors are ",
+                "NaN; summary() lists those parameters", call. = FALSE,
+                class = "frmtmb_se_lost_prediction")
+    return(invisible(NULL))
+  }
   frm_warning(sum(bad), " of ", length(bad), " ", what, " move along a ",
               "direction the fit does not determine (a parameter without ",
               "a standard error), so their standard errors are NaN; ",
@@ -3869,14 +4546,33 @@ se_pred_warn <- function(bad, what = "predictions") {
 #' `check_se = "ignore"` it is not asked, and the convergence warning
 #' stays.
 #'
+#' With the gradient vector `gvec`, a gradient above `grad_tol` is asked
+#' too: where it lies on coefficients at the end of their range whose ray
+#' gains nothing (se_edge_limit(), not "rising"), it is the rounding of a
+#' log density at that limit and not a stop short. A negbinomial() shape
+#' on poisson data stopped at exp(23.2) with code 8 and a gradient of
+#' 1.35e-3 there, while the objective moved by 2.1e-9 two units out; the
+#' convergence warnings then kept the shape's standard error "nocurv"
+#' and the limit was not named (dev/selimit2-findings.md, item 4824).
+#' Attribute `grad`: the largest gradient over the other parameters,
+#' which the gradient check then reads.
+#'
 #' @noRd
-se_boundary_stop <- function(fit, g, control) {
+se_boundary_stop <- function(fit, g, control, gvec = NULL) {
+  tol <- control$grad_tol %||% 1e-3
   # (not on the nested quadrature route, where no boundary verdict is
   # given: se_boundary_names())
-  if (!se_edge_probed(fit) ||
-        !is.finite(g) || g > (control$grad_tol %||% 1e-3) ||
+  if (!se_edge_probed(fit) || !is.finite(g) ||
+        (g > tol && length(gvec) != length(fit$opt$par)) ||
         identical(control$check_se, "ignore") ||
         !is.environment(fit$cache)) {
+    return(FALSE)
+  }
+  gu <- abs(gvec * (fit$par_units %||% 1))
+  # the analysis is forced only where it could explain the gradient: on
+  # a linear predictor's coefficients alone
+  if (g > tol && (!all(is.finite(gu)) ||
+                    !all(which(gu > tol) %in% se_limit_candidates(fit)))) {
     return(FALSE)
   }
   an <- tryCatch(se_fit_analysis(fit, force = TRUE),
@@ -3885,6 +4581,11 @@ se_boundary_stop <- function(fit, g, control) {
   # a coefficient at the end of its range is a stop at a supremum, which
   # the SE check reports in place of the optimizer's code
   ok <- length(lost) > 0L && all(lost %in% c("boundary", "limit"))
+  g2 <- g
+  if (ok && g > tol) {
+    g2 <- se_boundary_stop_rest(fit, gvec)
+    ok <- g2 <= tol
+  }
   fit$cache$se_boundary_stop <- ok
   # an sdreport taken at the fit (se = TRUE) predates the analysis and
   # kept its own covariance, as for any fit that stopped short
@@ -3892,5 +4593,46 @@ se_boundary_stop <- function(fit, g, control) {
     fit$cache$sdr <- tryCatch(autoscale_sdreport(fit),
                               error = keep_missing(function(e) fit$cache$sdr))
   }
-  ok
+  structure(ok, grad = g2)
+}
+
+#' The largest gradient component, in the optimizer's units, left once
+#' its projection on the level ends' directions is removed (se_edge_limit():
+#' each single end that is not rising, and each joint end's direction
+#' `jw`). Only the part along an end is the rounding of the density at
+#' its limit. Dropping the whole gradient of a joint end's coefficients
+#' hid a stop short: poisson `y ~ g` with group a all zero, started at
+#' (-25, 24.5) with one iteration, stopped with a gradient of 94.2 on
+#' each coefficient, all of it along (1, 1), across the end (-1, 1), and
+#' group b's mean 85 percent off, under the limit message alone (review of
+#' lane selimit2, F1).
+#'
+#' @noRd
+se_boundary_stop_rest <- function(fit, gvec) {
+  u <- fit$par_units %||% rep(1, length(gvec))
+  u <- rep_len(u, length(gvec))
+  gn <- gvec * u
+  li <- se_limit_info(fit)
+  nm <- outer_par_names(fit)
+  lev <- names(li$kind)[li$kind %in% "end"]
+  lev <- lev[!(li$rise[lev] %in% TRUE)]
+  D <- NULL
+  single <- lev[!(li$joint[lev] %in% TRUE)]
+  for (n in single) {
+    e <- numeric(length(gn))
+    e[match(n, nm)] <- 1
+    D <- cbind(D, e)
+  }
+  jw <- li$jw
+  if (is.matrix(jw) && NROW(jw) == length(gn)) {
+    for (k in seq_len(NCOL(jw))) {
+      w <- jw[, k]
+      if (!any(nm[w != 0] %in% lev)) next
+      D <- cbind(D, w / u)
+    }
+  }
+  if (is.null(D)) return(max(abs(gn)))
+  q <- qr(D)
+  Q <- qr.Q(q)[, seq_len(q$rank), drop = FALSE]
+  max(abs(gn - drop(Q %*% crossprod(Q, gn))))
 }

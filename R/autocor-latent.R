@@ -357,6 +357,21 @@ latres_expand <- function(b, blk, theta) {
     })
 }
 
+#' brms's `err` of a latent residual block at one draw, per row in row
+#' order, from the block's `theta` (log sderr first) and its states `b`.
+#' Under `ar(cov = FALSE)` it is `sderr * zerr`, brms's iid residual,
+#' whose lagged sum brms adds to `mu` apart from it; under every other
+#' term it is the residual itself, `latres_expand()`. brms 2.23.0 saves
+#' `err[1..n]` and not `zerr` on both (dev/parity2-brms-probe2.R).
+#'
+#' @noRd
+latres_err <- function(theta, b, blk) {
+  if (identical(blk[["aux"]][["kind"]], "condar")) {
+    return(exp(theta[1L]) * b)
+  }
+  as.numeric(latres_expand(b, blk, theta))
+}
+
 #' `sum_j ar_j z_{t-j}` over the rows, each lag one gather of `z` padded with
 #' a zero for a row with no such lag.
 #'
@@ -673,7 +688,8 @@ ac_report_rows <- function(fit) {
     o <- c(seq_along(nr$term)[-1L], 1L)
     rows[[length(rows) + 1L]] <- data.frame(
       block = bk[["term_label"]], term = nr$term[o], type = nr$type[o],
-      est_t = nr$est[o], se_t = se[o], stringsAsFactors = FALSE)
+      est_t = nr$est[o], se_t = se[o], lo = NA_real_, hi = NA_real_,
+      stringsAsFactors = FALSE)
   }
   out <- do.call(rbind, c(list(tr), rows))
   rownames(out) <- NULL
@@ -1045,6 +1061,14 @@ latres_laplace_reason <- function(fit, bk) {
   # its error is not local: the shift is 0.02 to 0.06 with the exact MLE far off
   # along a flat ridge, so the correction cannot read it
   if (identical(fam[["type"]], "ordinal")) return("each row is one category")
+  # a log density quadratic in eta is exact, and the correction's
+  # differences then read rounding: lognormal fired on 1 of 10 fits, on
+  # one spelling of a model and not the other
+  # (dev/quadseam2-findings.md, items 5615 and 5620)
+  if (isTRUE(tryCatch(latres_quadratic(fit, bk),
+                      error = function(e) FALSE))) {
+    return(NULL)
+  }
   s <- tryCatch(latres_shift_tk(fit, bk), error = function(e) Inf)
   if (s <= 0.15) return(NULL)
   if (!is.finite(s)) {
@@ -1052,6 +1076,51 @@ latres_laplace_reason <- function(fit, bk) {
   }
   paste0("the first-order correction moves log(sderr) or ar[1] by ",
          format(s, digits = 2), ", above 0.15")
+}
+
+#' Is every row's log density quadratic in its linear predictor, so that
+#' the Laplace approximation is exact (a lognormal, or a gaussian latent
+#' on a gaussian mean)? Third and fourth differences vanish to rounding
+#' there at any step; a bernoulli row at p = 0.5, whose third derivative
+#' is 0, has a fourth difference of about 0.02 at a step of 0.8.
+#'
+#' The step is the latent's marginal sd, but at least 1 on the link
+#' scale: the differences shrink as its cube and fourth power, so at the
+#' marginal sd of 7.6e-5 of a bernoulli whose sderr sat at exp(-10.12)
+#' every row read as quadratic (review of lane quadseam2, F2). A row whose
+#' density is finite at the fit and not at a moved point leaves the
+#' support there and is not quadratic; a row that is not finite at the
+#' fit (an unread `mi()` row) is not in the likelihood.
+#'
+#' @noRd
+latres_quadratic <- function(fit, bk) {
+  a <- bk[["aux"]]
+  r <- a[["ac"]][["resp"]]
+  fam <- fit$spec$responses[[r]]$family
+  dp <- eval_dpars(fit)[[r]]
+  lk <- fit$frame[["linpreds"]][[linpred_key(r, "mu")]][["link"]]
+  eta <- lk$linkfun(as.numeric(dp[["mu"]]))
+  y <- fit$frame[["y"]][[r]]
+  av <- fit$frame[["aterm_values"]][[r]]
+  ex <- fit_extras(fit)
+  h <- latres_marginal_sd(fit$estimates[["theta"]][bk[["theta_idx"]]], a)
+  h <- pmax(h, 1)
+  # a step of 1 can leave the support (a Gamma inverse link at eta = 2);
+  # such a row reads non-finite, which is the answer, not a warning for
+  # the caller (test-latres.R, "a link that does not hold the mean")
+  l <- vapply(-2:2, function(k) {
+    dp[["mu"]] <- lk$linkinv(eta + k * h)
+    suppressWarnings(as.numeric(row_lpdf(fam, y, y, dp, av, ex)))
+  }, eta)
+  l <- matrix(l, ncol = 5L)
+  d3 <- l[, 5L] - 2 * l[, 4L] + 2 * l[, 2L] - l[, 1L]
+  d4 <- l[, 5L] - 4 * l[, 4L] + 6 * l[, 3L] - 4 * l[, 2L] + l[, 1L]
+  read <- is.finite(l[, 3L])
+  if (!any(read) || !all(is.finite(d3[read]) & is.finite(d4[read]))) {
+    return(FALSE)
+  }
+  tol <- 1e-8 * (1 + apply(abs(l[read, , drop = FALSE]), 1L, max))
+  all(abs(d3[read]) <= tol & abs(d4[read]) <= tol)
 }
 
 #' The row-level condition above the row limit.

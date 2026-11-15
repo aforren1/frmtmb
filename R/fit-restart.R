@@ -184,14 +184,15 @@ nl_limit_factor <- 1000
 #' -1) for `b1 * (1 - exp(-b2 * x))`, so the check takes the Hessian of the
 #' objective over the body's nonzero coefficients in those coordinates
 #' (2 k gradients), and moves along its flattest direction by
-#' `nl_limit_factor` in the coefficient that moves most, both ways (2
-#' objective evaluations). If every coefficient the move carries is at
-#' least one conditional standard error from 0, and a move that makes
-#' some coefficient larger lowers the log-likelihood by no more than
-#' `grad_tol`, the data do not
-#' determine the coefficients, and it says so. On mm 55 Vm and K times
-#' 1000 raised it by 1.7e-5, and divided by 1000, where the body bends
-#' within the data, lowered it by 1.8e-2 (dev/nlstop-limit.R).
+#' `nl_limit_factor` in the coefficient that moves most, both ways, each
+#' move read as it lands and after one Newton step across the stiff
+#' directions (4 objective evaluations and 2 gradients). If every
+#' coefficient the move carries is at least one conditional standard error
+#' from 0, and a move that makes some coefficient larger lowers the
+#' log-likelihood by no more than `grad_tol`, the data do not determine the
+#' coefficients, and it says so. On mm 55 Vm and K times 1000 raised it by
+#' 1.7e-5, and divided by 1000, where the body bends within the data,
+#' lowered it by 1.8e-2 (dev/nlstop-limit.R).
 #'
 #' Returns the warning's text, or NULL.
 #'
@@ -245,40 +246,58 @@ nl_limit_message <- function(fit) {
   # lets a 1000-fold move change nothing, and that is the prior's answer,
   # not a ridge
   if (!all(abs(D[big]) * sqrt(abs(diag(H))[big]) >= 1)) return(NULL)
-  lf <- log(nl_limit_factor)
-  # a move whose quadratic model is far above grad_tol is no ridge
-  if (!isTRUE(0.5 * e$values[length(j)] * (lf / max(abs(v)))^2 <=
-                1e3 * tol)) {
-    return(NULL)
+  val <- function(x) {
+    tryCatch(as.numeric(se_quiet(obj$fn(x))), error = function(e) NA_real_)
   }
-  t <- lf / max(abs(v))
-  f <- function(s) {
+  # the objective after a move by t along w in the log magnitudes, or
+  # after one Newton step across w from there, whichever is lower: the
+  # flattest direction of a ridge that bends leaves it after a 1000-fold
+  # move (on a * (exp(b * x) - 1) the move lost 0.0200 where the ridge
+  # itself, (1000, 1/1000), gains 0.0033; review of lane nlstop, MINOR 1),
+  # and a step on the curvature at the fit comes back to it
+  f <- function(w, t) {
     q <- p0
-    q[j] <- p0[j] * exp(s * t * v)
-    tryCatch(as.numeric(se_quiet(obj$fn(q))), error = function(e) NA_real_)
+    q[j] <- p0[j] * exp(t * w)
+    f1 <- val(q)
+    if (length(j) < 2L) return(f1)
+    N <- qr.Q(qr(matrix(w)), complete = TRUE)[, -1L, drop = FALSE]
+    A <- crossprod(N, Hu %*% N)
+    if (!all(eigen(A, symmetric = TRUE, only.values = TRUE)$values > 0)) {
+      return(f1)
+    }
+    gq <- tryCatch(drop(se_quiet(obj$gr(q)))[j], error = function(e) NULL)
+    if (is.null(gq) || !all(is.finite(gq))) return(f1)
+    q2 <- q
+    q2[j] <- q[j] * exp(-drop(N %*% solve(A, crossprod(N, q[j] * gq))))
+    f2 <- val(q2)
+    if (!is.finite(f1) || (is.finite(f2) && f2 < f1)) f2 else f1
   }
+  w <- v / max(abs(v))
+  t <- log(nl_limit_factor)
+  # a move whose quadratic model is far above grad_tol is no ridge
+  if (!isTRUE(0.5 * sum(w * (Hu %*% w)) * t^2 <= 1e3 * tol)) return(NULL)
   side <- c(1, -1)
-  gain <- fit$opt$objective - c(f(1), f(-1))
+  gain <- fit$opt$objective - c(f(w, t), f(w, -t))
   # a side counts where the log-likelihood does not fall by more than
   # grad_tol and some coefficient grows: moving a coefficient near 0
   # toward 0 changes nothing either, and is no ridge
-  grows <- vapply(side, function(s) any(s * v[big] > 0), NA)
+  grows <- vapply(side, function(s) any(s * w[big] > 0), NA)
   ok <- is.finite(gain) & gain >= -tol & grows
   if (!any(ok)) return(NULL)
   k <- which(ok)[which.max(gain[ok])]
-  rises <- gain[k] > tol
+  best <- list(gain = gain[k], fac = exp(side[k] * t * w[big]))
+  rises <- best$gain > tol
   nm <- par_template_names(frame[["par_template"]][["beta"]],
                            "beta")[match(j, bpos)]
-  fac <- exp(side[k] * t * v[big])
-  say <- paste0(nm[big], " x ", signif(fac, 2), collapse = ", ")
+  say <- paste0(nm[big], " x ", signif(best$fac, 2), collapse = ", ")
   paste0("The data do not determine the coefficients ",
          paste(nm[big], collapse = ", "), " of the nonlinear body: ",
          "moved together (", say, ") they ",
          if (rises) {
-           paste0("raise the log-likelihood by ", signif(gain[k], 2),
+           paste0("raise the log-likelihood by ", signif(best$gain, 2),
                   ", so the fit is not at a maximum")
          } else {
-           paste0("change the log-likelihood by ", signif(abs(gain[k]), 2),
+           paste0("change the log-likelihood by ", signif(abs(best$gain), 2),
                   ", within grad_tol (", format(tol), ")")
          },
          ". The fit is on a ridge that can run to a limit of the body, ",
@@ -286,4 +305,276 @@ nl_limit_message <- function(fit) {
          "K grow together, reaches (Vm / K) * x). The estimates are one ",
          "point on it, and their standard errors describe no maximum. Fit ",
          "the limit's form, or put a prior on one of the coefficients")
+}
+
+#' The denominators of a body: the second operand of each `/`, and the
+#' base of each `^` with a negative literal power.
+#'
+#' @noRd
+nl_denoms <- function(e) {
+  if (!is.call(e)) return(list())
+  out <- unlist(lapply(as.list(e)[-1L], nl_denoms), recursive = FALSE)
+  if (length(e) != 3L) return(out)
+  f <- e[[1L]]
+  neg <- function(p) {
+    (is.numeric(p) && length(p) == 1L && p < 0) ||
+      (is.call(p) && identical(p[[1L]], as.name("-")) && length(p) == 2L &&
+         is.numeric(p[[2L]]) && p[[2L]] > 0)
+  }
+  if (identical(f, as.name("/"))) out <- c(out, list(e[[3L]]))
+  if (identical(f, as.name("^")) && neg(e[[3L]])) out <- c(out, list(e[[2L]]))
+  out
+}
+
+#' Where a body has poles in one coefficient, the rest held at `tpl`.
+#'
+#' A denominator affine in the coefficient `c` is 0 on row i at one value,
+#' its wall `c_i`: `Vm * xp / (K + xp)` has a pole at `K = -xp_i` for each
+#' row. The likelihood cannot be continued across a wall, so the walls cut
+#' the line of `c` into pieces, and an optimizer stays in the piece it
+#' starts in. Returns, for each such denominator with two or more distinct
+#' walls, the walls' range `lo`, `hi`, the distance `dist` from `c` to the
+#' nearest wall and the median gap between adjacent walls; `NULL` where no
+#' denominator reads `c` affinely. A denominator that is not affine in `c`
+#' (`EC50^h + x^h`, `1 + exp(b * x)`) is not read.
+#'
+#' @noRd
+nl_pole_walls <- function(frame, lp, tpl, par, at, dens) {
+  c0 <- tpl[[par]][at]
+  if (!is.finite(c0)) return(NULL)
+  h <- 1e-3 * max(1, abs(c0))
+  at_c <- function(v) {
+    t <- tpl
+    t[[par]][at] <- v
+    tryCatch(suppressWarnings(nl_body_at(frame, lp, t, exprs = dens)),
+             error = function(e) NULL)
+  }
+  d0 <- at_c(c0)
+  dp <- at_c(c0 + h)
+  dm <- at_c(c0 - h)
+  if (is.null(d0) || is.null(dp) || is.null(dm)) return(NULL)
+  out <- list()
+  for (k in seq_along(dens)) {
+    a <- d0[[k]]
+    b <- dp[[k]]
+    m <- dm[[k]]
+    if (!length(a) || length(b) != length(a) || length(m) != length(a) ||
+          !all(is.finite(c(a, b, m)))) {
+      next
+    }
+    s <- (b - m) / (2 * h)
+    sc <- max(abs(b - m))
+    if (!(sc > 0) || max(abs(b - 2 * a + m)) > 1e-8 * sc) next
+    reads <- abs(s) > 1e-12 * max(abs(s))
+    w <- sort(unique(c0 - a[reads] / s[reads]))
+    if (length(w) < 2L) next
+    gaps <- diff(w)
+    gaps <- gaps[gaps > 1e-9 * (w[length(w)] - w[1L])]
+    if (!length(gaps)) next
+    out[[length(out) + 1L]] <- list(lo = w[1L], hi = w[length(w)],
+                                    dist = min(abs(c0 - w)),
+                                    gap = stats::median(gaps),
+                                    mixed = any(a[reads] > 0) &&
+                                      any(a[reads] < 0))
+  }
+  if (length(out)) out
+}
+
+#' Does a band of walls hold the fit: does the denominator take both signs
+#' over the rows, so that a pole lies between rows of the data, or is the
+#' fit nearer a wall than the walls' median gap?
+#'
+#' On the fresh rows the fits held by a band (binomial seeds 11, 33 and 44)
+#' sit 0.32 to 0.53 median gaps from a wall, and the fits clear of it 68 to
+#' 669 (gaussian, poisson, gamma, cumulative; dev/nlstop2-polegeo.R). A fit
+#' between rows' poles can sit further from a wall than one gap: the
+#' pieces between the walls of K + xp on those rows are up to 10.4 median
+#' gaps wide (dev/nlstop2-gaps.R). Whether `c` is between the first and
+#' last wall does not decide it: the walls of `1 + b * x` with x of both
+#' signs lie on both sides of every b, the fit sits in the wide piece
+#' between the two groups, 7.5 to 20 gaps from a wall, and its denominator
+#' is positive on every row.
+#'
+#' @noRd
+nl_pole_pressed <- function(wl) {
+  isTRUE(wl$mixed) || wl$dist < wl$gap
+}
+
+#' Optimize a nonlinear fit again from beyond the poles of its bodies.
+#'
+#' On the review's fresh rows (binomial `Vm * xp / (K + xp)`, xp in 0.1
+#' to 5) the default fit of seed 11 stopped at code 0 with no warning at K
+#' -0.1825, between the walls at -0.18 and -0.183 of rows inside the data,
+#' 4.32 below the maximum at K -6.0152; seed 44 stopped at K -0.1103, 0.004
+#' beside the wall of the smallest xp, 0.92 below the maximum at K
+#' -6.4531 (dev/reviews/nlstop-review-pole.R). No restart the fit makes
+#' crosses a wall: the sign probe starts K at -1, inside the band of walls
+#' from -5 to -0.1. Where a band of walls of some coefficient holds the fit
+#' (nl_pole_walls(), nl_pole_pressed()), the optimizer runs
+#' from each side of the band the fit is not beyond, half the band's width
+#' past its last wall, the rest of the model at the fit. A fit that is
+#' clear of every band pays only the evaluations of its denominators.
+#'
+#' A run is kept if it ends clear of the band it started beside and higher
+#' than the fit by more than nl_probe_gain(); then frm() fits again from
+#' its point by `run()`, as the sign probe does, and that fit must end
+#' clear of the band too. A run that ends against a wall is not kept:
+#' bernoulli seed 55 rises toward the wall of its largest xp, where the
+#' likelihood has a supremum and no maximum.
+#'
+#' Not run under `frmtmb_control(nl_starts = FALSE)`, which turns off this
+#' restart and the sign probe.
+#'
+#' Returns `NULL`, or a list as nl_sign_probe() returns it.
+#'
+#' @noRd
+nl_pole_escape <- function(run, frame, fit) {
+  obj <- fit$obj
+  ctl <- fit$control
+  if (isFALSE(ctl$nl_starts) ||
+        is.null(obj) || is.null(fit$opt) || !is.finite(fit$opt$objective) ||
+        isTRUE(fit$quadrature) || !is.null(fit$importance) ||
+        !is.null(fit$beta_whiten) || isTRUE(ctl$profile) ||
+        is.function(ctl$optimizer) ||
+        !identical(ctl$optimizer %||% "nlminb", "nlminb") ||
+        optctrl_stops_earlier(ctl$optCtrl)) {
+    return(NULL)
+  }
+  pn <- names(obj$par)
+  est <- fit$estimates
+  starts <- list()
+  checks <- list()
+  for (lp in frame[["linpreds"]]) {
+    if (is.null(lp[["nl_body"]])) next
+    dens <- nl_denoms(lp[["nl_body"]])
+    if (!length(dens)) next
+    bc <- nl_body_coefs(frame, lp)
+    for (par in names(bc$coefs)) {
+      pos <- which(pn == par)
+      if (length(pos) != length(frame[["par_template"]][[par]])) return(NULL)
+      for (at in bc$coefs[[par]]) {
+        wls <- nl_pole_walls(frame, lp, est, par, at, dens)
+        c0 <- est[[par]][at]
+        for (wl in wls) {
+          if (!nl_pole_pressed(wl)) next
+          half <- (wl$hi - wl$lo) / 2
+          to <- c(if (c0 >= wl$lo) wl$lo - half, if (c0 <= wl$hi) wl$hi + half)
+          for (v in to) {
+            starts[[length(starts) + 1L]] <- list(j = pos[at], v = v)
+            checks[[length(checks) + 1L]] <- list(lp = lp, par = par,
+                                                  at = at, dens = dens)
+          }
+        }
+      }
+    }
+  }
+  if (!length(starts)) return(NULL)
+  pu <- fit$par_units
+  bounds <- fit_outer_box(fit)
+  saved <- obj_state_save(obj)
+  ob_fit <- obj$env$.frmtmb_opt_basis
+  # a basis from nl_basis_descent() holds at the first fit's stop only
+  if (isTRUE(ob_fit$nl)) {
+    obj$env$.frmtmb_opt_basis <- opt_basis(frame, obj, ctl$optimizer)
+  }
+  tpl_at <- function(par_vec) {
+    st <- list()
+    for (cp in unique(pn)) {
+      v <- est[[cp]]
+      pos <- seq_along(v)
+      if (cp == "betad" && length(frame[["betad_fixed_idx"]])) {
+        pos <- setdiff(pos, frame[["betad_fixed_idx"]])
+      }
+      v[pos] <- unname(par_vec[pn == cp])
+      st[[cp]] <- unname(v)
+    }
+    st
+  }
+  # an end against a wall of the band it started beside
+  pressed_at <- function(ck, end) {
+    wl <- nl_pole_walls(frame, ck$lp, end, ck$par, ck$at, ck$dens)
+    any(vapply(wl, nl_pole_pressed, NA))
+  }
+  best <- fit$opt
+  best_ck <- NULL
+  for (i in seq_along(starts)) {
+    p <- fit$opt$par
+    p[starts[[i]]$j] <- starts[[i]]$v
+    p <- pmin(pmax(p, bounds$lower), bounds$upper)
+    o <- tryCatch(suppressWarnings(optimize_obj(obj, ctl, bounds, pu,
+                                                start_par = p)),
+                  error = function(e) NULL)
+    # the run's code is not read: the refit below reports its own, and a
+    # run along a ridge to a limit of the body ends at code 7 or 8 where
+    # the refit from its point ends at 0 (bernoulli seed 55 from K = -2.5)
+    if (is.null(o) || !is.finite(o$objective) ||
+          !(best$objective - o$objective > nl_probe_gain(best$objective)) ||
+          pressed_at(checks[[i]], tpl_at(o$par))) {
+      next
+    }
+    best <- o
+    best_ck <- checks[[i]]
+  }
+  obj$env$.frmtmb_opt_basis <- ob_fit
+  obj_settle(obj, fit$opt, fit$opt, saved)
+  if (is.null(best_ck)) return(NULL)
+  r <- nl_refit_held(run, tpl_at(best$par))
+  if (is.null(r$fit) || pressed_at(best_ck, r$fit$estimates)) return(NULL)
+  ll0 <- as.numeric(logLik_penalized(fit))
+  ll1 <- suppressWarnings(as.numeric(logLik_penalized(r$fit)))
+  if (!is.finite(ll1) || !(ll1 - ll0 > nl_probe_gain(ll0))) return(NULL)
+  list(fit = r$fit, held = r$held, ll0 = ll0, ll1 = ll1)
+}
+
+#' The message of a default fit that nl_pole_escape() moved past the poles
+#' of a body.
+#'
+#' @noRd
+nl_pole_message <- function(pe) {
+  ll <- nl_ll_pair(pe$ll0, pe$ll1)
+  llw <- if (fit_penalized(pe$fit)) "penalized log-likelihood" else
+    "log-likelihood"
+  frm_message(
+    "The fit of the nonlinear model reached ", llw, " ", ll[1L], " with a ",
+    "pole of the body (a denominator at 0) among or beside the rows of the ",
+    "data, where the optimizer cannot cross it. A start beyond the poles ",
+    "reached ", ll[2L], ", optimizer return code ",
+    format(pe$fit$opt$convergence), ", and frm() returns that fit. Give ",
+    "`start` to choose your own",
+    class = "frmtmb_nl_pole_start")
+  invisible(NULL)
+}
+
+#' The warning on a fit from the caller's start that nl_pole_escape() beat.
+#'
+#' @noRd
+nl_pole_warning <- function(pe, fit) {
+  ll <- nl_ll_pair(pe$ll0, pe$ll1)
+  llw <- if (fit_penalized(fit)) "penalized log-likelihood" else
+    "log-likelihood"
+  frm_warning(
+    "The fit from the given start reached ", llw, " ", ll[1L], " with a ",
+    "pole of the body (a denominator at 0) among or beside the rows of the ",
+    "data, where the optimizer cannot cross it. A start beyond the poles ",
+    "reached ", ll[2L], ", so the fit is not at the maximum. Give a `start` ",
+    "on the other side of the poles",
+    call. = FALSE, class = "frmtmb_nl_pole")
+  invisible(NULL)
+}
+
+#' A fit from `st` by `run()`, its warnings held: `list(fit, held)`, with
+#' `fit` `NULL` where it stops.
+#'
+#' @noRd
+nl_refit_held <- function(run, st) {
+  held <- new.env(parent = emptyenv())
+  held$w <- list()
+  r <- tryCatch(
+    withCallingHandlers(suppressMessages(run(st, FALSE)),
+                        warning = function(w) {
+                          held$w[[length(held$w) + 1L]] <- w
+                          invokeRestart("muffleWarning")
+                        }),
+    error = function(e) NULL)
+  list(fit = r, held = held$w)
 }

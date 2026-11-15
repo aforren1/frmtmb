@@ -1,3 +1,9 @@
+# frmtmb.latent 0.7.5
+
+Needs frmtmb 0.83.0: a test reads the escape from an `hmm()` state
+family's stationary point, and a test reads `update()`, which takes
+`na.action` from the fit. No change to the package's code.
+
 # frmtmb.latent 0.7.4
 
 * `hmm()` keeps the stationary point that its state-dependent family

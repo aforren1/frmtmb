@@ -472,6 +472,8 @@ sdr_unwhiten <- function(fit, sdr) {
   if (is.matrix(Q)) Qn <- as.matrix(Qn)
   dimnames(Qn) <- dimnames(Q)
   sdr$jointPrecision <- Qn
+  # kept for joint_cov_white_inner(), which inverts its inner block
+  sdr$joint_precision_white <- Q
   sdr
 }
 

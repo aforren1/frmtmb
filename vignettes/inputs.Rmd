@@ -130,7 +130,15 @@ and produces the matrices.
 * `offset()` terms are summed per linear predictor and added to `eta`
   after `X %*% beta + Z %*% b`. `weights()` is not a design matrix at
   all: it is an addition term that multiplies the per-observation log
-  density.
+  density. So in a maximum-likelihood fit with no random effect and no
+  prior, a constant weight `c` on every row multiplies the
+  log-likelihood by `c` and leaves every estimate unchanged, `sigma`
+  included. These are brms's weights. Anything the weight does not
+  multiply changes that: a prior, a random effect's density, and under
+  `REML = TRUE` the term of the integrated fixed effects, so there
+  `sigma^2` goes from `RSS / (n - p)` to `c RSS / (c n - p)`. lme4's
+  `weights =` are precision weights, under which a constant weight
+  changes `sigma` in every case.
 
 Every linear predictor's `Z` spans the whole random-effect coefficient
 vector, so a `Z` column index *is* a coefficient index. Columns are
@@ -312,7 +320,7 @@ case sensitive and accepts unambiguous prefixes. `"response"` and
 | `conditional_effects()` | `method` | `"epred"`, `"predict"` (brms's `"posterior_epred"` and `"posterior_predict"` are accepted as aliases) |
 | `anova()` on `frm_multiple()` | `method`, `use` | `"D3"`, `"D1"`, `"D2"`; `"likelihood"`, `"wald"` |
 | `frmtmb_control()` | `check_nlev_1`, `check_olre` | `"warning"`, `"ignore"`, `"stop"` |
-| `set_prior()` | `class` | `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"` |
+| `set_prior()` | `class` | `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"`, `"thetacov"` |
 | `conditional_effects()` | `band` | `"wald"`, `"profile"`, `"boot"` |
 | `loo_compare()` | `criterion` | `"loo"`, `"waic"` |
 | `vcov_cluster()` | `type` | `"CR0"`, `"CR1"`, `"CR1p"`, `"CR1S"` |

@@ -33,7 +33,7 @@
 #'   dev/ordstart-brms.R); brms's posterior mode is near the proper
 #'   point, not at it.
 #' - When a step function is above the point returned by more than
-#'   `grad_tol`, a warning of class `frmtmb_mixture_step_start` says so.
+#'   `grad_tol`, a message of class `frmtmb_mixture_step_start` says so.
 #'
 #' A default at a flat boundary is left as it is, and no starts run. A
 #' default the optimizer did not call converged is left as it is too,
@@ -305,7 +305,7 @@ mixture_starts_units <- function(frame, pn) {
   u
 }
 
-#' The warning that a start reached a higher point where a component is
+#' The message that a start reached a higher point where a component is
 #' degenerate.
 #'
 #' @noRd
@@ -344,11 +344,12 @@ mixture_starts_warn <- function(fit, deg, ll_deg, ll_kept, n, n_above,
     "frmtmb_control(starts = 0) turns the starts off"))
 }
 
-#' How the step-start finding reaches the caller. A warning or a message
-#' is the user's call (dev/ordstart-findings.md); the class is the same
-#' either way, so a switch changes this function alone.
+#' How the step-start finding reaches the caller: a message, by the
+#' user's decision of 2026-11-13 (dev/ordstart-findings.md had left it
+#' to the user). The point returned is the better answer, so nothing
+#' about it calls for a warning; the class stays for a handler.
 #'
 #' @noRd
 mixture_starts_signal <- function(msg) {
-  frm_warning(msg, call. = FALSE, class = "frmtmb_mixture_step_start")
+  frm_message(msg, class = "frmtmb_mixture_step_start")
 }

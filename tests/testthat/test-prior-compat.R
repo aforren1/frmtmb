@@ -436,9 +436,18 @@ test_that("brms prior rows frmtmb cannot mean are refused by name", {
                                           lb = 0))
   expect_identical(unclass(pl)[[1L]]$lb, 0)
 
-  # a class whose word means different parameters in the two packages
+  # a mixture's weights are brms's class theta here too, one simplex
+  # under a dirichlet() and nothing else, in brms's words; one weight is
+  # no class of its own
+  pt <- frmtmb:::as_priorlist(brms::prior(dirichlet(2, 1), class = "theta"))
+  expect_identical(unclass(pt)[[1L]]$class, "theta")
+  expect_identical(unclass(pt)[[1L]]$dist$alpha, c(2, 1))
   expect_error(frmtmb:::as_priorlist(brms::prior(normal(0, 1),
                                                  class = "theta")),
+               "Currently 'dirichlet' is the only valid prior for simplex",
+               fixed = TRUE)
+  expect_error(frmtmb:::as_priorlist(brms::prior(normal(0, 1),
+                                                 class = "theta1")),
                "mixture proportion")
   # and the structures frmtmb holds somewhere else entirely, each named
   # with the class that reaches the same parameters
@@ -459,7 +468,7 @@ test_that("brms prior rows frmtmb cannot mean are refused by name", {
                "class = \"sd\" with group", fixed = TRUE)
   expect_error(frmtmb:::as_priorlist(brms::prior(beta(1, 1),
                                                  class = "car")),
-               "class = \"theta\"", fixed = TRUE)
+               "class = \"thetacov\"", fixed = TRUE)
   # simo is brms's class here too (dev/moparity-findings.md, item 2):
   # a row with its coef carries over, and a class-wide one is refused,
   # as brms refuses it

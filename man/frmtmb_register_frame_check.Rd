@@ -21,6 +21,28 @@ its own uses this to refuse a data problem that only the assembled
 frame can show. Register from the contributing package's \code{.onLoad()}.
 }
 \details{
+A registration replaces an earlier one, and the check then runs once,
+only when the two are provably the same: the same function object, or
+functions with the same code whose environments, from the function's
+own up to the first namespace, global, base or empty environment, held
+the same values at registration, none of them an environment or an
+external pointer, and none of those environments carrying a name of
+its own (\code{attr(e, "name")}, an \code{attach()}ed one). Every other
+registration is kept and runs, a duplicate being harmless where a
+wrong merge would drop a check: closures that one factory, or a factory
+inside a factory, made for different values; closures over two
+environments or two pointers, even with equal contents; and a closure
+that captured a different library path, as \code{pkgload::load_all()} after
+\code{library()} passes.
+
+On a reload of the registering package, a function defined at the top
+level of its namespace, and an anonymous closure that its \code{.onLoad()}
+passes straight to this function, merge with their earlier
+registration. A closure that \code{.onLoad()} first binds to a name
+(\code{check <- function(spec, frame) ...}), or that sits in a frame
+holding a formula or another value that carries an environment, is
+added again on each reload and then runs once more per fit.
+
 The check is called as \code{fn(spec, frame)} and its return value is
 discarded. To refuse a model, call \code{stop()} with a message that says
 what is wrong and what the user can do instead. A check with nothing

@@ -105,15 +105,17 @@ The likelihood is one joint density over all the rows, so
 \code{weights()}, \code{cens()}, \code{trunc()}, \code{se()}, \code{rescor = TRUE}, mixtures
 and \code{quadrature} are refused, and a response carries one residual
 correlation term. Random effects work. \code{mi()} on the response works,
-as in brms: a missing value is a coordinate of the joint draw, which
-\code{\link[frmtmb:frm]{frmtmb::frm()}} integrates out under the Laplace approximation, exact
-on \code{gaussian()}, and exact on \code{student()} too once frmtmb takes off its
-error, a function of \code{nu} and the numbers of rows and of missing values,
-when nothing else reads the values and no other random effect is
-integrated.
+as in brms: a missing value is a coordinate of the joint draw. When
+nothing else reads it, \code{\link[frmtmb:frm]{frmtmb::frm()}} takes the exact margin of the
+observed rows, on \code{gaussian()} and \code{student()}, with random effects
+too; its \verb{K_m'K_m} is three products of \code{W} read once. Measured on a
+20 x 20 lattice with 300 of 400 values missing and a random effect, a
+\code{student()} fit took 5.7 to 6.7 s, against 3.3 to 3.5 s for the
+latent values it replaces, which were not exact there.
 
 \code{summary()} and \code{\link[frmtmb:confint_varcorr]{frmtmb::confint_varcorr()}} report \code{lagsar}
-or \code{errorsar} with a delta-method interval. \code{\link[=fitted]{fitted()}} and
+or \code{errorsar} with the delta-method Wald interval on rho, its ends
+held inside rho's interval (type \code{"clamped"}). \code{\link[=fitted]{fitted()}} and
 \code{residuals()} use the mean above; pearson residuals divide by the
 marginal standard deviation, \eqn{\sigma \sqrt{[(A'A)^{-1}]_{ii}}}.
 \code{\link[=simulate]{simulate()}} and \code{\link[=predict]{predict()}} draw the whole response through the

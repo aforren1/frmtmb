@@ -1,3 +1,49 @@
+# frmtmb.sample 0.30.0
+
+Needs frmtmb 0.83.0: it reads class `"theta"` as a mixture's weights
+and calls `ce_snl()` and `latres_err()` of the sampling API.
+
+* A class `"theta"` prior, `set_prior("dirichlet(c(5, 1, 2))",
+  class = "theta")`, replaces brms's `dirichlet(1)` on a mixture's
+  weights, as in brms: in the sampled density, with the softmax's
+  Jacobian; in the prior draws of `sample_prior = "yes"`; and in the
+  announcement of the defaults, which no longer names `dirichlet(1)`
+  for those weights. Before, no class reached the weights, and
+  `dirichlet(1)` was fixed.
+
+* BREAKING: frmtmb's internal covariance class is `"thetacov"`, where it
+  was `"theta"`; a bound on one of its coefficients is still accepted,
+  as frmtmb's own row.
+
+* `conditional_effects(method = "posterior_predict")` on draws of
+  `frm_sample(laplace = TRUE)` refuses a band that reads a group-level
+  term of a distributional parameter, as `posterior_predict()` does.
+  With `sigma ~ (1 | h)` or `shape ~ (1 | h)` and `re_formula = NULL` it
+  returned a band of missing values with six "NAs produced" warnings.
+
+* `print()` of a draws object lists the parameters in the order of
+  `variables()`. It listed a `gp(by = )` term's `sdgp_` and `lscale_`
+  columns level by level.
+
+* BREAKING: `conditional_effects()` on draws draws a new group level by
+  brms's default, `sample_new_levels = "uncertainty"`: each posterior
+  draw lends the effects of a level the fit saw, at that draw. Give
+  `sample_new_levels = "gaussian"` for the former draw from the
+  estimated covariance, or `"old_levels"`.
+
+* `loo_epred()`, `loo_linpred()`, `loo_predict()`,
+  `loo_predictive_interval()` and `loo_R2()` take `newdata` that holds a
+  subset of the fitted rows, as `log_lik()` and `loo()` do. The answer is
+  the fitted rows' answer cut to the subset, which is brms's.
+
+* BREAKING: `posterior_epred()` of an ordinal fit names its draw margin
+  `"1"` to `"S"`, as brms does. A categorical fit's stays unnamed.
+
+* The draws of a latent residual term (`ar()`, `ma()`, `arma()`,
+  `cosy()`, `unstr()` on a family without a residual) carry brms's
+  `err[k]`, one per row, beside the states. `variables()` lists them
+  last, after `lp__`, where brms lists them.
+
 # frmtmb.sample 0.29.0
 
 Needs frmtmb 0.82.0, which adds `brms_variable_sort()` to the sampling

@@ -173,6 +173,56 @@ correlate at 0.734, one latent predicts 0.739 and brms's replicates give
 -0.001, and the 95 percent width of \code{y1 - y2} at \code{sdx = 2} is 3.18 with one
 latent and 15.08 with two. \code{newdata} must hold \code{sdx}. On the data the model
 was fitted on the latent values are the fit's own.
+}
+
+\section{When the normal law does not describe the likelihood}{
+
+The normal law reads the curvature of the log-likelihood at the
+estimates. Two checks read the log-likelihood itself.
+\itemize{
+\item Each side of each parameter, moved alone. Where the log-likelihood
+is flat toward one end of a parameter's range (a zero inflation
+with no excess zeros in the data), the draws do not move it that
+way. Where it falls much faster than the normal law says, the draws
+on that side are narrowed. A message of class \code{frmtmb_draw_held}
+says so, once per fit.
+\item The draws together. The log-likelihood is evaluated at 20 test
+draws (40 where the result is close to the threshold) and compared,
+draw by draw, with what the normal law says it is there. This is
+done once per fit. The check fires where the median of the excess
+drop is above 1 and above 0.15 times the median drop the normal law
+gives at those draws. A weakly identified mixture can give that
+with no parameter at an end. A model with many well-identified
+parameters does not: a small skew in each adds up to an excess that
+grows with their number, and so does the law's own drop. The
+converse also holds: a weak direction among many well-identified
+parameters, such as a mixture with many covariates, can go
+unflagged and keep the normal law's draws. Where the
+check fires, each draw is weighted by the likelihood over the
+density it was drawn from. The weights are Pareto smoothed with
+\code{loo::psis()} and the draws are resampled by them. A parameter that
+the first check holds at its estimate in part of the draws keeps
+that part. A message of class
+\code{frmtmb_draw_reweighted} gives the Pareto k. Where k is above 0.7
+the weights are not reliable and a warning of class
+\code{frmtmb_draw_pareto} says so: \code{frmtmb.sample::frm_sample()} draws
+from the posterior itself. The check's test draws do not use the
+random number stream, and where it does not fire the draws are not
+changed.
+}
+}
+
+\section{predict() and fitted() can disagree on the mean}{
+
+\code{\link[=fitted]{fitted()}} is the expected response at the estimates. The mean of
+\code{predict()}'s draws is the expected response AVERAGED over the
+parameter draws, and where the response is not linear in the
+parameters the two differ by more than Monte Carlo error. On a
+hurdle_negbinomial fit of 300 rows the difference was 5 Monte Carlo
+standard errors at 1000 draws, under 1 percent of the mean.
+\code{propagate_error = FALSE} gives draws whose mean is \code{fitted()}'s. brms
+has no such difference, because its \code{fitted()} is itself a mean over
+the draws.
 
 A level the fit did NOT see is different: there is no conditional
 law to draw from, so \code{allow_new_levels = TRUE} draws its effect from
@@ -204,8 +254,19 @@ posterior draw has its own parameters and its own group effects, so
 there is nothing to switch off. A brms user looking for the missing
 argument is looking for this one.
 
-Only the terms \code{re_formula} keeps are drawn. A population smooth and
-a \code{gp()} curve stay at their modes under every setting.
+Only the terms \code{re_formula} keeps are drawn. A \code{gp()} term is drawn
+under every setting, as brms's draws carry it: its coefficients given
+the drawn parameters, and at a position the fit did not see, the field
+there given the drawn field. A population smooth stays at its mode. An
+exact field takes each draw's own inner mode, by Newton steps on numbers
+and one factor of its kernel per draw: on a gaussian field at 500
+positions and a poisson one at 300, a draw took 0.9 to about 2 times as
+long as one that held the field at its mode. Beside another random effect
+or in a nonlinear body the inner problem is solved on the tape instead, 3
+to 21 times as long, and so is a draw whose Newton steps do not settle or
+meet a curvature that is not positive: on binomial fields with many trials
+20 to 38 percent of the draws do, and
+those cost what they did before.
 
 A fit whose covariance could not be recovered from the Hessian has no
 second term to draw: the simulation falls back to the estimates and

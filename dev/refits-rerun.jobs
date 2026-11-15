@@ -1,0 +1,5 @@
+frmtmb tests/testthat/test-formula-dot.R
+frmtmb tests/testthat/test-refit-plumbing.R
+frmtmb tests/testthat/test-bernoulli-coding.R
+frmtmb tests/testthat/test-double-bar.R
+frmtmb.latent extensions/frmtmb.latent/tests/testthat/test-hmm-starts.R

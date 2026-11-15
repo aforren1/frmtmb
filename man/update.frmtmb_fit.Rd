@@ -91,11 +91,12 @@ call again, as \code{\link[stats:update]{stats::update()}} does. That is done on
 data still hold the fit's rows and values. Otherwise the update is
 refused with brms's advice to give the data as \code{newdata}.
 
-The formula, the family, the control, the start and the flags of the
-stored call that \code{update()} does not replace come from the fit, as in
-brms. So a fit made inside a function updates where the function's
-arguments are gone, and an object of the same name in the workspace
-does not become the model. The new fit's call names them as the
+The formula, the family, the control, the start, the flags and the
+\code{na.action}, \code{se} and \code{verbose} of the stored call that \code{update()}
+does not replace come from the fit, as in brms. So a fit made inside
+a function updates where the function's arguments are gone, and an
+object of the same name in the workspace does not become the model.
+The new fit's call names them as the
 stored call did. \code{evaluate = FALSE} returns the call that \code{update()}
 evaluates. It holds those values and the data, so it gives the same
 refit wherever it is evaluated, as in \code{\link[stats:step]{stats::step()}} and

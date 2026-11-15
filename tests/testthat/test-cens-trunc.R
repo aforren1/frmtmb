@@ -298,14 +298,23 @@ test_that("a custom discrete family with a CDF is censored too", {
                "family with a CDF")
 })
 
-test_that("osa residuals are refused on a censored discrete fit", {
+test_that("osa residuals of a censored count are read inside its window", {
+  # PIN: 0.82.0 refused residuals(type = "osa") on every censored
+  # discrete fit. An uncensored count lies in (lo, hi], so its PIT is
+  # (F(y) - U p(y)) / F(hi) here, with TMB's uniforms (set.seed(123))
   set.seed(710)
   d <- data.frame(y = stats::rpois(200, 4))
   d$cc <- ifelse(d$y > 7, "right", "none")
   d$y <- pmin(d$y, 7)
   fit <- frm(y | cens(cc) ~ 1, family = poisson(), data = d)
-  expect_error(residuals(fit, type = "osa"),
-               "not supported on a cens.. fit with a discrete family")
+  r <- residuals(fit, type = "osa")[, "Estimate"]
+  u <- d$cc == "none"
+  expect_true(all(is.na(r[!u])))
+  m <- rep_len(as.numeric(frmtmb:::eval_dpars(fit)[[1L]]$mu), nrow(d))[u]
+  U <- local({ set.seed(123); stats::runif(sum(u)) })
+  ref <- stats::qnorm((stats::ppois(d$y[u], m) -
+                         U * stats::dpois(d$y[u], m)) / stats::ppois(7, m))
+  expect_lt(max(abs(r[u] - ref)) / max(abs(ref)), 1e-10)
   # every other residual type still works
   expect_true(all(is.finite(residuals(fit, type = "response")[, "Estimate"])))
 })

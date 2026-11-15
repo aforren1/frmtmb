@@ -26,9 +26,10 @@ observations (refuses for large n unless \code{force = TRUE}).}
 fit holds: the model frame and the variables the formula reads
 through a transform (\code{x} of \code{poly(x, 2)} or \code{log(x)}), on the rows
 the fit used. A data-dependent basis (\code{poly()}, \code{splines::ns()},
-\code{scale()}) keeps the knots, coefficients or center of the fit in
-every deletion refit, as in lme4's \code{influence.merMod()}, so a
-coefficient change is not a change of basis.}
+\code{scale()}, and a smooth such as \code{s(x)}) keeps the knots,
+coefficients or center of the fit in every deletion refit, as in
+lme4's \code{influence.merMod()}, so a coefficient change is not a
+change of basis.}
 
 \item{force}{Allow observation-wise deletion for n > 500.}
 
@@ -52,8 +53,8 @@ coefficient standard errors (the lme4 influence surface).
 \details{
 Each deletion refits the same model, so an ordinal response keeps the
 threshold count of the full-data fit, and the per-level counts of
-\code{thres(gr = )}, whether the response is coded as integers, as a
-character vector or as an ordered factor. Deleting the last
+\code{thres(gr = )}, whether the response is coded as integers or as an
+ordered factor. Deleting the last
 observation in ANY category, bottom, interior or top, leaves that
 category's threshold in the model and unidentified, which shows as a
 large displacement in its column, never as a shorter row or a

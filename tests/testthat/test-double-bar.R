@@ -148,21 +148,30 @@ test_that("an |ID| key beside || is refused, as brms refuses it", {
   expect_silent(f(y ~ x + (1 + x | p | g) + (1 + f || g1)))
 })
 
-test_that("|| over gr(cov = ) keeps numeric columns and refuses a factor", {
+test_that("|| over gr(cov = ) is one block per column, a factor's too", {
   dd <- dbar_data()
   A <- diag(16) * 0.5 + 0.5
   dimnames(A) <- list(levels(dd$g), levels(dd$g))
   f <- function(form) frm(bf(form), family = gaussian(), data = dd,
                           data2 = list(A = A), dry_run = "frame")
   # a known covariance correlates the columns of a term within a level,
-  # so a numeric || term is one block per column, brms's model
+  # so a || term is one block per column, brms's model
   fr <- f(y ~ x + (1 + x || gr(g, cov = A)))
   expect_identical(vapply(fr$re_blocks, `[[`, 1L, "dim"), c(1L, 1L))
   expect_identical(vapply(fr$re_blocks, `[[`, "", "covstruct"),
                    c("gr_cov", "gr_cov"))
   expect_silent(f(y ~ x + (1 + x | gr(g, cov = A))))
-  expect_error(f(y ~ f + (1 + f || gr(g, cov = A))), "own sd")
-  expect_error(f(y ~ x + diag(1 + x | gr(g, cov = A))), "own sd")
+  # a factor is coded with the formula's contrasts, as brms 2.23.0 codes
+  # (1 + f || gr(g, cov = A)): Intercept, fb, fc (dev/refits-brms3.R).
+  # Through 0.82.0 it was refused
+  ff <- f(y ~ f + (1 + f || gr(g, cov = A)))
+  expect_identical(lapply(ff$re_blocks, `[[`, "cnms"),
+                   list("(Intercept)", "fb", "fc"))
+  expect_identical(vapply(ff$re_blocks, `[[`, "", "covstruct"),
+                   rep("gr_cov", 3L))
+  dg <- f(y ~ x + diag(1 + x | gr(g, cov = A)))
+  expect_identical(lapply(dg$re_blocks, `[[`, "cnms"),
+                   lapply(fr$re_blocks, `[[`, "cnms"))
   expect_error(f(y ~ x + ar1(f + 0 | gr(g, cov = A))),
                "do not combine with another structure")
   expect_error(f(y ~ x + homdiag(0 + x + z | gr(g, cov = A))),
@@ -218,8 +227,12 @@ test_that("messages name a || term as it is written", {
   dimnames(A) <- list(levels(dd$g), levels(dd$g))
   fa <- function(form) frm(bf(form), family = gaussian(), data = dd,
                            data2 = list(A = A), dry_run = "frame")
-  expect_error(fa(y ~ f + (1 + f || gr(g, cov = A))),
-               "(1 + f || gr(g, cov = A)) has a term with 3 columns",
+  Am <- diag(10) * 0.5 + 0.5
+  dimnames(Am) <- list(sprintf("m%02d", 1:10), sprintf("m%02d", 1:10))
+  expect_error(frm(bf(y ~ f + (1 + f || mm(m1, m2, cov = Am))),
+                   family = gaussian(), data = dd, data2 = list(Am = Am),
+                   dry_run = "frame"),
+               "(1 + f || mm(m1, m2, cov = Am)) has a term with 3 columns",
                fixed = TRUE)
   expect_error(fa(y ~ x + rr(0 + f | gr(g, cov = A), d = 1)),
                "rr(0 + f | gr(g, cov = A), d = 1) has 3 columns",

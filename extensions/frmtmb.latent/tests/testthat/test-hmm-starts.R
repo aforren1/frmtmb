@@ -484,17 +484,28 @@ test_that("a fit whose data the caller cannot see refits from its own", {
 
 test_that("a call naming another symbol the caller cannot see is refused", {
   skip_on_cran()
-  # the data, formula, family, control and start travel with the fit;
-  # a symbol update() does not take from it does not, so it has to fail
-  # once, loudly, rather than n times as n bad starts
+  # the data, formula, family, control, start, na.action, se and
+  # verbose travel with the fit; a symbol update() does not take from it
+  # does not, so it has to fail once, loudly, rather than n times as n
+  # bad starts. An empty data2 is not stored, so its symbol stays
   fit <- local({
+    d2_gone <- list()
+    frm(bf(y ~ 1),
+        family = hmm(K = 2, gaussian(), time = t, group = id),
+        data = small_data(), data2 = d2_gone)
+  })
+  expect_error(hmm_starts(fit, n = 1),
+               "could not be re-evaluated from here")
+  # a local na.action travels with the fit, so the refits run
+  # (frmtmb's update() read it where it was called up to 0.82.0)
+  fna <- local({
     na_gone <- stats::na.omit
     frm(bf(y ~ 1),
         family = hmm(K = 2, gaussian(), time = t, group = id),
         data = small_data(), na.action = na_gone)
   })
-  expect_error(hmm_starts(fit, n = 1),
-               "could not be re-evaluated from here")
+  ms <- hmm_starts(fna, n = 1, seed = 3L)
+  expect_false(any(ms$table$status == "error"))
 })
 
 test_that("a fit whose call has a start the caller cannot see refits", {

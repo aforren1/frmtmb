@@ -90,18 +90,30 @@ test_that("what laplace draws can compute equals the full draws' answer", {
     hypothesis(p$full, "sd_g__Intercept > 0", class = NULL)$hypothesis)
   expect_identical(VarCorr(p$lap), VarCorr(p$full))
   # conditional_effects() drops the group effects by default, and at
-  # re_formula = NULL draws a new level from each draw's own theta; the
-  # observed levels' b is read by neither
+  # re_formula = NULL with sample_new_levels = "gaussian" draws a new
+  # level from each draw's own theta; the observed levels' b is read by
+  # neither
   expect_identical(conditional_effects(p$lap, effects = "x",
                                        resolution = 5),
                    conditional_effects(p$full, effects = "x",
                                        resolution = 5))
   expect_identical(conditional_effects(p$lap, effects = "x",
                                        resolution = 5, re_formula = NULL,
-                                       seed = 2),
+                                       seed = 2,
+                                       sample_new_levels = "gaussian"),
                    conditional_effects(p$full, effects = "x",
                                        resolution = 5, re_formula = NULL,
-                                       seed = 2))
+                                       seed = 2,
+                                       sample_new_levels = "gaussian"))
+  # brms's default, "uncertainty", lends an observed level's effects,
+  # which these draws do not hold, so the laplace draws refuse it
+  e <- tryCatch(conditional_effects(p$lap, effects = "x", resolution = 5,
+                                    re_formula = NULL, seed = 2),
+                error = conditionMessage)
+  expect_match(e, "conditional_effects() needs the random effects",
+               fixed = TRUE)
+  # and names the rule that answers on these draws
+  expect_match(e, "sample_new_levels = \"gaussian\" draws it", fixed = TRUE)
 })
 
 test_that("the refusal leaves the caller's random-number stream alone", {
@@ -426,6 +438,41 @@ test_that("a group-level design that cancels or a step() still refuses", {
                         int_conditions = list(x = 0), conditions = g1)
   }
   expect_identical(ce(pz$lap)[[1L]]$estimate__, ce(pz$full)[[1L]]$estimate__)
+})
+
+test_that("a predictive band reads the group-level terms of every dpar", {
+  # backlog 5362: the watch of conditional_effects(method =
+  # "posterior_predict") read the expected values, which do not read
+  # sigma or shape, so sigma ~ (1 | h) drew an all-NA band (100 of 100
+  # rows) with six "NAs produced" warnings and no refusal
+  set.seed(5)
+  n <- 60
+  dd <- data.frame(x = stats::rnorm(n), h = factor(rep(1:5, each = 12)))
+  dd$y <- 0.3 * dd$x + stats::rnorm(n, 0, exp(stats::rnorm(5, 0, 0.5)))[dd$h]
+  dd$cnt <- stats::rnbinom(n, mu = exp(0.5 + 0.3 * dd$x),
+                           size = exp(stats::rnorm(5))[dd$h])
+  q <- function(...) suppressWarnings(suppressMessages(frm(...)))
+  h2 <- data.frame(h = factor(2, levels = 1:5))
+  ce <- function(d, rf = NULL) {
+    set.seed(4)
+    conditional_effects(d, effects = "x", re_formula = rf,
+                        method = "posterior_predict", conditions = h2)
+  }
+  msg <- "conditional_effects() needs the random effects"
+  for (f in list(q(bf(y ~ x, sigma ~ (1 | h)), data = dd),
+                 q(bf(y ~ x, sigma ~ (1 | h)), family = student(), data = dd),
+                 q(bf(cnt ~ x, shape ~ (1 | h)), family = negbinomial(),
+                   data = dd))) {
+    p <- lap_pair(f)
+    expect_error(ce(p$lap), msg, fixed = TRUE)
+    # and it says what it can compute instead
+    expect_error(ce(p$lap), "re_formula = NA", fixed = TRUE)
+    # the guard's condition absent: without the group-level term the band
+    # is the full draws' band, bit for bit
+    expect_identical(ce(p$lap, NA)[[1L]]$estimate__,
+                     ce(p$full, NA)[[1L]]$estimate__)
+    expect_true(all(is.finite(ce(p$full)[[1L]]$estimate__)))
+  }
 })
 
 ## ---- frm_sample() itself --------------------------------------------

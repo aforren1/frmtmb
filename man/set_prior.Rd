@@ -21,10 +21,12 @@ set_prior(
 \code{\link[=prior_normal]{prior_normal()}}/\code{\link[=prior_t]{prior_t()}}/\code{\link[=prior_lkj]{prior_lkj()}} object, or \code{""} for
 bounds only.}
 
-\item{class}{\code{"b"}, \code{"Intercept"}, \code{"sd"}, \code{"sds"}, \code{"cor"}, \code{"theta"}, one
+\item{class}{\code{"b"}, \code{"Intercept"}, \code{"sd"}, \code{"sds"}, \code{"cor"},
+\code{"thetacov"}, one
 of the residual-structure classes \code{"ar"}, \code{"ma"}, \code{"cosy"},
-\code{"cortime"} and \code{"rescor"}, the simplex classes \code{"simo"} and
-\code{"sbhaz"}, the \code{me()} classes \code{"meanme"}, \code{"sdme"} and \code{"corme"},
+\code{"cortime"} and \code{"rescor"}, the simplex classes \code{"simo"}, \code{"sbhaz"}
+and \code{"theta"} (a mixture's weights), the \code{me()} classes \code{"meanme"},
+\code{"sdme"} and \code{"corme"},
 or a distributional parameter's own
 name (\code{"sigma"}, \code{"shape"}, ...). See A distributional parameter's
 own class.}
@@ -34,7 +36,7 @@ to the standard deviation of one coefficient (class \code{"sd"}, with
 \code{group}), to one smooth term (class \code{"sds"}), name the simplex of
 class \code{"simo"}, name one \code{me()}
 variable of class \code{"meanme"} or \code{"sdme"}, or name one internal
-parameter of class \code{"theta"}. A coefficient is
+parameter of class \code{"thetacov"}. A coefficient is
 named as brms names it and as \code{\link[=default_prior]{default_prior()}} lists it: \code{logxp}
 for the column of \code{log(xp)}, \code{IxE2} for \code{I(x^2)}. The name of the
 design column, \code{log(xp)}, also works.}
@@ -43,9 +45,9 @@ design column, \code{log(xp)}, also works.}
 or class \code{"corme"} to the \code{me()} terms of one \verb{gr =} variable.}
 
 \item{resp}{Response of a multivariate model. Required there for
-every class except \code{"cor"}, \code{"rescor"}, \code{"theta"} and the \code{me()}
-classes; refused on a model with one response and on classes
-\code{"rescor"}, \code{"meanme"}, \code{"sdme"} and \code{"corme"}.}
+every class except \code{"cor"}, \code{"rescor"}, \code{"thetacov"} and the
+\code{me()} classes; refused on a model with one response and on classes
+\code{"cor"}, \code{"rescor"}, \code{"meanme"}, \code{"sdme"} and \code{"corme"}.}
 
 \item{dpar}{Distributional parameter (default: the location
 parameters).}
@@ -143,7 +145,12 @@ correlation matrix of the \code{me()} terms that share a \verb{gr =}, as a
 whole: \code{group} selects the \verb{gr =} variable, and no \code{coef}. The
 three take no \code{resp}, \code{dpar} or \code{nlpar}, because one set of latent
 values serves the whole model.
-\item \code{"theta"}: frmtmb's own class, for the internal covariance
+\item \code{"theta"}: the mixing weights of a \code{\link[=mixture]{mixture()}}, as one simplex,
+brms's class of the same name. \code{dirichlet(alpha)} only, with
+\code{alpha} one number or one per component, and no \code{coef}, \code{group},
+\code{dpar}, \code{nlpar}, \code{lb} or \code{ub}. It exists where no weight has a
+formula or a fixed value, as in brms. See Mixture weights.
+\item \code{"thetacov"}: frmtmb's own class, for the internal covariance
 parameters that no brms class names, on the internal scale: a
 \code{toep()} correlation, the parameter of a covariance structure an
 extension registers (a \code{car()} dependence), and a residual term's
@@ -151,13 +158,13 @@ parameter without an interval. \code{coef} names one by its internal
 name (\code{"theta_12"}, \code{"thetaac_1"}), as \code{\link[=default_prior]{default_prior()}} lists
 it; with no \code{coef} the class covers every random-effect parameter
 of that kind. A parameter that a class reaches has that class as
-its one slot, as in brms, which has no class \code{"theta"}: a standard
-deviation (\code{"sd"}, \code{"sdgp"}), a \code{gp()} length scale (\code{"lscale"}),
-a correlation an LKJ density fits (\code{"cor"}), a residual
-correlation (\code{"rescor"}, \code{"ar"}, \code{"ma"}, \code{"cosy"}, \code{"cortime"},
-frmtmb.spatial's \code{"lagsar"}), the SD of a latent residual
-(\code{"sderr"}). Its internal row is not listed, and a
-class \code{"theta"} prior on it is refused with the class to use.
+its one slot, as in brms, which has no class for these parameters:
+a standard deviation (\code{"sd"}, \code{"sdgp"}), a \code{gp()} length scale
+(\code{"lscale"}), a correlation an LKJ density fits (\code{"cor"}), a
+residual correlation (\code{"rescor"}, \code{"ar"}, \code{"ma"}, \code{"cosy"},
+\code{"cortime"}, frmtmb.spatial's \code{"lagsar"}), the SD of a latent
+residual (\code{"sderr"}). Its internal row is not listed, and a
+class \code{"thetacov"} prior on it is refused with the class to use.
 \item a DISTRIBUTIONAL parameter's own name (\code{"sigma"}, \code{"shape"},
 \code{"phi"}, \code{"zi"}, \code{"nu"}, ...): a density on that parameter ITSELF,
 on its NATURAL scale, with the inverse link's log-Jacobian
@@ -169,15 +176,14 @@ of its own; see A distributional parameter's own class.
 In a MULTIVARIATE model, every specification of class \code{"b"},
 \code{"Intercept"}, \code{"sd"}, \code{"ar"}, \code{"ma"}, \code{"cosy"} or \code{"cortime"}, and
 every distributional parameter's own class, names its response with
-\code{resp}. A specification without \code{resp} is refused, as brms refuses
-it: write one specification per response. Classes \code{"rescor"} and
-\code{"theta"} take no \code{resp}, and \code{"cor"} needs none. On a model with ONE
+\code{resp}, and so does class \code{"theta"}. A specification without \code{resp}
+is refused, as brms refuses it: write one specification per
+response. Classes \code{"rescor"}, \code{"cor"} and \code{"thetacov"} take no
+\code{resp}: brms keys a correlation prior by \code{group} alone and refuses
+\code{"cor"} with \code{resp}, and so does frmtmb. On a model with ONE
 response, \code{resp} is refused, as in brms.
 
-Two spellings are frmtmb's own, and brms refuses both: \code{"cor"} with
-\code{resp}, which narrows the prior to that response's blocks
-(\code{\link[=default_prior]{default_prior()}} lists one \code{"cor"} row per group, with no \code{resp},
-as brms does), and
+One spelling is frmtmb's own, and brms refuses it:
 \code{"Intercept"} with \code{nlpar}, which is stored as brms's slot of the same
 parameter, class \code{"b"} with \code{coef = "Intercept"} and that \code{nlpar}
 (see Nonlinear parameters). A centered intercept has one slot, class
@@ -338,16 +344,47 @@ formula), whose density is about the intercept at the predictor
 means. brms warns about such a prior and asks for \code{lb} and \code{ub};
 frmtmb gives the same warning and the fit those bounds give. A
 density that is zero or infinite at the end (\code{beta(2, 2)},
-\code{lognormal()}, \code{gamma(0.5, 1)}) is not boxed: give \code{lb} and \code{ub}
-just inside its support, as \code{lb = 1e-8}. A fit that stops where the
-objective is not finite is reported as not converged.
+\code{lognormal()}, \code{gamma(0.5, 1)}) is not boxed. A bound of your own at
+such an end works as follows. \code{\link[=frm]{frm()}} fits in the closed box first,
+so a maximum inside the box is the one the box gives. Where that run
+stops on such an end, or fails beside it, frm() runs again in the
+coordinate \code{u} with the coefficient \code{lb + exp(u)} (\code{ub - exp(u)} for
+an upper bound, a logit between two), where the end is out of reach.
+The objective is not changed, so there is no Jacobian, as in brms's
+optimizing. Where the density is zero at the end, as \code{lognormal()}
+with \code{lb = 0}, the posterior is zero there, and this run stops at the
+mode. Where the density is infinite at the end, as \code{gamma(0.5, 1)}
+with \code{lb = 0}, frm() evaluates the log posterior toward that end.
+Where the fit ends beside the end and the log posterior rises at
+every point down to the nearest double, past the best fit found, the
+posterior has no maximum, and frm() refuses the fit; where it rises
+without that proof, the best point found is returned at code 1 with
+a warning. Where the fit ends inside and the log posterior at the
+nearest double past the end is higher, the fit is a local mode, and
+a warning of class \code{frmtmb_prior_unbounded_local} says so. A fit that
+stops where the objective is not finite is reported as not converged.
+
+A bound that goes through a link (\code{lb} on \code{class = "sigma"} under its
+log link) is moved inside until the inverse link takes it inside the
+bound, so that the parameter at the bound is inside the density's
+support: \code{plogis(qlogis(0.3))} is 0.30000000000000004. A bound that
+no value maps inside is refused by name.
+
+\code{lb}/\code{ub} on class \code{"Intercept"} is refused where that intercept is
+centered, that is, where its formula has predictors whose means are
+not zero. brms bounds the intercept at the predictor means, and so
+would the class's density (see Where an intercept prior lands), but
+frm() holds the intercept at zero, and a box on it would bound a
+different number. Center the predictors, or bound the intercept at
+zero with \code{bf(..., center = FALSE)} and \code{class = "b"},
+\code{coef = "Intercept"}.
 
 The scale is the parameter's own: class \code{"sd"} bounds a standard
 deviation on the sd scale (frmtmb stores its log), classes \code{"ar"},
 \code{"ma"} and \code{"cosy"} bound the natural coefficient of a residual
-structure, and class \code{"theta"} bounds an internal covariance
+structure, and class \code{"thetacov"} bounds an internal covariance
 parameter itself, one position at a time with \code{coef = "theta_12"},
-where no class reaches that parameter (see class \code{"theta"} above).
+where no class reaches that parameter (see class \code{"thetacov"} above).
 A correlation takes no bound, as in brms: a correlation matrix's
 entries are not free of one another, and brms writes a Stan program
 that does not parse for \code{lb} on class \code{"cor"}. Everything else is
@@ -418,6 +455,38 @@ innovation sd, as in brms (\link{frmtmb-autocor}). So a prior on class
 \code{"sigma"}, its \code{lb} and \code{ub}, and under \code{sigma ~ x} a prior on the
 intercept of \code{sigma} (\verb{class = "Intercept", dpar = "sigma"}, the log
 innovation sd), are brms's priors on the same parameter.
+}
+
+\section{Mixture weights}{
+
+A \code{\link[=mixture]{mixture()}} with no formula and no fixed value on any of its
+weights \verb{theta1 ... thetaK} has one simplex of weights, as in brms.
+Class \code{"theta"} puts a Dirichlet density on that simplex:
+\code{set_prior("dirichlet(2)", class = "theta")}, or one concentration
+per component in component order, \code{"dirichlet(c(5, 1, 1))"}. In a
+multivariate model, \code{resp} names the response. \code{\link[=default_prior]{default_prior()}}
+lists the row, with brms's \code{dirichlet(1)} on \code{route = "sample"}.
+
+frmtmb holds the weights as \code{K - 1} log ratios against one
+reference component. In \code{\link[=frm]{frm()}}, the density is the density of
+these log ratios: the Dirichlet on the weights times the Jacobian of
+the softmax, which is the product of the weights. Up to a constant,
+it is \code{sum(alpha_k * log(w_k))}. That is also the density that
+frmtmb.sample's \code{frm_sample()} samples, so the MAP fit is the mode of
+the posterior the sampler draws from. Thus the MAP fit under
+\code{dirichlet(alpha)} maximizes the likelihood times
+\code{dirichlet(alpha + 1)} on the weights, and \code{dirichlet(1)} pulls the
+weights toward equal values.
+Every concentration above 0 gives a maximum. Without a class
+\code{"theta"} prior, frm() applies no density to the weights, and the
+row of \code{route = "fit"} shows \code{(flat)}.
+
+A weight with a formula of its own (\code{theta1 ~ x}) or a fixed value
+(\code{theta1 = 0.3}) removes the simplex, and class \code{"theta"} is then
+refused, as in brms. One weight is never a class: \code{class = "theta1"}
+is refused where the weights are a simplex, as brms refuses it. A
+weight with a formula takes a prior on its linear predictor, as
+class \code{"Intercept"} or \code{"b"} with \code{dpar = "theta1"}.
 }
 
 \section{The LKJ prior}{
@@ -507,8 +576,9 @@ ITSELF, through the dpar's inverse link with that map's
 log-Jacobian, which is the change of variables class \code{"sd"}
 performs. A bound travels with it, so \code{lb = 0} on a log-linked
 dispersion becomes no constraint rather than a floor of 1.
-\item \code{simo} and \code{sbhaz} keep their meaning too: a \code{dirichlet()} on a
-\code{mo()} simplex and on a \code{cox()} baseline. So do \code{meanme}, \code{sdme}
+\item \code{simo}, \code{sbhaz} and \code{theta} keep their meaning too: a \code{dirichlet()}
+on a \code{mo()} simplex, on a \code{cox()} baseline and on a mixture's
+weights. So do \code{meanme}, \code{sdme}
 and \code{corme}, the hyperparameters of a \code{me()} term, brms's \code{lkj(1)}
 default on \code{corme} included.
 \item \code{sds} is the standard deviation of a smooth's penalized part, brms's
@@ -517,7 +587,7 @@ class of the same name. \code{coef} names one smooth term as
 \code{"s(x, by = f)"}), and a term with several standard deviations
 (a \code{t2()} or a by-smooth) takes the density on each of them, as in
 brms. Class \code{"sd"} does not reach a smooth.
-\item \code{theta}/\code{theta1}/\code{theta2}, \code{sdcar} and \code{car} are refused by
+\item \code{theta1}/\code{theta2}, \code{sdcar} and \code{car} are refused by
 name, each saying where frmtmb keeps that quantity instead. A
 refusal is deliberate: translating one of them would produce a
 different model rather than no model.
@@ -623,7 +693,9 @@ set_prior("normal(0, 0.5)", class = "ar")
 set_prior("lkj(2)", class = "rescor")
 # and one internal covariance parameter that no class names, such
 # as a toep() correlation, by its name as get_prior() lists it
-set_prior("", class = "theta", coef = "theta_12", lb = -2, ub = 2)
+set_prior("", class = "thetacov", coef = "theta_12", lb = -2, ub = 2)
+# a mixture's weights are one simplex, brms's class "theta"
+set_prior("dirichlet(2)", class = "theta")
 
 # class "cor" addresses a correlated block as a whole, brms's
 # spelling; eta > 1 pulls the correlation toward zero

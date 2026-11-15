@@ -319,7 +319,7 @@ test_that("a registered term's bounded parameter follows the same rule", {
   ch <- autocor_bound_chart(fit, rb$lower, rb$upper)
   expect_identical(c(ch[[1L]]$L, ch[[1L]]$U), c(0, hi))
   # and its internal spelling is refused by the class's name
-  expect_error(dpa_ri(fit, set_prior("normal(0, 1)", class = "theta",
+  expect_error(dpa_ri(fit, set_prior("normal(0, 1)", class = "thetacov",
                                      coef = "thetaac_1")),
                "internal parameter of acprho", class = "frmtmb_error")
 })

@@ -168,18 +168,16 @@ names(groups) <- c("group", "reads", "frmtmb_counterpart", "cost",
 # Lane bin2port: the G3 and G4 blocks left to the survey, each with the
 # class and reason a run of frmtmb 0.71.0 gives it rather than the
 # group's "frmtmb has each of these models" (dev/bin2port-probe4.R, log
-# dev/bin2port-out/probe4.txt). frmtmb has no sar() and no fcor(), so
-# those rows are gaps. frmtmb fits arma(cov = TRUE), and log_lik() of
+# dev/bin2port-out/probe4.txt). frmtmb 0.71.0 had no sar() and no
+# fcor(), so those rows were gaps; the 0.76.0 round ported all 13 (sar()
+# through frmtmb.spatial, fcor() in core), so they carry no class of
+# their own and the ledger's verdict is theirs. frmtmb fits
+# arma(cov = TRUE), and log_lik() of
 # its draws refuses it, so brms's leave-one-out conditional density of
 # each observation is a gap too: the quantity is well defined, brms
 # computes it, and no scope document puts it outside frmtmb (review
 # 2026-10-14, finding 1). The multivariate and ARMA posterior_predict
 # rows remain transferable, at the cost named.
-bp_absent <- function(term) c("absent", paste0(
-  "gap: frmtmb has no ", term, " term; frm() refuses it ('", term,
-  "() is a brms autocorrelation term that frmtmb does not support'; ",
-  "the supported residual correlation terms are ar(), ma(), arma(), ",
-  "cosy(), unstr() and car())"))
 bp_fit_bound <- function(what) c("not-ported", paste0(
   "not ported (cost): frmtmb ", what, ", but its density and its ",
   "simulator of the structure read a fit (the correlation parameters ",
@@ -212,9 +210,6 @@ bin2port_g34 <- list(
       "pointing to the cov = FALSE form, which it supports; brms's row ",
       "is the leave-one-out conditional density of one observation ",
       "given the rest of its group, which frmtmb does not compute")),
-  "log_lik for SAR models runs without errors" = bp_absent("sar"),
-  "log_lik for FCOR models runs without errors" = bp_absent("fcor"),
-  "log_lik for FCOR student-t models works as expected" = bp_absent("fcor"),
   "log_lik_custom runs without errors" = bp_custom,
   "posterior_predict for multivariate linear models runs without errors" =
     bp_fit_bound(paste(
@@ -225,8 +220,6 @@ bin2port_g34 <- list(
       "group patterns of the fitted frame and the correlation from",
       "thetaac); brms's matrices are the covariance at unit innovation",
       "variance and its prep adds se")),
-  "loglik for SAR models runs without errors" = bp_absent("sar"),
-  "posterior_predict for FCOR models runs without errors" = bp_absent("fcor"),
   "posterior_predict_custom runs without errors" = bp_custom)
 
 rows <- list()

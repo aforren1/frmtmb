@@ -12,7 +12,10 @@
 #' columns (appended after n_param_cols), and the zero-placeholder
 #' `mo()`/`mi()` columns. Centering needs an intercept column to absorb
 #' the shift, so an intercept-free linpred is scaled without centering.
-#' Returns NULL when nothing qualifies anywhere.
+#' The random-effect columns are planned apart (`autoscale_plan_z()`),
+#' whether or not a fixed effect reads the same column, so a linpred
+#' can carry `z` entries and no `cols`. Returns NULL when nothing
+#' qualifies anywhere.
 #'
 #' @noRd
 autoscale_plan <- function(frame) {
@@ -40,104 +43,259 @@ autoscale_plan <- function(frame) {
     }
     if (!length(cols)) next
     plan[[key]] <- list(cols = cols, center = center, scale = scale,
-                        icpt = icpt, par = lp[["par"]], idx = lp[["idx"]],
-                        z = autoscale_plan_z(frame, key, lp, cols, scale))
+                        icpt = icpt, par = lp[["par"]], idx = lp[["idx"]])
+  }
+  for (zz in autoscale_plan_z(frame)) {
+    key <- zz$key
+    if (is.null(plan[[key]])) {
+      plan[[key]] <- list(cols = integer(0), center = numeric(0),
+                          scale = numeric(0), icpt = NA_integer_,
+                          par = NULL, idx = integer(0))
+    }
+    plan[[key]]$z[[length(plan[[key]]$z) + 1L]] <- zz
   }
   if (!length(plan)) NULL else plan
 }
 
-#' The random slopes on a planned column, scaled with it.
-#'
-#' Scaling the X column alone leaves a random slope on the same column
-#' as badly scaled as before. Its log standard deviation starts at 0,
-#' which on a column spread 1e-6 is a slope variance of 1e-12 in the
-#' predictor's units: effectively zero, where the gradient of a log
-#' standard deviation vanishes, and the fit stays there (lane
-#' wt-predfix, punch round 1, `dev/predfix-p1-slope.R`). Scaling the Z
-#' column by the same `s` is an exact reparameterization, `b * s` and
-#' `log sd + log s`, and leaves the correlation parameters alone,
-#' because it is a diagonal change of the block's coordinates.
-#'
-#' Only the blocks where that holds by construction: `us`, `diag`,
-#' `us_t` and `diag_t`, whose first `dim` theta entries are per-component
-#' log standard deviations (or log scales), with plain single-membership
-#' components and an identity coefficient map. The Z columns are checked
-#' against the X column before they are trusted.
+#' The covariance structures of frmtmb whose standard deviations scale
+#' with their columns by construction, read from their densities in
+#' R/covstruct.R. `col`: one log standard deviation (or log scale) per
+#' column, `sd_idx` in column order, and correlation parameters that do
+#' not depend on the scales. `block`: one log standard deviation for the
+#' whole block. test-autoscale.R checks each density against
+#' autoscale_block_exact(), so a change of parameterization fails there
+#' rather than here. A structure another package registers is not
+#' listed and is checked by autoscale_block_exact() at fit time.
 #'
 #' @noRd
-autoscale_plan_z <- function(frame, key, lp, cols, scale) {
-  Z <- lp[["Z"]]
-  if (is.null(Z)) return(NULL)
-  cn <- colnames(lp[["X"]])[cols]
-  out <- list()
-  for (bk in frame[["re_blocks"]]) {
-    if (!bk[["covstruct"]] %in% c("us", "diag", "us_t", "diag_t")) next
-    if (!identical(as.integer(bk[["b_idx"]]), as.integer(bk[["c_idx"]]))) {
-      next
-    }
-    D <- bk[["dim"]]
-    sdi <- cs_entry(bk[["covstruct"]])$sd_idx(bk)
-    for (comp in bk[["components"]]) {
-      if (!identical(comp$lp_key, key) || !is.null(comp$mm)) next
-      for (k in seq_len(comp$dim)) {
-        m <- match(comp$cnms[k], cn)
-        if (is.na(m)) next
-        pos <- comp$offset + k
-        zc <- bk[["c_idx"]][(seq_len(bk[["n_levels"]]) - 1L) * D + pos]
-        xj <- lp[["X"]][, cols[m]]
+autoscale_exact_core <- list(
+  col = c("us", "diag", "us_t", "diag_t", "cs", "toep", "hetar1",
+          "gr_cov", "gr_prec"),
+  block = c("homdiag", "ar1", "homcs", "homtoep", "ou", "exp", "gau",
+            "mat"))
+
+#' The blocks that are not a random term a user wrote over a covariate:
+#' a smooth's penalized basis, a Gaussian process, a reduced-rank factor
+#' model and a latent residual chain. Their columns are bases or
+#' indicators that other code scales or starts (gp-start.R), and their
+#' coefficients are not their parameters positionwise.
+#'
+#' @noRd
+autoscale_skip_cs <- c("smooth", "gp", "hsgp", "rr", "latres", "equalto")
+
+#' Every random-effect column of a block, one entry per position of the
+#' block (`dim`): its linear predictor `key`, its columns in Z (`zcols`)
+#' and in `b` (`bcols`) over the levels, its label, and `rms`, the root
+#' mean square of the column over the rows where it is nonzero, or `NA`
+#' where the column does not qualify. A column qualifies as an X column
+#' does: more than two distinct values, which leaves out an intercept and
+#' factor dummies. The scale is the root mean square and not the sd,
+#' because a random slope is not centered: its effect on the predictor
+#' is the slope sd times the column itself. `spread`, the sd over the
+#' same rows, is what engages the default (autoscale_decide()), as the
+#' sd of a fixed twin did through 0.82.0: on x = 5 + 0.03 z the root
+#' mean square is near 5, and engaging on it left `y ~ x + (1 + x | g)`
+#' up to 9.84 units short where 0.82.0 reached the maximum (review of
+#' lane slopescale, F1). A `mo()` component's Z columns are rewritten
+#' from its simplex, so they are never planned.
+#'
+#' @noRd
+autoscale_block_cols <- function(frame, bk) {
+  D <- bk[["dim"]]
+  lev0 <- (seq_len(bk[["n_levels"]]) - 1L) * D
+  out <- vector("list", D)
+  for (comp in bk[["components"]] %||% list()) {
+    Z <- frame[["linpreds"]][[comp$lp_key]][["Z"]]
+    for (k in seq_len(comp$dim)) {
+      pos <- comp$offset + k
+      zc <- bk[["c_idx"]][lev0 + pos]
+      rms <- NA_real_
+      spread <- NA_real_
+      if (!is.null(Z) && is.null(comp[["mo_re"]]) && length(zc) &&
+            max(zc) <= ncol(Z)) {
         zx <- as.numeric(Matrix::rowSums(Z[, zc, drop = FALSE]))
-        if (max(abs(zx - xj)) > 1e-10 * max(abs(xj))) next
-        out[[length(out) + 1L]] <- list(
-          zcols = zc, theta = bk[["theta_idx"]][sdi[pos]], scale = scale[m])
+        nz <- zx[zx != 0]
+        r <- sqrt(mean(nz^2))
+        if (length(unique(zx)) > 2L && is.finite(r) && r > 0) {
+          rms <- r
+          spread <- stats::sd(nz)
+        }
       }
+      out[[pos]] <- list(key = comp$lp_key, zcols = zc,
+                         bcols = bk[["b_idx"]][lev0 + pos],
+                         cnm = comp$cnms[k],
+                         label = paste0(bk[["covstruct"]], "() on ",
+                                        comp$cnms[k]),
+                         rms = rms, spread = spread)
     }
   }
-  if (length(out)) out
+  out
 }
 
-#' Say which random slopes on a planned column the plan leaves alone.
+#' Whether scaling a block's columns by `cpos` (one factor per position)
+#' looks like an exact reparameterization of its density, checked at ONE
+#' point: the log density of `b * cpos` at the log standard deviations
+#' moved by `log cpos` must be the log density of `b` less the Jacobian,
+#' `n_levels * sum(log cpos)`. Evaluated once on fixed numbers, a generic
+#' `theta` and `b` built without the random number generator, so a fit
+#' leaves the user's seed alone.
 #'
-#' Scaling a slope with its column is exact only when the structure's
-#' parameters scale with the coefficient: a log standard deviation per
-#' component that nothing else depends on, which `us`, `diag` and their
-#' Student-t forms have (`autoscale_plan_z()`). For any other structure
-#' a rescaling would change the fitted model rather than its
-#' coordinates, so its slope is left as it is: frmtmb's own `cs()`,
-#' `ar1()` and the rest, a multi-membership component, and a structure
-#' another package registers, whose entry says nothing of its
-#' parameters. Every one of them is named, the same way: a slope left on
-#' a badly scaled column is what stalled fits before autoscale existed,
-#' and a note for a registered structure but not for frmtmb's own would
-#' read as if the two were treated differently.
+#' One point is not a proof. A structure equivariant near its start and
+#' not further out passes: sd = exp(theta) (1 + exp(5 (theta - 7))) did
+#' (review of lane slopescale, item 3). A false pass costs a worse start
+#' only, because the reported fit re-optimizes the model as written from
+#' the pre-fit's template; on that structure it was within 1.3e-9 of the
+#' maximum on 6 of 6 seeds.
 #'
 #' @noRd
-autoscale_note_unscaled <- function(frame, plan) {
+autoscale_block_exact <- function(bk, cpos) {
+  e <- cs_entry(bk[["covstruct"]])
+  sdi <- tryCatch(as.integer(block_sd_idx(bk)), error = function(e) NULL)
+  D <- bk[["dim"]]
+  if (is.null(e) || !length(sdi) || length(cpos) != D) return(FALSE)
+  if (length(sdi) != D && (length(sdi) != 1L || any(cpos != cpos[1L]))) {
+    return(FALSE)
+  }
+  tryCatch({
+    th <- as.numeric(e$start(bk))
+    th <- th + 0.25 * cos(seq_along(th))
+    th2 <- th
+    th2[sdi] <- th2[sdi] + log(if (length(sdi) == D) cpos else cpos[1L])
+    nb <- length(bk[["b_idx"]])
+    b <- 0.5 * sin(1.7 * seq_len(nb)) + 0.2
+    cf <- rep(cpos, length.out = nb)
+    lhs <- as.numeric(e$nll(b * cf, th2, bk))
+    jac <- bk[["n_levels"]] * sum(log(cpos))
+    rhs <- as.numeric(e$nll(b, th, bk)) - jac
+    length(lhs) == 1L && length(rhs) == 1L && is.finite(lhs) &&
+      is.finite(rhs) &&
+      abs(lhs - rhs) <= 1e-8 * max(1, abs(rhs), abs(jac))
+  }, error = function(e) FALSE)
+}
+
+#' The random-effect columns the plan rescales, one entry per column:
+#' its linear predictor `key`, `zcols` (its Z columns), `bcols` (its
+#' effects in `b`), `theta` (the log standard deviation that moves with
+#' it, or none) and `scale`.
+#'
+#' A random slope on a column of small spread stalls: its log standard
+#' deviation starts at 0, which on a column spread 1e-4 is an effect of
+#' sd 1e-4 in the predictor's units, effectively zero, where the
+#' gradient of a log standard deviation vanishes, and the fit stays
+#' there at code 0 (lane wt-predfix, punch round 1,
+#' `dev/predfix-p1-slope.R`; lane slopescale for a column without a
+#' fixed effect, `dev/slopescale-findings.md`). Dividing the Z column by
+#' its spread `s` is an exact reparameterization, `b * s` and
+#' `log sd + log s`, as long as that log sd belongs to the column alone
+#' and the correlation parameters do not depend on the scales: a
+#' diagonal change of the block's coordinates.
+#'
+#' A structure with one standard deviation for the whole block is
+#' rescaled only when every one of its columns qualifies, all by one
+#' factor, the geometric mean of their spreads: a structure that shares
+#' one scale across an intercept and a slope cannot give each its own.
+#' A block whose `sd` entry the frame maps to a constant keeps its
+#' columns, because the constant would then mean another model. The
+#' effects of a non-centered block (`frame$ncp_blocks`, the sampler's)
+#' are standardized already and do not move.
+#'
+#' @noRd
+autoscale_plan_z <- function(frame) {
+  out <- list()
+  mapped <- frame[["map"]][["theta"]]
+  ncp <- frame[["ncp_blocks"]] %||% integer(0)
+  for (i in seq_along(frame[["re_blocks"]])) {
+    bk <- frame[["re_blocks"]][[i]]
+    cs <- bk[["covstruct"]]
+    if (cs %in% autoscale_skip_cs) next
+    if (length(bk[["b_idx"]]) != length(bk[["c_idx"]])) next
+    pw <- tryCatch(block_b_positionwise(bk), error = function(e) FALSE)
+    if (!pw) next
+    # a block this cannot read is left as it is, never the fit refused
+    cols <- tryCatch(autoscale_block_cols(frame, bk),
+                     error = keep_missing(NULL))
+    if (is.null(cols)) next
+    rms <- vapply(cols, function(cl) cl$rms %||% NA_real_, 0)
+    if (all(is.na(rms))) next
+    sdi <- tryCatch(as.integer(block_sd_idx(bk)), error = function(e) NULL)
+    D <- bk[["dim"]]
+    if (length(sdi) == D) {
+      cpos <- ifelse(is.na(rms), 1, rms)
+      th <- bk[["theta_idx"]][sdi]
+    } else if (length(sdi) == 1L) {
+      keys <- unique(vapply(cols, function(cl) cl$key %||% "", ""))
+      if (anyNA(rms) || length(keys) != 1L) next
+      cpos <- rep(exp(mean(log(rms))), D)
+      th <- c(bk[["theta_idx"]][sdi], rep(NA_integer_, D - 1L))
+    } else {
+      next
+    }
+    if (!is.null(mapped) && anyNA(mapped[th[!is.na(th)]])) next
+    # a one-column block of a one-scale structure is both kinds
+    known <- c(if (length(sdi) == D) autoscale_exact_core$col,
+               if (length(sdi) == 1L) autoscale_exact_core$block)
+    if (!(cs %in% known && cs %in% names(covstruct_core)) &&
+          !autoscale_block_exact(bk, cpos)) next
+    for (pos in seq_len(D)) {
+      if (length(sdi) == D && is.na(rms[pos])) next
+      cl <- cols[[pos]]
+      out[[length(out) + 1L]] <- list(
+        key = cl$key, zcols = cl$zcols,
+        bcols = if (i %in% ncp) integer(0) else cl$bcols,
+        theta = th[pos][!is.na(th[pos])], scale = cpos[pos],
+        spread = cl$spread, label = cl$label)
+    }
+  }
+  out
+}
+
+#' Say which random slopes the plan leaves alone.
+#'
+#' A slope is rescaled with its column only where that is an exact
+#' reparameterization (autoscale_plan_z()). Where it is not, the slope is
+#' left as it is: a structure with one standard deviation over columns
+#' that do not all qualify (`homdiag(1 + x | g)`), a `mo()` component,
+#' an `rr()` block, and a structure another package registers whose
+#' density does not scale with its columns. A slope left on a badly
+#' scaled column is what stalled fits before autoscale existed, so each
+#' one is named: under `autoscale = TRUE` every such slope, and under
+#' the default one whose column the plan rescales as a fixed effect, as
+#' through 0.82.0. The default does not name a slope for its column's
+#' size alone: on `homdiag(1 + t | g)` with t in years or a proportion
+#' (column spread 0.01 to 0.05) the note fired on 4 of 21 designs that
+#' `autoscale = FALSE` fits to the maximum, because the one sd is shared
+#' with the intercept (review of lane slopescale, F2).
+#'
+#' @noRd
+autoscale_note_unscaled <- function(frame, plan, control) {
+  if (isFALSE(control[["autoscale"]])) return(invisible(NULL))
+  asked <- isTRUE(control[["autoscale"]])
+  done <- unlist(lapply(plan, function(pl) {
+    lapply(pl$z, `[[`, "zcols")
+  }))
   hit <- character(0)
-  for (key in names(plan)) {
-    pl <- plan[[key]]
-    cn <- colnames(frame[["linpreds"]][[key]][["X"]])[pl$cols]
-    done <- unlist(lapply(pl$z, `[[`, "zcols"))
-    for (bk in frame[["re_blocks"]]) {
-      D <- bk[["dim"]]
-      for (comp in bk[["components"]] %||% list()) {
-        if (!identical(comp$lp_key, key)) next
-        for (k in seq_len(comp$dim)) {
-          if (!comp$cnms[k] %in% cn) next
-          zc <- bk[["c_idx"]][(seq_len(bk[["n_levels"]]) - 1L) * D +
-                                comp$offset + k]
-          if (all(zc %in% done)) next
-          hit <- c(hit, paste0(bk[["covstruct"]], "() on ", comp$cnms[k]))
-        }
+  for (bk in frame[["re_blocks"]]) {
+    if (bk[["covstruct"]] %in% setdiff(autoscale_skip_cs, "rr")) next
+    cols <- tryCatch(autoscale_block_cols(frame, bk),
+                     error = keep_missing(NULL))
+    for (cl in cols) {
+      if (is.null(cl) || is.na(cl$rms) || all(cl$zcols %in% done)) next
+      pl <- plan[[cl$key]]
+      cn <- if (!is.null(pl) && length(pl$cols)) {
+        colnames(frame[["linpreds"]][[cl$key]][["X"]])[pl$cols]
+      }
+      if (asked || cl$cnm %in% cn) {
+        hit <- c(hit, cl$label)
       }
     }
   }
   if (!length(hit)) return(invisible(NULL))
-  frm_message("autoscale rescaled the fixed-effect columns but not the ",
-              "random slopes of ", paste(unique(hit), collapse = "; "),
-              ": a slope is rescaled with its column only in a us() or ",
-              "diag() block, whose standard deviations scale with it. If ",
-              "the fit stops short, rescale the column before the fit",
-              call. = FALSE)
+  frm_message("autoscale did not rescale the random slopes of ",
+              paste(unique(hit), collapse = "; "),
+              ": a slope is rescaled with its column only where its ",
+              "covariance structure has a standard deviation that scales ",
+              "with that column. If the fit stops short, rescale the ",
+              "column before the fit", call. = FALSE)
   invisible(hit)
 }
 
@@ -158,8 +316,10 @@ autoscale_note_unscaled <- function(frame, plan) {
 #' @noRd
 autoscale_small_sd <- 1e-3
 
-#' The spread below which a column carrying a random slope (a `pl$z`
-#' entry) engages the default. A random slope stalls at a much larger
+#' The spread (the sd about its mean, `spread` of
+#' autoscale_block_cols()) below which a column carrying a random slope
+#' (a `pl$z` entry, with or without a fixed effect on the same column)
+#' engages the default. A random slope stalls at a much larger
 #' spread than a fixed effect: its log standard deviation starts at 0,
 #' so the slope variance starts at `sd(x)^2` in the response's units,
 #' near zero once the column is small. Measured with
@@ -195,8 +355,10 @@ autoscale_decide <- function(frame, control, REML) {
     x_small <- !(inner_beta && identical(pl$par, "beta")) &&
       any(pl$scale < autoscale_small_sd)
     # a slope's theta is outer under REML and profile too
-    z_small <- any(vapply(pl$z, function(zz) zz$scale < autoscale_slope_sd,
-                          NA))
+    # the spread about the mean, not the scale (autoscale_block_cols())
+    z_small <- any(vapply(pl$z, function(zz) {
+      isTRUE(zz$spread < autoscale_slope_sd)
+    }, NA))
     x_small || z_small
   }, NA)
   if (any(small)) plan
@@ -208,10 +370,12 @@ autoscale_decide <- function(frame, control, REML) {
 autoscale_frame <- function(frame, plan) {
   for (key in names(plan)) {
     pl <- plan[[key]]
-    X <- frame[["linpreds"]][[key]]$X
-    Xs <- sweep(X[, pl$cols, drop = FALSE], 2, pl$center)
-    X[, pl$cols] <- sweep(Xs, 2, pl$scale, "/")
-    frame[["linpreds"]][[key]]$X <- X
+    if (length(pl$cols)) {
+      X <- frame[["linpreds"]][[key]]$X
+      Xs <- sweep(X[, pl$cols, drop = FALSE], 2, pl$center)
+      X[, pl$cols] <- sweep(Xs, 2, pl$scale, "/")
+      frame[["linpreds"]][[key]]$X <- X
+    }
     for (zz in pl$z) {
       Z <- frame[["linpreds"]][[key]]$Z
       Z[, zz$zcols] <- Z[, zz$zcols, drop = FALSE] / zz$scale
@@ -225,8 +389,8 @@ autoscale_frame <- function(frame, plan) {
 #' as `(x - c_j)/s_j` gives scaled coefficient `b_j * s_j`, and the
 #' linpred intercept absorbs `sum_j b_j * c_j` (`c_j` is zero without an
 #' intercept, so absorption vanishes there). A random slope scaled with
-#' its column (`pl$z`) moves its effects by the same factor and its log
-#' standard deviation by `log s_j`. Every other `theta`, `b` and extra is
+#' its column (`pl$z`) moves its effects by its own factor and its log
+#' standard deviation by the log of it. Every other `theta`, `b` and extra is
 #' untouched: those column changes leave them identical at the optimum.
 #'
 #' @noRd
@@ -239,10 +403,11 @@ autoscale_map <- function(pars, plan, to = c("original", "scaled")) {
         pars[["theta"]][zz$theta] <- pars[["theta"]][zz$theta] +
           sg * log(zz$scale)
       }
-      if (length(pars[["b"]])) {
-        pars[["b"]][zz$zcols] <- pars[["b"]][zz$zcols] * zz$scale^sg
+      if (length(pars[["b"]]) && length(zz$bcols)) {
+        pars[["b"]][zz$bcols] <- pars[["b"]][zz$bcols] * zz$scale^sg
       }
     }
+    if (!length(pl$cols)) next
     p <- pars[[pl$par]]
     j <- pl$idx[pl$cols]
     if (to == "scaled") {
@@ -591,7 +756,7 @@ sdr_name_joint <- function(sdr, obj) {
 autoscale_units <- function(frame, plan, par_names) {
   unit <- lapply(frame[["par_template"]], function(v) rep(1, length(v)))
   for (pl in plan) {
-    unit[[pl$par]][pl$idx[pl$cols]] <- 1 / pl$scale
+    if (length(pl$cols)) unit[[pl$par]][pl$idx[pl$cols]] <- 1 / pl$scale
   }
   out <- numeric(0)
   for (cp in unique(par_names)) {

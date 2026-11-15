@@ -427,7 +427,7 @@ test_that("the prior classes are brms's, on their natural scales", {
                "No latent residual")
   # one parameter takes one prior
   expect_error(lr_fit("cnt", "ar(t, g, cov = TRUE)", poisson(), d,
-                      prior = set_prior("normal(0, 1)", class = "theta",
+                      prior = set_prior("normal(0, 1)", class = "thetacov",
                                         coef = "theta_2")),
                "class = \"ar\"")
 })

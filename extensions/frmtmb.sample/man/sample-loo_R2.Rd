@@ -39,7 +39,8 @@ state is restored afterwards, as in brms.}
 \code{\link[=posterior_epred]{posterior_epred()}} alone and for \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}} alone.}
 
 \item{...}{\code{ndraws} or \code{draw_ids}, which choose the draws for both,
-and further arguments of \code{\link[=posterior_epred]{posterior_epred()}}.}
+\code{newdata} holding a subset of the fitted rows, and further
+arguments of \code{\link[=posterior_epred]{posterior_epred()}}.}
 }
 \value{
 A summary matrix with one row per response, or with
@@ -65,8 +66,10 @@ does.
 An ordinal or categorical family is refused, as \code{\link[frmtmb:bayes_R2]{frmtmb::bayes_R2()}}
 refuses it: brms refuses the categorical families and treats ordinal
 probabilities as a continuous prediction, with a warning. \code{newdata}
-is refused for the reason \code{\link[=loo_epred]{loo_epred()}} gives: a row the model was
-not fitted on has no observation to leave out.
+that holds a subset of the fitted rows gives R-squared over those
+rows, as in brms; other \code{newdata} is refused for the reason
+\code{\link[=loo_epred]{loo_epred()}} gives: a row the model was not fitted on has no
+observation to leave out.
 }
 \examples{
 \donttest{

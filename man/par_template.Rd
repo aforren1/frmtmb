@@ -54,7 +54,7 @@ before there is a fit to ask, which is what \code{frm(start =)},
 \code{\link[=frm_simulate]{frm_simulate()}}'s \verb{newparams =}, and every box constraint all need:
 these are the names a bound resolves to, and the names
 \code{\link[=set_prior]{set_prior()}}'s \code{coef} takes for a covariance parameter that no brms
-class names (\code{class = "theta"}, \code{coef = "theta_12"}).
+class names (\code{class = "thetacov"}, \code{coef = "theta_12"}).
 }
 \details{
 On a fitted model the values are the estimates. On a formula and
@@ -125,7 +125,8 @@ fit by more than 0.01. \code{b1 * exp(b2 * x)} under \code{\link[=bernoulli]{ber
 set reads -193.4967 from the default start alone and -189.999 with the
 patterns. This makes a fit 1.2 to 2.8 times as slow with two or three such
 coefficients, 3.5 to 5.4 times with four, and up to 47 times with five. A
-\code{start}, or \code{options(frmtmb.nl_sign_probe = FALSE)}, skips it; a located
+\code{start}, \code{frmtmb_control(nl_starts = FALSE)} or
+\code{options(frmtmb.nl_sign_probe = FALSE)} skips it; a located
 prior does not. The patterns are not a proof: a \code{start} elsewhere, or a
 located prior, can still show a higher maximum. \code{\link[=frm_allfit]{frm_allfit()}} cannot, as
 its optimizers start from one point.

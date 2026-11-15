@@ -420,7 +420,7 @@ brms_group_pars <- function(fit, sdat, rtab, i) {
   if (!any(keep)) {
     stop("frmtmb VarCorr has no block on grouping factor ", info$group)
   }
-  sigma <- as.matrix(Reduce(brms_blockdiag, blocks[keep]))
+  sigma <- as.matrix(Reduce(brms_blockdiag, brms_block_qualify(blocks[keep])))
   want <- mapply(brms_frm_coef, coef = info$coefs, dpar = info$dpars,
                  resp = info$resps, nlpar = info$nlpars,
                  MoreArgs = list(cols = colnames(sigma)),
@@ -438,6 +438,29 @@ brms_group_pars <- function(fit, sdat, rtab, i) {
   z <- solve(diag(sd, nrow = length(sd)) %*% lmat, t(r))
   list(sd = sd, L = lmat, z = z, n_lev = n_lev,
        logJ = n_lev * (sum(log(sd)) + sum(log(diag(lmat)))))
+}
+
+# Uncorrelated per-category blocks ((1 | g) under multinomial()) are
+# separate VarCorr blocks, "muy2: 1 | g" and "muy3: 1 | g", whose columns
+# are each a bare "(Intercept)". Pooled, the name matched the first
+# block for every category, so every category's z was read with the
+# first one's sd, and check C missed by 8.04 log units (backlog,
+# nb2dm). A column name that the pooled blocks repeat takes its block's
+# dpar, as brms_frm_coef() reads "<dpar>:<coef>"; a unique one is left
+# as it is.
+brms_block_qualify <- function(blocks) {
+  cols <- unlist(lapply(blocks, colnames))
+  dup <- unique(cols[duplicated(cols)])
+  if (!length(dup)) return(blocks)
+  for (k in seq_along(blocks)) {
+    dp <- sub("^([^:|]+):.*$", "\\1", names(blocks)[[k]])
+    if (identical(dp, names(blocks)[[k]])) next
+    nm <- colnames(blocks[[k]])
+    hit <- nm %in% dup
+    nm[hit] <- paste0(trimws(dp), ":", nm[hit])
+    dimnames(blocks[[k]]) <- list(nm, nm)
+  }
+  blocks
 }
 
 # Reduce() over one block must not drop it to a bare matrix operation.

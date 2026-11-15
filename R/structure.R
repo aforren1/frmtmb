@@ -1120,7 +1120,11 @@ structure_gate <- function(st, flag, generic, context = NULL) {
 # belongs to the extension, so a generic would need a class invented for
 # it to dispatch on. Registration order is kept and every check runs.
 # Contributions are append-only, which is the only safe direction when
-# any one check can stop the fit.
+# any one check can stop the fit; the one exception is the same check
+# registered again (a reload runs .onLoad() twice), which replaces its
+# own entry so that it does not run twice per fit. Only a provably same
+# check is merged (registration_key()); anything in doubt is kept, since
+# a duplicate runs twice and a wrong merge drops a refusal in silence.
 
 frmtmb_frame_checks <- new.env(parent = emptyenv())
 frmtmb_frame_checks$fns <- list()
@@ -1132,6 +1136,28 @@ frmtmb_frame_checks$fns <- list()
 #' before the objective is taped. A package that adds model syntax of
 #' its own uses this to refuse a data problem that only the assembled
 #' frame can show. Register from the contributing package's `.onLoad()`.
+#'
+#' A registration replaces an earlier one, and the check then runs once,
+#' only when the two are provably the same: the same function object, or
+#' functions with the same code whose environments, from the function's
+#' own up to the first namespace, global, base or empty environment, held
+#' the same values at registration, none of them an environment or an
+#' external pointer, and none of those environments carrying a name of
+#' its own (`attr(e, "name")`, an `attach()`ed one). Every other
+#' registration is kept and runs, a duplicate being harmless where a
+#' wrong merge would drop a check: closures that one factory, or a factory
+#' inside a factory, made for different values; closures over two
+#' environments or two pointers, even with equal contents; and a closure
+#' that captured a different library path, as `pkgload::load_all()` after
+#' `library()` passes.
+#'
+#' On a reload of the registering package, a function defined at the top
+#' level of its namespace, and an anonymous closure that its `.onLoad()`
+#' passes straight to this function, merge with their earlier
+#' registration. A closure that `.onLoad()` first binds to a name
+#' (`check <- function(spec, frame) ...`), or that sits in a frame
+#' holding a formula or another value that carries an environment, is
+#' added again on each reload and then runs once more per fit.
 #'
 #' The check is called as `fn(spec, frame)` and its return value is
 #' discarded. To refuse a model, call `stop()` with a message that says
@@ -1191,7 +1217,7 @@ frmtmb_register_frame_check <- function(fn) {
     frm_stop("frmtmb_register_frame_check(fn =) must take two arguments, ",
              "the model specification and the assembled frame.", call. = FALSE)
   }
-  frmtmb_frame_checks$fns <- c(frmtmb_frame_checks$fns, fn)
+  frmtmb_frame_checks$fns <- register_once(frmtmb_frame_checks$fns, fn)
   invisible(NULL)
 }
 

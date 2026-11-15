@@ -58,13 +58,13 @@ Value checks that do not hold: `log_lik:271` (divergence, precision); `log_lik:4
 |---|---|---|---|---|
 | pass | 398 | 46 | 192 | 636 |
 | defect | 0 | 0 | 0 | 0 |
-| divergence | 49 | 11 | 24 | 84 |
-| cannot transfer: no counterpart (decision) | 46 | 0 | 53 | 99 |
+| divergence | 48 | 11 | 24 | 83 |
+| cannot transfer: no counterpart (decision) | 47 | 0 | 53 | 100 |
 | cannot transfer: absent (gap) | 1 | 0 | 0 | 1 |
 | cannot transfer: not ported (cost) | 0 | 0 | 0 | 0 |
 | cannot transfer: port artifact | 0 | 2 | 1 | 3 |
 | **total** | **494** | **59** | **270** | **823** |
 
 Bins 1 and 2 pass: 636 of 823 (77.3%); bin 1 alone 398 of 494, as dev/brmsport-ledger.tsv records it (regenerated once at consolidation).
-Over every assertion but the 99 that frmtmb has no counterpart for by decision, 636 of 724 pass (87.8%). The 1 gaps, 0 rows not ported (cost) and 3 port artifacts stay in that denominator.
-The rate's denominator excludes exactly the "cannot transfer" rows of these classes: brms-backends 3, brms-internal 65, mcmc 4, no-draws 3, stan 24.
+Over every assertion but the 100 that frmtmb has no counterpart for by decision, 636 of 723 pass (88.0%). The 1 gaps, 0 rows not ported (cost) and 3 port artifacts stay in that denominator.
+The rate's denominator excludes exactly the "cannot transfer" rows of these classes: brms-backends 3, brms-internal 65, mcmc 4, no-draws 4, stan 24.

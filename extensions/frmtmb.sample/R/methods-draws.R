@@ -215,10 +215,19 @@ draws_laplace_refuse <- function(x, what, at_na = NULL) {
   hint <- !is.null(at_na) && draws_caller_takes_re(TRUE) &&
     length(x$fit$frame[["re_blocks"]]) > 0L &&
     isFALSE(draws_probe_reads(at_na))
+  # a display that lends an observed level to a new one reads that
+  # level's effects; the gaussian rule reads only the draw's covariance
+  lend <- isTRUE(draws_call_state$snl_lends)
   frm_stop(caller, " needs the random effects, and these draws come from ",
            "frm_sample(laplace = TRUE), which integrates them out instead ",
            "of sampling them: a draw holds no group-level coefficients, ",
            "smooth coefficients or mi() values to evaluate the model at. ",
+           if (lend) {
+             paste0("A new level under sample_new_levels = \"uncertainty\" ",
+                    "or \"old_levels\" lends an observed level's effects; ",
+                    "sample_new_levels = \"gaussian\" draws it from each ",
+                    "draw's covariance and needs none. ")
+           },
            if (hint) {
              paste0("re_formula = NA leaves the group-level effects out and ",
                     "computes the population-level quantity from these ",
@@ -1131,6 +1140,12 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
       }
     }
     if (cat_out) out[k, , ] <- p else out[k, ] <- p
+  }
+  # brms's ordinal epred names its draw margin "1".."S" (the rows of its
+  # density matrices); its categorical one leaves it unnamed
+  if (cat_out && identical(
+    object$fit$spec$responses[[rn]]$family[["type"]], "ordinal")) {
+    dimnames(out)[[1L]] <- as.character(seq_len(dim(out)[1L]))
   }
   out
 }
@@ -3417,10 +3432,10 @@ draws_subset_blocker <- function(fit) {
 draws_fitted_rows_note <- paste0(
   " Newdata that holds exactly the rows the model was fitted on (x$data) ",
   "is accepted, and gives the answer without newdata. log_lik(), loo(), ",
-  "waic(), psis(), loo_model_weights() and the loo_* types of pp_check() ",
-  "also take rows that are fitted rows with their fitted values, such as ",
-  "x$data[1:10, ] or a tibble of them, and give those rows' columns; the ",
-  "loo_*() functions do not.")
+  "waic(), psis(), loo_model_weights(), the loo_*() functions and the ",
+  "loo_* types of pp_check() also take rows that are fitted rows with ",
+  "their fitted values, such as x$data[1:10, ] or a tibble of them, and ",
+  "give those rows' answers.")
 
 #' The sentence that says why `newdata` is not a subset of the fitted
 #' rows, from `draws_newdata_rows()`; `NULL` without a reason.

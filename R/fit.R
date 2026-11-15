@@ -117,8 +117,9 @@
 #'   A nonlinear body can have more than one maximum, and nothing in a fit
 #'   marks a second one. From the default start, `frm()` also fits from each
 #'   sign pattern of the body's coefficients and returns the highest point
-#'   (see "The default starting values" in [par_template()]). A `start`, or
-#'   `options(frmtmb.nl_sign_probe = FALSE)`, skips that; a located prior
+#'   (see "The default starting values" in [par_template()]). A `start`,
+#'   `frmtmb_control(nl_starts = FALSE)` or
+#'   `options(frmtmb.nl_sign_probe = FALSE)` skips that; a located prior
 #'   places the start and does not skip it. The point a pattern reaches can
 #'   itself be a second maximum: the fit then converges with no warning and
 #'   is still below the highest one, as on 1 of 89 such fits measured (1.84
@@ -166,7 +167,7 @@
 #'   using them fails as an unused argument; every outer parameter they
 #'   could reach has a `set_prior()` class: a standard deviation class
 #'   `"sd"`, on the sd scale, and an internal covariance parameter that
-#'   no brms class names class `"theta"` (`coef = "theta_12"`). Two
+#'   no brms class names class `"thetacov"` (`coef = "theta_12"`). Two
 #'   kinds take no box: a correlation, random-effect, `rescor` or
 #'   `unstr()`, which its class reaches only as a whole matrix (as in
 #'   brms, it takes no `lb`/`ub`), and the internal parameters of a
@@ -256,7 +257,11 @@
 #'   changes the log-likelihood by less than the rule can resolve
 #'   (1e-5). A fit still gaining after 10 rounds, such as one whose
 #'   likelihood rises without bound, warns (class
-#'   `frmtmb_quad_unsettled`).
+#'   `frmtmb_quad_unsettled`). As under the Laplace approximation, a
+#'   standard deviation stopped near zero short of a larger maximum is
+#'   restarted from a larger value, and the standard-error check gives
+#'   its boundary and limit verdicts; on one block per row it reads a
+#'   rule taped at each point it probes.
 #' @param importance Number of importance draws per group, or `0`
 #'   (default) for none. A positive count replaces the Laplace
 #'   approximation with an importance-sampling correction of it
@@ -1113,6 +1118,8 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
     # ML fit given only such rows stays an ML fit
     prior <- drop_unbounding_slots(prior, spec, frame)
     check_weights_unbounded(spec, frame, prior, exact = isTRUE(quadrature))
+    check_ald_laplace(spec, frame, prior,
+                      exact = isTRUE(quadrature) || importance > 0)
     latres_refuse_laplace(spec, frame)
   }
 
@@ -1134,11 +1141,22 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   }, NA))
   # iter.max = 0 asks for the objective at the start: a restart under the same
   # control would return a moved start as if it had climbed there
-  if (!has_body || identical(dry_run, "objective") ||
-        isTRUE(control[["optCtrl"]][["iter.max"]] == 0)) {
-    return(run(start, TRUE))
+  fit <- if (!has_body || identical(dry_run, "objective") ||
+               isTRUE(control[["optCtrl"]][["iter.max"]] == 0)) {
+    run(start, TRUE)
+  } else {
+    # the fit returned can be a refit (a sign probe's, a saddle
+    # restart's), which runs unannounced: its gp() warnings are said here
+    gp_end_warn(nl_fit_probed(run, frame, start, prior))
   }
-  nl_fit_probed(run, frame, start, prior)
+  # update() refits with these values: the stored call names them as the
+  # user wrote them, and a name local to a function that made the fit is
+  # gone where update() is called, or names another object there
+  if (inherits(fit, "frmtmb_fit")) {
+    fit[["refit_args"]] <- list(na.action = na.action, se = se,
+                                verbose = verbose)
+  }
+  fit
 }
 
 #' The refusal of `frm(threshold = )`, which names the family argument
@@ -1362,9 +1380,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   }
   ascale <- if (!objective_only) autoscale_decide(frame, control, REML)
   # said once per fit, by the call that runs the pre-fit, and not by the
-  # refits that are handed its template
-  if (!is.null(ascale) && is.null(template)) {
-    autoscale_note_unscaled(frame, ascale)
+  # refits that are handed its template; also where nothing is planned,
+  # because a slope autoscale cannot rescale is then the one left
+  if (!objective_only && is.null(template)) {
+    autoscale_note_unscaled(frame, ascale, control)
   }
   if (vb) {
     t_fit <- vb_now()
@@ -1419,12 +1438,15 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # also read by make_start(): a prior's location places a nonlinear
   # parameter's starting value
   prior_entries <- NULL
+  open_ends <- NULL
   if (!is.null(prior)) {
     # MAP / regularized ML: the optimized objective includes the prior
     # terms; logLik() takes them off again (fit_log_prior())
     ri <- resolve_prior_input(list(frame = frame, spec = spec), prior)
     prior_entries <- ri$entries
     check_map_dirichlet(ri$entries)
+    open_ends <- ri[c("open_lower", "open_upper", "inf_lower", "inf_upper",
+                      "end_labels")]
     if (length(ri$entries)) {
       nll0 <- nll
       nlp <- neg_log_prior_fn(ri$entries)
@@ -1679,6 +1701,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   bounds$upper <- latres_disp_upper(
     frame, spec, bounds$upper,
     outer_par_map(list(frame = frame, REML = REML, control = control)))
+  bounds <- open_end_flags(bounds, open_ends,
+                           list(frame = frame, REML = REML,
+                                control = control))
   # a badly scaled coefficient has a badly scaled gradient too: judge
   # (and steer) the optimizer in per-parameter natural units
   par_units <- if (!is.null(ascale)) {
@@ -1808,7 +1833,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   if (is.null(imp)) {
     # under quadrature quad_fit() already escaped on the Laplace objective
     # (its rule is anchored there); the escape on the rule runs again, and
-    # its record must not erase the first one's
+    # its record must not erase the first one's. The rule's optimum can
+    # walk back onto the point after the Laplace escape left it: skipping
+    # the rule's escape then left skew normals 1.45 to 6.67 below 0.82.0
+    # (dev/quadseam2-findings.md, item 5408, fix round)
     esc_lap <- if (!is.null(integrate)) opt$stationary_escape
     opt <- escape_stationary(obj, opt, frame, ctl_opt, bounds, par_units,
                              verbose = vb, tally = tally)
@@ -1883,6 +1911,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     inner <- solved_par_list(lap_obj, opt$par)
     for (cp in random) est[[cp]][] <- inner[[cp]]
   }
+  check_map_unbounded(opt, bounds)
   opt <- nonfinite_not_converged(opt, bounds$lower, bounds$upper)
   fit <- structure(
     list(spec = spec, frame = frame, obj = obj, opt = opt, sdr = NULL,
@@ -1911,6 +1940,34 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # the nested route's nodes and how its re-anchoring ended; post-fit
   # methods that cannot read the frozen tape refuse on it
   if (!is.null(qnest)) fit$quad_nested <- qf$info
+  if (is.null(imp) && !is.null(integrate) && is.null(qnest)) {
+    esc <- quad_sd_up_escape(fit, ctl_opt, bounds, qf$restart)
+    if (!is.null(esc)) {
+      if (vb) {
+        vb_say("restarted from a larger sd: gained ",
+               format(esc$opt$sd_escape[["gain"]], digits = 3),
+               " in log-likelihood")
+      }
+      if (!is.null(esc$info$msg)) quad_unsettled_warn(esc$info$msg)
+      # the escapes before the restart still describe this fit
+      for (nm in c("stationary_escape", "stationary_escape_laplace")) {
+        if (is.null(esc$opt[[nm]])) esc$opt[[nm]] <- fit$opt[[nm]]
+      }
+      obj <- esc$obj
+      # the restart's own stop at an infinite-density end, which the
+      # check of the first opt above did not see
+      check_map_unbounded(esc$opt, bounds)
+      opt <- nonfinite_not_converged(esc$opt, bounds$lower, bounds$upper)
+      est <- est_at(opt)
+      inner <- solved_par_list(lap_obj, opt$par)
+      for (cp in random) est[[cp]][] <- inner[[cp]]
+      fit$obj <- obj
+      fit$opt <- opt
+      fit$estimates <- est
+      # the probe's answers belong to the stop the restart left
+      fit$cache <- new.env(parent = emptyenv())
+    }
+  }
   if (is.null(imp) && is.null(integrate)) {
     esc <- sd_up_escape(fit, ctl_opt, bounds, par_units, tally)
     if (!is.null(esc)) {
@@ -1979,10 +2036,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       # explains every lost parameter but a bound-held one (se_report())
       fit$cache$se_explained <- "nl_flat"
     }
-    gp_msg <- gp_nugget_message(fit)
-    if (!is.null(gp_msg)) {
-      frm_warning(gp_msg, call. = FALSE, class = "frmtmb_gp_nugget")
-    }
+    gp_end_warn(fit)
   }
   if (se) {
     if (vb) t0 <- vb_now()
@@ -2025,7 +2079,32 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                                              "non-finite trial"))
                     }))
   }
+  attr(fit, "marginaleffects_modeldata") <- me_modeldata(frame)
   fit
+}
+
+#' The data marginaleffects reads for a fit whose data hold a matrix
+#' column, such as a `multinomial()` response, with that column split
+#' into one column per matrix column (`Y.a`, `Y.b`), as
+#' [data.frame()] splits it. marginaleffects 1.0.0 puts the fit's data
+#' in a data.table, which cannot hold a matrix column, so `predictions()`
+#' stopped with "Column 3 ['Y'] is length 600 but column 1 is length
+#' 200". It reads this attribute before it asks insight for the data
+#' (`set_modeldata()` sets the same one); insight's `get_data()`, which
+#' `get_response()` reads, keeps the matrix. `NULL` for any other fit,
+#' which carries nothing.
+#'
+#' @noRd
+me_modeldata <- function(frame) {
+  mf <- frame[["data_frame"]]
+  if (is.null(mf)) return(NULL)
+  wide <- vapply(mf, function(v) length(dim(v)) == 2L && ncol(v) > 1L, NA)
+  if (!any(wide)) return(NULL)
+  d <- fit_refit_data(list(frame = frame)) %||% mf
+  out <- do.call(data.frame, c(unclass(d), check.names = FALSE,
+                               stringsAsFactors = FALSE))
+  rownames(out) <- rownames(d)
+  out
 }
 
 #' The unfitted counterpart of a `frmtmb_fit`: the same spec, frame and
@@ -2297,6 +2376,18 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
   out$settle <- function(obj, opt) {
     quad_settle(obj, opt, tape_at, control, bounds, par_units, vb)
   }
+  # a restart from another outer vector (quad_sd_up_escape()): a rule
+  # taped there, optimized from there and settled; the caller decides
+  # whether it is kept, so an unsettled rule's warning is left to it
+  out$restart <- function(par) {
+    o <- tape_at(par)
+    if (is.null(o)) return(NULL)
+    op <- tryCatch(optimize_obj(o, control, bounds, par_units,
+                                start_par = par),
+                   error = function(e) NULL)
+    if (is.null(op) || !is.finite(op$objective)) return(NULL)
+    quad_settle(o, op, tape_at, control, bounds, par_units, vb, warn = FALSE)
+  }
   out
 }
 
@@ -2344,7 +2435,7 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
 #'
 #' @noRd
 quad_settle <- function(obj, opt, tape_at, control, bounds, par_units,
-                        vb = 0L, rounds = quad_settle_rounds) {
+                        vb = 0L, rounds = quad_settle_rounds, warn = TRUE) {
   units <- par_units %||% 1
   tol <- control$grad_tol %||% 1e-3
   grad_at <- function(o, at) {
@@ -2455,32 +2546,40 @@ quad_settle <- function(obj, opt, tape_at, control, bounds, par_units,
   # measurable, as an escape's record is: the rounds a fit needed
   opt$quad_settle <- c(rounds = k, gain = f_first - f_at, grad = grad,
                        last = last)
-  if (!settled) {
-    frm_warning("quadrature = TRUE did not settle the Gauss-Kronrod rule: ",
-                "after ", k, " re-anchoring(s) the rule taped at the ",
-                "estimate still has a gradient of ", format(grad, digits = 3),
-                " there, ",
-                if (why == "rounds") {
-                  paste0("and the log-likelihood was still rising (by ",
-                         format(f_first - f_at, digits = 3), " over them, ",
-                         format(step, digits = 3), " in the last step)")
-                } else if (why == "rejected") {
-                  paste0("and three steps in a row lowered the ",
-                         "log-likelihood of the rule taped at their end")
-                } else if (why == "stuck") {
-                  paste0("and the optimizer stopped there without ",
-                         "converging (", op$message %||% "no message",
-                         ") and without a step the rule could resolve")
-                } else "and the last round's optimizer failed",
-                ". The reported estimate is not the maximum of the ",
-                "integral. A log-likelihood that keeps rising as a ",
-                "standard deviation falls has no maximum; otherwise ",
-                "compare with quadrature = FALSE, the Laplace approximation",
-                call. = FALSE, class = "frmtmb_quad_unsettled")
+  msg <- if (!settled) {
+    paste0("quadrature = TRUE did not settle the Gauss-Kronrod rule: ",
+           "after ", k, " re-anchoring(s) the rule taped at the ",
+           "estimate still has a gradient of ", format(grad, digits = 3),
+           " there, ",
+           if (why == "rounds") {
+             paste0("and the log-likelihood was still rising (by ",
+                    format(f_first - f_at, digits = 3), " over them, ",
+                    format(step, digits = 3), " in the last step)")
+           } else if (why == "rejected") {
+             paste0("and three steps in a row lowered the ",
+                    "log-likelihood of the rule taped at their end")
+           } else if (why == "stuck") {
+             paste0("and the optimizer stopped there without ",
+                    "converging (", op$message %||% "no message",
+                    ") and without a step the rule could resolve")
+           } else "and the last round's optimizer failed",
+           ". The reported estimate is not the maximum of the ",
+           "integral. A log-likelihood that keeps rising as a ",
+           "standard deviation falls has no maximum; otherwise ",
+           "compare with quadrature = FALSE, the Laplace approximation")
   }
+  # a trial restart (quad_sd_up_escape()) warns only if it is kept
+  if (!is.null(msg) && warn) quad_unsettled_warn(msg)
   list(obj = fz, opt = opt,
        info = list(rounds = k, settled = settled, grad = grad,
-                   gain = f_first - f_at))
+                   gain = f_first - f_at, msg = msg))
+}
+
+#' The warning of a Gauss-Kronrod rule quad_settle() could not settle.
+#'
+#' @noRd
+quad_unsettled_warn <- function(msg) {
+  frm_warning(msg, call. = FALSE, class = "frmtmb_quad_unsettled")
 }
 
 #' Re-anchorings quad_settle() makes before it gives up while still
@@ -2544,17 +2643,23 @@ quad_reanchored_fn <- function(fit) {
   # the boundary checks ask the same points more than once (the
   # estimate, its move toward zero), and each answer costs a tape
   seen <- new.env(parent = emptyenv())
-  fn <- function(q) {
-    key <- paste(sprintf("%a", q), collapse = ",")
-    if (!is.null(seen[[key]])) return(seen[[key]])
+  obj_at <- function(q) {
     tpl <- imp_par_list(est, q, map)
     o <- RTMB::MakeADFun(nll, tpl, random = "b", map = map,
                          integrate = quad_gk_integrate(), silent = TRUE,
                          inner.control = inner_ctl)
-    v <- if (length(o$env$random)) NA_real_ else o$fn(o$par)
+    if (length(o$env$random)) NULL else o
+  }
+  fn <- function(q) {
+    key <- paste(sprintf("%a", q), collapse = ",")
+    if (!is.null(seen[[key]])) return(seen[[key]])
+    o <- obj_at(q)
+    v <- if (is.null(o)) NA_real_ else o$fn(o$par)
     seen[[key]] <- v
     v
   }
+  # the tape itself, for a curvature read near `q` (se_limit_curv())
+  attr(fn, "obj_at") <- obj_at
   if (cached) fit$cache$quad_fn <- list(fn = fn, est = est)
   fn
 }
@@ -2729,10 +2834,20 @@ sdr_of <- function(fit) {
 #'   nothing qualifies. Compatible with `profile = TRUE`. Under
 #'   `prior` or bounds, the first stage applies them to the scaled
 #'   coefficients; the second stage is the fit that is reported.
-#'   A random slope on a rescaled column (`(1 + x | g)`) is rescaled
-#'   with it in `us()`, `diag()` and the Student-t blocks, its log
-#'   standard deviation and its effects mapped back exactly; other
-#'   covariance structures keep their slope unscaled. The pre-fit's own
+#'   A random-effect column with more than two distinct values is
+#'   divided by its root mean square, whether or not a fixed effect
+#'   reads the same column (`(1 + x | g)` and `y ~ 1 + (0 + x | g)`
+#'   alike). Its log standard deviation and its effects are mapped back
+#'   exactly. This is done where it is an exact reparameterization: in a
+#'   structure with a standard deviation per column (`us()`, `||`,
+#'   `cs()`, `toep()`, `hetar1()`, `gr()` with `cov`, `prec`, `cor =
+#'   FALSE` or `dist = "student"`), and in a structure with one standard
+#'   deviation (`ar1()`, `homdiag()`, `homcs()` and the rest) when each
+#'   of its columns qualifies. A structure that another package
+#'   registers is rescaled when its density passes the same test. A
+#'   slope that is not rescaled keeps its column. A message names it
+#'   under `TRUE`, or when a fixed effect on the same column is
+#'   rescaled. The pre-fit's own
 #'   warnings are not shown. Under the default, a pre-fit that errors
 #'   or does not converge in its coefficients never makes the reported
 #'   fit less diagnostic than `autoscale = FALSE`: the default then
@@ -2744,11 +2859,14 @@ sdr_of <- function(fit) {
 #'   standard deviation below 1e-3 and its coefficient is optimized
 #'   directly (not a `mu` coefficient under `REML = TRUE` or
 #'   `profile = TRUE`, which the inner solver integrates), or when a
-#'   column carrying such a random slope has one below 0.05. Without
+#'   random-effect column that the plan rescales has a standard
+#'   deviation of its nonzero values below 0.05. Without
 #'   it such a fit can stop short and report convergence: a poisson
 #'   `y ~ 0 + x` with `x` on a 1e-6 scale lost 62.6 log-likelihood
 #'   units against [stats::glm()], and a random slope on a column
-#'   spread 0.01 lost up to 14.4. Every other fit is the fit
+#'   spread 0.01 lost up to 14.4, and a poisson random slope with no
+#'   fixed effect on a column spread 1e-4 up to 111. Every other fit is
+#'   the fit
 #'   `autoscale = FALSE` gives, bit for bit. A column that is far from
 #'   zero against its spread, such as `x + 1e6`, does not need this
 #'   option: whatever its value, the optimizer steps in coordinates in
@@ -2924,8 +3042,10 @@ sdr_of <- function(fit) {
 #'     replaces it, and a fit with no step function that did not converge
 #'     is kept as it is.
 #'   * When a start reached a step function above the point returned,
-#'     [frm()] warns with class `frmtmb_mixture_step_start`. `logLik()`
-#'     and the information criteria are those of the point returned.
+#'     [frm()] says so in a message of class
+#'     `frmtmb_mixture_step_start`, not a warning: the point returned is
+#'     the better answer. `logLik()` and the information criteria are
+#'     those of the point returned.
 #'
 #'   A point the degenerate check passes is not always a clean maximum:
 #'   the check does not see a direction along which the likelihood is
@@ -2973,6 +3093,18 @@ sdr_of <- function(fit) {
 #'   seed, so a fit neither reads nor changes the session's random state,
 #'   and the same call gives the same fit under any [RNGkind()]. `0`
 #'   turns the starts off. A model of other families is not affected.
+#' @param nl_starts Whether a fit with a nonlinear body runs the sign
+#'   probe and the pole restart. The sign probe, from the default start
+#'   only, fits from each sign pattern of the body's coefficients (message
+#'   class `frmtmb_nl_multistart`). The pole restart fits from beyond a
+#'   pole of the body that holds the fit (message class
+#'   `frmtmb_nl_pole_start`; from a `start` of your own, a warning of class
+#'   `frmtmb_nl_pole` that the point is not the maximum). `TRUE` (default)
+#'   runs both. `FALSE` turns off the sign probe and the pole restart. A
+#'   fit can still restart from a saddle point (message class
+#'   `frmtmb_nl_restart`); this switch does not change that, nor the
+#'   warning that a fit is on a ridge to a limit of its body
+#'   (`frmtmb_nl_limit`).
 #' @param quad_max_gb Limit, in GB, on the memory that `frm(quadrature =
 #'   TRUE)` over two nested blocks may add. The fit predicts that memory
 #'   before the Laplace warm start, from three small probe tapes and a
@@ -3054,13 +3186,15 @@ frmtmb_control <- function(optimizer = "nlminb",
                            importance_seed = 1L, importance_rounds = 5L,
                            importance_ess = 0.25, mo_search = TRUE,
                            verbose = NULL, quad_nodes = c(11L, 15L),
-                           quad_max_gb = 4, starts = NULL) {
+                           quad_max_gb = 4, starts = NULL,
+                           nl_starts = TRUE) {
   # The three flags below reach isTRUE() later, which reads a
   # string or a length-2 vector as FALSE; checking here refuses the
   # mistake instead of quietly turning the option off.
   check_flag(profile, "profile")
   check_flag(sparse_x, "sparse_x")
   check_flag(mo_search, "mo_search")
+  check_flag(nl_starts, "nl_starts")
   # NULL is the default rule (autoscale_decide()), not a third flag value
   if (!is.null(autoscale)) check_flag(autoscale, "autoscale")
   check_count(restarts, "restarts", min = 0L)
@@ -3117,7 +3251,8 @@ frmtmb_control <- function(optimizer = "nlminb",
        importance_rounds = as.integer(importance_rounds),
        importance_ess = importance_ess, mo_search = isTRUE(mo_search),
        verbose = verbose, quad_nodes = quad_nodes,
-       quad_max_gb = quad_max_gb, starts = starts)
+       quad_max_gb = quad_max_gb, starts = starts,
+       nl_starts = isTRUE(nl_starts))
 }
 
 #' lme4's lmerControl runs a battery of structural checks before the fit
@@ -3152,6 +3287,8 @@ check_re_structure <- function(spec, frame, control) {
     # smooth / gp / hsgp blocks carry a synthetic n_levels of 1 and no
     # grouping levels at all; only real grouping factors are checked
     if (is.null(bk[["levels"]])) next
+    lp <- frame[["linpreds"]][[bk[["components"]][[1L]]$lp_key]]
+    term <- re_check_term(spec, bk, lp)
     # A structured block over several terms per level (ar1, us, the
     # spatial covstructs) is a single realization of a field, and one
     # group level is the normal way to write it; only a SCALAR term
@@ -3159,8 +3296,8 @@ check_re_structure <- function(spec, frame, control) {
     if (bk[["n_levels"]] == 1L && bk[["dim"]] == 1L) {
       re_check_act(
         control$check_nlev_1,
-        paste0("Grouping factor '", bk[["group_name"]], "' in `",
-               bk[["term_label"]], "` has a single level, so its variance is ",
+        paste0("Grouping factor '", bk[["group_name"]], "' in ",
+               term, " has a single level, so its variance is ",
                "not identified and collapses to zero. Drop the term (it ",
                "is absorbed by the intercept), or set ",
                "frmtmb_control(check_nlev_1 = \"ignore\")"))
@@ -3170,7 +3307,6 @@ check_re_structure <- function(spec, frame, control) {
       }
       next
     }
-    lp <- frame[["linpreds"]][[bk[["components"]][[1L]]$lp_key]]
     resp <- spec$responses[[lp[["resp"]]]]
     fam <- resp$family
     if (is.null(fam)) next
@@ -3199,7 +3335,7 @@ check_re_structure <- function(spec, frame, control) {
         bk[["dpar"]] %in% (fam[["primary_dpars"]] %||% "mu")) {
       re_check_act(
         control$check_olre,
-        paste0("`", bk[["term_label"]], "` gives every observation its own ",
+        paste0(term, " gives every observation its own ",
                "random effect, and for a ", fam[["family"]], " response that ",
                "variance is confounded with the residual sd: only their ",
                "sum is identified, so the split between them is ",
@@ -3215,6 +3351,24 @@ check_re_structure <- function(spec, frame, control) {
     }
   }
   invisible(if (length(found)) found)
+}
+
+#' A block's term as check_re_structure() names it: in backticks, as the
+#' formula writes it. A multivariate model's frame labels the block with
+#' its response ("y 1 | obs"), which no formula holds, so the prefix
+#' goes and the response is named after the term instead.
+#'
+#' @noRd
+re_check_term <- function(spec, bk, lp) {
+  lab <- bk[["term_label"]] %||% ""
+  r <- lp[["resp"]]
+  if (length(spec$responses) < 2L || is.null(r)) {
+    return(paste0("`", lab, "`"))
+  }
+  rn <- spec$responses[[r]]$resp_name %||% r
+  pre <- paste0(rn, " ")
+  if (startsWith(lab, pre)) lab <- substring(lab, nchar(pre) + 1L)
+  paste0("`", lab, "` of response ", rn)
 }
 
 #' The objective as nlminb sees it: a NaN at a TRIAL point becomes +Inf.
@@ -3615,10 +3769,19 @@ optimize_obj <- function(obj, control,
     res$par <- cs$to_p(res$par)
     res
   }
+  held <- open_end_hold(bounds, length(start_par), optimizer)
+  run_box <- run
+  run <- function(par) withCallingHandlers(run_box(par),
+                                           warning = held$catch)
   if (verbose) t0 <- vb_now()
-  opt <- run(start_par)
+  # a box run that fails beside a box end where the prior's density is 0
+  # or infinite goes to open_end_rescue() before the error is raised
+  opt <- tryCatch(run(start_par),
+                  error = function(e) open_end_failed(start_par, e, bounds,
+                                                      optimizer))
   if (verbose) vb_stage("optimize", t0, vb_opt_detail(opt))
   for (i in seq_len(control$restarts)) {
+    if (!is.null(opt$rescue_error)) break
     g <- max(abs(cs$grad(obj$gr(opt$par)) * (cs$units %||% 1)))
     if (is.finite(g) && g < control$grad_tol) break
     if (verbose) t0 <- vb_now()
@@ -3647,9 +3810,19 @@ optimize_obj <- function(obj, control,
   }
   if (!is.null(cs$basis) && !isTRUE(opt$convergence == 0) &&
         grepl("false convergence", opt$message %||% "", fixed = TRUE)) {
-    opt <- natural_finish(obj, opt, optimizer, fn_c, gr_c, bounds, control,
-                          par_units, tally, verbose)
+    opt <- withCallingHandlers(
+      natural_finish(obj, opt, optimizer, fn_c, gr_c, bounds, control,
+                     par_units, tally, verbose),
+      warning = held$catch)
   }
+  # a stop on a box end where the prior's density is 0 or infinite is
+  # refitted where that end is out of reach (open_end_rescue())
+  opt <- withCallingHandlers(
+    open_end_rescue(obj, opt, optimizer, fn_c, gr_c, cs, bounds, control,
+                    tally, verbose),
+    error = function(e) held$release(NULL))
+  held$release(opt)
+  opt$open_refit <- NULL
   # only the nlminb path maps trials; optim and a custom optimizer have
   # no count to report, and NULL says so where 0 would claim a measurement
   if (identical(optimizer, "nlminb")) opt$nonfinite_trials <- tally$n
@@ -4230,6 +4403,7 @@ predictor_away <- function(X, value) {
 #' @noRd
 stationary_escapes <- function(obj, opt, frame) {
   out <- list()
+  n_on <- 0L
   par_names <- names(obj$par)
   for (lp in frame[["linpreds"]]) {
     if (!is.null(lp[["constant"]]) || !is.null(lp[["equate"]])) next
@@ -4278,6 +4452,7 @@ stationary_escapes <- function(obj, opt, frame) {
       if (is.null(e) || !all(is.finite(e))) return(FALSE)
       max(abs(e - at)) >= 0.5 * abs(v - at)
     }
+    n0 <- length(out)
     for (v in from) {
       b <- predictor_at(X, v)
       # a design that cannot represent a constant would "escape" to the
@@ -4289,7 +4464,11 @@ stationary_escapes <- function(obj, opt, frame) {
       p[idx] <- b
       out[[length(out) + 1L]] <- p
     }
+    if (length(out) > n0) n_on <- n_on + 1L
   }
+  # how many predictors sit on their point, which bounds the passes of
+  # escape_stationary()
+  attr(out, "n_on") <- n_on
   out
 }
 
@@ -4315,15 +4494,33 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
   n_before <- if (is.null(tally)) 0L else tally$n
   saved <- obj_state_save(obj)
   best <- opt
-  for (p in starts) {
-    p <- pmin(pmax(p, bounds$lower), bounds$upper)
-    o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
-                               start_par = p, tally = tally),
-                  error = function(e) NULL)
-    if (!is.null(o) && is.finite(o$objective) &&
-          o$objective < best$objective) {
-      best <- o
+  # Each start moves one predictor off its point with the others held,
+  # so with two on their points one pass moves one of them: both states
+  # of hmm(2, skew_normal()) started at alpha = 0 kept one there, 20 to 25
+  # below the default start's fit (dev/quadseam2-findings.md, item 5222).
+  # The escape is asked again from the kept optimum while it gains, at
+  # most once per predictor that sat on its point.
+  n_starts <- 0L
+  passes <- 0L
+  max_passes <- max(1L, attr(starts, "n_on") %||% 1L)
+  repeat {
+    passes <- passes + 1L
+    n_starts <- n_starts + length(starts)
+    gained <- FALSE
+    for (p in starts) {
+      p <- pmin(pmax(p, bounds$lower), bounds$upper)
+      o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
+                                 start_par = p, tally = tally),
+                    error = function(e) NULL)
+      if (!is.null(o) && is.finite(o$objective) &&
+            o$objective < best$objective) {
+        best <- o
+        gained <- TRUE
+      }
     }
+    if (!gained || passes >= max_passes) break
+    starts <- stationary_escapes(obj, best, frame)
+    if (!length(starts)) break
   }
   # the random effects' modes are read from the objective's last point:
   # skew_normal() with (1 | g) reported modes up to 0.143 away from its
@@ -4334,7 +4531,7 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
   # for two restarts and kept its own optimum is the measurement that
   # says what the fallback costs
   gain <- opt$objective - best$objective
-  best$stationary_escape <- c(starts = length(starts), gain = gain)
+  best$stationary_escape <- c(starts = n_starts, gain = gain)
   # the count a fit reports is the total over every run of its
   # objective, so the escape ADDS its own trials to whatever the run
   # being kept already carried rather than overwriting the total
@@ -4345,8 +4542,8 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
   }
   if (verbose) {
     vb_stage("stationary escape", t0,
-             paste0(length(starts), " restart",
-                    if (length(starts) != 1L) "s", ", gain ",
+             paste0(n_starts, " restart",
+                    if (n_starts != 1L) "s", ", gain ",
                     format(gain, digits = 3)))
   }
   best
@@ -4390,7 +4587,67 @@ stationary_escape_keep <- function(opt, esc_lap) {
 sd_up_escape <- function(fit, control, bounds, par_units = NULL,
                          tally = NULL) {
   obj <- fit$obj
-  if (!length(obj$env$random) || isTRUE(fit$quadrature) ||
+  if (isTRUE(fit$quadrature)) return(NULL)
+  q <- sd_up_start(fit, control, bounds)
+  if (is.null(q)) return(NULL)
+  saved <- obj_state_save(obj)
+  o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
+                             start_par = q, tally = tally),
+                error = keep_missing(NULL))
+  if (is.null(o) || !is.finite(o$objective) ||
+        o$objective >= fit$opt$objective) {
+    obj_settle(obj, fit$opt, fit$opt, saved)
+    return(NULL)
+  }
+  obj_settle(obj, fit$opt, o, saved)
+  o$sd_escape <- c(gain = fit$opt$objective - o$objective)
+  o
+}
+
+#' sd_up_escape() on the one-block quadrature route. The probe reads
+#' rules taped at each larger sd (se_probe_fn()), and the restart is a
+#' rule taped at the start, optimized and settled (`restart`, from
+#' quad_fit()), since the fit's own rule is frozen at the stop. A skew
+#' normal with `(1 | g)` started at alpha's stall stopped with its sd at
+#' exp(-20.4), 5.5e-2 below the maximum at exp(-2.55), where the Laplace
+#' fit restarts and reaches it (dev/quadseam2-findings.md, items 4836 and
+#' 4861).
+#'
+#' Returns `list(obj, opt, info)` of the kept restart, or NULL.
+#'
+#' @noRd
+quad_sd_up_escape <- function(fit, control, bounds, restart) {
+  if (!isTRUE(fit$quadrature) || !is.null(fit[["quad_nested"]]) ||
+        !is.function(restart)) {
+    return(NULL)
+  }
+  q <- sd_up_start(fit, control, bounds)
+  if (is.null(q)) return(NULL)
+  saved <- obj_state_save(fit$obj)
+  on.exit(obj_state_restore(fit$obj, saved), add = TRUE)
+  rs <- tryCatch(restart(q), error = keep_missing(NULL))
+  if (is.null(rs) || !is.finite(rs$opt$objective) ||
+        rs$opt$objective >= fit$opt$objective) {
+    return(NULL)
+  }
+  rs$opt$sd_escape <- c(gain = fit$opt$objective - rs$opt$objective)
+  rs
+}
+
+#' Where sd_up_escape() restarts from: the stop with each log standard
+#' deviation near zero moved to the larger value that gains most, or
+#' NULL when none gains more than `grad_tol` or the fit is one the escape
+#' does not ask about.
+#'
+#' @noRd
+sd_up_start <- function(fit, control, bounds) {
+  obj <- fit$obj
+  quad <- isTRUE(fit$quadrature)
+  # a one-block quadrature tape has integrated its random effects away;
+  # the nested route's rule cannot be probed away from its anchor
+  if ((!quad && !length(obj$env$random)) ||
+        (quad && (!se_edge_probed(fit) ||
+                    !length(fit$frame[["re_blocks"]]))) ||
         !is.null(fit$importance) || is.function(control$optimizer) ||
         !identical(control$optimizer %||% "nlminb", "nlminb") ||
         optctrl_stops_earlier(control$optCtrl) ||
@@ -4421,19 +4678,7 @@ sd_up_escape <- function(fit, control, bounds, par_units = NULL,
     q[j] <- attr(gain, "at")
   }
   if (identical(q, p)) return(NULL)
-  q <- pmin(pmax(q, bounds$lower), bounds$upper)
-  saved <- obj_state_save(obj)
-  o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
-                             start_par = q, tally = tally),
-                error = keep_missing(NULL))
-  if (is.null(o) || !is.finite(o$objective) ||
-        o$objective >= fit$opt$objective) {
-    obj_settle(obj, fit$opt, fit$opt, saved)
-    return(NULL)
-  }
-  obj_settle(obj, fit$opt, o, saved)
-  o$sd_escape <- c(gain = fit$opt$objective - o$objective)
-  o
+  pmin(pmax(q, bounds$lower), bounds$upper)
 }
 
 #' Does `optCtrl` ask nlminb to stop earlier than frmtmb_control()'s
@@ -5545,6 +5790,7 @@ make_start <- function(frame, start, prior_entries = NULL,
   # [[ ]] throughout: $beta would partial-match nothing here today, but
   # the template's component names are a moving set
   for (p in placed) tpl[["beta"]][p$idx] <- p$value
+  tpl <- prior_start_inside(tpl, prior_entries, frame)
   # A family whose components cannot be told apart through an intercept
   # spreads their starts itself: an ordinal mixture that shares its
   # thresholds (mixture_ord_start_spread()). Before `start`, which wins.
@@ -6455,8 +6701,16 @@ check_convergence <- function(fit, control) {
   # so does this, when the gradient is within grad_tol and every
   # standard error the check loses is a boundary one (se_check() then
   # gives the message)
-  bstop <- is.null(sep) && fit$opt$convergence != 0 &&
-    is.null(fit$importance) && se_boundary_stop(fit, g, control)
+  # A gradient above grad_tol on a coefficient at the end of its range,
+  # along which the likelihood is level, is the rounding of the density
+  # there (se_boundary_stop()); the rest of the gradient decides
+  bstop <- FALSE
+  if (is.null(sep) &&
+        (fit$opt$convergence != 0 || isTRUE(g > control$grad_tol)) &&
+        is.null(fit$importance)) {
+    bstop <- se_boundary_stop(fit, g, control, gvec)
+    if (isTRUE(bstop)) g <- attr(bstop, "grad") %||% g
+  }
   if (is.null(sep) && fit$opt$convergence != 0 && !bstop) {
     # Whether the stop is the maximum is measured, not read off the code:
     # nlminb's "false convergence (8)" also fires at the maximum (a group

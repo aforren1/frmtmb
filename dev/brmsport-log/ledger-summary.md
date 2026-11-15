@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | `tests.brm.R` | 23 | 23 | 0 | 0 |
 | `tests.brmsfit-helpers.R` | 3 | 2 | 0 | 1 |
-| `tests.brmsfit-methods.R` | 223 | 163 | 44 | 16 |
+| `tests.brmsfit-methods.R` | 223 | 163 | 43 | 17 |
 | `tests.brmsformula.R` | 16 | 16 | 0 | 0 |
 | `tests.brmsterms.R` | 5 | 0 | 0 | 5 |
 | `tests.data-helpers.R` | 6 | 2 | 1 | 3 |
@@ -14,7 +14,7 @@
 | `tests.families.R` | 84 | 76 | 0 | 8 |
 | `tests.priors.R` | 36 | 28 | 2 | 6 |
 | `tests.standata.R` | 87 | 77 | 2 | 8 |
-| **total** | **494** | **398** | **49** | **47** |
+| **total** | **494** | **398** | **48** | **48** |
 
 ### Outcome by class
 
@@ -24,14 +24,14 @@
 | pass | own-words | 29 |
 | pass | weak-pass | 1 |
 | divergence | class | 22 |
-| divergence | ggplot | 6 |
+| divergence | ggplot | 5 |
 | divergence | hollow | 1 |
 | divergence | no-draws | 10 |
 | divergence | policy | 10 |
 | cannot transfer | absent | 1 |
 | cannot transfer | brms-internal | 15 |
 | cannot transfer | mcmc | 4 |
-| cannot transfer | no-draws | 3 |
+| cannot transfer | no-draws | 4 |
 | cannot transfer | stan | 24 |
 
 Bin 1 passes: 398 of 494 (80.6%).

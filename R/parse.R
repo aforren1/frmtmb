@@ -715,11 +715,6 @@ parse_gp_call <- function(tm, env) {
              "kernels are: 'exp_quad', 'matern52', 'matern32', ",
              "'exponential'", call. = FALSE)
   }
-  if (!identical(cov, "exp_quad")) {
-    frm_stop("gp(cov = \"", cov, "\"): brms's Matern and exponential ",
-             "kernels are not implemented here yet; only the squared ",
-             "exponential kernel, cov = \"exp_quad\", is", call. = FALSE)
-  }
   flag <- function(nm, default) {
     v <- arg(nm)
     if (is.null(v)) default else eval_spec_arg(v, nm, env)
@@ -1638,10 +1633,13 @@ expand_slash_groups <- function(form) {
 #' a `cor` argument, and so does this.
 #'
 #' Two cases differ. A known covariance or precision, `gr(g, cov = A)`,
-#' has an unstructured covariance within each level, so the term is
-#' split into lme4's one-term pieces, each its own block: for numeric
-#' columns that is brms's model. A piece with several columns (a factor)
-#' is refused when its frame is built (`within_struct`). An `|ID|` key
+#' is coded as the whole term too, `diag()` over it, and its frame fits
+#' one block per column (`gr_known_split()`), brms's model: `(1 + f ||
+#' gr(g, cov = A))` has `Intercept`, `fb` and `fc`, as in brms 2.23.0
+#' (`dev/refits-brms3.R`). The multi-membership `mm(g1, g2, cov = A)` is
+#' still split into lme4's one-term pieces, each its own block, which is
+#' brms's model for numeric columns; a piece with several columns (a
+#' factor) is refused when its frame is built (`within_struct`). An `|ID|` key
 #' asks for correlation across terms, which `||` and `cor = FALSE` rule
 #' out. brms refuses `(x | p || g)`, and this does. It drops the key from
 #' `(x | p | gr(g, cor = FALSE))`, and so does this when every term under
@@ -1707,7 +1705,7 @@ expand_double_verts <- function(form) {
           as.character(rhs[[1L]]) %in% c("gr", "mm")) {
       rhs <- drop_cor_arg(rhs, env)
     }
-    if (is.call(rhs) && as.character(rhs[[1L]])[1L] %in% c("gr", "mm") &&
+    if (is.call(rhs) && identical(as.character(rhs[[1L]])[1L], "mm") &&
           any(c("cov", "prec") %in% names(rhs))) {
       ex <- reformulas::expandDoubleVerts(
         stats::as.formula(call("~", call("||", lhs, rhs)), env = env))
@@ -2917,10 +2915,11 @@ parse_one_response <- function(bform) {
                  paste(fam[["dpars"]], collapse = ", "), call. = FALSE)
       }
       # UNREACHABLE while plus_bf() (R/bf.R) stands: a name needs a
-      # formula AND a body to get here, and plus_bf() and nlf() refuse
-      # that combination on all three orderings ("nlf() sets 'a',
-      # which the bf() it is added to already sets"), while a duplicate
-      # inside one bf() is refused as "Duplicated dpar formula". So the
+      # formula AND a body to get here, and plus_bf() lets a later
+      # lf() or nlf() replace the earlier definition
+      # (bform_replace_pars()), so one name never keeps both, while a
+      # duplicate inside one bf() is refused as "Duplicated dpar
+      # formula". So the
       # only member `both` can hold is the location dpar injected above,
       # which the first branch takes. Measured on all four routes. Kept
       # as a guard rather than deleted, because the branch above would

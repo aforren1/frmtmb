@@ -82,6 +82,9 @@ split is exact. Under \code{REML = TRUE} the fixed effects are inside the
 integral, so a prior on them (class \code{b}, \code{Intercept}, or an \code{nlpar})
 does not separate from it. Then \code{logLik()} stops with an error, and
 \code{logLik_penalized()} still gives the maximized value.
+
+The \code{df} of a REML fit counts the fixed effects too, as lme4's REML
+\code{logLik()} does, so \code{AIC()} and \code{BIC()} of the two agree.
 }
 
 \section{Information criteria}{

@@ -159,7 +159,7 @@ test_that("an observation-level mixture keeps its per-row column", {
   skip_sampler()
   set.seed(4)
   dd <- data.frame(y = c(stats::rnorm(50, -2), stats::rnorm(50, 3)))
-  fit <- frm(bf(y ~ 1), family = mixture(gaussian(), gaussian()),
+  fit <- frm(bf(y ~ 1), family = frmtmb::mixture(gaussian(), gaussian()),
              data = dd)
   ds <- suppressWarnings(suppressMessages(
     frm_sample(fit, chains = 1, iter = 200, refresh = 0, seed = 2)))
@@ -187,7 +187,7 @@ test_that("log_lik() on a rescor model is the joint density per row", {
   Z <- mvtnorm::rmvnorm(n, c(0, 0), matrix(c(1, 0.5, 0.5, 1), 2))
   dd <- data.frame(x = stats::rnorm(n), y1 = Z[, 1], y2 = Z[, 2])
   dd$y1 <- dd$y1 + 0.4 * dd$x
-  fit <- frm(mvbf(bf(y1 ~ x), bf(y2 ~ x), rescor = TRUE),
+  fit <- frm(frmtmb::mvbf(bf(y1 ~ x), bf(y2 ~ x), rescor = TRUE),
              family = gaussian(), data = dd)
   ds <- suppressWarnings(suppressMessages(
     frm_sample(fit, chains = 1, iter = 200, refresh = 0, seed = 2)))
@@ -227,8 +227,8 @@ test_that("the pointwise density of student rescor and mv ordinal fits", {
   dd$y2 <- E[, 2]
   dd$o <- cut(dd$x + stats::rlogis(n), c(-Inf, -1, 0, 1, Inf),
               labels = FALSE)
-  fs <- frm(bf(y1 ~ x) + bf(y2 ~ x) + set_rescor(TRUE) + student(),
-            data = dd)
+  fs <- frm(bf(y1 ~ x) + bf(y2 ~ x) + frmtmb::set_rescor(TRUE) +
+              frmtmb::student(), data = dd)
   ll <- frmtmb.sample:::draws_row_loglik(fs, NULL)
   L <- as.numeric(logLik(fs))
   expect_lt(abs(sum(ll) - L), 1e3 * .Machine$double.eps * abs(L))
@@ -239,7 +239,8 @@ test_that("the pointwise density of student rescor and mv ordinal fits", {
                         delta = c(dp$y1$mu[3], dp$y2$mu[3]),
                         sigma = D %*% C %*% D, df = dp$y2$nu[1], log = TRUE)
   expect_lt(abs(ll[3] - want), 1e3 * .Machine$double.eps * abs(want))
-  fo <- frm(bf(o ~ x) + cumulative() + bf(y1 ~ x) + gaussian(), data = dd)
+  fo <- frm(bf(o ~ x) + frmtmb::cumulative() + bf(y1 ~ x) + gaussian(),
+            data = dd)
   lo <- frmtmb.sample:::draws_row_loglik(fo, NULL)
   L <- as.numeric(logLik(fo))
   expect_lt(abs(sum(lo) - L), 1e3 * .Machine$double.eps * abs(L))
@@ -402,7 +403,7 @@ test_that("bayes_R2() refuses an outcome with no residual variance", {
   dd <- data.frame(x = stats::rnorm(60))
   dd$o <- factor(cut(dd$x + stats::rnorm(60), 3), ordered = TRUE)
   ds <- suppressWarnings(suppressMessages(
-    frm_sample(bf(o ~ x), family = cumulative(), data = dd,
+    frm_sample(bf(o ~ x), family = frmtmb::cumulative(), data = dd,
                chains = 1, iter = 200, refresh = 0, seed = 2)))
   expect_error(bayes_R2(ds), "ordinal or categorical")
 })
@@ -415,7 +416,7 @@ test_that("log_lik() refuses likelihoods with no per-observation column", {
   dm <- data.frame(id = factor(rep(1:20, each = 4)))
   dm$y <- stats::rnorm(80, rep(c(0, 4), each = 40))
   um <- frm(bf(y ~ 1),
-            family = mixture(gaussian(), gaussian(), groups = ~id),
+            family = frmtmb::mixture(gaussian(), gaussian(), groups = ~id),
             data = dm, dry_run = "objective")
   expect_error(log_lik(fake_draws(um)), "group-level mixture")
 })
@@ -474,7 +475,7 @@ test_that("the draws-only estimators refuse a fit with a pointer", {
   expect_error(bayes_R2(uf), "per posterior draw")
   expect_error(LOO(uf), "deprecated brms spelling, and on a")
   expect_error(WAIC(uf), "deprecated brms spelling, and it averages")
-  expect_error(expose_functions(uf), "no Stan program to read")
+  expect_error(frmtmb::expose_functions(uf), "no Stan program to read")
 })
 
 test_that("the draws-surface odd ends refuse", {
@@ -491,7 +492,7 @@ test_that("the draws-surface odd ends refuse", {
   # update() samples again with the call's own arguments, which draws
   # not made by frm_sample() do not carry
   expect_error(update(fd), "carry no record of them")
-  expect_error(rescor_matrix(fd), "fitted point estimate")
+  expect_error(frmtmb::rescor_matrix(fd), "fitted point estimate")
 })
 
 ## ---- brms's cov = FALSE ARMA has a column per observation ------------
@@ -611,7 +612,7 @@ test_that("a cov = FALSE row sum is the objective at the same draw", {
 test_that("log_lik() carries student, sigma ~ x and (1 | g) under arma()", {
   d <- arma_data()
   fit <- frm(bf(y ~ x + arma(t, g, p = 1, q = 1) + (1 | g)),
-             family = student(), data = d, dry_run = "objective")
+             family = frmtmb::student(), data = d, dry_run = "objective")
   rn <- grep("^r_", frmtmb::brms_par_labels(fit), value = TRUE)
   bvals <- seq(-0.5, 0.5, length.out = length(rn))
   v <- as.list(stats::setNames(bvals, rn))
@@ -836,11 +837,11 @@ test_that("a group-unit matrix says so, because loo() cannot", {
     log_lik.frmtmb_draws = function(object, ndraws = NULL, resp = NULL,
                                     ...) ll,
     .package = "frmtmb.sample")
-  expect_message(loo_matrix(fd, NULL, NULL, "loo()"),
+  expect_message(frmtmb.sample:::loo_matrix(fd, NULL, NULL, "loo()"),
                  "leave-one-out over the 6 units")
-  expect_message(loo_matrix(fd, NULL, NULL, "loo()"),
+  expect_message(frmtmb.sample:::loo_matrix(fd, NULL, NULL, "loo()"),
                  "one subject's trial sequence", fixed = TRUE)
-  expect_message(loo_matrix(fd, NULL, NULL, "waic()"),
+  expect_message(frmtmb.sample:::loo_matrix(fd, NULL, NULL, "waic()"),
                  "waic() is leave-one-out", fixed = TRUE)
   # a per-observation matrix carries no unit and says nothing
   plain <- matrix(rnorm(30), 5, 6)
@@ -848,7 +849,7 @@ test_that("a group-unit matrix says so, because loo() cannot", {
     log_lik.frmtmb_draws = function(object, ndraws = NULL, resp = NULL,
                                     ...) plain,
     .package = "frmtmb.sample")
-  expect_no_message(loo_matrix(fd, NULL, NULL, "loo()"))
+  expect_no_message(frmtmb.sample:::loo_matrix(fd, NULL, NULL, "loo()"))
 })
 
 ## ---- lane postfix (2026-10-13): brms's loo() surface on draws --------

@@ -310,7 +310,9 @@ test_that("several location predictors stack, and cs() adds its thresholds", {
         family = mixture(cumulative(), cumulative()), data = d,
         control = frmtmb_control(check_se = "ignore")),
     c("Category specific effects", "did not report convergence",
-      "Large maximum absolute gradient"))
+      "Large maximum absolute gradient",
+      # the fit stops against the cs() crossing wall, which is named
+      "cs() effect has closed a category"))
   nd <- ll_grid()
   m <- frm_linpred(fit, newdata = nd, type = "link")
   expect_identical(colnames(m), paste0("eta", 1:4))

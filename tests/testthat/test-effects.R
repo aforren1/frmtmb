@@ -172,12 +172,13 @@ test_that("the default effects include fitted two-way interactions", {
   # explicit effects = still overrides the default entirely
   expect_named(conditional_effects(fit, effects = "zAge",
                                    resolution = 5), "zAge")
-  # a three-way term contributes its leading pair, not nothing
+  # x * z * w gives its three pairs (the three-way term itself is left
+  # out), each numeric first as brms orders a default pair: w:Trt
   dd$w <- stats::rnorm(80)
   fit3 <- frm(bf(count ~ zBase * Trt * w + (1 | patient)),
               family = poisson(), data = dd)
   nm3 <- names(conditional_effects(fit3, resolution = 5))
-  expect_true(all(c("zBase:Trt", "zBase:w", "Trt:w") %in% nm3))
+  expect_true(all(c("zBase:Trt", "zBase:w", "w:Trt") %in% nm3))
   expect_false("zBase:Trt:w" %in% nm3)
 })
 

@@ -231,10 +231,10 @@ test_that("a rules = builder that throws says which argument failed", {
 test_that("the failure clause names the package whose load it was", {
   # registration runs from a contributor's .onLoad(), where the user has
   # no call stack to read
-  expect_identical(compat_registrant(asNamespace("stats")),
+  expect_identical(frmtmb:::compat_registrant(asNamespace("stats")),
                    " that stats gave it")
-  expect_identical(compat_registrant(globalenv()), "")
-  expect_identical(compat_registrant(asNamespace("frmtmb")), "")
+  expect_identical(frmtmb:::compat_registrant(globalenv()), "")
+  expect_identical(frmtmb:::compat_registrant(asNamespace("frmtmb")), "")
 })
 
 test_that("expects = accepts a name another package already supplies", {
@@ -297,7 +297,7 @@ test_that("a declared but unresolved rule side is reported, not dropped", {
 test_that("a refused frmtmb_register_aterm() registers nothing at all", {
   local_registries()
   before_ft <- frm_compat_features()
-  before_reg <- names(frmtmb_aterm_registry$reg)
+  before_reg <- names(frmtmb:::frmtmb_aterm_registry$reg)
   # thirteen vocabulary entries are written with parentheses and are not
   # of kind aterm. The parser used to be committed first, so the call
   # threw AND registered: frm() then took `y | s(col) ~ x` while
@@ -306,12 +306,12 @@ test_that("a refused frmtmb_register_aterm() registers nothing at all", {
   for (nm in c("s", "ar", "mm")) {
     expect_error(frmtmb_register_aterm(nm),
                  "already means something else in a formula")
-    expect_false(nm %in% names(frmtmb_aterm_registry$reg))
+    expect_false(nm %in% names(frmtmb:::frmtmb_aterm_registry$reg))
   }
-  expect_identical(names(frmtmb_aterm_registry$reg), before_reg)
+  expect_identical(names(frmtmb:::frmtmb_aterm_registry$reg), before_reg)
   expect_identical(frm_compat_features(), before_ft)
   # and the parser is where the consequence would have shown
-  expect_null(registered_aterm_of("s"))
+  expect_null(frmtmb:::registered_aterm_of("s"))
 })
 
 test_that("the refusal reads in the term registrant's own terms", {
@@ -350,35 +350,37 @@ test_that("a kind beginning with a vowel takes the right article", {
 local_build_counter <- function(env = parent.frame()) {
   n <- new.env(parent = emptyenv())
   n$count <- 0L
-  build <- compat_features_build
+  build <- frmtmb:::compat_features_build
   testthat::local_mocked_bindings(
     compat_features_build = function(extra = NULL) {
       n$count <- n$count + 1L
       build(extra)
-    }, .env = env)
+    }, .package = "frmtmb", .env = env)
   n
 }
 
 test_that("four registrations cost one vocabulary build", {
   local_registries()
-  frmtmb_compat_contrib$features <- list()
-  frmtmb_compat_cache$features <- NULL
-  frmtmb_compat_cache$tbl <- NULL
+  contrib <- frmtmb:::frmtmb_compat_contrib
+  cache <- frmtmb:::frmtmb_compat_cache
+  contrib$features <- list()
+  cache$features <- NULL
+  cache$tbl <- NULL
   n <- local_build_counter()
   for (nm in c("aa1", "bb1", "cc1", "dd1")) frmtmb_register_aterm(nm)
   expect_equal(n$count, 1L)
   # and the reads after them are free
-  invisible(frmtmb_compat_features_tbl())
+  invisible(frmtmb:::frmtmb_compat_features_tbl())
   expect_equal(n$count, 1L)
 })
 
 test_that("the cached vocabulary is the vocabulary", {
   local_registries()
-  before <- frmtmb_compat_features_tbl()
-  expect_equal(before, compat_features_build(NULL))
+  before <- frmtmb:::frmtmb_compat_features_tbl()
+  expect_equal(before, frmtmb:::compat_features_build(NULL))
   frmtmb_register_aterm("ee1")
-  after <- frmtmb_compat_features_tbl()
-  expect_equal(after, compat_features_build(NULL))
+  after <- frmtmb:::frmtmb_compat_features_tbl()
+  expect_equal(after, frmtmb:::compat_features_build(NULL))
   expect_equal(nrow(after), nrow(before) + 1L)
   expect_identical(after$kind[match("ee1()", after$name)], "aterm")
 })
@@ -386,26 +388,28 @@ test_that("the cached vocabulary is the vocabulary", {
 test_that("the cache is validated against the registry, not a flag", {
   local_registries()
   frmtmb_register_aterm("ff1")
-  expect_true("ff1()" %in% frmtmb_compat_features_tbl()$name)
+  expect_true("ff1()" %in% frmtmb:::frmtmb_compat_features_tbl()$name)
   # a caller that restores the contributed features directly, as this
   # file's own teardown does, must not leave a stale table behind
-  frmtmb_compat_contrib$features <- list()
-  expect_false("ff1()" %in% frmtmb_compat_features_tbl()$name)
+  contrib <- frmtmb:::frmtmb_compat_contrib
+  contrib$features <- list()
+  expect_false("ff1()" %in% frmtmb:::frmtmb_compat_features_tbl()$name)
 })
 
 test_that("a refused registration leaves the cache as it found it", {
   local_registries()
-  before <- frmtmb_compat_features_tbl()
+  before <- frmtmb:::frmtmb_compat_features_tbl()
   expect_error(frmtmb_register_aterm("s"))
-  expect_equal(frmtmb_compat_features_tbl(), before)
-  expect_equal(frmtmb_compat_features_tbl(), compat_features_build(NULL))
+  expect_equal(frmtmb:::frmtmb_compat_features_tbl(), before)
+  expect_equal(frmtmb:::frmtmb_compat_features_tbl(),
+               frmtmb:::compat_features_build(NULL))
 })
 
 test_that("an `extra` vocabulary is never cached", {
   local_registries()
-  base <- frmtmb_compat_features_tbl()
-  hypo <- frmtmb_compat_features_tbl(extra = c(zzq1 = "family"))
+  base <- frmtmb:::frmtmb_compat_features_tbl()
+  hypo <- frmtmb:::frmtmb_compat_features_tbl(extra = c(zzq1 = "family"))
   expect_true("zzq1" %in% hypo$name)
-  expect_false("zzq1" %in% frmtmb_compat_features_tbl()$name)
-  expect_equal(frmtmb_compat_features_tbl(), base)
+  expect_false("zzq1" %in% frmtmb:::frmtmb_compat_features_tbl()$name)
+  expect_equal(frmtmb:::frmtmb_compat_features_tbl(), base)
 })

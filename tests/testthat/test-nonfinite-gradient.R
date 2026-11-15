@@ -59,11 +59,22 @@ test_that("the three-component mixture the review found ends finite", {
   # convergence (7)": the ubuntu runners did, and so did 3 and 2 of 16
   # copies of these data with x moved by a few ulps, one count per BLAS,
   # each with a finite gradient (dev/ci691-mix3-probe.R).
+  # The degenerate component is named in a warning or, where a jittered
+  # start passed over it, in the step-start message, which is a message
+  # since the user's decision of 2026-11-13
+  said <- character(0)
   fit <- allow_warnings(
-    frm(bf(y ~ x), family = mixture(cumulative("probit"), sratio("cloglog"),
-                                    acat()), data = d),
-    c("mixture(cumulative, sratio, acat)", "Large maximum absolute gradient",
-      "did not report convergence"),
-    require = "mixture(cumulative, sratio, acat)")
+    withCallingHandlers(
+      frm(bf(y ~ x), family = mixture(cumulative("probit"),
+                                      sratio("cloglog"), acat()), data = d),
+      frmtmb_mixture_step_start = function(m) {
+        said <<- c(said, conditionMessage(m))
+        invokeRestart("muffleMessage")
+      },
+      warning = function(w) said <<- c(said, conditionMessage(w))),
+    c("mixture(cumulative, sratio, acat)",
+      "Large maximum absolute gradient", "did not report convergence"))
+  expect_true(any(grepl("mixture(cumulative, sratio, acat)", said,
+                        fixed = TRUE)))
   expect_true(all(is.finite(fit$obj$gr(fit$opt$par))))
 })

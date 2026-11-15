@@ -40,6 +40,8 @@ get_joint_cov <- function(fit, dense = TRUE) {
   flat <- NULL
   units <- NULL
   lost_pos <- integer(0)
+  lost_why <- character(0)
+  limit_range <- NULL
   root <- NULL
   Vrest <- NULL
   if (is.null(Q)) {
@@ -55,6 +57,8 @@ get_joint_cov <- function(fit, dense = TRUE) {
     flat <- sdr$se_null_flat
     if (!is.null(null)) units <- fit$par_units
     lost_pos <- match(names(sdr$se_lost), outer_par_names(fit))
+    lost_why <- se_lost_why(fit, sdr)
+    limit_range <- se_limit_ranges_of(fit, sdr)
     root <- sdr$cov_fixed_root
   } else {
     rep <- joint_cov_repair(fit, Q, sdr_of(fit))
@@ -64,6 +68,8 @@ get_joint_cov <- function(fit, dense = TRUE) {
       flat <- rep$flat
       units <- rep$units
       lost_pos <- rep$lost_pos
+      lost_why <- rep$lost_why
+      limit_range <- rep$limit_range
       root <- rep$root
       Vrest <- rep$Vrest
     } else {
@@ -76,9 +82,15 @@ get_joint_cov <- function(fit, dense = TRUE) {
     }
     rn <- rownames(Q)
   }
+  # the reasons beside the positions, which the prediction warning reads
+  # (se_pred_warn())
+  lost_why <- if (length(lost_why) == length(lost_pos)) {
+    lost_why[!is.na(lost_pos)]
+  }
   cache$Vjoint <- list(V = V, names = rn, null = null, flat = flat,
                        units = units, lost_pos = lost_pos[!is.na(lost_pos)],
-                       root = root, Vrest = Vrest)
+                       root = root, Vrest = Vrest, lost_why = lost_why,
+                       limit_range = limit_range)
   cache$Vjoint
 }
 
@@ -159,10 +171,16 @@ joint_cov_repair <- function(fit, Q, sdr) {
         length(f) != length(outer_par_names(fit))) {
     return(NULL)
   }
-  Qrr <- Q[r, r, drop = FALSE]
-  Wrr <- tryCatch(as.matrix(Matrix::solve(Qrr)), error = function(e) NULL)
-  if (is.null(Wrr) || !all(is.finite(Wrr))) return(NULL)
-  J <- -Wrr %*% as.matrix(Q[r, f, drop = FALSE])
+  wi <- joint_cov_white_inner(fit, sdr, r, f)
+  if (!is.null(wi$Wrr)) {
+    Wrr <- wi$Wrr
+    J <- wi$J
+  } else {
+    Qrr <- Q[r, r, drop = FALSE]
+    Wrr <- tryCatch(as.matrix(Matrix::solve(Qrr)), error = function(e) NULL)
+    if (is.null(Wrr) || !all(is.finite(Wrr))) return(NULL)
+    J <- -Wrr %*% as.matrix(Q[r, f, drop = FALSE])
+  }
   # through the factor where there is one (se_reparam_cov()): J Vf J'
   # with Vf whole loses every digit of a group effect's variance on an
   # ill-conditioned design, as a prediction would
@@ -180,15 +198,128 @@ joint_cov_repair <- function(fit, Q, sdr) {
   # group effects as the propagated part is: V = Vrest + root root'
   root <- NULL
   Vrest <- NULL
-  if (!is.null(Lf)) {
+  if (!is.null(wi$K)) {
+    # the whole covariance as a factor (joint_cov_white_inner()); `Vf`
+    # through its own factor, or its eigenvectors where it has none
+    if (is.null(Lf)) {
+      e <- eigen((Vf + t(Vf)) / 2, symmetric = TRUE)
+      Lf <- e$vectors %*% diag(sqrt(pmax(e$values, 0)), length(f))
+    }
+    root <- matrix(0, p, length(r) + ncol(Lf),
+                   dimnames = list(rownames(Q), NULL))
+    root[r, seq_along(r)] <- wi$K
+    root[r, length(r) + seq_len(ncol(Lf))] <- J %*% Lf
+    root[f, length(r) + seq_len(ncol(Lf))] <- Lf
+  } else if (!is.null(Lf)) {
     root <- matrix(0, p, ncol(Lf), dimnames = list(rownames(Q), NULL))
     root[f, ] <- Lf
     root[r, ] <- JL
     Vrest <- matrix(0, p, p, dimnames = dimnames(V))
     Vrest[r, r] <- Wrr
   }
+  lost_pos <- meta$lost_pos
+  lost_why <- meta$lost_why
+  if (length(wi$too_big)) {
+    # Above joint_root_limit() the whitened inverse is not formed, and
+    # the natural one gave a REML fit's coefficients standard errors of
+    # exactly 0 (4510 joint parameters, degree 7, sd lost, seed 2) or 7
+    # percent high (seed 3), with no warning (review of lane selimit2,
+    # F4b). Their rows are NaN, lost for "size" (se_pred_warn()).
+    jb <- wi$too_big
+    V[jb, ] <- NaN
+    V[, jb] <- NaN
+    root <- NULL
+    Vrest <- NULL
+    lost_pos <- c(lost_pos, jb)
+    lost_why <- c(if (length(lost_why) == length(meta$lost_pos)) {
+      lost_why
+    } else rep(NA_character_, length(meta$lost_pos)),
+    rep("size", length(jb)))
+  }
   list(V = V, null = meta$null, flat = meta$flat, units = meta$units,
-       root = root, Vrest = Vrest, lost_pos = meta$lost_pos)
+       root = root, Vrest = Vrest, lost_pos = lost_pos,
+       lost_why = lost_why, limit_range = meta$limit_range)
+}
+
+#' The most joint parameters for which a REML fit on a whitened design
+#' with a lost parameter has prediction standard errors
+#' (joint_cov_white_inner(), which forms a dense factor over the inner
+#' positions): `options(frmtmb.joint_root_max = )`, default
+#' `joint_root_max`.
+#'
+#' @noRd
+joint_root_limit <- function() {
+  v <- getOption("frmtmb.joint_root_max", joint_root_max)
+  if (!is.numeric(v) || length(v) != 1L || is.na(v)) joint_root_max else v
+}
+
+#' joint_cov_repair()'s `Qrr^-1` and `J = -Qrr^-1 Qrf` taken in the
+#' coordinates of beta_whitener(), or NULL where the fit has none.
+#'
+#' Under REML `beta` is inner, and in natural coordinates its block of
+#' `Qrr` carries the design's condition number squared. On a raw
+#' polynomial with `(1 | g)` whose sd ran to 0 (lost, so the repair runs)
+#' `Qrr` had a condition number of 1e16 and an eigenvalue below 0 in
+#' double precision at degree 6, and fitted(re_formula = NA) read
+#' standard errors up to 1.1e-4 off the exact ones at degree 6 and 3.2
+#' percent off at degree 7, with no warning, where vcov() of the same fit
+#' was within 1e-9 (dev/selimit2-3370.R, seeds 1 to 5). With
+#' `beta = T gamma` on the inner positions, `Qrr = Wr^-T Qg_rr Wr^-1`, so
+#' `Qrr^-1 = Wr Qg_rr^-1 Wr'` and `J = Wr Jg`; `Qg` is the precision
+#' sdr_unwhiten() was handed. `K = Wr Lg`, with `Qg_rr^-1 = Lg Lg'`, is
+#' returned as the factor joint_cov_repair() keeps: within 2e-9 at
+#' degree 7.
+#'
+#' @noRd
+joint_cov_white_inner <- function(fit, sdr, r, f) {
+  bw <- fit$beta_whiten
+  Qg <- sdr$joint_precision_white
+  if (is.null(bw) || is.null(Qg) || nrow(Qg) != length(r) + length(f)) {
+    return(NULL)
+  }
+  jb <- which(rownames(Qg) == "beta")
+  ib <- match(jb, r)
+  if (length(jb) != length(fit$frame[["par_template"]][["beta"]]) ||
+        anyNA(ib)) {
+    return(NULL)
+  }
+  # the factor is dense over the inner positions, as sdr_unwhiten()'s is;
+  # above the limit the natural-coordinate inverse is no answer either
+  # (joint_cov_repair())
+  if (nrow(Qg) > joint_root_limit()) return(list(too_big = jb))
+  Qgr <- Matrix::forceSymmetric(methods::as(Qg[r, r, drop = FALSE],
+                                            "CsparseMatrix"))
+  ch <- tryCatch(suppressWarnings(Matrix::Cholesky(Qgr, perm = TRUE,
+                                                   LDL = FALSE)),
+                 error = function(e) NULL)
+  if (is.null(ch)) return(NULL)
+  nr <- length(r)
+  I <- Matrix::Diagonal(nr)
+  # Qg_rr = P' L L' P, so Qg_rr^-1 = Lg Lg' with Lg = P' L^-T
+  Lg <- tryCatch(as.matrix(Matrix::solve(ch, Matrix::solve(ch, I,
+                                                           system = "Lt"),
+                                         system = "Pt")),
+                 error = function(e) NULL)
+  Wg <- tryCatch(as.matrix(Matrix::solve(ch, I)), error = function(e) NULL)
+  Jg <- tryCatch(-as.matrix(Matrix::solve(ch, as.matrix(Qg[r, f, drop = FALSE]))),
+                 error = function(e) NULL)
+  if (is.null(Lg) || is.null(Wg) || is.null(Jg) ||
+        !all(is.finite(Lg)) || !all(is.finite(Wg)) || !all(is.finite(Jg))) {
+    return(NULL)
+  }
+  # `T` acts on the beta rows alone (beta = T gamma)
+  for (blk in bw[["blocks"]]) {
+    k <- ib[blk[["idx"]]]
+    Tb <- blk[["T"]]
+    Lg[k, ] <- Tb %*% Lg[k, , drop = FALSE]
+    Jg[k, ] <- Tb %*% Jg[k, , drop = FALSE]
+    Wg[k, ] <- Tb %*% Wg[k, , drop = FALSE]
+    Wg[, k] <- Wg[, k, drop = FALSE] %*% t(Tb)
+  }
+  # `Qrr^-1` is kept as its factor `K`: formed whole in natural
+  # coordinates, a prediction's `a' Qrr^-1 a` cancels the digits the
+  # whitener kept (at degree 7, 3.8e-3 off)
+  list(Wrr = Wg, J = Jg, K = Lg)
 }
 
 #' What joint_cov_repair() carries beside `V`, at joint positions: the lost
@@ -221,7 +352,20 @@ joint_cov_repair_meta <- function(fit, sdr, p, r, f) {
     }
   }
   list(null = null, flat = flat, units = units,
-       lost_pos = f[match(names(sdr$se_lost), outer_par_names(fit))])
+       lost_pos = f[match(names(sdr$se_lost), outer_par_names(fit))],
+       lost_why = se_lost_why(fit, sdr),
+       limit_range = jc_limit_range_at(se_limit_ranges_of(fit, sdr), f))
+}
+
+#' se_limit_ranges()'s entries with their outer positions moved to the
+#' joint positions `f` (jc_limit_extrap()).
+#'
+#' @noRd
+jc_limit_range_at <- function(lr, f) {
+  lapply(lr, function(e) {
+    e$pos <- f[e$pos]
+    e
+  })
 }
 
 #' The joint precision of every estimated parameter, fixed and random,
@@ -1047,9 +1191,17 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       # cmc = FALSE: the term was fitted with an intercept added and
       # then removed (assemble_frame()), so it is rebuilt the same way
       if (isTRUE(comp[["cmc_intercept"]])) attr(tt2, "intercept") <- 1L
-      mm <- stats::model.matrix(tt2, mf2)
+      # under the fit's contrasts, not the session's (backlog 5353)
+      mm <- stats::model.matrix(
+        tt2, mf2, contrasts.arg = re_contrasts_for(comp[["contrasts"]], mf2)
+      )
       if (isTRUE(comp[["cmc_intercept"]])) {
         mm <- mm[, colnames(mm) != "(Intercept)", drop = FALSE]
+      }
+      # one column of an uncorrelated term over a known matrix, fitted
+      # as a block of its own (gr_known_split())
+      if (!is.null(comp[["col_pick"]])) {
+        mm <- mm[, comp[["col_pick"]], drop = FALSE]
       }
       mo_raw <- NULL
       mo_k <- integer(0)
@@ -1736,6 +1888,28 @@ aterm_code_lookup <- function(v, tab, label) {
   as.numeric(tab$value[i])
 }
 
+#' Whether an addition term's value `v` on `newdata` has more than one
+#' element but reads no column of `newdata`, so its elements cannot be
+#' newdata's rows: `vreal(rep_len(c(1, 3), 120))` on a 120-row fit.
+#'
+#' @noRd
+aterm_rowless <- function(ex, v, newdata) {
+  NROW(v) > 1L && !length(intersect(all.vars(ex), names(newdata)))
+}
+
+#' A value that reads no column of `newdata` and has one distinct
+#' element is that element: `vreal(rep(2, 120))` is the constant 2 on
+#' any rows, where `aterm_rowless()` would refuse it (review F5).
+#'
+#' @noRd
+aterm_scalar <- function(ex, v, newdata) {
+  if (is.null(v) || is.matrix(v) || length(v) < 2L ||
+        length(intersect(all.vars(ex), names(newdata)))) {
+    return(v)
+  }
+  if (length(unique(v)) == 1L) v[1L] else v
+}
+
 #' Re-evaluate a response's addition terms on new data. Every post-fit
 #' path that hands newdata rows to a family's mean, simulator or density
 #' takes its terms from here, all of them, so that none of them is left
@@ -1786,12 +1960,18 @@ aterms_for_newdata <- function(rspec, newdata) {
       }
       v <- NULL
     }
+    v <- aterm_scalar(ex, v, newdata)
     # a bound the model frame supplied but newdata did not can still
     # resolve in the formula environment, to the FITTED rows; the length
     # check catches that rather than silently pairing the wrong bounds
     if (!is.null(v) && !is.null(nd_n) && !length(v) %in% c(1L, nd_n)) {
       v <- NULL
     }
+    # a value that reads no column of newdata cannot follow its rows: it
+    # is the fitted rows' values, and a length that matches newdata's is
+    # a coincidence (backlog 5235)
+    rowless <- !is.null(v) && aterm_rowless(ex, v, newdata)
+    if (rowless) v <- NULL
     # an addition term reads newdata alone, as it read the data alone at
     # the fit: a variable newdata lacks must not resolve in the formula
     # environment (check_aterm_data_vars())
@@ -1805,8 +1985,14 @@ aterms_for_newdata <- function(rspec, newdata) {
                  if (length(missed)) {
                    paste0(": newdata has no column ",
                           paste(missed, collapse = ", "))
+                 } else if (rowless) {
+                   paste0(": it reads no column of newdata, so its values ",
+                          "are the fitted rows' and not newdata's, even ",
+                          "when newdata is the fitted data. Leave newdata ",
+                          "out to predict the fitted rows, or write the ",
+                          "term as a column of the data")
                  } else "",
-                 "; supply the variable",
+                 if (!rowless || length(missed)) "; supply the variable",
                  call. = FALSE)
       }
       # anything else is dropped, but never silently: an aterm the
@@ -1816,6 +2002,8 @@ aterms_for_newdata <- function(rspec, newdata) {
                   if (length(missed)) {
                     paste0(" (newdata has no column ",
                            paste(missed, collapse = ", "), ")")
+                  } else if (rowless) {
+                    " (it reads no column of newdata)"
                   } else "",
                   call. = FALSE)
     }
@@ -3350,8 +3538,10 @@ gp_krig_cov <- function(krig) {
     for (j in seq_along(rho2)) {
       E <- E + outer(X[r, j], X[cc, j], "-")^2 / rho2[j]
     }
-    B <- sd2 * (exp(-E) - tcrossprod(P[r, , drop = FALSE],
-                                     Q[cc, , drop = FALSE]))
+    K <- if (identical(gp_cov_of(krig$bk), "exp_quad")) exp(-E) else
+      gp_kern_xy(X[r, , drop = FALSE], X[cc, , drop = FALSE], th, krig$bk)
+    B <- sd2 * (K - tcrossprod(P[r, , drop = FALSE],
+                               Q[cc, , drop = FALSE]))
     # the block on the diagonal is written by both assignments below, so
     # it is made symmetric first
     dd <- r >= c0
@@ -3538,13 +3728,17 @@ gp_krig_factor <- function(krig) {
     # is slower than the whole kernel and one LAPACK factor
     # (dev/rel068-krig-rank.R measures both regimes), so
     # a high-rank grid takes the dense route
-    if (k >= n / 4) return(gp_krig_factor_dense(Xu, P, Qr, rho2, d0, key, u))
+    if (k >= n / 4) {
+      return(gp_krig_factor_dense(Xu, P, Qr, rho2, d0, key, u, krig))
+    }
     k <- k + 1L
     if (k > ncol(L)) L <- cbind(L, matrix(0, n, min(n, 2L * ncol(L)) -
                                             ncol(L)))
     Q <- 0
     for (a in seq_len(ncol(Xu))) Q <- Q + (Xu[, a] - Xu[j, a])^2 / rho2[a]
-    col <- exp(-Q) - as.vector(P %*% Qr[j, ])
+    kj <- if (identical(gp_cov_of(krig$bk), "exp_quad")) exp(-Q) else
+      as.vector(gp_kern_xy(Xu, Xu[j, , drop = FALSE], th, krig$bk))
+    col <- kj - as.vector(P %*% Qr[j, ])
     if (k > 1L) {
       col <- col - as.vector(L[, seq_len(k - 1L), drop = FALSE] %*%
                                L[j, seq_len(k - 1L)])
@@ -3569,12 +3763,14 @@ gp_krig_factor <- function(krig) {
 #' `L L' + diag(white)` is the same law.
 #'
 #' @noRd
-gp_krig_factor_dense <- function(Xu, P, Qr, rho2, d, key, u) {
+gp_krig_factor_dense <- function(Xu, P, Qr, rho2, d, key, u, krig) {
   E <- 0
   for (a in seq_len(ncol(Xu))) {
     E <- E + outer(Xu[, a], Xu[, a], "-")^2 / rho2[a]
   }
-  C <- exp(-E) - tcrossprod(P, Qr)
+  K <- if (identical(gp_cov_of(krig$bk), "exp_quad")) exp(-E) else
+    gp_kern_xy(Xu, Xu, krig$theta, krig$bk)
+  C <- K - tcrossprod(P, Qr)
   C <- (C + t(C)) / 2
   # the diagonal as extra_var has it, so the two cannot drift apart
   diag(C) <- d
@@ -3748,6 +3944,32 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
   }
   var_m <- pmax(jc_rowvar(jc, G, pos_all), 0)
   lost_dir <- jc_nonest(jc, G, pos_all)
+  # (`|` drops it; the rows added below are not of that kind)
+  nocurv <- attr(lost_dir, "nocurv")
+  size_lost <- attr(lost_dir, "size")
+  # a row the derivative calls determined, which a limit direction moves
+  # within its level range (se_limit_ranges()): the mean at the moved
+  # predictors, with the ends at their limits where the direction is an
+  # undetermined parameter
+  if (length(jc$limit_range)) {
+    preds <- list()
+    lks <- list()
+    for (dnm in dnames) {
+      lk <- object$frame[["linpreds"]][[linpred_key(rnm, dnm)]][["link"]]
+      if (!is.function(lk$linkinv) || is.null(das[[dnm]]$A)) next
+      preds[[dnm]] <- list(eta = eds[[dnm]]$eta, A = das[[dnm]]$A,
+                           coef_pos = das[[dnm]]$coef_pos)
+      lks[[dnm]] <- lk
+    }
+    at <- function(etas) {
+      dk <- dp
+      for (dnm in names(etas)) dk[[dnm]] <- lks[[dnm]]$linkinv(etas[[dnm]])
+      as.numeric(response_mean(fam, dk, av))
+    }
+    lost_dir <- lost_dir | jc_limit_extrap(jc, preds, at, sqrt(var_m))
+  }
+  attr(lost_dir, "nocurv") <- nocurv
+  attr(lost_dir, "size") <- size_lost
 
   # New grouping levels: a block whose components sit in several linear
   # predictors enters once, through the summed gradient over its own
@@ -4257,7 +4479,11 @@ fitted_mv <- function(object, newdata, re_formula, scale, resp, dpar,
       # linear predictor eta1, eta2, ... as brms names both (measured,
       # dev/defects-brms-mvcs.R: "yg", "eta1", "eta2")
       for (k in seq_len(dim(p)[3L])) {
-        layers[[length(layers) + 1L]] <- p[, , k]
+        # drop = FALSE: a one-row newdata otherwise loses its row
+        # dimension, and the stack below reads nrow() of each layer
+        layers[[length(layers) + 1L]] <- matrix(
+          p[, , k, drop = FALSE], dim(p)[1L], dim(p)[2L],
+          dimnames = dimnames(p)[1:2])
         labs <- c(labs, dimnames(p)[[3L]][k])
       }
     }
@@ -5453,29 +5679,19 @@ ord_cat_moments <- function(object, rspec) {
 #' exactly a draw that landed inside the window, so its PIT renormalizes
 #' on that window just as a `trunc()` fit's does.
 #'
-#' `discrete` refuses rather than shifts. The window this builds is the
-#' continuous one, `lo < Y < hi` written as `[lo, hi]` because the ends
-#' carry no mass there. A count left-censored at `lo` is `Y <= lo` (see
-#' `row_lpdf()`), so an uncensored row's support is `[lo + 1, hi]` and
-#' its PIT renormalizes on `F(hi) - F(lo)`. Shifting the window is one
-#' line and verifying it is not, so it is refused until something
-#' measures it.
+#' The window is `(lo, hi]`, whose mass is `F(hi) - F(lo)`, for a
+#' continuous and a discrete response alike: a count left-censored at
+#' `lo` is `Y <= lo` and one right-censored at `hi` is `Y > hi` (see
+#' `row_lpdf()`), so an uncensored count lies in `lo + 1, ..., hi`. On a
+#' continuous response the ends carry no mass, and the window is
+#' written `[lo, hi]`. `discrete` reads the uncensored rows on the
+#' lattice: one at `lo` itself would be a censored value recorded as
+#' observed.
 #'
 #' @noRd
 osa_cens_domain <- function(av, y, discrete = FALSE) {
   cen <- av[["cens"]]
   if (is.null(cen) || !any(cen != 0)) return(NULL)
-  if (discrete) {
-    frm_stop("residuals(type = \"osa\") is not supported on a cens() fit ",
-             "with a discrete family. A discrete censoring bound is ",
-             "read on the integer lattice (left censoring at k is Y <= k, ",
-             "right censoring Y > k), so an uncensored row's support is ",
-             "[lo + 1, hi] rather than the [lo, hi] ",
-             "the one-step window is built on, and no reference has ",
-             "measured the shifted window. Every other residual type ",
-             "works, and dharma_residuals() scores each censored row on ",
-             "the event it observes", call. = FALSE)
-  }
   if (any(cen == 2)) {
     frm_stop("residuals(type = \"osa\") does not support interval censoring ",
              "(cens code 2): an interval-censored row observes an event, not ",
@@ -5506,9 +5722,11 @@ osa_cens_domain <- function(av, y, discrete = FALSE) {
   i_l <- which(cen == -1)
   hi <- if (length(i_r)) point(i_r, "right") else Inf
   lo <- if (length(i_l)) point(i_l, "left") else -Inf
-  if (any(y[i_obs] < lo) || any(y[i_obs] > hi)) {
+  if (any(y[i_obs] < lo) || any(y[i_obs] > hi) ||
+        (discrete && any(y[i_obs] == lo))) {
     frm_stop("residuals(type = \"osa\") on a cens() fit found uncensored ",
-             "responses outside the censoring window [", lo, ", ", hi,
+             "responses outside the censoring window ",
+             if (discrete) "(" else "[", lo, ", ", hi,
              "]; the censoring is not type-I and the one-step CDF has no ",
              "well-defined domain", call. = FALSE)
   }
@@ -5565,10 +5783,13 @@ residuals_unsupported <- c(
 #' (brms's reading): a row of weight `w` gets the residual of the last
 #' of `w` copies of it, given the other `w - 1`, and the later rows are
 #' conditioned on all `w` copies. A row of weight 0 is no part of the
-#' fitted likelihood and gets `NA`. A weight between 0 and 1 also gets
+#' fitted likelihood and gets `NA`. A weight between 0 and 1 on a
+#' continuous response read off its CDF (`osa_method = "cdf"`) gives the
+#' residual of a fresh copy of the row, given the rows before it; at a
+#' weight of 1 the two readings are the same. On a count it gets
 #' `NA`, with a warning: there TMB reads the row's mass from the weighted
-#' density, `p^w`, so a count's randomization would be wrong. A residual that
-#' `oneStepPredict()` cannot form is `NaN` with a warning.
+#' density, `p^w`, so a count's randomization would be wrong. A residual
+#' that `oneStepPredict()` cannot form is `NaN` with a warning.
 #'
 #' The cost grows faster than the number of rows: TMB makes three
 #' evaluations of the whole objective per row, each with an inner
@@ -5589,17 +5810,18 @@ residuals_unsupported <- c(
 #' an event has no one-step CDF. The uncensored rows get residuals
 #' conditional on the censoring events, which needs one censoring point
 #' per side (type-I censoring); row-varying censoring times and interval
-#' censoring are refused, and so is a DISCRETE family. A discrete
-#' censoring bound is read on the integer lattice (left censoring at `k`
-#' is `Y <= k`, right censoring `Y > k`; see [frmtmb_family()]), so an
-#' uncensored count's support is `[lo + 1, hi]` rather than the
-#' `[lo, hi]` this window is built on, and no reference has measured
-#' the shifted window. Every other
-#' residual type works there.
+#' censoring are refused. An uncensored row is a draw that fell inside
+#' the window `(lo, hi]` the censoring points leave, so its one-step CDF
+#' is renormalized on `F(hi) - F(lo)`. A count is read on the integer
+#' lattice, as its censoring bound is (left censoring at `k` is
+#' `Y <= k`, right censoring `Y > k`; see [frmtmb_family()]): an
+#' uncensored count lies in `lo + 1, ..., hi`, and its residual is
+#' randomized over its own step of the renormalized CDF. A core count
+#' family with a CDF takes `osa_method = "cdf"` there, and a continuous
+#' family `"oneStepGeneric"` by default, which `"cdf"` reproduces.
 #' [dharma_residuals()] covers what is refused here: it scores each
-#' censored row on the event it observes, with any censoring times, an
-#' interval and a discrete family included (see its section "Censored
-#' responses").
+#' censored row on the event it observes, with any censoring times and
+#' an interval included (see its section "Censored responses").
 #'
 #' @section Ordinal and other category responses:
 #' `"response"` (`"ordinary"`) and `"pearson"` are refused for an
@@ -6049,24 +6271,53 @@ osa_bernoulli_pair <- function(fam, q, dpv, n) {
 #' `log(1e-300)`, which clamped a residual at about -37; this floor is
 #' past any residual a double can hold.
 #'
+#' `cwin`, from `osa_cens_window()`, is the window `(lo, hi]` a `cens()`
+#' fit's censoring points leave the uncensored rows. Its tails are
+#' `F(y) - F(lo)` and `F(hi) - F(y)`, NOT divided by the window's mass:
+#' TMB divides each row's mass and lower tail by the sum of its two
+#' tails, which is then that mass, so the row is read conditional on
+#' having fallen inside the window, while its density term stays the
+#' fitted one, which the later rows are conditioned on. Inside a
+#' `trunc()` window both tails are divided by that window's mass, as
+#' the density term is.
+#'
 #' @noRd
-osa_cdf_tails <- function(fam, y, dpv, av, extra) {
+osa_cdf_tails <- function(fam, y, dpv, av, extra, cwin = NULL) {
   n <- length(y)
   pair <- function(q) osa_log_pair(fam, q, dpv, av, extra, n)
   py <- pair(y)
   out <- list(lower = py[["lF"]], upper = py[["lS"]])
+  none <- rep(FALSE, n)
+  rows <- seq_len(n)
+  te <- NULL
+  lz <- 0
   if (!is.null(av[["trunc_lb"]]) || !is.null(av[["trunc_ub"]])) {
     te <- trunc_edges(fam, av, n)
     if (!all(te$lo_abs & te$hi_abs)) {
       # the window (lb', ub] the likelihood renormalizes on, split at y
-      none <- rep(FALSE, n)
-      rows <- seq_len(n)
       plo <- pair(ifelse(te$lo_abs, y, te$lo))
       phi <- pair(ifelse(te$hi_abs, y, te$hi))
       lz <- log_window(plo, phi, te$lo_abs, te$hi_abs, rows)
       out <- list(lower = log_window(plo, py, te$lo_abs, none, rows) - lz,
                   upper = log_window(py, phi, none, te$hi_abs, rows) - lz)
+    } else {
+      te <- NULL
     }
+  }
+  if (!is.null(cwin)) {
+    lo <- rep(cwin[["lo"]], n)
+    hi <- rep(cwin[["hi"]], n)
+    if (!is.null(te)) {
+      lo <- pmax(lo, ifelse(te$lo_abs, -Inf, te$lo))
+      hi <- pmin(hi, ifelse(te$hi_abs, Inf, te$hi))
+    }
+    lo_abs <- !is.finite(lo)
+    hi_abs <- !is.finite(hi)
+    # an absent edge is never read
+    plo <- if (all(lo_abs)) py else pair(ifelse(lo_abs, y, lo))
+    phi <- if (all(hi_abs)) py else pair(ifelse(hi_abs, y, hi))
+    out <- list(lower = log_window(plo, py, lo_abs, none, rows) - lz,
+                upper = log_window(py, phi, none, hi_abs, rows) - lz)
   }
   floor_l <- rep(-1e4, n)
   lapply(out, function(l) RTMB::logspace_add(cdf_rows(l, n), floor_l))
@@ -6101,18 +6352,33 @@ osa_cdf_loglik <- function(fam, yobs, yraw, dpv, av, extra, w) {
   # w - 1 copies they were S(y | u) / p(y | u)^(1 - w), which a group
   # effect's prior does not integrate (a row of weight 0 read NaN), and
   # with none they are the CDF of a fresh copy of the row. A count's row
-  # mass still comes from the w ll term, p^w and not p, so such rows are
-  # NA (residual_values())
+  # mass still comes from the w ll term, p^w and not p, so a count's
+  # such rows are NA (residual_values())
   wl <- (pmax(w, 1) - 1) * ll + numeric(n)
   # the rows whose tails TMB can switch on in this call: residual_values()
   # steps through the rows in blocks, and a row outside the block has
   # both tail indicators fixed at 0, so its tails would only cost
   rows <- getOption("frmtmb.osa_tail_rows") %||% seq_len(n)
   sub <- function(l) lapply(l, function(v) if (length(v) == n) v[rows] else v)
-  ct <- osa_cdf_tails(fam, yraw[rows], sub(dpv), sub(av), extra)
+  ct <- osa_cdf_tails(fam, yraw[rows], sub(dpv), sub(av), extra,
+                      osa_cens_window(av, yraw))
   sum(keep[, 1] * w * ll) +
     sum(keep[rows, 2] * (ct[["lower"]] + wl[rows]) +
           keep[rows, 3] * (ct[["upper"]] + wl[rows]))
+}
+
+#' The window `c(lo = , hi = )` that a `cens()` fit's censoring points
+#' leave the uncensored rows, an absent side infinite, or `NULL` when no
+#' row is censored. `osa_cens_domain()` has checked that each side has
+#' one point.
+#'
+#' @noRd
+osa_cens_window <- function(av, y) {
+  cen <- av[["cens"]]
+  if (is.null(cen) || !any(cen != 0)) return(NULL)
+  cen <- rep_len(cen, length(y))
+  c(lo = if (any(cen == -1)) y[cen == -1][1L] else -Inf,
+    hi = if (any(cen == 1)) y[cen == 1][1L] else Inf)
 }
 
 #' The blocks of rows `residual_values()` hands `oneStepPredict()` one at
@@ -6129,14 +6395,20 @@ osa_cdf_loglik <- function(fam, yobs, yraw, dpv, av, extra, w) {
 #' `sqrt(n)` rows balance the tails against retaping the objective per
 #' block.
 #'
+#' On a `cens()` fit (`cb`, from `osa_cens_domain()`) the blocks hold
+#' the uncensored rows alone, and `residual_values()` conditions each
+#' on every censored row as well.
+#'
 #' @noRd
-osa_cdf_blocks <- function(n, args) {
-  if (!is.null(args[["subset"]]) || !is.null(args[["conditional"]])) {
+osa_cdf_blocks <- function(n, args, cb = NULL) {
+  if (is.null(cb) &&
+        (!is.null(args[["subset"]]) || !is.null(args[["conditional"]]))) {
     return(NULL)
   }
+  rows <- if (is.null(cb)) seq_len(n) else cb$subset
   size <- max(getOption("frmtmb.osa_block", 0L), ceiling(sqrt(n)), 20L)
-  if (n <= size) return(NULL)
-  split(seq_len(n), ceiling(seq_len(n) / size))
+  if (length(rows) <= size) return(NULL)
+  split(rows, ceiling(seq_along(rows) / size))
 }
 
 #' The one-step residual from the log columns `oneStepPredict()` returns,
@@ -6370,9 +6642,12 @@ residual_values <- function(object, type = c("response", "pearson",
     # precision. An extension's family keeps its own route, because an
     # extension's `lcdf` need not be a CDF of the response alone (the
     # Wiener first-passage families).
+    # A censored count takes "cdf" too, its tails read on the window the
+    # censoring leaves (osa_cdf_tails()); a censored continuous response
+    # keeps "oneStepGeneric", whose exact quadrature "cdf" reproduces
     wv <- av0[["weights"]]
     weighted <- !is.null(wv) && any(wv != 1)
-    cdf_default <- is.null(cb) && !ordinal && osa_has_cdf(fam) &&
+    cdf_default <- (is.null(cb) || disc) && !ordinal && osa_has_cdf(fam) &&
       identical(frm_family_package(fam), "frmtmb") &&
       (!identical(fam[["family"]], "gaussian") || !is.null(tb) || weighted)
     method <- osa_method %||%
@@ -6394,12 +6669,12 @@ residual_values <- function(object, type = c("response", "pearson",
                        "which uses simulate()")
                }, call. = FALSE)
     }
-    if (!is.null(cb) && !identical(method, "oneStepGeneric")) {
+    if (!is.null(cb) && !method %in% c("oneStepGeneric", "cdf")) {
       # a censored row's contribution is a probability MASS, so its
       # observation drops out of the tape; every method that
       # differentiates the observation hits a singular system there
       frm_stop("residuals(type = \"osa\") on a cens() fit needs ",
-               "osa_method = \"oneStepGeneric\"", call. = FALSE)
+               "osa_method = \"oneStepGeneric\" or \"cdf\"", call. = FALSE)
     }
     if (identical(method, "cdf") && (ordinal || !osa_has_cdf(fam))) {
       # RTMB's own route would look for a p-function named after the
@@ -6443,8 +6718,10 @@ residual_values <- function(object, type = c("response", "pearson",
       if (!is.null(cb)) {
         # An uncensored row is only observed because it fell inside the
         # censoring window, so its PIT is F(y) / P(window) - the same
-        # renormalization trunc() needs, on the window's domain.
-        lo <- max(lo, cb$lo)
+        # renormalization trunc() needs, on the window's domain. A count
+        # left-censored at lo is Y <= lo, so the uncensored ones start
+        # at lo + 1.
+        lo <- max(lo, cb$lo + disc)
         hi <- min(hi, cb$hi)
         args$subset <- cb$subset
         args$conditional <- cb$conditional
@@ -6476,19 +6753,27 @@ residual_values <- function(object, type = c("response", "pearson",
                  }, call. = FALSE)
       }
     }
+    if (identical(method, "cdf") && !is.null(cb)) {
+      args$subset <- cb$subset
+      args$conditional <- cb$conditional
+    }
     seed <- if ("seed" %in% names(args)) args[["seed"]] else 123
     rs0 <- get0(".Random.seed", envir = globalenv(), inherits = FALSE)
     blocks <- if (identical(method, "cdf")) {
-      osa_cdf_blocks(object$frame[["n_obs"]], args)
+      osa_cdf_blocks(object$frame[["n_obs"]], args, cb)
     }
     one_step <- function() {
       if (is.null(blocks)) return(do.call(RTMB::oneStepPredict, args))
       # every block draws its uniforms afresh; the residuals below take
-      # theirs from one draw over all rows (osa_uniforms())
+      # theirs from one draw over all rows (osa_uniforms()). The rows
+      # before a block are conditioned on, and so is every censored row,
+      # as the one call over the uncensored rows conditions on them
       do.call(rbind, lapply(blocks, function(ix) {
         a <- args
         a$subset <- ix
-        if (ix[1] > 1L) a$conditional <- seq_len(ix[1] - 1L)
+        before <- seq_len(ix[1] - 1L)
+        cond <- sort(unique(c(cb$conditional, before)))
+        a$conditional <- if (length(cond)) cond
         op <- options(frmtmb.osa_tail_rows = ix)
         on.exit(options(op))
         do.call(RTMB::oneStepPredict, a)
@@ -6528,17 +6813,25 @@ residual_values <- function(object, type = c("response", "pearson",
       } else 0
       if (!is.null(U)) r <- osa_tail_residual(osa, U)
     }
+    if (!is.null(cb)) {
+      # censored rows carry no residual of their own; they enter only as
+      # the conditioning event
+      full <- rep(NA_real_, object$frame[["n_obs"]])
+      full[cb$subset] <- r
+      r <- full
+    }
     # A row of weight 0 is no part of the fitted likelihood, so it has no
     # fitted distribution to be read against. Below a weight of 1, TMB's
     # row mass comes from the density term w ll, so it is the mean of
-    # p^w, not of p, and a count's randomization over it would be wrong;
-    # the tails, which carry no copy of the density there, are the CDF of
-    # a fresh copy of the row, so a continuous response's residual would
-    # be sound. Both are NA until a fresh-copy residual for continuous
-    # responses is decided on (dev/osa-findings.md)
+    # p^w, not of p, and a count's randomization over it would be wrong:
+    # NA. The tails carry no copy of the density there, so they are the
+    # CDF of a fresh copy of the row given the rows before it, and a
+    # continuous response's residual on the "cdf" route, which reads the
+    # tails alone, is that copy's (dev/reviews/2026-11-06-osa.md, item 8)
+    fresh <- identical(method, "cdf") && !disc && !ordinal
     if (!is.null(wv) && length(wv) == length(r)) {
-      r[wv < 1] <- NA_real_
-      frac <- sum(wv > 0 & wv < 1)
+      r[wv <= 0 | (wv < 1 & !fresh)] <- NA_real_
+      frac <- if (fresh) 0L else sum(wv > 0 & wv < 1)
       if (frac) {
         frm_warning(frac, " rows have a weight between 0 and 1, and their ",
                     "one-step-ahead residuals are NA: the residual of a ",
@@ -6558,14 +6851,6 @@ residual_values <- function(object, type = c("response", "pearson",
                         is.null(cb)) {
                     ". osa_method = \"cdf\" reads it from the family's CDF"
                   }, call. = FALSE, class = "frmtmb_osa_nonfinite")
-    }
-    if (!is.null(cb)) {
-      # censored rows carry no residual of their own; they enter only as
-      # the conditioning event
-      full <- rep(NA_real_, object$frame[["n_obs"]])
-      full[cb$subset] <- r
-      r <- full
-      if (!is.null(wv)) r[wv < 1] <- NA_real_
     }
     return(napred(object, r))
   }

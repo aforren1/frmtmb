@@ -430,7 +430,8 @@ own work rather than in review.
   preload), with every extension installed: `bash
   dev/release/run-sessions.sh <tier> 8 <package>` (set `FRMTMB_RELLIB`
   to your library). Report each SESSION line, and read the LEAK lines:
-  one without `[with load of ...]` is your test's.
+  a line with neither `[with load of ...]` nor `[extension session
+  state]` is your test's.
 
 
 ## Cost, which is a real constraint

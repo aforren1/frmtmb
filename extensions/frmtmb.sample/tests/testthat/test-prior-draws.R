@@ -297,6 +297,25 @@ test_that("a mi(sdy) response with no missing value samples under \"only\"", {
   expect_lt(abs(stats::sd(yl) - 0.3) / posterior::mcse_sd(yl), 4)
 })
 
+test_that("a class theta row is the weights' prior under \"only\"", {
+  skip_sampler()
+  # dirichlet(c(30, 1)) on two weights: theta1 is beta(30, 1), mean
+  # 30/31 and sd 0.0306, where dirichlet(1) gave mean 1/2 (brms's
+  # default, which this row replaces, as in brms)
+  set.seed(4)
+  d <- data.frame(y = c(stats::rnorm(30, -1), stats::rnorm(30, 2)))
+  do <- pd_quiet(frm_sample(
+    bf(y ~ 1), data = d, family = mixture(gaussian(), gaussian()),
+    prior = set_prior("dirichlet(c(30, 1))", class = "theta"),
+    sample_prior = "only", chains = 2, iter = 2000, seed = 3,
+    refresh = 0))
+  th <- matrix(as.matrix(do)[, "theta1"], ncol = 2)
+  m <- 30 / 31
+  s <- sqrt(30 / (31^2 * 32))
+  expect_lt(abs(mean(th) - m) / posterior::mcse_mean(th), 4)
+  expect_lt(abs(stats::sd(th) - s) / posterior::mcse_sd(th), 4)
+})
+
 test_that("an me() model samples under \"only\" once meanme, sdme are proper", {
   skip_sampler()
   d <- pd_data()

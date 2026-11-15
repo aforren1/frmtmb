@@ -163,7 +163,19 @@ dpar_frame_rhs <- function(dp) {
     }
   }
   for (sspec in dp[["smooth"]] %||% list()) {
-    for (tm in sspec$term) parts <- c(parts, list(as.name(tm)))
+    # a smooth's term can be an expression (s(exp(x)), as brms fits it),
+    # which the frame evaluates; as a name it was a column nobody has
+    for (tm in sspec$term) {
+      # a backticked column has no Stan name; brms 2.23.0 cannot parse
+      # s(`my x`) ("unexpected symbol") and names nothing for it
+      if (grepl("`", tm, fixed = TRUE)) {
+        frm_stop("The smooth of ", tm, " is not supported: its variable ",
+                 "is not a syntactic name, which brms 2.23.0 cannot parse ",
+                 "in a smooth either. Rename the column, or compute it ",
+                 "under a syntactic name", call. = FALSE)
+      }
+      parts <- c(parts, list(str2lang(tm)))
+    }
     if (!is.null(sspec$by) && sspec$by != "NA") {
       parts <- c(parts, list(as.name(sspec$by)))
     }
@@ -620,6 +632,23 @@ extract_y <- function(resp, mf) {
     # category codes 1..K in level order; brms codes a hurdle family's
     # first level as the category 0
     y <- as.numeric(y) - 1 + code0
+  } else if (is.character(y) &&
+               identical(resp$family[["type"]], "ordinal")) {
+    # brms 2.23.0 refuses text, digits too, with this sentence
+    # (dev/refits-brms.R). Labels have no category order, and the
+    # coercion below turned them into NA, which stopped later in an
+    # anonymous internal error
+    code0 <- ord_code0(resp$family)
+    frm_stop("Family '", resp$family[["family"]], "' requires either ",
+             if (code0 == 0L) "non-negative" else "positive",
+             " integers or ordered factors as responses. '",
+             deparse1(resp$resp_expr), "' is a character vector (",
+             paste0("'", utils::head(unique(y[!is.na(y)]), 4L), "'",
+                    collapse = ", "),
+             "). Use as.integer() for codes, or ",
+             "factor(..., levels = ..., ordered = TRUE) with the ",
+             "levels in their order", call. = FALSE,
+             package = frm_family_package(resp$family))
   } else if (is.factor(y)) {
     if (!identical(resp$family[["family"]], "binomial") || nlevels(y) != 2L) {
       frm_stop("Factor responses are only supported for binomial families ",
@@ -1469,6 +1498,54 @@ mm_index_weights <- function(mmspec, data, env, levels) {
   list(J = J, W = W, n = n, n_members = ng)
 }
 
+#' The contrasts `model.matrix()` codes the factors of a group-level
+#' term's left side with on `data`, which is what `mkReTrms()` reads: a
+#' factor's own `contrasts` attribute, else the session's
+#' `options("contrasts")` at the fit. A prediction passes them back as
+#' `contrasts.arg`, as the population-level design reads its stored
+#' `contrasts`. Each is named as the prediction's model frame names its
+#' column, by the deparsed variable (`factor(cyl)`). `NULL` when the term
+#' has no factor.
+#'
+#' @noRd
+re_term_contrasts <- function(lhs, data, env) {
+  tt <- stats::terms(stats::as.formula(call("~", lhs), env = env))
+  # each variable as the frame holds it, else evaluated on the frame:
+  # `data` can be a model frame that holds `factor(cyl)` and no `cyl`,
+  # where model.frame() of the left side failed and the term kept no
+  # contrasts (dev/reviews/2026-11-13-silent2.md, F1)
+  cols <- list()
+  for (v in as.list(attr(tt, "variables"))[-1L]) {
+    nm <- deparse1(v)
+    x <- data[[nm]]
+    if (is.null(x)) {
+      x <- tryCatch(eval(v, as.data.frame(data), env),
+                    error = function(e) NULL)
+    }
+    if (is.factor(x) || is.character(x) || is.logical(x)) cols[[nm]] <- x
+  }
+  if (!length(cols)) return(NULL)
+  funs <- as.character(getOption("contrasts"))
+  lapply(cols, function(x) {
+    attr(x, "contrasts") %||% funs[[1L + is.ordered(x)]]
+  })
+}
+
+#' The stored contrasts of `contr` that `model.matrix()` can apply to the
+#' model frame `mf`: its factor columns. A name `mf` lacks would only
+#' warn, and a column that is not a factor there has no contrasts.
+#'
+#' @noRd
+re_contrasts_for <- function(contr, mf) {
+  if (is.null(contr)) return(NULL)
+  ok <- vapply(names(contr), function(v) {
+    x <- mf[[v]]
+    !is.null(x) && (is.factor(x) || is.character(x) || is.logical(x))
+  }, NA)
+  if (!any(ok)) return(NULL)
+  contr[ok]
+}
+
 #' Per-member design matrices of one multi-membership term.
 #'
 #' Every member shares the ordinary columns of the bar's left side, and
@@ -1491,7 +1568,8 @@ mm_member_designs <- function(mmspec, data, env, n_members,
     data <- check_newdata_frame(tt, data, xlev)
     mf2 <- stats::model.frame(tt, data, na.action = stats::na.pass,
                               xlev = xlev)
-    stats::model.matrix(tt, mf2)
+    stats::model.matrix(tt, mf2, contrasts.arg = re_contrasts_for(
+      mmspec[["contrasts"]], mf2))
   } else {
     stats::model.matrix(tt, data)
   }
@@ -1692,13 +1770,16 @@ gr_cov_matrix <- function(expr, data2, data, env, lv, what) {
 
 #' A known-covariance block fits an unstructured covariance within the
 #' levels, so a term that asked for another structure there is refused
-#' once its columns are known: one column needs none.
+#' once its columns are known: one column needs none. With `split`, an
+#' uncorrelated term passes: the caller fits it as one block per column
+#' (`gr_known_split()`).
 #'
 #' @noRd
-gr_cov_check_within <- function(re, cnms) {
+gr_cov_check_within <- function(re, cnms, split = FALSE) {
   ws <- re[["within_struct"]]
   d <- length(cnms)
   if (is.null(ws) || d < 2L) return(invisible(NULL))
+  if (split && identical(ws, "diag")) return(invisible(NULL))
   lab <- re[["within_label"]]
   if (!identical(ws, "diag")) {
     frm_stop(lab, " has ", d, " columns. ",
@@ -1709,13 +1790,46 @@ gr_cov_check_within <- function(re, cnms) {
   }
   frm_stop(lab, " has a term with ", d,
            " columns (", paste(cnms, collapse = ", "),
-           "), and an uncorrelated term over gr(cov = ) or ",
-           "gr(prec = ) gives each column its own sd. That is ",
-           "brms's model, but frmtmb's known-covariance block ",
-           "correlates the columns within a level, so it is not ",
-           "available yet. Write each column as a numeric ",
-           "variable of its own in the || term, or fit the ",
+           "), and an uncorrelated term over the known matrix of a ",
+           "multi-membership term, mm(cov = ), gives each column its own ",
+           "sd. That is brms's model, but frmtmb's multi-membership ",
+           "known-covariance block correlates the columns within a ",
+           "level, so it is not available yet. Write each column as a ",
+           "numeric variable of its own in the || term, or fit the ",
            "columns correlated with |", call. = FALSE)
+}
+
+#' One component per column of an uncorrelated term over a known matrix,
+#' `(0 + f || gr(g, cov = A))`: brms 2.23.0 fits each column with its own
+#' sd over the matrix, `r_1_k = sd_1[k] * (Lcov_1 * z_1[k])`
+#' (`dev/refits-brms.R`), which is a one-column known-covariance block
+#' per column, as lme4's `||` split writes a numeric column. Each keeps
+#' the term's bar, and `col_pick` says which column of the bar's design
+#' it is, for a prediction that builds the design again.
+#'
+#' @noRd
+gr_known_split <- function(cp) {
+  d <- cp$dim
+  nl <- cp$n_levels
+  lapply(seq_len(d), function(j) {
+    s <- cp
+    # Zlocal's columns are level-major: level l, column j is (l-1) d + j
+    s$Zlocal <- cp$Zlocal[, (seq_len(nl) - 1L) * d + j, drop = FALSE]
+    s$dim <- 1L
+    s$cnms <- cp$cnms[j]
+    s$col_pick <- j
+    s["aux_kron"] <- list(NULL)
+    s["aux_Qk"] <- list(NULL)
+    s$label <- paste0(cp$label, " [", cp$cnms[j], "]")
+    mo <- cp[["mo_re"]]
+    if (!is.null(mo)) {
+      hit <- match(j, mo[["cf"]])
+      s["mo_re"] <- list(if (!is.na(hit)) {
+        list(cf = 1L, raw = mo[["raw"]][hit])
+      })
+    }
+    s
+  })
 }
 
 #' A missing value's chart: `mi_chart_fun()` maps the value to the latent
@@ -1790,10 +1904,21 @@ mi_chart_maps <- function(chart) {
 mi_rows_joint <- function(frame, r) {
   fam <- frame[["spec"]]$responses[[r]]$family
   ac <- frame[["autocor"]][[r]]
-  # a registered term's map takes every row at once, so it has no margin
-  # to drop a row into; the ar() family's blocks do (autocor_drop_rows())
+  # a registered term's density reads mu at every row (the lag SAR's mean
+  # is A^-1 mu), so each row's predictor stays read
   !is.null(fam_structure(fam)[["loglik"]]) ||
     (!is.null(ac) && (autocor_is_cond(ac) || autocor_is_seam(ac)))
+}
+
+#' Whether every missing value of response `r` stays latent whatever reads
+#' it: a joint family, or the lagged residual of a `cov = FALSE` term. A
+#' registered term's missing values can leave: the objective takes the
+#' exact margin of the rows that remain (`autocor_seam_margin_loglik()`),
+#' as the ar() family's blocks drop a row (`autocor_drop_rows()`).
+#'
+#' @noRd
+mi_rows_held <- function(frame, r) {
+  mi_rows_joint(frame, r) && !autocor_is_seam(frame[["autocor"]][[r]])
 }
 
 #' Which rows of response `s` still have their density in the objective, with
@@ -1826,7 +1951,7 @@ mi_rows_read <- function(frame) {
   mp <- frame[["mi_map"]]
   read <- lapply(mp, `[[`, "rows")
   peel <- names(mp)[!vapply(names(mp), function(r) {
-    !is.null(mp[[r]][["se"]]) || mi_rows_joint(frame, r)
+    !is.null(mp[[r]][["se"]]) || mi_rows_held(frame, r)
   }, NA)]
   repeat {
     before <- lengths(read)
@@ -2110,20 +2235,17 @@ check_id_mm_weights <- function(cps) {
 
 #' Where a read value's Laplace approximation is exact: a gaussian value that
 #' only gaussian means read, on the identity link, since its log density is
-#' then a quadratic; and a registered term's `student()` value that only the
-#' term's density reads, whose error the objective takes off exactly.
+#' then a quadratic. A registered term's value that only the term's density
+#' reads is not latent at all (`mi_rows_held()`).
 #'
 #' @noRd
 mi_laplace_exact <- function(frame) {
   gaussian_resp <- function(r) {
     identical(frame[["spec"]]$responses[[r]]$family[["family"]], "gaussian")
   }
-  # a registered term's student() values the objective corrects exactly
-  # (autocor_seam_t_laplace())
-  t_exact <- autocor_seam_t_missing(frame)
   for (r in names(frame[["mi_map"]])) {
     if (!length(frame[["mi_map"]][[r]][["rows"]])) next
-    if (!gaussian_resp(r) && is.null(t_exact[[r]])) return(FALSE)
+    if (!gaussian_resp(r)) return(FALSE)
   }
   for (lp in frame[["linpreds"]]) {
     if (!length(lp[["mi"]])) next
@@ -2155,6 +2277,90 @@ loglik_nobs <- function(frame) {
     held <- c(held, of[setdiff(rows, un)])
   }
   length(unique(held))
+}
+
+#' The values each response's density reads, row by row, for `anova()`'s
+#' same-data check: two fits of 72 rows each can read rows 1 to 72 and 9
+#' to 80, and a count of rows does not tell them apart. The rows are put
+#' in the order of the data's row names, so a fit of the same rows given
+#' in another order, or of a copy whose row names restart at 1 (a
+#' filtered tibble), reads the same values.
+#'
+#' @noRd
+loglik_rows_key <- function(fit) {
+  fr <- fit$frame
+  rn <- rownames(fit$data) %||% as.character(seq_len(fr[["n_obs"]]))
+  out <- list()
+  for (r in sort(names(fr[["y"]]))) {
+    y <- fr[["y"]][[r]]
+    rows <- seq_len(NROW(y))
+    keep <- setdiff(rows, fr[["mi_map"]][[r]][["unread"]])
+    lab <- rn[(fr[["subset_rows"]][[r]] %||% rows)[keep]]
+    num <- suppressWarnings(as.numeric(lab))
+    ord <- if (length(lab) && !anyNA(num)) {
+      order(num)
+    } else {
+      order(lab, method = "radix")
+    }
+    sel <- (fr[["subset_rows"]][[r]] %||% rows)[keep][ord]
+    # a factor, character or logical response by its labels, read off the
+    # data: the frame holds its codes, and two factors of other outcomes
+    # whose codes agree (a..d against w..z) are other data (short check of
+    # the review, F2). A logical reads as "0"/"1", an integer's text.
+    raw <- loglik_rows_raw(fit, r)
+    out[[r]] <- if (!is.null(raw)) {
+      raw <- raw[sel]
+      as.character(if (is.logical(raw)) as.integer(raw) else raw)
+    } else {
+      v <- if (is.matrix(y)) y[keep, , drop = FALSE][ord, , drop = FALSE] else {
+        y[keep][ord]
+      }
+      v <- if (is.factor(v)) as.character(v) else v
+      if (is.numeric(v) || is.logical(v)) as.numeric(unname(v)) else {
+        as.character(unname(v))
+      }
+    }
+  }
+  # one response each: compared by its values, not its name, so `y ~ 1`
+  # and `I(y) ~ x`, or `y` and a copy `y2`, are the same data
+  if (length(out) == 1L) unname(out) else out
+}
+
+#' A response's raw values on the fit's data rows when they are labels (a
+#' factor, character or logical vector), for `loglik_rows_key()`; `NULL`
+#' for a numeric or matrix response, or one that does not evaluate there.
+#'
+#' @noRd
+loglik_rows_raw <- function(fit, r) {
+  rspec <- fit$spec$responses[[r]]
+  if (is.null(rspec) || is.null(fit$data)) return(NULL)
+  raw <- tryCatch(eval(rspec$resp_expr, as.data.frame(fit$data),
+                       rspec$formula_env), error = function(e) NULL)
+  if (is.null(raw) || !is.null(dim(raw)) ||
+        length(raw) != nrow(fit$data) ||
+        !(is.factor(raw) || is.character(raw) || is.logical(raw))) {
+    return(NULL)
+  }
+  raw
+}
+
+#' Whether two `loglik_rows_key()` keys are the same data: equal element
+#' by element, where a numeric key meets a label key through its text, so
+#' the integer 1..4 and the ordered factor of the same labels compare.
+#'
+#' @noRd
+loglik_rows_same <- function(a, b) {
+  if (identical(a, b)) return(TRUE)
+  if (length(a) != length(b) || !identical(names(a), names(b))) return(FALSE)
+  all(vapply(seq_along(a), function(i) {
+    x <- a[[i]]
+    y <- b[[i]]
+    if (is.character(x) != is.character(y)) {
+      x <- as.character(x)
+      y <- as.character(y)
+    }
+    identical(x, y)
+  }, NA))
 }
 
 #' After a fit: warn when the Laplace approximation of the read values has a
@@ -2685,6 +2891,52 @@ smooth_pen_order <- function(sm, re2) {
   ord
 }
 
+#' The smooths of a fitted frame by linear predictor, the `smooth_map`
+#' of `assemble_frame()`.
+#'
+#' @noRd
+smooth_map_of <- function(frame) {
+  out <- lapply(frame[["linpreds"]], function(lp) lp[["smooths"]])
+  out[!vapply(out, is.null, NA)]
+}
+
+#' The fitted smooths that one smooth term of one linear predictor built,
+#' when a refit can rebuild them on its own rows: `NULL` for a fit made
+#' before they recorded their term (`spec_k`), and for a `t2()` basis
+#' whose split prediction cannot invert (`smooth_basis_at()`), so that
+#' such a refit computes its basis again, as it did before.
+#'
+#' @noRd
+smooth_frozen_of <- function(smooth_map, lp_key, k) {
+  sis <- smooth_map[[lp_key]]
+  if (!length(sis)) return(NULL)
+  sis <- Filter(function(si) identical(si[["spec_k"]], k), sis)
+  ok <- vapply(sis, function(si) {
+    !is.null(si[["U"]]) || !is.null(si[["ord"]])
+  }, NA)
+  if (!length(sis) || !all(ok)) return(NULL)
+  sis
+}
+
+#' `mgcv::smooth2random()`'s split of a fitted smooth, at the rows of
+#' `mf`: the fitted basis evaluated there, in the fitted
+#' parameterization (`smooth_basis_at()`), cut into the wiggly blocks and
+#' the null-space columns the fit had.
+#'
+#' @noRd
+smooth_random_frozen <- function(si, mf) {
+  M <- smooth_basis_at(si, mf)
+  rand <- list()
+  at <- 0L
+  for (k in si$nr) {
+    rand[[length(rand) + 1L]] <- M[, at + seq_len(k), drop = FALSE]
+    at <- at + k
+  }
+  list(rand = rand,
+       Xf = if (si$nf > 0L) M[, at + seq_len(si$nf), drop = FALSE],
+       trans.U = si$U, trans.D = si$D, fixed = FALSE)
+}
+
 #' Move the intercept column of a `0 + Intercept` design to where brms
 #' puts it: after the columns of the `pos` terms written before
 #' `Intercept`. model.matrix() orders columns by term, and the rewritten
@@ -3086,12 +3338,17 @@ raw_rhs <- function(spec, rhs) {
 #' the fit's rows: those rows have no missing value left to drop, and
 #' the refit pads its residuals and fitted values as the fit does.
 #'
+#' `smooth_map` is for `influence()`'s deletion refits: the fitted
+#' frame's smooths by linear predictor (`smooth_map_of()`), so that an
+#' `s(x)` term keeps the knots and the reparameterization the fit
+#' computed from every row, as `predvar_map` keeps a `poly()` basis.
+#'
 #' @noRd
 assemble_frame <- function(spec, data, na.action = stats::na.omit,
                            sparse_x = FALSE, data2 = list(),
                            check_response = TRUE, thres_pin = NULL,
                            drop_unused_levels = TRUE, predvar_map = NULL,
-                           refit_na_action = NULL) {
+                           refit_na_action = NULL, smooth_map = NULL) {
   # a saved fit's family from a package this session lacks
   require_model_packages(spec)
   # `data = NULL` is not "no data": model.frame() falls back to the
@@ -4176,7 +4433,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           # (mo_bar_rewrite())
           for (ph in names(dp[["mo_re"]])) mf[[ph]] <- rep(1, nrow(mf))
           grp <- resolve_group_calls(rt_bars, mf, resp$formula_env)
+          # drop_unused_levels = FALSE keeps a grouping factor's unused
+          # level as a level of the term, as brms's standata has it (N_1
+          # counts it); its effect is then its prior alone
           rt <- reformulas::mkReTrms(grp$bars, fr = grp$fr,
+                                     drop.unused.levels = drop_unused_levels,
                                      reorder.terms = FALSE)
           fassign <- attr(rt$flist, "assign")
         }
@@ -4204,6 +4465,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             # cmc = FALSE rides on the spec, which the component keeps,
             # so a prediction builds the members' designs the same way
             if (isFALSE(dp[["cmc"]])) mms[["cmc"]] <- FALSE
+            # and the fit's contrasts ride on it too (re_term_contrasts())
+            mms[["contrasts"]] <- re_term_contrasts(mms$lhs, mf,
+                                                    resp$formula_env)
             gvals <- mm_member_values(mms, mf, resp$formula_env)
             levs <- mm_pooled_levels(gvals)
             iw <- mm_index_weights(mms, mf, resp$formula_env, levs)
@@ -4267,7 +4531,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             rt$cnms[[kk]] <- rt$cnms[[kk]][keep]
           }
           d_k <- length(rt$cnms[[kk]])
-          gr_cov_check_within(dp[["re"]][[k]], rt$cnms[[kk]])
+          gr_cov_check_within(dp[["re"]][[k]], rt$cnms[[kk]], split = TRUE)
           len_k <- length(zrows)
           dist_cs <- c("ou", "exp", "gau", "mat")
           if (cs_name %in% c("ar1", "hetar1", "cs", "homcs", "toep",
@@ -4353,6 +4617,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             aux_D = aux_D, aux_kron = aux_kron, aux_Q = aux_Q,
             aux_Qk = aux_Qk,
             group_name = names(rt$flist)[fassign[kk]],
+            # the coding mkReTrms() gave the term's factors, for a
+            # prediction made after options(contrasts = ) changed
+            contrasts = re_term_contrasts(bars[[k]][[2L]], mf,
+                                          resp$formula_env),
             label = paste0(dp_prefix,
                            deparse1(mo_ph_unwrite(bars[[k]], dp[["mo_re"]])))
           )
@@ -4376,6 +4644,15 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           # gr(g, by = f): the term as written is what the duplicate
           # check reads, and one block per by-level is what is fitted
           dup_cps[[length(dup_cps) + 1L]] <- components[[length(components)]]
+          if (identical(dp[["re"]][[k]][["within_struct"]], "diag") &&
+                cs_name %in% c("gr_cov", "gr_prec") && d_k > 1L) {
+            subs <- gr_known_split(components[[length(components)]])
+            components[[length(components)]] <- subs[[1L]]
+            for (s in subs[-1L]) {
+              components[[length(components) + 1L]] <- s
+              comp_ids <- c(comp_ids, length(components))
+            }
+          }
           by_k <- dp[["re"]][[k]]$by
           if (!is.null(by_k)) {
             cp <- components[[length(components)]]
@@ -4398,7 +4675,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # iid-Gaussian component whose variance is the inverse smoothing
       # parameter.
       sm_info <- list()
+      sk <- 0L
       for (sspec in dp[["smooth"]] %||% list()) {
+        sk <- sk + 1L
+        # a deletion refit keeps the fit's basis (smooth_map)
+        frozen <- smooth_frozen_of(smooth_map, lp_key, sk)
         # modCon = 3 ("set fit and predict constraint to fit constraint").
         # A t2 smooth carries two identifiability constraints: `C`, absorbed
         # into `X`/`S` for fitting, and `Cp`, absorbed into `Xp`/`Sp` and
@@ -4422,10 +4703,21 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # it meant another parameter. The random part, and so the fit,
         # does not change. mgcv ignores the flag for a smooth with
         # several penalties (t2()), as it does in brms's call.
-        scl <- mgcv::smoothCon(sspec, data = mf, absorb.cons = TRUE,
-                               modCon = 3, diagonal.penalty = TRUE)
+        scl <- if (is.null(frozen)) {
+          mgcv::smoothCon(sspec, data = mf, absorb.cons = TRUE,
+                          modCon = 3, diagonal.penalty = TRUE)
+        } else {
+          lapply(frozen, `[[`, "sm")
+        }
         for (sm in scl) {
-          re2 <- mgcv::smooth2random(sm, names(mf), type = 2)
+          si0 <- if (!is.null(frozen)) {
+            frozen[[match(sm$label, vapply(frozen, `[[`, "", "label"))]]
+          }
+          re2 <- if (is.null(si0)) {
+            mgcv::smooth2random(sm, names(mf), type = 2)
+          } else {
+            smooth_random_frozen(si0, mf)
+          }
           if (isTRUE(re2$fixed)) {
             frm_stop("Fixed (fx = TRUE) smooths are not supported: ", sm$label,
                      call. = FALSE)
@@ -4461,7 +4753,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           }
           sm_info[[length(sm_info) + 1L]] <- list(
             sm = sm, U = re2$trans.U, D = re2$trans.D,
-            ord = smooth_pen_order(sm, re2),
+            ord = if (is.null(si0)) smooth_pen_order(sm, re2) else si0$ord,
             nr = nr, nf = nf, xf_idx = xf_idx,
             comp_ids = sm_comp_ids, block_ids = NULL,
             # the grouping factor this basis is indexed by, if any: what
@@ -4475,7 +4767,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             # unseen level would otherwise die inside PredictMat with a
             # non-conformable-arguments error instead of the named
             # new-levels refusal
-            group_levels = local({
+            group_levels = if (!is.null(si0)) si0$group_levels else local({
               gv <- smooth_group_var(sm, mf)
               if (is.null(gv) || is.null(mf[[gv]])) NULL else
                 levels(as.factor(mf[[gv]]))
@@ -4484,7 +4776,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             # the written term this basis came from: a factor `by`
             # splits one term into a basis per level, and
             # conditional_smooths() draws the term, not the level
-            term = attr(sspec, "frm_term") %||% sm$label
+            term = attr(sspec, "frm_term") %||% sm$label,
+            # which of the parameter's smooth terms it came from, for a
+            # refit that keeps this basis (smooth_frozen_of())
+            spec_k = sk
           )
         }
       }
@@ -4575,6 +4870,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
               aux_D2 = gp_d2,
               gp_order = gp_farthest_first(list(aux_D2 = gp_d2)),
               gp_D = Dg, gp_iso = iso, gp_vars = vnames,
+              gp_cov = ge$cov,
               # the exact form keeps data units inside; brms reports
               # its lengthscale on the scaled inputs
               gp_lscale_div = dmax, gp_brms = brms_meta,
@@ -4619,6 +4915,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
               bar = NULL, Zlocal = methods::as(Phi, "CsparseMatrix"),
               aux_omega = omega,
               gp_D = Dg, gp_iso = iso, gp_vars = vnames,
+              gp_cov = ge$cov,
+              # the basis's half wavelength at its top frequency, per
+              # dimension, in the length scale's units: the finest
+              # detail it can resolve (gp_basis_message())
+              gp_spacing = 2 * Lb / m,
+              gp_span = gp_max_dist(uq) / dmax,
               gp_dmax = dmax, gp_lscale_div = 1, gp_brms = brms_meta,
               group_name = lab,
               label = paste0(dp_prefix, lab)
@@ -4740,6 +5042,21 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           # did that up to 0.75.0). New data are coded from the fitted
           # data's minimum, as brms's validate_newdata() codes them.
           mo_lo <- min(v)
+          # brms's get_mo_values() takes the lowest category from
+          # attr(x, "min") when the data carry it, so a category below
+          # every observed value can be declared. The frame keeps it, so
+          # new data are coded from it too (brms recodes them from the
+          # observed minimum, its own inconsistency, brms-40)
+          amin <- if (is.name(mexpr)) attr(data[[as.character(mexpr)]], "min")
+          if (!is.null(amin)) {
+            if (!is.numeric(amin) || length(amin) != 1L || !is.finite(amin) ||
+                amin != round(amin) || amin > mo_lo) {
+              frm_stop("mo(", deparse1(mexpr), "): attr(", deparse1(mexpr),
+                       ", \"min\") must be one whole number no larger than ",
+                       "the smallest value, ", mo_lo, call. = FALSE)
+            }
+            mo_lo <- amin
+          }
           codes <- as.integer(v - mo_lo)
           D_mo <- max(codes)
           mo_levels <- NULL
@@ -5155,6 +5472,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       gp_order = cps[[1]]$gp_order,
       gp_D = cps[[1]]$gp_D,
       gp_iso = cps[[1]]$gp_iso,
+      gp_cov = cps[[1]]$gp_cov,
+      gp_spacing = cps[[1]]$gp_spacing,
+      gp_span = cps[[1]]$gp_span,
       gp_vars = cps[[1]]$gp_vars,
       gp_dmax = cps[[1]]$gp_dmax,
       gp_lscale_div = cps[[1]]$gp_lscale_div,
@@ -5173,6 +5493,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         if (isTRUE(cps[[k]][["cmc_intercept"]])) {
           out[["cmc_intercept"]] <- TRUE
         }
+        # and the contrasts it was coded with (re_term_contrasts())
+        if (!is.null(cps[[k]][["contrasts"]])) {
+          out[["contrasts"]] <- cps[[k]][["contrasts"]]
+        }
         # a || or cor = FALSE term as written, which messages name it by
         # (block_written_label())
         if (!is.null(cps[[k]][["written_text"]])) {
@@ -5181,6 +5505,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # its group-level mo() columns, which a prediction scales too
         if (!is.null(cps[[k]][["mo_re"]])) {
           out[["mo_re"]] <- cps[[k]][["mo_re"]]
+        }
+        # one column of its bar's design (gr_known_split())
+        if (!is.null(cps[[k]][["col_pick"]])) {
+          out[["col_pick"]] <- cps[[k]][["col_pick"]]
         }
         out
       })

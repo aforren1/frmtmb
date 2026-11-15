@@ -130,12 +130,12 @@ test_that("the matrix-valued classes refuse lb/ub, naming the alternative", {
                  "takes no lb/ub", info = cl)
   }
   # each correlation has one slot, its class, as in brms, so no
-  # internal route is named (class theta would refuse it)
+  # internal route is named (class thetacov would refuse it)
   for (cl in c("cor", "cortime", "rescor")) {
     e <- tryCatch(set_prior("lkj(2)", class = cl, lb = 0),
                   error = conditionMessage)
     expect_match(e, "one prior slot", fixed = TRUE, info = cl)
-    expect_no_match(e, "class = \"theta\"", fixed = TRUE, info = cl)
+    expect_no_match(e, "class = \"thetacov\"", fixed = TRUE, info = cl)
   }
   # and each of them still demands the density that fits it
   expect_error(set_prior("normal(0, 1)", class = "rescor"),
@@ -152,31 +152,31 @@ test_that("a higher-order ar coefficient refuses a bound, with the reason", {
   # internal space is the box the user asked for
   expect_error(frmtmb:::resolve_prior_input(fit,
     set_prior("", class = "ar", lb = 0.1)), "takes no lb/ub at order 2")
-  # and names no route that is refused in turn: class theta on either
+  # and names no route that is refused in turn: class thetacov on either
   # internal parameter is a second slot on the same coefficients
   e <- tryCatch(frmtmb:::resolve_prior_input(fit,
     set_prior("", class = "ar", lb = 0.1)), error = conditionMessage)
-  expect_no_match(e, "class = \"theta\"", fixed = TRUE)
+  expect_no_match(e, "class = \"thetacov\"", fixed = TRUE)
   expect_match(e, "order one only", fixed = TRUE)
   # the density still works at that order, which is what the Jacobian is
   # for
   expect_length(frmtmb:::resolve_prior_input(fit,
     set_prior("normal(0, 0.5)", class = "ar"))$entries, 1L)
   expect_error(frmtmb:::resolve_prior_input(fit,
-    set_prior("", class = "theta", coef = "thetaac_2", lb = -1)),
+    set_prior("", class = "thetacov", coef = "thetaac_2", lb = -1)),
     "internal parameter of ar", class = "frmtmb_error")
 })
 
-test_that("class theta refuses the covariance parameters a class reaches", {
+test_that("class thetacov refuses the covariance parameters a class reaches", {
   dd <- sim_ar()
   fm <- frm(mvbf(bf(y ~ x) + gaussian(), bf(y2 ~ x) + gaussian(),
                  rescor = TRUE), data = dd)
   expect_error(frmtmb:::resolve_prior_input(fm,
-    set_prior("", class = "theta", coef = "thetar_1", lb = -1)),
+    set_prior("", class = "thetacov", coef = "thetar_1", lb = -1)),
     "class = \"rescor\"", class = "frmtmb_error")
   fr <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
   expect_error(frmtmb:::resolve_prior_input(fr,
-    set_prior("", class = "theta", coef = "theta_1", lb = -3)),
+    set_prior("", class = "thetacov", coef = "theta_1", lb = -3)),
     "class = \"sd\", group = \"g\"", class = "frmtmb_error")
   # the class spelling bounds the standard deviation on its own scale
   re <- frmtmb:::resolve_prior_input(fr,
@@ -186,12 +186,12 @@ test_that("class theta refuses the covariance parameters a class reaches", {
   # a name no covariance component carries lists the ones that exist
   f_ar <- frm(bf(y ~ x + ar(t, g, cov = TRUE)) + gaussian(), data = dd)
   expect_error(frmtmb:::resolve_prior_input(f_ar,
-    set_prior("", class = "theta", coef = "nope_1", lb = 0)),
+    set_prior("", class = "thetacov", coef = "nope_1", lb = 0)),
     "names no covariance parameter")
 })
 
 test_that("one residual-correlation parameter has one prior slot", {
-  # through 0.75.0 default_prior() listed class ar and class theta coef
+  # through 0.75.0 default_prior() listed class ar and class thetacov coef
   # thetaac_1 for the same coefficient, and frm() applied whichever of
   # the two came last (dev/acprior-double.R)
   dd <- sim_ar(ng = 20)
@@ -206,13 +206,13 @@ test_that("one residual-correlation parameter has one prior slot", {
     fo <- cases[[nm]][[1L]]
     cls <- cases[[nm]][[2L]]
     dp <- default_prior(fo, data = dd)
-    expect_false(any(dp$class == "theta"), info = nm)
+    expect_false(any(dp$class == "thetacov"), info = nm)
     expect_true(all(cls %in% dp$class), info = nm)
     fr <- frm(fo, data = dd, dry_run = "frame")
     pt <- fr[["par_template"]][["thetaac"]]
     for (k in seq_along(pt)) {
       e <- tryCatch(validate_prior(set_prior("normal(0, 1)",
-                                             class = "theta",
+                                             class = "thetacov",
                                              coef = paste0("thetaac_", k)),
                                    fo, data = dd),
                     error = identity)
@@ -228,7 +228,7 @@ test_that("one residual-correlation parameter has one prior slot", {
   }
   # frm() refuses it too, before any fitting
   expect_error(frm(y ~ x + cosy(t, g), data = dd,
-                   prior = set_prior("", class = "theta",
+                   prior = set_prior("", class = "thetacov",
                                      coef = "thetaac_1", lb = 0)),
                "internal parameter of cosy", class = "frmtmb_error")
   # the guard absent: the class itself takes the prior
@@ -237,7 +237,7 @@ test_that("one residual-correlation parameter has one prior slot", {
   expect_true("normal(0.3, 0.2)" %in% vp$prior[vp$class == "ar"])
   # in a multivariate model the refusal names the response too
   e <- tryCatch(validate_prior(
-    set_prior("normal(0, 1)", class = "theta", coef = "thetaac_2"),
+    set_prior("normal(0, 1)", class = "thetacov", coef = "thetaac_2"),
     mvbf(bf(y ~ x + ar(t, g)), bf(y2 ~ x + ar(t, g))), data = dd),
     error = conditionMessage)
   expect_match(e, "class = \"ar\", resp = \"y2\"", fixed = TRUE)
@@ -295,7 +295,7 @@ test_that("get_prior lists a row for every new class the model offers", {
   expect_true(all(c("ar", "ma") %in% gp$class))
   # one row per parameter: the internal names of the ar and ma
   # coefficients are not a second spelling of them
-  expect_false(any(gp$class == "theta"))
+  expect_false(any(gp$class == "thetacov"))
 
   gu <- get_prior(bf(y ~ x + unstr(t, g)) + gaussian(), data = dd)
   expect_true("cortime" %in% gu$class)
@@ -305,7 +305,7 @@ test_that("get_prior lists a row for every new class the model offers", {
                        rescor = TRUE), data = dd)
   expect_true("rescor" %in% gm$class)
   # one row for the residual correlation, its class, as in brms
-  expect_false(any(gm$class == "theta"))
+  expect_false(any(gm$class == "thetacov"))
 })
 
 test_that("prior_summary reports the new classes on a fit", {
@@ -364,10 +364,14 @@ test_that("a bound on sigma under a cov = TRUE term is brms's bound", {
     fit <- frm(fo, data = dd)
     r <- frmtmb:::resolve_prior_input(fit,
       set_prior("normal(1, 1)", class = "sigma", lb = 0.2, ub = 3))
-    expect_identical(unname(r$lower[["sigma_(Intercept)"]]), log(0.2),
-                     label = deparse(fo))
-    expect_identical(unname(r$upper[["sigma_(Intercept)"]]), log(3),
-                     label = deparse(fo))
+    # the log bound, moved inward the ulp exp() needs to land inside
+    # [0.2, 3] (exp(log(3)) is above 3; bound_inside())
+    lo <- unname(r$lower[["sigma_(Intercept)"]])
+    hi <- unname(r$upper[["sigma_(Intercept)"]])
+    expect_true(exp(lo) >= 0.2 && exp(hi) <= 3, label = deparse(fo))
+    expect_lte(abs(lo - log(0.2)) / abs(log(0.2)),
+               4 * .Machine$double.eps)
+    expect_lte(abs(hi - log(3)) / log(3), 4 * .Machine$double.eps)
   }
   # a fit under the bound puts sigma, the innovation sd, inside it
   w <- "Standard errors are not available"

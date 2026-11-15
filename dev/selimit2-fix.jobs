@@ -1,0 +1,6 @@
+frmtmb tests/testthat/test-se-limit.R
+frmtmb tests/testthat/test-se-tier.R
+frmtmb tests/testthat/test-mi-families.R
+frmtmb tests/testthat/test-se-reparam-reml.R
+frmtmb tests/testthat/test-ordinal-mixture.R
+frmtmb.eam extensions/frmtmb.eam/tests/testthat/test-defects.R

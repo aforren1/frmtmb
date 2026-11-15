@@ -193,9 +193,11 @@ test_that("vcov_cluster() runs on an ordinal fit with disc held at 1", {
 
 # A mixture fit whose subject is names or densities at the point it
 # keeps: its jittered starts may pass over a higher step function and
-# say so (mixture_starts()).
+# say so in a message (mixture_starts()), which this keeps quiet.
 otn_frm <- function(...) {
-  allow_warnings(frm(...), "jittered starts reached a higher")
+  withCallingHandlers(frm(...), frmtmb_mixture_step_start = function(m) {
+    invokeRestart("muffleMessage")
+  })
 }
 
 otn_mix_data <- function(seed = 20261005, n = 400) {

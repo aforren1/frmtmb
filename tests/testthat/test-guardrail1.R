@@ -274,13 +274,22 @@ test_that("a column named like an extension's special is not the special", {
   # data
   local_frmtmb_registries()
   homes <- frmtmb:::extension_special_homes
-  expect_null(frmtmb:::check_extension_specials(quote(car + x)))
-  if (length(homes)) {
-    nm <- names(homes)[[1L]]
-    if (!nm %in% cs_names()) {
-      expect_error(frmtmb:::check_extension_specials(
-        str2lang(paste0("x + ", nm, "(M, gr = g)"))),
-        paste0("is in the extension package ", homes[[1L]]), fixed = TRUE)
+  expect_gt(length(homes), 0L)
+  # every home, each with one assertion whichever extensions an earlier
+  # file loaded, so the count does not move with the load order: a
+  # special its extension registered is that extension's to parse, and
+  # one it did not is refused by name
+  registered <- c(frmtmb:::cs_names(), frmtmb:::ac_entry_names())
+  for (nm in names(homes)) {
+    expect_null(frmtmb:::check_extension_specials(
+      str2lang(paste0(nm, " + x"))))
+    call <- str2lang(paste0("x + ", nm, "(M, gr = g)"))
+    if (nm %in% registered) {
+      expect_null(frmtmb:::check_extension_specials(call))
+    } else {
+      expect_error(frmtmb:::check_extension_specials(call),
+                   paste0("is in the extension package ", homes[[nm]]),
+                   fixed = TRUE)
     }
   }
 })

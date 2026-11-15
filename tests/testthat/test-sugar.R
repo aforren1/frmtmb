@@ -37,6 +37,9 @@ test_that("accessors match lme4 conventions on sleepstudy", {
 })
 
 test_that("coef falls back to fixef without random effects", {
+  # a fixed seed, so that its standard errors are the same in every run
+  # (the SE comparison of the 0.83.0 release compares them across builds)
+  set.seed(4040)
   dd <- data.frame(y = rnorm(50), x = rnorm(50))
   fit <- frm(bf(y ~ x) + gaussian(), data = dd)
   cc <- coef(fit)

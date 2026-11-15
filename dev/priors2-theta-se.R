@@ -1,0 +1,10 @@
+# Mixture weights in summary() on rellib-r21: Est.Error NA where vcov()
+# has the log ratio's standard error (backlog, filed by lane priors2).
+.libPaths(c("C:/Users/adf44/source/r/rellib-r21", "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressPackageStartupMessages(library(frmtmb))
+set.seed(3)
+dm <- data.frame(y = c(rnorm(48, 0, 1), rnorm(112, 4, 1)), x = rnorm(160))
+f0 <- frm(y ~ 1, data = dm, family = mixture(gaussian(), gaussian()))
+cat("frmtmb", dirname(find.package("frmtmb")), "\n")
+print(summary(f0)$spec_pars)
+print(sqrt(diag(vcov(f0, full = TRUE))))

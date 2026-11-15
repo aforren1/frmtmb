@@ -111,14 +111,14 @@ test_that("conditional_effects has reasonable ouputs", {
   brms_setup("brmsfit-methods:168",
     meplot <- plot(me, plot = FALSE)
   )
-  brms_port("brmsfit-methods:169", "divergence",
+  brms_port("brmsfit-methods:169", "cannot transfer",
     paste0(
-      "plot() of the spaghetti display of brmsfit-methods:167 with ",
-      "plot = FALSE returns frmtmb's base-graphics plot objects ",
-      "now (lane ceplot, classes frmtmb_ce_plot and ",
-      "frmtmb_hyp_plot), with brms's arguments; the row asserts ",
-      "is(object, 'ggplot'), and frmtmb does not depend on ",
-      "ggplot2, so it cannot return one"),
+      "plot() of the spaghetti display of brmsfit-methods:167, ",
+      "whose call is refused on a maximum-likelihood fit (row 167: ",
+      "one curve per draw needs draws, and its Wald band is ",
+      "refused by name), so the line reads a stale name and plots ",
+      "nothing; the base-graphics plot objects against is(object, ",
+      "'ggplot') are measured at brmsfit-methods:162 and :164"),
     expect_ggplot(meplot[[1]])
   )
   brms_port("brmsfit-methods:170", "pass",

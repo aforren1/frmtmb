@@ -424,8 +424,9 @@ check_dpar_equations <- function(pfix, pforms, fn = "bf()",
 #' `bf()` on a formula `bf()` already built. With nothing else given the
 #' object comes back untouched, which is brms's contract
 #' (`identical(form, bf(form))`). Further dpar formulas and constants are
-#' added; one naming a parameter the formula already sets is refused, as
-#' `+ lf()` refuses it, rather than replacing it in silence.
+#' added; one naming a parameter the formula already sets is refused,
+#' where brms replaces it with a message, as `+ lf()` now does here
+#' (`bform_replace_pars()`; filed in the backlog).
 #'
 #' @noRd
 bf_update <- function(formula, ..., family = NULL, nl = NULL,
@@ -831,6 +832,28 @@ stop_ac_term_added <- function(what = "brmsformula") {
            "with acformula(~ ar(time, gr))", call. = FALSE)
 }
 
+#' Drop the definitions of parameters `nms` from a `bf()` before a later
+#' `lf()` or `nlf()` sets them again: a formula, a fixed value or an
+#' equation, and a nonlinear body. The later definition wins, with
+#' brms's message (its `brmsformula()` does the same to a parameter
+#' given twice). A parameter is one of the three, so the old one has to
+#' go whichever kind the new one is.
+#'
+#' @noRd
+bform_replace_pars <- function(e1, nms) {
+  old <- intersect(nms, c(names(e1$pforms), names(e1$pfix),
+                          names(e1$nlforms)))
+  if (!length(old)) return(e1)
+  frm_message("Replacing initial definitions of parameters ",
+              paste0("'", old, "'", collapse = ", "))
+  for (slot in c("pforms", "pfix", "nlforms")) {
+    if (any(old %in% names(e1[[slot]]))) {
+      e1[[slot]] <- e1[[slot]][setdiff(names(e1[[slot]]), old)]
+    }
+  }
+  e1
+}
+
 #' `bf() + e2`.
 #'
 #' @noRd
@@ -846,12 +869,9 @@ plus_bf <- function(e1, e2) {
   }
   if (inherits(e2, "frmtmb_lf")) {
     # formulas, then constants and equations, which lf() takes as well
-    for (nm in c(names(e2$pforms), names(e2[["pfix"]]))) {
-      if (nm %in% c(names(e1$pforms), names(e1$pfix),
-                    names(e1$nlforms))) {
-        frm_stop("lf() sets '", nm, "', which the bf() it is added to ",
-                 "already sets", call. = FALSE)
-      }
+    nms <- c(names(e2$pforms), names(e2[["pfix"]]))
+    e1 <- bform_replace_pars(e1, nms)
+    for (nm in nms) {
       if (nm %in% names(e2$pforms)) {
         e1$pforms[[nm]] <- e2$pforms[[nm]]
       } else {
@@ -862,22 +882,11 @@ plus_bf <- function(e1, e2) {
     return(e1)
   }
   if (inherits(e2, "frmtmb_nlf")) {
-    set <- function(nm) {
-      nm %in% c(names(e1$pforms), names(e1$pfix), names(e1$nlforms))
-    }
+    e1 <- bform_replace_pars(e1, c(names(e2$nlforms), names(e2$pforms)))
     for (nm in names(e2$nlforms)) {
-      if (set(nm)) {
-        frm_stop("nlf() sets '", nm, "', which the bf() it is added to ",
-                 "already sets", call. = FALSE)
-      }
       e1$nlforms[[nm]] <- e2$nlforms[[nm]]
     }
     for (nm in names(e2$pforms)) {
-      if (set(nm)) {
-        frm_stop("The linear parameter formulas passed to nlf() set '", nm,
-                 "', which the bf() it is added to already sets",
-                 call. = FALSE)
-      }
       e1$pforms[[nm]] <- e2$pforms[[nm]]
     }
     check_dpar_equations(e1$pfix, c(names(e1$pforms), names(e1$nlforms)))
@@ -1184,7 +1193,7 @@ expand_dot_bform <- function(bform, data) {
     if (!inherits(f, "formula") || !"." %in% all.vars(f)) return(f)
     tt <- tryCatch(stats::terms(f, data = data), error = function(e) NULL)
     if (is.null(tt)) return(f)
-    out <- stats::formula(tt)
+    out <- dot_drop_removed(f, data) %||% stats::formula(tt)
     attributes(out) <- attributes(f)
     out
   }
@@ -1199,6 +1208,62 @@ expand_dot_bform <- function(bform, data) {
   } else {
     one(bform)
   }
+}
+
+#' `.` expanded without the columns the formula removes at its top level:
+#' `y ~ . - w` becomes `y ~ (x + z)`, where [stats::terms()] writes
+#' `y ~ (x + z + w) - w`. Both are the same model, but the second names
+#' `w`, so a refit on data without `w` was refused, where brms 2.23.0
+#' reads only the terms that stay and fits it (dev/refits-brms.R). `NULL`
+#' when no such removal is written, and the caller keeps terms()'s
+#' expansion. A removed column that the formula reads elsewhere, as in
+#' `. - w + w:x`, stays.
+#'
+#' @noRd
+dot_drop_removed <- function(f, data) {
+  rhs <- reformulas::RHSForm(f)
+  lhs <- if (length(f) == 3L) all.vars(f[[2L]]) else character(0)
+  # terms() puts every column of the data that the response does not
+  # use in place of the dot
+  dot <- setdiff(names(data), lhs)
+  # the top-level sum as signed terms, left to right
+  flat <- function(e) {
+    if (is.call(e) && length(e) == 3L &&
+          (identical(e[[1L]], as.name("+")) ||
+             identical(e[[1L]], as.name("-")))) {
+      return(c(flat(e[[2L]]),
+               list(list(sign = as.character(e[[1L]]), term = e[[3L]]))))
+    }
+    list(list(sign = "+", term = e))
+  }
+  parts <- flat(rhs)
+  is_dot <- vapply(parts, function(p) identical(p$term, as.name(".")), NA)
+  removed <- vapply(parts, function(p) {
+    p$sign == "-" && is.name(p$term) && as.character(p$term) %in% dot
+  }, NA)
+  if (sum(is_dot) != 1L || !any(removed)) return(NULL)
+  rm_names <- vapply(parts[removed], function(p) as.character(p$term), "")
+  rest <- unlist(lapply(parts[!removed & !is_dot],
+                        function(p) all.vars(p$term)))
+  drop <- setdiff(rm_names, rest)
+  if (!length(drop)) return(NULL)
+  keep_dot <- setdiff(dot, drop)
+  gone <- removed & vapply(parts, function(p) {
+    is.name(p$term) && as.character(p$term) %in% drop
+  }, NA)
+  parts <- parts[!gone]
+  is_dot <- is_dot[!gone]
+  parts[[which(is_dot)]]$term <- if (length(keep_dot)) {
+    call("(", Reduce(function(a, b) call("+", a, b),
+                     lapply(keep_dot, as.name)))
+  } else {
+    1
+  }
+  out <- parts[[1L]]$term
+  if (parts[[1L]]$sign == "-") out <- call("-", out)
+  for (p in parts[-1L]) out <- call(p$sign, out, p$term)
+  reformulas::RHSForm(f) <- out
+  f
 }
 
 #' The family a model gets when neither the `family` argument nor a `+`

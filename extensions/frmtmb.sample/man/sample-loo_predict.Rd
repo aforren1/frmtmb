@@ -61,15 +61,16 @@ and \code{reloo} are refused when \code{TRUE}, as \code{\link[frmtmb:loo]{frmtmb
 them. \code{newdata}, \code{re_formula} and the new-level arguments are
 refused unless they hold brms's default value (\code{NULL};
 \code{allow_new_levels = FALSE}; \code{sample_new_levels = "uncertainty"}),
-which asks for nothing, or \code{newdata} holds exactly the fitted rows
-(see \emph{Leave-one-out, and newdata}). Any
+which asks for nothing, or \code{newdata} holds the fitted rows or a
+subset of them (see \emph{Leave-one-out, and newdata}). Any
 other name is an error that names it.}
 
 \item{prob}{For \code{loo_predictive_interval()}, the mass of the central
 interval, one number in \verb{(0, 1)}.}
 }
 \value{
-A matrix with one row per observation and one column per
+A matrix with one row per observation (per row of a subset
+\code{newdata}) and one column per
 summary, named \code{mean}, \code{var} or \verb{q<100 p>}. Where the prediction
 has a third dimension (categories, or the responses of a
 multivariate model without \code{resp} or with several), an array
@@ -99,10 +100,12 @@ rows, use \code{\link[=posterior_predict]{posterior_predict()}} or \code{\link[=
 to leave out. \code{newdata} that holds exactly the rows the model was
 fitted on (\code{object$data}) is accepted: those are the rows these
 functions answer, and on them brms's answer is theirs. A subset of
-them is refused here, though brms answers it: these functions take
-the fitted rows or none, while \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}}, \code{\link[frmtmb:loo]{frmtmb::loo()}},
-\code{waic()}, \code{psis()}, \code{loo_model_weights()} and the \verb{loo_*} types of
-\code{pp_check()} take such a subset and use those rows' columns.
+them is accepted too, as \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}} accepts it: each row's
+leave-one-out value reads that row's own column, so the result is the
+rows of the fitted answer that the subset holds, in its order, which
+is brms's answer on such newdata. A model whose column reads more
+than its own row (an autocorrelation, \code{me()} or \code{mi()} term) refuses
+a subset, as \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}} does.
 }
 
 \section{Draws}{
