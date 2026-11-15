@@ -1078,6 +1078,30 @@ autocor_check_fit <- function(x, predicted = FALSE) {
   invisible(TRUE)
 }
 
+#' Which outer parameters (`outer_par_map()`'s order) are `sigma`'s
+#' coefficients, on a fit with a residual correlation block: the ones
+#' whose meaning changed for a fit `autocor_check_block()` refuses.
+#'
+#' @noRd
+autocor_outer_sigma <- function(x) {
+  m <- outer_par_map(x)
+  out <- logical(length(m$comp))
+  if (!length(x$frame[["autocor"]])) return(out)
+  tpl <- x$frame[["par_template"]]
+  for (lp in x$frame[["linpreds"]]) {
+    if (!identical(lp[["dpar"]], "sigma")) next
+    cp <- lp[["par"]]
+    # outer_par_map() leaves a mapped constant's betad slot out
+    kept <- seq_along(tpl[[cp]])
+    if (identical(cp, "betad")) {
+      kept <- setdiff(kept, x$frame[["betad_fixed_idx"]])
+    }
+    pos <- which(m$comp == cp)[match(lp[["idx"]], kept)]
+    out[pos[!is.na(pos)]] <- TRUE
+  }
+  out
+}
+
 #' `autocor_check_fit()` for a method asked for one dpar: only `sigma`
 #' reads the parameter whose meaning changed.
 #'

@@ -1184,7 +1184,7 @@ expand_dot_bform <- function(bform, data) {
     if (!inherits(f, "formula") || !"." %in% all.vars(f)) return(f)
     tt <- tryCatch(stats::terms(f, data = data), error = function(e) NULL)
     if (is.null(tt)) return(f)
-    out <- stats::formula(tt)
+    out <- dot_drop_removed(f, data) %||% stats::formula(tt)
     attributes(out) <- attributes(f)
     out
   }
@@ -1199,6 +1199,62 @@ expand_dot_bform <- function(bform, data) {
   } else {
     one(bform)
   }
+}
+
+#' `.` expanded without the columns the formula removes at its top level:
+#' `y ~ . - w` becomes `y ~ (x + z)`, where [stats::terms()] writes
+#' `y ~ (x + z + w) - w`. Both are the same model, but the second names
+#' `w`, so a refit on data without `w` was refused, where brms 2.23.0
+#' reads only the terms that stay and fits it (dev/refits-brms.R). `NULL`
+#' when no such removal is written, and the caller keeps terms()'s
+#' expansion. A removed column that the formula reads elsewhere, as in
+#' `. - w + w:x`, stays.
+#'
+#' @noRd
+dot_drop_removed <- function(f, data) {
+  rhs <- reformulas::RHSForm(f)
+  lhs <- if (length(f) == 3L) all.vars(f[[2L]]) else character(0)
+  # terms() puts every column of the data that the response does not
+  # use in place of the dot
+  dot <- setdiff(names(data), lhs)
+  # the top-level sum as signed terms, left to right
+  flat <- function(e) {
+    if (is.call(e) && length(e) == 3L &&
+          (identical(e[[1L]], as.name("+")) ||
+             identical(e[[1L]], as.name("-")))) {
+      return(c(flat(e[[2L]]),
+               list(list(sign = as.character(e[[1L]]), term = e[[3L]]))))
+    }
+    list(list(sign = "+", term = e))
+  }
+  parts <- flat(rhs)
+  is_dot <- vapply(parts, function(p) identical(p$term, as.name(".")), NA)
+  removed <- vapply(parts, function(p) {
+    p$sign == "-" && is.name(p$term) && as.character(p$term) %in% dot
+  }, NA)
+  if (sum(is_dot) != 1L || !any(removed)) return(NULL)
+  rm_names <- vapply(parts[removed], function(p) as.character(p$term), "")
+  rest <- unlist(lapply(parts[!removed & !is_dot],
+                        function(p) all.vars(p$term)))
+  drop <- setdiff(rm_names, rest)
+  if (!length(drop)) return(NULL)
+  keep_dot <- setdiff(dot, drop)
+  gone <- removed & vapply(parts, function(p) {
+    is.name(p$term) && as.character(p$term) %in% drop
+  }, NA)
+  parts <- parts[!gone]
+  is_dot <- is_dot[!gone]
+  parts[[which(is_dot)]]$term <- if (length(keep_dot)) {
+    call("(", Reduce(function(a, b) call("+", a, b),
+                     lapply(keep_dot, as.name)))
+  } else {
+    1
+  }
+  out <- parts[[1L]]$term
+  if (parts[[1L]]$sign == "-") out <- call("-", out)
+  for (p in parts[-1L]) out <- call(p$sign, out, p$term)
+  reformulas::RHSForm(f) <- out
+  f
 }
 
 #' The family a model gets when neither the `family` argument nor a `+`

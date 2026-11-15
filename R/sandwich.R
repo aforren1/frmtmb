@@ -56,25 +56,68 @@ resolve_cluster <- function(fit, cluster) {
     }
     ex <- cluster[[2L]]
     env <- environment(cluster) %||% parent.frame()
-    v <- tryCatch(eval(ex, fit$frame[["data_frame"]], env),
-                  error = function(e) NULL)
+    # the variables are read from the data first, as sandwich::vcovCL()
+    # reads them (expand.model.frame()): the fit's own columns, then the
+    # data its call names, and the formula's environment only when the
+    # data lack them. Evaluated in the fit's frame with the environment
+    # as enclosure, a workspace object of the right length was read in
+    # place of the data's column of the same name
+    vars <- all.vars(ex)
+    rd <- fit_refit_data(fit)
+    held <- rd %||% fit$frame[["data_frame"]]
+    v <- if (all(vars %in% names(held))) {
+      tryCatch(eval(ex, held, env), error = function(e) NULL)
+    }
+    d0 <- NULL
     if (is.null(v) || length(v) != n) {
       # a clustering variable that is in the data but not in the model
       # formula is not in the stored frame; go back to the call's data
       # and apply the fit's own na.action so the rows still line up
-      d0 <- tryCatch(eval(fit$call$data, env), error = function(e) NULL)
-      v2 <- if (is.null(d0)) NULL else {
+      d0 <- tryCatch(eval(fit$call[["data"]], env), error = function(e) NULL)
+      in_d0 <- !is.null(d0) && is.list(d0) && all(vars %in% names(d0))
+      v2 <- if (in_d0) {
         tryCatch(eval(ex, d0, env), error = function(e) NULL)
       }
-      if (!is.null(v2) && !is.null(fit$frame[["na_action"]])) {
+      # the formula's environment only for data that were read and lack
+      # the variable, or a call that names none: data that are gone
+      # may have held it, and a workspace object of that name is not it
+      if (is.null(v2) && is.null(v) &&
+            (!is.null(d0) || is.null(fit$call[["data"]]))) {
+        v <- tryCatch(eval(ex, held, env), error = function(e) NULL)
+      }
+      if (!is.null(v2) && !is.null(rd)) {
+        # those data must still be the fit's: rows added, dropped or
+        # reordered since would hand a row another row's cluster. Not
+        # their response, which a refit() replaced
+        if (!refit_data_matches(fit, d0, ignore_response = TRUE)) {
+          frm_stop("`", deparse1(ex), "` is not a variable of the model, ",
+                   "so it is read from the data the fit's call names (",
+                   data_label(fit$call[["data"]]), "), and those no ",
+                   "longer hold the data the model was fitted to. Pass ",
+                   "the clustering factor itself as `cluster`, one value ",
+                   "per fitted row", call. = FALSE)
+        }
+        rn <- if (is.data.frame(d0)) {
+          rownames(d0)
+        } else {
+          as.character(seq_len(NROW(d0[[1L]])))
+        }
+        v2 <- v2[match(rownames(rd), rn)]
+      } else if (!is.null(v2) && !is.null(fit$frame[["na_action"]])) {
         v2 <- v2[-unclass(fit$frame[["na_action"]])]
       }
       v <- v2 %||% v
     }
     if (is.null(v)) {
       frm_stop("could not find `", deparse1(ex), "` in the model frame or ",
-               "in the data the model was fitted to; pass the clustering ",
-               "factor itself as `cluster`", call. = FALSE)
+               "in the data the model was fitted to",
+               if (is.null(d0)) {
+                 paste0(" (", data_label(fit$call[["data"]]), ", which ",
+                        "are gone). The fit holds only the variables its ",
+                        "model reads")
+               },
+               "; pass the clustering factor itself as `cluster`",
+               call. = FALSE)
     }
   } else if (is.character(cluster) && length(cluster) == 1L &&
              cluster %in% names(fit$frame[["data_frame"]])) {

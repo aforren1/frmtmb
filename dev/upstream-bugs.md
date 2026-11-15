@@ -1677,9 +1677,58 @@ Seen on 0.2.5. All four are patched with `assignInNamespace()` in
 - Expected: the method's own message. A message request: emmeans's
   convention is that a method returns a string to refuse.
 - Workaround: `recover_data.frmtmb_fit()` catches its errors and
-  returns the text (`R/interop.R:709`).
+  returns the text, so the condition's class is lost. No returned value
+  can carry it: base R's `tryCatch()` turns a condition object of type
+  character into a `simpleError` (`tryCatchOne()`, R 4.6.1), so a text
+  with the condition's classes reaches the user as a `simpleError` too
+  (tried in the round of 2026-11-13). When the caller gives `data =`,
+  `ref_grid()` calls the method outside `try()`, and the method raises
+  the condition as it is. A fix needs emmeans to keep the condition
+  `try()` caught, `attr(data, "condition")`, and raise it.
 - Record: `dev/emm-findings.md` "How the refusal message was lost";
-  `dev/brmsport-findings.md` P2.
+  `dev/brmsport-findings.md` P2; `dev/refits-findings.md` (4018).
+- Status: not reported.
+
+## marginaleffects
+
+### marginaleffects-1. A fixed list of known prediction arguments per class
+
+- Seen: 1.0.0.
+- Repro: `marginaleffects::predictions(fit, re_formula = NA)` on a
+  `frmtmb_fit`. `sanity_dots()` warns "These arguments are not known to
+  be supported for models of class `frmtmb_fit`: re_formula", because
+  its white list (`valid[["brmsfit"]]`, `valid[["glmmTMB"]]`, ...) is
+  keyed by `class(model)[1]` inside the function. The arguments reach
+  the model's `get_predict()` method and work.
+- Expected: a way for a package to declare the prediction arguments
+  its `get_predict()` method takes (a generic or an option), so a new
+  class does not warn on arguments it supports.
+- Workaround: none in frmtmb; the tests wrap the calls in
+  `allow_warnings(..., "not known to be supported")`.
+- Record: `dev/mointerop-findings.md`, "Defects found, not fixed", 1;
+  `dev/refits-findings.md` (4350).
+- Status: not reported (feature request).
+
+### marginaleffects-2. A matrix column in the model data stops `predictions()`
+
+- Seen: 1.0.0, data.table 1.18.6.1.
+- Repro: a fit whose data hold a matrix column, such as a
+  `multinomial()` response `Y` (200 x 3), with no `newdata`:
+  `get_modeldata()` keeps the matrix (`unpack_matrix_1col()` unpacks
+  one-column matrices only), `data.table::setDT()` warns "Some columns
+  are a multi-column type", and `merge_original_data()` stops with
+  "Column 3 ['Y'] is length 600 but column 1 is length 200; malformed
+  data.table" (`dev/refits-probe-me.R`). `avg_predictions()` returns
+  its numbers with the setDT warning.
+- Expected: matrix columns split, as `data.table::as.data.table()` and
+  `data.frame()` split them, or left out of the merged payload.
+- Workaround: a frmtmb fit whose data hold such a column carries the
+  data with the column split in the `marginaleffects_modeldata`
+  attribute, which `get_modeldata()` reads first (`me_modeldata()` in
+  `R/fit.R`). brms 2.23.0 could not be checked here: its
+  `predictions()` needs the `collapse` package, which the user library
+  lacks (`dev/refits-brms-me.R`).
+- Record: `dev/refits-findings.md` (3188).
 - Status: not reported.
 
 ## gratia

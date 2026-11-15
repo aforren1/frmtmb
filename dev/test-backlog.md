@@ -1274,6 +1274,7 @@ The round also listed two older record inconsistencies, both closed:
   but anonymously. Test: the refusal names the response and says an
   ordinal response is positive integers or an ordered factor, and the
   ordered factor over the same labels still fits.
+  CLOSED in the round of 2026-11-13 (lane refits): refused in brms's words with the response's name, digit text too, as brms refuses it.
 ## Filed by lane wt-csfactor after punch round 1, 2026-09-29
 
 Both found by the wt-csfactor reviewer
@@ -1293,6 +1294,7 @@ reference build, neither this lane's.
   n = 300, then `fitted(mv, newdata = data.frame(x = 0, z = 0, fc =
   factor("a", levels = c("a","b","c"))))`
   (`dev/csfactor-rev-docs.R`, `dev/csfactor-rev-log/rev-docs-lane.log`).
+  CLOSED in the round of 2026-11-13 (lane refits): it failed only on a one-row newdata (a dropped dimension); fitted_mv() keeps it.
 - **`y ~ mo(m) + m` is not identified and is fitted in silence**, with no
   `cs()` term anywhere. A monotone function of `m`'s categories lies in
   the span of `m`'s own dummies, so the two coefficient blocks share a
@@ -1566,6 +1568,7 @@ CLOSED in the round of 2026-11-11 (lane sampfront): a message.
 CLOSED in the round of 2026-11-11 (lane names): the Formula lines print every pform, nlform and fixed dpar under the response formula, as brms's print.brmsformula().
 - **A `y ~ . - w` fit refit on data without `w`** is refused ("The
   model uses `w`"), as `y ~ x1 + w - w` is. Lane formula2, 9.2.
+  CLOSED in the round of 2026-11-13 (lane refits): the dot is expanded without a removed column; `y ~ x + w - w` is filed apart.
 - **A refusal from frmtmb.sample's draws accessors names the internal
   function**, "draws_accessor_args() has no argument `chains`", where
   the caller typed `as.array()`. Lane defects, section 7.
@@ -1687,6 +1690,7 @@ CLOSED in the round of 2026-11-11 (lane sampfront): taken.
 - **`refit(newresp = )` of a recoded bernoulli fit** takes the 0/1
   codes that `simulate()` returns and refuses the original values by
   name. Lane formrobust, section 9.
+  CLOSED in the round of 2026-11-13 (lane refits): refit() reads the fit's values first, then 0/1 codes; a vector read both ways is refused; the bootstrap passes codes.
 
 ### Upstream, listed in `dev/upstream-bugs.md` for the user to file
 
@@ -2939,6 +2943,7 @@ CLOSED in the round of 2026-11-11 (lane names): confint_varcorr()$block shows a 
 - A diagonal within-level covariance for `gr(cov = )` / `gr(prec = )`
   would let a factor sit in a `||` term over a known matrix; now
   refused.
+  CLOSED in the round of 2026-11-13 (lane refits): one gr_cov/gr_prec block per column (gr_known_split()), brms's contrasts coding.
 - frmtmb.sample's draws carry `theta_*`, not brms's `sd_` names, in
   `variables(draws)` and `as_draws_df()`. CLOSED at 0.72.0 (lane
   sampleprior: the draws carry brms's `sd_` and `cor_` columns).
@@ -3188,6 +3193,7 @@ See `dev/round-20261020.md`, "Found at the consolidation".
 - `marginaleffects::predictions()` on a matrix response fails in
   marginaleffects's data.table step ("Column 2 ['Yc'] is length 600 but
   column 1 is length 200").
+  CLOSED in the round of 2026-11-13 (lane refits): the fit carries the split data in marginaleffects_modeldata; upstream as marginaleffects-2.
 
 #### Open - low
 
@@ -3427,14 +3433,18 @@ CLOSED in the round of 2026-11-11 (lane sampfront): samples.
 - **N3**: after a delta update, `getCall(update(fit, ~ . - x3))` holds
   the deparsed `bf()` object (2474 characters). Record the delta
   through `bform_call()`, as the complete-formula branch does.
+  CLOSED in the round of 2026-11-13 (lane refits): update() records the delta as a formula or a frmtmb::bf() call.
 - `vcov_cluster()` on a variable outside the model reads the call's
   data and fails when they are gone; `update()` still evaluates
   `na.action`, `se` and `verbose` of the stored call where it is
   called.
+  CLOSED in the round of 2026-11-13 (lane refits): the data's column before the workspace's, rows checked and matched by name, gone data named; update() takes refit_args.
 - A smooth (`s(x)`) in an `influence()` deletion refit is rebuilt from
   the subset's rows (mgcv's knots move); `predvars` do not cover it.
+  CLOSED in the round of 2026-11-13 (lane refits): assemble_frame(smooth_map = ) keeps the fitted basis in deletion refits.
 - `ce_base_frame()` repeats `fit_refit_data()` without the subset rows;
   it could call it.
+  CLOSED in the round of 2026-11-13 (lane refits): ce_base_frame() calls fit_refit_data().
 
 ## Filed at the 0.73.0 release (2026-10-21)
 
@@ -4025,6 +4035,7 @@ Record: `dev/smallfix-findings.md`, "Not done, and for the user".
   name, and `ref_grid()` and `emmeans()` are in the saved-fit test.
   Still open: an error raised inside `recover_data()` for another
   reason reaches the user as text, not as its class.
+  CLOSED in the round of 2026-11-13 (lane refits): raised with its class when data are given; the rest is emmeans-1 (no value can carry it).
 - The pkgdown deploy depends on the saved-fit step: a failure, or a
   runner killed during it, stops the site build (a choice, recorded in
   the workflow).
@@ -4376,6 +4387,7 @@ CLOSED in the round of 2026-11-11 (lane sampfront): with 3215.
   fit**, though a Wald interval for a mean coefficient does not read
   sigma. Consistent with NEWS. Review `dev/reviews/2026-10-27-sigmainn.md`,
   short check S2: check `parm`, or leave it.
+  CLOSED in the round of 2026-11-13 (lane refits): confint() refuses only sigma's coefficients and method boot.
 - **The plain-data-frame mark of the 0.77.0 release fix R1 can refuse
   an intended `(flat)`.** `as.brmsprior()` of a data frame that holds
   frmtmb's printed `(flat)` (after the release review, on any row,
@@ -4792,6 +4804,54 @@ none is a regression of this release.
   package does not declare (inferred by the review, not run). The skip
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
+
+## Filed in the round of 2026-11-13
+
+### From lane refits
+
+- **LOW: `y ~ x + w - w` is refused on data without `w`.** brms 2.23.0
+  reads only the terms that stay: `standata(y ~ x + w - w)` on data
+  without `w` gives the columns Intercept and x (`dev/refits-brms2.R`).
+  frmtmb stops with "The model uses `w`, which is not a column of
+  `data`". The dot form `y ~ . - w` was fixed in this round by
+  expanding the dot without `w`; a formula that writes the column and
+  removes it needs the model frame to read only the kept terms. Two
+  more cases of the same class (review of 2026-11-13,
+  `dev/reviews/2026-11-13-refits.md`, 1567): the FIRST fit of
+  `y ~ . - w` (or `.^2 - w`) on data without `w` is refused, with R's
+  `terms()` warning "'varlist' has changed ... should no longer
+  happen!", where brms fits it (Intercept, x, z, o); and `y ~ . - q`
+  with `q` not in the data stops with "invalid type (closure) for
+  variable 'q'" (base R's `q()`), where brms fits it.
+- **MEDIUM: an `influence()` deletion refit rebuilds a `gp()` term's
+  scale from the kept rows.** `gp_max_dist()` (`R/frame.R`), and the
+  center and boundary of the approximate `gp(x, k = )`, are computed
+  from the data the frame is built on. Deleting the row at the largest
+  `x` moves the distance scale from 2.928603 to 2.919538, and the
+  deletion table equals a fresh fit on the n - 1 rows, so a `gp(x, k =
+  )` deletion holds a change of basis: the class of defect this round
+  fixed for `s()` with `smooth_map` (review of 2026-11-13, 3434).
+- **LOW: after `refit()`, the `marginaleffects_modeldata` of a
+  `cbind(Ya, Yb, Yc)` response holds the old raw columns.** `refit()`
+  writes the new response into the frame's matrix column (`Y.a` ...
+  in the attribute), but the raw variables `Ya`, `Yb`, `Yc`, which the
+  attribute carries too, keep the original values (short check of
+  2026-11-13, `dev/reviews/refits-short-3188.log`, R9). No estimate
+  reads them, since predictions do not read the response.
+- **LOW: `(0 + f || mm(g1, g2, cov = A))` is refused.** brms fits each
+  column with its own sd over `A`, as it does for `gr(g, cov = A)`,
+  which this round fits (`gr_known_split()`). The multi-membership
+  route builds its own design (`mm_member_designs()`) and keeps lme4's
+  split of the term, so a factor there has several columns in one
+  piece and is refused.
+- **MEDIUM: group-level `cs()` (the existing item "Group-level `cs()`")
+  is larger than M.** brms 2.23.0 fits `(cs(1) | g)` on `sratio()`,
+  `cratio()`, `acat()` and, with its warning, `cumulative()`: one
+  random effect per threshold, correlated, added to `mucs[n, k]`
+  (`dev/refits-brms.log`, F). It needs a design per threshold for a
+  random-effect block in the objective, `fitted()`, `predict()`, the
+  new-level draws, frmtmb.sample's `lp_Z()`, brms's names
+  (`sd_g__Intercept[1]`) and the priors. Not started.
 
 ## Filed at the 0.82.0 release (2026-11-11)
 

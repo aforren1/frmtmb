@@ -1051,6 +1051,11 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       if (isTRUE(comp[["cmc_intercept"]])) {
         mm <- mm[, colnames(mm) != "(Intercept)", drop = FALSE]
       }
+      # one column of an uncorrelated term over a known matrix, fitted
+      # as a block of its own (gr_known_split())
+      if (!is.null(comp[["col_pick"]])) {
+        mm <- mm[, comp[["col_pick"]], drop = FALSE]
+      }
       mo_raw <- NULL
       mo_k <- integer(0)
       if (length(comp$mo_re$cf)) {
@@ -4257,7 +4262,11 @@ fitted_mv <- function(object, newdata, re_formula, scale, resp, dpar,
       # linear predictor eta1, eta2, ... as brms names both (measured,
       # dev/defects-brms-mvcs.R: "yg", "eta1", "eta2")
       for (k in seq_len(dim(p)[3L])) {
-        layers[[length(layers) + 1L]] <- p[, , k]
+        # drop = FALSE: a one-row newdata otherwise loses its row
+        # dimension, and the stack below reads nrow() of each layer
+        layers[[length(layers) + 1L]] <- matrix(
+          p[, , k, drop = FALSE], dim(p)[1L], dim(p)[2L],
+          dimnames = dimnames(p)[1:2])
         labs <- c(labs, dimnames(p)[[3L]][k])
       }
     }

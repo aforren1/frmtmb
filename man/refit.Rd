@@ -12,8 +12,14 @@
 
 \item{newresp}{Replacement response: a vector of the original length,
 or a matrix of the original dimensions for matrix responses. A
-\code{bernoulli()} response is given as its 0/1 codes, which is what
-\code{\link[=simulate]{simulate()}} returns, whatever two values the data held.}
+\code{bernoulli()} response is given as the two values the data held,
+which are coded as the fit coded them, or as its 0/1 codes, which
+is what \code{\link[=simulate]{simulate()}} returns. The values are read first, as
+\code{residuals(newdata = )} and brms read a new response; a vector of 0
+and 1 that is not the fit's values is the codes. A vector that reads
+both ways with different results (all 1s on a fit coded 1 and 2) is
+refused: give the values as a factor with the fit's levels, or the
+codes as a logical. \code{\link[=frm_bootstrap]{frm_bootstrap()}} passes its draws as codes.}
 
 \item{start}{Optional named start list (as in \code{\link[=frm]{frm()}}); when given it
 replaces the warm start.}

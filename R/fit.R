@@ -1134,11 +1134,20 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   }, NA))
   # iter.max = 0 asks for the objective at the start: a restart under the same
   # control would return a moved start as if it had climbed there
-  if (!has_body || identical(dry_run, "objective") ||
-        isTRUE(control[["optCtrl"]][["iter.max"]] == 0)) {
-    return(run(start, TRUE))
+  fit <- if (!has_body || identical(dry_run, "objective") ||
+               isTRUE(control[["optCtrl"]][["iter.max"]] == 0)) {
+    run(start, TRUE)
+  } else {
+    nl_fit_probed(run, frame, start, prior)
   }
-  nl_fit_probed(run, frame, start, prior)
+  # update() refits with these values: the stored call names them as the
+  # user wrote them, and a name local to a function that made the fit is
+  # gone where update() is called, or names another object there
+  if (inherits(fit, "frmtmb_fit")) {
+    fit[["refit_args"]] <- list(na.action = na.action, se = se,
+                                verbose = verbose)
+  }
+  fit
 }
 
 #' The refusal of `frm(threshold = )`, which names the family argument
@@ -2025,7 +2034,32 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                                              "non-finite trial"))
                     }))
   }
+  attr(fit, "marginaleffects_modeldata") <- me_modeldata(frame)
   fit
+}
+
+#' The data marginaleffects reads for a fit whose data hold a matrix
+#' column, such as a `multinomial()` response, with that column split
+#' into one column per matrix column (`Y.a`, `Y.b`), as
+#' [data.frame()] splits it. marginaleffects 1.0.0 puts the fit's data
+#' in a data.table, which cannot hold a matrix column, so `predictions()`
+#' stopped with "Column 3 ['Y'] is length 600 but column 1 is length
+#' 200". It reads this attribute before it asks insight for the data
+#' (`set_modeldata()` sets the same one); insight's `get_data()`, which
+#' `get_response()` reads, keeps the matrix. `NULL` for any other fit,
+#' which carries nothing.
+#'
+#' @noRd
+me_modeldata <- function(frame) {
+  mf <- frame[["data_frame"]]
+  if (is.null(mf)) return(NULL)
+  wide <- vapply(mf, function(v) length(dim(v)) == 2L && ncol(v) > 1L, NA)
+  if (!any(wide)) return(NULL)
+  d <- fit_refit_data(list(frame = frame)) %||% mf
+  out <- do.call(data.frame, c(unclass(d), check.names = FALSE,
+                               stringsAsFactors = FALSE))
+  rownames(out) <- rownames(d)
+  out
 }
 
 #' The unfitted counterpart of a `frmtmb_fit`: the same spec, frame and

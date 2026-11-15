@@ -13,10 +13,16 @@ test_that("`.` expands to brms's formula and brms's design", {
   for (f in forms) {
     fr <- frm(f, data = dat, dry_run = "frame")
     bt <- brms:::validate_formula(f, data = dat)$formula
-    # the frame's location formula without its group-level terms
-    expect_identical(deparse1(fr$spec$responses$y$dpars$mu$fixed),
-                     deparse1(reformulas::RHSForm(reformulas::nobars(bt),
-                                                  as.form = TRUE)),
+    # the frame's location formula without its group-level terms; a
+    # removed column is left out of the dot, where brms writes it and
+    # removes it, so a refit does not need it (the same design below)
+    want <- deparse1(reformulas::RHSForm(reformulas::nobars(bt),
+                                         as.form = TRUE))
+    if (identical(deparse1(f), "y ~ . - x2")) {
+      expect_identical(want, "~(x1 + x2 + g) - x2")
+      want <- "~(x1 + g)"
+    }
+    expect_identical(deparse1(fr$spec$responses$y$dpars$mu$fixed), want,
                      label = deparse1(f))
     sd <- brms::standata(f, dat)
     cn <- colnames(fr$linpreds[["y.mu"]]$X)

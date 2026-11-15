@@ -13,8 +13,8 @@
 #'
 #' Each deletion refits the same model, so an ordinal response keeps the
 #' threshold count of the full-data fit, and the per-level counts of
-#' `thres(gr = )`, whether the response is coded as integers, as a
-#' character vector or as an ordered factor. Deleting the last
+#' `thres(gr = )`, whether the response is coded as integers or as an
+#' ordered factor. Deleting the last
 #' observation in ANY category, bottom, interior or top, leaves that
 #' category's threshold in the model and unidentified, which shows as a
 #' large displacement in its column, never as a shorter row or a
@@ -43,9 +43,10 @@
 #'   fit holds: the model frame and the variables the formula reads
 #'   through a transform (`x` of `poly(x, 2)` or `log(x)`), on the rows
 #'   the fit used. A data-dependent basis (`poly()`, `splines::ns()`,
-#'   `scale()`) keeps the knots, coefficients or center of the fit in
-#'   every deletion refit, as in lme4's `influence.merMod()`, so a
-#'   coefficient change is not a change of basis.
+#'   `scale()`, and a smooth such as `s(x)`) keeps the knots,
+#'   coefficients or center of the fit in every deletion refit, as in
+#'   lme4's `influence.merMod()`, so a coefficient change is not a
+#'   change of basis.
 #' @param force Allow observation-wise deletion for n > 500.
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
@@ -67,7 +68,13 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
   # the displacement is of a coefficient vector that holds sigma's
   autocor_check_fit(model)
   frm_check_dots(...)
+  # the response the fit was fitted to, which a refit() holds in its frame
+  # only: the data a refit keeps are the original fit's, response too
+  y_fit <- if (is.null(data) && length(model$frame[["y"]]) == 1L) {
+    model$frame[["y"]][[1L]]
+  }
   data <- data %||% fit_refit_data(model) %||% model$frame[["data_frame"]]
+  if (NROW(y_fit) != nrow(data)) y_fit <- NULL
   if (!is.null(groups)) {
     gv <- data[[groups]]
     if (is.null(gv)) {
@@ -107,6 +114,10 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
   # the top category used to drop a threshold, and that row of the table
   # then mixed a shorter model's coefficients with an NA.
   pin <- thres_pin_of_fit(model)
+  # an s() term keeps the fit's basis too: computed again from the
+  # deletion subset, its knots and reparameterization moved, and the
+  # displacement of its null-space column was a change of basis
+  smap <- smooth_map_of(model$frame)
   # A refit that fails leaves its row NA, and a table of nothing but NA
   # used to come back without a word. Count them and say so: on a
   # documented argument (`data = `) whose categories do not match the
@@ -125,7 +136,11 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                                 drop_unused_levels =
                                   model$frame[["drop_unused_levels"]] %||%
                                   TRUE,
-                                predvar_map = model$frame[["predvar_map"]])
+                                predvar_map = model$frame[["predvar_map"]],
+                                smooth_map = smap)
+      if (!is.null(y_fit)) {
+        frame_i <- influence_set_response(frame_i, y_fit, unit_rows[[i]])
+      }
       tpl <- frame_i$par_template
       for (cp in setdiff(names(tpl), "b")) {
         if (length(model$estimates[[cp]]) == length(tpl[[cp]])) {
@@ -194,6 +209,22 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
   structure(list(fixed = fe, theta = th, fixed_full = full_fe,
                  theta_full = full_th, groups = groups, fit = model),
             class = "frmtmb_influence")
+}
+
+#' A deletion frame with the fit's own response on the kept rows, in
+#' place of the one read again from the data: after `refit()` those are
+#' the original response, and the table deleted rows from a model the
+#' refit was not fitted to. The frame's coding attributes stay; a frame
+#' whose response does not have the kept rows' length is left alone.
+#'
+#' @noRd
+influence_set_response <- function(frame, y_fit, rows) {
+  yy <- frame[["y"]][[1L]]
+  yi <- if (is.matrix(y_fit)) y_fit[rows, , drop = FALSE] else y_fit[rows]
+  if (length(yy) != length(yi) || NROW(yy) != NROW(yi)) return(frame)
+  yy[] <- as.vector(yi)
+  frame[["y"]][[1L]] <- yy
+  frame
 }
 
 #' Readable labels for influence-table columns in a warning.

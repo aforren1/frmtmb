@@ -1638,10 +1638,13 @@ expand_slash_groups <- function(form) {
 #' a `cor` argument, and so does this.
 #'
 #' Two cases differ. A known covariance or precision, `gr(g, cov = A)`,
-#' has an unstructured covariance within each level, so the term is
-#' split into lme4's one-term pieces, each its own block: for numeric
-#' columns that is brms's model. A piece with several columns (a factor)
-#' is refused when its frame is built (`within_struct`). An `|ID|` key
+#' is coded as the whole term too, `diag()` over it, and its frame fits
+#' one block per column (`gr_known_split()`), brms's model: `(1 + f ||
+#' gr(g, cov = A))` has `Intercept`, `fb` and `fc`, as in brms 2.23.0
+#' (`dev/refits-brms3.R`). The multi-membership `mm(g1, g2, cov = A)` is
+#' still split into lme4's one-term pieces, each its own block, which is
+#' brms's model for numeric columns; a piece with several columns (a
+#' factor) is refused when its frame is built (`within_struct`). An `|ID|` key
 #' asks for correlation across terms, which `||` and `cor = FALSE` rule
 #' out. brms refuses `(x | p || g)`, and this does. It drops the key from
 #' `(x | p | gr(g, cor = FALSE))`, and so does this when every term under
@@ -1707,7 +1710,7 @@ expand_double_verts <- function(form) {
           as.character(rhs[[1L]]) %in% c("gr", "mm")) {
       rhs <- drop_cor_arg(rhs, env)
     }
-    if (is.call(rhs) && as.character(rhs[[1L]])[1L] %in% c("gr", "mm") &&
+    if (is.call(rhs) && identical(as.character(rhs[[1L]])[1L], "mm") &&
           any(c("cov", "prec") %in% names(rhs))) {
       ex <- reformulas::expandDoubleVerts(
         stats::as.formula(call("~", call("||", lhs, rhs)), env = env))

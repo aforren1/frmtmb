@@ -355,12 +355,12 @@ test_that("a prior draw never writes one value into a threshold vector", {
   expect_true(all(is.finite(unlist(p))))
 })
 
-# The three response codings an ordinal fit accepts. An unordered factor
-# is refused by frm() itself, in brms's words, so it is not here.
+# The two response codings an ordinal fit accepts. An unordered factor
+# and a character vector are refused by frm() itself, in brms's words,
+# so they are not here.
 refit_codings <- list(
   integer = function(v) v,
-  ordered = function(v) factor(v, levels = 1:4, ordered = TRUE),
-  character = function(v) as.character(v))
+  ordered = function(v) factor(v, levels = 1:4, ordered = TRUE))
 
 # n = 60, four categories, EXACTLY ONE row in the INTERIOR category 2,
 # so deleting it empties a category that is not the top one.
@@ -397,7 +397,6 @@ test_that("an emptied INTERIOR category does not slide the row over", {
   # bitwise, on the whole table: the coding of the response must not
   # change the diagnostic at all
   expect_identical(got$ordered, got$integer)
-  expect_identical(got$character, got$integer)
 
   # and the emptied category's threshold is the unidentified one, in its
   # OWN column, matching a hand-pinned fit everywhere else
@@ -444,7 +443,6 @@ test_that("an emptied category does not slide a grouped row over", {
     got[[nm]] <- inf$fixed
   }
   expect_identical(got$ordered, got$integer)
-  expect_identical(got$character, got$integer)
   # the shift used to run over five coefficients with three trailing NA,
   # so what the assertion is about is POSITION
   fit <- suppressWarnings(frm(bf(y | thres(gr = g) ~ x),
@@ -486,7 +484,6 @@ test_that("a hand-written thres(K) is refit on every response coding", {
     got[[nm]] <- inf$fixed
   }
   expect_identical(got$ordered, got$integer)
-  expect_identical(got$character, got$integer)
   expect_false(anyNA(got$ordered[itop, ]))
 })
 

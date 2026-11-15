@@ -138,8 +138,12 @@ prior_lrt_refusal <- function(what, which) {
 #' variable would be read again too, and the refit would be another
 #' model.
 #'
+#' With `ignore_response`, the response columns are left out of the value
+#' comparison: `vcov_cluster()` reads only another column, and a
+#' `refit()` holds a response its call's data never had.
+#'
 #' @noRd
-refit_data_matches <- function(fit, data) {
+refit_data_matches <- function(fit, data, ignore_response = FALSE) {
   rd <- fit_refit_data(fit, "data")
   if (is.null(rd) || is.null(data) || is.environment(data) ||
         !is.list(data) || !length(data)) {
@@ -170,7 +174,11 @@ refit_data_matches <- function(fit, data) {
     if (!is.null(d)) dim(x) <- d
     x
   }
-  for (v in intersect(names(rd), names(data))) {
+  skip <- if (ignore_response) {
+    vapply(fit[["spec"]][["responses"]],
+           function(r) deparse1(r[["resp_expr"]]), "")
+  }
+  for (v in setdiff(intersect(names(rd), names(data)), skip)) {
     x <- data[[v]]
     x <- if (is.null(dim(x))) x[rows] else x[rows, , drop = FALSE]
     if (!identical(norm(x), norm(rd[[v]]))) return(FALSE)

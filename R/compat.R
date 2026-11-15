@@ -1987,12 +1987,12 @@ compat_hand_rules_tbl <- function() {
       override = TRUE)
   }
   r("gr_prec", "*", "conditional",
-    "gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level, and belongs in data2 = list(Q = Q). Terms sharing an |ID| key over the same factor and the same Q merge into one such block.",
+    "gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level, and belongs in data2 = list(Q = Q). Terms sharing an |ID| key over the same factor and the same Q merge into one such block. An uncorrelated term, (0 + f || gr(g, prec = Q)), is one block per column of its design, a factor's columns too, as brms fits it.",
     override = TRUE)
   # car() and spde(), the sparse Gaussian Markov random fields, are
   # frmtmb.spatial's, which contributes their rows
   r("gr_cov", "*", "conditional",
-    "gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level, and belongs in data2 = list(A = A). Terms sharing an |ID| key over the same factor and the same A merge into one such block, which is the same model as writing the traits long with a single gr() term.",
+    "gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level, and belongs in data2 = list(A = A). Terms sharing an |ID| key over the same factor and the same A merge into one such block, which is the same model as writing the traits long with a single gr() term. An uncorrelated term, (0 + f || gr(g, cov = A)) or (0 + f | gr(g, cov = A, cor = FALSE)), is one block per column of its design, a factor's columns too, with its own sd over A, as brms fits it (r_1_k = sd_1[k] * (Lcov_1 * z_1[k])).",
     override = TRUE)
   r("equalto", "*", "conditional",
     "equalto(x + 0 | g, V) fixes the term covariance to V, which must be square and match the term dimension, and belongs in data2 = list(V = V).",

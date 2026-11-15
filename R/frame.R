@@ -620,6 +620,23 @@ extract_y <- function(resp, mf) {
     # category codes 1..K in level order; brms codes a hurdle family's
     # first level as the category 0
     y <- as.numeric(y) - 1 + code0
+  } else if (is.character(y) &&
+               identical(resp$family[["type"]], "ordinal")) {
+    # brms 2.23.0 refuses text, digits too, with this sentence
+    # (dev/refits-brms.R). Labels have no category order, and the
+    # coercion below turned them into NA, which stopped later in an
+    # anonymous internal error
+    code0 <- ord_code0(resp$family)
+    frm_stop("Family '", resp$family[["family"]], "' requires either ",
+             if (code0 == 0L) "non-negative" else "positive",
+             " integers or ordered factors as responses. '",
+             deparse1(resp$resp_expr), "' is a character vector (",
+             paste0("'", utils::head(unique(y[!is.na(y)]), 4L), "'",
+                    collapse = ", "),
+             "). Use as.integer() for codes, or ",
+             "factor(..., levels = ..., ordered = TRUE) with the ",
+             "levels in their order", call. = FALSE,
+             package = frm_family_package(resp$family))
   } else if (is.factor(y)) {
     if (!identical(resp$family[["family"]], "binomial") || nlevels(y) != 2L) {
       frm_stop("Factor responses are only supported for binomial families ",
@@ -1692,13 +1709,16 @@ gr_cov_matrix <- function(expr, data2, data, env, lv, what) {
 
 #' A known-covariance block fits an unstructured covariance within the
 #' levels, so a term that asked for another structure there is refused
-#' once its columns are known: one column needs none.
+#' once its columns are known: one column needs none. With `split`, an
+#' uncorrelated term passes: the caller fits it as one block per column
+#' (`gr_known_split()`).
 #'
 #' @noRd
-gr_cov_check_within <- function(re, cnms) {
+gr_cov_check_within <- function(re, cnms, split = FALSE) {
   ws <- re[["within_struct"]]
   d <- length(cnms)
   if (is.null(ws) || d < 2L) return(invisible(NULL))
+  if (split && identical(ws, "diag")) return(invisible(NULL))
   lab <- re[["within_label"]]
   if (!identical(ws, "diag")) {
     frm_stop(lab, " has ", d, " columns. ",
@@ -1709,13 +1729,46 @@ gr_cov_check_within <- function(re, cnms) {
   }
   frm_stop(lab, " has a term with ", d,
            " columns (", paste(cnms, collapse = ", "),
-           "), and an uncorrelated term over gr(cov = ) or ",
-           "gr(prec = ) gives each column its own sd. That is ",
-           "brms's model, but frmtmb's known-covariance block ",
-           "correlates the columns within a level, so it is not ",
-           "available yet. Write each column as a numeric ",
-           "variable of its own in the || term, or fit the ",
+           "), and an uncorrelated term over the known matrix of a ",
+           "multi-membership term, mm(cov = ), gives each column its own ",
+           "sd. That is brms's model, but frmtmb's multi-membership ",
+           "known-covariance block correlates the columns within a ",
+           "level, so it is not available yet. Write each column as a ",
+           "numeric variable of its own in the || term, or fit the ",
            "columns correlated with |", call. = FALSE)
+}
+
+#' One component per column of an uncorrelated term over a known matrix,
+#' `(0 + f || gr(g, cov = A))`: brms 2.23.0 fits each column with its own
+#' sd over the matrix, `r_1_k = sd_1[k] * (Lcov_1 * z_1[k])`
+#' (`dev/refits-brms.R`), which is a one-column known-covariance block
+#' per column, as lme4's `||` split writes a numeric column. Each keeps
+#' the term's bar, and `col_pick` says which column of the bar's design
+#' it is, for a prediction that builds the design again.
+#'
+#' @noRd
+gr_known_split <- function(cp) {
+  d <- cp$dim
+  nl <- cp$n_levels
+  lapply(seq_len(d), function(j) {
+    s <- cp
+    # Zlocal's columns are level-major: level l, column j is (l-1) d + j
+    s$Zlocal <- cp$Zlocal[, (seq_len(nl) - 1L) * d + j, drop = FALSE]
+    s$dim <- 1L
+    s$cnms <- cp$cnms[j]
+    s$col_pick <- j
+    s["aux_kron"] <- list(NULL)
+    s["aux_Qk"] <- list(NULL)
+    s$label <- paste0(cp$label, " [", cp$cnms[j], "]")
+    mo <- cp[["mo_re"]]
+    if (!is.null(mo)) {
+      hit <- match(j, mo[["cf"]])
+      s["mo_re"] <- list(if (!is.na(hit)) {
+        list(cf = 1L, raw = mo[["raw"]][hit])
+      })
+    }
+    s
+  })
 }
 
 #' A missing value's chart: `mi_chart_fun()` maps the value to the latent
@@ -2685,6 +2738,52 @@ smooth_pen_order <- function(sm, re2) {
   ord
 }
 
+#' The smooths of a fitted frame by linear predictor, the `smooth_map`
+#' of `assemble_frame()`.
+#'
+#' @noRd
+smooth_map_of <- function(frame) {
+  out <- lapply(frame[["linpreds"]], function(lp) lp[["smooths"]])
+  out[!vapply(out, is.null, NA)]
+}
+
+#' The fitted smooths that one smooth term of one linear predictor built,
+#' when a refit can rebuild them on its own rows: `NULL` for a fit made
+#' before they recorded their term (`spec_k`), and for a `t2()` basis
+#' whose split prediction cannot invert (`smooth_basis_at()`), so that
+#' such a refit computes its basis again, as it did before.
+#'
+#' @noRd
+smooth_frozen_of <- function(smooth_map, lp_key, k) {
+  sis <- smooth_map[[lp_key]]
+  if (!length(sis)) return(NULL)
+  sis <- Filter(function(si) identical(si[["spec_k"]], k), sis)
+  ok <- vapply(sis, function(si) {
+    !is.null(si[["U"]]) || !is.null(si[["ord"]])
+  }, NA)
+  if (!length(sis) || !all(ok)) return(NULL)
+  sis
+}
+
+#' `mgcv::smooth2random()`'s split of a fitted smooth, at the rows of
+#' `mf`: the fitted basis evaluated there, in the fitted
+#' parameterization (`smooth_basis_at()`), cut into the wiggly blocks and
+#' the null-space columns the fit had.
+#'
+#' @noRd
+smooth_random_frozen <- function(si, mf) {
+  M <- smooth_basis_at(si, mf)
+  rand <- list()
+  at <- 0L
+  for (k in si$nr) {
+    rand[[length(rand) + 1L]] <- M[, at + seq_len(k), drop = FALSE]
+    at <- at + k
+  }
+  list(rand = rand,
+       Xf = if (si$nf > 0L) M[, at + seq_len(si$nf), drop = FALSE],
+       trans.U = si$U, trans.D = si$D, fixed = FALSE)
+}
+
 #' Move the intercept column of a `0 + Intercept` design to where brms
 #' puts it: after the columns of the `pos` terms written before
 #' `Intercept`. model.matrix() orders columns by term, and the rewritten
@@ -3086,12 +3185,17 @@ raw_rhs <- function(spec, rhs) {
 #' the fit's rows: those rows have no missing value left to drop, and
 #' the refit pads its residuals and fitted values as the fit does.
 #'
+#' `smooth_map` is for `influence()`'s deletion refits: the fitted
+#' frame's smooths by linear predictor (`smooth_map_of()`), so that an
+#' `s(x)` term keeps the knots and the reparameterization the fit
+#' computed from every row, as `predvar_map` keeps a `poly()` basis.
+#'
 #' @noRd
 assemble_frame <- function(spec, data, na.action = stats::na.omit,
                            sparse_x = FALSE, data2 = list(),
                            check_response = TRUE, thres_pin = NULL,
                            drop_unused_levels = TRUE, predvar_map = NULL,
-                           refit_na_action = NULL) {
+                           refit_na_action = NULL, smooth_map = NULL) {
   # a saved fit's family from a package this session lacks
   require_model_packages(spec)
   # `data = NULL` is not "no data": model.frame() falls back to the
@@ -4267,7 +4371,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             rt$cnms[[kk]] <- rt$cnms[[kk]][keep]
           }
           d_k <- length(rt$cnms[[kk]])
-          gr_cov_check_within(dp[["re"]][[k]], rt$cnms[[kk]])
+          gr_cov_check_within(dp[["re"]][[k]], rt$cnms[[kk]], split = TRUE)
           len_k <- length(zrows)
           dist_cs <- c("ou", "exp", "gau", "mat")
           if (cs_name %in% c("ar1", "hetar1", "cs", "homcs", "toep",
@@ -4376,6 +4480,15 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           # gr(g, by = f): the term as written is what the duplicate
           # check reads, and one block per by-level is what is fitted
           dup_cps[[length(dup_cps) + 1L]] <- components[[length(components)]]
+          if (identical(dp[["re"]][[k]][["within_struct"]], "diag") &&
+                cs_name %in% c("gr_cov", "gr_prec") && d_k > 1L) {
+            subs <- gr_known_split(components[[length(components)]])
+            components[[length(components)]] <- subs[[1L]]
+            for (s in subs[-1L]) {
+              components[[length(components) + 1L]] <- s
+              comp_ids <- c(comp_ids, length(components))
+            }
+          }
           by_k <- dp[["re"]][[k]]$by
           if (!is.null(by_k)) {
             cp <- components[[length(components)]]
@@ -4398,7 +4511,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # iid-Gaussian component whose variance is the inverse smoothing
       # parameter.
       sm_info <- list()
+      sk <- 0L
       for (sspec in dp[["smooth"]] %||% list()) {
+        sk <- sk + 1L
+        # a deletion refit keeps the fit's basis (smooth_map)
+        frozen <- smooth_frozen_of(smooth_map, lp_key, sk)
         # modCon = 3 ("set fit and predict constraint to fit constraint").
         # A t2 smooth carries two identifiability constraints: `C`, absorbed
         # into `X`/`S` for fitting, and `Cp`, absorbed into `Xp`/`Sp` and
@@ -4422,10 +4539,21 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # it meant another parameter. The random part, and so the fit,
         # does not change. mgcv ignores the flag for a smooth with
         # several penalties (t2()), as it does in brms's call.
-        scl <- mgcv::smoothCon(sspec, data = mf, absorb.cons = TRUE,
-                               modCon = 3, diagonal.penalty = TRUE)
+        scl <- if (is.null(frozen)) {
+          mgcv::smoothCon(sspec, data = mf, absorb.cons = TRUE,
+                          modCon = 3, diagonal.penalty = TRUE)
+        } else {
+          lapply(frozen, `[[`, "sm")
+        }
         for (sm in scl) {
-          re2 <- mgcv::smooth2random(sm, names(mf), type = 2)
+          si0 <- if (!is.null(frozen)) {
+            frozen[[match(sm$label, vapply(frozen, `[[`, "", "label"))]]
+          }
+          re2 <- if (is.null(si0)) {
+            mgcv::smooth2random(sm, names(mf), type = 2)
+          } else {
+            smooth_random_frozen(si0, mf)
+          }
           if (isTRUE(re2$fixed)) {
             frm_stop("Fixed (fx = TRUE) smooths are not supported: ", sm$label,
                      call. = FALSE)
@@ -4461,7 +4589,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           }
           sm_info[[length(sm_info) + 1L]] <- list(
             sm = sm, U = re2$trans.U, D = re2$trans.D,
-            ord = smooth_pen_order(sm, re2),
+            ord = if (is.null(si0)) smooth_pen_order(sm, re2) else si0$ord,
             nr = nr, nf = nf, xf_idx = xf_idx,
             comp_ids = sm_comp_ids, block_ids = NULL,
             # the grouping factor this basis is indexed by, if any: what
@@ -4475,7 +4603,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             # unseen level would otherwise die inside PredictMat with a
             # non-conformable-arguments error instead of the named
             # new-levels refusal
-            group_levels = local({
+            group_levels = if (!is.null(si0)) si0$group_levels else local({
               gv <- smooth_group_var(sm, mf)
               if (is.null(gv) || is.null(mf[[gv]])) NULL else
                 levels(as.factor(mf[[gv]]))
@@ -4484,7 +4612,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             # the written term this basis came from: a factor `by`
             # splits one term into a basis per level, and
             # conditional_smooths() draws the term, not the level
-            term = attr(sspec, "frm_term") %||% sm$label
+            term = attr(sspec, "frm_term") %||% sm$label,
+            # which of the parameter's smooth terms it came from, for a
+            # refit that keeps this basis (smooth_frozen_of())
+            spec_k = sk
           )
         }
       }
@@ -5181,6 +5312,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # its group-level mo() columns, which a prediction scales too
         if (!is.null(cps[[k]][["mo_re"]])) {
           out[["mo_re"]] <- cps[[k]][["mo_re"]]
+        }
+        # one column of its bar's design (gr_known_split())
+        if (!is.null(cps[[k]][["col_pick"]])) {
+          out[["col_pick"]] <- cps[[k]][["col_pick"]]
         }
         out
       })

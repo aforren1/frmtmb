@@ -2047,11 +2047,8 @@ ce_base_frame <- function(x) {
   mf <- x$frame[["data_frame"]]
   raw <- x$frame[["raw_vars"]]
   if (is.null(raw) || !nrow(mf) || nrow(raw) != nrow(mf)) return(mf)
-  add <- setdiff(names(raw), names(mf))
-  if (!length(add)) return(mf)
-  out <- mf
-  for (v in add) out[[v]] <- raw[[v]]
-  out
+  # the frame a refit reads, on the fitted rows
+  fit_refit_data(x)
 }
 
 #' The refusal of a display whose response reads `mi(x, idx = )`.

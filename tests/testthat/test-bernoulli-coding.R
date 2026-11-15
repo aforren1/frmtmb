@@ -122,11 +122,14 @@ test_that("post-fit methods agree with the 0/1 fit", {
   ce1 <- conditional_effects(fm, effects = "x")[[1L]]
   ce0 <- conditional_effects(ref, effects = "x")[[1L]]
   expect_identical(ce1$estimate__, ce0$estimate__)
-  # refit() takes the 0/1 codes simulate() returns; the response's own
-  # values are refused by name, where they fitted a logLik of 3e304
+  # refit() takes the 0/1 codes simulate() returns, and the response's
+  # own values coded as the fit coded them; before they were coded they
+  # fitted a logLik of 3e304, and then they were refused
   expect_error(refit(fm, replace(bc_data$y01, 1, NA)), "1 NA value",
                fixed = TRUE)
-  expect_error(refit(fm, bc_data$ym), "refitted on its 0/1 codes",
+  expect_identical(logLik(refit(fm, bc_data$ym)),
+                   logLik(refit(fm, bc_data$y01)))
+  expect_error(refit(fm, replace(bc_data$ym, 1, 3)), "'3', which is neither",
                fixed = TRUE)
   expect_identical(logLik(refit(fm, bc_data$y01)),
                    logLik(refit(ref, bc_data$y01)))

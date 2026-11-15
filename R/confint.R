@@ -541,7 +541,6 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   method <- frm_match_arg(method)
   if (method == "Wald") method <- "wald"
   mo_check_fit(object)
-  autocor_check_fit(object)
   # The dots are forwarded on three of the four methods and swallowed on
   # the fourth, so they are checked against whatever THIS method really
   # passes them to. Before this, confint(method = "wald", re_formula =)
@@ -574,6 +573,13 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
     seq_along(nm)
   } else {
     resolve_par_index(object, parm, "confint")
+  }
+  # a saved fit whose sigma had another meaning still has the right
+  # interval for every other parameter: neither the estimate nor the
+  # inverse-Hessian block of a parameter moves when sigma alone is
+  # reparameterized. A bootstrap simulates, which reads sigma
+  if (method == "boot" || any(autocor_outer_sigma(object)[idx])) {
+    autocor_check_fit(object)
   }
 
   if (method == "wald") {
@@ -2725,6 +2731,29 @@ bform_call <- function(b) {
   cl
 }
 
+#' The formula an updated fit's call records for a delta that
+#' `update()` resolved to a [bf()] object: the plain formula when that is
+#' all the object holds besides a family the call states elsewhere (its
+#' `family` argument, or the default gaussian), and otherwise the `bf()`
+#' call that builds it (`bform_call()`). The object itself where no call
+#' can say it (an `nlf()` formula).
+#'
+#' @noRd
+update_shown_formula <- function(b, family_arg) {
+  if (length(b$nlforms)) return(b)
+  default_fam <- identical(unclass(b$family), unclass(default_family()),
+                           ignore.environment = TRUE,
+                           ignore.bytecode = TRUE, ignore.srcref = TRUE)
+  if (family_arg || default_fam) b$family <- NULL
+  extra <- c(b$pforms, b$pfix, b$nlforms,
+             b[c("center", "cmc", "autocor")])
+  if (is.null(b$family) && !isTRUE(b$nl) &&
+        !length(Filter(Negate(is.null), extra))) {
+    return(b$formula)
+  }
+  bform_call(b)
+}
+
 #' The constructor call of a family, as `frmtmb::student(link_sigma =
 #' "identity")`, when the call can say everything the family holds;
 #' otherwise the family object itself. It can only when every formal of
@@ -2862,11 +2891,12 @@ update_pool_pars <- function(out, old, new) {
 #' data still hold the fit's rows and values. Otherwise the update is
 #' refused with brms's advice to give the data as `newdata`.
 #'
-#' The formula, the family, the control, the start and the flags of the
-#' stored call that `update()` does not replace come from the fit, as in
-#' brms. So a fit made inside a function updates where the function's
-#' arguments are gone, and an object of the same name in the workspace
-#' does not become the model. The new fit's call names them as the
+#' The formula, the family, the control, the start, the flags and the
+#' `na.action`, `se` and `verbose` of the stored call that `update()`
+#' does not replace come from the fit, as in brms. So a fit made inside
+#' a function updates where the function's arguments are gone, and an
+#' object of the same name in the workspace does not become the model.
+#' The new fit's call names them as the
 #' stored call did. `evaluate = FALSE` returns the call that `update()`
 #' evaluates. It holds those values and the data, so it gives the same
 #' refit wherever it is evaluated, as in [stats::step()] and
@@ -3002,6 +3032,12 @@ update.frmtmb_fit <- function(object, formula., ..., evaluate = TRUE) {
   # arguments, which names the data, the family and the control as the
   # user wrote them
   shown <- cl
+  if (inherits(cl$formula, "frmtmb_formula")) {
+    # a delta resolved to a bf() object, which deparses to thousands of
+    # characters of closures; record the call that builds it
+    shown$formula <- update_shown_formula(cl$formula,
+                                          "family" %in% names(cl))
+  }
   # Below, the call that is evaluated takes from the fit by value what
   # the user did not give, as brms's update() takes it from the object:
   # the formula, the family, the control, the start and the flags. A
@@ -3040,6 +3076,12 @@ update.frmtmb_fit <- function(object, formula., ..., evaluate = TRUE) {
                   object$frame[["drop_unused_levels"]] %||% TRUE)
   for (nm in names(flags)) {
     if (!(nm %in% given) && nm %in% names(cl)) cl[[nm]] <- flags[[nm]]
+  }
+  # the values frm() read for these, where the fit records them (a fit
+  # saved before it did keeps the call's expressions)
+  ra <- object[["refit_args"]]
+  for (nm in intersect(names(ra), setdiff(names(cl), given))) {
+    cl[nm] <- list(ra[[nm]])
   }
   # the stored structural objects go into the call by value, so an
   # update in a session where the original data2 names are gone still

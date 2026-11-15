@@ -228,8 +228,14 @@ prior_summary.frmtmb_fit <- function(object, ...) {
 #' @param object A `frmtmb_fit` for a univariate model.
 #' @param newresp Replacement response: a vector of the original length,
 #'   or a matrix of the original dimensions for matrix responses. A
-#'   `bernoulli()` response is given as its 0/1 codes, which is what
-#'   [simulate()] returns, whatever two values the data held.
+#'   `bernoulli()` response is given as the two values the data held,
+#'   which are coded as the fit coded them, or as its 0/1 codes, which
+#'   is what [simulate()] returns. The values are read first, as
+#'   `residuals(newdata = )` and brms read a new response; a vector of 0
+#'   and 1 that is not the fit's values is the codes. A vector that reads
+#'   both ways with different results (all 1s on a fit coded 1 and 2) is
+#'   refused: give the values as a factor with the fit's levels, or the
+#'   codes as a logical. [frm_bootstrap()] passes its draws as codes.
 #' @param start Optional named start list (as in [frm()]); when given it
 #'   replaces the warm start.
 #' @param ... Refused: an argument the method does not have is an
@@ -271,8 +277,25 @@ refit.frmtmb_fit <- function(object, newresp, start = NULL, ...) {
       frm_stop("newresp must be a ", nrow(y0), " x ", ncol(y0), " matrix",
                call. = FALSE)
     }
+    # the frame's copy of the response too, which the data handed to
+    # marginaleffects are built from (me_modeldata()); it held the old
+    # response after a refit
+    nm <- deparse1(object$spec$responses[[1L]]$resp_expr)
+    df <- frame[["data_frame"]]
+    if (!is.null(df) && is.matrix(df[[nm]]) &&
+          identical(dim(df[[nm]]), dim(newresp))) {
+      m <- newresp
+      dimnames(m) <- dimnames(df[[nm]])
+      df[[nm]] <- m
+      frame[["data_frame"]] <- df
+    }
   } else {
     if (is.data.frame(newresp)) newresp <- newresp[[1L]]
+    # a factor states values and a logical states codes, whatever the
+    # numbers would read as (refit_bernoulli_codes())
+    kind <- if (is.factor(newresp)) "values" else if (is.logical(newresp)) {
+      "codes"
+    }
     newresp <- as.vector(newresp)
     if (length(newresp) != length(y0)) {
       frm_stop("newresp must have length ", length(y0), call. = FALSE)
@@ -287,18 +310,7 @@ refit.frmtmb_fit <- function(object, newresp, start = NULL, ...) {
                call. = FALSE)
     }
     lv <- object$spec$responses[[1L]]$family[["bin_levels"]]
-    bad <- !is.na(newresp) & !newresp %in% c(0, 1)
-    if (!is.null(lv) && any(bad)) {
-      # the fit stores the 0/1 codes, and a value on the response's own
-      # scale would reach the density as an outcome it cannot take
-      frm_stop("refit(): a bernoulli response is refitted on its 0/1 ",
-               "codes, which simulate() returns, and newresp holds ",
-               paste0("'", utils::head(unique(newresp[bad]), 3L), "'",
-                      collapse = ", "), ". The fit codes ",
-               paste0("'", lv, "' as ", seq_along(lv) - 1L,
-                      collapse = " and "), "; recode newresp to 0 and 1",
-               call. = FALSE)
-    }
+    if (!is.null(lv)) newresp <- refit_bernoulli_codes(newresp, lv, kind)
   }
   frame[["y"]][[1L]] <- newresp
   fit_assembled(object$spec, frame, object$bform, object$call,
@@ -310,4 +322,53 @@ refit.frmtmb_fit <- function(object, newresp, start = NULL, ...) {
                 importance = object$importance$draws %||% 0L,
                 template = if (is.null(start)) object$estimates,
                 data2 = object$data2 %||% list())
+}
+
+#' A bernoulli `newresp` on the 0/1 codes the fit stores. It holds the
+#' response's own two values, which are coded as the fit coded them, as
+#' `residuals(newdata = )` and brms 2.23.0 read a new response; or else
+#' the codes 0 and 1, which [simulate()] returns. On a fit whose values
+#' are 1 and 2 the number 1 is a value (a failure): read as a code when
+#' every entry was 0 or 1, it was a success in one vector and a failure
+#' in the next. A vector that both readings take, with different
+#' results, is always constant there, and is refused. `kind` is how the
+#' caller said which it is: `"values"` (a factor), `"codes"` (a logical,
+#' and the bootstrap's draws).
+#'
+#' @noRd
+refit_bernoulli_codes <- function(newresp, lv, kind = NULL) {
+  is_code <- newresp %in% c(0, 1)
+  is_value <- as.character(newresp) %in% lv
+  if (identical(kind, "codes") && all(is_code)) {
+    return(as.numeric(newresp))
+  }
+  if (identical(kind, "values") || (all(is_value) && !all(is_code))) {
+    return(bernoulli_code(newresp, lv, what = "refit(): newresp"))
+  }
+  if (all(is_value) && all(is_code)) {
+    as_value <- bernoulli_code(newresp, lv, what = "refit(): newresp")
+    if (identical(as_value, as.numeric(newresp))) return(as_value)
+    frm_stop("refit(): a bernoulli newresp of '",
+             paste(unique(newresp), collapse = "', '"),
+             "' reads two ways on this fit, which codes ",
+             paste0("'", lv, "' as ", seq_along(lv) - 1L,
+                    collapse = " and "),
+             ": as the response's values or as the 0/1 codes. Give the ",
+             "values as a factor with the fit's levels, or the codes as ",
+             "a logical (TRUE for 1)", call. = FALSE)
+  }
+  if (all(is_code)) return(as.numeric(newresp))
+  bad <- !is_code & !is_value
+  frm_stop("refit(): a bernoulli newresp holds the 0/1 codes, which ",
+           "simulate() returns, or the response's own values, which the ",
+           "fit codes ",
+           paste0("'", lv, "' as ", seq_along(lv) - 1L, collapse = " and "),
+           ". This newresp ",
+           if (any(bad)) {
+             paste0("holds ",
+                    paste0("'", utils::head(unique(newresp[bad]), 3L), "'",
+                           collapse = ", "), ", which is neither")
+           } else {
+             "mixes the codes with the values"
+           }, call. = FALSE)
 }

@@ -1,3 +1,94 @@
+# frmtmb (development version)
+
+## Response coding and refits
+
+* An uncorrelated term over a known covariance or precision,
+  `(0 + f || gr(g, cov = A))`, `(0 + f | gr(g, cov = A, cor = FALSE))`
+  or the same over `gr(g, prec = Q)`, fits a factor: each column of the
+  term has its own sd over the known matrix, as in brms 2.23.0. Before,
+  a factor in such a term was refused. The log-likelihood equals that
+  of the same columns written as numeric variables, and the gaussian
+  marginal density written out. `(1 + f || gr(g, cov = A))` codes the
+  factor with the formula's contrasts, as brms does: its columns are
+  `Intercept`, `fb` and `fc`. The multi-membership `mm(g1, g2, cov =
+  A)` keeps lme4's split of the term, and a factor there is still
+  refused.
+
+* BREAKING: A character ordinal response is refused in brms's words,
+  with the response's name: "Family 'cumulative' requires either
+  positive integers or ordered factors as responses." This holds for
+  text that spells the category codes (`"1"`, `"2"`, ...), which fitted
+  before, as brms 2.23.0 refuses it too. Give the codes as integers or
+  the labels as an ordered factor. Before, labels such as `"none"` and
+  `"mild"` stopped with "missing value where TRUE/FALSE needed".
+
+* `fitted(newdata = )` on a multivariate ordinal fit takes a one-row
+  `newdata`. Before, it stopped with R's `vapply()` error.
+
+* BREAKING: `y ~ . - w` is expanded without the columns that the
+  formula removes, so `formula(fit)` is `y ~ (x + z)`, where it was
+  `y ~ (x + z + w) - w`, as brms stores it. So the fit refits on data
+  without `w`, as brms reads the same formula there. A removed column
+  that the formula reads elsewhere, as in `. - w + w:x`, stays.
+
+* BREAKING: `refit(newresp = )` of a `bernoulli()` fit reads the
+  response's own two values first, as `residuals(newdata = )` and brms
+  read a new response, and a vector of 0 and 1 that is not the fit's
+  values as the 0/1 codes that `simulate()` returns. Before, the values
+  were refused, and a vector of 0 and 1 was always the codes: on a fit
+  coded 1 and 2, `refit()` read 1 as a success where `residuals()` read
+  it as a failure. A vector that reads both ways with different results
+  (all 1s on that fit) is refused; a factor states values and a logical
+  states codes. `frm_bootstrap()` passes its draws as codes.
+
+* BREAKING: `update()` takes `na.action`, `se` and `verbose` from the
+  fit when it does not get them. Before, it read them from the stored
+  call where `update()` was called. So a fit made inside a function
+  with a local `na.action` could not be updated, and an object of the
+  same name in the workspace became the argument.
+
+* BREAKING: `update(fit, ~ . - x)` records a readable call: `getCall()`
+  gives `frm(formula = z ~ x + (1 | g), data = dd)`, or a
+  `frmtmb::bf()` call where the model has parameter formulas. Before,
+  it held the deparsed `bf()` object, thousands of characters long.
+
+* BREAKING: `vcov_cluster(cluster = ~ v)` reads `v` from the data
+  first: the fit's own columns, then the data that the fit's call
+  names, and the formula's environment only when the data lack `v`, as
+  `sandwich::vcovCL()` reads it. Before, an object `v` in the workspace
+  of the right length was read in place of the data's column. The
+  call's data are read only when they still hold the fitted rows and
+  values, matched by name; data whose rows changed since the fit are
+  refused. Before, they were read by position, so reordered rows gave
+  each row another row's cluster. When the data the call names are
+  gone, `v` is not read from the workspace either: the call is refused.
+  The response of a `refit()` is not compared with the call's data, so
+  a refit of a matrix response reads its cluster from them.
+
+* BREAKING: `influence()` of a `refit()` deletes rows of the refit's
+  response. Before, it deleted rows of the original fit's response, so
+  the table was the original fit's.
+
+* BREAKING: `influence()` keeps the smooth basis of the fit in every
+  deletion refit, as it keeps a `poly()` or `ns()` basis, so its tables
+  for a fit with `s()` or `t2()` change. Before, the basis was built
+  again from the rows that stayed, so its knots moved and a coefficient
+  change held a change of basis.
+
+* `confint(parm = )` of a fit saved by frmtmb 0.76.0 or earlier with
+  `ar(cov = TRUE)` answers for the parameters other than `sigma` and
+  its coefficients. Their estimates and standard errors do not change
+  when only `sigma` is reparameterized.
+
+* `marginaleffects::predictions()` works on a fit whose data hold a
+  matrix column, such as a `multinomial()` response. marginaleffects
+  puts the data in a data.table, which cannot hold a matrix column, so
+  the fit gives it the data with that column split (`Y.a`, `Y.b`, ...).
+
+* `emmeans::ref_grid(fit, data = )` raises a refusal of the fit with
+  its class (`frmtmb_error`). Without `data`, emmeans's own protocol
+  turns the refusal into a text.
+
 # frmtmb 0.82.0
 
 ## Convergence and standard errors

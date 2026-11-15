@@ -1,0 +1,23 @@
+source("dev/refits-lib.R")
+print(insight::get_data)
+print(head(methods(insight::get_data), 5))
+set.seed(5)
+dm <- data.frame(x = rnorm(200), N = 10L)
+pr <- cbind(1, exp(0.3 + 0.5 * dm$x), exp(-0.2 * dm$x))
+pr <- pr / rowSums(pr)
+dm$Y <- t(sapply(1:200, function(i) rmultinom(1, 10, pr[i, ])))
+colnames(dm$Y) <- c("a", "b", "c")
+fm <- frm(Y | trials(N) ~ x, family = multinomial(), data = dm)
+go("find_response", insight::find_response(fm))
+go("get_response", str(insight::get_response(fm)))
+go("get_data source frame", str(insight::get_data(fm, source = "frame")))
+go("find_variables", insight::find_variables(fm))
+go("predictions newdata without Y", {
+  p <- marginaleffects::predictions(fm, newdata = dm[1:3, c("x", "N")])
+  as.data.frame(p)[, c("group", "estimate", "std.error")]
+})
+go("set_modeldata", {
+  m2 <- marginaleffects::set_modeldata(fm, dm[, c("x", "N")])
+  p <- marginaleffects::predictions(m2)
+  dim(p)
+})

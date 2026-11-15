@@ -1,0 +1,7 @@
+frmtmb.latent extensions/frmtmb.latent/tests/testthat/test-hmm-starts.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-add-criterion.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-incl-thres-draws.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-loo.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-prior-draws.R
+frmtmb.sample extensions/frmtmb.sample/tests/testthat/test-readers-resp-me.R
+frmtmb.spatial extensions/frmtmb.spatial/tests/testthat/test-car-postfit.R

@@ -100,6 +100,13 @@ boot_refits <- function(fit, FUN, nsim, seed, re_formula, re_plan = NULL) {
       any(vapply(sims, is.factor, TRUE))) {
     sims[] <- lapply(sims, function(v) if (is.factor(v)) as.integer(v) else v)
   }
+  # a bernoulli draw is the 0/1 codes; as a logical it says so, where a
+  # constant draw of 1s on a fit coded 1 and 2 is also the fit's value 1
+  # and refit() would refuse it (refit_bernoulli_codes())
+  if (length(fit$frame[["y"]]) == 1L &&
+        !is.null(fit$spec$responses[[1L]]$family[["bin_levels"]])) {
+    sims[] <- lapply(sims, as.logical)
+  }
   # nsim refits run off this fit's control; a verbose original would
   # otherwise narrate every draw
   if (!is.null(fit$control)) fit$control$verbose <- FALSE
