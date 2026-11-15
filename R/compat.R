@@ -2128,7 +2128,7 @@ compat_hand_rules_tbl <- function() {
   r("fcor()", "kind:aterm", "refused",
     "Refused: the density of the rows is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, or a truncation bound to renormalize. brms refuses weights(), cens() and trunc() here too.")
   r("fcor()", "mi()", "conditional",
-    "mi() on the response makes each missing value a coordinate of the joint draw, brms's Yl. frm() integrates the missing values out under the Laplace approximation, which is exact on gaussian(), where the fit is the one over the observed rows with M cut to them; on student() its error is a function of nu and the numbers of rows and of missing values alone, which the objective takes off, so the fit is exact there too when no other density reads the values and no other random effect is integrated. frm_sample() samples them, as brms does. log_lik() is refused, as it is for every mi() model.")
+    "mi() on the response makes each missing value a coordinate of the joint draw, brms's Yl. A missing value no other density reads leaves frm()'s fit, which takes the exact margin of the observed rows (the fit over the observed rows with M cut to them), on gaussian() and student(), with random effects or REML beside them too; a value another density reads stays latent under the Laplace approximation. frm_sample() samples them, as brms does. log_lik() is refused, as it is for every mi() model.")
   r("fcor()", "kind:family", "refused",
     "Refused as brms refuses it ('FCOR terms are not implemented for this family'): the term is a residual covariance over all rows, which brms gives only the families with a residual y - mu.")
   r("group:autocor", "categorical", "refused",

@@ -4003,6 +4003,7 @@ Record: `dev/sarfcor-findings.md` (A6, B4, "What needs the user");
   this machine ("lazy loading failed", 13 attempts, the base commit's
   package too), while the review's single attempts succeeded; an R
   child here sometimes ends without its last line. Worth its own look.
+  CLOSED in the round of 2026-11-13 (lane arspat2): not reproduced; covr 3.6.5 installed it 5 of 5 times and ran its tests (dev/arspat2-findings.md).
 
 ### The saved-fit refusal and its CI step
 
@@ -4793,6 +4794,44 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-13
+
+### From lane arspat2
+
+- **LOW.** A registered residual term without a `margin` slot gets its
+  `mi()` margin from one `whiten()` call per missing value
+  (`autocor_seam_margin_cols()`), an `n x m` dense block on the tape.
+  `fcor()` and `sar()` have the slot; a term from another package that
+  lacks it pays `m` calls of its map per evaluation. Not measured beyond
+  the toy term of test-autocor-seam.R (dev/arspat2-findings.md, item 1).
+- **LOW.** TMB returns `NaN` from `obj$fn` when building a tape runs out
+  of memory (`std::bad_alloc` in `MakeADHessObject2`, printed and
+  swallowed), and `frm()` then reports "NA/NaN gradient evaluation" with
+  no hint at memory. The `mi()` margin route no longer builds a dense
+  inner Hessian in the missing values (peak 2.24 GB at n = 1000,
+  m = 200), so it no longer reaches this; any model with a large dense
+  inner Hessian can (dev/reviews/arspat2-review-nandiag.R).
+- **LOW.** Backlog 4483 (`car()`'s rho flat on its logit, not brms's
+  `(flat)` on (0, 1)) needs no new seam slot: car's `natural` slot gives
+  `theta_2` type `"prop"` with a unit gradient. The rule "a covariance
+  position no class reaches, whose natural row is `prop` with a unit
+  gradient, takes `logistic(0, 1)` among `frm_sample()`'s defaults and
+  under `prior = "flat"`" closes it. Every line it touches names class
+  `"theta"` (`default_prior()`'s `add("theta", coef = )`,
+  frmtmb.sample's `default_priors_for()`), which lane priors2 renames in
+  this round; do it on the renamed class (dev/arspat2-findings.md,
+  item 3).
+- **LOW.** Backlog 5256's scope, measured: brms 2.23.0 takes a `cov =
+  FALSE` ARMA beside `sar()` (both types) and `fcor()` only, and refuses
+  it beside `cosy()`, `unstr()` ("Can only model one time-series term")
+  and `ma(cov = TRUE)` (dev/arspat2-out/brms-probe.txt). So the second
+  residual slot holds a registered term beside a `cov = FALSE` ARMA. The
+  objective's shift loop would read it as is; `fitted()` (the lag SAR's
+  `A^-1 (eta + shift)`), `simulate()` (the shift reads earlier draws of
+  a joint draw), `predict(newdata =)`, `log_lik()`, priors, names, compat
+  rows and the cluster sandwich all read `frame$autocor[[resp]]` as one
+  term (33 `autocor_is_cond()` reads in 11 files).
+
 ## Filed at the 0.82.0 release (2026-11-11)
 
 ### From lane boundfam
@@ -5266,6 +5305,7 @@ Record: `dev/wcheck-findings.md`.
   of the term's bounds needs `lo`/`hi` carried through the five
   places that rbind or back-transform these rows (R/confint.R,
   R/methods-fit.R twice, R/multiple.R, R/autocor-latent.R).
+  CLOSED in the round of 2026-11-13 (lane arspat2): type "clamped", the raw Wald interval with its ends held inside (lo, hi); coverage unchanged (0.935 at rho = 0.9, 5 x 5), a logit interval covered 0.665 (dev/arspat2-findings.md).
 - **LOW.** On gaussian data a `student()` fit runs nu to about 1e9, where brms's
   program and frmtmb's density part by 1e-5 nats (`se_ar_student` of
   `dev/arspat-out/l1-all.txt`); at df 4 they agree to 1.1e-13. Likely
@@ -5295,6 +5335,7 @@ Record: `dev/wcheck-findings.md`.
   (sd 1.92) it reads -0.789, and the exact value is not known. Fix route:
   a message for this case, or a lower gate. Short check of the round's
   fix (dev/reviews/arspat-short-*).
+  CLOSED in the round of 2026-11-13 (lane arspat2): exact; values no other density reads leave the fit, which takes the observed rows' exact margin (also REML, and gaussian with a random effect in sigma), equal to the dense margin to 4e-14 (for fcor() the observed-rows fit), faster than the latent values; 0.82.0 was 0.21 to 45.17 nats off (dev/arspat2-findings.md).
 ### From lane names
 
 - **LOW. brms's derived `err[k]` columns are not in the draws** of a latent

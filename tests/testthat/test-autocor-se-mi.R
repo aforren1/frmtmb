@@ -152,10 +152,11 @@ test_that("mi() beside fcor() integrates the missing values out", {
   d$y[miss] <- NA
   fit <- frm(bf(y | mi() ~ x + fcor(M)), family = gaussian(), data = d,
              data2 = list(M = M))
-  # a registered term's map takes every row, so the values stay latent,
-  # and on gaussian the Laplace marginal is exact: the fit over the
-  # observed rows with M cut to them, which is what brms's posterior is
-  expect_length(fit$estimates$miss, length(miss))
+  # no other density reads the values, so they leave the fit, which takes
+  # the margin of the observed rows: the fit over them with M cut to them,
+  # which is what brms's posterior is
+  expect_setequal(fit$frame$mi_map$y$unread, miss)
+  expect_length(fit$estimates$miss, 0L)
   f0 <- frm(bf(y ~ x + fcor(M0)), family = gaussian(), data = d[-miss, ],
             data2 = list(M0 = M[-miss, -miss]))
   l1 <- as.numeric(logLik(fit))
@@ -192,9 +193,9 @@ acse_nu_held <- function(nu, ...) {
 
 test_that("mi() beside fcor() on student() integrates out exactly", {
   skip_if_not_installed("mvtnorm")
-  # the Laplace value of a multivariate t's integral over m coordinates is
-  # the exact margin times exp(c(nu, n, m)), a constant the objective
-  # takes off; without it logLik was low by |c|, 1.98 at m = 20, nu = 3
+  # the margin of a multivariate t over the observed rows is a multivariate
+  # t; 0.81.0 held the values latent, and the Laplace value of their
+  # integral was low by 1.98 at m = 20, nu = 3
   n <- 60
   M <- 0.5^abs(outer(seq_len(n), seq_len(n), "-"))
   set.seed(3)
@@ -215,9 +216,7 @@ test_that("mi() beside fcor() on student() integrates out exactly", {
       expect_lt(abs(as.numeric(logLik(f)) - ex) / abs(ex), 1e-9)
     }
   }
-  # brms's default prior pins nu at a moderate value (28.11 here); before
-  # the correction logLik - exact was -1.3614, and mi_laplace_note() read
-  # tk = -0.93, under its gate, and said nothing
+  # brms's default prior pins nu at a moderate value (28.11 here)
   set.seed(4)
   d <- data.frame(x = stats::rnorm(n))
   d$y <- 1 + 0.5 * d$x +
@@ -231,18 +230,121 @@ test_that("mi() beside fcor() on student() integrates out exactly", {
   ex <- mvtnorm::dmvt(d$y[ok], rep_len(dp$mu, n)[ok],
                       dp$sigma[1]^2 * M[ok, ok], df = dp$nu[1], log = TRUE)
   expect_lt(abs(as.numeric(logLik(f)) - ex) / abs(ex), 1e-9)
-  # the case is exact now, so the Laplace check has nothing to measure
+  # nothing is latent, so the Laplace check has nothing to measure
+  expect_setequal(f$frame$mi_map$y$unread, which(!ok))
   expect_true(mi_laplace_exact(f$frame))
   expect_null(f$mi_laplace)
-  # the guard's absent case: with a random effect beside it the inner
-  # problem is not the term's density alone, and no correction applies
-  d$g <- factor(rep(1:6, length.out = n))
-  fr <- frm(bf(y | mi() ~ x + (1 | g) + fcor(M)), family = student(),
+})
+
+test_that("mi() beside fcor() on student() with more integrated is exact", {
+  # Held latent, the joint t's Laplace error over the missing values moved
+  # with the observed rows' quadratic form, so with a random effect, or
+  # with beta under REML, the objective was 0.3 to 3.1 nats low, and
+  # silent (mi_laplace_note() read tk = -0.93 on a prior that held nu at
+  # 28). The model is the one fit on the observed rows with M cut to them,
+  # so its objective is that fit's at every point
+  n <- 60
+  M <- 0.5^abs(outer(seq_len(n), seq_len(n), "-"))
+  mk <- function(re_sd) {
+    set.seed(4)
+    d <- data.frame(x = stats::rnorm(n), h = factor(rep(1:6, each = 10)))
+    d$y <- 1 + 0.5 * d$x + stats::rnorm(6, 0, re_sd)[d$h] +
+      as.vector(t(chol(M)) %*% stats::rnorm(n)) *
+      sqrt(4 / stats::rchisq(1, 4))
+    d$y[sort(sample(n, 20))] <- NA
+    d
+  }
+  cases <- list(
+    list(f = y ~ x + (1 | h) + fcor(M), f0 = y ~ x + (1 | h) + fcor(M0),
+         sd = 0, reml = FALSE, profile = FALSE),
+    list(f = y ~ x + (1 | h) + fcor(M), f0 = y ~ x + (1 | h) + fcor(M0),
+         sd = 1.5, reml = FALSE, profile = TRUE),
+    list(f = y ~ x + fcor(M), f0 = y ~ x + fcor(M0), sd = 0, reml = TRUE,
+         profile = FALSE))
+  for (cs in cases) {
+    d <- mk(cs$sd)
+    ok <- !is.na(d$y)
+    ctl <- frmtmb_control(profile = cs$profile)
+    f <- frm(bf(update(cs$f, y | mi() ~ .)), family = student(), data = d,
+             data2 = list(M = M), REML = cs$reml, control = ctl)
+    f0 <- frm(bf(cs$f0), family = student(), data = d[ok, ],
+              data2 = list(M0 = M[ok, ok]), REML = cs$reml, control = ctl)
+    expect_setequal(f$frame$mi_map$y$unread, which(!ok))
+    expect_true(mi_laplace_exact(f$frame))
+    inu <- grep("^nu", outer_par_labels(f))
+    # nu at 3, 6 and 21, where the latent values' Laplace error was large
+    for (k in 0:2) {
+      p <- f$opt$par + 0.05 * k * seq_along(f$opt$par) / length(f$opt$par)
+      p[inu] <- log(c(2, 5, 20)[k + 1L])
+      a <- f$obj$fn(p)
+      b <- f0$obj$fn(p)
+      expect_lt(abs(a - b) / abs(b), 1e-10)
+    }
+  }
+})
+
+test_that("mi() beside fcor() with a random effect in sigma is exact", {
+  n <- 60
+  M <- 0.5^abs(outer(seq_len(n), seq_len(n), "-"))
+  # gaussian(): held latent, the values' Hessian moved with a random
+  # effect in sigma, and the joint Laplace was 1.1 to 2.0 nats low (data
+  # seed 9 below). With the random effect in mu only it was exact, and the
+  # margin is too
+  set.seed(9)
+  d <- data.frame(x = stats::rnorm(n), h = factor(rep(1:6, each = 10)))
+  d$y <- 1 + 0.5 * d$x + exp(0.6 * stats::rnorm(6)[d$h]) *
+    as.vector(t(chol(M)) %*% stats::rnorm(n))
+  d$y[sort(sample(n, 15))] <- NA
+  ok <- !is.na(d$y)
+  for (fam in list(gaussian(), student())) {
+    f <- frm(bf(y | mi() ~ x + fcor(M), sigma ~ 1 + (1 | h)), family = fam,
+             data = d, data2 = list(M = M))
+    f0 <- frm(bf(y ~ x + fcor(M0), sigma ~ 1 + (1 | h)), family = fam,
+              data = d[ok, ], data2 = list(M0 = M[ok, ok]))
+    expect_setequal(f$frame$mi_map$y$unread, which(!ok))
+    isd <- which(names(f$opt$par) == "theta")
+    for (s in c(0.3, 0.6, 1.2)) {
+      p <- f$opt$par
+      p[isd] <- log(s)
+      expect_lt(abs(f$obj$fn(p) - f0$obj$fn(p)) / abs(f0$obj$fn(p)), 1e-10)
+    }
+  }
+  fm <- frm(bf(y | mi() ~ x + (1 | h) + fcor(M)), family = gaussian(),
+            data = d, data2 = list(M = M))
+  fm0 <- frm(bf(y ~ x + (1 | h) + fcor(M0)), family = gaussian(),
+             data = d[ok, ], data2 = list(M0 = M[ok, ok]))
+  for (k in 0:2) {
+    p <- fm$opt$par + 0.05 * k * seq_along(fm$opt$par) / length(fm$opt$par)
+    expect_lt(abs(fm$obj$fn(p) - fm0$obj$fn(p)) / abs(fm0$obj$fn(p)), 1e-10)
+  }
+})
+
+test_that("a registered term's missing values stay latent where read", {
+  # the margin is for values only the term's density reads: one that
+  # another density reads stays latent, and the sampler holds every value
+  n <- 40
+  M <- 0.5^abs(outer(seq_len(n), seq_len(n), "-"))
+  set.seed(5)
+  d <- data.frame(x = stats::rnorm(n), h = factor(rep(1:4, each = 10)))
+  d$y <- 1 + 0.5 * d$x + as.vector(t(chol(M)) %*% stats::rnorm(n))
+  miss <- c(3, 11, 25)
+  d$y[miss] <- NA
+  d$z <- 0.3 + 0.7 * ifelse(is.na(d$y), 1, d$y) + stats::rnorm(n, 0, 0.5)
+  fr <- frm(bf(y | mi() ~ x + (1 | h) + fcor(M), family = student()) +
+              bf(z ~ mi(y), family = gaussian()) + set_rescor(FALSE),
             data = d, data2 = list(M = M),
-            prior = set_prior("gamma(2, 0.1)", class = "nu"),
+            prior = set_prior("gamma(2, 0.1)", class = "nu", resp = "y"),
             control = frmtmb_control(check_mi = "ignore"))
-  expect_length(autocor_seam_t_missing(fr$frame), 0L)
-  expect_false(mi_laplace_exact(fr$frame))
+  expect_length(fr$frame$mi_map$y$unread, 0L)
+  expect_setequal(fr$frame$mi_map$y$rows, miss)
+  fs <- frm(bf(y | mi() ~ x + (1 | h) + fcor(M)), family = student(),
+            data = d, data2 = list(M = M),
+            prior = set_prior("gamma(2, 0.1)", class = "nu"))
+  expect_setequal(fs$frame$mi_map$y$unread, miss)
+  fsm <- mi_sampling(fs)
+  expect_setequal(fsm$frame$mi_map$y$rows, miss)
+  expect_length(fsm$frame$mi_map$y$unread, 0L)
+  expect_length(fsm$estimates$miss, length(miss))
 })
 
 test_that("the cluster sandwich works over the series of ar(cov = TRUE)", {

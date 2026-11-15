@@ -356,9 +356,11 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
            if (is.null(tr)) NULL else {
              z <- stats::qnorm(0.975)
              m <- cbind(
-               Estimate = varcorr_untrans(tr$type, tr$est_t),
-               `2.5 %` = varcorr_untrans(tr$type, tr$est_t - z * tr$se_t),
-               `97.5 %` = varcorr_untrans(tr$type, tr$est_t + z * tr$se_t))
+               Estimate = varcorr_untrans(tr$type, tr$est_t, tr$lo, tr$hi),
+               `2.5 %` = varcorr_untrans(tr$type, tr$est_t - z * tr$se_t,
+                                         tr$lo, tr$hi),
+               `97.5 %` = varcorr_untrans(tr$type, tr$est_t + z * tr$se_t,
+                                          tr$lo, tr$hi))
              rownames(m) <- if (length(unique(tr$block)) > 1L) {
                paste(tr$block, tr$term)
              } else tr$term
@@ -654,12 +656,12 @@ summary_cor_pars_frame <- function(object, prob) {
 #' @noRd
 summary_nat_frame <- function(tr, prob, rn) {
   q <- stats::qnorm(1 - (1 - prob) / 2)
-  est <- varcorr_untrans(tr$type, tr$est_t)
+  est <- varcorr_untrans(tr$type, tr$est_t, tr$lo, tr$hi)
   out <- data.frame(
     Estimate = est,
     `Est.Error` = varcorr_nat_deriv(tr$type, tr$est_t) * tr$se_t,
-    lo = varcorr_untrans(tr$type, tr$est_t - q * tr$se_t),
-    hi = varcorr_untrans(tr$type, tr$est_t + q * tr$se_t),
+    lo = varcorr_untrans(tr$type, tr$est_t - q * tr$se_t, tr$lo, tr$hi),
+    hi = varcorr_untrans(tr$type, tr$est_t + q * tr$se_t, tr$lo, tr$hi),
     check.names = FALSE)
   names(out) <- c("Estimate", "Est.Error", brms_ci_cols(prob))
   rownames(out) <- rn
@@ -672,7 +674,7 @@ summary_nat_frame <- function(tr, prob, rn) {
 #' @noRd
 varcorr_nat_deriv <- function(type, v) {
   p <- 1 / (1 + exp(-v))
-  ifelse(type == "raw", 1,
+  ifelse(type %in% c("raw", "clamped"), 1,
          ifelse(type == "cor", 1 - tanh(v)^2,
                 ifelse(type == "prop", p * (1 - p), exp(v))))
 }

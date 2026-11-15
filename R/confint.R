@@ -760,7 +760,7 @@ varcorr_trans_rows <- function(fit) {
   add <- function(term, type, est_t, se_t, bk) {
     acc$rows[[length(acc$rows) + 1L]] <- data.frame(
       block = bk[["term_label"]], term = term, type = type,
-      est_t = est_t, se_t = se_t
+      est_t = est_t, se_t = se_t, lo = NA_real_, hi = NA_real_
     )
   }
   for (bk in fit$frame[["re_blocks"]]) {
@@ -936,13 +936,17 @@ varcorr_us_row_edge <- function(t, d) {
 #' proportions (which live on (0, 1), as they do in brms), and the
 #' identity for the "raw" components - the AR/MA coefficients of a
 #' higher-order residual process, which are bounded by stationarity as a
-#' SET but not one at a time.
+#' SET but not one at a time. A registered residual term's bounded
+#' parameter ("clamped") is on its own scale and held inside its interval
+#' `(lo, hi)`, the columns `autocor_trans_rows()` gives.
 #'
 #' @noRd
-varcorr_untrans <- function(type, v) {
+varcorr_untrans <- function(type, v, lo = NA_real_, hi = NA_real_) {
   ifelse(type == "raw", v,
          ifelse(type == "cor", tanh(v),
-                ifelse(type == "prop", 1 / (1 + exp(-v)), exp(v))))
+                ifelse(type == "prop", 1 / (1 + exp(-v)),
+                       ifelse(type == "clamped", pmin(pmax(v, lo), hi),
+                              exp(v)))))
 }
 
 #' Natural-scale confidence intervals for covariance parameters
@@ -996,9 +1000,9 @@ confint_varcorr <- function(fit, level = 0.95) {
   shown <- block_display_label(fit, tr$block)
   out <- data.frame(
     block = shown, term = tr$term, type = tr$type,
-    estimate = varcorr_untrans(tr$type, tr$est_t),
-    lwr = varcorr_untrans(tr$type, tr$est_t - z * tr$se_t),
-    upr = varcorr_untrans(tr$type, tr$est_t + z * tr$se_t)
+    estimate = varcorr_untrans(tr$type, tr$est_t, tr$lo, tr$hi),
+    lwr = varcorr_untrans(tr$type, tr$est_t - z * tr$se_t, tr$lo, tr$hi),
+    upr = varcorr_untrans(tr$type, tr$est_t + z * tr$se_t, tr$lo, tr$hi)
   )
   label <- function(i) paste0(shown[i], " ", tr$term[i])
   bad <- which(is.na(tr$se_t))

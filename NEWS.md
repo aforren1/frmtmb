@@ -1,3 +1,47 @@
+# frmtmb (development version)
+
+## Residual correlation terms
+
+* BREAKING: a missing value of the response of `fcor()` or a registered
+  term such as `sar()` that no other density reads now leaves `frm()`'s
+  fit, which takes the exact marginal density of the observed rows under
+  the model over every row, on `gaussian()` and `student()`. For
+  `fcor()` that is the fit over the observed rows with `M` cut to them.
+  For `sar()` it is not `sar()` of `W` cut to the observed rows: the
+  missing locations still carry the spatial process between the observed
+  ones. Such values are no longer in `fit$estimates$miss`;
+  `frmtmb.sample::frm_sample()` still samples every one. Before, they
+  were latent under the Laplace approximation, which was silently wrong
+  in three cases: `student()` with a random effect beside the term or
+  `REML = TRUE` (with `REML = TRUE` the fit was still marked exact), and
+  `gaussian()` with a random effect in `sigma`. The measured errors of
+  the log-likelihood ran from 0.21 nats (`gaussian()`, a random effect in
+  `sigma`) through 4.66 nats (`student()` `fcor()`, half of 60 rows
+  missing) to 45.17 nats (`student()` `sar()`, 300 of 400 rows missing).
+  The latent values were also slow and large: with 200 of 1000 rows
+  missing and a random effect, a `student()` `fcor()` fit took 197 s and
+  25 GB. The margin takes 25 s and 2.2 GB there, and 12 s and 1.1 GB
+  with 300 of 400 missing (49 s and 7.1 GB before); `sar()`'s takes 1.7
+  to 2.1 times as long as before and about 30 percent more memory with
+  300 of 400 missing (0.6 against 0.5 GB), and 1.2 to 1.7 times as long
+  with 100 to 200 missing.
+
+* `frmtmb_register_autocor()` takes a `margin` slot that gives the
+  margin's `K_m'K_m` and `K_m'u` without one call of `whiten()` per
+  missing value. `fcor()` and frmtmb.spatial's `sar()` have one. When the
+  objective is built, a given slot is checked in full against `whiten()`
+  at one value of the parameters, and refused by the term's name when
+  it disagrees there; that check is not a proof for every value.
+
+* BREAKING: `confint_varcorr()`, `summary()` and `frm_multiple()` hold
+  the ends of a registered residual term's bounded parameter, such as
+  `sar()`'s rho, inside its interval (type `"clamped"`, was `"raw"`).
+  The delta-method interval passed the end of rho's interval, where
+  `|I - rho W|` changes sign, in 133 of 200 fits of a 5 x 5 lattice at
+  rho = 0.9. The estimate, the standard error and the coverage (0.935
+  there, 0.930 on a 10 x 10 lattice) are unchanged. `frm_multiple()`
+  pools the parameter on its own scale.
+
 # frmtmb 0.82.0
 
 ## Convergence and standard errors

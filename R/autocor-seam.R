@@ -63,16 +63,16 @@ autocor_reserved_names <- function() {
 #' likelihood does not factor into rows. frmtmb therefore refuses the
 #' term with `weights()`, `cens()`, `trunc()`, `se()`, `rescor = TRUE`,
 #' a mixture, a non-linear formula and `quadrature`. `mi()` on the
-#' response works: a missing value is a coordinate of the joint draw,
-#' a latent value that `whiten()` receives with the observed ones and
-#' that the fit integrates out under the Laplace approximation, exact
-#' on `gaussian()`. On `student()` the joint is one multivariate t, whose
-#' Laplace error is a function of `nu` and the numbers of rows and of
-#' missing values alone; the objective takes it off, so the fit is exact
-#' there too when no other density reads the values and no other random
-#' effect is integrated. The term's fixed data describe the
-#' rows of the data, so [fitted()], [predict()] and [simulate()] take
-#' `newdata` with one row per row of the term's matrix, read in their
+#' response works: a missing value is a coordinate of the joint draw. A
+#' missing value that no other density reads leaves the fit, which takes
+#' the exact margin of the rows that remain (see "The margin"); one that
+#' another density reads stays a latent value that `whiten()` receives
+#' with the observed ones, integrated out under the Laplace
+#' approximation. `frmtmb.sample::frm_sample()` samples every missing
+#' value, as brms does. The term's fixed data
+#' describe the rows of the data, so [fitted()], [predict()] and
+#' [simulate()] take `newdata` with one row per row of the term's matrix,
+#' read in their
 #' order (a counterfactual on the same units, as brms takes it). When
 #' the fit dropped rows for missing values, `newdata` covers them too:
 #' the term is built again over every row, its parameters held at
@@ -154,7 +154,28 @@ autocor_reserved_names <- function() {
 #' `set_prior(class = "<natural name>")` puts a density on the natural
 #' parameter, carried to `theta` with the log-Jacobian of the map, and
 #' `frmtmb_autocor_pars()` reports the interval, from which
-#' frmtmb.sample takes brms's flat default on it.
+#' frmtmb.sample takes brms's flat default on it. [summary()] and
+#' [confint_varcorr()] give the parameter the delta-method Wald interval
+#' on its natural scale with its ends held inside `(lower, upper)` (type
+#' `"clamped"`).
+#'
+#' @section The margin:
+#' On the maximum-likelihood route a missing value of the response that
+#' no other density reads leaves the fit, and the fit takes the exact
+#' margin of the rows that remain. With `K_m` the columns of `K` at the
+#' `m` missing rows, it needs `G = K_m'K_m`, an `m x m` matrix, and
+#' `v = K_m'u` at the innovations `u`. Without a `margin` slot frmtmb reads
+#' `K_m` off `whiten()` at each unit vector: one call per missing value on
+#' the tape, and an `n x m` dense block. `margin(rows, aux)` runs on
+#' numbers once per objective, with the missing rows, and returns
+#' `function(u, sigma, theta)` giving `list(G, v)` on the tape, with
+#' `sigma` as `whiten` receives it. `fcor()`'s reads `G` off `M^-1` once,
+#' and `sar()`'s off three sparse products of `W`. When the objective is
+#' built, a given slot is checked in full, every entry of `G` and `v`,
+#' against the calls of `whiten()` at one generic value of `sigma` and
+#' the parameters, off the tape; a slot that disagrees is refused by the
+#' term's name. The check holds at that value only: it is not a proof
+#' that the slot is right at every value.
 #'
 #' @section Testing a term:
 #' Compare the fitted log-likelihood with a dense multivariate normal
@@ -189,6 +210,7 @@ autocor_reserved_names <- function() {
 #'   priors".
 #' @param jacobian `NULL`, or `function(sigma, theta, aux)` giving the
 #'   Jacobian of `whiten` in `y`; see "The Jacobian".
+#' @param margin `NULL`, or `function(rows, aux)`; see "The margin".
 #' @param usage How the term is written, for messages:
 #'   `"sar(M, type = \"lag\")"`.
 #' @param compat_note The note of the term's row for `gaussian()` and
@@ -250,7 +272,7 @@ frmtmb_register_autocor <- function(name, args, build, whiten, unwhiten,
                                     natural = NULL, sigma_varies = TRUE,
                                     bounds = NULL, usage = NULL,
                                     compat_note = NULL,
-                                    jacobian = NULL,
+                                    jacobian = NULL, margin = NULL,
                                     replace = FALSE,
                                     package = compat_registrant_name(
                                       parent.frame())) {
@@ -299,7 +321,8 @@ frmtmb_register_autocor <- function(name, args, build, whiten, unwhiten,
   natural <- fn_or(natural, "natural", 2L, null_ok = TRUE)
   bounds <- fn_or(bounds, "bounds", 1L, null_ok = TRUE)
   jacobian <- fn_or(jacobian, "jacobian", 3L, null_ok = TRUE)
-  npar_f <- if (is.function(npar)) npar else {
+  margin <- fn_or(margin, "margin", 2L, null_ok = TRUE)
+  npar_f <-if (is.function(npar)) npar else {
     if (!is.numeric(npar) || length(npar) != 1L || is.na(npar) ||
         npar < 0 || npar != trunc(npar)) {
       frm_stop(arg("npar"), " must be one whole number or a function of ",
@@ -339,7 +362,7 @@ frmtmb_register_autocor <- function(name, args, build, whiten, unwhiten,
                 unwhiten = unwhiten, npar = npar_f, start = start_f,
                 natural = natural, sigma_varies = sigma_varies,
                 bounds = bounds, usage = usage, package = package,
-                jacobian = jacobian)
+                jacobian = jacobian, margin = margin)
   entry <- entry[!vapply(entry, is.null, TRUE)]
   # the term joins the compatibility vocabulary as it joins the parser,
   # so frm_compat() can describe every term frm() accepts; the last step
@@ -382,7 +405,7 @@ autocor_seam_compat_rules <- function(feat, note = NULL) {
     r(feat, "kind:aterm", "refused",
       "Refused: the density is joint over the rows, so there is no per-row contribution for a weight, a censoring indicator, a truncation bound or a known standard error to act on.")
     r(feat, "mi()", "conditional",
-      "mi() on the response makes each missing value a coordinate of the joint draw, brms's Yl, which whiten() then receives on the tape. frm() integrates the missing values out under the Laplace approximation, exact on gaussian(); on student() its error is a function of nu and the numbers of rows and of missing values alone, which the objective takes off, so the fit is exact there too when no other density reads the values and no other random effect is integrated. frm_sample() samples them, as brms does. log_lik() is refused, as it is for every mi() model.")
+      "mi() on the response makes each missing value a coordinate of the joint draw, brms's Yl. A missing value no other density reads leaves frm()'s fit, which takes the exact margin of the observed rows, on gaussian() and student(), with random effects or REML beside them too; a value another density reads stays latent, which whiten() receives on the tape, under the Laplace approximation. frm_sample() samples them, as brms does. log_lik() is refused, as it is for every mi() model.")
     r(feat, "rescor", "refused",
       "Refused: rescor = TRUE is another residual covariance, across responses.")
     r(feat, "mixture", "refused",
@@ -755,59 +778,107 @@ autocor_seam_loglik <- function(e, y, mu, sigma, theta, ac, nu = NULL) {
     0.5 * (nu + n) * log1p(q / nu) + w[["logjac"]]
 }
 
-#' The Laplace error of integrating `m` coordinates out of one
-#' `n`-dimensional multivariate t with shape `nu`, on the tape:
-#' `lgamma((nu + n)/2) - lgamma((nu + n - m)/2) + (m/2) log(2/(nu + n))`.
-#' The joint at the inner mode is the exact margin of the other `n - m`
-#' coordinates times `exp()` of this, whatever the data, the mean or the
-#' scale matrix, because the quadratic form of the kept coordinates
-#' cancels. So the objective subtracts it and the margin is exact.
+#' Set up, once per objective, the margin of a registered term's response
+#' over the rows that remain when the missing values `rows` have left it
+#' (`mi_ml_frame()`): no other density reads them, so the maximum
+#' likelihood integrates them out exactly instead of holding them latent.
+#' Held latent, they put a dense `m x m` block in the inner Hessian, and
+#' on `student()` their Laplace error moved with every other integrated
+#' value.
+#'
+#' The term's `margin` slot gives `K_m'K_m` and `K_m'u` cheaply; without
+#' one, `K_m` is read off `whiten()` at each unit vector, one call per
+#' missing value. A given slot is checked here, off the tape, against
+#' those calls in full (every entry of `G` and `v`) at one generic point,
+#' and refused by the term's name when it disagrees, since a slip in it
+#' changes the likelihood and nothing else shows it. A check at one point
+#' is not a proof for every parameter value: a slot that agrees there and
+#' nowhere else would pass. A check of two columns let a `sar()` slot
+#' that was right only for a symmetric `W` through, 0.011 nats off.
 #'
 #' @noRd
-autocor_seam_t_laplace <- function(nu, n, m) {
-  a <- (nu + n - m) / 2
-  lgamma_shift_diff(a, m / 2) + (m / 2) * log(2 / (nu + n))
+autocor_seam_margin_setup <- function(e, ac, rows) {
+  aux <- ac[["aux"]]
+  slot <- e[["margin"]]
+  parts <- if (!is.null(slot)) slot(rows, aux)
+  if (!is.null(parts)) {
+    i <- seq_len(ac[["d"]])
+    sg <- if (isTRUE(e[["sigma_varies"]])) exp(0.3 * sin(i)) else 1.37
+    th <- e[["start"]](aux)
+    th <- th + 0.3 * seq_along(th)
+    u <- sin(1.3 * i)
+    got <- parts(u, sg, th)
+    want <- autocor_seam_margin_cols(e, aux, sg, th, rows, u)
+    G <- tryCatch(as.matrix(got[["G"]]), error = function(err) NULL)
+    v <- tryCatch(as.numeric(got[["v"]]), error = function(err) NULL)
+    tol <- 1e-8 * max(abs(want$G), abs(want$v))
+    ok <- !is.null(G) && identical(dim(G), rep(length(rows), 2L)) &&
+      length(v) == length(rows) &&
+      max(abs(G - as.matrix(want$G))) <= tol &&
+      max(abs(v - as.numeric(want$v))) <= tol
+    if (!isTRUE(ok)) {
+      frm_stop("The '", ac[["struct"]], "' term's margin() slot is wrong ",
+               "for ", ac[["label"]], ": it must give G = K_m'K_m and ",
+               "v = K_m'u, with K_m the columns of whiten()'s Jacobian at ",
+               "the missing rows", call. = FALSE)
+    }
+  }
+  list(rows = rows, parts = parts)
 }
 
-#' Per response, how many missing values of a registered term's
-#' `student()` response the Laplace approximation integrates out of that
-#' term's density alone: `0` where the correction above does not apply.
-#' It applies on the maximum-likelihood route (`mi_ml_frame()` has run;
-#' a sampler keeps the joint density, with no correction) when no other
-#' density reads a missing value of the response (`mi(y)` as a predictor,
-#' a measurement error `mi(sd)`), and when nothing else is integrated:
-#' with another random effect the inner problem is not the term's
-#' density alone, and the joint Laplace error is not this constant.
+#' `K_m'K_m` and `K_m'u` from `whiten()` itself, `K e_j = whiten(e_j) -
+#' whiten(0)` (the map is affine in `y` and its Jacobian does not depend
+#' on `mu`), on numbers or on the tape.
 #'
 #' @noRd
-autocor_seam_t_missing <- function(frame) {
-  out <- list()
-  mp <- frame[["mi_map"]] %||% list()
-  if (is.null(frame[["mi_sampling"]]) || !length(mp)) return(out)
-  if (length(frame[["re_blocks"]] %||% list()) ||
-        length(frame[["me"]][["groups"]] %||% list())) {
-    return(out)
+autocor_seam_margin_cols <- function(e, aux, sigma, theta, rows, u) {
+  "c" <- RTMB::ADoverload("c")
+  n <- length(u)
+  z0 <- numeric(n)
+  u0 <- e[["whiten"]](z0, z0, sigma, theta, aux)[["u"]]
+  cols <- lapply(rows, function(j) {
+    ej <- z0
+    ej[j] <- 1
+    e[["whiten"]](ej, z0, sigma, theta, aux)[["u"]] - u0
+  })
+  Km <- RTMB::matrix(do.call(c, cols), n, length(rows))
+  Kt <- t(Km)
+  list(G = Kt %*% Km, v = as.vector(Kt %*% u))
+}
+
+#' The log density of the rows of a registered term's response that
+#' remain, the missing ones `sm$rows` integrated out, on the tape:
+#' `student()` with `nu`, `gaussian()` with `nu = NULL`. `y` may hold any
+#' value at the missing rows. With `K` the Jacobian of `whiten`, `K_m` its
+#' columns at those rows, `G = K_m'K_m` and `v = K_m'u`, the quadratic
+#' form of the remaining rows is `|u|^2 - v'G^-1 v` (the part of `u` off
+#' the columns of `K_m`, which the missing values cannot move), and their
+#' log scale determinant is the map's log-Jacobian less `0.5 log|G|`
+#' (`|Sigma| = |Sigma_oo| |S|` with `S^-1 = G`).
+#'
+#' @noRd
+autocor_seam_margin_loglik <- function(e, y, mu, sigma, theta, ac, nu, sm) {
+  n <- length(y)
+  k <- length(sm$rows)
+  aux <- ac[["aux"]]
+  sg <- autocor_seam_sigma(e, sigma, n)
+  w <- e[["whiten"]](y, mu, sg, theta, aux)
+  u <- w[["u"]]
+  gv <- if (is.null(sm$parts)) {
+    autocor_seam_margin_cols(e, aux, sg, theta, sm$rows, u)
+  } else {
+    sm$parts(u, sg, theta)
   }
-  for (r in names(mp)) {
-    ac <- frame[["autocor"]][[r]]
-    m <- mp[[r]]
-    if (!autocor_is_seam(ac) || !isTRUE(ac[["student"]]) ||
-          !is.null(m[["se"]]) || !length(m[["rows"]])) {
-      next
-    }
-    # every latent value in the model must be this response's own
-    if (length(frame[["par_template"]][["miss"]]) != length(m[["rows"]])) {
-      next
-    }
-    read <- FALSE
-    for (lp in frame[["linpreds"]]) {
-      for (mt in lp[["mi"]] %||% list()) {
-        if (identical(mt[["var"]], r)) read <- TRUE
-      }
-    }
-    if (!read) out[[r]] <- length(m[["rows"]])
-  }
-  out
+  G <- gv[["G"]]
+  v <- gv[["v"]]
+  # RTMB::solve, not base's: the S4 advector method is not imported
+  d <- as.vector(RTMB::solve(G, v))
+  qo <- sum(u * u) - sum(v * d)
+  ldet <- w[["logjac"]] - 0.5 * determinant(G, logarithm = TRUE)[["modulus"]]
+  no <- n - k
+  if (is.null(nu)) return(-0.5 * no * log(2 * pi) - 0.5 * qo + ldet)
+  lgamma_shift_diff(nu / 2, no / 2) - 0.5 * no * (log(nu) + log(pi)) -
+    0.5 * (nu + no) * log1p(qo / nu) + ldet
 }
 
 #' The natural names of a registered block's parameters, read off its
@@ -1153,6 +1224,27 @@ fcor_jacobian <- function(sigma, theta, aux) {
   Li * rep(1 / rep_len(sigma, nrow(Li)), each = nrow(Li))
 }
 
+#' The margin slot: with `K = L^-1 D^-1`, `K_m'K_m` is `[M^-1]_mm` scaled
+#' by `1 / sigma` on both sides, data read once, and `K_m'u` is
+#' `L^-1[, m]'u` over `sigma`, an `m x n` product.
+#'
+#' @noRd
+fcor_margin <- function(rows, aux) {
+  Lm <- aux[["Linv"]][, rows, drop = FALSE]
+  Gm <- as.vector(crossprod(Lm))
+  LmT <- t(Lm)
+  m <- length(rows)
+  function(u, sigma, theta) {
+    v0 <- as.vector(LmT %*% u)
+    if (length(sigma) == 1L) {
+      return(list(G = RTMB::matrix(Gm / sigma^2, m, m), v = v0 / sigma))
+    }
+    s <- 1 / sigma[rows]
+    S <- RTMB::matrix(s, m, 1L) %*% RTMB::matrix(s, 1L, m)
+    list(G = RTMB::matrix(Gm * as.vector(S), m, m), v = s * v0)
+  }
+}
+
 # The built-in terms: the registry's first state, entries of the shape
 # frmtmb_register_autocor() builds.
 autocor_core <- list(
@@ -1165,7 +1257,7 @@ autocor_core <- list(
       args
     },
     build = fcor_build, whiten = fcor_whiten, unwhiten = fcor_unwhiten,
-    jacobian = fcor_jacobian,
+    jacobian = fcor_jacobian, margin = fcor_margin,
     npar = function(aux) 0L, start = function(aux) numeric(0),
     sigma_varies = TRUE, usage = "fcor(M)")
 )

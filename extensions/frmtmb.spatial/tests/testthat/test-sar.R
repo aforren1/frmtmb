@@ -399,10 +399,11 @@ test_that("mi() beside sar() integrates the missing values out", {
     fit <- frm(stats::as.formula(paste0(yn, " | mi() ~ x + sar(W, type = '",
                                         ty, "')")),
                data = dm, data2 = list(W = W))
-    expect_length(fit$estimates$miss, length(miss))
-    # on gaussian the Laplace marginal over the missing values is exact:
-    # the dense normal of the observed rows, whose covariance is the
-    # observed block of sigma^2 (A'A)^-1
+    # no other density reads them, so they leave the fit, which takes the
+    # margin of the observed rows: the dense normal whose covariance is
+    # the observed block of sigma^2 (A'A)^-1
+    expect_setequal(fit$frame$mi_map[[1L]]$unread, miss)
+    expect_length(fit$estimates$miss, 0L)
     rho <- sar_rho_of(fit)
     A <- diag(s$n) - rho * W
     eta <- frm_linpred(fit)
@@ -474,6 +475,169 @@ test_that("mi() beside sar() on student() integrates out exactly", {
         ref <- dense_mvt(dm[[yn]][ok], mu[ok], S[ok, ok], nu)
         expect_lt(abs(as.numeric(logLik(fit)) - ref) / abs(ref), 1e-9)
       }
+    }
+  }
+})
+
+test_that("mi() beside sar() on student() with a random effect is the
+           observed rows' margin", {
+  # With (1 | h) the joint t's Laplace error over the missing values is
+  # not a constant, and the objective was 0.64 to 0.88 nats low, in
+  # silence. The reference: the dense t margin of the observed rows, mean
+  # (B (X beta + Z b))_o and scale sigma^2 [(A'A)^-1]_oo with B = A^-1
+  # (lag) or I (error), b integrated by RTMB's Laplace approximation, as
+  # frm() integrates it
+  s <- sar_data(seed = 7)
+  W <- s$W
+  n <- s$n
+  set.seed(7)
+  d <- s$d
+  d$h <- factor(rep(1:7, length.out = n))
+  u <- stats::rnorm(7)[d$h]
+  tsc <- sqrt(4 / stats::rchisq(1, 4))
+  d$ylag <- d$ylag + as.vector(solve(diag(n) - 0.5 * W, u))
+  d$yerr <- d$yerr + u
+  for (yn in c("ylag", "yerr")) {
+    d[[yn]] <- d$x + (d[[yn]] - d$x) * tsc
+  }
+  miss <- sort(sample(n, 12))
+  ok <- !(seq_len(n) %in% miss)
+  X <- cbind(1, d$x)
+  Z <- stats::model.matrix(~ 0 + h, d)
+  ref <- function(p, rho, y, lag) {
+    A <- diag(n) - rho * W
+    B <- if (lag) solve(A) else diag(n)
+    Bo <- B[ok, , drop = FALSE]
+    So <- solve(crossprod(A))[ok, ok]
+    Soi <- solve(So)
+    ldS <- as.numeric(determinant(So)$modulus)
+    yo <- y[ok]
+    k <- sum(ok)
+    f <- function(q) {
+      sig <- exp(q$lsig)
+      nu <- 1 + exp(q$lnu)
+      r <- yo - as.vector(Bo %*% (X %*% q$beta + Z %*% q$b))
+      Q <- sum(r * as.vector(Soi %*% r)) / sig^2
+      -(lgamma((nu + k) / 2) - lgamma(nu / 2) - 0.5 * k * log(nu * pi) -
+          0.5 * (ldS + 2 * k * log(sig)) - 0.5 * (nu + k) * log1p(Q / nu) +
+          sum(RTMB::dnorm(q$b, 0, exp(q$lsd), log = TRUE)))
+    }
+    q0 <- list(beta = p[1:2], lsig = p[[3]], lnu = p[[4]], lsd = p[[5]],
+               b = numeric(ncol(Z)))
+    obj <- RTMB::MakeADFun(f, q0, random = "b", silent = TRUE)
+    obj$fn(p[1:5])
+  }
+  for (ty in c("lag", "error")) {
+    yn <- if (ty == "lag") "ylag" else "yerr"
+    dm <- d
+    dm[[yn]][miss] <- NA
+    fo <- stats::as.formula(paste0(yn, " | mi() ~ x + (1 | h) + sar(W, ",
+                                   "type = '", ty, "')"))
+    fit <- frm(fo, family = student(), data = dm, data2 = list(W = W))
+    ac <- fit$frame[["autocor"]][[1L]]
+    iac <- which(names(fit$opt$par) == "thetaac")
+    inu <- which(names(fit$opt$par) == "betad")[2L]
+    # nu at 3, 6 and 21, where the missing values' Laplace error is large
+    for (k in 0:2) {
+      p <- fit$opt$par + 0.05 * k * seq_along(fit$opt$par) /
+        length(fit$opt$par)
+      p[inu] <- log(c(2, 5, 20)[k + 1L])
+      rho <- unname(frmtmb:::autocor_natural(p[iac], ac))
+      a <- fit$obj$fn(p)
+      b <- ref(unname(p[-iac]), rho, dm[[yn]], ty == "lag")
+      expect_lt(abs(a - b) / abs(b), 1e-10)
+    }
+  }
+})
+
+test_that("a margin slot right only for a symmetric W is refused", {
+  # writing W_mm + W_mm' as 2 W_mm is right for a symmetric W only; on a
+  # row-standardized W it fitted 0.011 nats off when the slot was checked
+  # at two columns. The check now covers every entry of G and v
+  frmtmb::frmtmb_local_registries()
+  sp <- asNamespace("frmtmb.spatial")
+  W <- sar_lattice(7)
+  W <- W / rowSums(W)
+  n <- nrow(W)
+  set.seed(21)
+  d <- data.frame(x = stats::rnorm(n))
+  d$y <- as.vector(solve(diag(n) - 0.6 * W, 1 + 0.5 * d$x +
+                           stats::rnorm(n)))
+  d$y[c(1, 2, 8, 9, 17, 24, 25, 49)] <- NA
+  sym_only <- function(rows, aux) {
+    Wa <- aux[["W"]]
+    m <- length(rows)
+    Wm <- Wa[, rows, drop = FALSE]
+    I <- as.vector(diag(m))
+    S1 <- as.vector(2 * as.matrix(Wa[rows, rows, drop = FALSE]))
+    S2 <- as.vector(as.matrix(Matrix::crossprod(Wm)))
+    WmT <- Matrix::t(Wm)
+    function(u, sigma, theta) {
+      rho <- sp$sar_rho(theta, aux)
+      G <- RTMB::matrix((I - rho * S1 + rho^2 * S2) / sigma^2, m, m)
+      list(G = G, v = (u[rows] - rho * as.vector(WmT %*% u)) / sigma)
+    }
+  }
+  reg <- function(margin) {
+    frmtmb_register_autocor(
+      "sar", args = c("M", "type"), parse = sp$sar_parse,
+      build = sp$sar_build, whiten = sp$sar_whiten,
+      unwhiten = sp$sar_unwhiten, jacobian = sp$sar_jacobian,
+      margin = margin, npar = 1L, start = sp$sar_start,
+      natural = sp$sar_natural, sigma_varies = FALSE, bounds = sp$sar_bounds,
+      usage = "sar(M, type = \"lag\")", compat_note = sp$sar_compat_note,
+      replace = TRUE, package = "frmtmb.spatial")
+  }
+  reg(sym_only)
+  expect_error(frm(y | mi() ~ x + sar(W, type = "error"), data = d,
+                   data2 = list(W = W)),
+               "margin() slot is wrong", fixed = TRUE)
+  # the absent case: frmtmb.spatial's own slot is accepted
+  reg(sp$sar_margin)
+  expect_s3_class(frm(y | mi() ~ x + sar(W, type = "error"), data = d,
+                      data2 = list(W = W)), "frmtmb_fit")
+})
+
+test_that("rho's interval is the raw Wald interval held inside its range", {
+  # The raw-scale delta-method interval's upper end passed 1, where
+  # |I - rho W| changes sign: 13 of 20 seeds of this design on frmtmb
+  # 0.82.0, 1.0398 on seed 3. Its ends are now held inside (lo, hi); the
+  # Wald interval on the logit of (lo, hi) stayed inside too, but covered
+  # 0.665 at rho = 0.9 on this lattice against the raw one's 0.935
+  s <- sar_data(k = 5, rho = 0.9, seed = 3)
+  z <- stats::qnorm(0.975)
+  for (seed in c(3, 1)) {
+    set.seed(seed)
+    d <- data.frame(x = stats::rnorm(s$n))
+    d$y <- as.vector(solve(diag(s$n) - 0.9 * s$W, 1 + 0.5 * d$x +
+                             stats::rnorm(s$n)))
+    fit <- frm(y ~ x + sar(W), data = d, data2 = list(W = s$W))
+    ac <- fit$frame[["autocor"]][[1L]]
+    lo <- ac$aux$lo
+    hi <- ac$aux$hi
+    V <- frmtmb:::sdr_of(fit)$cov.fixed
+    i <- which(rownames(V) == "thetaac")
+    th <- fit$estimates$thetaac[ac$theta_idx]
+    p <- stats::plogis(th)
+    rho <- lo + (hi - lo) * p
+    # the delta method on rho, with its ends held inside (lo, hi)
+    se <- (hi - lo) * p * (1 - p) * sqrt(V[i, i])
+    raw <- rho + c(-1, 1) * z * se
+    want <- pmin(pmax(raw, lo), hi)
+    cv <- confint_varcorr(fit)
+    expect_identical(cv$type, "clamped")
+    expect_lt(max(abs(c(cv$lwr, cv$upr) - want) / (hi - lo)), 1e-8)
+    cp <- summary(fit)$cor_pars
+    expect_lt(max(abs(unlist(cp[1, 3:4]) - want) / (hi - lo)), 1e-8)
+    expect_lt(abs(cp[1, "Est.Error"] / se - 1), 1e-8)
+    if (seed == 3) {
+      # past the end, held at it
+      expect_gt(raw[2L], hi)
+      expect_identical(cv$upr, hi)
+    } else {
+      # the absent case: inside, the raw interval as it was
+      expect_lt(raw[2L], hi)
+      expect_gt(raw[1L], lo)
     }
   }
 })

@@ -204,13 +204,13 @@ definite. brms 2.23.0 checks the second with
 eigenvalues are all non-positive; frmtmb refuses every matrix that is
 not positive definite. \code{se()} is refused beside it, as brms refuses it
 ("Invalid addition arguments for this model"). \code{mi()} on the response
-works, as in brms: each missing value is a latent coordinate of the
-joint draw, integrated out under the Laplace approximation, which on
-\code{gaussian()} is exact and gives the fit over the observed rows with
-\code{M} cut to them. On \code{student()} the Laplace error is a function of
-\code{nu} and the numbers of rows and of missing values alone, and the
-objective takes it off, so the fit is exact there too when no other
-density reads the values and no other random effect is integrated.
+works, as in brms: each missing value is a coordinate of the joint
+draw. When no other density reads it, the fit takes the exact margin of
+the observed rows, on \code{gaussian()} and \code{student()}, with random effects
+or \code{REML} too: the fit over the observed rows with \code{M} cut to them. Its
+\verb{K_m'K_m} is \verb{[M^-1]_mm} read once. Measured on 400 rows with 300
+missing and a random effect, a \code{student()} fit took 12 s against 49 s
+for the latent values it replaces, which were not exact there.
 
 The term has no parameter, and the mean of the response is \code{mu}.
 \code{\link[=fitted]{fitted()}}, \code{\link[=predict]{predict()}} and \code{\link[=simulate]{simulate()}} take \code{newdata} with one row

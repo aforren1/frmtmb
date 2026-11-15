@@ -148,7 +148,10 @@ frm_multiple <- function(formula, data, level = 0.95, ...) {
   )
 
   # variance components, pooled on the log/atanh scales and
-  # back-transformed (interval via the Barnard-Rubin t quantile)
+  # back-transformed (interval via the Barnard-Rubin t quantile); a
+  # registered term's bounded parameter (sar()'s rho) is pooled on its own
+  # scale and its interval's ends held inside its range
+  # (autocor_trans_rows(), varcorr_untrans())
   vc <- lapply(fits, varcorr_trans_rows)
   pooled_varcorr <- NULL
   if (!is.null(vc[[1]])) {
@@ -161,9 +164,12 @@ frm_multiple <- function(formula, data, level = 0.95, ...) {
       # a `||` block as written, as confint_varcorr() shows it
       grp = block_display_label(fits[[1]], vc[[1]]$block),
       term = vc[[1]]$term, type = vc[[1]]$type,
-      estimate = varcorr_untrans(vc[[1]]$type, pv$estimate),
-      lwr = varcorr_untrans(vc[[1]]$type, pv$estimate - tq * pv$se),
-      upr = varcorr_untrans(vc[[1]]$type, pv$estimate + tq * pv$se),
+      estimate = varcorr_untrans(vc[[1]]$type, pv$estimate, vc[[1]]$lo,
+                                 vc[[1]]$hi),
+      lwr = varcorr_untrans(vc[[1]]$type, pv$estimate - tq * pv$se,
+                            vc[[1]]$lo, vc[[1]]$hi),
+      upr = varcorr_untrans(vc[[1]]$type, pv$estimate + tq * pv$se,
+                            vc[[1]]$lo, vc[[1]]$hi),
       df = pv$df, fmi = pv$fmi
     )
   }

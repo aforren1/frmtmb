@@ -673,7 +673,8 @@ ac_report_rows <- function(fit) {
     o <- c(seq_along(nr$term)[-1L], 1L)
     rows[[length(rows) + 1L]] <- data.frame(
       block = bk[["term_label"]], term = nr$term[o], type = nr$type[o],
-      est_t = nr$est[o], se_t = se[o], stringsAsFactors = FALSE)
+      est_t = nr$est[o], se_t = se[o], lo = NA_real_, hi = NA_real_,
+      stringsAsFactors = FALSE)
   }
   out <- do.call(rbind, c(list(tr), rows))
   rownames(out) <- NULL

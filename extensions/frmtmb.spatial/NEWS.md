@@ -1,3 +1,22 @@
+# frmtmb.spatial (development version)
+
+Needs the frmtmb that takes `frmtmb_register_autocor(margin =)`.
+
+* BREAKING: `sar()` with `mi()` on the response: a missing value no other
+  density reads leaves the fit and `fit$estimates$miss`. The fit takes
+  the exact marginal density of the observed rows under the model over
+  every location, which is not `sar()` of `W` cut to the observed rows.
+  `sar()` gives core that margin's `K_m'K_m` from three products of `W`
+  (`margin` slot). On `student()` with a random effect beside it the
+  log-likelihood was too low by 0.6 to 0.9 nats on a 7 x 7 lattice, and
+  by 45.17 nats with 300 of 400 values missing, and no warning said so.
+
+* BREAKING: `summary()` and `confint_varcorr()` hold the ends of the
+  interval of `lagsar` and `errorsar` inside rho's interval (type
+  `"clamped"`, was `"raw"`). The delta-method interval passed 1 on a
+  row-standardized `W` in 133 of 200 fits of a 5 x 5 lattice at
+  rho = 0.9; its coverage, 0.935, is unchanged.
+
 # frmtmb.spatial 0.4.0
 
 Needs frmtmb 0.82.0, which takes `mi()` beside a registered

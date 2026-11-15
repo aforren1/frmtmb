@@ -412,3 +412,58 @@ test_that("frmtmb_covstruct_info() says a residual term is not a structure", {
   expect_error(frmtmb_covstruct_info("nosuchname"),
                "no covariance structure 'nosuchname'", fixed = TRUE)
 })
+
+test_that("the margin of a term without a margin slot is fcor()'s", {
+  # without the slot core reads K_m off whiten(), one call per missing
+  # value; fcor() reads G off M^-1. The two objectives agree at every point
+  local_frmtmb_registries()
+  register_myfix()
+  sd_ <- seam_data()
+  d <- sd_$d
+  V <- sd_$V
+  d$h <- factor(rep(1:4, length.out = nrow(d)))
+  d$y[c(2, 9, 10, 20)] <- NA
+  for (fam in list(gaussian(), student())) {
+    f1 <- frm(bf(y | mi() ~ x + (1 | h) + myfix(V), sigma ~ x), family = fam,
+              data = d, data2 = list(V = V))
+    f0 <- frm(bf(y | mi() ~ x + (1 | h) + fcor(V), sigma ~ x), family = fam,
+              data = d, data2 = list(V = V))
+    expect_setequal(f1$frame$mi_map$y$unread, c(2, 9, 10, 20))
+    for (k in 0:2) {
+      p <- f0$opt$par + 0.05 * k * seq_along(f0$opt$par)
+      expect_lt(abs(f1$obj$fn(p) - f0$obj$fn(p)) / abs(f0$obj$fn(p)), 1e-12)
+    }
+  }
+})
+
+test_that("a margin slot that is not K_m'K_m and K_m'u is refused", {
+  local_frmtmb_registries()
+  sd_ <- seam_data()
+  d <- sd_$d
+  V <- sd_$V
+  d$y[c(2, 9, 10, 20)] <- NA
+  right <- function(rows, aux) {
+    Lm <- aux$Linv[, rows, drop = FALSE]
+    G <- crossprod(Lm)
+    function(u, sigma, theta) {
+      list(G = G / sigma^2, v = as.vector(t(Lm) %*% u) / sigma)
+    }
+  }
+  # a slip that forgets sigma in G
+  wrong <- function(rows, aux) {
+    Lm <- aux$Linv[, rows, drop = FALSE]
+    G <- crossprod(Lm)
+    function(u, sigma, theta) {
+      list(G = G, v = as.vector(t(Lm) %*% u) / sigma)
+    }
+  }
+  register_myfix(margin = wrong, sigma_varies = FALSE)
+  expect_error(frm(y | mi() ~ x + myfix(V), data = d, data2 = list(V = V)),
+               "margin() slot is wrong", fixed = TRUE)
+  # the absent case: the right slot fits, and is fcor()'s margin
+  register_myfix(margin = right, sigma_varies = FALSE, replace = TRUE)
+  f1 <- frm(y | mi() ~ x + myfix(V), data = d, data2 = list(V = V))
+  f0 <- frm(y | mi() ~ x + fcor(V), data = d, data2 = list(V = V))
+  expect_lt(abs(as.numeric(logLik(f1)) - as.numeric(logLik(f0))) /
+              abs(as.numeric(logLik(f0))), 1e-10)
+})

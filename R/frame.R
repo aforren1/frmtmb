@@ -1790,10 +1790,21 @@ mi_chart_maps <- function(chart) {
 mi_rows_joint <- function(frame, r) {
   fam <- frame[["spec"]]$responses[[r]]$family
   ac <- frame[["autocor"]][[r]]
-  # a registered term's map takes every row at once, so it has no margin
-  # to drop a row into; the ar() family's blocks do (autocor_drop_rows())
+  # a registered term's density reads mu at every row (the lag SAR's mean
+  # is A^-1 mu), so each row's predictor stays read
   !is.null(fam_structure(fam)[["loglik"]]) ||
     (!is.null(ac) && (autocor_is_cond(ac) || autocor_is_seam(ac)))
+}
+
+#' Whether every missing value of response `r` stays latent whatever reads
+#' it: a joint family, or the lagged residual of a `cov = FALSE` term. A
+#' registered term's missing values can leave: the objective takes the
+#' exact margin of the rows that remain (`autocor_seam_margin_loglik()`),
+#' as the ar() family's blocks drop a row (`autocor_drop_rows()`).
+#'
+#' @noRd
+mi_rows_held <- function(frame, r) {
+  mi_rows_joint(frame, r) && !autocor_is_seam(frame[["autocor"]][[r]])
 }
 
 #' Which rows of response `s` still have their density in the objective, with
@@ -1826,7 +1837,7 @@ mi_rows_read <- function(frame) {
   mp <- frame[["mi_map"]]
   read <- lapply(mp, `[[`, "rows")
   peel <- names(mp)[!vapply(names(mp), function(r) {
-    !is.null(mp[[r]][["se"]]) || mi_rows_joint(frame, r)
+    !is.null(mp[[r]][["se"]]) || mi_rows_held(frame, r)
   }, NA)]
   repeat {
     before <- lengths(read)
@@ -2110,20 +2121,17 @@ check_id_mm_weights <- function(cps) {
 
 #' Where a read value's Laplace approximation is exact: a gaussian value that
 #' only gaussian means read, on the identity link, since its log density is
-#' then a quadratic; and a registered term's `student()` value that only the
-#' term's density reads, whose error the objective takes off exactly.
+#' then a quadratic. A registered term's value that only the term's density
+#' reads is not latent at all (`mi_rows_held()`).
 #'
 #' @noRd
 mi_laplace_exact <- function(frame) {
   gaussian_resp <- function(r) {
     identical(frame[["spec"]]$responses[[r]]$family[["family"]], "gaussian")
   }
-  # a registered term's student() values the objective corrects exactly
-  # (autocor_seam_t_laplace())
-  t_exact <- autocor_seam_t_missing(frame)
   for (r in names(frame[["mi_map"]])) {
     if (!length(frame[["mi_map"]][[r]][["rows"]])) next
-    if (!gaussian_resp(r) && is.null(t_exact[[r]])) return(FALSE)
+    if (!gaussian_resp(r)) return(FALSE)
   }
   for (lp in frame[["linpreds"]]) {
     if (!length(lp[["mi"]])) next
