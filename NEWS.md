@@ -1,3 +1,36 @@
+# frmtmb (development version)
+
+## Fitting
+
+* BREAKING: A nonlinear fit that stops beside a pole of its body, where a
+  denominator of the body is 0, is optimized again from beyond the poles.
+  A denominator that is affine in a coefficient, such as `K + xp` in
+  `Vm * xp / (K + xp)`, is 0 at one value of the coefficient for each
+  row, and the optimizer cannot cross these values. Where the
+  denominator takes both signs over the rows, or the fit is nearer one
+  of these values than they are to each other, the optimizer runs from
+  past each end of the band they make. From the default start, a better
+  maximum is returned with a message of class `frmtmb_nl_pole_start`.
+  Example: a binomial Michaelis-Menten fit stopped at code 0 with no
+  warning at K = -0.18, between the poles of two rows; the fit is now at
+  K = -6.02, 4.32 higher in log-likelihood. From a given `start`, the fit
+  is kept and a warning of class `frmtmb_nl_pole` gives the higher value.
+  A run that ends against a pole, where the likelihood has a supremum and
+  no maximum, is not kept.
+* The warning of class `frmtmb_nl_limit` (a nonlinear fit on a ridge to
+  a limit of its body) now reads the ridge after one Newton step across
+  it. `a * (exp(b * x) - 1)` on linear data stopped 0.0033 below the
+  ridge's value at code 0 with no warning, because the move along the
+  flattest direction left the ridge where it bends.
+
+## Documentation
+
+* `?huber` now gives the measured risk of the Laplace approximation with
+  group-level terms, and when `quadrature = TRUE` helps: it reached the
+  maximum on all 40 measured fits of a scalar `(1 | g)` term in the mean
+  with the identity link, at a higher cost. It also says where quadrature fails:
+  a group-level term in `sigma` or the log link.
+
 # frmtmb 0.82.0
 
 ## Convergence and standard errors

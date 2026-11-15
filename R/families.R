@@ -9324,9 +9324,23 @@ zero_inflated_asym_laplace <- function(link = "identity", link_sigma = "log",
 #' @details For `huber()` with group-level terms: the Laplace approximation
 #'   of the marginal likelihood changes in steps where a residual crosses
 #'   `k`, so the optimizer can stop on a lower piece of it, at code 0 and
-#'   with no warning. For such a model, fit with `quadrature = TRUE` where
-#'   the model allows it (scalar group-level terms), which integrates the
-#'   density itself, or compare fits from several starts.
+#'   with no warning. On `y ~ x + (1 | g)` with 100 rows in 20 groups and
+#'   heavy-tailed noise, 11 of 20 fits at each of two response scales
+#'   stopped short of the best of 8 starts, by up to 0.188 and 0.272 in
+#'   log-likelihood. Of these fits, 6 and 5 gave no warning.
+#'
+#'   `quadrature = TRUE` integrates the density itself. On the same 40
+#'   fits it reached the maximum every time. It costs more: about 7 to 9
+#'   times the Laplace fit on 100 rows in 20 groups, and 39 to 49 times on
+#'   2000 rows in 100 groups. Use it for a scalar group-level term in the
+#'   mean with the identity link. With a group-level term in `sigma`, such
+#'   as `sigma ~ (1 | g)`, the fit stopped with "could not marginalize" on
+#'   6 of 10 data sets at each of two scales; with `huber(link = "log")`
+#'   and `(1 | g)`, on 4 of 5. On a fit with `quadrature = TRUE`,
+#'   `predict()`, `fitted()`, `residuals()`, `frm_linpred(se.fit = TRUE)`
+#'   and `marginaleffects::avg_slopes()` warn that they hold the group
+#'   effects at their modes, and `vcov_cluster()` refuses the fit. Where
+#'   quadrature does not apply, compare fits from several starts.
 #' @export
 huber <- function(link = "identity", k = 1.345, link_sigma = "log") {
   link <- link_arg_value(substitute(link), link,

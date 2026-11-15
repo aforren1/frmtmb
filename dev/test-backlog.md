@@ -2818,6 +2818,7 @@ the measurements.
 - **n = 2e4 `s(x, k = 100) + (1 | g)` gaussian** dies with "NA/NaN
   gradient evaluation" (`dev/seflags-rev-cost.R smooth_big`; an
   optimizer path).
+  CLOSED in the round of 2026-11-13 (lane nlstop2): does not reproduce on 0.82.0; code 0, no warning, logLik -14964.054453, mgcv::gamm()'s ML value (dev/nlstop2-rerun.R 2818).
 - **logistic_early seed 19** (`dev/seflags-rev-falarm.R`): code 0 and a
   reported SE 37 percent off the exact AD Hessian's inverse.
 - **The degree-7 raw polynomial with (1 | g) under REML** stops at
@@ -4793,6 +4794,70 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-13
+
+### From lane nlstop2
+
+- **MEDIUM. `bf(y ~ s(x1), sigma ~ s(x2))` stops short of the boundary
+  at the sd of `s(x2)` on 3 of 20 seeds, silent.** The F11 design of
+  `dev/nlstop2-f11.R` on 0.82.0, seeds 1 to 20: seeds 5, 8 and 14 stop at
+  code 0 with no warning 0.532, 0.142 and 0.589 below the fit from the
+  sd of `s(x2)` at exp(-10), log sd -0.40, -0.80 and 0.26; the other 17
+  are at the best start. A start of that log sd alone at -10 reaches the
+  higher value each time. The only test found is a refit per smooth sd,
+  about one fit each (0.14 to 0.88 s here); no cheap test was found
+  (lane nlstop's probes, `dev/nlstop-dbg1.R`, `-dbg2.R`). A user decision
+  on that cost (lane nlstop2).
+- **LOW. The weak-prior ridge stops of 5053 need `restarts = 0` or a
+  custom optimizer.** `dev/nlstop2-ridgedbg.R`: the same stops given as
+  `start` to the default optimizer (`restarts = 1`) end 3.0e-4, 1.6e-4,
+  7.0e-4 and 6.9e-4 short, below `grad_tol`; with `restarts = 0`, psd
+  1000 k 80 ends 2.0e-3 short at code 0 with no warning. Newton steps
+  from the stop, on its Hessian held or retaken, lose 1.1e-6 to 1154 on
+  every stop: straight steps leave the curved ridge, so no step-based
+  check sees the gain that a run of the optimizer finds (lane nlstop2).
+- **LOW. The pole restart reads only a denominator affine in one
+  coefficient.** `EC50^h + x^h` and `1 + exp(b * x)` are not read, and a
+  fit far from its band of poles is not restarted: binomial mm 22 of the
+  fresh rows stops at the linear limit, -643.501398, where a start
+  beyond the poles reaches -638.885255; it warns (standard errors)
+  (lane nlstop2).
+- **LOW. 3359 (degree-8 raw polynomial with an active bound) still stops
+  2644, 779 and 2373 short on 0.82.0**, seeds 1 to 3, code 0 with
+  `frmtmb_ill_design` and the gradient warning (`dev/nlstop2-rerun.R
+  3359`). Rerun only; the fix (a least-squares start with the bound
+  coefficient held) is not made (lane nlstop2).
+- **LOW, cost. n = 2e4 `y ~ s(x, k = 100) + (1 | g)` gaussian took 1656.6
+  s** on 0.82.0 (`dev/nlstop2-rerun.R 2818`, one process beside about 13
+  other lanes' work, so the machine's load is in the number). The fit is
+  right (mgcv::gamm()'s ML logLik, -14964.054453). Not measured on a
+  quiet machine or against `mgcv::gamm()`'s time (lane nlstop2).
+- **HIGH. A fit clear of a band of poles is not looked at inside it, and
+  stops 591 to 646 short in silence.** `a / (x + b)` with y = 1 / (x - 2)
+  + N(0, 0.2), x ~ U(0, 4) without |x - 2| < 0.3, seeds 1 to 3: the
+  default fit stops at b 0.386, 0.481, 0.371, logLik -543.82, -525.22,
+  -589.07, code 0, no warning, no message, every denominator positive.
+  From the start (1, -1.9) the fit reaches 47.73, 66.61, 57.33 at b
+  -2.004, -2.011, -2.002, with the pole in the gap of the data. The pole
+  restart starts only past the ends of the band, never inside it, and
+  this fit is not near a wall, so it does not run. Pre-existing (0.82.0
+  the same). Not fixed in the round of 2026-11-13
+  (`dev/reviews/nlstop2-review-pole.R` section 8, log
+  `dev/reviews/nlstop2-review-out/pole-after.txt`; review of lane nlstop2,
+  F4).
+- **LOW. Cumulative `a * xp^b` seed 22 of the review's fresh rows stops
+  1.03 short at code 0 with no warning**: -408.3803 against the best
+  start's -407.3511 (`dev/nlstop2-accsum.R`, `accsum-after2.txt`). The
+  body has no denominator, so the pole restart does not reach it; the
+  same on 0.82.0 (lane nlstop2).
+- **LOW. The Hill body on step data stops 1.8e-3 short at code 0 in
+  silence.** `Emax * x^h / (EC50^h + x^h)`, the review's step data (n
+  1000, seed 1, start (10, 5, 2)): the profile with h doubled and every
+  other parameter optimized gains 1.76e-3, above `grad_tol`; with h times
+  1.5 it loses 2.6e-3, times 4 0.147 (`dev/nlstop2-hilldbg.R`). The step
+  limit (h to infinity) is lower, so no limit warning is right; the
+  short stop is not warned (lane nlstop2).
+
 ## Filed at the 0.82.0 release (2026-11-11)
 
 ### From lane boundfam
@@ -5076,6 +5141,7 @@ Record: `dev/wcheck-findings.md`.
   the review found no cheap detector (coordinate probes find 3 of 11
   silent shorts) and a warning on every such fit would fire on 9 of 20
   correct fits at each scale (review of lane nlstop, user question).
+  CLOSED in the round of 2026-11-13 (lane nlstop2): documentation only, by the user's decision; ?huber gives the measured shortfalls, quadrature = TRUE for a scalar term in the mean with the identity link (7 to 9 and 39 to 49 times the fit) and its limits; no default changed.
 - **MEDIUM. Silent short nonlinear fits left on the review's fresh rows** (425
   rows, 335 fit from the default start; `dev/nlstop-freshsum.R`): binomial
   `Vm * xp / (K + xp)` seeds 11 and 44 stop at code 0 with no warning at
@@ -5090,6 +5156,7 @@ Record: `dev/wcheck-findings.md`.
   data, 1.38 and 0.73 below the linear limit. Cumulative `a * xp^b` seed
   22 is 1.03 short at code 0; bernoulli `sig4` seed 55 is 2.8e-4 short,
   below `grad_tol` (lane nlstop, corrected in its fix round).
+  CLOSED in the round of 2026-11-13 (lane nlstop2): the Michaelis-Menten rows; a restart beyond the poles reaches K -6.0152 and -6.45313, a given start warns; cumulative pow 22 is filed again.
 - **The limit check (`frmtmb_nl_limit`) misses two limits it describes.**
   `a * (exp(b * x) - 1)` on linear data (n 1000, seed 2): code 0, no
   warning, a 1.40e4, b 1.44e-4; scaling (a, b) by (1000, 1/1000) raises
@@ -5104,6 +5171,7 @@ Record: `dev/wcheck-findings.md`.
   (`dev/reviews/nlstop-review-fndebug.R`; review of lane nlstop, MINOR
   1). Neither is a regression:
   0.81.0 is silent on both (lane nlstop).
+  CLOSED in the round of 2026-11-13 (lane nlstop2): explin warns after one Newton step across the ridge; the Hill fit has no limit (h to infinity is 0.147 lower), its 1.8e-3 short stop is filed.
 - **LOW. `grad_headroom()` on ordinal nl fits (4793), a `frmtmb_control()`
   switch for the sign probe (4931) and the profile at x near 1e-20
   (4856)** were not reached in this round (lane nlstop).
