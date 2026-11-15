@@ -1,3 +1,45 @@
+# frmtmb (development version)
+
+## Quadrature
+
+* BREAKING: With `quadrature = TRUE` on one random-effect block per row,
+  a standard deviation that stops near zero short of an interior
+  maximum is restarted from a larger value, as under the Laplace
+  approximation. The check reads a Gauss-Kronrod rule taped at each
+  larger value, and the restart tapes a rule at its start. Before, the
+  fit stayed there with code 0 and no warning: a skew normal with
+  `(1 | g)` started at alpha's stationary point stopped with the group
+  standard deviation at exp(-20.4), 5.5e-2 below the maximum at
+  exp(-2.55). It now ends 3.8e-7 below the fit from the default start.
+  `fit$opt$sd_escape` records the gain.
+
+* BREAKING: With `quadrature = TRUE` on one block per row, a coefficient
+  that runs off to infinity gets a NaN standard error and the same
+  warning as under the Laplace approximation, and the parameters it
+  leaves undetermined lose theirs. The check reads a rule taped at each
+  point it probes. Before, a poisson level whose counts are all zero had
+  a coefficient of -22.5 with a standard error of 7471 and no warning.
+
+## Convergence
+
+* BREAKING: The escape from a family's declared stationary point is
+  asked again from the optimum it keeps, while it gains, once per
+  predictor that sat on its point. Each restart moves one predictor off
+  its point, so with two on their points one pass moved only one: both
+  alphas of `mixture(skew_normal(), skew_normal())` started at 0 ended 7
+  to 9 log-likelihood units below the fit from the default start, and
+  both states of `frmtmb.latent::hmm(2, skew_normal())` 20 to 25 units
+  below. Both now reach that fit.
+
+## Residual correlation terms
+
+* BREAKING: The warning that a latent residual's Laplace approximation
+  is biased (class `frmtmb_latres_laplace`) is no longer given where each
+  row's log density is quadratic in its linear predictor, as on a
+  lognormal: there the approximation is exact. It fired on 1 of 10
+  lognormal fits with `ar(cov = TRUE)`, on the weight-0 spelling of an
+  unread `mi()` response and not on the `mi()` spelling.
+
 # frmtmb 0.82.0
 
 ## Convergence and standard errors

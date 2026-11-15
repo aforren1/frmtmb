@@ -1377,6 +1377,28 @@ Numbering is settled at consolidation. Not reported.
   m7.
 - Status: not reported.
 
+### TMB-7. `marginal_gk`'s accuracy settings cannot be set from R
+
+- Seen: TMB 1.9.25 and RTMB 2.0, 2026-11-13 (source read and a
+  measurement through frmtmb).
+- Repro: `TMB::GK(dx = 0.1, ytol = 1e-6)` or the same fields in an
+  RTMB `integrate =` spec. `TransformADFunObject()` in `tmb_core.hpp`
+  reads only `adaptive` and `debug` from the spec into `gk_config`, so
+  `dx` (1), `ytol` (1e-2) and `nan2zero` keep their defaults. The
+  integrator's own tolerances, `reltol` and `abstol` of TMBad's
+  `integrate()` (both 1e-4), are not in `gk_config` at all.
+- Expected: every `gk_config` field, and the integrator's tolerances,
+  read from the spec.
+- Effect: the rule's error depends on the point it was taped at. On 120
+  binomial, Bernoulli and poisson fits with one random-effect block,
+  the log-likelihood error at each fit's estimate reaches 1.06e-3. A
+  tape whose integrand has its exact Laplace mode and scale (so `dx`
+  and `ytol` cannot matter) reaches 1.19e-3 on the same fits, so the
+  integrator's tolerances, not the calibration, set the error (inferred).
+- Workaround: none; frmtmb re-anchors the rule at the estimate.
+- Record: `dev/quadseam2-findings.md`, items 4846 and 561.
+- Status: not reported.
+
 ## tmbstan
 
 ### tmbstan-1. tmbstan 1.2.0 built against StanHeaders 2.39 samples a standard normal

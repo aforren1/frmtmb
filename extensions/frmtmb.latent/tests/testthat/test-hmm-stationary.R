@@ -83,3 +83,22 @@ test_that("an hmm fit away from the point pays no refit", {
              start = list(betad = bd))
   expect_null(fit$opt[["stationary_escape"]])
 })
+
+test_that("both states stopped at alpha = 0 are refit off it", {
+  # one pass of the escape moved one state and left the other at 0, 20 to
+  # 25 below the default start's fit (core's escape_stationary(), item
+  # 5222 of dev/test-backlog.md)
+  skip_on_cran()
+  dd <- sn_hmm_data()
+  fo <- bf(y ~ 1)
+  u <- frm(fo, family = sn_hmm_fam(), data = dd, dry_run = "objective")
+  bd <- u$estimates$betad
+  al <- c("alpha1_(Intercept)", "alpha2_(Intercept)")
+  free <- frm(fo, family = sn_hmm_fam(), data = dd)
+  bd[al] <- 0
+  fit <- frm(fo, family = sn_hmm_fam(), data = dd,
+             start = list(betad = bd))
+  expect_true(all(abs(fit$estimates$betad[al]) > 1))
+  ll <- as.numeric(logLik(free))
+  expect_lt(abs(as.numeric(logLik(fit)) - ll), abs(ll) * 1e-8)
+})

@@ -384,9 +384,9 @@ cov_from_hessian <- function(fit, H, E = NULL, exact = FALSE) {
   held <- se_bound_held(fit, p, H)
   edge <- se_edge_sd(fit, H) | ec
   # a coefficient run to the end of its range, and what it leaves
-  # undetermined. Not under quadrature or importance sampling, which
-  # give no boundary verdict either (se_edge_sd())
-  if (!isTRUE(fit$quadrature) && is.null(fit$importance)) {
+  # undetermined. Not on the nested quadrature route or under importance
+  # sampling, which give no boundary verdict either (se_edge_sd())
+  if (se_edge_probed(fit) && is.null(fit$importance)) {
     # a probe that fails leaves the other rules' verdicts
     edge <- edge | tryCatch(se_edge_limit(fit, H, held | edge),
                             error = keep_missing(logical(np)))
@@ -797,7 +797,10 @@ se_edge_limit <- function(fit, H, skip = logical(NROW(H))) {
   obj <- fit$obj
   saved <- obj_state_save(obj)
   on.exit(obj_state_restore(obj, saved), add = TRUE)
-  fn <- function(q) tryCatch(se_quiet(obj$fn(q)), error = function(e) NA_real_)
+  # under one-block quadrature a rule taped at each point: the fit's own
+  # is frozen at the estimate (se_probe_fn())
+  pf <- se_probe_fn(fit)
+  fn <- function(q) tryCatch(se_quiet(pf(q)), error = function(e) NA_real_)
   f0 <- fn(p)
   if (!is.finite(f0)) return(out)
   tol <- fit$control$grad_tol %||% 1e-3
@@ -1012,7 +1015,14 @@ se_limit_family_par <- function(fit, pos, om = outer_par_map(fit)) {
 #' @noRd
 se_limit_curv <- function(fit, x, ks, u) {
   obj <- fit$obj
-  if (!length(obj$env$random)) {
+  # one-block quadrature: the differences of a rule taped at `x`, since
+  # the fit's own is frozen at the estimate and a Gauss-Kronrod tape's AD
+  # Hessian can be NaN in every entry (dev/quadseam-findings.md)
+  obj_at <- attr(quad_reanchored_fn(fit), "obj_at")
+  if (is.function(obj_at)) {
+    obj <- tryCatch(obj_at(x), error = function(e) NULL)
+    if (is.null(obj)) return(rep(NA_real_, length(ks)))
+  } else if (!length(obj$env$random)) {
     Hx <- tryCatch(se_quiet(obj$he(x)), error = function(e) NULL)
     if (!is.matrix(Hx) || !all(dim(Hx) == length(x))) {
       return(rep(NA_real_, length(ks)))

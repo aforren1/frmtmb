@@ -270,7 +270,11 @@ until the rule taped at the estimate is stationary or a round
 changes the log-likelihood by less than the rule can resolve
 (1e-5). A fit still gaining after 10 rounds, such as one whose
 likelihood rises without bound, warns (class
-\code{frmtmb_quad_unsettled}).}
+\code{frmtmb_quad_unsettled}). As under the Laplace approximation, a
+standard deviation stopped near zero short of a larger maximum is
+restarted from a larger value, and the standard-error check gives
+its boundary and limit verdicts; on one block per row it reads a
+rule taped at each point it probes.}
 
 \item{importance}{Number of importance draws per group, or \code{0}
 (default) for none. A positive count replaces the Laplace

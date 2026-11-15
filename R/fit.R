@@ -256,7 +256,11 @@
 #'   changes the log-likelihood by less than the rule can resolve
 #'   (1e-5). A fit still gaining after 10 rounds, such as one whose
 #'   likelihood rises without bound, warns (class
-#'   `frmtmb_quad_unsettled`).
+#'   `frmtmb_quad_unsettled`). As under the Laplace approximation, a
+#'   standard deviation stopped near zero short of a larger maximum is
+#'   restarted from a larger value, and the standard-error check gives
+#'   its boundary and limit verdicts; on one block per row it reads a
+#'   rule taped at each point it probes.
 #' @param importance Number of importance draws per group, or `0`
 #'   (default) for none. A positive count replaces the Laplace
 #'   approximation with an importance-sampling correction of it
@@ -1808,7 +1812,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   if (is.null(imp)) {
     # under quadrature quad_fit() already escaped on the Laplace objective
     # (its rule is anchored there); the escape on the rule runs again, and
-    # its record must not erase the first one's
+    # its record must not erase the first one's. The rule's optimum can
+    # walk back onto the point after the Laplace escape left it: skipping
+    # the rule's escape then left skew normals 1.45 to 6.67 below 0.82.0
+    # (dev/quadseam2-findings.md, item 5408, fix round)
     esc_lap <- if (!is.null(integrate)) opt$stationary_escape
     opt <- escape_stationary(obj, opt, frame, ctl_opt, bounds, par_units,
                              verbose = vb, tally = tally)
@@ -1911,6 +1918,31 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # the nested route's nodes and how its re-anchoring ended; post-fit
   # methods that cannot read the frozen tape refuse on it
   if (!is.null(qnest)) fit$quad_nested <- qf$info
+  if (is.null(imp) && !is.null(integrate) && is.null(qnest)) {
+    esc <- quad_sd_up_escape(fit, ctl_opt, bounds, qf$restart)
+    if (!is.null(esc)) {
+      if (vb) {
+        vb_say("restarted from a larger sd: gained ",
+               format(esc$opt$sd_escape[["gain"]], digits = 3),
+               " in log-likelihood")
+      }
+      if (!is.null(esc$info$msg)) quad_unsettled_warn(esc$info$msg)
+      # the escapes before the restart still describe this fit
+      for (nm in c("stationary_escape", "stationary_escape_laplace")) {
+        if (is.null(esc$opt[[nm]])) esc$opt[[nm]] <- fit$opt[[nm]]
+      }
+      obj <- esc$obj
+      opt <- nonfinite_not_converged(esc$opt, bounds$lower, bounds$upper)
+      est <- est_at(opt)
+      inner <- solved_par_list(lap_obj, opt$par)
+      for (cp in random) est[[cp]][] <- inner[[cp]]
+      fit$obj <- obj
+      fit$opt <- opt
+      fit$estimates <- est
+      # the probe's answers belong to the stop the restart left
+      fit$cache <- new.env(parent = emptyenv())
+    }
+  }
   if (is.null(imp) && is.null(integrate)) {
     esc <- sd_up_escape(fit, ctl_opt, bounds, par_units, tally)
     if (!is.null(esc)) {
@@ -2297,6 +2329,18 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
   out$settle <- function(obj, opt) {
     quad_settle(obj, opt, tape_at, control, bounds, par_units, vb)
   }
+  # a restart from another outer vector (quad_sd_up_escape()): a rule
+  # taped there, optimized from there and settled; the caller decides
+  # whether it is kept, so an unsettled rule's warning is left to it
+  out$restart <- function(par) {
+    o <- tape_at(par)
+    if (is.null(o)) return(NULL)
+    op <- tryCatch(optimize_obj(o, control, bounds, par_units,
+                                start_par = par),
+                   error = function(e) NULL)
+    if (is.null(op) || !is.finite(op$objective)) return(NULL)
+    quad_settle(o, op, tape_at, control, bounds, par_units, vb, warn = FALSE)
+  }
   out
 }
 
@@ -2344,7 +2388,7 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
 #'
 #' @noRd
 quad_settle <- function(obj, opt, tape_at, control, bounds, par_units,
-                        vb = 0L, rounds = quad_settle_rounds) {
+                        vb = 0L, rounds = quad_settle_rounds, warn = TRUE) {
   units <- par_units %||% 1
   tol <- control$grad_tol %||% 1e-3
   grad_at <- function(o, at) {
@@ -2455,32 +2499,40 @@ quad_settle <- function(obj, opt, tape_at, control, bounds, par_units,
   # measurable, as an escape's record is: the rounds a fit needed
   opt$quad_settle <- c(rounds = k, gain = f_first - f_at, grad = grad,
                        last = last)
-  if (!settled) {
-    frm_warning("quadrature = TRUE did not settle the Gauss-Kronrod rule: ",
-                "after ", k, " re-anchoring(s) the rule taped at the ",
-                "estimate still has a gradient of ", format(grad, digits = 3),
-                " there, ",
-                if (why == "rounds") {
-                  paste0("and the log-likelihood was still rising (by ",
-                         format(f_first - f_at, digits = 3), " over them, ",
-                         format(step, digits = 3), " in the last step)")
-                } else if (why == "rejected") {
-                  paste0("and three steps in a row lowered the ",
-                         "log-likelihood of the rule taped at their end")
-                } else if (why == "stuck") {
-                  paste0("and the optimizer stopped there without ",
-                         "converging (", op$message %||% "no message",
-                         ") and without a step the rule could resolve")
-                } else "and the last round's optimizer failed",
-                ". The reported estimate is not the maximum of the ",
-                "integral. A log-likelihood that keeps rising as a ",
-                "standard deviation falls has no maximum; otherwise ",
-                "compare with quadrature = FALSE, the Laplace approximation",
-                call. = FALSE, class = "frmtmb_quad_unsettled")
+  msg <- if (!settled) {
+    paste0("quadrature = TRUE did not settle the Gauss-Kronrod rule: ",
+           "after ", k, " re-anchoring(s) the rule taped at the ",
+           "estimate still has a gradient of ", format(grad, digits = 3),
+           " there, ",
+           if (why == "rounds") {
+             paste0("and the log-likelihood was still rising (by ",
+                    format(f_first - f_at, digits = 3), " over them, ",
+                    format(step, digits = 3), " in the last step)")
+           } else if (why == "rejected") {
+             paste0("and three steps in a row lowered the ",
+                    "log-likelihood of the rule taped at their end")
+           } else if (why == "stuck") {
+             paste0("and the optimizer stopped there without ",
+                    "converging (", op$message %||% "no message",
+                    ") and without a step the rule could resolve")
+           } else "and the last round's optimizer failed",
+           ". The reported estimate is not the maximum of the ",
+           "integral. A log-likelihood that keeps rising as a ",
+           "standard deviation falls has no maximum; otherwise ",
+           "compare with quadrature = FALSE, the Laplace approximation")
   }
+  # a trial restart (quad_sd_up_escape()) warns only if it is kept
+  if (!is.null(msg) && warn) quad_unsettled_warn(msg)
   list(obj = fz, opt = opt,
        info = list(rounds = k, settled = settled, grad = grad,
-                   gain = f_first - f_at))
+                   gain = f_first - f_at, msg = msg))
+}
+
+#' The warning of a Gauss-Kronrod rule quad_settle() could not settle.
+#'
+#' @noRd
+quad_unsettled_warn <- function(msg) {
+  frm_warning(msg, call. = FALSE, class = "frmtmb_quad_unsettled")
 }
 
 #' Re-anchorings quad_settle() makes before it gives up while still
@@ -2544,17 +2596,23 @@ quad_reanchored_fn <- function(fit) {
   # the boundary checks ask the same points more than once (the
   # estimate, its move toward zero), and each answer costs a tape
   seen <- new.env(parent = emptyenv())
-  fn <- function(q) {
-    key <- paste(sprintf("%a", q), collapse = ",")
-    if (!is.null(seen[[key]])) return(seen[[key]])
+  obj_at <- function(q) {
     tpl <- imp_par_list(est, q, map)
     o <- RTMB::MakeADFun(nll, tpl, random = "b", map = map,
                          integrate = quad_gk_integrate(), silent = TRUE,
                          inner.control = inner_ctl)
-    v <- if (length(o$env$random)) NA_real_ else o$fn(o$par)
+    if (length(o$env$random)) NULL else o
+  }
+  fn <- function(q) {
+    key <- paste(sprintf("%a", q), collapse = ",")
+    if (!is.null(seen[[key]])) return(seen[[key]])
+    o <- obj_at(q)
+    v <- if (is.null(o)) NA_real_ else o$fn(o$par)
     seen[[key]] <- v
     v
   }
+  # the tape itself, for a curvature read near `q` (se_limit_curv())
+  attr(fn, "obj_at") <- obj_at
   if (cached) fit$cache$quad_fn <- list(fn = fn, est = est)
   fn
 }
@@ -4230,6 +4288,7 @@ predictor_away <- function(X, value) {
 #' @noRd
 stationary_escapes <- function(obj, opt, frame) {
   out <- list()
+  n_on <- 0L
   par_names <- names(obj$par)
   for (lp in frame[["linpreds"]]) {
     if (!is.null(lp[["constant"]]) || !is.null(lp[["equate"]])) next
@@ -4278,6 +4337,7 @@ stationary_escapes <- function(obj, opt, frame) {
       if (is.null(e) || !all(is.finite(e))) return(FALSE)
       max(abs(e - at)) >= 0.5 * abs(v - at)
     }
+    n0 <- length(out)
     for (v in from) {
       b <- predictor_at(X, v)
       # a design that cannot represent a constant would "escape" to the
@@ -4289,7 +4349,11 @@ stationary_escapes <- function(obj, opt, frame) {
       p[idx] <- b
       out[[length(out) + 1L]] <- p
     }
+    if (length(out) > n0) n_on <- n_on + 1L
   }
+  # how many predictors sit on their point, which bounds the passes of
+  # escape_stationary()
+  attr(out, "n_on") <- n_on
   out
 }
 
@@ -4315,15 +4379,33 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
   n_before <- if (is.null(tally)) 0L else tally$n
   saved <- obj_state_save(obj)
   best <- opt
-  for (p in starts) {
-    p <- pmin(pmax(p, bounds$lower), bounds$upper)
-    o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
-                               start_par = p, tally = tally),
-                  error = function(e) NULL)
-    if (!is.null(o) && is.finite(o$objective) &&
-          o$objective < best$objective) {
-      best <- o
+  # Each start moves one predictor off its point with the others held,
+  # so with two on their points one pass moves one of them: both states
+  # of hmm(2, skew_normal()) started at alpha = 0 kept one there, 20 to 25
+  # below the default start's fit (dev/quadseam2-findings.md, item 5222).
+  # The escape is asked again from the kept optimum while it gains, at
+  # most once per predictor that sat on its point.
+  n_starts <- 0L
+  passes <- 0L
+  max_passes <- max(1L, attr(starts, "n_on") %||% 1L)
+  repeat {
+    passes <- passes + 1L
+    n_starts <- n_starts + length(starts)
+    gained <- FALSE
+    for (p in starts) {
+      p <- pmin(pmax(p, bounds$lower), bounds$upper)
+      o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
+                                 start_par = p, tally = tally),
+                    error = function(e) NULL)
+      if (!is.null(o) && is.finite(o$objective) &&
+            o$objective < best$objective) {
+        best <- o
+        gained <- TRUE
+      }
     }
+    if (!gained || passes >= max_passes) break
+    starts <- stationary_escapes(obj, best, frame)
+    if (!length(starts)) break
   }
   # the random effects' modes are read from the objective's last point:
   # skew_normal() with (1 | g) reported modes up to 0.143 away from its
@@ -4334,7 +4416,7 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
   # for two restarts and kept its own optimum is the measurement that
   # says what the fallback costs
   gain <- opt$objective - best$objective
-  best$stationary_escape <- c(starts = length(starts), gain = gain)
+  best$stationary_escape <- c(starts = n_starts, gain = gain)
   # the count a fit reports is the total over every run of its
   # objective, so the escape ADDS its own trials to whatever the run
   # being kept already carried rather than overwriting the total
@@ -4345,8 +4427,8 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
   }
   if (verbose) {
     vb_stage("stationary escape", t0,
-             paste0(length(starts), " restart",
-                    if (length(starts) != 1L) "s", ", gain ",
+             paste0(n_starts, " restart",
+                    if (n_starts != 1L) "s", ", gain ",
                     format(gain, digits = 3)))
   }
   best
@@ -4390,7 +4472,67 @@ stationary_escape_keep <- function(opt, esc_lap) {
 sd_up_escape <- function(fit, control, bounds, par_units = NULL,
                          tally = NULL) {
   obj <- fit$obj
-  if (!length(obj$env$random) || isTRUE(fit$quadrature) ||
+  if (isTRUE(fit$quadrature)) return(NULL)
+  q <- sd_up_start(fit, control, bounds)
+  if (is.null(q)) return(NULL)
+  saved <- obj_state_save(obj)
+  o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
+                             start_par = q, tally = tally),
+                error = keep_missing(NULL))
+  if (is.null(o) || !is.finite(o$objective) ||
+        o$objective >= fit$opt$objective) {
+    obj_settle(obj, fit$opt, fit$opt, saved)
+    return(NULL)
+  }
+  obj_settle(obj, fit$opt, o, saved)
+  o$sd_escape <- c(gain = fit$opt$objective - o$objective)
+  o
+}
+
+#' sd_up_escape() on the one-block quadrature route. The probe reads
+#' rules taped at each larger sd (se_probe_fn()), and the restart is a
+#' rule taped at the start, optimized and settled (`restart`, from
+#' quad_fit()), since the fit's own rule is frozen at the stop. A skew
+#' normal with `(1 | g)` started at alpha's stall stopped with its sd at
+#' exp(-20.4), 5.5e-2 below the maximum at exp(-2.55), where the Laplace
+#' fit restarts and reaches it (dev/quadseam2-findings.md, items 4836 and
+#' 4861).
+#'
+#' Returns `list(obj, opt, info)` of the kept restart, or NULL.
+#'
+#' @noRd
+quad_sd_up_escape <- function(fit, control, bounds, restart) {
+  if (!isTRUE(fit$quadrature) || !is.null(fit[["quad_nested"]]) ||
+        !is.function(restart)) {
+    return(NULL)
+  }
+  q <- sd_up_start(fit, control, bounds)
+  if (is.null(q)) return(NULL)
+  saved <- obj_state_save(fit$obj)
+  on.exit(obj_state_restore(fit$obj, saved), add = TRUE)
+  rs <- tryCatch(restart(q), error = keep_missing(NULL))
+  if (is.null(rs) || !is.finite(rs$opt$objective) ||
+        rs$opt$objective >= fit$opt$objective) {
+    return(NULL)
+  }
+  rs$opt$sd_escape <- c(gain = fit$opt$objective - rs$opt$objective)
+  rs
+}
+
+#' Where sd_up_escape() restarts from: the stop with each log standard
+#' deviation near zero moved to the larger value that gains most, or
+#' NULL when none gains more than `grad_tol` or the fit is one the escape
+#' does not ask about.
+#'
+#' @noRd
+sd_up_start <- function(fit, control, bounds) {
+  obj <- fit$obj
+  quad <- isTRUE(fit$quadrature)
+  # a one-block quadrature tape has integrated its random effects away;
+  # the nested route's rule cannot be probed away from its anchor
+  if ((!quad && !length(obj$env$random)) ||
+        (quad && (!se_edge_probed(fit) ||
+                    !length(fit$frame[["re_blocks"]]))) ||
         !is.null(fit$importance) || is.function(control$optimizer) ||
         !identical(control$optimizer %||% "nlminb", "nlminb") ||
         optctrl_stops_earlier(control$optCtrl) ||
@@ -4421,19 +4563,7 @@ sd_up_escape <- function(fit, control, bounds, par_units = NULL,
     q[j] <- attr(gain, "at")
   }
   if (identical(q, p)) return(NULL)
-  q <- pmin(pmax(q, bounds$lower), bounds$upper)
-  saved <- obj_state_save(obj)
-  o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
-                             start_par = q, tally = tally),
-                error = keep_missing(NULL))
-  if (is.null(o) || !is.finite(o$objective) ||
-        o$objective >= fit$opt$objective) {
-    obj_settle(obj, fit$opt, fit$opt, saved)
-    return(NULL)
-  }
-  obj_settle(obj, fit$opt, o, saved)
-  o$sd_escape <- c(gain = fit$opt$objective - o$objective)
-  o
+  pmin(pmax(q, bounds$lower), bounds$upper)
 }
 
 #' Does `optCtrl` ask nlminb to stop earlier than frmtmb_control()'s

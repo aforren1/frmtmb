@@ -514,4 +514,11 @@ test_that("under quadrature an sd stuck short of the maximum is no boundary", {
   bm <- Filter(function(x) inherits(x, "frmtmb_boundary_fit"), r$messages)
   expect_length(bm, 0L)
   expect_false(any(sdr_of(r$value)$se_lost %in% c("boundary", "short")))
+  # and the sd escape now restarts it on a rule taped at a larger sd, so
+  # it reaches the maximum, which on a gaussian is the Laplace fit's
+  # (dev/quadseam2-findings.md, item 4861)
+  l <- frm(y ~ x + (1 | g), data = d)
+  ll <- as.numeric(stats::logLik(l))
+  expect_lt(abs(as.numeric(stats::logLik(r$value)) / ll - 1), 1e-8)
+  expect_true(isTRUE(r$value$opt$sd_escape[["gain"]] > 0.5))
 })

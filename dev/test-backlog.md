@@ -569,6 +569,11 @@ tests/testthat/test-aliased-grouping.R.
   would have to be built rather than switched on.
   Confirmed 2026-09-07: unchanged at 0.53.0, and the fix is still an
   integrator to build rather than a flag to set.
+  CLOSED in the round of 2026-11-13 (lane quadseam2): not reproduced. 0
+  breakdowns in 240 one-block fits with a group sd of 0 or 0.05 over six
+  families, 145 of them ending below an sd of 1e-3 (dev/quadseam2-break.R).
+  The rule's anchor-dependent error is 4846, set by TMBad's integrator
+  tolerances (upstream TMB-7).
 - No `link_zi` / `link_hu`: the zero-inflation and hurdle parts are
   logit-only, as in glmmTMB. Confirmed 2026-09-07:
   `zero_inflated_poisson(link_zi = "probit")` is an unused-argument
@@ -4793,6 +4798,39 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-13
+
+### From lane quadseam2
+
+- **MEDIUM. The one-block rule's anchor error is the integrator's
+  tolerance, not its calibration** (item 4846). A tape whose integrand
+  has its exact Laplace mode and scale, so that TMB's `dx = 1`
+  differences and `ytol` cannot matter, has a worst log-likelihood error
+  of 1.19e-3 on the 120 fits of 4846, against 1.06e-3 for TMB's own
+  calibration; better by more than 1e-6 on 29, worse on 21
+  (dev/quadseam2-white.R). TMBad's `integrate()` stops at `reltol =
+  abstol = 1e-4` per integral, and neither those nor `dx` and `ytol`
+  reach it from an RTMB spec (upstream TMB-7), so route (b) is closed.
+  What remains is route (a): a Gauss-Hermite rule on the tape with
+  enough nodes, as the nested route writes it. Size L.
+
+- **MEDIUM. Under OpenBLAS the rule's stationary escape can fail where it
+  succeeds under the reference BLAS** (0.82.0 as well). Two skew normals
+  with `(1 | g)` and `quadrature = TRUE`, alpha started at 0
+  (dev/reviews/quadseam2-review-esc2.R, SYMSMALL seed 1 and WEAK seed 4):
+  under the reference BLAS the rule's escape gains 2.29 and 1.45 and
+  alpha runs toward its end; under OpenBLAS 0.3.26 with LAPACK
+  (`OPENBLAS_CORETYPE=Haswell`) both of its restarts come back to alpha
+  1e-15, and the fit stops 2.29 and 1.45 below, with only the
+  "flat" standard-error warning. Identical on rellib-r21 and the lane
+  (dev/quadseam2-symsmall.R, dev/quadseam2-log/fr-esc2-ob-*.txt). The
+  maximum is at alpha -> infinity (the half-normal limit); the restarts
+  run on the rule frozen at alpha = 0, as item 828's did before
+  `quad_fit()` escaped on the Laplace objective first (inferred, not
+  isolated). Related, LOW: on test-quad-escape-record.R's ALPHAX fit,
+  OpenBLAS also calls (Intercept) and x flat beside the run-off alphas,
+  where the reference BLAS keeps their standard errors.
+
 ## Filed at the 0.82.0 release (2026-11-11)
 
 ### From lane boundfam
@@ -4843,6 +4881,10 @@ Lane record: `dev/quadseam-findings.md`.
   (`newton_polish()` runs only without `integrate`), and the rule taped
   at the stop reads a gradient below `grad_tol` there
   (`dev/quadseam-escorder.R`, `dev/quadseam-seed6.R`).
+  CLOSED in the round of 2026-11-13 (lane quadseam2): misdiagnosed: the stall
+  stop had the group sd at exp(-20.4), and the rule was right there to 4e-9
+  (dev/quadseam2-snref.R). The sd escape of 4861 restarts it; it ends 3.8e-7
+  below the default start's fit.
 - **MEDIUM. The Gauss-Kronrod rule's error depends on its anchor, up to
   1e-3.** On the review's 120 fits at the default `grad_tol` (Bernoulli
   groups of 4 and of 2, poisson sd 1 and sd 2;
@@ -4864,6 +4906,9 @@ Lane record: `dev/quadseam-findings.md`.
   convergence warning where the Laplace fit restarts and reaches the
   maximum. The upward probe now works on the one-block route
   (`se_probe_fn()`); the restart would then need `quad_settle()`.
+  CLOSED in the round of 2026-11-13 (lane quadseam2): `quad_sd_up_escape()`
+  probes rules taped at each larger sd and restarts on a rule taped at the
+  start, settled by `quad_settle()`.
 - **MEDIUM. Cross-lane (boundfam): a coefficient that runs off under one-block
   quadrature gets a finite SE and no warning.** Poisson with a factor
   level whose counts are all zero, plus `(1 | g)`: under Laplace the
@@ -4877,6 +4922,10 @@ Lane record: `dev/quadseam-findings.md`.
   point, which on the frozen rule is a read away from the anchor and
   would need the Hessian of a rule taped at that point. For the
   consolidation to decide; not done in either lane.
+  CLOSED in the round of 2026-11-13 (lane quadseam2): the limit rule runs on
+  the one-block route through `se_probe_fn()`, its curvature by differences
+  of a rule taped at the moved point: SE NaN and the Laplace warning
+  (test-quadrature-defects.R).
 ### From lane ppdraw
 
 - **MEDIUM. `predict()` on a weakly identified mixture draws from a
@@ -5232,6 +5281,10 @@ Record: `dev/wcheck-findings.md`.
   escape from the kept optimum while it gains and a declared dpar still
   sits on its point, at most once per declaration.
   (`dev/silent-findings.md`, item 857.)
+  CLOSED in the round of 2026-11-13 (lane quadseam2): `escape_stationary()`
+  asks again from the kept optimum while it gains, at most once per predictor
+  on its point; hmm and mixture seeds 1 to 3 reach the default start's fit
+  (dev/quadseam2-hmm.R).
 - **MINOR. An addition term whose value has the length of the new rows
   by coincidence is read row by row.**
   `vreal(rep_len(c(1, 3), 120))` on a 120-row fit is refused by
@@ -5419,6 +5472,11 @@ CLOSED at the 0.82.0 release: frmtmb.eam 0.13.2 and frmtmb.ode 0.7.4 need frmtmb
   (gain 24.3 and 23.4) and the rule's on 0. The double cost was not seen;
   a fit whose Laplace escape returns to alpha = 0 would pay 2 restarts on
   the rule.
+  CLOSED in the round of 2026-11-13 (lane quadseam2): not a defect. The
+  rule's optimum can walk back onto alpha = 0 after the Laplace escape;
+  skipping the rule's escape then left 3 of 45 skew normals 1.45 to 6.67
+  below 0.82.0 (dev/reviews/quadseam2-review-esc2.R). The second escape
+  stays, and on a fit off the point it returns at once.
 
 - **LOW. The warning on an asym_laplace `y ~ x` fit's NaN fitted values
   misdescribes the stop.** On gaussian data the fit stops at false
@@ -5623,6 +5681,10 @@ CLOSED in the round of 2026-11-11 (lane gpstop): the body is linearized again at
   first-order correction" and "moves log(sderr) or ar[1] by 0.4". The
   correction differences `h3`, `h4` that are 0 in exact arithmetic, against a
   covariance near singular where sigma and sderr trade off.
+  CLOSED in the round of 2026-11-13 (lane quadseam2): `latres_quadratic()`
+  drops the warning where every row's log density is quadratic in eta:
+  lognormal 0 of 10 fits (1 on 0.82.0), bernoulli 3 of 3 kept
+  (dev/quadseam2-latres.R).
 - **skew_normal with three bodies (mu, sigma, alpha) stops 68 to 86 nats
   short on 3 of 16 rows**, with a false-convergence warning, on 0.79.1 and the
   lane alike; 2 more are 1.2 nats short with only a standard-error warning

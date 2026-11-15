@@ -334,3 +334,74 @@ test_that("a quadrature sd at zero is a boundary fit, as under Laplace", {
   expect_identical(bm, 0L)
   expect_true(all(is.finite(diag(sdr_of(fq)$cov.fixed))))
 })
+
+test_that("a quadrature sd stuck near zero is restarted from a larger sd", {
+  # a skew normal started at alpha's stall: the Laplace warm start left
+  # the group sd at exp(-20.4), the rule taped there stopped with it, and
+  # the fit ended 5.5e-2 below the maximum at exp(-2.55) with no warning;
+  # the exact integral confirms both values to 4e-9
+  # (dev/quadseam2-snref.R, items 4836 and 4861)
+  skip_on_cran()
+  set.seed(6)
+  n <- 200
+  xs <- -abs(rnorm(n)) * 3
+  y <- xs + (abs(rnorm(n)) - sqrt(2 / pi)) * 1.5 + rnorm(n, 0, 0.3)
+  dd <- data.frame(y = y, xs = xs, g = factor(rep(1:20, length.out = n)))
+  m3 <- mean((y - mean(y))^3) / stats::sd(y)^3
+  bad <- list(betad = c(log(stats::sd(y)), 2 * sign(m3) + 0.5 * m3))
+  fo <- bf(y ~ xs + (1 | g), sigma ~ 1, alpha ~ 1)
+  f0 <- frm(fo, family = skew_normal(), data = dd, quadrature = TRUE)
+  bm <- 0L
+  f1 <- withCallingHandlers(
+    frm(fo, family = skew_normal(), data = dd, quadrature = TRUE,
+        start = bad),
+    frmtmb_boundary_fit = function(m) {
+      bm <<- bm + 1L
+      invokeRestart("muffleMessage")
+    })
+  expect_true(isTRUE(f1$opt[["sd_escape"]][["gain"]] > 1e-2))
+  ll0 <- as.numeric(logLik(f0))
+  expect_lt(abs(as.numeric(logLik(f1)) - ll0) / abs(ll0), 1e-7)
+  expect_identical(bm, 0L)
+  # the fit from the default start is at its maximum and pays nothing
+  expect_null(f0$opt[["sd_escape"]])
+})
+
+quad_limit_conds <- function(expr) {
+  w <- character()
+  v <- withCallingHandlers(expr, warning = function(x) {
+    w <<- c(w, conditionMessage(x))
+    invokeRestart("muffleWarning")
+  })
+  list(value = v, warnings = w)
+}
+
+test_that("a coefficient run off under quadrature loses its SE as under Laplace", {
+  # a poisson level whose every count is zero: Laplace gives the limit
+  # verdict, quadrature gave a standard error of 7471 and no warning
+  # (dev/reviews/quadseam-review-limit.R, item 4867)
+  set.seed(5)
+  d <- data.frame(g = factor(rep(1:20, each = 9)),
+                  f = factor(rep(c("a", "b", "c"), 60)), x = rnorm(180))
+  d$y <- rpois(180, exp(0.5 + 0.3 * d$x + rnorm(20, 0, 0.5)[d$g]))
+  d0 <- d
+  d$y[d$f == "c"] <- 0L
+  for (quad in c(FALSE, TRUE)) {
+    r <- quad_limit_conds(frm(y ~ f + x + (1 | g), family = poisson(),
+                              data = d, quadrature = quad))
+    expect_length(r$warnings, 1L)
+    expect_match(r$warnings, "fc (at ", fixed = TRUE)
+    expect_match(r$warnings, "toward -Inf", fixed = TRUE)
+    lost <- sdr_of(r$value)$se_lost
+    expect_identical(unname(lost), "limit")
+    v <- diag(sdr_of(r$value)$cov.fixed)
+    expect_true(is.nan(v[[3L]]))
+    expect_true(all(is.finite(v[-3L]) & v[-3L] > 0))
+  }
+  # the same design with the level's counts kept: a maximum, every
+  # standard error, no word
+  r <- quad_limit_conds(frm(y ~ f + x + (1 | g), family = poisson(),
+                            data = d0, quadrature = TRUE))
+  expect_length(r$warnings, 0L)
+  expect_true(all(is.finite(diag(sdr_of(r$value)$cov.fixed))))
+})
