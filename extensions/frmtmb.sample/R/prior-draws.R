@@ -311,12 +311,17 @@ prior_plan <- function(fit, tab, cn, mix_theta = FALSE) {
         }
       }
     }
-    if (!is.null(fam[["mix"]]) && isTRUE(mix_theta)) {
+    # brms's dirichlet(1) on the weights, or the class "theta" row that
+    # replaces it (mix_theta_nlp())
+    trow <- prior_tab_row(tab, tab$class == "theta" & tab$resp == rr &
+                            startsWith(tab$prior, "dirichlet("))
+    if (!is.null(fam[["mix"]]) && (isTRUE(mix_theta) || !is.null(trow))) {
       dps <- fam[["dpars"]] %||% character(0)
       K <- sum(grepl("^theta[0-9]+$", dps)) + 1L
       if (K > 1L) {
         add(prior_stmt(paste0("theta", if (multi) paste0("_", r)),
-                       "theta", "dirichlet(1)", type = "simplex", dim = K))
+                       "theta", trow$prior %||% "dirichlet(1)",
+                       type = "simplex", dim = K))
       }
     }
   }

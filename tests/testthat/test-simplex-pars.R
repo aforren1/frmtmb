@@ -238,17 +238,22 @@ test_that("a Dirichlet on no simplex has one refusal point, however written", {
                "names the intercept of a linear predictor, and \"tw\" is a",
                fixed = TRUE)
   # brms's class "theta" of a mixture is the Dirichlet on its mixing
-  # proportions (brms 2.23.0's default_prior() puts dirichlet(1) there;
-  # frmtmb's dev/smallfix-theta-probe.R), and frmtmb's "theta" is
-  # another set of parameters, so the refusal says so
+  # proportions (brms 2.23.0's default_prior() puts dirichlet(1) there,
+  # dev/priors2-brms.R), and so is frmtmb's; one proportion's dpar is
+  # no simplex, and the refusal points at the class
   dm <- data.frame(y = c(stats::rnorm(30), stats::rnorm(30, 4)))
-  e <- tryCatch(validate_prior(set_prior("dirichlet(2)", class = "theta"),
+  vp <- validate_prior(set_prior("dirichlet(2)", class = "theta"),
+                       bf(y ~ 1), data = dm,
+                       family = mixture(gaussian(), gaussian()))
+  expect_identical(vp$prior[vp$class == "theta"], "dirichlet(2)")
+  e <- tryCatch(validate_prior(set_prior("dirichlet(2)", class = "Intercept",
+                                         dpar = "theta1"),
                                bf(y ~ 1), data = dm,
                                family = mixture(gaussian(), gaussian())),
                 error = identity)
   expect_match(conditionMessage(e), paste0(
-    "not class = \"theta\". In brms, class = \"theta\" of a mixture() ",
-    "takes a dirichlet() on the mixing proportions"), fixed = TRUE)
+    "class = \"theta\" (a mixture's weights) or a simplex a family ",
+    "declares, not class = \"Intercept\", dpar = \"theta1\""), fixed = TRUE)
 })
 
 test_that("a simplex_pars value that names no extra parameter is refused", {

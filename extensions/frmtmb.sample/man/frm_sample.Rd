@@ -526,10 +526,10 @@ side the prior leaves unset, as brms keeps the bound it declares.
 
 A mixture's weights without a formula are a simplex, and
 \code{dirichlet(1)} on it is the flat density there, with the Jacobian of
-the log ratios the sampler works on. No \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} class
-names them (\code{theta} is frmtmb's covariance vector), so the default
-is disclosed in the message, and \code{prior = "flat"} keeps it: it is
-brms's \code{(flat)} on the weights.
+the log ratios the sampler works on. The default is disclosed in the
+message, and \code{prior = "flat"} keeps it: it is brms's \code{(flat)} on the
+weights. A class \code{"theta"} row, \code{set_prior("dirichlet(c(5, 1))", class = "theta")}, replaces \code{dirichlet(1)} on that simplex, as in
+brms, with the same Jacobian.
 
 A \code{mo()} simplex is sampled in softmax coordinates under
 \code{dirichlet(1)}, brms's default and the flat density on the simplex,
@@ -657,7 +657,7 @@ brms declares on (0, 1) and leaves flat, carries no density here, so
 it is flat on its logit, \code{1 / (rho (1 - rho))} on rho, which is not
 integrable at rho = 0 where a CAR likelihood stays finite: under
 \code{prior = "flat"} such a posterior is improper. Give it a prior with
-class \code{"theta"} on its coef, as \code{\link[frmtmb:default_prior]{frmtmb::default_prior()}} lists it.
+class \code{"thetacov"} on its coef, as \code{\link[frmtmb:default_prior]{frmtmb::default_prior()}} lists it.
 The call warns when the model has standard
 deviations: nothing but the likelihood bounds them above, and with
 few groups the posterior need not be proper, which neither the

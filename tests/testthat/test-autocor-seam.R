@@ -217,9 +217,9 @@ test_that("a bounded parameter takes a prior by its name", {
   # one slot per parameter, by the rule core's ar() and cosy() follow:
   # the internal spelling is not listed, and a prior on it names the
   # class to use
-  expect_false(any(dp$class == "theta"))
+  expect_false(any(dp$class == "thetacov"))
   expect_error(frm(y ~ x + bscale(V), data = d, data2 = list(V = V),
-                   prior = set_prior("", class = "theta",
+                   prior = set_prior("", class = "thetacov",
                                      coef = "thetaac_1", ub = 0)),
                "internal parameter of scale1, which has a class of its own",
                fixed = TRUE, class = "frmtmb_error")
@@ -240,13 +240,13 @@ test_that("a bounded parameter takes a prior by its name", {
   # and that spelling works: where no class reaches a parameter, class
   # theta does, its row is listed, and a bound on it holds
   du <- default_prior(y ~ x + uscale(V), data = d, data2 = list(V = V))
-  expect_true(any(du$class == "theta" & du$coef == "thetaac_1"))
+  expect_true(any(du$class == "thetacov" & du$coef == "thetaac_1"))
   fu <- frm(y ~ x + uscale(V), data = d, data2 = list(V = V))
   th0 <- fu$estimates[["thetaac"]][[1L]]
   cap <- th0 - 0.5 * (abs(th0) + 0.1)
   fb <- allow_warnings(
     frm(y ~ x + uscale(V), data = d, data2 = list(V = V),
-        prior = set_prior("", class = "theta", coef = "thetaac_1",
+        prior = set_prior("", class = "thetacov", coef = "thetaac_1",
                           ub = cap)),
     "a bound holds it")
   expect_lte(fb$estimates[["thetaac"]][[1L]], cap)

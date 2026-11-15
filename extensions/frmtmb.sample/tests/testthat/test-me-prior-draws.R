@@ -227,8 +227,11 @@ test_that("a bound on one coefficient is refused with brms's words", {
                  set_prior("normal(0, 1)", class = "sd", group = "g",
                            ub = 2) +
                  set_prior("normal(0, 1)", class = "b", lb = -1))
-  expect_identical(unname(ri$upper[c("logsdme_mex", "logsdme_mez")]),
-                   rep(log(3), 2))
+  # log(3), moved inward the ulp exp() needs to stay at or under 3
+  # (frmtmb's bound_inside())
+  up <- unname(ri$upper[c("logsdme_mex", "logsdme_mez")])
+  expect_true(all(exp(up) <= 3))
+  expect_true(all(abs(up - log(3)) / log(3) <= 4 * .Machine$double.eps))
   expect_identical(unname(ri$lower[["w"]]), -1)
   # the box binds here, which frm() reports
   fb <- allow_warnings(

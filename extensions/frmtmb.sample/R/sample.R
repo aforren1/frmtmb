@@ -788,7 +788,7 @@ chart_draws_back <- function(m, fit, chart, laplace) {
 #' @noRd
 sample_extra_nlp <- function(fit, entries) {
   f1 <- mo_simplex_nlp(fit, entries)
-  f2 <- mix_theta_nlp(fit)
+  f2 <- mix_theta_nlp(fit, entries)
   if (is.null(f1)) return(f2)
   if (is.null(f2)) return(f1)
   function(pars) f1(pars) + f2(pars)
@@ -2136,11 +2136,15 @@ mix_theta_terms <- function(fit) {
 #' density of the log ratios the fit holds them in. The flat density on
 #' the simplex carried to those coordinates is the softmax's Jacobian,
 #' `Gamma(K) prod(w)` over all `K` weights, whichever component is the
-#' reference. `NULL` without such weights.
+#' reference. `NULL` without such weights. A simplex that a resolved
+#' class `"theta"` entry covers takes that entry's Dirichlet instead,
+#' through the same chart (frmtmb's `dirichlet_logdens()`).
 #'
 #' @noRd
-mix_theta_nlp <- function(fit) {
+mix_theta_nlp <- function(fit, entries = NULL) {
   terms <- if (isTRUE(attr(fit$prior, "mix_theta"))) mix_theta_terms(fit)
+  own <- mix_theta_own(entries)
+  terms <- Filter(function(tm) !any(tm$idx %in% own), terms)
   if (!length(terms)) return(NULL)
   function(pars) {
     "c" <- RTMB::ADoverload("c")
@@ -2153,6 +2157,18 @@ mix_theta_nlp <- function(fit) {
     }
     out
   }
+}
+
+#' The `betad` positions of a mixture's weights that a resolved class
+#' `"theta"` entry puts a Dirichlet on.
+#'
+#' @noRd
+mix_theta_own <- function(entries) {
+  unlist(lapply(entries %||% list(), function(e) {
+    if (identical(e$comp, "betad") && identical(e$dist$kind, "dirichlet")) {
+      e$idx
+    }
+  })) %||% integer(0)
 }
 
 #' What this model has that brms would prior and frmtmb deliberately
@@ -2198,9 +2214,17 @@ default_prior_notes <- function(fit, user_pl = NULL) {
       })
     }
   }
+  # the simplexes the user's own rows prior take that density instead
+  # (mo_simplex_nlp(), mix_theta_nlp()), so naming them here misreported
+  # the run
+  ent <- if (!is.null(user_pl)) {
+    tryCatch(resolve_prior_input(fit, user_pl)$entries,
+             error = function(e) list())
+  }
   # a mixture's weights without a formula: brms's dirichlet(1) on the
-  # simplex, which no set_prior() class addresses here
+  # simplex, unless a class "theta" row of the user's sets another
   for (tm in mix_theta_terms(fit)) {
+    if (any(tm$idx %in% mix_theta_own(ent))) next
     notes <- c(notes, paste0(
       "theta: dirichlet(1), brms's default, on the mixing weights (",
       paste(tm$names, collapse = ", "), "); it is the flat density on ",
@@ -2221,11 +2245,7 @@ default_prior_notes <- function(fit, user_pl = NULL) {
                              paste(ungated, collapse = ", "),
                              " (no LKJ density fits its parameters)"))
   }
-  # the simplexes the user's own rows prior take that density instead
-  # (mo_simplex_nlp()), so naming them here misreported the run
   own <- if (!is.null(user_pl)) {
-    ent <- tryCatch(resolve_prior_input(fit, user_pl)$entries,
-                    error = function(e) list())
     unlist(lapply(ent, function(e) {
       if (identical(e$dist$kind, "dirichlet")) e$comp
     }))
@@ -2327,7 +2347,7 @@ drop_superseded <- function(base, over) {
 #' coefficient's bound sampled one prior and drew another
 #' (dev/reviews/2026-10-28-meme.md, finding 2). frm() keeps the bound,
 #' as a box on its maximum-likelihood fit, which brms has no
-#' counterpart of. Not refused: class `"theta"`, frmtmb's own with no
+#' counterpart of. Not refused: class `"thetacov"`, frmtmb's own with no
 #' brms row, and a row that restates the declared `lb = 0` of a standard
 #' deviation or length scale, which a sampling-route table prints on its
 #' gp() rows.
@@ -2380,7 +2400,7 @@ refuse_coef_bounds <- function(fit, pl) {
       }
     }
     if (!nzchar(s$coef %||% "") || (is.na(lb) && is.na(ub))) next
-    if (identical(s$class, "theta")) next
+    if (identical(s$class, "thetacov")) next
     if (s$class %in% c("sd", "sdgp", "lscale", "sdme") &&
           identical(as.numeric(lb), 0) && is.na(ub)) {
       next
@@ -2854,9 +2874,9 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
                             flat_slopes = flat_slope_count(fit, ri, user_pl))
   }
   # brms's dirichlet(1) on a mixture's weights is a density on the whole
-  # simplex, which no set_prior() class names here (class "theta" is
-  # frmtmb's covariance vector), so it rides on the effective prior as
-  # a flag that the retape reads (mix_theta_nlp())
+  # simplex. It rides on the effective prior as a flag that the retape
+  # reads (mix_theta_nlp()), which steps aside for a class "theta" row
+  # of the user's own
   mix <- defaults && length(mix_theta_terms(fit))
   if (mix) {
     eff <- eff %||% structure(list(), class = "frmtmb_priorlist")
@@ -3189,10 +3209,11 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'
 #' A mixture's weights without a formula are a simplex, and
 #' `dirichlet(1)` on it is the flat density there, with the Jacobian of
-#' the log ratios the sampler works on. No [frmtmb::set_prior()] class
-#' names them (`theta` is frmtmb's covariance vector), so the default
-#' is disclosed in the message, and `prior = "flat"` keeps it: it is
-#' brms's `(flat)` on the weights.
+#' the log ratios the sampler works on. The default is disclosed in the
+#' message, and `prior = "flat"` keeps it: it is brms's `(flat)` on the
+#' weights. A class `"theta"` row, `set_prior("dirichlet(c(5, 1))",
+#' class = "theta")`, replaces `dirichlet(1)` on that simplex, as in
+#' brms, with the same Jacobian.
 #'
 #' A `mo()` simplex is sampled in softmax coordinates under
 #' `dirichlet(1)`, brms's default and the flat density on the simplex,
@@ -3319,7 +3340,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' it is flat on its logit, `1 / (rho (1 - rho))` on rho, which is not
 #' integrable at rho = 0 where a CAR likelihood stays finite: under
 #' `prior = "flat"` such a posterior is improper. Give it a prior with
-#' class `"theta"` on its coef, as [frmtmb::default_prior()] lists it.
+#' class `"thetacov"` on its coef, as [frmtmb::default_prior()] lists it.
 #' The call warns when the model has standard
 #' deviations: nothing but the likelihood bounds them above, and with
 #' few groups the posterior need not be proper, which neither the

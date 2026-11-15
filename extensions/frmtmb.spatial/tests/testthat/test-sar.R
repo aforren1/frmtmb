@@ -687,13 +687,13 @@ test_that("one sar() parameter has one prior slot, under its brms class", {
   d2 <- list(W = s$W)
   dp <- default_prior(ylag ~ x + sar(W), data = dd, data2 = d2)
   expect_true("lagsar" %in% dp$class)
-  expect_false(any(dp$class == "theta"))
+  expect_false(any(dp$class == "thetacov"))
   for (type in c("lag", "error")) {
     fo <- stats::as.formula(paste0("y", if (type == "lag") "lag" else
                                    "err", " ~ x + sar(W, type = '", type,
                                    "')"))
     e <- tryCatch(validate_prior(set_prior("normal(0, 0.5)",
-                                           class = "theta",
+                                           class = "thetacov",
                                            coef = "thetaac_1"),
                                  fo, data = dd, data2 = d2),
                   error = identity)
@@ -711,7 +711,7 @@ test_that("one sar() parameter has one prior slot, under its brms class", {
   # either
   da <- data.frame(t = 1:30, y = stats::rnorm(30))
   dpa <- default_prior(y ~ ar(time = t), data = da)
-  expect_false(any(dpa$class == "theta"))
+  expect_false(any(dpa$class == "thetacov"))
   # the table, lagsar's lb and ub at the ends of its interval, passes
   # back as prior = (through 0.75.0 frm() refused its own lb)
   fl <- frm(ylag ~ x + sar(W), data = dd, data2 = d2)

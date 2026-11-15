@@ -177,11 +177,31 @@ test_that("cor takes no dpar or nlpar; its rows are keyed by group", {
   tab <- validate_prior(set_prior("lkj(4)", class = "cor", group = "g"), fs,
                         data = d)
   expect_identical(ptb_row(tab, class = "cor", group = "g")$prior, "lkj(4)")
-  # resp stays frmtmb's own spelling (the decision of 2026-09-24)
+  # and no resp, as brms refuses it (L_g__y2, dev/priors2-brms.R, C2 and
+  # C3; the user's decision of 2026-11-13 reverses that of 2026-09-24),
+  # on frm() and through validate_prior() alike, with group or without
   mv <- bf(mvbind(y, y2) ~ x + (1 + x | g))
-  tv <- validate_prior(set_prior("lkj(5)", class = "cor", group = "g",
-                                 resp = "y2"), mv, data = d)
-  expect_identical(ptb_row(tv, class = "cor", resp = "y2")$prior, "lkj(5)")
+  for (g in c("g", "")) {
+    stem <- if (nzchar(g)) "L_g__y2" else "L_y2"
+    expect_error(validate_prior(set_prior("lkj(5)", class = "cor", group = g,
+                                          resp = "y2"), mv, data = d),
+                 paste0("The following priors do not correspond to any ",
+                        "model parameter: ", stem, " ~ lkj(5)"),
+                 fixed = TRUE, class = "frmtmb_error")
+    expect_error(frm(mv, data = d,
+                     prior = set_prior("lkj(5)", class = "cor", group = g,
+                                       resp = "y2")),
+                 "class = \"cor\" takes no resp", fixed = TRUE,
+                 class = "frmtmb_error")
+  }
+  # the guard absent: the group spelling with no resp reaches both
+  # responses' blocks
+  tv <- validate_prior(set_prior("lkj(5)", class = "cor", group = "g"), mv,
+                       data = d)
+  expect_identical(ptb_row(tv, class = "cor", group = "g")$prior, "lkj(5)")
+  expect_length(frmtmb:::resolve_prior_input(
+    frm(mv, data = d, dry_run = "objective"),
+    set_prior("lkj(5)", class = "cor", group = "g"))$entries, 2L)
 })
 
 test_that("a response is listed by its Stan name, as in brms", {
@@ -312,7 +332,7 @@ test_that("the box reaches a dpar's own class and an uncentered intercept", {
   expect_identical(unname(fixef(ex)["z", "Estimate"]), 0)
 })
 
-test_that("zero-density ends get no box; an Inf stop is not converged", {
+test_that("zero-density ends get no box; a bound there reaches the mode", {
   # the review's case: beta(2, 2) on a slope the data put below 0. Its
   # mode is inside (0, 1), near 0.0068, where lb = 1e-8 finds it; a
   # closed box at 0 stopped there with the objective Inf and code 0
@@ -336,14 +356,14 @@ test_that("zero-density ends get no box; an Inf stop is not converged", {
   pos <- allow_warnings(frm(y ~ z, data = d, prior = sp()), w)
   expect_identical(pos$opt$convergence, 0L)
   expect_true(zof(pos) > 0 && zof(pos) < 1)
-  # the user's closed box at the end: a stop at an infinite objective
-  # is reported as not converged
-  at0 <- allow_warnings(frm(yneg ~ z, data = d,
-                            prior = sp(lb = 0, ub = 1)),
-                        c("the objective is Inf", "gradient at the reported"),
-                        require = "the objective is Inf")
-  expect_identical(at0$opt$convergence, 1L)
-  expect_false(is.finite(at0$opt$objective))
+  # the user's bound at the end: 0.82.0 stopped on it at an infinite
+  # objective (code 1); the open chart of the end (open_end_coords())
+  # reaches the mode lb = 1e-8 finds
+  at0 <- frm(yneg ~ z, data = d, prior = sp(lb = 0, ub = 1))
+  expect_identical(at0$opt$convergence, 0L)
+  expect_true(is.finite(at0$opt$objective))
+  expect_lte(abs(at0$opt$objective - m8$opt$objective),
+             1e-8 * abs(m8$opt$objective))
 })
 
 test_that("a link whose inverse decays to 0 gives lb = 0, as brms", {

@@ -205,7 +205,7 @@ brms does.
   spelling, which is what
   `brms::prior(normal(0, 0.5), class = "sigma")` gave all along.
 
-  A prior class frmtmb keeps somewhere else (brms's mixture `theta`,
+  A prior class frmtmb keeps somewhere else (brms's `theta1` of a mixture,
   `sdcar`, `car`) is refused by name,
   with the class that reaches the same parameters where one exists,
   rather than translated into something else. So is a `coef` on a `sd`

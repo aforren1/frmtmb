@@ -209,6 +209,8 @@ test_that("every row get_prior() lists is one set_prior() accepts", {
       # the density follows the class rather than the other way round
       dist <- if (r$class %in% c("cor", "cortime", "rescor")) {
         "lkj(2)"
+      } else if (r$class %in% c("theta", "simo", "sbhaz")) {
+        "dirichlet(2)"
       } else {
         "normal(0, 1)"
       }
@@ -258,11 +260,10 @@ test_that("every row get_prior() lists is one set_prior() accepts", {
     usable(fit, gp)
   }
 
-  # and the mixture's unreachable proportion is left OUT rather than
-  # advertised: brms honors class = "theta" there and frmtmb has no
-  # spelling at all, which the refusal says
+  # and the mixture's proportions are one row, brms's simplex class
+  # theta, with no row per proportion (one proportion is no class)
   gpm <- get_prior(bf(y ~ x) + mixture(gaussian(), gaussian()), data = dd)
-  expect_false(any(startsWith(gpm$class, "theta")))
+  expect_identical(gpm$class[startsWith(gpm$class, "theta")], "theta")
   expect_false(any(startsWith(gpm$dpar, "theta")))
   # the component dispersions ARE listed, under their own classes
   expect_true(all(c("sigma1", "sigma2") %in% gpm$class))

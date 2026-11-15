@@ -224,13 +224,15 @@ test_that("a mixture's sigmas take brms's default, its weights dirichlet(1)", {
   set.seed(20261019)
   d <- data.frame(x = stats::rnorm(60), y = c(stats::rnorm(30, -1),
                                               stats::rnorm(30, 2)))
+  # the table lists brms's theta row (through 0.82.0 it had none: "theta
+  # ||||: brms dirichlet(1), frmtmb NA")
   expect_identical(
     suppressMessages(dpd_mismatch(
       "y ~ x", d, brms::mixture("gaussian", "gaussian"),
       frmtmb::mixture(stats::gaussian(), stats::gaussian()))),
-    "theta||||: brms dirichlet(1), frmtmb NA")
-  # no class names the weights here, so the Dirichlet is a density the
-  # sampler adds: lgamma(K) + sum(log w) on the log ratios it samples
+    character(0))
+  # the default Dirichlet is a density the sampler adds: lgamma(K) +
+  # sum(log w) on the log ratios it samples
   fit <- frm(bf(y ~ 1), data = d,
              family = mixture(stats::gaussian(), stats::gaussian(),
                               stats::gaussian()), dry_run = "objective")
@@ -249,6 +251,49 @@ test_that("a mixture's sigmas take brms's default, its weights dirichlet(1)", {
   rf <- suppressWarnings(suppressMessages(
     frmtmb.sample:::sample_resolve_priors(fit, "flat")))
   expect_true(isTRUE(rf$mix_theta))
+})
+
+test_that("a class theta row replaces dirichlet(1) on a mixture's weights", {
+  set.seed(20261019)
+  d <- data.frame(y = c(stats::rnorm(30, -1), stats::rnorm(20, 2),
+                        stats::rnorm(20, 5)))
+  fit <- frm(bf(y ~ 1), data = d,
+             family = mixture(stats::gaussian(), stats::gaussian(),
+                              stats::gaussian()), dry_run = "objective")
+  a <- c(5, 1, 2)
+  pr <- set_prior("dirichlet(c(5, 1, 2))", class = "theta")
+  msgs <- character(0)
+  rp <- withCallingHandlers(
+    frmtmb.sample:::sample_resolve_priors(fit, pr),
+    message = function(m) {
+      msgs <<- c(msgs, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    })
+  # the announcement no longer names dirichlet(1) on these weights
+  expect_false(any(grepl("theta: dirichlet(1)", msgs, fixed = TRUE)))
+  e <- Filter(function(z) identical(z$dist$kind, "dirichlet"), rp$ri$entries)
+  expect_length(e, 1L)
+  tm <- frmtmb.sample:::mix_theta_terms(fit)[[1]]
+  expect_identical(e[[1]]$idx, tm$idx)
+  # the default steps aside, and the tape carries the user's Dirichlet
+  # on the softmax chart: lgamma(sum a) - sum lgamma(a) + sum a log w
+  fit$prior <- rp$effective
+  expect_null(frmtmb.sample:::mix_theta_nlp(fit, rp$ri$entries))
+  ents <- frmtmb.sample:::mo_sample_entries(rp$ri$entries, fit)
+  pars <- fit$estimates
+  pars$betad[tm$idx] <- c(0.4, -1.1)
+  w <- exp(c(0.4, -1.1, 0)) / sum(exp(c(0.4, -1.1, 0)))
+  de <- Filter(function(z) identical(z$dist$kind, "dirichlet"), ents)
+  expect_equal(-frmtmb:::neg_log_prior_fn(de)(pars),
+               lgamma(sum(a)) - sum(lgamma(a)) + sum(a * log(w)),
+               tolerance = 1e-12)
+  # and the prior draws take it: one theta statement with this density
+  tab <- validate_prior(pr, fit, route = "fit")
+  cn <- frmtmb:::brms_par_labels(fit, include_random = FALSE)
+  plan <- frmtmb.sample:::prior_plan(fit, tab, cn, mix_theta = FALSE)
+  th <- Filter(function(s) identical(s$name, "theta"), plan)
+  expect_length(th, 1L)
+  expect_identical(th[[1L]]$prior, "dirichlet(c(5, 1, 2))")
 })
 
 test_that("a natural-scale default is brms's density with the link Jacobian", {

@@ -131,9 +131,8 @@ test_that("cs() and thres(gr = ) reach each component, as brms reads them", {
   d <- omx_data(20261006)
   # cs(): each component its own coefficients, off its own thresholds
   # the density is compared at the point the fit keeps, whichever it is;
-  # a start may pass over a higher step function and say so
-  fit <- allow_warnings(frm(bf(y ~ cs(x)), family = mixture(sratio(), acat()),
-                            data = d), "jittered starts reached a higher")
+  # a start may pass over a higher step function and say so in a message
+  fit <- frm(bf(y ~ cs(x)), family = mixture(sratio(), acat()), data = d)
   expect_true(all(c("bcs_mu1_x[1]", "bcs_mu2_x[3]") %in% variables(fit)))
   for (move in c(0, 0.1)) {
     est <- fit$obj$env$parList(omx_par(fit, move))
@@ -363,11 +362,21 @@ test_that("simulate() draws from the fitted category distribution", {
   # of 20 ulp-moved fits here, and the macOS runner, at the same
   # log-likelihood to 1e-4 as those that report convergence
   # (dev/ci701-findings.md)
+  # A degenerate boundary is named in the fit-end warning or, where a
+  # jittered start passed over one, in the step-start message, a message
+  # since the user's decision of 2026-11-13
+  said <- character(0)
   fit <- allow_warnings(
-    frm(bf(y | thres(gr = g) ~ x), family = mixture(cumulative(), sratio()),
-        data = d),
-    c("degenerate boundary", "did not report convergence"),
-    require = "degenerate boundary")
+    withCallingHandlers(
+      frm(bf(y | thres(gr = g) ~ x),
+          family = mixture(cumulative(), sratio()), data = d),
+      frmtmb_mixture_step_start = function(m) {
+        said <<- c(said, conditionMessage(m))
+        invokeRestart("muffleMessage")
+      },
+      warning = function(w) said <<- c(said, conditionMessage(w))),
+    c("degenerate boundary", "did not report convergence"))
+  expect_true(any(grepl("degenerate boundary", said, fixed = TRUE)))
   # the collapsed thresholds have no standard error, so the rows whose
   # probabilities move with them get none either, said once (lane
   # setier: fitted() reads the covariance that holds them)

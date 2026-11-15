@@ -1,3 +1,96 @@
+# frmtmb (development version)
+
+## Priors
+
+* BREAKING: frmtmb's own class for the internal covariance parameters
+  that no brms class names is now `"thetacov"`, where it was `"theta"`.
+  Write `set_prior("", class = "thetacov", coef = "theta_12", lb = -2)`;
+  `default_prior()` lists those rows under `"thetacov"`. The parameter
+  names (`theta_12`, `thetaac_1`) do not change.
+* BREAKING: class `"theta"` is now brms's class of the same name: the
+  mixing weights of a `mixture()`, as one simplex, where no weight has a
+  formula or a fixed value. `default_prior()` lists one `theta` row per
+  such response, `(flat)` on the default route and brms's
+  `dirichlet(1)` on `route = "sample"`. `set_prior("dirichlet(2)",
+  class = "theta")` puts a Dirichlet density on the weights, with one
+  concentration or one per component. It takes `dirichlet()` and
+  nothing else, and no `coef`, `group`, `dpar`, `nlpar`, `lb` or `ub`;
+  in a multivariate model it takes `resp`. Each refusal uses brms's
+  words. One weight is not a class: `class = "theta1"` is refused, as
+  brms refuses it. A brms prior table with a `theta` row carries over,
+  and a table passed back gives the same fit.
+* In `frm()`, a class `"theta"` prior is the density of the log ratios
+  that the fit holds: the Dirichlet on the weights times the Jacobian
+  of the softmax. This is the density that `frmtmb.sample::frm_sample()`
+  samples, so the MAP fit is the mode of that posterior.
+* BREAKING: a class `"cor"` prior with `resp` is refused, as brms
+  refuses it ("The following priors do not correspond to any model
+  parameter: L_g__y2 ~ lkj(5)"). A correlation prior is keyed by
+  `group` alone, and reaches the correlated blocks of that group in
+  every response.
+* BREAKING: `lb` or `ub` on class `"Intercept"` is refused where that
+  intercept is centered, that is, where its formula has predictors
+  whose means are not zero. brms bounds the intercept at the predictor
+  means, and the class's density reads that intercept, but `frm()`
+  bounded the intercept at zero, which is another number: with
+  `x = z + 10` and `lb = 3`, the slope fell from lm()'s 0.405 to 0.208
+  under a bound that brms does not apply. Center the predictors, or
+  bound the intercept at zero with `bf(..., center = FALSE)` and
+  `class = "b", coef = "Intercept"`.
+* A bound of your own at an end of a prior's support where the density
+  is zero or infinite (`lognormal()`, `gamma(2, 2)` or `gamma(0.5, 1)`
+  with `lb = 0`, `beta(2, 2)` with `lb = 0` and `ub = 1`) no longer
+  leaves `frm()` stopped on the bound. The fit runs in the box first,
+  as before, so a fit whose maximum is inside the box does not change.
+  Where that run stops on such an end, or fails beside it, the fit is
+  run again in a coordinate where the end is out of reach. Under
+  `beta(2, 2)`, a slope that the data put below 0 ended at 0 with the
+  objective `Inf`; it now ends at the mode, 0.0068, with the objective
+  129.86. Under `gamma(0.5, 1)` on a `poisson("identity")` slope, the
+  fit failed with "NA/NaN gradient evaluation"; it now ends at the
+  maximum, 1.3833. With an exposure of 1e7 per row, the same model
+  ends at its maximum, 4.854e-10, very near the end.
+* BREAKING: where the fit ends beside an end at which the prior's
+  density is infinite, `frm()` evaluates the log posterior at points
+  that approach that end, down to the nearest double. If it rises at
+  every point and passes the best fit found, the log posterior has no
+  maximum, and `frm()` stops with an error. An example is
+  `gamma(0.5, 1)` with `lb = 0` on a gaussian slope that the data put
+  below 0, which ended at the bound with the objective `-Inf` and
+  code 1. If the log posterior does not rise so, the best point found
+  is returned. Where that point is nearer the end than the fit
+  stopped, the fit has code 1 and a warning says so. Where the fit ends
+  inside, away from that end, and the log posterior at the nearest
+  double past the end is higher than at the fit, the posterior has no
+  maximum and the fit is a local mode. The fit is returned with a
+  warning of class `frmtmb_prior_unbounded_local` that names the
+  parameter and the end. With `gamma(0.5, 1)` and `lb = 0` on `x` in a
+  gaussian `y ~ x + z`, 0.82.0 ended at the bound with the objective
+  `-Inf` and code 1; the fit now ends at the local mode, 0.393, with
+  that warning. `frmtmb.sample::frm_sample()` samples a posterior with
+  no maximum, with the bound on the class row.
+* A bound that goes through a link is moved inside until the inverse
+  link takes it inside the bound, so that the parameter at the bound is
+  in the density's support. `uniform(0, 0.3)` on `zi` stopped at code
+  1 with the objective 186.1733, because `plogis(qlogis(0.3))` is
+  0.30000000000000004; it now converges at the bound at 185.9493. A
+  bound that no value maps inside is refused by name.
+* BREAKING: a lower bound above the support of its parameter is refused
+  as an empty box. `set_prior("", class = "zi", lb = 2)` was dropped
+  without a word, and the fit had no bound. A lower bound below the
+  support, such as `lb = -1` on `zi`, still constrains nothing.
+* `frm_simulate()` refuses a `dirichlet()` prior with a message that
+  says why: one draw per parameter is no draw from a density on a
+  whole simplex. A simplex of two weights stopped with "No sampler for
+  prior kind 'dirichlet'".
+
+## Mixtures
+
+* BREAKING: the finding that a jittered start of an ordinal mixture
+  reached a higher step function is a message of class
+  `frmtmb_mixture_step_start`, not a warning. The point the fit returns
+  is the better answer, so nothing about it calls for a warning.
+
 # frmtmb 0.82.0
 
 ## Convergence and standard errors

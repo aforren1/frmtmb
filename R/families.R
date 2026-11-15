@@ -5990,8 +5990,9 @@ mixture_mu_start <- function(y, aterms, p, bounded) {
 #' found from other starts, so the best start by the likelihood alone
 #' does not move such a fit off it. Without random effects, [frm()]
 #' therefore also fits from 10 jittered starts and keeps the best
-#' converged point without a step function, and warns when a step
-#' function it passed over was higher (see
+#' converged point without a step function, and says so in a message
+#' (class `frmtmb_mixture_step_start`) when a step function it passed
+#' over was higher (see
 #' `starts` in [frmtmb_control()]). The fit warns when a component ends
 #' at such a point: when doubling all its latent distances (or, with
 #' `cs()`, one threshold's)

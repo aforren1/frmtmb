@@ -1,3 +1,18 @@
+# frmtmb.sample (development version)
+
+Needs the frmtmb that resolves class `"theta"` as a mixture's weights.
+
+* A class `"theta"` prior, `set_prior("dirichlet(c(5, 1, 2))",
+  class = "theta")`, replaces brms's `dirichlet(1)` on a mixture's
+  weights, as in brms: in the sampled density, with the softmax's
+  Jacobian; in the prior draws of `sample_prior = "yes"`; and in the
+  announcement of the defaults, which no longer names `dirichlet(1)`
+  for those weights. Before, no class reached the weights, and
+  `dirichlet(1)` was fixed.
+* BREAKING: frmtmb's internal covariance class is `"thetacov"`, where it
+  was `"theta"`; a bound on one of its coefficients is still accepted,
+  as frmtmb's own row.
+
 # frmtmb.sample 0.29.0
 
 Needs frmtmb 0.82.0, which adds `brms_variable_sort()` to the sampling

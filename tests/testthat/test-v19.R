@@ -81,7 +81,7 @@ test_that("get_prior enumerates slots set_prior accepts", {
                    g = factor(rep(1:6, 10)))
   gp <- get_prior(bf(y ~ x + (x | g), sigma ~ x) + gaussian(),
                   data = dd)
-  # no class theta: every covariance parameter here has a class
+  # no class thetacov: every covariance parameter here has a class
   expect_setequal(unique(gp$class), c("Intercept", "b", "sd", "cor"))
   expect_true("x" %in% gp$coef[gp$class == "b" & gp$dpar == ""])
   expect_true("x" %in% gp$coef[gp$class == "b" & gp$dpar == "sigma"])

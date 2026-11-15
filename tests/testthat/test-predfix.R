@@ -262,10 +262,10 @@ test_that("an engaged pre-fit warns no more than autoscale = FALSE", {
   n <- 200
   x <- stats::rnorm(n) * 1e-4 + 5e-4
   d <- data.frame(x = x, y = 1 + 2000 * (x - 5e-4) + stats::rnorm(n))
-  count <- function(a, pr) {
+  count <- function(a, pr, fo) {
     k <- 0L
     f <- withCallingHandlers(
-      frm(bf(y ~ x), family = gaussian(), data = d, prior = pr,
+      frm(fo, family = gaussian(), data = d, prior = pr,
           control = frmtmb_control(autoscale = a)),
       warning = function(w) {
         k <<- k + 1L
@@ -273,12 +273,16 @@ test_that("an engaged pre-fit warns no more than autoscale = FALSE", {
       })
     list(k = k, fit = f)
   }
-  prs <- list(set_prior("", class = "Intercept", ub = 0.5),
+  # a bound on the intercept at zero is bf(center = FALSE)'s class "b"
+  # row: class "Intercept" is the centered intercept, as in brms, and a
+  # bound there is refused
+  prs <- list(set_prior("", class = "b", coef = "Intercept", ub = 0.5),
               set_prior("", class = "b", coef = "x", lb = 3e4))
+  fos <- list(bf(y ~ x, center = FALSE), bf(y ~ x))
   for (i in seq_along(prs)) {
     pr <- prs[[i]]
-    a <- count(NULL, pr)
-    b <- count(FALSE, pr)
+    a <- count(NULL, pr, fos[[i]])
+    b <- count(FALSE, pr, fos[[i]])
     # the Intercept bound engages; the lb bound's pre-fit stops at the
     # scaled bound without converging and the default falls back to the
     # FALSE fit (punch round 2), which is allowed and is what this pins

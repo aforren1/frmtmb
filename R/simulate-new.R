@@ -348,6 +348,15 @@ draw_prior_entry <- function(e, label, max_try = 1000L) {
              "not produce an ordered one. Pin the thresholds with ",
              "newparams = list(tau_raw = ) instead", call. = FALSE)
   }
+  if (identical(e$dist$kind, "dirichlet")) {
+    # a density on a whole simplex: one draw per coordinate is no draw
+    # from it, and a simplex of two weights has one coordinate, which
+    # reached rprior_one() and stopped there with no word of why
+    frm_stop("A dirichlet() prior on ", label, " is a density on a whole ",
+             "simplex, and frm_simulate() draws one value per parameter. ",
+             "Pin the weights with newparams = instead (a mixture's as ",
+             "theta1 = , theta2 = )", call. = FALSE)
+  }
   if (length(e$idx) > 1L) {
     # ONE draw written into several parameters is the same number
     # repeated, which is not a draw from the entry's density. This is
@@ -636,7 +645,7 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #' `posterior_predict()`. Draws are taken on the scale each class
 #' defines: class `"b"`/`"Intercept"` on the link scale, class `"sd"`
 #' on the natural SD scale (mapped to `theta` afterwards), class
-#' `"theta"` on the internal scale. `lb`/`ub` truncate by rejection.
+#' `"thetacov"` on the internal scale. `lb`/`ub` truncate by rejection.
 #' The drawn values come back as `attr(result, "pars")`, one row per
 #' simulation, so a prior-predictive check can relate parameters to
 #' outcomes.

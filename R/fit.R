@@ -166,7 +166,7 @@
 #'   using them fails as an unused argument; every outer parameter they
 #'   could reach has a `set_prior()` class: a standard deviation class
 #'   `"sd"`, on the sd scale, and an internal covariance parameter that
-#'   no brms class names class `"theta"` (`coef = "theta_12"`). Two
+#'   no brms class names class `"thetacov"` (`coef = "theta_12"`). Two
 #'   kinds take no box: a correlation, random-effect, `rescor` or
 #'   `unstr()`, which its class reaches only as a whole matrix (as in
 #'   brms, it takes no `lb`/`ub`), and the internal parameters of a
@@ -1419,12 +1419,15 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # also read by make_start(): a prior's location places a nonlinear
   # parameter's starting value
   prior_entries <- NULL
+  open_ends <- NULL
   if (!is.null(prior)) {
     # MAP / regularized ML: the optimized objective includes the prior
     # terms; logLik() takes them off again (fit_log_prior())
     ri <- resolve_prior_input(list(frame = frame, spec = spec), prior)
     prior_entries <- ri$entries
     check_map_dirichlet(ri$entries)
+    open_ends <- ri[c("open_lower", "open_upper", "inf_lower", "inf_upper",
+                      "end_labels")]
     if (length(ri$entries)) {
       nll0 <- nll
       nlp <- neg_log_prior_fn(ri$entries)
@@ -1679,6 +1682,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   bounds$upper <- latres_disp_upper(
     frame, spec, bounds$upper,
     outer_par_map(list(frame = frame, REML = REML, control = control)))
+  bounds <- open_end_flags(bounds, open_ends,
+                           list(frame = frame, REML = REML,
+                                control = control))
   # a badly scaled coefficient has a badly scaled gradient too: judge
   # (and steer) the optimizer in per-parameter natural units
   par_units <- if (!is.null(ascale)) {
@@ -1883,6 +1889,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     inner <- solved_par_list(lap_obj, opt$par)
     for (cp in random) est[[cp]][] <- inner[[cp]]
   }
+  check_map_unbounded(opt, bounds)
   opt <- nonfinite_not_converged(opt, bounds$lower, bounds$upper)
   fit <- structure(
     list(spec = spec, frame = frame, obj = obj, opt = opt, sdr = NULL,
@@ -2924,8 +2931,10 @@ sdr_of <- function(fit) {
 #'     replaces it, and a fit with no step function that did not converge
 #'     is kept as it is.
 #'   * When a start reached a step function above the point returned,
-#'     [frm()] warns with class `frmtmb_mixture_step_start`. `logLik()`
-#'     and the information criteria are those of the point returned.
+#'     [frm()] says so in a message of class
+#'     `frmtmb_mixture_step_start`, not a warning: the point returned is
+#'     the better answer. `logLik()` and the information criteria are
+#'     those of the point returned.
 #'
 #'   A point the degenerate check passes is not always a clean maximum:
 #'   the check does not see a direction along which the likelihood is
@@ -3615,10 +3624,19 @@ optimize_obj <- function(obj, control,
     res$par <- cs$to_p(res$par)
     res
   }
+  held <- open_end_hold(bounds, length(start_par), optimizer)
+  run_box <- run
+  run <- function(par) withCallingHandlers(run_box(par),
+                                           warning = held$catch)
   if (verbose) t0 <- vb_now()
-  opt <- run(start_par)
+  # a box run that fails beside a box end where the prior's density is 0
+  # or infinite goes to open_end_rescue() before the error is raised
+  opt <- tryCatch(run(start_par),
+                  error = function(e) open_end_failed(start_par, e, bounds,
+                                                      optimizer))
   if (verbose) vb_stage("optimize", t0, vb_opt_detail(opt))
   for (i in seq_len(control$restarts)) {
+    if (!is.null(opt$rescue_error)) break
     g <- max(abs(cs$grad(obj$gr(opt$par)) * (cs$units %||% 1)))
     if (is.finite(g) && g < control$grad_tol) break
     if (verbose) t0 <- vb_now()
@@ -3647,9 +3665,19 @@ optimize_obj <- function(obj, control,
   }
   if (!is.null(cs$basis) && !isTRUE(opt$convergence == 0) &&
         grepl("false convergence", opt$message %||% "", fixed = TRUE)) {
-    opt <- natural_finish(obj, opt, optimizer, fn_c, gr_c, bounds, control,
-                          par_units, tally, verbose)
+    opt <- withCallingHandlers(
+      natural_finish(obj, opt, optimizer, fn_c, gr_c, bounds, control,
+                     par_units, tally, verbose),
+      warning = held$catch)
   }
+  # a stop on a box end where the prior's density is 0 or infinite is
+  # refitted where that end is out of reach (open_end_rescue())
+  opt <- withCallingHandlers(
+    open_end_rescue(obj, opt, optimizer, fn_c, gr_c, cs, bounds, control,
+                    tally, verbose),
+    error = function(e) held$release(NULL))
+  held$release(opt)
+  opt$open_refit <- NULL
   # only the nlminb path maps trials; optim and a custom optimizer have
   # no count to report, and NULL says so where 0 would claim a measurement
   if (identical(optimizer, "nlminb")) opt$nonfinite_trials <- tally$n

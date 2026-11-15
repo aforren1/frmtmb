@@ -179,7 +179,7 @@ releases before 0.49 are gone rather than aliased, and a call still
 using them fails as an unused argument; every outer parameter they
 could reach has a \code{set_prior()} class: a standard deviation class
 \code{"sd"}, on the sd scale, and an internal covariance parameter that
-no brms class names class \code{"theta"} (\code{coef = "theta_12"}). Two
+no brms class names class \code{"thetacov"} (\code{coef = "theta_12"}). Two
 kinds take no box: a correlation, random-effect, \code{rescor} or
 \code{unstr()}, which its class reaches only as a whole matrix (as in
 brms, it takes no \code{lb}/\code{ub}), and the internal parameters of a

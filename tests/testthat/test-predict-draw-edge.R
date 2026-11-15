@@ -330,10 +330,10 @@ test_that("an ordinal mixture's collapsed threshold gap draws no NA", {
   d$yo <- cut(d$x + ifelse(k == 1, 2, 0) + stats::rlogis(400),
               c(-Inf, -1, 0.5, 2, Inf), labels = FALSE)
   # the jittered starts of an ordinal mixture can find a step function
-  # above this fit and warn; the fit they report is the default start's
-  fit <- allow_warnings(
-    frm(bf(yo ~ x), family = mixture(cumulative(), cumulative()), data = d),
-    "jittered starts reached a higher log-likelihood")
+  # above this fit and say so in a message; the fit they report is the
+  # default start's
+  fit <- frm(bf(yo ~ x), family = mixture(cumulative(), cumulative()),
+             data = d)
   set.seed(13)
   r <- pde_draw(predict(fit, newdata = data.frame(x = c(-1, 0, 1)),
                         summary = FALSE, ndraws = 4000L))

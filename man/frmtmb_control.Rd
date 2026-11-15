@@ -330,8 +330,10 @@ default fit converged, only a point the degenerate check passes
 replaces it, and a fit with no step function that did not converge
 is kept as it is.
 \item When a start reached a step function above the point returned,
-\code{\link[=frm]{frm()}} warns with class \code{frmtmb_mixture_step_start}. \code{logLik()}
-and the information criteria are those of the point returned.
+\code{\link[=frm]{frm()}} says so in a message of class
+\code{frmtmb_mixture_step_start}, not a warning: the point returned is
+the better answer. \code{logLik()} and the information criteria are
+those of the point returned.
 }
 
 A point the degenerate check passes is not always a clean maximum:

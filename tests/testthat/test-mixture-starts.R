@@ -15,15 +15,27 @@ oms_data <- function(seed, n = 300, k = 0) {
   d
 }
 
-# the fit and every warning it raised, as conditions
+# the fit and every warning it raised, as conditions, and the
+# step-start messages (`steps`)
 oms_fit <- function(d, fam, ..., f = bf(y ~ x + z)) {
   w <- list()
+  s <- list()
+  step_cls <- "frmtmb_mixture_step_start"
   fit <- withCallingHandlers(frm(f, family = fam, data = d, ...),
                              warning = function(cnd) {
                                w[[length(w) + 1L]] <<- cnd
                                invokeRestart("muffleWarning")
+                             },
+                             message = function(cnd) {
+                               if (inherits(cnd, step_cls)) {
+                                 s[[length(s) + 1L]] <<- cnd
+                                 invokeRestart("muffleMessage")
+                               }
                              })
-  list(fit = fit, warnings = w,
+  # the step-start finding is a message (the user's decision of
+  # 2026-11-13), never a warning
+  expect_false(any(vapply(w, inherits, NA, step_cls)))
+  list(fit = fit, warnings = w, steps = s,
        msgs = vapply(w, conditionMessage, ""))
 }
 
@@ -106,7 +118,7 @@ test_that("a step-function default gives way to a proper maximum", {
   # cum_sratio seed 9: 0.81.0 ended at a step function (logLik -374.88,
   # code 0); 10 of 40 jittered starts reach a point without one, the
   # best at -378.61 (dev/ordstart-classes.R). Valid endings: no step
-  # function, with the warning that a higher step function was passed
+  # function, with the message that a higher step function was passed
   # over when one was; a step function that the fit-end check says no
   # start escaped; or a default the optimizer did not call converged,
   # which runs no starts and stays.
@@ -127,11 +139,9 @@ test_that("a step-function default gives way to a proper maximum", {
       expect_false(any(grepl("a step function of its predictors: doubling",
                              r$msgs, fixed = TRUE)), info = paste("k", k))
     }
-    sw <- Filter(function(w) inherits(w, "frmtmb_mixture_step_start"),
-                 r$warnings)
-    # the warning names the step function's likelihood, above the fit's
-    for (w in sw) {
-      expect_match(conditionMessage(w), "is a step function of its predictors")
+    # the message names the step function's likelihood, above the fit's
+    for (m in r$steps) {
+      expect_match(conditionMessage(m), "is a step function of its predictors")
       expect_false(length(step) > 0L)
     }
   }
@@ -158,12 +168,35 @@ test_that("a proper default never loses likelihood or gains the warning", {
       expect_gte(as.numeric(logLik(on$fit)),
                  as.numeric(logLik(off$fit)) - tol)
     }
-    for (w in Filter(function(w) {
-      grepl("jittered starts reached a higher", conditionMessage(w))
-    }, on$warnings)) {
-      expect_s3_class(w, "frmtmb_mixture_step_start")
+    # the finding is a message of its class and nothing else
+    expect_false(any(grepl("jittered starts reached a higher", on$msgs,
+                           fixed = TRUE)))
+    for (m in on$steps) {
+      expect_match(conditionMessage(m), "jittered starts reached a higher",
+                   fixed = TRUE)
     }
   }
+})
+
+test_that("the step-start finding is a message, not a warning", {
+  # the user's decision of 2026-11-13: the point returned is the better
+  # answer, so its signal is a message; the class is kept for a handler
+  sig <- frmtmb:::mixture_starts_signal
+  got <- NULL
+  w <- NULL
+  withCallingHandlers(sig("a step function was higher"),
+                      message = function(m) {
+                        got <<- m
+                        invokeRestart("muffleMessage")
+                      },
+                      warning = function(x) {
+                        w <<- x
+                        invokeRestart("muffleWarning")
+                      })
+  expect_null(w)
+  expect_s3_class(got, "frmtmb_mixture_step_start")
+  expect_s3_class(got, "message")
+  expect_identical(conditionMessage(got), "a step function was higher\n")
 })
 
 test_that("the starts draw under a named generator, whatever the session's", {
@@ -317,8 +350,7 @@ test_that("autoscale runs the starts once, in the fit that is reported", {
     picks$n <- 0L
     r <- oms_fit(d, fam, f = f)
     list(fit = r$fit, picks = picks$n,
-         step = any(vapply(r$warnings, inherits, NA,
-                           "frmtmb_mixture_step_start")),
+         step = length(r$steps) > 0L,
          degen = any(grepl("ended at a degenerate boundary", r$msgs,
                            fixed = TRUE)))
   }

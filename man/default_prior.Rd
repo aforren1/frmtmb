@@ -59,7 +59,9 @@ by \code{resp}, with \code{lb} and \code{ub} where the parameter lives on an
 interval (brms's -1 and 1 on a first-order \code{cov = TRUE} \code{ar} or \code{ma};
 for \code{cosy}, frm()'s window \code{-1/(d - 1)} to 1 on the default route and
 brms's 0 to 1 on \code{route = "sample"}); class \code{"rescor"} has one row
-and takes no \code{resp}; and class \code{"theta"} rows name the internal
+and takes no \code{resp}; class \code{"theta"} has one row per mixture
+response whose weights are a simplex, as in brms; and class
+\code{"thetacov"} rows name the internal
 covariance parameters that no brms class reaches (a \code{toep()}
 correlation, a registered structure's own parameter), on the
 internal scale. A parameter that a class reaches (a standard
@@ -88,7 +90,7 @@ brms. See the Ordinal thresholds section of \code{\link[=set_prior]{set_prior()}
 }
 \section{Where the table differs from brms's}{
 
-The class \code{"theta"} rows are frmtmb's own. They name the internal
+The class \code{"thetacov"} rows are frmtmb's own. They name the internal
 covariance parameters that no brms class names, such as a \code{car()}
 dependence parameter or a \code{toep()} correlation, and appear only for
 a model that has one. brms has no such class, and has none of those
@@ -101,6 +103,11 @@ as in brms (\code{sd_patient__Intercept}).
 
 A flat slot reads \code{"(flat)"} in the \code{prior} column, where brms stores
 an empty string and prints \code{(flat)}.
+
+A mixture's \code{theta} row and a \code{mo()} term's \code{simo} row read
+\code{"(flat)"} on the default route, where brms prints \code{dirichlet(1)}:
+\code{\link[=frm]{frm()}} applies no density to a simplex unless a row of yours gives
+one. \code{route = "sample"} lists brms's \code{dirichlet(1)}.
 
 The \code{lb} and \code{ub} of a distributional parameter's own class row are
 the ends brms declares where frmtmb's link holds the parameter (a log

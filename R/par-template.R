@@ -50,7 +50,7 @@ new_par_template <- function(tpl, frame, fitted) {
 #' [frm_simulate()]'s `newparams =`, and every box constraint all need:
 #' these are the names a bound resolves to, and the names
 #' [set_prior()]'s `coef` takes for a covariance parameter that no brms
-#' class names (`class = "theta"`, `coef = "theta_12"`).
+#' class names (`class = "thetacov"`, `coef = "theta_12"`).
 #'
 #' On a fitted model the values are the estimates. On a formula and
 #' data the frame is assembled but nothing is fitted, and the values are

@@ -312,7 +312,7 @@ case sensitive and accepts unambiguous prefixes. `"response"` and
 | `conditional_effects()` | `method` | `"epred"`, `"predict"` (brms's `"posterior_epred"` and `"posterior_predict"` are accepted as aliases) |
 | `anova()` on `frm_multiple()` | `method`, `use` | `"D3"`, `"D1"`, `"D2"`; `"likelihood"`, `"wald"` |
 | `frmtmb_control()` | `check_nlev_1`, `check_olre` | `"warning"`, `"ignore"`, `"stop"` |
-| `set_prior()` | `class` | `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"` |
+| `set_prior()` | `class` | `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"`, `"thetacov"` |
 | `conditional_effects()` | `band` | `"wald"`, `"profile"`, `"boot"` |
 | `loo_compare()` | `criterion` | `"loo"`, `"waic"` |
 | `vcov_cluster()` | `type` | `"CR0"`, `"CR1"`, `"CR1p"`, `"CR1S"` |

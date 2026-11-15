@@ -1133,6 +1133,7 @@ the lane did not re-measure them. None is a wrong answer from the fit.
   `coef = "Intercept"`, the per-threshold ordinal `Intercept` rows
   (`coef = "1"`, `"2"`, ...), and a `theta1` row on a mixture whose
   sigma is modeled.
+  CLOSED in the round of 2026-11-13 (lane priors2): brms lists `theta` (dirichlet(1)), not `theta1`, with sigma1 modeled; default_prior() lists it now, and the sd coef and per-threshold rows already were.
 
 ## Filed by wt-phase3b after punch round 2, 2026-09-24
 
@@ -3279,6 +3280,7 @@ CLOSED in the round of 2026-11-11 (lane sampfront): samples.
 - `default_prior()` lists no row for a mixture's weights without a
   formula, though `frm_sample()` applies `dirichlet(1)`; the
   disclosure message and `prior_summary()` do not list it either.
+  CLOSED in the round of 2026-11-13 (lane priors2): class "theta" row listed, set_prior(dirichlet()) routed on frm() and frm_sample(); frmtmb's old class renamed "thetacov".
 - The prior table's `lb`/`ub` columns, and brms's empty group `sd` row
   under the class row (frmtmb repeats the density).
   CLOSED in the round of 2026-11-11 (lane priortab): `lb`/`ub` as brms's; group `sd` rows read (flat).
@@ -4770,6 +4772,7 @@ none is a regression of this release.
   is accepted on both routes and reaches only y2's block, where brms
   refuses it (`x4-r16.txt`, `x6-*.txt`).
   CLOSED in the round of 2026-11-11 (lane priortab): rows have no resp; cor resp kept (decision 2026-09-24).
+  CLOSED in the round of 2026-11-13 (lane priors2): cor with resp refused in brms's words on both routes (user decision of 2026-11-13, reversing 2026-09-24).
 - **`set_prior("lkj(2)", class = "rescor", coef = "y__y2")` is
   accepted** on both routes; brms refuses it (`x4`).
   CLOSED in the round of 2026-11-11 (lane priortab): rescor with `coef` or `group` is refused, as brms.
@@ -4792,6 +4795,65 @@ none is a regression of this release.
   package does not declare (inferred by the review, not run). The skip
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
+
+## Filed in the round of 2026-11-13
+
+### From lane priors2
+
+- **MEDIUM. frm() cannot hold a bound on a centered intercept.** brms
+  bounds class `Intercept` on its intercept for centered predictors, and
+  frmtmb's `Intercept` density reads that intercept too, but frm()'s box
+  is on the intercept at zero. Since the round of 2026-11-13 such a
+  bound is refused (`centered_bound_refusal()`), and the same gap keeps
+  a `uniform()` on a centered intercept unboxed: "NA/NaN gradient
+  evaluation" (item 5019, `dev/priors2-bounds.R`, B7 and B10, on both
+  builds). Fix route: a box on the centered coordinate, which
+  `opt_center()` already builds for an ill-conditioned design, carried
+  to every reader of the box (`fit_outer_box()`, `grad_bound_active()`,
+  `bound_held_by_step()`, the SE check, profiles) as a linear
+  constraint. frm_sample() needs the same.
+- **LOW. summary() of a mixture gives its weights no standard error.**
+  `theta1` and `theta2` print with `Est.Error`, `l-95% CI` and
+  `u-95% CI` NA, where `vcov(full = TRUE)` has 0.184 for the log ratio
+  (`dev/priors2-theta-se.R` on rellib-r21, two gaussian components,
+  160 rows, seed 3). brms reports them. A delta-method interval on the
+  softmax would close it.
+- **LOW. frm_simulate() draws from no dirichlet() prior.** A `simo`,
+  `sbhaz` or `theta` row is now refused with a reason; a simplex of two
+  weights used to stop with "No sampler for prior kind 'dirichlet'". A
+  draw on the simplex carried to the entry's chart would serve all
+  three.
+- **LOW. Callers that build their own box keep it closed at an end
+  where the prior's density is 0 or infinite.** `open_end_flags()`
+  marks such ends on the fit's own box; three callers pass a box of
+  their own and so get no open-chart refit: `quad_settle()`'s
+  trust-region rounds (`R/fit.R`, the `box` handed to `optimize_obj()`
+  near line 2386), the rounds of a nested quadrature fit
+  (`R/quadrature-nested.R:875`) and `mo_search()` (`R/fit.R` near line
+  4917). Each starts from a converged point inside the box, so none is
+  a regression against 0.82.0 (review of lane priors2, L3).
+- **LOW. A maximum inside the slack of a bound is said to be held by
+  it.** poisson("identity"), `y ~ 0 + x`, an exposure of 1e7 or 1e9 per
+  row, `gamma(0.5, 1)` with `lb = 0`: the fit ends at its interior
+  maximum, b* = 4.854e-10 (code 0), and warns "Standard errors are not
+  available ... x: a bound holds it". The SE check reads a bound as
+  active within `sqrt(.Machine$double.eps)` of it by position
+  (`grad_bound_active()`), as the first open-end refusal did. The same
+  warning comes with `lb = b*/1e4`, and 0.82.0 failed on these fits, so
+  it is no regression (`dev/priors2-fix-probe.R`, case H). A slack
+  relative to the parameter's own scale would close it.
+- **LOW. A bound outside (0, 1) through frmtmb's cauchit link becomes a
+  box at 0.5.** The cauchit `linkfun` is `tan()`-based, so it returns
+  finite values outside (0, 1), and `internal_bound()` takes them as
+  bounds: `lb = -0.5` maps to b = 1.22465e-16 (`linkinv(b)` = 0.5),
+  `ub = 1.5` to -1.22465e-16 (0.5), `ub = 2.5` to -2.44929e-16 (0.5)
+  and `ub = 2` to 5.44375e+15 (1); `lb = -1` maps to -5.44375e+15
+  (5.55112e-17). The same on 0.82.0. No `frm()` path reaches it today:
+  no family takes `link = "cauchit"` on a bounded dpar
+  (`zero_inflated_poisson(link_zi = "cauchit")` does not exist).
+  Checking `v` against the inverse link's range before `linkfun` would
+  close it (short review of lane priors2, re-check after fix round 2,
+  `dev/reviews/priors2-short-r2b.R`).
 
 ## Filed at the 0.82.0 release (2026-11-11)
 
@@ -5016,6 +5078,7 @@ Record: `dev/wcheck-findings.md`.
   bounds), which changes every bounded fit. Reproducer:
   `dev/reviews/priortab-review-probe2.R` (B1e, B2e) and
   `dev/reviews/priortab-review-probe3.R` (M).
+  CLOSED in the round of 2026-11-13 (lane priors2): a box stop on a zero- or infinite-density end is refitted in an open chart (lb + exp(u)); refused only if that refit runs to an infinite-density end.
 - **MINOR. A uniform on a centered intercept is not boxed to its
   support.** `uniform(0, 0.5)` on class `"Intercept"` of `y ~ z`, or on
   `sigma`'s Intercept under `sigma ~ x`, still ends in "NA/NaN gradient
@@ -5036,6 +5099,7 @@ Record: `dev/wcheck-findings.md`.
   same way on 0.81.0. Fix route: move the internal bound inward in
   `internal_bound()` until `linkinv()` lands inside the support. Logs:
   `dev/reviews/priortab-short-*` (`-ulp`, `-zi`).
+  CLOSED in the round of 2026-11-13 (lane priors2): internal_bound() moves the bound inward until linkinv() lands inside; zi stops at 0.3 with code 0.
 ### From lane nlstop
 
 - **LOW. F11 seed 8's higher maximum is at a boundary that only a refit
@@ -5658,6 +5722,7 @@ CLOSED in the round of 2026-11-11 (lane gpstop): the body is linearized again at
   `frmtmb_ill_design`): with `lb = -1e7`, which binds neither intercept,
   poisson `y ~ (x + 1e6) + (1 | g)` is still 6.3 to 7.6 standard errors
   off and 19.6 to 30.9 short, now warned. Not fixed in this round.
+  CLOSED in the round of 2026-11-13 (lane priors2): lb/ub on a centered class Intercept is refused (brms bounds the centered one); the centered box itself is filed below.
 - **"False convergence (8)" at the maximum: a classed message, not a
   warning, where the fit is known to be at it.** The review of lane
   bigx (dev/reviews/2026-11-06-bigx.md, confirmation) recommends: when
