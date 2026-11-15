@@ -4793,6 +4793,81 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-13
+
+### From lane predraw2
+
+Record: `dev/predraw2-findings.md`.
+
+- **MEDIUM. The draw check's ratio rule misses a weak direction diluted
+  by well-identified parameters, and predict() stays silent.** The check
+  fires only where the median excess is above 1 AND above 0.15 times
+  the law's median drop, median(m) / 2. A block of well-identified
+  coordinates adds to m and not to the excess. The short check of the
+  fix round (`dev/reviews/2026-11-13-predraw2-short.md`, scripts
+  `dev/reviews/predraw2-short-a.R`) took the 18 mixture fits that fire
+  alone (gaussian seeds 20 to 40, poisson seeds 5 to 39), each with its
+  own test draws:
+  - With an exactly quadratic block added, the check stops firing at
+    K = 8 on 2 fits, 16 on 4, 32 on 5, 64 on 3 and 128 on 2. Only
+    gaussian seeds 23 and 25 (excess 23.5 and 47.3) still fire at
+    K = 256.
+  - With the 200-level poisson `y ~ 0 + f` block added, 16 of 18 no
+    longer fire (ratio 0.037 to 0.119).
+  - On real fits (the same data with 5, 10 or 20 noise covariates in
+    both components, 54 fits), the ratio alone decides in 7 poisson
+    fits (excess 1.07 to 1.62, ratio 0.049 to 0.111). Their predict()
+    mean is 18.3 to 32.6 Monte Carlo standard errors from fitted(), with
+    no message. With the check forced on, all 7 warn k > 0.7, and the
+    error against the truth improves on 3 and worsens on 4: the fits
+    lose the warning, not better draws.
+  A summed statistic cannot tell this from the 200-level GLM (excess
+  2.23 alone, against 2.26 for gaussian seed 29's one weak direction).
+  The remedy is a per-direction reading, the excess along each
+  eigen-direction of the draw law (or each parameter), firing on one
+  steep or flat direction. It costs about 2p extra objective
+  evaluations once per fit, about the side law's own cost: from
+  section 6 of the record, 0.03 s per evaluation on a poisson GLMM with
+  62 parameters and 2000 levels (about 3.7 s), 0.1 s on a zinb GLMM with
+  8 (about 1.6 s), and well under a second on a GLM without random
+  effects. `?predict.frmtmb_fit` says that such a direction can go
+  unflagged.
+- **MEDIUM. A near-empty mixture component's slope gives predict() a
+  heavy tail that no check sees.** `mixture(poisson(), poisson())` on
+  one-component data (the sweep generator, seeds 1 and 28): a second
+  component of weight about 0.01 has a slope sd of 1.8 to 2.6, its
+  draws reach slopes of 5 to 8, and at the largest x a replicate draws
+  1e6 to 8e7. The rows' predictive means are 17.8 and 342 from the
+  truth on average (fitted(): 0.27, 0.14), on 0.82.0 and on the lane
+  build. The likelihood does not rule those draws out (excess -3.3 to
+  16 at the five largest replicates), so the draw check does not fire
+  (median excess 0.04, -0.04) and reweighting by the likelihood could
+  not help: the slope of an empty component is not identified. A prior
+  could (`dev/predraw2-probe-p28.R`).
+- **LOW. The reweighting evaluates the objective at every draw, every
+  call.** On a fit with random effects each is an inner solve: 1000
+  draws cost 33.9 s on a poisson GLMM with 2000 levels and 99.8 s on a
+  zinb GLMM with 300 (`dev/predraw2-cost.R`). The check fired on no fit
+  with random effects in the lane's corpus. No cap, no reuse across
+  calls. The check itself adds 20 evaluations once per fit: 0.59 s and
+  2.05 s on those fits, beside the side law's 3.73 s and 1.47 s
+  (backlog 4924, still open).
+- **LOW. The reweighted draws of a weakly identified mixture mostly
+  have Pareto k above 0.7.** 40 of the 44 fired fits of three mixture
+  designs (40 seeds each): the warning is the usual outcome there. A
+  multivariate t proposal and one adaptation step did not lower k on
+  the three backlog-4882 fits (`dev/predraw2-prop.R`). The reweighted
+  draws are still nearer the truth than the raw ones on every measure
+  taken.
+- **LOW. The draw check reads the median, so a law wrong on both sides
+  is not seen.** On a random-slope fit (short check design S, slope sd
+  0.1, seed 14) 37% of the draws have an excess above 1 (the
+  likelihood falls much faster than the law along the slope sd's upper
+  side) and 25% are below -0.5 (flat toward a slope sd of 0); the
+  median is 0.11 and the check does not fire. These designs cover at
+  nominal under the side law, so nothing is lost there today
+  (`dev/predraw2-probe-s14.R`).
+
 ## Filed at the 0.82.0 release (2026-11-11)
 
 ### From lane boundfam
@@ -4899,6 +4974,7 @@ Lane record: `dev/quadseam-findings.md`.
   per draw), or a warning when the median drop exceeds the law's by a
   set factor. Needs a user decision on whether predict() may reweight
   its draws.
+  CLOSED in the round of 2026-11-13 (lane predraw2): draw check (median excess drop over 20 or 40 test draws above 1 and above 0.15 times the law's own drop) and PSIS reweighting; fired fits over 40 seeds per design: mean error 2.5 to 3.4 times smaller, 90% coverage 0.950 to 0.906 (gaussian), Pareto k above 0.7 on 40 of 44, warned (dev/predraw2-findings.md sections 2, 3).
 - **LOW. `predict()`'s mean and `fitted()` differ by the plug-in gap on
   identified fits, which is not documented.** `fitted()` is the
   expected response at the estimates; `predict()` averages over the
@@ -4908,6 +4984,7 @@ Lane record: `dev/quadseam-findings.md`.
   (z -0.43, 0.77 at 400 draws, `dev/ppdraw-probe3.R`). brms's
   `fitted()` is a mean over draws, so brms has no such gap. A sentence
   in `?predict.frmtmb_fit` would say it.
+  CLOSED in the round of 2026-11-13 (lane predraw2): `?predict.frmtmb_fit` has a section "predict() and fitted() can disagree on the mean".
 - **LOW. predict()'s side law moves one parameter at a time.** It reads
   each side with the other parameters at their estimates, so a joint
   move that no single side shows is not seen: on `zi ~ x` at the
@@ -4921,6 +4998,7 @@ Lane record: `dev/quadseam-findings.md`.
   joint reading (the log-likelihood at the draws) is the
   importance-weight question of the item above. With lane boundfam's
   rule the slope is held instead (undefined at that limit).
+  CLOSED in the round of 2026-11-13 (lane predraw2): not a defect on 0.82.0; the slope is held, P(y = 0) 0.0048 (brms 0.0098) as in the intercept-only fit, the draw check agrees with the side law; the gap is brms's prior on the probability (dev/predraw2-findings.md section 4).
 - **LOW. predict()'s side law costs an inner solve per side on a fit
   with random effects, on its first call.** 3.27 s on a poisson GLMM
   with 62 outer parameters and 2000 levels, where the fit took 13.0 s
@@ -4942,6 +5020,7 @@ Lane record: `dev/quadseam-findings.md`.
   a screen. The coverage check that confirmed the law
   (`dev/reviews/ppdraw-short-cov-sum.txt`) has the changed fits at 0.890
   to 0.920 coverage at 90%.
+  CLOSED in the round of 2026-11-13 (lane predraw2): full narrowing up to r = 0.4, fading linearly to none at 0.5 (`draw_edge_blend()`); sides in (0.4, 0.5] cover 0.902/0.981, were 0.886/0.974 (dev/predraw2-findings.md section 7).
 ### From lane wcheck
 
 Record: `dev/wcheck-findings.md`.

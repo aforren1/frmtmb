@@ -131,6 +131,51 @@ predict_type_retired <- c(
 #' latent and 15.08 with two. `newdata` must hold `sdx`. On the data the model
 #' was fitted on the latent values are the fit's own.
 #'
+#' @section When the normal law does not describe the likelihood:
+#' The normal law reads the curvature of the log-likelihood at the
+#' estimates. Two checks read the log-likelihood itself.
+#'
+#' * Each side of each parameter, moved alone. Where the log-likelihood
+#'   is flat toward one end of a parameter's range (a zero inflation
+#'   with no excess zeros in the data), the draws do not move it that
+#'   way. Where it falls much faster than the normal law says, the draws
+#'   on that side are narrowed. A message of class `frmtmb_draw_held`
+#'   says so, once per fit.
+#' * The draws together. The log-likelihood is evaluated at 20 test
+#'   draws (40 where the result is close to the threshold) and compared,
+#'   draw by draw, with what the normal law says it is there. This is
+#'   done once per fit. The check fires where the median of the excess
+#'   drop is above 1 and above 0.15 times the median drop the normal law
+#'   gives at those draws. A weakly identified mixture can give that
+#'   with no parameter at an end. A model with many well-identified
+#'   parameters does not: a small skew in each adds up to an excess that
+#'   grows with their number, and so does the law's own drop. The
+#'   converse also holds: a weak direction among many well-identified
+#'   parameters, such as a mixture with many covariates, can go
+#'   unflagged and keep the normal law's draws. Where the
+#'   check fires, each draw is weighted by the likelihood over the
+#'   density it was drawn from. The weights are Pareto smoothed with
+#'   `loo::psis()` and the draws are resampled by them. A parameter that
+#'   the first check holds at its estimate in part of the draws keeps
+#'   that part. A message of class
+#'   `frmtmb_draw_reweighted` gives the Pareto k. Where k is above 0.7
+#'   the weights are not reliable and a warning of class
+#'   `frmtmb_draw_pareto` says so: `frmtmb.sample::frm_sample()` draws
+#'   from the posterior itself. The check's test draws do not use the
+#'   random number stream, and where it does not fire the draws are not
+#'   changed.
+#'
+#' @section predict() and fitted() can disagree on the mean:
+#' [fitted()] is the expected response at the estimates. The mean of
+#' `predict()`'s draws is the expected response AVERAGED over the
+#' parameter draws, and where the response is not linear in the
+#' parameters the two differ by more than Monte Carlo error. On a
+#' hurdle_negbinomial fit of 300 rows the difference was 5 Monte Carlo
+#' standard errors at 1000 draws, under 1 percent of the mean.
+#' `propagate_error = FALSE` gives draws whose mean is `fitted()`'s. brms
+#' has no such difference, because its `fitted()` is itself a mean over
+#' the draws.
+#'
 #' A level the fit did NOT see is different: there is no conditional
 #' law to draw from, so `allow_new_levels = TRUE` draws its effect from
 #' the block's own estimated covariance, once per replicate, at that
@@ -1368,6 +1413,8 @@ predict_par_drawer <- function(object, propagate_error, ndraws) {
   D <- v0 + if (is.null(law)) crossprod(L, Z) else draw_edge_apply(law, L, Z)
   held <- latres_held_pos(object, map)
   if (length(held)) D[held, ] <- v0[held]
+  D <- draw_reweight(object, list(D = D, Z = Z, L = L, law = law, v0 = v0,
+                                  held = held))
   out <- function(s) fit_set_outer(object, D[, s], map)
   # the group-effect draw conditions on this replicate's parameters, so
   # it needs how far they moved (predict_b_drawer())
@@ -1601,6 +1648,9 @@ draw_edge_reach <- function(at, target, cap) {
 #' 0.0097), and on `zi ~ x` a mean 8 Monte Carlo standard errors from
 #' fitted() against 3.4 (dev/ppdraw-findings.md, "Fix round").
 #'
+#' A side only just steep enough is blended back toward the normal law
+#' (draw_edge_blend()), so that the map does not jump at `draw_edge_c`.
+#'
 #' @noRd
 draw_edge_map <- function(x, s, v) {
   if (length(v) == 1L) return(x * v)
@@ -1608,7 +1658,26 @@ draw_edge_map <- function(x, s, v) {
   g <- stats::approx(0:4, c(0, v), xout = pmin(z, 4))$y
   far <- z > 4
   g[far] <- v[4] + (z[far] - 4) * max(0, v[4] - v[3])
-  sign(x) * s * pmin(z, z * v[2] / 2, g)
+  h <- sign(x) * s * pmin(z, z * v[2] / 2, g)
+  a <- draw_edge_blend(v)
+  if (a < 1) h <- (1 - a) * x + a * h
+  h
+}
+
+#' The weight of a steep side's narrowing against the normal law: 1 where
+#' the side's ratio r, `v[2] / 2` (the distance at which the
+#' log-likelihood falls by 2, over the normal law's), is at most
+#' `draw_edge_r0`, falling linearly to 0 at `draw_edge_c`, where a side
+#' stops being steep. Without it the 98% width of a new level's
+#' prediction stepped from 5.36 to 5.76 between neighboring data sets
+#' (backlog 4932); with it the steep sides with r in (0.4, 0.5] covered
+#' 0.902 and 0.981 at 90% and 98%, where the full narrowing covered 0.886
+#' and 0.974 (dev/predraw2-findings.md).
+#'
+#' @noRd
+draw_edge_blend <- function(v) {
+  r <- v[2] / 2
+  min(1, max(0, (draw_edge_c - r) / (draw_edge_c - draw_edge_r0)))
 }
 
 #' The standard deviation of each draw position along its own axis, the
@@ -1702,6 +1771,325 @@ draw_edge_apply <- function(law, L, Z) {
   delta
 }
 
+#' The draws, reweighted where the log-likelihood says the draw law is
+#' wrong inside the range, and as they came everywhere else.
+#'
+#' The side law (draw_edge_law()) reads one parameter at a time, with
+#' the others at their estimates. A weakly identified mixture has no
+#' parameter at an end, yet its log-likelihood falls far faster than the
+#' normal law says along directions no single parameter shows: on
+#' one-component data a two-component gaussian mixture's draws fell by a
+#' median of 5.7 where the law says 3.2, and predict()'s mean left
+#' fitted()'s by 13 Monte Carlo standard errors while the simulator was
+#' right (backlog 4882).
+#'
+#' The check (draw_check()) is paired, draw by draw: at each test draw
+#' the objective's drop from its minimum is compared with the drop the
+#' draw law implies at that same point, half the draw's Mahalanobis
+#' distance less the side law's log Jacobian (draw_logratio()). Where
+#' the objective is the law's quadratic the two are equal at every draw,
+#' so the comparison has no sampling noise of its own, and a chi-square
+#' reference for the drops alone would add some. It fires where the
+#' median excess drop over `draw_check_n` test draws (twice as many
+#' near the thresholds) is above `draw_check_tol` and above
+#' `draw_check_rel` times the median drop the law implies
+#' (draw_check_verdict()).
+#' The test draws come from a private stream, so the
+#' verdict belongs to the fit: it is cached, and where it does not fire
+#' the draws are returned untouched.
+#'
+#' Where it fires, each draw gets the importance ratio exp(-objective) /
+#' proposal density, Pareto smoothed (loo::psis()), and the draws are
+#' resampled by those weights (draw_resample()). Above a Pareto k of
+#' `draw_pareto_tol` no normal-based proposal reaches the likelihood, and
+#' a warning says so and names frmtmb.sample::frm_sample().
+#'
+#' @noRd
+draw_reweight <- function(object, dw) {
+  dw$off <- length(dw$v0) - length(object$opt$par)
+  chk <- draw_check(object, dw)
+  if (!isTRUE(chk$fire)) return(dw$D)
+  if (!requireNamespace("loo", quietly = TRUE)) {
+    frm_warning("predict(): the log-likelihood at draws from the normal ",
+                "law of vcov() falls further than that law says (median ",
+                "excess ", format(chk$excess, digits = 3), " over ",
+                chk$n, " test draws), and the draws need the loo ",
+                "package to be reweighted. They are NOT corrected; install ",
+                "loo", class = "frmtmb_draw_pareto", call. = FALSE)
+    return(dw$D)
+  }
+  r <- draw_logratio(object, dw, dw$D, dw$Z)
+  if (is.null(r)) return(dw$D)
+  rs <- draw_resample(r$lw, r$stratum)
+  draw_reweight_say(object, chk, rs$k, ncol(dw$D))
+  dw$D[, rs$idx, drop = FALSE]
+}
+
+#' The fit's verdict on its draw law, cached: `list(fire, excess, n)`.
+#' A median within a factor of 2 of the threshold is read again over
+#' `draw_check_n` more test draws, deciding on all of them: on a random
+#' slope fit whose excess over 1000 draws has median 0.11 and a long
+#' right tail, 12% of random 20-draw medians were above 1
+#' (dev/predraw2-findings.md).
+#'
+#' @noRd
+draw_check <- function(object, dw) {
+  cache <- object$cache
+  chk <- if (is.environment(cache)) cache[["draw_check"]]
+  if (is.null(chk)) {
+    chk <- list(fire = FALSE, excess = NA_real_, rel = NA_real_, n = 0L)
+    Z0 <- draw_check_z(length(dw$v0), 2L * draw_check_n)
+    D0 <- dw$v0 + if (is.null(dw$law)) crossprod(dw$L, Z0) else
+      draw_edge_apply(dw$law, dw$L, Z0)
+    if (length(dw$held)) D0[dw$held, ] <- dw$v0[dw$held]
+    first <- seq_len(draw_check_n)
+    r <- draw_logratio(object, dw, D0[, first, drop = FALSE],
+                       Z0[, first, drop = FALSE])
+    if (!is.null(r)) {
+      e <- r$e
+      m <- r$m
+      v <- draw_check_verdict(e, m)
+      if (v$near) {
+        r2 <- draw_logratio(object, dw, D0[, -first, drop = FALSE],
+                            Z0[, -first, drop = FALSE])
+        if (!is.null(r2)) {
+          e <- c(e, r2$e)
+          m <- c(m, r2$m)
+          v <- draw_check_verdict(e, m)
+        }
+      }
+      chk <- list(fire = v$fire, excess = v$excess, rel = v$rel,
+                  n = length(e))
+    }
+    if (is.environment(cache)) cache[["draw_check"]] <- chk
+  }
+  chk
+}
+
+#' The check's verdict from the test draws' excesses `e` and Mahalanobis
+#' distances `m`. Two conditions, both needed:
+#'
+#' - the median excess is above `draw_check_tol`: half the draws land
+#'   where the likelihood is more than e times lower than the law says;
+#' - the median excess over the median drop the law implies, `median(m)
+#'   / 2`, is above `draw_check_rel`. A small skew in each of p
+#'   coordinates adds up to an excess that grows like p, while that
+#'   ratio stays near a quarter of each coordinate's standardized
+#'   fourth-order term whatever p is. A weakly identified mixture has a
+#'   few directions far from the law and a ratio of 0.3 or more.
+#'
+#' `near` asks for more test draws: either quantity within a factor of 2
+#' of its threshold while the other is at least half of its own.
+#'
+#' @noRd
+draw_check_verdict <- function(e, m) {
+  ex <- stats::median(e)
+  half <- stats::median(m) / 2
+  rel <- if (is.finite(ex) && half > 0) ex / half else if (is.na(ex)) {
+    NA_real_
+  } else {
+    Inf
+  }
+  a <- ex / draw_check_tol
+  b <- rel / draw_check_rel
+  ok <- !is.na(a) && !is.na(b)
+  list(fire = ok && a > 1 && b > 1, excess = ex, rel = rel,
+       near = ok && a >= 0.5 && b >= 0.5 && (a <= 2 || b <= 2))
+}
+
+#' Standard normal deviates for draw_check()'s test draws, from a fixed
+#' seed, leaving the caller's stream (and its generator kind) as it was.
+#'
+#' @noRd
+draw_check_z <- function(p, n) {
+  genv <- globalenv()
+  had <- exists(".Random.seed", envir = genv, inherits = FALSE)
+  old <- if (had) get(".Random.seed", envir = genv)
+  on.exit(if (had) {
+    assign(".Random.seed", old, envir = genv)
+  } else if (exists(".Random.seed", envir = genv, inherits = FALSE)) {
+    rm(".Random.seed", envir = genv)
+  }, add = TRUE)
+  set.seed(draw_check_seed, kind = "Mersenne-Twister",
+           normal.kind = "Inversion", sample.kind = "Rejection")
+  matrix(stats::rnorm(p * n), p, n)
+}
+
+#' The log importance ratio of each draw (column of `D`, made from the
+#' deviates `Z` by the law in `dw`): `lw` = -(objective drop) + m / 2 +
+#' log Jacobian, and `e` = -lw anchored to 0 at the estimates, the
+#' excess of the drop over what the law implies. `m` is the draw's
+#' Mahalanobis distance under the normal law the deviates went through,
+#' taken through the factor (a QR of its columns) so that no inverse of
+#' the covariance is formed. A side the law narrows maps its deviate
+#' through draw_edge_map(), whose slope is the Jacobian. A flat side
+#' holds its parameter at the estimate: those draws form their own
+#' stratum, as the likelihood along a flat side has no mass to set
+#' against the other side's. `NULL` where the objective cannot be read.
+#'
+#' Under REML the drawn fixed effects are not arguments of the
+#' objective; the ratio is that of the outer parameters' marginal, and
+#' the fixed effects keep their conditional law given them.
+#'
+#' @noRd
+draw_logratio <- function(object, dw, D, Z) {
+  obj <- object$obj
+  p <- object$opt$par
+  np <- length(p)
+  off <- dw$off
+  if (is.null(obj) || !is.function(obj$fn) || off < 0L || np == 0L) {
+    return(NULL)
+  }
+  pos <- off + seq_len(np)
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  f0 <- tryCatch(obj$fn(p), error = function(e) NA_real_)
+  if (!is.finite(f0)) return(NULL)
+  drop <- vapply(seq_len(ncol(D)), function(s) {
+    # every inner solve starts from the estimates' modes: a far draw left
+    # as the start of the next one can send that one astray
+    obj_state_restore(obj, saved)
+    f1 <- tryCatch(suppressWarnings(obj$fn(D[pos, s])),
+                   error = function(e) NA_real_)
+    if (is.finite(f1)) f1 - f0 else Inf
+  }, 0)
+  law <- dw$law
+  L <- law$Lc %||% dw$L
+  X <- crossprod(L, Z)
+  sv <- colSums(L^2)
+  edge <- law$edge %||% integer(0)
+  R <- setdiff(pos[sv[pos] > 0], c(dw$held, edge))
+  m <- numeric(ncol(Z))
+  if (length(R)) {
+    qf <- qr(L[, R, drop = FALSE])
+    if (qf$rank > 0L) {
+      m <- colSums(qr.qty(qf, Z)[seq_len(qf$rank), , drop = FALSE]^2)
+    }
+  }
+  # la, the log Jacobian itself, is the proposal's; lj, anchored to 0 at
+  # the estimate on each side, is the check's, which a side law that
+  # follows its slice exactly would otherwise read as an excess
+  lj <- la <- numeric(ncol(Z))
+  stratum <- character(ncol(Z))
+  if (!is.null(law)) {
+    one <- function(v) length(v) == 1L && v == 1
+    mapped <- which(!vapply(law$lo, one, TRUE) | !vapply(law$hi, one, TRUE))
+    for (j in intersect(mapped, c(R, edge))) {
+      x <- X[j, ]
+      neg <- x < 0
+      sl <- s0 <- numeric(length(x))
+      sl[neg] <- draw_edge_slope(abs(x[neg]) / law$s[j], law$lo[[j]])
+      sl[!neg] <- draw_edge_slope(abs(x[!neg]) / law$s[j], law$hi[[j]])
+      s0[neg] <- draw_edge_slope(0, law$lo[[j]])
+      s0[!neg] <- draw_edge_slope(0, law$hi[[j]])
+      mv <- sl > 0
+      if (j %in% edge) {
+        stratum <- paste0(stratum, ifelse(mv, "s", "f"))
+        m[mv] <- m[mv] + x[mv]^2 / sv[j]
+      }
+      la[mv] <- la[mv] + log(sl[mv])
+      lj[mv] <- lj[mv] + log(sl[mv]) - log(s0[mv])
+    }
+  }
+  list(e = drop - m / 2 - lj, lw = -drop + m / 2 + la, m = m,
+       stratum = stratum)
+}
+
+#' The slope of draw_edge_map()'s map at `z` (a deviate in its own
+#' standard deviations) on a side with law `v`: of whichever of its
+#' three pieces is lowest there, and the first knot's at `z = 0`, blended
+#' with the normal law's 1 as the map is.
+#'
+#' @noRd
+draw_edge_slope <- function(z, v) {
+  if (length(v) == 1L) return(rep(v, length(z)))
+  if (!length(z)) return(numeric(0))
+  vv <- c(0, v)
+  tail <- max(0, v[4] - v[3])
+  k <- pmin(floor(z), 3)
+  sg <- ifelse(z >= 4, tail, vv[k + 2] - vv[k + 1])
+  g <- stats::approx(0:4, vv, xout = pmin(z, 4))$y
+  g[z > 4] <- v[4] + (z[z > 4] - 4) * tail
+  # at z = 0 every piece is 0; the lowest slope is the one that leads
+  a <- cbind(z, z * v[2] / 2, g)
+  s <- cbind(1, v[2] / 2, sg)
+  w <- ifelse(z > 0, max.col(-a, ties.method = "first"),
+              max.col(-s, ties.method = "first"))
+  sl <- s[cbind(seq_along(z), w)]
+  b <- draw_edge_blend(v)
+  if (b < 1) sl <- (1 - b) + b * sl
+  sl
+}
+
+#' Draw indices resampled by Pareto-smoothed importance weights, each
+#' stratum on its own and keeping its count, by systematic resampling (one
+#' uniform from the caller's stream per stratum). `k` is the largest
+#' Pareto k of the strata, `Inf` where one has too few draws to fit it.
+#'
+#' @noRd
+draw_resample <- function(lw, stratum) {
+  idx <- seq_along(lw)
+  k <- -Inf
+  for (st in unique(stratum)) {
+    j <- which(stratum == st)
+    if (!any(is.finite(lw[j]))) {
+      k <- Inf
+      next
+    }
+    ps <- suppressWarnings(loo::psis(lw[j], r_eff = 1))
+    kj <- ps$diagnostics$pareto_k
+    # loo returns Inf where every weight of its tail is the same; such
+    # weights are bounded, which is k at most 0, not too few draws
+    tl <- utils::tail(sort(lw[j]), ceiling(min(0.2 * length(j),
+                                               3 * sqrt(length(j)))))
+    if (!is.finite(kj) && length(j) >= 25L && all(is.finite(tl)) &&
+          diff(range(tl)) <= 1e-12 * max(1, abs(tl[1]))) {
+      kj <- 0
+    }
+    k <- max(k, kj)
+    lwj <- as.numeric(ps$log_weights)
+    w <- exp(lwj - max(lwj))
+    cw <- cumsum(w / sum(w))
+    cw[length(cw)] <- 1
+    u <- (stats::runif(1) + seq_along(j) - 1) / length(j)
+    idx[j] <- j[findInterval(u, cw) + 1L]
+  }
+  list(idx = idx, k = k)
+}
+
+#' @noRd
+draw_reweight_say <- function(object, chk, k, ndraws) {
+  head <- paste0("predict(): the log-likelihood at draws from the normal ",
+                 "law of vcov() falls further than that law says (median ",
+                 "excess ", format(chk$excess, digits = 3), " over ",
+                 chk$n, " test draws), so the draws are reweighted ",
+                 "by likelihood over proposal density (Pareto-smoothed ",
+                 "importance sampling)")
+  if (!is.finite(k) || k > draw_pareto_tol) {
+    frm_warning(head, ", but ",
+                if (is.finite(k)) {
+                  paste0("the weights' Pareto k is ", format(k, digits = 3),
+                         ", above ", draw_pareto_tol, ": no normal law ",
+                         "reaches this likelihood, and")
+                } else {
+                  paste0(ndraws, " draws are too few to judge the weights,",
+                         " and")
+                },
+                " the reweighted draws are not reliable. ",
+                "frmtmb.sample::frm_sample() draws from the posterior itself",
+                class = "frmtmb_draw_pareto", call. = FALSE)
+    return(invisible(NULL))
+  }
+  cache <- object$cache
+  if (is.environment(cache) && isTRUE(cache[["draw_check_said"]])) {
+    return(invisible(NULL))
+  }
+  if (is.environment(cache)) cache[["draw_check_said"]] <- TRUE
+  frm_message(head, ", Pareto k ", format(k, digits = 2),
+              ". Said once per fit", class = "frmtmb_draw_reweighted")
+  invisible(NULL)
+}
+
 #' Are the parameters the standard-error check calls "limit" the family's
 #' own limiting case (a zero inflation at 0, a precision at the binomial
 #' limit), which keeps the other standard errors? The check's own
@@ -1771,6 +2159,11 @@ draw_edge_k <- 2
 #' @noRd
 draw_edge_c <- 0.5
 
+#' Below this ratio a steep side is narrowed in full (draw_edge_blend()).
+#'
+#' @noRd
+draw_edge_r0 <- 0.4
+
 #' The largest change in log-likelihood draw_edge_side() calls flat.
 #' Fourteen estimates at the end of their range change by 1.3e-8 to
 #' 1.1e-7 on their flat side (dev/ppdraw-probe6.R); interior estimates
@@ -1780,6 +2173,44 @@ draw_edge_c <- 0.5
 #'
 #' @noRd
 draw_edge_flat <- 1e-4
+
+#' How many test draws draw_check() reads, and from which seed.
+#' (dev/predraw2-findings.md has the measurement behind 20.)
+#'
+#' @noRd
+draw_check_n <- 20L
+
+#' @noRd
+draw_check_seed <- 20261113L
+
+#' The median excess drop (draw_logratio()) above which draw_check()
+#' fires, the first of its two conditions (the second is
+#' `draw_check_rel`; draw_check_verdict()). On 430 fits (310 GLMs and
+#' GLMMs, and zero-inflated, hurdle and mixture fits at and away from an
+#' end) the median over 20 test draws was at most 0.29; on the three
+#' weakly identified mixtures of backlog 4882, 1.07 to 9.0. Across the
+#' fix round's 718 verdicts the largest ratio of an unfired fit outside
+#' the mixtures was 0.116 (dev/predraw2-findings.md, section 11).
+#'
+#' @noRd
+draw_check_tol <- 1
+
+#' The median excess over the median drop the law implies above which
+#' draw_check() fires (with `draw_check_tol`). On GLMs with one
+#' coefficient per level of a factor and 2 to 20 rows per level
+#' (poisson, bernoulli, gamma, gaussian; 10 to 500 levels), the excess
+#' reached 7.4 at 500 levels while this ratio stayed at most 0.12 (0.066
+#' where the excess passed 1); on the fired weakly identified mixtures
+#' it was 0.39 or more (dev/predraw2-findings.md, fix round).
+#'
+#' @noRd
+draw_check_rel <- 0.15
+
+#' The Pareto k above which reweighted draws are not trusted (loo's
+#' threshold for importance sampling).
+#'
+#' @noRd
+draw_pareto_tol <- 0.7
 
 #' The replicate's group effects at the levels the fit SAW, drawn from
 #' their conditional law given the data and the replicate's parameters.

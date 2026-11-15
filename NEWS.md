@@ -1,3 +1,51 @@
+# frmtmb (development version)
+
+## Predictions
+
+* BREAKING: `predict()` checks its parameter draws against the
+  log-likelihood, once per fit. At 20 test draws (40 near the
+  threshold) it compares the drop in the log-likelihood with the drop
+  that the normal law of the estimates gives at the same point. Where
+  the median excess is above 1 and above 0.15 times the median drop of
+  the normal law, each draw is weighted by the likelihood over the
+  density it was drawn from, the weights are Pareto smoothed with
+  `loo::psis()`, and the draws are resampled by them. A parameter that
+  `predict()` holds at its estimate in part of the draws keeps that
+  part. A message of class `frmtmb_draw_reweighted` gives the Pareto k.
+  Where k is above 0.7, a warning of class `frmtmb_draw_pareto` says
+  that the weights are not reliable and names
+  `frmtmb.sample::frm_sample()`. On a weakly identified mixture that is
+  the usual outcome. The test draws do not use the random number
+  stream, and where the check does not fire the draws are as before,
+  bit for bit. Before, a weakly identified mixture drew from a normal
+  law that the likelihood does not support:
+  - `mixture(gaussian(), gaussian())` on data from one component: over
+    6 data sets where the check fires, the 90% interval covered the
+    true predictive law 0.950 of the time and the predictive means
+    were 0.187 from the truth on average. Now 0.906 and 0.065.
+  - `mixture(poisson(), poisson())` on data from one component, over
+    12 such data sets: the mean error fell from 0.381 to 0.113.
+  - `mixture(cumulative(), cumulative())` over 26 such data sets: the
+    mean error of the category shares fell from 0.080 to 0.032.
+  The check did not fire on 310 GLM and GLMM fits, nor on
+  zero-inflated and hurdle fits at or away from the end of the range,
+  nor on GLMs with one coefficient per level of a factor (poisson,
+  bernoulli, gamma and gaussian; 10 to 500 levels of 2 to 20 rows). On
+  those the summed excess reached 7.4, but stayed under 0.12 times the
+  normal law's drop.
+
+* BREAKING: `predict()`'s narrowing of a steep side no longer jumps at
+  its threshold. A side where the log-likelihood falls by 2 within 0.4
+  of the normal law's distance is narrowed as before. Between 0.4 and
+  0.5 the narrowing now fades linearly to none. Before, the 98% width
+  of a new level's prediction stepped from 5.36 to 5.76 between two
+  neighboring data sets. On 25 random-slope and random-intercept fits
+  with such a side, the 90% and 98% intervals of a new level covered
+  0.886 and 0.974 of the true law, and now cover 0.902 and 0.981.
+
+* `?predict.frmtmb_fit` says why the mean of `predict()`'s draws and
+  `fitted()` can differ by more than Monte Carlo error.
+
 # frmtmb 0.82.0
 
 ## Convergence and standard errors

@@ -335,14 +335,25 @@ test_that("an ordinal mixture's collapsed threshold gap draws no NA", {
     frm(bf(yo ~ x), family = mixture(cumulative(), cumulative()), data = d),
     "jittered starts reached a higher log-likelihood")
   set.seed(13)
-  r <- pde_draw(predict(fit, newdata = data.frame(x = c(-1, 0, 1)),
-                        summary = FALSE, ndraws = 4000L))
+  # this mixture is also weakly identified away from the gap, so the
+  # draw check reweights its draws, and says how reliable the weights are
+  # with a message or, above a Pareto k of 0.7, a warning
+  # (test-predict-draw-check.R); without loo the check says the draws
+  # are not corrected
+  r <- allow_warnings(
+    suppressMessages(
+      pde_draw(predict(fit, newdata = data.frame(x = c(-1, 0, 1)),
+                       summary = FALSE, ndraws = 4000L)),
+      classes = "frmtmb_draw_reweighted"),
+    c("the reweighted draws are not reliable",
+      if (!requireNamespace("loo", quietly = TRUE)) {
+        "They are NOT corrected; install loo"
+      }))
   expect_length(r$said, 1L)
   expect_match(r$said, "log(mu2_Intercept[2] - mu2_Intercept[1])",
                fixed = TRUE)
   expect_false(anyNA(r$p))
   expect_true(all(r$p %in% 1:4))
-  # the shares are NOT compared with fitted(): this mixture is weakly
-  # identified, and the draw law's own spread moves them (the findings'
-  # sweep, filed in the backlog)
+  # the shares are NOT compared with fitted(): the reweighted draws still
+  # spread the parameters, which moves the shares from the plug-in
 })
