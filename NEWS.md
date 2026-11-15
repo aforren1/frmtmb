@@ -1,3 +1,41 @@
+# frmtmb (development version)
+
+## Convergence and standard errors
+
+* BREAKING: `autoscale` rescales a random-effect column whether or not a
+  fixed effect reads the same column. Before, `y ~ 1 + (0 + x | g)` and
+  `y ~ 1 + (1 + x | g)` with `x` spread 1e-4 or 1e-5 stayed at their
+  start (slope sd 1) with optimizer code 0. They were 1.7 to 12.7
+  log-likelihood units short on gaussian data and up to 111 on poisson
+  data, and most gave no warning. Now each of 48 such fits is within
+  3e-9 units of the best optimum that frmtmb, lme4 and glmmTMB find
+  with `x` at either spread.
+  - The scale of a random-effect column is its root mean square,
+    because a random slope is not centered. The default engages, as
+    before, when the standard deviation of the column's nonzero values
+    is below 0.05.
+  - A column is rescaled in every covariance structure where this is
+    an exact reparameterization: a structure with a standard deviation
+    per column (`us()`, `||`, `cs()`, `toep()`, `hetar1()`, the `gr()`
+    blocks, the Student-t blocks), and a structure with one standard
+    deviation (`ar1()`, `homdiag()`, `homcs()`, `homtoep()`, `ou()` and
+    the spatial structures) when each of its columns qualifies. This
+    includes `mm()` terms, nested terms, `|ID|` terms and terms of a
+    distributional parameter. Before, only `us()`, `diag()` and the
+    Student-t blocks were rescaled.
+  - A structure that another package registers is rescaled when its
+    density passes the same test at fit time.
+  - Under `autoscale = TRUE`, the message that names a slope
+    `autoscale` cannot rescale is now also given when nothing else is
+    planned.
+* A standard deviation that a fit left at its start, where a much
+  larger value raises the log-likelihood, is no longer called "at
+  zero" in a boundary message. With `autoscale = FALSE`, a random slope
+  on a column spread 1e-5 stopped at sd 1, 9.2 units short of its
+  maximum near 5e4, and the fit said that the sd was at zero. The
+  standard-error check now counts the gain it finds 10 units up on the
+  log scale, so the fit warns that it stopped short.
+
 # frmtmb 0.82.0
 
 ## Convergence and standard errors

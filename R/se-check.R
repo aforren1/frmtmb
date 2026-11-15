@@ -2887,6 +2887,15 @@ se_sd_gain_up0 <- function(fit, k) {
   # (test-diagnostics-ux.R's flat peak) moves it by nothing
   far <- at(p[thpos[k]] + se_sd_far)
   moved <- max(abs(c(gain, far[is.finite(far)], 0)))
+  # and a gain out there is a stop short of a maximum the grid does not
+  # reach: the grid is on the response's scale, and the sd of a random
+  # slope on a column spread 1e-5 has its maximum near 1e5 times that.
+  # Under autoscale = FALSE such a stop at sd 1, 9.2 units short, was
+  # called "at zero" (dev/slopescale-findings.md)
+  if (isTRUE(far > max(c(0, gain)))) {
+    best <- p[thpos[k]] + se_sd_far
+    gain <- c(gain, far)
+  }
   structure(if (length(gain)) max(0, gain) else 0, moved = moved,
             at = best)
 }

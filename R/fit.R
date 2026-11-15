@@ -1362,9 +1362,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   }
   ascale <- if (!objective_only) autoscale_decide(frame, control, REML)
   # said once per fit, by the call that runs the pre-fit, and not by the
-  # refits that are handed its template
-  if (!is.null(ascale) && is.null(template)) {
-    autoscale_note_unscaled(frame, ascale)
+  # refits that are handed its template; also where nothing is planned,
+  # because a slope autoscale cannot rescale is then the one left
+  if (!objective_only && is.null(template)) {
+    autoscale_note_unscaled(frame, ascale, control)
   }
   if (vb) {
     t_fit <- vb_now()
@@ -2729,10 +2730,20 @@ sdr_of <- function(fit) {
 #'   nothing qualifies. Compatible with `profile = TRUE`. Under
 #'   `prior` or bounds, the first stage applies them to the scaled
 #'   coefficients; the second stage is the fit that is reported.
-#'   A random slope on a rescaled column (`(1 + x | g)`) is rescaled
-#'   with it in `us()`, `diag()` and the Student-t blocks, its log
-#'   standard deviation and its effects mapped back exactly; other
-#'   covariance structures keep their slope unscaled. The pre-fit's own
+#'   A random-effect column with more than two distinct values is
+#'   divided by its root mean square, whether or not a fixed effect
+#'   reads the same column (`(1 + x | g)` and `y ~ 1 + (0 + x | g)`
+#'   alike). Its log standard deviation and its effects are mapped back
+#'   exactly. This is done where it is an exact reparameterization: in a
+#'   structure with a standard deviation per column (`us()`, `||`,
+#'   `cs()`, `toep()`, `hetar1()`, `gr()` with `cov`, `prec`, `cor =
+#'   FALSE` or `dist = "student"`), and in a structure with one standard
+#'   deviation (`ar1()`, `homdiag()`, `homcs()` and the rest) when each
+#'   of its columns qualifies. A structure that another package
+#'   registers is rescaled when its density passes the same test. A
+#'   slope that is not rescaled keeps its column. A message names it
+#'   under `TRUE`, or when a fixed effect on the same column is
+#'   rescaled. The pre-fit's own
 #'   warnings are not shown. Under the default, a pre-fit that errors
 #'   or does not converge in its coefficients never makes the reported
 #'   fit less diagnostic than `autoscale = FALSE`: the default then
@@ -2744,11 +2755,14 @@ sdr_of <- function(fit) {
 #'   standard deviation below 1e-3 and its coefficient is optimized
 #'   directly (not a `mu` coefficient under `REML = TRUE` or
 #'   `profile = TRUE`, which the inner solver integrates), or when a
-#'   column carrying such a random slope has one below 0.05. Without
+#'   random-effect column that the plan rescales has a standard
+#'   deviation of its nonzero values below 0.05. Without
 #'   it such a fit can stop short and report convergence: a poisson
 #'   `y ~ 0 + x` with `x` on a 1e-6 scale lost 62.6 log-likelihood
 #'   units against [stats::glm()], and a random slope on a column
-#'   spread 0.01 lost up to 14.4. Every other fit is the fit
+#'   spread 0.01 lost up to 14.4, and a poisson random slope with no
+#'   fixed effect on a column spread 1e-4 up to 111. Every other fit is
+#'   the fit
 #'   `autoscale = FALSE` gives, bit for bit. A column that is far from
 #'   zero against its spread, such as `x + 1e6`, does not need this
 #'   option: whatever its value, the optimizer steps in coordinates in

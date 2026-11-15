@@ -1021,6 +1021,10 @@ neither is the defect that lane fixed.
   (`y ~ 1 + (0 + x | g)`), is not rescaled, so it keeps the stall. And
   just above the 0.05 threshold the plain fit fell short by at most
   2.2e-4 units (spread 0.06, 64 fits). Filed by lane wt-predfix.
+  CLOSED in the round of 2026-11-13 (lane slopescale): every random-effect
+  column is planned on its own, in every structure where scaling is exact
+  (0 of 72 triage fits and 0 of 78 structure fits short; the 0.05
+  threshold is unchanged).
 - OPEN, pre-existing, found by the wt-predfix reviewer: `frm_sample()`
   on a one-parameter model (`y ~ 0 + x`) fails inside rstan with "no
   more scalars to read", on the 0.62.0 base as well. Not reproduced by
@@ -4792,6 +4796,57 @@ none is a regression of this release.
   package does not declare (inferred by the review, not run). The skip
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
+
+## Filed in the round of 2026-11-13
+
+### From lane slopescale
+
+- **HIGH. The default never engages on a poorly centered random-slope
+  column, which stalls silently** (review of lane slopescale, F1b;
+  `dev/reviews/slopescale-review-uncentered3.R`, `.log`). x = c0 + s z,
+  gaussian, 20 groups of 15, seeds 1 to 5, short against the fit on the
+  centered, standardized column (the same model). A calendar year as a
+  slope (x = 2000 + 3 z, sd 3): 10 of 10 fits short (5 with
+  `y ~ 1 + (1 + x | g)`, 5 with `y ~ x + (1 + x | g)`), 7 of them
+  silent, by 3.3 to 41.1 units. x = 5 + 0.1 z (sd 0.1, above the 0.05
+  that engages the default): 8 of 10 short, 7 silent, by 3.1 to 15.3.
+  x = 5 + z, x = 1 + 0.05 z and x = 0.5 + 0.02 z are not short.
+  `autoscale = TRUE` is within 1.1e-8 on all 30 cases, so the plan is
+  right and only the trigger misses them: what fails is a large ratio
+  of root mean square to sd, not a small sd. 0.82.0 is the same (not a
+  regression). Changing when the default engages is a user decision;
+  the review recommends engaging on that ratio, calibrated as
+  `autoscale_slope_sd` was. Calibrate it against indicator-times-
+  near-constant designs too (short check of the review, 1c;
+  `dev/reviews/slopescale-short-trigger.R`, `.log`): the default now
+  engages on 30 of 30 of them where 0.82.0 did not (x is 0, or
+  1 + 0.01 z; x in 0, 1, 1.01; x in 0, 0.3, 0.1 * 3, spread 3.6e-17,
+  a rounding-decided branch). It is never worse (short at most
+  4.95e-7, 0 warnings against 2 on 0.82.0), but it costs the pre-fit,
+  1.59 to 1.68 times the `autoscale = FALSE` fit. The ratio of root
+  mean square to sd is about 100 there, so a ratio trigger fires on
+  them as well.
+- **MEDIUM. A correlation run to its limit at a short stop is called a
+  boundary** (dev/slopescale-findings.md). Under
+  `autoscale = FALSE`, `y ~ 1 + (1 + x | g)` (gaussian, 20 groups of
+  15, x spread 1e-4 or 1e-5) can move the slope's log sd to about the
+  right size while the correlation parameter runs to 265 to 1349. The
+  fit stops 2.5 to 6.1 log-likelihood units short (seeds 4 and 5 at
+  1e-4, 1 and 2 at 1e-5; `dev/slopescale-verdict.R`), says
+  "Boundary (singular) fit: cor_g__Intercept__x is at the limit of its
+  range" and gives no warning, once with optimizer code 1.
+  `se_edge_cor()` asks only that a move further out changes nothing; a
+  move back toward 0 with the rest held would show the gain. The
+  default `autoscale` rescales this slope, so only `autoscale = FALSE`
+  reaches it.
+- **LOW. A gradient warning on a large fit with an sd near zero,
+  pre-existing, not checked** (dev/slopescale-findings.md).
+  `y ~ x + z + (1 + x + z | g)`, 1000 groups of 100, gaussian, seed 2
+  (`dev/slopescale-gau1e5.R`), warns "Large maximum absolute gradient
+  at the optimum (0.00372 at theta_6) ... may not have converged" on
+  0.82.0 and after this lane alike, with the sd of `z` (true value 0)
+  at log -6.51. Whether the fit is short, or the warning is wrong, was
+  not measured against lme4.
 
 ## Filed at the 0.82.0 release (2026-11-11)
 
