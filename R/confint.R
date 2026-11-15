@@ -2242,6 +2242,17 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
              "); models fit to different data or with different NA rows ",
              "dropped are not comparable", call. = FALSE)
   }
+  # the same count can be different rows: 1 to 72 against 9 to 80, or
+  # rows that different predictors' missing values left
+  keys <- lapply(fits, loglik_rows_key)
+  same <- vapply(keys[-1L], loglik_rows_same, NA, keys[[1L]])
+  if (!all(same)) {
+    frm_stop("anova() needs fits of the same data: model ",
+             which(!same)[1L] + 1L, "'s likelihood reads other response ",
+             "values than model 1's, over the same number of observations ",
+             "(other rows, or the rows of another data set). Fit the ",
+             "models to the same rows", call. = FALSE)
+  }
   # A me() term adds its noisy variable's measurements to the
   # likelihood, so two fits with different me() calls are likelihoods of
   # different data even over the same rows

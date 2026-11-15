@@ -1047,7 +1047,10 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       # cmc = FALSE: the term was fitted with an intercept added and
       # then removed (assemble_frame()), so it is rebuilt the same way
       if (isTRUE(comp[["cmc_intercept"]])) attr(tt2, "intercept") <- 1L
-      mm <- stats::model.matrix(tt2, mf2)
+      # under the fit's contrasts, not the session's (backlog 5353)
+      mm <- stats::model.matrix(
+        tt2, mf2, contrasts.arg = re_contrasts_for(comp[["contrasts"]], mf2)
+      )
       if (isTRUE(comp[["cmc_intercept"]])) {
         mm <- mm[, colnames(mm) != "(Intercept)", drop = FALSE]
       }
@@ -1736,6 +1739,28 @@ aterm_code_lookup <- function(v, tab, label) {
   as.numeric(tab$value[i])
 }
 
+#' Whether an addition term's value `v` on `newdata` has more than one
+#' element but reads no column of `newdata`, so its elements cannot be
+#' newdata's rows: `vreal(rep_len(c(1, 3), 120))` on a 120-row fit.
+#'
+#' @noRd
+aterm_rowless <- function(ex, v, newdata) {
+  NROW(v) > 1L && !length(intersect(all.vars(ex), names(newdata)))
+}
+
+#' A value that reads no column of `newdata` and has one distinct
+#' element is that element: `vreal(rep(2, 120))` is the constant 2 on
+#' any rows, where `aterm_rowless()` would refuse it (review F5).
+#'
+#' @noRd
+aterm_scalar <- function(ex, v, newdata) {
+  if (is.null(v) || is.matrix(v) || length(v) < 2L ||
+        length(intersect(all.vars(ex), names(newdata)))) {
+    return(v)
+  }
+  if (length(unique(v)) == 1L) v[1L] else v
+}
+
 #' Re-evaluate a response's addition terms on new data. Every post-fit
 #' path that hands newdata rows to a family's mean, simulator or density
 #' takes its terms from here, all of them, so that none of them is left
@@ -1786,12 +1811,18 @@ aterms_for_newdata <- function(rspec, newdata) {
       }
       v <- NULL
     }
+    v <- aterm_scalar(ex, v, newdata)
     # a bound the model frame supplied but newdata did not can still
     # resolve in the formula environment, to the FITTED rows; the length
     # check catches that rather than silently pairing the wrong bounds
     if (!is.null(v) && !is.null(nd_n) && !length(v) %in% c(1L, nd_n)) {
       v <- NULL
     }
+    # a value that reads no column of newdata cannot follow its rows: it
+    # is the fitted rows' values, and a length that matches newdata's is
+    # a coincidence (backlog 5235)
+    rowless <- !is.null(v) && aterm_rowless(ex, v, newdata)
+    if (rowless) v <- NULL
     # an addition term reads newdata alone, as it read the data alone at
     # the fit: a variable newdata lacks must not resolve in the formula
     # environment (check_aterm_data_vars())
@@ -1805,8 +1836,14 @@ aterms_for_newdata <- function(rspec, newdata) {
                  if (length(missed)) {
                    paste0(": newdata has no column ",
                           paste(missed, collapse = ", "))
+                 } else if (rowless) {
+                   paste0(": it reads no column of newdata, so its values ",
+                          "are the fitted rows' and not newdata's, even ",
+                          "when newdata is the fitted data. Leave newdata ",
+                          "out to predict the fitted rows, or write the ",
+                          "term as a column of the data")
                  } else "",
-                 "; supply the variable",
+                 if (!rowless || length(missed)) "; supply the variable",
                  call. = FALSE)
       }
       # anything else is dropped, but never silently: an aterm the
@@ -1816,6 +1853,8 @@ aterms_for_newdata <- function(rspec, newdata) {
                   if (length(missed)) {
                     paste0(" (newdata has no column ",
                            paste(missed, collapse = ", "), ")")
+                  } else if (rowless) {
+                    " (it reads no column of newdata)"
                   } else "",
                   call. = FALSE)
     }

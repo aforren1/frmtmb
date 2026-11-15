@@ -4793,6 +4793,58 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-13
+
+### From lane silent2
+
+- **LOW. `print()` of a draws object lists the parameters in the stored
+  order**: `print.frmtmb_draws()` read `x$draws`, whose template order
+  pairs a `gp(by = )` term's `sdgp_` and `lscale_` columns by level
+  (sdgp_gpxfa lscale_gpxfa sdgp_gpxfb lscale_gpxfb), where
+  `variables()` lists brms's order (triage-082 part A, item 1915).
+  CLOSED in the round of 2026-11-13 (lane silent2): `print()` reads
+  `variables()` order; frmtmb.sample `test-brms-draws-order.R`.
+- **MINOR. The extensions' floors outside a support, for an exact
+  reader** (what remains of the 0.81.0 item "Floors outside a support
+  that a reader still sees"). Kind S, where the exact value is `-Inf`
+  and a switch on `exact_support()` would give it: frmtmb.eam's
+  `lba_race_lpdf()` at a decision time <= 0 (lba and rdm),
+  `gng_lpdf()`'s go rows at y <= ndt, the wiener `allow_unreachable`
+  branch and the contaminant outside `crange`; frmtmb.survival's
+  `sv_floor_pos`. Each needs `exact_support()` in the sampling API and
+  a reader test of its own. Kind U, where the exact value is positive
+  and below what the formula resolves, cannot be fixed by a switch:
+  the lba and rdm densities and rdm's lcdf floored at 1e-300, gddm's
+  grid floor, survival's caps and `sv_squeeze()`; nor can
+  `log1m_exp_ad()`, whose floor meets an empty window and an
+  unresolved one alike (`dev/silent2-findings.md`, item 5524).
+- **LOW. The ordinal-mixture threshold standard-error test needs the
+  fit-end covariance.** `mixture_ord_thres_se()` reads
+  `se_fit_analysis()`, which a fit with random effects builds at the
+  fit only when `se_check_at_fit()` says so; otherwise the degenerate
+  check runs without it and a flat threshold passes until the first
+  `summary()` (whose standard-error warning then names it). Building
+  the covariance for those fits at the fit costs 1.31 and 1.36 times the
+  fit (n = 1000, 50 groups, seeds 2 and 3; seed 1 builds it anyway;
+  `dev/silent2-recost.R`), so it was not taken. Not measured how often
+  an ordinal mixture with random effects defers.
+- **LOW. `anova()`'s same-data check does not read `cens()`.** The
+  same y under `cens(c1)` and `cens(c2)` are likelihoods of different
+  data and compare (review of 2026-11-13, `silent2-review-core.R`).
+- **LOW. The ordinal-mixture "collapsed" test still depends on the
+  rounding path above 8 ulps** (what remains of 5167). Two thresholds
+  1e-12 or 1e-8 apart, with the likelihood of a tie, pass silently where
+  the tie and a twin within 8 ulps warn: on the 185 control fits the
+  8-ulp band changed no verdict (13 collapsed before and after,
+  `dev/silent2-ordcollapsed.R`). A continuous cut on the category's
+  cover was measured by ordstart and calls passed fits flat; not built.
+- **LOW. A flat direction on an ordinal mixture's `cs()` coefficient is
+  not named by the degenerate check.** ordstart's cs_sr_acat seed 4
+  (coefficient 325.5) passes it; the standard-error check reports "not
+  available for 4 of 15 parameters" there, so the fit is not silent,
+  but the message does not say the component is degenerate
+  (`dev/silent2-out/ord-sweep-base.tsv`).
+
 ## Filed at the 0.82.0 release (2026-11-11)
 
 ### From lane boundfam
@@ -5204,6 +5256,12 @@ Record: `dev/wcheck-findings.md`.
   sound fits on these data, so neither was built. A test on the
   standard error in natural units (above 5e3 here, at most 43.6 on the
   other moves) is the next candidate; not measured.
+  CLOSED in the round of 2026-11-13 (lane silent2), in part: two
+  thresholds within 8 ulps are collapsed, which closes the 1e-15 twin
+  of cum_cum seed 5 only, and a threshold with a standard error above
+  100 on the latent scale warns, which flags 5 of the six flat moves
+  (not cs_sr_acat seed 4); the rest is refiled under "From lane
+  silent2" (`dev/silent2-findings.md`).
 - **MEDIUM. A flat ordinal-mixture threshold with no warning at all**: cum_sratio
   seed 16 (n = 300, `mixture(cumulative(), sratio())`, `y ~ x + z`)
   fits silently with component 2's first threshold at -39.8, where the
@@ -5211,6 +5269,10 @@ Record: `dev/wcheck-findings.md`.
   of 10 (`dev/ordstart-probe16.R`). Neither the degenerate check (near
   33 < 50) nor the SE check warned. Not measured: the standard error
   `summary()` reports for it.
+  CLOSED in the round of 2026-11-13 (lane silent2): the degenerate
+  check reports a threshold whose standard error is above 100 on
+  the latent scale (1.75e7 here); `test-ordinal-mixture.R`,
+  `dev/silent2-findings.md`.
 - **LOW. Ordinal mixtures with random effects run no jittered starts by
   default**: each start is a Laplace fit, 15 to 23 times the fit in all
   (n = 1000, 50 groups, `dev/ordstart-cost.R`), so `starts = n` opts
@@ -5243,6 +5305,10 @@ Record: `dev/wcheck-findings.md`.
   no column of the new data cannot follow its rows; refusing such a
   term when it has length n and n is not 1 would close it.
   (`dev/silent-ce-probe.R`, `dev/silent-findings.md`, item 720.)
+  CLOSED in the round of 2026-11-13 (lane silent2): a value of more
+  than one row that reads no column of the new rows is refused by
+  `aterms_for_newdata()` and `ce_aterms()`;
+  `tests/testthat/test-newdata-aterms.R`.
 - **MINOR. `anova()`'s same-data check compares a count of rows, not
   the rows.** A multivariate fit whose responses `subset()` rows 1 to 72
   of 80 and one whose responses take rows 9 to 80 both count 72, and
@@ -5251,6 +5317,9 @@ Record: `dev/wcheck-findings.md`.
   `loglik_nobs()` already builds the set of rows each fit reads;
   comparing those sets instead of their lengths would close it.
   (`dev/reviews/2026-11-11-silent.md`, MINOR 2.)
+  CLOSED in the round of 2026-11-13 (lane silent2): `anova()` compares
+  the values each likelihood reads, in row-name order
+  (`loglik_rows_key()`); `tests/testthat/test-subset-rate.R`.
 ### From lane arspat
 
 - **LOW.** `sar()` beside `ar(cov = FALSE)` is still refused, where brms 2.23.0
@@ -5359,6 +5428,10 @@ Record: `dev/wcheck-findings.md`.
   the stored `lp$contrasts`; the group-level `model.matrix()` takes no
   `contrasts.arg`. Found by the fix round's test of
   `test-laplace-draws.R` (case B). `dev/sampfront-findings.md`.
+  CLOSED in the round of 2026-11-13 (lane silent2): each group-level
+  term stores its contrasts (`re_term_contrasts()`), read by
+  `pred_design()`, `mm()` and `re_formula`;
+  `tests/testthat/test-predict-newdata.R`.
 - **MEDIUM. Laplace draws give `conditional_effects(method =
   "posterior_predict")` an all-NA band** when only a distributional
   parameter carries the group-level term: `sigma ~ (1 | h)` (gaussian,
@@ -5370,6 +5443,9 @@ Record: `dev/wcheck-findings.md`.
   distributional parameters in that path, as `posterior_predict()`
   does. Reproducer and logs:
   `dev/reviews/sampfront-short-out/ce-lane.txt`, `ce-base.txt`.
+  CLOSED in the round of 2026-11-13 (lane silent2): the watch reads
+  every predicted dpar on the grid, as `posterior_predict()`'s does;
+  frmtmb.sample `test-laplace-draws.R`.
 
 ### From the consolidation
 
@@ -5529,6 +5605,9 @@ CLOSED in the round of 2026-11-11 (lane sampfront): a subset is placed by row na
   (`.gap_floor`) and `log1m_exp_ad()`'s window floor can be made exact
   for a reader through `exact_support()` without touching their fits
   (`dev/support-findings.md`, the survey table, rows "not changed").
+  CLOSED in the round of 2026-11-13 (lane silent2): the ordinal gap
+  floor is exact for a reader; the rest is refiled, narrowed, under
+  "From lane silent2" (`dev/silent2-findings.md`, item 5524).
 
 - **Translator gaps the survey still has** (`dev/translator-findings.md`,
   section 9): an mv mixture's `theta_<resp>` (p005), `mo()` outside mu

@@ -1,3 +1,54 @@
+# frmtmb (development version)
+
+* BREAKING: `anova()` compares the rows that each likelihood reads, not
+  only how many there are. Two fits of 72 rows each, one of rows 1 to 72
+  and one of rows 9 to 80, or two fits whose predictors miss values on
+  different rows, were compared as if they had the same data. Now
+  `anova()` stops and says the fits are of different data. Rows given in
+  another order, or under row names that start again at 1, still
+  compare, and so does one response under two names (`y` and `I(y)`)
+  or stored as an integer, an ordered factor of the same labels or a
+  logical. A factor response is compared by its labels, not its codes.
+* BREAKING: An addition term whose value reads no column of the data,
+  such as `vreal(rep_len(c(1, 3), 120))`, is refused on new data and on
+  a `conditional_effects()` grid of more than one row. Its values are
+  those of the fitted rows. Before, new data or a grid of the same
+  length (120 rows, or `resolution = 120`) read them row by row, as if
+  they were the new rows' values. The fitted rows read the term as
+  before. Write such a value as a column of the data. A value whose
+  elements are all the same, such as `vreal(rep(2, 120))`, is that one
+  value on any rows.
+* BREAKING: A prediction rebuilds a group-level term's design under the
+  contrasts of the fit, as the population-level design already did. A
+  model fitted under `options(contrasts = c("contr.sum", "contr.poly"))`
+  refused every prediction of `y ~ f + (1 + f | g)` with new data after
+  the option was reset ("Random-effect design ... does not match the
+  fitted model").
+  The same holds for a transformed factor such as `factor(cyl)`, for
+  `mm()` terms and for a `re_formula` that names part of a term. With a
+  transformed factor the prediction was silently wrong when the two codings
+  name their columns alike (`contr.sum` and `contr.helmert`).
+* BREAKING: The degenerate-boundary warning of an ordinal mixture finds a
+  threshold that the data do not place: one whose standard error is
+  above 100 on the latent scale. Such a threshold lies on a flat
+  direction of the likelihood. An example is a threshold at -39.8 with a
+  standard error of 1.75e7 that passed without a warning, because no row
+  was 50 latent units from it. Where the standard-error check finds no
+  standard error for such a threshold, the warning says so and the
+  standard-error warning that names the parameters stays. No fit moves.
+  On an ordinal mixture with random effects the degenerate warning names
+  `frmtmb_control(starts = 10)`, because such a fit runs no jittered
+  starts by default.
+* BREAKING: Two thresholds of an ordinal-mixture component that are the
+  same number up to rounding (8 units in the last place) count as
+  collapsed, as two thresholds that are the same double did. Before, a
+  point warned and a point 1e-15 from it, of the same likelihood, did
+  not.
+* BREAKING: `log_lik()` of draws reads a category of an ordinal mixture
+  that sits between two tied thresholds as `-Inf`, its exact value, so
+  `loo()` of such draws reads `-Inf` too. Before, it read the floor of
+  about -690.8 that the fit uses. The fit is unchanged.
+
 # frmtmb 0.82.0
 
 ## Convergence and standard errors

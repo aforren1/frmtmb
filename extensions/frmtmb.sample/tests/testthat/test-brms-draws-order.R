@@ -121,3 +121,31 @@ test_that("a categorical posterior_epred() leaves the rows unnamed, as brms", {
   expect_identical(dimnames(pe), list(NULL, NULL, c("a", "b", "c")))
   expect_identical(dimnames(posterior_predict(ds)), list(NULL, NULL))
 })
+
+test_that("print() lists the parameters in variables() order", {
+  # x$draws keeps the template's order, which pairs a gp(by = ) term's
+  # sdgp_ and lscale_ by level; print() read it and listed
+  # sdgp_gpxfa lscale_gpxfa sdgp_gpxfb lscale_gpxfb through 0.82.0
+  set.seed(9)
+  d <- data.frame(x = stats::runif(60), f = factor(rep(c("a", "b"), 30)))
+  d$y <- sin(3 * d$x) + stats::rnorm(60, 0, 0.3)
+  fit <- suppressWarnings(frm(y ~ gp(x, by = f, k = 5), data = d))
+  tpl <- fit$frame[["par_template"]]
+  est <- unlist(lapply(names(tpl), function(cp) fit$estimates[[cp]]))
+  lab <- frmtmb::brms_par_labels(fit)
+  M <- matrix(rep(est, each = 4L) + stats::rnorm(4L * length(est), 0, 0.05),
+              4L, dimnames = list(NULL, lab))
+  M <- cbind(frmtmb.sample:::draws_to_natural(M, fit), lp__ = 0)
+  ds <- structure(list(stanfit = NULL, draws = M, fit = fit),
+                  class = "frmtmb_draws")
+  out <- utils::capture.output(print(ds))
+  shown <- sub(" .*$", "", out[-(1:3)])
+  v <- variables(ds)
+  expect_identical(shown, v[v %in% shown])
+  want <- c("sdgp_gpxfa", "sdgp_gpxfb", "lscale_gpxfa", "lscale_gpxfb")
+  expect_identical(grep("^(sdgp|lscale)_", shown, value = TRUE), want)
+  # the stored order differs from brms's here, so the assertions above
+  # are not ones the stored order passes
+  cn <- colnames(ds$draws)
+  expect_false(identical(cn[cn %in% want], want))
+})

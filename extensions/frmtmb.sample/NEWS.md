@@ -1,3 +1,14 @@
+# frmtmb.sample (development version)
+
+* `conditional_effects(method = "posterior_predict")` on draws of
+  `frm_sample(laplace = TRUE)` refuses a band that reads a group-level
+  term of a distributional parameter, as `posterior_predict()` does.
+  With `sigma ~ (1 | h)` or `shape ~ (1 | h)` and `re_formula = NULL` it
+  returned a band of missing values with six "NAs produced" warnings.
+* `print()` of a draws object lists the parameters in the order of
+  `variables()`. It listed a `gp(by = )` term's `sdgp_` and `lscale_`
+  columns level by level.
+
 # frmtmb.sample 0.29.0
 
 Needs frmtmb 0.82.0, which adds `brms_variable_sort()` to the sampling

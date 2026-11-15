@@ -4797,7 +4797,9 @@ ord_cumulative_logpmf <- function(y, eta, tau, lk, disc = 1, cs = NULL,
 #'
 #' @noRd
 ord_log_interior <- function(a, b, gap_floor = FALSE) {
-  if (!gap_floor) {
+  # a reader that asks for the exact value (row_lpdf(exact = TRUE)) gets
+  # -Inf at tied thresholds, on doubles only: the tape keeps the floor
+  if (!gap_floor || ord_gap_exact(a, b)) {
     return(RTMB::logspace_sub(-b, -a) + log_inv_logit(a) + log_inv_logit(b))
   }
   z <- b - a
@@ -4819,7 +4821,12 @@ ord_log_interior <- function(a, b, gap_floor = FALSE) {
 #' warns about nothing (dev/optima-guard-check.R).
 #'
 #' @noRd
-ord_touch_nan <- function(g) log(g + abs(g)) - log(2 * abs(g))
+ord_touch_nan <- function(g) {
+  # an exact reader reads the closed gap as what it is, a probability of
+  # 0 (-Inf), and a crossing as the log of a negative number (NaN)
+  if (ord_gap_exact(g)) return(0 * g)
+  log(g + abs(g)) - log(2 * abs(g))
+}
 
 #' A category probability held at `1e-300` or above when `on`: the
 #' plain-difference form of `ord_log_interior()`, for a link with no
@@ -4827,9 +4834,21 @@ ord_touch_nan <- function(g) log(g + abs(g)) - log(2 * abs(g))
 #'
 #' @noRd
 ord_gap_floor <- function(p, on) {
-  if (!on) return(p)
+  if (!on || ord_gap_exact(p)) return(p)
   lo <- 1e-300
   lo + 0.5 * ((p - lo) + abs(p - lo))
+}
+
+#' Whether the gap floor of an ordinal mixture's interior category is
+#' left off for an exact reader: on plain doubles when
+#' `row_lpdf(exact = TRUE)` asks (`exact_support()`), so `log_lik()` of
+#' draws reads `-Inf` at tied thresholds where the floor gave about
+#' -690.8. The objective and every other evaluation keep the floor.
+#'
+#' @noRd
+ord_gap_exact <- function(...) {
+  exact_support() &&
+    !any(vapply(list(...), function(v) inherits(v, "advector"), NA))
 }
 
 #' `ord_cumulative_logpmf()` with `cs()` offsets: row `i` reads the
@@ -7046,7 +7065,7 @@ mixture_ord_n_held <- function(fit, held) {
 #' the degenerate point had the higher likelihood than the best of 6
 #' other starts (dev/ordmix-rev-degen.R).
 #'
-#' A component is flagged in three cases (`mixture_ord_degeneracy()`):
+#' A component is flagged in four cases (`mixture_ord_degeneracy()`):
 #'
 #' - It is a step function: doubling its discrimination, which doubles
 #'   every latent distance of the component, changes the mixture's
@@ -7061,9 +7080,16 @@ mixture_ord_n_held <- function(fit, held) {
 #' - A threshold has run off: no row's latent position lies within 50
 #'   of it (`near > 50`), so the data do not place it. Thresholds above
 #'   the data are left out; thres_fit_check() reports them.
-#' - Two of its ordered thresholds are the same double, where the gap
-#'   floor of `ord_log_interior()` holds the category's probability at
-#'   about `exp(-692)`.
+#' - Two of its ordered thresholds are the same double up to rounding (8
+#'   ulps), where the category between them has no probability; at the
+#'   same double the gap floor of `ord_log_interior()` holds it at about
+#'   `exp(-692)`. Through 0.82.0 the test was exact equality, so a point
+#'   warned and its twin 1e-15 apart, of the same likelihood, did not.
+#' - A threshold the data place has a standard error above
+#'   `mixture_ord_se_cut` on the latent scale (`mixture_ord_thres_se()`):
+#'   the likelihood is flat along it, short of `near > 50`. cum_sratio
+#'   seed 16 of dev/ordstart-starts.R put one at -39.8, near 33, standard
+#'   error 1.75e7, and passed without a word through 0.82.0.
 #'
 #' Measured (dev/ordmix-p2-crit.R, dev/ordmix-p2-log-crit-sum.txt), the
 #' review's label (an `|estimate| > 30` or a non-finite standard error)
@@ -7085,7 +7111,14 @@ mixture_ord_degenerate_check <- function(fit, resp) {
   dg <- mixture_ord_degeneracy(fit, resp)
   step <- (dg$sharpen > -0.1) %in% TRUE
   runoff <- (dg$near > 50) %in% TRUE
-  bad <- step | runoff | dg$collapsed %in% TRUE
+  # a threshold on a flat direction short of the near > 50 cut (backlog
+  # 5207: -39.8 at near 33, standard error 1.75e7, no warning)
+  se <- mixture_ord_thres_se(fit, resp)
+  unplaced <- !runoff & (se > mixture_ord_se_cut) %in% TRUE
+  # a threshold the standard-error check lost: its covariance entries are
+  # not a standard error, so no number is quoted (review F3)
+  nose <- attr(se, "lost") %in% TRUE
+  bad <- step | runoff | unplaced | dg$collapsed %in% TRUE
   if (!any(bad)) return(invisible(NULL))
   fam <- fit$spec$responses[[resp]]$family
   what <- vapply(which(bad), function(i) {
@@ -7101,19 +7134,34 @@ mixture_ord_degenerate_check <- function(fit, resp) {
                "is ", format(signif(dg$near[i], 3)), ", so the data do ",
                "not place it")
       },
+      if (unplaced[i] && nose[i]) {
+        "a threshold the data do not place: it has no standard error"
+      } else if (unplaced[i]) {
+        paste0("a threshold the data do not place: its standard error ",
+               "is ", format(signif(se[i], 3)), " on the latent scale, ",
+               "so the likelihood is flat along it")
+      },
       if (isTRUE(dg$collapsed[i])) {
-        paste0("two of its thresholds are the same number, where the ",
-               "likelihood holds the category between them at about ",
-               "exp(-692)")
+        paste0("two of its thresholds are the same number up to ",
+               "rounding, so the category between them has no ",
+               "probability in it")
       }), collapse = "; "), ")")
   }, "")
   ms <- fit$opt[["mixture_starts"]]
+  # a fit with random effects runs no jittered starts by default (each
+  # is a Laplace fit; backlog 5214), so the check to run is named
+  re <- is.null(ms) && length(fit$frame[["re_blocks"]]) > 0L &&
+    is.null(fit$control$starts)
   frm_warning(fam[["family"]], ": ", paste(what, collapse = "; "),
               " ended at a degenerate boundary. Maximum likelihood for ",
               "an ordinal mixture often has its supremum there, so its ",
               "estimates run off and their standard errors mean ",
               "nothing. ",
-              if (is.null(ms)) {
+              if (re) {
+                paste0("A fit with random effects runs no jittered starts ",
+                       "by default: run them with frmtmb_control(starts = ",
+                       "10), ")
+              } else if (is.null(ms)) {
                 "Compare several starts (frm(start = )), "
               } else if (any(step)) {
                 paste0("None of ", ms[["starts"]], " jittered starts ",
@@ -7122,9 +7170,94 @@ mixture_ord_degenerate_check <- function(fit, resp) {
               if (is.null(ms)) "hold" else "Hold",
               " the component with priors, as brms does (class ",
               "Intercept and b with dpar = \"mu<k>\"), or use fewer ",
-              "components", call. = FALSE)
+              "components", call. = FALSE,
+              # a threshold this check names by its standard error leaves
+              # the standard-error check's own list of lost parameters
+              # standing, which can name more (review F3)
+              class = if (any(unplaced)) "frmtmb_ord_unplaced")
   invisible(NULL)
 }
+
+#' Per component of a fitted ordinal mixture, the largest standard error
+#' of a threshold the data place, on the latent scale (times the
+#' component's median `disc`) and per unit of mean case weight, from the
+#' covariance the fit-end standard error check builds
+#' (`se_fit_analysis()`, or sdreport()'s when the fit made one). `NA`
+#' for a component whose thresholds have no such covariance: a fit with
+#' random effects whose check waits for the first standard-error use,
+#' `check_se = "ignore"`, a Hessian that could not be built, or a block
+#' the optimizer does not hold whole. Building the covariance for the
+#' waiting fits was measured and not taken: on the n = 1000, 50-group
+#' design it costs 1.31 and 1.36 times the fit (dev/silent2-recost.R).
+#' Attribute `lost`:
+#' per component, whether the check lost the standard error of one of
+#' its raw threshold parameters, whose covariance entries are then no
+#' standard error.
+#'
+#' @noRd
+mixture_ord_thres_se <- function(fit, resp) {
+  rspec <- fit$spec$responses[[resp]]
+  K <- rspec$family[["mix"]][["ord"]]$K
+  out <- rep(NA_real_, K)
+  lost_k <- rep(FALSE, K)
+  attr(out, "lost") <- lost_k
+  if (identical(fit$control$check_se, "ignore")) return(out)
+  sdr <- fit$cache$sdr
+  an <- if (is.null(sdr)) {
+    tryCatch(se_fit_analysis(fit), error = function(e) NULL)
+  }
+  V <- sdr$cov.fixed %||% an$V
+  lost <- names(sdr$se_lost %||% an$lost)
+  p <- fit$opt$par
+  if (!is.matrix(V) || !all(dim(V) == length(p))) return(out)
+  onm <- outer_par_map(fit)$names
+  dp <- eval_dpars(fit)[[resp]]
+  # per unit of mean case weight, as the sharpening is: weights 1/n
+  # inflate every standard error sqrt(n) times without moving the fit
+  wm <- mean(as.numeric(fit$frame[["aterm_values"]][[resp]][["weights"]] %||%
+                          1))
+  for (k in seq_len(K)) {
+    lp <- fit$frame[["linpreds"]][[linpred_key(resp, paste0("mu", k))]]
+    ob <- ord_lp_block(fit$frame, fit$spec, lp)
+    pos <- which(names(p) == ob$comp)
+    raw <- as.numeric(fit$estimates[[ob$comp]])
+    if (!length(pos) || length(pos) != length(raw)) next
+    lost_k[k] <- length(onm) == length(p) && any(onm[pos] %in% lost)
+    unident <- ob$fam[["thres"]][["unident"]] %||% integer(0)
+    nth <- length(ord_threshold_values(ob$fam, raw))
+    keep <- setdiff(seq_len(nth), unident)
+    if (!length(keep)) next
+    # the thresholds' Jacobian in their raw coordinates, by central
+    # differences: the map is a cumulative sum of exponentials at most
+    J <- vapply(seq_along(raw), function(i) {
+      h <- 1e-6 * max(1, abs(raw[i]))
+      up <- raw
+      dn <- raw
+      up[i] <- up[i] + h
+      dn[i] <- dn[i] - h
+      (as.numeric(ord_threshold_values(ob$fam, up)) -
+         as.numeric(ord_threshold_values(ob$fam, dn))) / (2 * h)
+    }, numeric(nth))
+    J <- matrix(J, nrow = nth)[keep, , drop = FALSE]
+    v <- rowSums((J %*% V[pos, pos, drop = FALSE]) * J)
+    v <- v[is.finite(v)]
+    if (!length(v)) next
+    disc <- stats::median(as.numeric(dp[[paste0("disc", k)]] %||% 1))
+    out[k] <- sqrt(max(v, 0) * wm) * disc
+  }
+  attr(out, "lost") <- lost_k
+  out
+}
+
+#' The standard error, on the latent scale, above which a threshold
+#' counts as one the data do not place. On the controls of
+#' dev/silent2-findings.md (the 40 fits of dev/ordstart-starts.R and the
+#' review's 145), 163 fits passed the check of 0.82.0. Their largest
+#' threshold standard errors (fixef()) split into two groups with nothing
+#' between: 143 at most 27.2, and 20 at 640 or more.
+#'
+#' @noRd
+mixture_ord_se_cut <- 100
 
 #' The components of a fitted ordinal mixture at a degenerate boundary,
 #' by the rule of `mixture_ord_degenerate_check()`, for
@@ -7152,7 +7285,8 @@ mixture_ord_start_class <- function(fit, resp) {
 #'   rows and the component's own thresholds that the data place, on
 #'   its link's scale.
 #' - `collapsed`: two of an ordered component's thresholds are the same
-#'   double, where the gap floor of `ord_log_interior()` binds.
+#'   double up to rounding, where the gap floor of `ord_log_interior()`
+#'   binds or nearly does.
 #' - `sharpen`: the mixture's log-likelihood with the component's
 #'   discrimination doubled, less its log-likelihood at the fit; near 0
 #'   or above for a step function. NA where the doubled likelihood is
@@ -7220,8 +7354,13 @@ mixture_ord_degeneracy <- function(fit, resp) {
       jg <- lay$start[g]:lay$end[g]
       keep <- !jg %in% unident
       tg <- tau[jg]
+      # the same double up to rounding: a twin of the same likelihood
+      # 1e-15 apart passed where the tied point warned (backlog 5167,
+      # cum_cum seed 5 of dev/ordstart-starts.R)
       if (ob$ordered && length(tg) > 1L &&
-            any(diff(tg) == 0 & keep[-1L] & keep[-length(keep)])) {
+            any(diff(tg) <= 8 * .Machine$double.eps *
+                  pmax(1, abs(tg[-1L])) &
+                  keep[-1L] & keep[-length(keep)])) {
         collapsed <- TRUE
       }
       r <- which(gi == g)

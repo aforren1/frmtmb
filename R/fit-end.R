@@ -43,6 +43,9 @@ fit_end_checks <- function(fit) {
     # mixture component) names the parameters and the remedy, so the
     # standard-error warning that would follow it is not raised.
     explained <- function(w) {
+      # an ordinal mixture's threshold read off the standard errors leaves
+      # the standard-error check's list of lost parameters to be said
+      if (inherits(w, "frmtmb_ord_unplaced")) return(invisible(NULL))
       if (is.environment(fit$cache)) fit$cache$se_explained <- fam_nm
     }
     tryCatch(withCallingHandlers(fc(fit, resp$resp_name),

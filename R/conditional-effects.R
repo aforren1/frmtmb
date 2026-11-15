@@ -33,10 +33,20 @@ ce_aterms <- function(rspec, nd, n) {
     # level is the boundary the fit read that level as
     v <- tryCatch(aterm_coerce(nm, eval(ex, nd, rspec$formula_env), rspec),
                   error = function(e) NULL)
+    v <- aterm_scalar(ex, v, nd)
     if (!is.null(v) && !length(v) %in% c(1L, n)) v <- NULL
+    # the fitted rows' values, whose length matches the grid's only by
+    # coincidence (resolution = 120 on a 120-row fit; backlog 5235)
+    rowless <- !is.null(v) && aterm_rowless(ex, v, nd)
+    if (rowless) v <- NULL
     if (is.null(v) && (nm %in% strict || is_custom_data_aterm(nm))) {
       frm_stop("conditional_effects() could not evaluate ",
                aterm_label(nm, ex), " on the effect grid",
+               if (rowless) {
+                 paste0(": it reads no column of the data, so its values ",
+                        "are not the grid's rows. Write it as a column of ",
+                        "the data")
+               },
                call. = FALSE)
     }
     if (!is.null(v)) av[[nm]] <- v

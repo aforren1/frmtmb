@@ -241,9 +241,26 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   sim_one <- if (predict) {
     function(fit, nd) ce_sim_one(fit, nd, resp, re_formula, anl)
   }
+  # every predicted dpar at one grid, on the link scale, one column per
+  # dpar: what a simulated response reads besides its expected value
+  dp_names <- names(rspec$dpars)[vapply(names(rspec$dpars), function(d) {
+    !is.null(fit$frame[["linpreds"]][[paste(resp, d, sep = ".")]])
+  }, NA)]
+  dp_one <- function(fit, nd) {
+    vapply(dp_names, function(d) {
+      rep_len(as.vector(frm_linpred(fit, newdata = nd, dpar = d, resp = resp,
+                                    re_formula = re_formula,
+                                    allow_new_levels = anl, type = "link")),
+              nrow(nd))
+    }, numeric(nrow(nd)))
+  }
   # on laplace draws the watch reads the expected values, which the
   # probe read too: whether a simulated value is missing says less about
-  # what it read
+  # what it read. With method = "predict" it reads every dpar as well,
+  # as posterior_predict()'s does: the expected value of a gaussian does
+  # not read sigma, so `sigma ~ (1 | h)` drew an all-NA band unrefused
+  # (backlog 5362). Each dpar's cells are in the expected values' order,
+  # so the design skip applies to them cell by cell.
   M <- matrix(NA_real_, length(rows), sum(lens))
   for (i in seq_along(rows)) {
     one <- watch(function(fill) {
@@ -264,8 +281,23 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
           }
         }), use.names = FALSE)
       }
+      # each grid's rows x dpars, regrouped dpar by dpar across the grids
+      grid_dp <- function() {
+        per <- lapply(seq_along(gb$grids), function(gi) {
+          v <- if (is.null(plan)) {
+            dp_one(fi, gb$grids[[gi]]$nd)
+          } else {
+            ce_plan_eval(fi, plan, gi, cache, poly, resp, pred_dpar,
+                         re_formula, anl, one = dp_one)
+          }
+          matrix(v, ncol = length(dp_names))
+        })
+        lapply(seq_along(dp_names), function(j) {
+          unlist(lapply(per, function(m) m[, j]), use.names = FALSE)
+        })
+      }
       list(val = grid_vals(sim_one),
-           ev = if (lap && predict) grid_vals(NULL))
+           ev = if (lap && predict) c(list(grid_vals(NULL)), grid_dp()))
     }, function(o) if (predict) o$ev else o$val)
     M[i, ] <- one$val
   }

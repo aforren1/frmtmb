@@ -1469,6 +1469,54 @@ mm_index_weights <- function(mmspec, data, env, levels) {
   list(J = J, W = W, n = n, n_members = ng)
 }
 
+#' The contrasts `model.matrix()` codes the factors of a group-level
+#' term's left side with on `data`, which is what `mkReTrms()` reads: a
+#' factor's own `contrasts` attribute, else the session's
+#' `options("contrasts")` at the fit. A prediction passes them back as
+#' `contrasts.arg`, as the population-level design reads its stored
+#' `contrasts`. Each is named as the prediction's model frame names its
+#' column, by the deparsed variable (`factor(cyl)`). `NULL` when the term
+#' has no factor.
+#'
+#' @noRd
+re_term_contrasts <- function(lhs, data, env) {
+  tt <- stats::terms(stats::as.formula(call("~", lhs), env = env))
+  # each variable as the frame holds it, else evaluated on the frame:
+  # `data` can be a model frame that holds `factor(cyl)` and no `cyl`,
+  # where model.frame() of the left side failed and the term kept no
+  # contrasts (dev/reviews/2026-11-13-silent2.md, F1)
+  cols <- list()
+  for (v in as.list(attr(tt, "variables"))[-1L]) {
+    nm <- deparse1(v)
+    x <- data[[nm]]
+    if (is.null(x)) {
+      x <- tryCatch(eval(v, as.data.frame(data), env),
+                    error = function(e) NULL)
+    }
+    if (is.factor(x) || is.character(x) || is.logical(x)) cols[[nm]] <- x
+  }
+  if (!length(cols)) return(NULL)
+  funs <- as.character(getOption("contrasts"))
+  lapply(cols, function(x) {
+    attr(x, "contrasts") %||% funs[[1L + is.ordered(x)]]
+  })
+}
+
+#' The stored contrasts of `contr` that `model.matrix()` can apply to the
+#' model frame `mf`: its factor columns. A name `mf` lacks would only
+#' warn, and a column that is not a factor there has no contrasts.
+#'
+#' @noRd
+re_contrasts_for <- function(contr, mf) {
+  if (is.null(contr)) return(NULL)
+  ok <- vapply(names(contr), function(v) {
+    x <- mf[[v]]
+    !is.null(x) && (is.factor(x) || is.character(x) || is.logical(x))
+  }, NA)
+  if (!any(ok)) return(NULL)
+  contr[ok]
+}
+
 #' Per-member design matrices of one multi-membership term.
 #'
 #' Every member shares the ordinary columns of the bar's left side, and
@@ -1491,7 +1539,8 @@ mm_member_designs <- function(mmspec, data, env, n_members,
     data <- check_newdata_frame(tt, data, xlev)
     mf2 <- stats::model.frame(tt, data, na.action = stats::na.pass,
                               xlev = xlev)
-    stats::model.matrix(tt, mf2)
+    stats::model.matrix(tt, mf2, contrasts.arg = re_contrasts_for(
+      mmspec[["contrasts"]], mf2))
   } else {
     stats::model.matrix(tt, data)
   }
@@ -2155,6 +2204,90 @@ loglik_nobs <- function(frame) {
     held <- c(held, of[setdiff(rows, un)])
   }
   length(unique(held))
+}
+
+#' The values each response's density reads, row by row, for `anova()`'s
+#' same-data check: two fits of 72 rows each can read rows 1 to 72 and 9
+#' to 80, and a count of rows does not tell them apart. The rows are put
+#' in the order of the data's row names, so a fit of the same rows given
+#' in another order, or of a copy whose row names restart at 1 (a
+#' filtered tibble), reads the same values.
+#'
+#' @noRd
+loglik_rows_key <- function(fit) {
+  fr <- fit$frame
+  rn <- rownames(fit$data) %||% as.character(seq_len(fr[["n_obs"]]))
+  out <- list()
+  for (r in sort(names(fr[["y"]]))) {
+    y <- fr[["y"]][[r]]
+    rows <- seq_len(NROW(y))
+    keep <- setdiff(rows, fr[["mi_map"]][[r]][["unread"]])
+    lab <- rn[(fr[["subset_rows"]][[r]] %||% rows)[keep]]
+    num <- suppressWarnings(as.numeric(lab))
+    ord <- if (length(lab) && !anyNA(num)) {
+      order(num)
+    } else {
+      order(lab, method = "radix")
+    }
+    sel <- (fr[["subset_rows"]][[r]] %||% rows)[keep][ord]
+    # a factor, character or logical response by its labels, read off the
+    # data: the frame holds its codes, and two factors of other outcomes
+    # whose codes agree (a..d against w..z) are other data (short check of
+    # the review, F2). A logical reads as "0"/"1", an integer's text.
+    raw <- loglik_rows_raw(fit, r)
+    out[[r]] <- if (!is.null(raw)) {
+      raw <- raw[sel]
+      as.character(if (is.logical(raw)) as.integer(raw) else raw)
+    } else {
+      v <- if (is.matrix(y)) y[keep, , drop = FALSE][ord, , drop = FALSE] else {
+        y[keep][ord]
+      }
+      v <- if (is.factor(v)) as.character(v) else v
+      if (is.numeric(v) || is.logical(v)) as.numeric(unname(v)) else {
+        as.character(unname(v))
+      }
+    }
+  }
+  # one response each: compared by its values, not its name, so `y ~ 1`
+  # and `I(y) ~ x`, or `y` and a copy `y2`, are the same data
+  if (length(out) == 1L) unname(out) else out
+}
+
+#' A response's raw values on the fit's data rows when they are labels (a
+#' factor, character or logical vector), for `loglik_rows_key()`; `NULL`
+#' for a numeric or matrix response, or one that does not evaluate there.
+#'
+#' @noRd
+loglik_rows_raw <- function(fit, r) {
+  rspec <- fit$spec$responses[[r]]
+  if (is.null(rspec) || is.null(fit$data)) return(NULL)
+  raw <- tryCatch(eval(rspec$resp_expr, as.data.frame(fit$data),
+                       rspec$formula_env), error = function(e) NULL)
+  if (is.null(raw) || !is.null(dim(raw)) ||
+        length(raw) != nrow(fit$data) ||
+        !(is.factor(raw) || is.character(raw) || is.logical(raw))) {
+    return(NULL)
+  }
+  raw
+}
+
+#' Whether two `loglik_rows_key()` keys are the same data: equal element
+#' by element, where a numeric key meets a label key through its text, so
+#' the integer 1..4 and the ordered factor of the same labels compare.
+#'
+#' @noRd
+loglik_rows_same <- function(a, b) {
+  if (identical(a, b)) return(TRUE)
+  if (length(a) != length(b) || !identical(names(a), names(b))) return(FALSE)
+  all(vapply(seq_along(a), function(i) {
+    x <- a[[i]]
+    y <- b[[i]]
+    if (is.character(x) != is.character(y)) {
+      x <- as.character(x)
+      y <- as.character(y)
+    }
+    identical(x, y)
+  }, NA))
 }
 
 #' After a fit: warn when the Laplace approximation of the read values has a
@@ -4204,6 +4337,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             # cmc = FALSE rides on the spec, which the component keeps,
             # so a prediction builds the members' designs the same way
             if (isFALSE(dp[["cmc"]])) mms[["cmc"]] <- FALSE
+            # and the fit's contrasts ride on it too (re_term_contrasts())
+            mms[["contrasts"]] <- re_term_contrasts(mms$lhs, mf,
+                                                    resp$formula_env)
             gvals <- mm_member_values(mms, mf, resp$formula_env)
             levs <- mm_pooled_levels(gvals)
             iw <- mm_index_weights(mms, mf, resp$formula_env, levs)
@@ -4353,6 +4489,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             aux_D = aux_D, aux_kron = aux_kron, aux_Q = aux_Q,
             aux_Qk = aux_Qk,
             group_name = names(rt$flist)[fassign[kk]],
+            # the coding mkReTrms() gave the term's factors, for a
+            # prediction made after options(contrasts = ) changed
+            contrasts = re_term_contrasts(bars[[k]][[2L]], mf,
+                                          resp$formula_env),
             label = paste0(dp_prefix,
                            deparse1(mo_ph_unwrite(bars[[k]], dp[["mo_re"]])))
           )
@@ -5172,6 +5312,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # cmc = FALSE on this term, which a prediction has to repeat
         if (isTRUE(cps[[k]][["cmc_intercept"]])) {
           out[["cmc_intercept"]] <- TRUE
+        }
+        # and the contrasts it was coded with (re_term_contrasts())
+        if (!is.null(cps[[k]][["contrasts"]])) {
+          out[["contrasts"]] <- cps[[k]][["contrasts"]]
         }
         # a || or cor = FALSE term as written, which messages name it by
         # (block_written_label())

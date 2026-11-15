@@ -112,7 +112,17 @@ re_term_cnms <- function(fit, term, cmc = TRUE) {
   mf <- tryCatch(stats::model.frame(tt, df, na.action = stats::na.pass),
                  error = function(e) NULL)
   if (is.null(mf)) return(NULL)
-  cn <- colnames(stats::model.matrix(tt, mf))
+  # named under the fit's contrasts, as the components were built
+  contr <- list()
+  for (bk in fit$frame[["re_blocks"]]) {
+    for (cp in bk[["components"]]) {
+      cc <- cp[["contrasts"]] %||% cp[["mm"]][["contrasts"]]
+      contr <- c(contr, cc[setdiff(names(cc), names(contr))])
+    }
+  }
+  cn <- colnames(stats::model.matrix(tt, mf,
+                                     contrasts.arg = re_contrasts_for(contr,
+                                                                      mf)))
   if (cmc_drop) cn <- setdiff(cn, "(Intercept)")
   cn
 }

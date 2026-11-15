@@ -265,6 +265,46 @@ test_that("BIC(), df.residual() and anova() count the rows a response keeps", {
   expect_error(anova(mv, wide), "same number of observations")
 })
 
+test_that("anova() compares the rows each likelihood reads, not their count", {
+  # backlog 5246: rows 1 to 72 against rows 9 to 80 both count 72, and
+  # through 0.82.0 anova() tested one against the other
+  set.seed(5)
+  d <- data.frame(x = stats::rnorm(80))
+  d$y1 <- d$x + stats::rnorm(80)
+  d$y2 <- d$x + stats::rnorm(80)
+  d$s1 <- seq_len(80) <= 72
+  d$s9 <- seq_len(80) > 8
+  f1 <- frm(bf(y1 | subset(s1) ~ x) + bf(y2 | subset(s1) ~ x) +
+              set_rescor(FALSE), data = d)
+  f9 <- frm(bf(y1 | subset(s9) ~ x) + bf(y2 | subset(s9) ~ 1) +
+              set_rescor(FALSE), data = d)
+  expect_identical(attr(logLik(f1), "nobs"), attr(logLik(f9), "nobs"))
+  msg <- "anova() needs fits of the same data"
+  expect_error(anova(f1, f9), msg, fixed = TRUE)
+  # missing values of different predictors leave different rows of one
+  # count
+  du <- d[, c("x", "y1")]
+  du$z <- stats::rnorm(80)
+  du$x[1:4] <- NA
+  du$z[5:8] <- NA
+  ux <- suppressMessages(frm(y1 ~ x, data = du))
+  uz <- suppressMessages(frm(y1 ~ z, data = du))
+  expect_error(anova(ux, uz), msg, fixed = TRUE)
+  # the guard's condition absent: the same rows compare, in any order
+  # and under row names that restart at 1
+  f0 <- frm(bf(y1 | subset(s1) ~ 1) + bf(y2 | subset(s1) ~ 1) +
+              set_rescor(FALSE), data = d)
+  expect_no_error(anova(f0, f1))
+  dc <- du[stats::complete.cases(du), ]
+  a <- frm(y1 ~ 1, data = dc)
+  b <- frm(y1 ~ x + z, data = dc[rev(seq_len(nrow(dc))), ])
+  rownames(dc) <- NULL
+  c0 <- frm(y1 ~ x, data = dc)
+  expect_no_error(tab <- anova(a, b, c0))
+  expect_equal(tab$Chisq[3L],
+               2 * (as.numeric(logLik(b)) - as.numeric(logLik(c0))))
+})
+
 test_that("an NA drops its row only where a response uses it", {
   d <- subset_data()
   # z is NA on the 30 rows outside y2's subset, and nothing else uses z:
@@ -482,4 +522,46 @@ test_that("mi() across responses with different rows is refused as brms", {
                "Index of response 'x' contains duplicated values")
   expect_error(fr(bf(y ~ mi(x, idx = g1 + 1)) + bf(x | mi() ~ 1)),
                "idx takes one variable name")
+})
+
+test_that("anova() compares one response by its values, whatever its form", {
+  # review of 2026-11-13, F2: the row key kept the response's name and
+  # storage, so the same y under another name, or as an ordered factor
+  # or a logical, was refused as "other response values"
+  set.seed(11)
+  n <- 80
+  d <- data.frame(x = stats::rnorm(n))
+  d$y <- d$x + stats::rnorm(n)
+  d$y2 <- d$y
+  d$o <- cut(d$y, c(-Inf, -1, 0, 1, Inf), labels = FALSE)
+  d$of <- factor(d$o, ordered = TRUE)
+  d$b <- as.integer(d$y > 0)
+  d$bl <- d$y > 0
+  q <- function(...) suppressWarnings(suppressMessages(frm(...)))
+  expect_no_error(anova(q(y ~ 1, data = d), q(I(y) ~ x, data = d)))
+  expect_no_error(anova(q(y ~ 1, data = d), q(y2 ~ x, data = d)))
+  expect_no_error(anova(q(o ~ 1, family = cumulative(), data = d),
+                        q(of ~ x, family = cumulative(), data = d)))
+  expect_no_error(anova(q(b ~ 1, family = bernoulli(), data = d),
+                        q(bl ~ x, family = bernoulli(), data = d)))
+  # the guard's condition present: other values refuse
+  d$y3 <- rev(d$y)
+  expect_error(anova(q(y ~ 1, data = d), q(y3 ~ x, data = d)),
+               "anova() needs fits of the same data", fixed = TRUE)
+  # factors of other outcomes whose codes agree are other data (short
+  # check of the review, F2): keyed by codes, these two pairs compared
+  d$fa <- factor(c("a", "b", "c", "d")[d$o])
+  d$fb <- factor(c("w", "x", "y", "z")[d$o])
+  expect_error(anova(q(fa ~ 1, family = categorical(), data = d),
+                     q(fb ~ x, family = categorical(), data = d)),
+               "anova() needs fits of the same data", fixed = TRUE)
+  d$oa <- factor(d$o, ordered = TRUE)
+  d$oc <- factor(d$o + 1L, ordered = TRUE)
+  expect_error(anova(q(oa ~ 1, family = cumulative(), data = d),
+                     q(oc ~ x, family = cumulative(), data = d)),
+               "anova() needs fits of the same data", fixed = TRUE)
+  # and the integers 2..5 against their own ordered factor compare
+  d$o1 <- d$o + 1L
+  expect_no_error(anova(q(o1 ~ 1, family = cumulative(), data = d),
+                        q(oc ~ x, family = cumulative(), data = d)))
 })

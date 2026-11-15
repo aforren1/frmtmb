@@ -4269,7 +4269,9 @@ as.matrix.frmtmb_draws <- function(x, pars = NA, variable = NULL,
 print.frmtmb_draws <- function(x, ...) {
   frm_check_dots(...)
   m <- x$draws
-  keep <- draws_outer_cols(x)
+  # in variables() order: `x$draws` keeps the template's, which lists a
+  # gp(by = ) term's sdgp_ and lscale_ pairwise where brms lists the sdgp_
+  keep <- intersect(colnames(m)[draws_brms_order(x)], draws_outer_cols(x))
   cat("<frmtmb_draws> ", nrow(m), " draws x ", ncol(m),
       " parameters\n\n", sep = "")
   tab <- t(vapply(keep, function(nm) {
