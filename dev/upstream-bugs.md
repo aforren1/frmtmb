@@ -1940,6 +1940,44 @@ Seen on 0.2.5. All four are patched with `assignInNamespace()` in
 - Record: `dev/learn-findings.md`, near line 712.
 - Status: not reported. Check for a known issue first.
 
+## pkgcheck
+
+### pkgcheck-1. The markdown report is a list when the CI check passes
+
+- Seen: pkgcheck 0.3.4.5 in `ghcr.io/ropensci-review-tools/pkgcheck-action:latest`
+  (the pkgcheck run on 0.82.1 = 8159568e).
+- Repro: any package whose CI check passes. `output_pkgchk_ci()` returns
+  `print` as `list(msg_pre, obj, msg_post)`, `get_gp_text()` puts it into
+  `c(...)`, so `checks_to_markdown()` returns a list; the action's
+  `R/check.R` stops at `writeLines(md[1:(s_break - 1)], "summary.md")`
+  with "can only write character objects", and the job fails.
+- Expected: `checks_to_markdown()` returns a character vector.
+- Workaround: `.github/pkgcheck.Rprofile` wraps `checks_to_markdown()`
+  to `unlist()` a list result.
+- Record: this file; pkgcheck run logs of 8159568e.
+- Status: reported upstream by others, pkgcheck issue #444 (open).
+
+### pkgcheck-2. The CI check fails when its anonymous GitHub API request fails
+
+- Seen: pkgcheck 0.3.4.5, run 43673487284 on 0.83.0 (c6383527): "Package
+  has no continuous integration checks" although R-CMD-check and
+  test-coverage on that commit had completed with success before the
+  check ran (the workflow waits for them).
+- Repro: `ci_results_gh()` (`R/info-ci.R`) builds
+  `httr2::request("https://api.github.com/repos/<org>/<repo>/actions/runs")`
+  with no token, and `pkgcheck-info.R` wraps the call in
+  `tryCatch(..., error = function(e) NULL)`. An empty result makes
+  `output_pkgchk_ci()` report no workflows. The likely failure is the
+  anonymous rate limit on a shared runner address; that is inferred, not
+  shown (the request's status is not logged).
+- Expected: the request sends `GITHUB_TOKEN` (the action passes it into
+  the container), and a failed request is reported as such, not as
+  "no continuous integration checks".
+- Workaround: `.github/pkgcheck.Rprofile` adds the token to httr2
+  requests to `https://api.github.com/` in that job.
+- Record: this file; pkgcheck run log 43673487284.
+- Status: not reported. Check pkgcheck issues #449 and #255 first.
+
 ## Already reported upstream
 
 The tests harvest these issues from the brms, lme4 and glmmTMB
