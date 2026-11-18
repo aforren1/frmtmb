@@ -4883,6 +4883,57 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-16
+
+### From lane quadesc
+
+- **MEDIUM. A quadrature fit whose alpha runs off reports the
+  log-likelihood of a rule anchored at alpha = 0** (dev/quadesc-findings.md,
+  section 6). After the rule's stationary escape, `quad_settle()` cannot
+  re-anchor at alpha near 1e6 (the rule taped there is not finite), so the
+  estimate keeps the rule calibrated at the stall. Against the exact
+  marginal log-likelihood (one-dimensional integrals, no rule) it reads
+  high: ALPHAX -84.560 against -85.101 (0.54), SYMSMALL -84.925 against
+  -85.195 (0.27), WEAK -74.138 against -74.579 (0.44); 0.83.0 is the same
+  where it escaped. The same rule ranks restarts: an ending at alpha near
+  (5920, -16445), which the rule reads 0.48 lower, has the higher exact
+  value (by 0.06 to 0.12). Between two abandoned restarts it can pick
+  the exact-worse one: ALPHAX k = 9, rule objectives 84.560080 and
+  84.578059, exact -85.105859 and -85.024758 (review of lane quadesc,
+  section 2; valid endings span -85.106 to -84.974). Related:
+  `quad_fit()` drops the Laplace
+  escape's point when the rule anchored there runs off (its re-anchor
+  does not tape), and the cold template's stall then wins
+  `quad_keep_best()` as "stationary". Size M.
+- **LOW. Beside run-off alphas the standard-error check calls
+  (Intercept) and x flat on some endings** (refiled from the LOW in
+  item 5015). Not OpenBLAS only. On the lane's ALPHAX roundings (k = 0
+  to 20) it is 2 of 21 under each OpenBLAS build ("(Intercept), x" and
+  "x, sigma_(Intercept)") and 0 of 21 under the reference BLAS, where
+  the lane's first build gave 1 of 21; WEAK gives "(Intercept),
+  sigma_(Intercept)" once of 21 under the reference BLAS
+  (dev/quadesc-findings.md, section 5). Not diagnosed.
+- **MEDIUM. skew_normal()'s density has a NaN gradient where alpha * z
+  is below about -3e9** (owner: the skew normal's density,
+  `fam_skew_normal()`; review of lane quadesc, finding 1;
+  dev/upstream-bugs.md, RTMB-3). RTMB 2.0's `pnorm(log.p = TRUE)`
+  derivative is non-finite at 174 of 4001 points in [-9.9e13, -3.1e9]
+  and already wrong from -1e6 (relative error 3.7e-5 at -1e6, 0.34 at
+  -1e8). With alpha run off to 1e6 to 1.4e7, a quadrature rule's far
+  nodes reach alpha * z of -3.0e9 to -3.9e9 at a weight of 0, and 0
+  times Inf is NaN: the objective is sound and its gradient is NaN, so
+  the optimizer raises (the cause of item 5015's dropped restarts). The
+  candidate, tested by the review and not built: a soft floor on the
+  argument, `-1e6 + logspace_add(0, w + 1e6)`, gives the same group
+  value to 10 decimals and a finite gradient
+  (dev/reviews/quadesc-review-clamp.R), but changes every skew-normal
+  density at the ulp level (an anchor's alpha gradient moved from
+  -4.3e-16 to -3.4e-14), so it needs every skew-normal test and record
+  rerun. The stationary escape's `escape_track()` stays the safety net
+  either way: with a finite gradient the run-off still rises on a
+  near-level plateau. (Filed first as a LOW saying the NaN was not
+  `pnorm()`'s; that was wrong: the lane's probe stopped at x = -1000.)
+
 ## Filed at the 0.83.0 release (2026-11-13)
 
 ### From lane ci082
@@ -5028,6 +5079,9 @@ Lane record: `dev/selimit2-findings.md`.
   isolated). Related, LOW: on test-quad-escape-record.R's ALPHAX fit,
   OpenBLAS also calls (Intercept) and x flat beside the run-off alphas,
   where the reference BLAS keeps their standard errors.
+  CLOSED in the round of 2026-11-16 (lane quadesc): the restarts raised
+  (gradient NaN on the run-off) and were dropped; an abandoned restart
+  now keeps its last finite-gradient point. The LOW is refiled.
 ### From lane slopescale
 
 - **HIGH. The default never engages on a poorly centered random-slope

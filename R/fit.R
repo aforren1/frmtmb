@@ -4507,16 +4507,60 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
     passes <- passes + 1L
     n_starts <- n_starts + length(starts)
     gained <- FALSE
+    # a restart the optimizer abandoned (escape_track()) is kept only when
+    # no restart that ended on its own gained AND left the point. Its
+    # objective is read where the run left the region the objective
+    # resolves: on a quadrature rule anchored at alpha = 0 it read 0.48
+    # above such an ending, whose exact marginal log-likelihood was 0.06 to
+    # 0.12 the higher (dev/quadesc-findings.md, section 4). A restart that
+    # came back to the point does not count however its objective rounds:
+    # SYMSMALL's from -2 ended 6.9e-10 above the stall on every rounding,
+    # and 1e-12 below it dropped a point 2.29 higher (review of lane
+    # quadesc, finding 3)
+    n_here <- attr(starts, "n_on") %||% 0L
+    left <- FALSE
+    abandoned <- NULL
     for (p in starts) {
       p <- pmin(pmax(p, bounds$lower), bounds$upper)
-      o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
-                                 start_par = p, tally = tally),
-                    error = function(e) NULL)
-      if (!is.null(o) && is.finite(o$objective) &&
-            o$objective < best$objective) {
+      tr <- escape_track(obj)
+      # its own count when the caller keeps none, so that an abandoned
+      # restart can report what it cost, as a finished one does
+      tl <- tally
+      if (is.null(tl)) {
+        tl <- new.env(parent = emptyenv())
+        tl$n <- 0L
+      }
+      o <- tryCatch(optimize_obj(tr$obj, control, bounds, par_units,
+                                 start_par = p, tally = tl),
+                    error = function(e) {
+                      b <- tr$best(e)
+                      if (!is.null(b)) {
+                        b$abandoned <- TRUE
+                        b$evals <- tl$evals
+                        if (identical(control$optimizer %||% "nlminb",
+                                      "nlminb")) {
+                          b$nonfinite_trials <- tl$n
+                        }
+                      }
+                      b
+                    })
+      if (is.null(o) || !is.finite(o$objective)) next
+      if (isTRUE(o$abandoned)) {
+        if (is.null(abandoned) || o$objective < abandoned$objective) {
+          abandoned <- o
+        }
+      } else if (o$objective < best$objective) {
         best <- o
         gained <- TRUE
+        n_now <- attr(stationary_escapes(obj, o, frame), "n_on") %||% 0L
+        if (n_now < n_here) left <- TRUE
       }
+    }
+    if (!left && !is.null(abandoned) &&
+          abandoned$objective < best$objective) {
+      best <- abandoned
+      best$abandoned <- NULL
+      gained <- TRUE
     }
     if (!gained || passes >= max_passes) break
     starts <- stationary_escapes(obj, best, frame)
@@ -4547,6 +4591,66 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
                     format(gain, digits = 3)))
   }
   best
+}
+
+#' An escape restart's objective that remembers the lowest point where
+#' both the objective and its gradient were finite, so that a restart
+#' the optimizer abandons on an error still returns where it got to.
+#'
+#' A restart sent off a family's stationary point often runs toward the
+#' family's limit (the skew normal's alpha toward the half-normal), where
+#' the objective is nearly level. There the gradient can stop being
+#' finite: RTMB's `pnorm(log.p = TRUE)` has a non-finite derivative below
+#' about -3e9 (dev/upstream-bugs.md, RTMB-3), and a quadrature rule's far
+#' nodes reach it at a weight of 0, which makes NaN. The optimizer then
+#' raises even after its restart from the best point. Dropping such a
+#' restart dropped its gain: on a quadrature fit every start of the
+#' rule's escape raised, and the fit stopped on alpha = 0 with no gain
+#' (dev/quadesc-findings.md, item 5015). The tape's own best point does
+#' not do: it is where the gradient first failed, so no later step can
+#' start from it.
+#'
+#' Returns `list(obj, best)`: `obj` to optimize in place of the
+#' objective (its `env` is the objective's own), and `best(e)`, the
+#' remembered point as an optimizer result with a nonzero code, so that
+#' the fit says it did not converge, or NULL if none was remembered.
+#'
+#' @noRd
+escape_track <- function(obj) {
+  rec <- new.env(parent = emptyenv())
+  rec$f <- Inf
+  same <- function(a, b) {
+    !is.null(b) && identical(unname(as.numeric(a)), unname(as.numeric(b)))
+  }
+  wrapped <- obj
+  wrapped$fn <- function(x, ...) {
+    v <- obj$fn(x, ...)
+    rec$x <- x
+    rec$v <- v
+    v
+  }
+  wrapped$gr <- function(x, ...) {
+    g <- obj$gr(x, ...)
+    v <- rec$v
+    # nlminb asks for the gradient at a point whose objective it has
+    # just read; any other point is not remembered
+    if (same(x, rec$x) && length(v) == 1L && is.finite(v) && v < rec$f &&
+          all(is.finite(g))) {
+      rec$f <- as.numeric(v)
+      rec$par <- x
+    }
+    g
+  }
+  best <- function(e) {
+    if (is.null(rec$par)) return(NULL)
+    list(par = stats::setNames(as.numeric(rec$par), names(obj$par)),
+         objective = rec$f, convergence = 1L,
+         message = paste0("the optimizer stopped on an error (",
+                          conditionMessage(e), ") on its way from a ",
+                          "restart off a stationary point; the lowest ",
+                          "point with a finite gradient is kept"))
+  }
+  list(obj = wrapped, best = best)
 }
 
 #' A quadrature fit escapes a stationary point twice: on the Laplace

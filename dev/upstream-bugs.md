@@ -1094,8 +1094,27 @@ Numbering is settled at consolidation. Not reported.
   to 1e154. Workaround: the probit's `logit_eta` reads the logs at
   `|eta| <= 1000` only and continues with the tail's leading term
   (`R/links.R`).
+- Also (review of lane quadesc, 2026-11-17,
+  `dev/reviews/quadesc-review-iso2.R`, log
+  `dev/reviews/quadesc-review-iso2-ref.txt`): on 4001 points of x in
+  [-1e14, -1e2], log-spaced, the first derivative is non-finite at 174,
+  all in [-9.93e13, -3.10e9]. Relative error against -x: 1.1e-8 at
+  -1e4, 3.2e-7 at -1e5, 3.7e-5 at -1e6, 3.2e-3 at -1e7, 0.34 at -1e8,
+  6.2e18 at -1e9; Inf at -1e10. The value stays right. Met in
+  `skew_normal()` (RTMBdist's `dskewnorm()` reads `pnorm(alpha * z,
+  log.p = TRUE)`) under `quadrature = TRUE`: with alpha near 2e6 to
+  1.4e7 the rule's far nodes put alpha * z at -3.0e9 to -3.9e9, the
+  node's weight is exp(-5e18) = 0, and 0 times the non-finite
+  derivative is NaN in the reverse sweep, so the gradient is NaN while
+  the value is sound (group 11 of the review's case, 6.0384 against an
+  exact 6.0606). Workaround: the stationary escape keeps the last point
+  with a finite gradient (`escape_track()`, `R/fit.R`). A candidate
+  floor in the family, `-1e6 + logspace_add(0, w + 1e6)` on the
+  argument, gives a finite gradient and the same value to 10 decimals
+  (`dev/reviews/quadesc-review-clamp.R`), but moves every skew-normal
+  density at the ulp level; filed in `dev/test-backlog.md`, not built.
 - Record: `dev/phase3b-rtmb-report-pnorm.md` (filing draft);
-  `dev/optima-findings.md`.
+  `dev/optima-findings.md`; `dev/quadesc-findings.md`, section 10.
 - Status: not reported (draft ready).
 
 ### RTMB-4. `dnbinom_robust()` gradient in the size is wrong at very large sizes

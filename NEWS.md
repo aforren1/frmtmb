@@ -1,3 +1,25 @@
+# frmtmb (development version)
+
+## Convergence and standard errors
+
+* BREAKING: A restart of the escape from a family's declared stationary
+  point (the skew normal's alpha = 0) that the optimizer abandons on an
+  error now keeps the lowest point it reached where the gradient is
+  finite, when no other restart of the escape gained and left the
+  point. This holds wherever the escape runs: Laplace fits, and both
+  escapes of a `quadrature = TRUE` fit (on the Laplace objective before
+  the rule is taped, and on the rule). Such a restart runs alpha far
+  toward its end (the half-normal limit), where the objective's
+  gradient can stop being finite. Before, the restart was dropped, so
+  whether the escape gained was decided by rounding. Three skew normals
+  with `(1 | g)` and `quadrature = TRUE`, started at alpha = 0, with the
+  response scaled by 1 + 2e-15 k for k = 0 to 20, stopped on alpha = 0
+  on 3 to 10 of the 21 scalings under the reference BLAS and under
+  OpenBLAS, 1.0 to 6.1 below the escaped fit in exact marginal
+  log-likelihood, with only a standard-error warning. The fit now
+  leaves alpha = 0 on every one of them and warns that the optimizer
+  did not report convergence.
+
 # frmtmb 0.83.0
 
 ## Convergence and standard errors
