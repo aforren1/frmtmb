@@ -4883,6 +4883,98 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-16
+
+### From lane drawdir
+
+Record: `dev/drawdir-findings.md`.
+
+- **LOW. A weakness spread over many directions is still not
+  flagged.** Of the 7 mixture fits with 10 or 20 noise covariates in
+  both components that the summed check's ratio silenced (the item
+  "the draw check's ratio rule misses a weak direction diluted"), the
+  per-direction reading fires on 4 (poisson seeds 25, 26, 36, 39 at
+  K = 20). Seeds 13 (K 20), 20 (K 10) and 36 (K 10) stay silent, with
+  predict()'s mean 29.0, 18.3 and 19.7 Monte Carlo SEs from fitted():
+  their largest direction excess at 2 standard deviations is 3.8, 2.2
+  and 5.0, under the threshold of 6 and inside the gaussian GLMMs'
+  range (up to 5.6). The second component's coefficients are all
+  weakly identified, each direction only a little off the normal law. A
+  reading of a subspace (the second component's block) might see it;
+  neither a single direction nor the summed median can without firing
+  on GLMMs or on the K designs (`dev/drawdir-repro.R`,
+  `dev/drawdir-v-partR.txt`). Silence is not shown to cost accuracy:
+  with the reweighting forced on, the predictive means' error against
+  the truth goes 0.4665 to 0.4062 (seed 13 K 20), 0.2621 to 0.2829
+  (seed 20 K 10) and 0.2201 to 0.2667 (seed 36 K 10), worse on 2 of 3,
+  with the k > 0.7 warning on all three; and a z far from 0 is no mark
+  of a wrong law here (unfired fits read z up to 27.9).
+- **LOW. The per-direction reading is not capped.** It costs 2p
+  objective evaluations once per fit and a 2p x p matrix of deviates:
+  5.9 s on a poisson GLMM with 62 parameters and 2000 levels (first
+  predict() 10.1 s), 4.8 s on a GLM with 1001 coefficients
+  (`dev/drawdir-cost.R`). At p = 5000 the deviates alone are 400 MB.
+  No cap was built (a cap on p loses the reading where dilution is
+  worst); the side law's first-call cost (4924) is the same question.
+- **LOW. The k > 0.7 warning depends on `ndraws`.** The Pareto k is
+  read from the call's own draws, so whether a fired fit warns or only
+  gets the once-per-fit message depends on how many draws the caller
+  asks for: of the review's 8 random-slope fires, 4 warned at 200 draws
+  and 8 at 20000 (slpw:12 k 0.56 at 200, 0.80 at 20000;
+  `dev/reviews/2026-11-17-drawdir.md` section 6). The same holds on the
+  summed check's path since 0.83.0.
+- **LOW. The deviates' product is formed twice at large p.**
+  `draw_check_dirs()` forms `crossprod(L, Z)` (through
+  `draw_edge_apply()` or directly) and `draw_logratio()` forms it again
+  as `X`. At p = 1001, Rprof gives `crossprod` 1.17 s of the reading's
+  1.80 s (`qr.qty` 0.37 s, `qr` 0.13 s; the review's
+  `dev/reviews/drawdir-review-cost.R`). Passing the product in would
+  halve the largest part.
+- **MEDIUM. A variance component's too-wide far tail is said, not
+  mended.** Where only variance components' directions fire the
+  per-direction reading, predict() now warns and keeps the normal
+  law's draws (user decision of 2026-11-17, option b). The defect is
+  real: on random-slope fits with a weakly identified slope sd and
+  correlation, the normal law's 98% new-level interval was 1.36 to 2.04
+  times the known-parameter law's (S0.1 seeds 14, 16, 24, S0.2 seed 8)
+  and 1.43 and 1.67 times a brms-prior posterior's (seeds 14, 16), its
+  90% interval 0.99 and 1.07 times; on slpw:12 the normal new-level
+  w90 was 19471 against the posterior's 120. Reweighting overshot (90%
+  width 0.89 of the posterior's; in-sample error worse on 10 of 12
+  fires) because the likelihood is flat toward a variance of 0. Option
+  (c): narrow the variance component's steep side through the side
+  law along the firing direction instead (the side law already narrows
+  a slice that falls by 2 within 1 conditional sd; here the direction
+  falls 8 or more at 2 marginal sds while the slice does not), and
+  check the new-level 90% and 98% widths against the posterior on the
+  review's fits (`dev/reviews/drawdir-review-fires.txt`,
+  `dev/reviews/drawdir-review-mcmc.txt`, `dev/drawdir-fires12.txt`).
+- **LOW. On a mixed fire the message names the wrong direction.** Where
+  both a variance component's direction and another one fire, the
+  draws are reweighted (the other one decides), but the message and
+  the Pareto warning name the direction with the largest excess. On
+  slpw:12 that is `theta_3` (202.7, a variance component) while
+  `-sigma_(Intercept)` (48.0, `betad`) is what made the draws reweight,
+  so the message reads as contradicting `?predict.frmtmb_fit`, which
+  says a variance component's fire is not reweighted
+  (`dev/reviews/drawdir-short.md` section 2). Name the largest
+  non-variance direction when the draws are reweighted.
+- **LOW. A direction non-finite at 1, 0.75 and 0.5 of its distance is
+  left unread.** `draw_check_dirs()` reads a non-finite end again at
+  `draw_dir_back` and leaves the direction unread if none is finite. A
+  hard wall within half the distance (the objective failing because
+  the data rule the point out) then goes unreported. Not a regression:
+  0.83.0 had no reading, and the first build read every non-finite end
+  as a wall, also where the direction was flatter than the law.
+- **LOW. predict() raises the draw-law warning before it refuses an
+  unrouted new level.** On a `(1 + x | gr(g, by = f))` fit whose
+  by-level correlation fires the per-direction reading,
+  `predict(newdata = <new level>)` without `allow_new_levels` gives
+  the `frmtmb_draw_wide_tail` warning and then the refusal "New levels
+  in grouping factor `g`" (`tests/testthat/test-gr-by.R`, the refusal
+  test). The draw law is read before new data are routed (0.83.0's
+  order); routing first would refuse without the warning.
+
 ## Filed at the 0.83.0 release (2026-11-13)
 
 ### From lane ci082
@@ -5614,6 +5706,9 @@ Record: `dev/predraw2-findings.md`.
   8 (about 1.6 s), and well under a second on a GLM without random
   effects. `?predict.frmtmb_fit` says that such a direction can go
   unflagged.
+  CLOSED in the round of 2026-11-16 (lane drawdir): per-direction
+  reading (draw_check_dirs()); 18 of 18 at every K, 4 of the 7 real
+  fits (the rest filed).
 - **MEDIUM. A near-empty mixture component's slope gives predict() a
   heavy tail that no check sees.** `mixture(poisson(), poisson())` on
   one-component data (the sweep generator, seeds 1 and 28): a second
@@ -5649,6 +5744,9 @@ Record: `dev/predraw2-findings.md`.
   median is 0.11 and the check does not fire. These designs cover at
   nominal under the side law, so nothing is lost there today
   (`dev/predraw2-probe-s14.R`).
+  CLOSED in the round of 2026-11-16 (lane drawdir): fires by
+  direction (46.1); a quantile reading was rejected (fires on 24
+  gaussian GLMs).
 ### From lane hygiene
 
 - **LOW. 31 `local_mocked_bindings()` calls name no `.package`**, in 15

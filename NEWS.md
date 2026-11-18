@@ -1,3 +1,65 @@
+# frmtmb (development version)
+
+## Predictions
+
+* BREAKING: `predict()`'s draw check also reads each parameter's
+  direction of the normal law on its own. The median over test draws
+  is a sum over all directions, so one weak direction among many
+  well-identified parameters did not show in it: a weakly identified
+  mixture that fired the check alone stopped firing when 8 to 128
+  well-identified coefficients were added, and fits with 10 or 20 noise
+  covariates in each component kept the normal law's draws with no
+  message. Where the median does not fire the check, each parameter is
+  now moved 2 of its standard deviations to each side, with the
+  parameters correlated with it moved by their regression on it. The
+  excess of the drop in the log-likelihood there over the normal law's
+  is read, less the excess of the parameter moved alone by 2 of its
+  conditional standard deviations, nearer the estimate. That keeps a
+  group standard deviation near 0, which the per-parameter side law
+  judges, from firing it; a skew in a strongly correlated parameter
+  alone can still count. The check fires where the excess left is above
+  6, a heuristic: for a quadratic misfit, a normal law twice as wide as
+  the likelihood along that direction. A direction whose end the
+  log-likelihood cannot be evaluated at is read nearer the estimate, or
+  not at all. The reading costs two evaluations of the log-likelihood
+  per parameter, once per fit. On the 472 gaussian GLMs and GLMMs the
+  threshold was set on it fired on 4, and on none of 162 GLMs with one
+  coefficient per level of a factor; on 286 fits of other designs it
+  fired on 8 of 126 random-slope fits and 1 of 160 others. On mixtures fitted
+  to data from one component it fires on 23 more of 120 fits, and their
+  predictive means move nearer the truth on average (mean error 0.071
+  to 0.062 on gaussian mixtures, 0.167 to 0.140 on poisson ones). Of 7
+  mixtures with 10 or 20 noise covariates that the median missed, it
+  fires on 4; where a weakness is spread over many directions, each
+  only a little off the normal law, the draws are still the normal
+  law's. Where it fires on a direction that is not a variance
+  component's, the draws are reweighted as for the median, and the
+  message and the warning name the parameter whose direction fired.
+  Whether the weights' Pareto k passes 0.7, and so whether a warning
+  rather than a message is given, depends on `ndraws`.
+
+* BREAKING: Where every direction that fires the per-direction reading
+  belongs to a variance component, `predict()` warns and does NOT
+  reweight its draws. The variance components are the group-level
+  standard deviations and correlations, the `gp()` and smooth scales,
+  and the autocorrelation, residual-correlation and `me()` parameters;
+  the coefficients of every linear predictor (a sigma's among them) are
+  not. A random-slope model whose slope variance and correlation are
+  weakly identified together fires there: the normal law's 98% interval
+  for a new level was 1.36 to 2.04 times as wide as the law with the
+  parameters known, and 1.43 and 1.67 times a brms posterior's on two
+  of them, while its 90% interval matched the posterior's. Reweighting
+  by the likelihood, which is flat toward a variance of 0, made the
+  in-sample predictive means worse on 10 of 12 such fits and narrowed
+  the 90% interval to 0.89 of the posterior's. A warning of class
+  `frmtmb_draw_wide_tail` names the parameter and says that the normal
+  law's far tail along it is too wide; the draws are the normal law's.
+
+* The warning that reweighted draws are not reliable now says, where
+  the prediction is for a grouping level the fit did not see, that
+  `frm_sample()`'s `posterior_predict()` cannot yet predict such a
+  level.
+
 # frmtmb 0.83.0
 
 ## Convergence and standard errors

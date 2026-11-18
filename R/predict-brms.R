@@ -133,7 +133,7 @@ predict_type_retired <- c(
 #'
 #' @section When the normal law does not describe the likelihood:
 #' The normal law reads the curvature of the log-likelihood at the
-#' estimates. Two checks read the log-likelihood itself.
+#' estimates. Three checks read the log-likelihood itself.
 #'
 #' * Each side of each parameter, moved alone. Where the log-likelihood
 #'   is flat toward one end of a parameter's range (a zero inflation
@@ -149,21 +149,59 @@ predict_type_retired <- c(
 #'   gives at those draws. A weakly identified mixture can give that
 #'   with no parameter at an end. A model with many well-identified
 #'   parameters does not: a small skew in each adds up to an excess that
-#'   grows with their number, and so does the law's own drop. The
-#'   converse also holds: a weak direction among many well-identified
-#'   parameters, such as a mixture with many covariates, can go
-#'   unflagged and keep the normal law's draws. Where the
-#'   check fires, each draw is weighted by the likelihood over the
-#'   density it was drawn from. The weights are Pareto smoothed with
-#'   `loo::psis()` and the draws are resampled by them. A parameter that
-#'   the first check holds at its estimate in part of the draws keeps
-#'   that part. A message of class
-#'   `frmtmb_draw_reweighted` gives the Pareto k. Where k is above 0.7
-#'   the weights are not reliable and a warning of class
-#'   `frmtmb_draw_pareto` says so: `frmtmb.sample::frm_sample()` draws
-#'   from the posterior itself. The check's test draws do not use the
-#'   random number stream, and where it does not fire the draws are not
-#'   changed.
+#'   grows with their number, and so does the law's own drop.
+#' * Each direction of the normal law. The median above is a sum over
+#'   all directions, so one weak direction among many well-identified
+#'   parameters, such as a mixture with many covariates, does not show
+#'   in it. Where the draws together do not fire the check, each
+#'   parameter is moved 2 of its standard deviations to each side, and
+#'   the parameters correlated with it are moved by their regression on
+#'   it. The excess of the drop there over the normal law's is read, and
+#'   the excess of the parameter moved alone, by 2 of its conditional
+#'   standard deviations (nearer the estimate), is taken off, so that a
+#'   group standard deviation that the first check judges does not count
+#'   twice. The check fires where what is left is above 6. That
+#'   threshold is a heuristic: for a quadratic misfit it is a normal law
+#'   twice as wide as the likelihood along that direction. A skew in a
+#'   strongly correlated parameter alone can still count. Where the
+#'   log-likelihood cannot be evaluated at a direction's end, the
+#'   direction is read nearer the estimate, or not at all. This is done
+#'   once per fit and costs two evaluations of the log-likelihood per
+#'   parameter; on a model with random effects each is an inner
+#'   optimization. A random-slope model whose slope variance and
+#'   correlation are weakly identified together can fire it: there the
+#'   normal law's far tail for a new level is too wide. Where every
+#'   direction that fires is a covariance-structure parameter's, the
+#'   draws are NOT reweighted. These are the parameters of every
+#'   group-level covariance (standard deviations and correlations, and
+#'   the ranges, Matern smoothness, decay rates, ar correlations and
+#'   `rr()` loadings of structured covariances, spatial ones included),
+#'   the `gp()` and smooth scales, the latent-residual standard
+#'   deviation and its autocorrelation, and the autocorrelation,
+#'   residual-correlation and `me()` parameters. The coefficients of
+#'   every linear predictor, a sigma's among them, are not. On the
+#'   random-slope fits that fire, the likelihood is flat toward a slope
+#'   variance of 0, and weights by it made predictions worse on 10 of
+#'   12. A warning of class `frmtmb_draw_wide_tail` names the parameter
+#'   and says that the normal law's far tail along it is too wide. Where
+#'   another direction fires too, the draws are reweighted. A weakness
+#'   spread over many directions, each only a little off the normal law,
+#'   can still go unflagged and keep the normal law's draws.
+#'
+#' Where the second check fires, or the third on any other direction,
+#' each draw is weighted by the likelihood over the density it was
+#' drawn from. The weights are Pareto smoothed with `loo::psis()` and
+#' the draws are resampled by them. A parameter that the first check
+#' holds at its estimate in part of the draws keeps that part. A
+#' message of class
+#' `frmtmb_draw_reweighted` gives the Pareto k. Where k is above 0.7 the
+#' weights are not reliable and a warning of class `frmtmb_draw_pareto`
+#' says so: `frmtmb.sample::frm_sample()` draws from the posterior
+#' itself, though its `posterior_predict()` cannot yet predict a
+#' grouping level the fit did not see, and the warning says so where the
+#' prediction is for one. Whether k passes 0.7 depends on `ndraws`.
+#' Neither check uses the random number stream, and where neither fires
+#' the draws are not changed.
 #'
 #' @section predict() and fitted() can disagree on the mean:
 #' [fitted()] is the expected response at the estimates. The mean of
@@ -749,7 +787,11 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
   # depend on the rows AFTER it; they still shift with the rows before
   # it, which share the replicate's stream. The caller's stream is left
   # where the up-front draws put it.
-  draw <- predict_par_drawer(object, propagate_error, ndraws)
+  # the draw check's warning sends a user to frm_sample(), whose
+  # posterior_predict() cannot yet predict a level the fit did not see
+  new_lv <- any(vapply(nls, function(x) length(x) > 0L, TRUE))
+  draw <- predict_par_drawer(object, propagate_error, ndraws,
+                             new_levels = new_lv)
   seeds <- sample.int(.Machine$integer.max, ndraws)
   # the stream is captured HERE, before the group-effect draw takes its
   # own seeds, so that draw costs the caller nothing: a conditional
@@ -1365,7 +1407,8 @@ predict_dpar_values <- function(fit, rspec, newdata, re_formula,
 #' the only expensive part of the draw.
 #'
 #' @noRd
-predict_par_drawer <- function(object, propagate_error, ndraws) {
+predict_par_drawer <- function(object, propagate_error, ndraws,
+                               new_levels = FALSE) {
   if (!propagate_error) return(function(s) object)
   ds <- fit_draw_space(object)
   V <- ds$V
@@ -1425,7 +1468,10 @@ predict_par_drawer <- function(object, propagate_error, ndraws) {
   held <- latres_held_pos(object, map)
   if (length(held)) D[held, ] <- v0[held]
   D <- draw_reweight(object, list(D = D, Z = Z, L = L, law = law, v0 = v0,
-                                  held = held))
+                                  held = held,
+                                  labels = rownames(V) %||% map$names,
+                                  comps = map$comp,
+                                  new_levels = new_levels))
   out <- function(s) fit_set_outer(object, D[, s], map)
   # the group-effect draw conditions on this replicate's parameters, so
   # it needs how far they moved (predict_b_drawer())
@@ -1804,7 +1850,10 @@ draw_edge_apply <- function(law, L, Z) {
 #' median excess drop over `draw_check_n` test draws (twice as many
 #' near the thresholds) is above `draw_check_tol` and above
 #' `draw_check_rel` times the median drop the law implies
-#' (draw_check_verdict()).
+#' (draw_check_verdict()). That median is a sum over every direction, so
+#' a block of well-identified parameters dilutes one weak direction
+#' until it no longer shows; where it does not fire, each parameter's
+#' direction of the law is read on its own (draw_check_dirs()).
 #' The test draws come from a private stream, so the
 #' verdict belongs to the fit: it is cached, and where it does not fire
 #' the draws are returned untouched.
@@ -1815,16 +1864,27 @@ draw_edge_apply <- function(law, L, Z) {
 #' `draw_pareto_tol` no normal-based proposal reaches the likelihood, and
 #' a warning says so and names frmtmb.sample::frm_sample().
 #'
+#' Where only directions of variance components fire the per-direction
+#' reading (`warn_only`), the draws are returned as they came and a
+#' warning says so (draw_tail_say()): on 12 random-slope fires the
+#' reweighted draws made the in-sample predictive means worse against
+#' the truth on 10, and narrowed a new level's 90% interval to 0.89 of a
+#' sampled posterior's, while the normal law's 90% interval matched it;
+#' the likelihood's flat side toward a variance of 0 leaves the
+#' reweighting a target with no proper mass (dev/drawdir-findings.md,
+#' section 12).
+#'
 #' @noRd
 draw_reweight <- function(object, dw) {
   dw$off <- length(dw$v0) - length(object$opt$par)
   chk <- draw_check(object, dw)
   if (!isTRUE(chk$fire)) return(dw$D)
+  if (isTRUE(chk$warn_only)) {
+    draw_tail_say(chk, isTRUE(dw$new_levels))
+    return(dw$D)
+  }
   if (!requireNamespace("loo", quietly = TRUE)) {
-    frm_warning("predict(): the log-likelihood at draws from the normal ",
-                "law of vcov() falls further than that law says (median ",
-                "excess ", format(chk$excess, digits = 3), " over ",
-                chk$n, " test draws), and the draws need the loo ",
+    frm_warning(draw_check_said_what(chk), ", and the draws need the loo ",
                 "package to be reweighted. They are NOT corrected; install ",
                 "loo", class = "frmtmb_draw_pareto", call. = FALSE)
     return(dw$D)
@@ -1832,11 +1892,15 @@ draw_reweight <- function(object, dw) {
   r <- draw_logratio(object, dw, dw$D, dw$Z)
   if (is.null(r)) return(dw$D)
   rs <- draw_resample(r$lw, r$stratum)
-  draw_reweight_say(object, chk, rs$k, ncol(dw$D))
+  draw_reweight_say(object, chk, rs$k, ncol(dw$D), isTRUE(dw$new_levels))
   dw$D[, rs$idx, drop = FALSE]
 }
 
-#' The fit's verdict on its draw law, cached: `list(fire, excess, n)`.
+#' The fit's verdict on its draw law, cached: `list(fire, excess, rel,
+#' n, dir, dir_par, dir_n, warn_only)`, `dir` the per-direction reading
+#' (draw_check_dirs(); NA where the summed check fires first) and
+#' `warn_only` TRUE where every direction that fired is a variance
+#' component's.
 #' A median within a factor of 2 of the threshold is read again over
 #' `draw_check_n` more test draws, deciding on all of them: on a random
 #' slope fit whose excess over 1000 draws has median 0.11 and a long
@@ -1870,11 +1934,209 @@ draw_check <- function(object, dw) {
         }
       }
       chk <- list(fire = v$fire, excess = v$excess, rel = v$rel,
-                  n = length(e))
+                  n = length(e), dir = NA_real_, dir_par = NA_character_,
+                  dir_n = 0L, warn_only = FALSE)
+      if (!isTRUE(v$fire)) {
+        dd <- draw_check_dirs(object, dw)
+        if (!is.null(dd)) {
+          chk$dir <- dd$stat
+          chk$dir_par <- dd$par
+          chk$dir_n <- dd$n
+          chk$fire <- isTRUE(dd$stat > draw_dir_tol)
+          chk$warn_only <- chk$fire && isTRUE(dd$vc_only)
+        }
+      }
     }
     if (is.environment(cache)) cache[["draw_check"]] <- chk
   }
   chk
+}
+
+#' The per-direction reading of the draw law: `list(stat, par, n,
+#' vc_only)`, or `NULL` where the objective cannot be read. `vc_only` is
+#' TRUE where every direction above `draw_dir_tol` belongs to a variance
+#' component (`draw_vc_comps`).
+#'
+#' The summed check's median is over draws that move every parameter at
+#' once, so a block of K well-identified coordinates adds about K to the
+#' law's drop and nothing to the excess, and one weak direction stops
+#' showing: on 18 weakly identified mixtures the check stopped firing at
+#' K = 8 to 128 added coordinates (backlog 5584). Here each parameter j
+#' of the objective is read along its own direction of the law: j moved
+#' `draw_edge_k` of its standard deviations, the others by their
+#' regression on it (column j of the law's factor), through the side
+#' law, on each side. The law's drop there is `draw_edge_k^2 / 2`
+#' whatever the other parameters do, so a separable block adds nothing.
+#'
+#' The side law already reads each parameter's own slice (the others at
+#' the estimates). A group log sd near 0 fell 15.2 further than the law
+#' says at 2 standard deviations along its direction, 10.8 of it along
+#' its own slice, a side the side law leaves to the normal law. So the
+#' slice's positive excess eB, read at `draw_edge_k` of j's CONDITIONAL
+#' standard deviations, is taken off the direction's eA: `stat = eA -
+#' max(eB, 0)`. The slice is read at a shorter distance than the
+#' direction (the ratio of j's standard deviation to its conditional one,
+#' `sratio`, is 1 or more), so this is not "the part no single parameter
+#' shows": for a skew in j alone that grows as the cube of the distance,
+#' `stat = eB (sratio^3 - 1)`, 0 where j is uncorrelated and most of the
+#' error where it is strongly correlated. It is a heuristic that keeps
+#' the GLMMs' group sds, which the side law judges, out of the reading
+#' (dev/drawdir-findings.md, and the review of 2026-11-17).
+#'
+#' A direction whose excess eA is not above `draw_dir_tol` needs no
+#' slice (stat is at most eA), so `stat` is eA there, an upper bound. A
+#' direction whose end the objective cannot evaluate is read again at
+#' `draw_dir_back` of the distance, its excess put on the full distance's
+#' scale by `1 / t^2` (exact for a quadratic misfit), and left unread if
+#' none is finite: a random-slope fit's log slope sd moved 76 log units
+#' out failed in the inner solve, along a direction flatter than the
+#' law. A slice the objective cannot evaluate leaves its direction
+#' unread too. `stat` is never infinite.
+#'
+#' Cost: two objective evaluations per parameter, one more for each
+#' direction above the threshold and each end read again; once per fit.
+#'
+#' @noRd
+draw_check_dirs <- function(object, dw) {
+  obj <- object$obj
+  p <- object$opt$par
+  np <- length(p)
+  off <- dw$off
+  if (is.null(obj) || !is.function(obj$fn) || off < 0L || np == 0L) {
+    return(NULL)
+  }
+  pos <- off + seq_len(np)
+  Lf <- dw$law$Lc %||% dw$L
+  sv <- colSums(Lf^2)
+  R <- setdiff(pos[sv[pos] > 0], c(dw$held, dw$law$edge))
+  k <- length(R)
+  if (!k) return(NULL)
+  B <- Lf[, R, drop = FALSE]
+  U <- B / rep(sqrt(sv[R]), each = nrow(B))
+  ck <- draw_edge_k
+  Z <- cbind(ck * U, -ck * U)
+  D <- dw$v0 + if (is.null(dw$law)) crossprod(dw$L, Z) else
+    draw_edge_apply(dw$law, dw$L, Z)
+  if (length(dw$held)) D[dw$held, ] <- dw$v0[dw$held]
+  r <- draw_logratio(object, dw, D, Z)
+  if (is.null(r)) return(NULL)
+  eA <- r$e
+  n <- 2L * k
+  # the share of draw_edge_k each direction was read at; the excess is
+  # put on draw_edge_k's scale by 1 / t^2, as a quadratic misfit scales
+  at <- rep(1, 2L * k)
+  for (t in draw_dir_back) {
+    bad <- which(!is.finite(eA))
+    if (!length(bad)) break
+    Zt <- t * Z[, bad, drop = FALSE]
+    Dt <- dw$v0 + if (is.null(dw$law)) crossprod(dw$L, Zt) else
+      draw_edge_apply(dw$law, dw$L, Zt)
+    if (length(dw$held)) Dt[dw$held, ] <- dw$v0[dw$held]
+    rt <- draw_logratio(object, dw, Dt, Zt)
+    if (is.null(rt)) break
+    n <- n + length(bad)
+    eA[bad] <- rt$e / t^2
+    at[bad] <- t
+  }
+  # a direction the objective cannot read even near the estimate is left
+  # unread: an end the inner solve fails at is no evidence of a wall
+  eA[!is.finite(eA)] <- -Inf
+  stat <- eA
+  cand <- which(eA > draw_dir_tol)
+  if (length(cand)) {
+    csd <- draw_dirs_csd(B)
+    saved <- obj_state_save(obj)
+    on.exit(obj_state_restore(obj, saved), add = TRUE)
+    f0 <- tryCatch(obj$fn(p), error = function(e) NA_real_)
+    if (!is.finite(f0)) return(NULL)
+    for (i in cand) {
+      j <- (i - 1L) %% k + 1L
+      s <- at[i] * ck
+      q <- p
+      q[R[j] - off] <- p[R[j] - off] + (if (i > k) -1 else 1) * s * csd[j]
+      obj_state_restore(obj, saved)
+      f1 <- tryCatch(suppressWarnings(obj$fn(q)),
+                     error = function(e) NA_real_)
+      n <- n + 1L
+      stat[i] <- if (!is.finite(csd[j]) || !is.finite(f1)) {
+        -Inf
+      } else {
+        eA[i] - max(f1 - f0 - s^2 / 2, 0) / at[i]^2
+      }
+    }
+  }
+  i <- which.max(stat)
+  if (!length(i) || !is.finite(stat[i])) return(NULL)
+  lab <- dw$labels %||% character(0)
+  par <- if (length(lab) >= R[(i - 1L) %% k + 1L]) {
+    lab[R[(i - 1L) %% k + 1L]]
+  } else {
+    NA_character_
+  }
+  fired <- R[(which(stat > draw_dir_tol) - 1L) %% k + 1L]
+  comp <- dw$comps %||% character(0)
+  vc <- length(fired) > 0L && length(comp) >= max(fired) &&
+    all(comp[fired] %in% draw_vc_comps)
+  list(stat = stat[i], par = par, n = n, vc_only = vc)
+}
+
+#' Each column's conditional standard deviation given the others, under
+#' the law whose factor holds those columns, `1 / sqrt(diag(solve(B'B)))`
+#' through a QR of `B`, so the covariance itself is never inverted.
+#'
+#' @noRd
+draw_dirs_csd <- function(B) {
+  k <- ncol(B)
+  qf <- qr(B)
+  if (qf$rank < k) return(rep(NA_real_, k))
+  Ri <- backsolve(qr.R(qf), diag(k))
+  out <- numeric(k)
+  out[qf$pivot] <- 1 / sqrt(rowSums(Ri^2))
+  out
+}
+
+#' What the check found, for its message and warning.
+#'
+#' @noRd
+draw_check_said_what <- function(chk) {
+  if (isTRUE(chk$dir > draw_dir_tol)) {
+    return(paste0(
+      "predict(): along one direction of the normal law of vcov(), the one ",
+      "that moves ", if (is.na(chk$dir_par)) "a parameter" else {
+        paste0("`", chk$dir_par, "`")
+      }, " and the parameters correlated with it, the log-likelihood ",
+      "falls further than that law says at ", draw_edge_k, " standard ",
+      "deviations (an excess of ", format(chk$dir, digits = 3), " after ",
+      "the excess of that parameter moved alone, nearer the estimate, is ",
+      "taken off)"))
+  }
+  paste0("predict(): the log-likelihood at draws from the normal law of ",
+         "vcov() falls further than that law says (median excess ",
+         format(chk$excess, digits = 3), " over ", chk$n, " test draws)")
+}
+
+#' The warning where only variance components' directions fired: the
+#' draws are the normal law's, said on every call, as the Pareto warning
+#' is.
+#'
+#' @noRd
+draw_tail_say <- function(chk, new_levels = FALSE) {
+  who <- if (is.na(chk$dir_par)) "a variance component" else {
+    paste0("`", chk$dir_par, "`, a variance component,")
+  }
+  frm_warning(draw_check_said_what(chk), ". So the normal law's far ",
+              "tail along ", who, " is too wide, and the draws' extreme ",
+              "quantiles (a new level's 98% interval, for one) are too ",
+              "wide with it. The draws are NOT reweighted: toward a ",
+              "variance of 0 the likelihood is flat, and weights by it ",
+              "made the predictions worse. ",
+              "frmtmb.sample::frm_sample() draws from the posterior itself",
+              if (new_levels) {
+                paste0(", but its posterior_predict() cannot yet predict ",
+                       "a grouping level the fit did not see")
+              },
+              class = "frmtmb_draw_wide_tail", call. = FALSE)
+  invisible(NULL)
 }
 
 #' The check's verdict from the test draws' excesses `e` and Mahalanobis
@@ -2069,11 +2331,8 @@ draw_resample <- function(lw, stratum) {
 }
 
 #' @noRd
-draw_reweight_say <- function(object, chk, k, ndraws) {
-  head <- paste0("predict(): the log-likelihood at draws from the normal ",
-                 "law of vcov() falls further than that law says (median ",
-                 "excess ", format(chk$excess, digits = 3), " over ",
-                 chk$n, " test draws), so the draws are reweighted ",
+draw_reweight_say <- function(object, chk, k, ndraws, new_levels = FALSE) {
+  head <- paste0(draw_check_said_what(chk), ", so the draws are reweighted ",
                  "by likelihood over proposal density (Pareto-smoothed ",
                  "importance sampling)")
   if (!is.finite(k) || k > draw_pareto_tol) {
@@ -2088,6 +2347,10 @@ draw_reweight_say <- function(object, chk, k, ndraws) {
                 },
                 " the reweighted draws are not reliable. ",
                 "frmtmb.sample::frm_sample() draws from the posterior itself",
+                if (new_levels) {
+                  paste0(", but its posterior_predict() cannot yet ",
+                         "predict a grouping level the fit did not see")
+                },
                 class = "frmtmb_draw_pareto", call. = FALSE)
     return(invisible(NULL))
   }
@@ -2216,6 +2479,53 @@ draw_check_tol <- 1
 #'
 #' @noRd
 draw_check_rel <- 0.15
+
+#' The excess (draw_check_dirs()) above which one direction of the draw
+#' law fires the check, a heuristic borrowed from the side law's
+#' `draw_edge_c`: for a quadratic misfit it is a law whose standard
+#' deviation along the direction is twice the likelihood's (a drop of 8
+#' at `draw_edge_k` standard deviations where the law says 2); for any
+#' other shape it is a density error of exp(6) there. It is not a
+#' calibrated false-alarm rate. It was set between the largest reading
+#' of the 472 gaussian GLMs and GLMMs it was chosen on (5.6, leaving
+#' out four random-slope fits at 7.0 to 46 whose normal law gave a new
+#' level's 98% interval 1.36 to 2.04 times as wide as the law with the
+#' parameters known) and the smallest of the 18 weakly identified
+#' mixtures the summed check fires on (13.3). On 160 fits of other
+#' designs without a random slope it fired on one (an identity-link
+#' sigma that the normal law drew below 0), on 126 random-slope fits on
+#' 8 (dev/drawdir-findings.md).
+#'
+#' @noRd
+draw_dir_tol <- draw_edge_k^2 / 2 * (1 / draw_edge_c^2 - 1)
+
+#' The shares of the distance at which draw_check_dirs() reads a
+#' direction again where the objective cannot be evaluated at its end.
+#'
+#' @noRd
+draw_dir_back <- c(0.75, 0.5)
+
+#' The template components whose outer parameters are covariance-
+#' structure parameters, on their unconstrained scale. `theta` holds the
+#' parameters of every random-effect block: log sds and correlations,
+#' and for structured covariances their ranges, Matern smoothness,
+#' decay rates, ar correlations and `rr()` loadings (frmtmb.spatial's
+#' `car` and `spde` included), the `gp()` and smooth scales, and the
+#' latent-residual sd and its autocorrelation; `thetaac` the
+#' autocorrelation parameters; `thetar` the residual correlations;
+#' `logsdme` and `thetame` the `me()` latent sds and correlations
+#' (`R/frame.R`, where the template is built). A variance in them can
+#' have a side toward 0 along which the likelihood flattens, which the
+#' reweighting cannot weigh; the other parameters of the set ride with
+#' the same covariance. `beta`,
+#' `betad` (the coefficients of every linear predictor, a sigma's and a
+#' mixture weight's among them) and `meanme` are not: they are
+#' regression coefficients, and on slpw:12 of the review the
+#' reweighting along a sigma direction mended a new level's interval
+#' the normal law had put at 162 times the posterior's width.
+#'
+#' @noRd
+draw_vc_comps <- c("theta", "thetaac", "thetar", "logsdme", "thetame")
 
 #' The Pareto k above which reweighted draws are not trusted (loo's
 #' threshold for importance sampling).
