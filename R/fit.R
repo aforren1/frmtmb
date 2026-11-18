@@ -77,9 +77,9 @@
 #'   tells how the defaults are set; the entries you do not name in
 #'   `start` keep those defaults.
 #'
-#'   A mixture of ordinal families without random effects also fits from
-#'   10 jittered starts by default; a `start` of your own turns them off
-#'   (see `starts` in [frmtmb_control()]).
+#'   A mixture of ordinal families of different kinds also fits once from
+#'   its components swapped between the families; a `start` of your own
+#'   turns that off (see `starts` in [frmtmb_control()]).
 #'
 #'   An exact `gp()` on a gaussian response with a constant `sigma` starts at
 #'   the maximum of the model's marginal, read from the best cell of six
@@ -3017,24 +3017,31 @@ sdr_of <- function(fit) {
 #'   times the product of the two counts. A model with one block per row
 #'   does not read this setting: its rule is adaptive Gauss-Kronrod.
 #' @param starts The number of jittered starts for a [mixture()] of
-#'   ordinal families, or `NULL` (default) for 10 on a fit with no `start`
-#'   of your own and no random effects, and none otherwise. After the fit
-#'   from the default start, the model is refitted from each start, every
-#'   outer parameter moved by a normal draw with standard deviation 0.5
-#'   (a coefficient by 0.5 over the root mean square of its column). The
-#'   fit keeps the best of these converged points at which no component
-#'   is a step function of its predictors. Maximum likelihood for an ordinal
-#'   mixture often has its supremum at such a step function, a degenerate
-#'   boundary where the component's slopes and thresholds run off, so the
-#'   best start ranked by the likelihood alone picks it more often than it
-#'   escapes it. Only runs that the optimizer calls converged are ranked.
-#'   The rule:
+#'   ordinal families, or `NULL` (default) for none. `0` also turns off
+#'   the swapped start (below). After the fit from the default start, the
+#'   model is refitted from each jittered start, every outer parameter
+#'   moved by a normal draw with standard deviation 0.5 (a coefficient by
+#'   0.5 over the root mean square of its column). The fit keeps the best
+#'   of these converged points at which no component is degenerate.
+#'   Maximum likelihood for an ordinal mixture often has its supremum at
+#'   a step function, a degenerate boundary where a component's slopes
+#'   and thresholds run off, so the best start ranked by the likelihood
+#'   alone picks it more often than it escapes it. Only runs that the
+#'   optimizer calls converged are ranked. A point counts as degenerate
+#'   when a component is a step function, when its thresholds collapse
+#'   or one has no row near it, or when a threshold the data place has a
+#'   standard error above 100 on the latent scale or none at all. The
+#'   rule:
 #'
 #'   * A fit from the default start with no degenerate component is
 #'     replaced only by a better maximum, by more than `grad_tol` in
 #'     log-likelihood, with no degenerate component either.
-#'   * A fit at a flat degenerate boundary only (collapsed thresholds, a
-#'     threshold no row is near) is kept as it is, and no starts run.
+#'   * A fit whose thresholds collapsed, or ran off where no row is near,
+#'     is kept as it is, and no jittered starts run: which of two points
+#'     of one likelihood carries that flag is decided by how far the
+#'     optimizer ran. A fit flat only by a threshold's standard error (or
+#'     a lost one) is replaced by a better maximum without a degenerate
+#'     component, as above.
 #'   * A step function, or a component whose sharpening cannot be
 #'     measured, is replaced by the best converged point without one,
 #'     whatever its likelihood. When the optimizer did not call the
@@ -3047,52 +3054,60 @@ sdr_of <- function(fit) {
 #'     the better answer. `logLik()` and the information criteria are
 #'     those of the point returned.
 #'
-#'   A point the degenerate check passes is not always a clean maximum:
-#'   the check does not see a direction along which the likelihood is
-#'   flat, such as a threshold that drifts with a standard error in the
-#'   thousands or a category a component gives a probability near 1e-8.
-#'   Check the standard errors of a fit that moved.
+#'   The swapped start. A fit from scratch (no `start` of your own, not a
+#'   refit) of a mixture whose components are of different families,
+#'   such as `mixture(cumulative(), sratio())`, is refitted once from the
+#'   default fit with the parameters of the components swapped between
+#'   the families: each other assignment of the components to the
+#'   families is one refit. The fit returns that refit when it converged,
+#'   is higher by more than `grad_tol` per unit of mean case weight, and
+#'   has no degenerate component; then four refits from it, each
+#'   parameter moved by a normal draw with standard deviation 0.1, check
+#'   it, and the best of these ends without a degenerate component is
+#'   returned. [frm()] says so in a message of class
+#'   `frmtmb_mixture_swap`. A swapped start at which the objective equals
+#'   the fit's, to rounding, is the same model, and no refit runs: two
+#'   components of one family, link and terms with the same priors
+#'   (`mixture(cumulative(), cumulative())`), or `sratio()` and `cratio()`
+#'   under the logit. Three components try every other assignment (5
+#'   refits), four or more the pairwise swaps only. [update()] is a fit
+#'   from scratch and runs the swap.
 #'
-#'   On two-class data with 300 rows, 20 seeds each of
-#'   `mixture(cumulative(), cumulative())` and
-#'   `mixture(cumulative(), sratio())`, the default starts moved 12 of 40
-#'   fits: 5 to a higher maximum (by 0.12 to 2.4) and 7 from a step
-#'   function to a point the degenerate check passes (2.7 to 10.4 lower),
-#'   so its warning fell from 12 fits to 5. Of those 7 points, 2 are clean
-#'   maxima, 3 have a category near 1e-8 to 1e-7, and 2 lie on a flat
-#'   direction with a standard error above 5000. On 107 fits of 14 other designs
-#'   (other links and families, three components, `cs()`, a free `disc`,
-#'   `order = "mu"`, priors on `b`, 22 predictors) 18 moved, 10 up and 8
-#'   off a step function (4 of those 8 points flat in the same way, one
-#'   of the 4 not a maximum), and none that 0.81.0 passed lost likelihood
-#'   or gained the degenerate warning; with 38 steep and one-class designs
-#'   added, 23 of 145 moved. On the two-class data the starts moved 9 of
-#'   40 fits at 1000 rows (all up), 1 of 40 at 3000 rows and 0 of 40 at
-#'   20000 rows, where they took 8 times as long (46 s against 5.7 s a
-#'   fit); one steep design with 20000 rows gained 8.8. The answer is the
-#'   best of the points these 10 starts reach, not the best there is: 20
-#'   starts moved 6 of the 40 fits higher than 10 did, by 0.21 to 3.07,
-#'   for 1.8 times the time. Under brms 2.23.0's default priors, the
-#'   posterior density at two of the step functions was 53 to 56 units
-#'   below that at the point returned, and `rstan::optimizing()` reached a
-#'   posterior mode near that point, not at it, from each of 10
-#'   random starts.
+#'   On 320 fits of `mixture(cumulative(), cumulative())` and
+#'   `mixture(cumulative(), sratio())` with a random intercept or slope
+#'   (300 rows and 20 groups, 1000 rows and 50 groups), the default ended
+#'   below a better clean maximum without a warning on 19 fits before
+#'   the swap and on 3 after it; the 3 are two fits of one family, which
+#'   no swap can help, and one 0.04 short. No fit moved down. The swap
+#'   cost a median 2.0 to 3.8 times the fit on the mixtures of two
+#'   families (6.9 times where it was kept, for its four checking runs)
+#'   and a median 1.0 on the others. Without random effects, on two families
+#'   with 300 and 1000 rows, the swap was kept on 5 and 15 of 40 fits,
+#'   and the fit ended above the 10 jittered starts' answer on 16 and 15
+#'   of 40 and below it on 4 and 3.
 #'
-#'   The starts cost 5 to 10 times the fit's optimization at 300 and 3000
-#'   rows (minimum of 3 runs; up to 15 to 20 times in single runs), and 15
-#'   to 23 times with a random intercept over 50 groups (1000 rows), where
-#'   each start is a Laplace fit: that is why a model with random effects
-#'   does not run them by default. Refits that warm-start from a fit,
-#'   [frm_bootstrap()] and [refit()] among them, run no starts unless
-#'   `starts` is a number, so their replicates start from the chosen
-#'   point and can end at a step function; [frm_allfit()] runs none, so
-#'   that its optimizers' spread still shows a second maximum. Under
+#'   No fit runs jittered starts by default. With random effects they
+#'   cost a median 18 times the fit (5.2 to 95.8) on 320 fits with a
+#'   random intercept or slope over 20 or 50 groups, and 5.6 to 7.1 times
+#'   without random effects; they moved 3 to 7 of 40 fits up without
+#'   random effects, and 0 to 11 off a step function. A point the
+#'   degenerate check passes is not always a clean maximum, and the answer
+#'   is the best of the points these starts reach, not the best there is:
+#'   check the standard errors of a fit that moved. Under brms 2.23.0's
+#'   default priors, the posterior density at two step functions was 53
+#'   to 56 units below that at the proper point, and
+#'   `rstan::optimizing()` reached a posterior mode near that point.
+#'
+#'   Refits that warm-start from a fit, [frm_bootstrap()],
+#'   [influence()] and [refit()] among them, run no swapped start and no
+#'   jittered starts unless `starts` is a number: then every replicate
+#'   runs that many, as costly as the fit's. [frm_allfit()] runs neither,
+#'   so that its optimizers' spread still shows a second maximum. Under
 #'   `autoscale` they run in the fit that is reported, not in its
-#'   pre-fit. The
-#'   draws come from a private stream with a named generator and a fixed
-#'   seed, so a fit neither reads nor changes the session's random state,
-#'   and the same call gives the same fit under any [RNGkind()]. `0`
-#'   turns the starts off. A model of other families is not affected.
+#'   pre-fit. The draws come from a private stream with a named generator
+#'   and a fixed seed, so a fit neither reads nor changes the session's
+#'   random state, and the same call gives the same fit under any
+#'   [RNGkind()]. A model of other families is not affected.
 #' @param nl_starts Whether a fit with a nonlinear body runs the sign
 #'   probe and the pole restart. The sign probe, from the default start
 #'   only, fits from each sign pattern of the body's coefficients (message

@@ -111,12 +111,13 @@ mixture to simulated data with two well-separated classes (300 or
 500 rows), 22 ended there, and in 16 of the 22 the degenerate point
 had a higher log-likelihood than the best non-degenerate optimum
 found from other starts, so the best start by the likelihood alone
-does not move such a fit off it. Without random effects, \code{\link[=frm]{frm()}}
-therefore also fits from 10 jittered starts and keeps the best
-converged point without a step function, and says so in a message
-(class \code{frmtmb_mixture_step_start}) when a step function it passed
-over was higher (see
-\code{starts} in \code{\link[=frmtmb_control]{frmtmb_control()}}). The fit warns when a component ends
+does not move such a fit off it. \code{frmtmb_control(starts = 10)} fits
+from 10 jittered starts as well and keeps the best converged point
+without a step function; no fit runs them by default. A mixture whose
+components are of different families (\code{mixture(cumulative(), sratio())}) is also refitted once with the components' parameters
+swapped between the families, and keeps that fit when it is higher
+and passes the degenerate test (message class \code{frmtmb_mixture_swap});
+see \code{starts} in \code{\link[=frmtmb_control]{frmtmb_control()}}. The fit warns when a component ends
 at such a point: when doubling all its latent distances (or, with
 \code{cs()}, one threshold's)
 costs the log-likelihood less than 0.1, or when no row lies within a

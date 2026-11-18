@@ -1,0 +1,41 @@
+family	n	seed	elA	errA	llA	codeA	fitwarnA	summwarnA	summmsgA	summwarnsA	summmsgsA	elS	llS	codeS	clsS	tseS	note
+cum_sratio	300	1	1.41	FALSE	-386.876239071293	0	0	0	0			2.96	-379.666004612423	1	step	0	
+cum_sratio	300	2	0.68	FALSE	-386.34506938497	0	0	1	1	Standard errors are not available for 1 of 13 parameters. tau_raw1_2: the likelihood is fl	Boundary (singular) fit: sd_g__mu2_Intercept is at zero. The likelihood does not change as	0.41	-386.028472224699	0	step	1.59821745694229	
+cum_sratio	300	3	0.470000000000001	FALSE	-381.676727695168	0	0	0	0			0.529999999999999	-381.618767380723	0	proper	2.5082731066205	
+cum_sratio	300	4	0.690000000000001	FALSE	-382.948799954114	0	0	0	0			7.16	-378.646899032937	1	step	999.453643354595	
+cum_sratio	300	5	3.21	FALSE	-374.183309705328	1	2	0	0			0.470000000000002	NA	The optimizer failed on this model (mixture(cumulative, sratio), ML, nlminb): NA/NaN gradi	NA	NA	NA
+cum_sratio	300	6	0.66	FALSE	-373.728356040851	0	0	1	1	Standard errors are not available for 2 of 13 parameters. tau_raw1_2, tau_raw2_3: the like	Boundary (singular) fit: sd_g__mu1_Intercept is at zero. The likelihood does not change as	0.449999999999999	-373.357400133828	0	proper	1665.3501816978	
+cum_sratio	300	7	2.47	FALSE	-361.587734142536	1	3	0	0			2.2	-362.072060019998	1	step	0	
+cum_sratio	300	8	0.809999999999999	FALSE	-388.001593683444	0	0	0	1		Boundary (singular) fit: sd_g__mu2_Intercept is at zero. The likelihood does not change as	0.77	-388.588729941434	0	proper	3.37377208053056	
+cum_sratio	300	9	6.38	FALSE	-363.372625374313	1	3	0	0			0.0499999999999972	NA	The optimizer failed on this model (mixture(cumulative, sratio), ML, nlminb): NA/NaN gradi	NA	NA	NA
+cum_sratio	300	10	1.23	TRUE	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA
+cum_sratio	300	11	0.710000000000001	FALSE	-364.08670148547	0	0	1	1	Standard errors are not available for 2 of 13 parameters. tau_raw1_3, tau_raw2_1: the like	Boundary (singular) fit: sd_g__mu1_Intercept, sd_g__mu2_Intercept are at zero. The likelih	0.379999999999995	-383.25220029301	0	step	0.193653589927164	
+cum_sratio	300	12	0.809999999999995	FALSE	-379.161429038925	0	0	1	1	Standard errors are not available for 1 of 13 parameters. tau_raw2_3: the likelihood is fl	Boundary (singular) fit: sd_g__mu2_Intercept is at zero. The likelihood does not change as	0.530000000000001	-378.673341287689	0	proper	1.69006304722547	
+cum_sratio	300	13	0.5	FALSE	-388.656077802845	0	0	0	0			0.460000000000001	-388.603654944965	0	step	1.81292193733254	
+cum_sratio	300	14	0.649999999999999	FALSE	-388.529068708095	0	0	1	0	Standard errors are not available for 1 of 13 parameters. tau_raw2_3: the likelihood is fl		0.310000000000002	-388.407644629658	0	proper	1.32539548769897	
+cum_sratio	300	15	0.57	FALSE	-373.472950498156	0	0	0	0			0.539999999999999	-373.501726864749	0	proper	1.6548074244957	
+cum_sratio	300	16	0.670000000000002	FALSE	-390.314378756315	0	0	0	1		Boundary (singular) fit: sd_g__mu1_Intercept, sd_g__mu2_Intercept are at zero. The likelih	0.810000000000002	-390.191920274679	0	proper	1.26242937895337	
+cum_sratio	300	17	0.830000000000005	FALSE	-386.677321747599	0	0	0	1		Boundary (singular) fit: sd_g__mu2_Intercept is at zero. The likelihood does not change as	0.640000000000001	-386.63313431758	0	step	8543.60070594044	
+cum_sratio	300	18	2.95	FALSE	-374.576674535379	1	2	0	0			2.68	-378.97516270976	1	step	0	
+cum_sratio	300	19	0.780000000000001	FALSE	-387.379202861462	0	0	1	0	Standard errors are not available for 1 of 13 parameters. tau_raw1_2: the likelihood is fl		0.460000000000001	-387.556247006711	0	proper	1.01451532700326	
+cum_sratio	300	20	0.479999999999997	FALSE	-378.710863630091	0	0	0	0			0.5	-378.78524052209	0	proper	1.13038138600695	
+cum_sratio	300	21	0.640000000000001	FALSE	-373.64444847503	0	0	0	0			0.579999999999998	-374.04798023712	0	proper	3641.88335559791	
+cum_sratio	300	22	0.799999999999997	FALSE	-382.575520460352	0	1	0	0			1.03	-396.391621906787	0	step	414.348893818456	
+cum_sratio	300	23	2.25	FALSE	-375.975449316711	1	3	0	0			2.41000000000001	-377.044408561938	1	step	0	
+cum_sratio	300	24	0.939999999999998	FALSE	-390.52418583284	0	0	1	1	Standard errors are not available for 1 of 13 parameters. tau_raw1_3: the likelihood is fl	Boundary (singular) fit: sd_g__mu1_Intercept is at zero. The likelihood does not change as	0.450000000000003	-391.138001202023	0	proper	1.61159911758124	
+cum_sratio	300	25	3.14999999999999	FALSE	-385.567604668874	1	2	0	0			2.64	-384.399776295083	1	proper	0	
+cum_sratio	300	26	7.8	FALSE	-363.864566701567	0	2	0	0			0.0799999999999983	NA	The optimizer failed on this model (mixture(cumulative, sratio), ML, nlminb): NA/NaN gradi	NA	NA	NA
+cum_sratio	300	27	0.859999999999999	FALSE	-384.365942751902	0	0	0	1		Boundary (singular) fit: sd_g__mu1_Intercept, sd_g__mu2_Intercept are at zero. The likelih	0.430000000000007	-384.140357393606	0	proper	10.0812454855141	
+cum_sratio	300	28	0.840000000000003	FALSE	-384.93758126491	0	0	1	1	Standard errors are not available for 1 of 13 parameters. tau_raw1_2: the likelihood is fl	Boundary (singular) fit: sd_g__mu1_Intercept is at zero. The likelihood does not change as	0.470000000000013	-385.047212667256	0	proper	0.894493282236237	
+cum_sratio	300	29	6.98999999999999	FALSE	-369.800138881741	0	2	0	0			0.039999999999992	NA	The optimizer failed on this model (mixture(cumulative, sratio), ML, nlminb): NA/NaN gradi	NA	NA	NA
+cum_sratio	300	30	3.30000000000001	FALSE	-371.813220740417	1	3	0	0			7.09	-379.582200711966	1	step	231.035722000884	
+cum_sratio	300	31	1.25	FALSE	-376.107761875372	0	0	0	1		Boundary (singular) fit: sd_g__mu2_Intercept is at zero. The likelihood does not change as	0.640000000000001	-376.931120476298	0	proper	0.682487177670513	
+cum_sratio	300	32	0.530000000000001	FALSE	-370.406908236844	0	0	0	0			0.780000000000001	-371.177065052612	0	proper	2.55826695723016	
+cum_sratio	300	33	0.710000000000008	FALSE	-370.92831699049	0	0	0	0			0.659999999999997	-370.878400758985	0	proper	1.60767721529622	
+cum_sratio	300	34	1.17	FALSE	-371.644496064364	1	3	0	0			0.0499999999999972	NA	The optimizer failed on this model (mixture(cumulative, sratio), ML, nlminb): NA/NaN gradi	NA	NA	NA
+cum_sratio	300	35	0.859999999999999	FALSE	-388.934440829767	0	0	1	1	Standard errors are not available for 1 of 13 parameters. tau_raw2_1: the likelihood is fl	Boundary (singular) fit: sd_g__mu2_Intercept is at zero. The likelihood does not change as	1.06	-396.6395194597	0	step	0.213120121382507	
+cum_sratio	300	36	0.859999999999999	FALSE	-375.212814849492	0	0	0	0			0.980000000000004	-375.799762059859	0	proper	1.92148117572641	
+cum_sratio	300	37	2.88000000000001	FALSE	-375.211042666486	1	2	0	0			2.59999999999999	-374.342006389388	1	proper	0	
+cum_sratio	300	38	0.760000000000005	FALSE	-388.907950248737	0	0	0	1		Boundary (singular) fit: sd_g__mu2_Intercept is at zero. The likelihood does not change as	0.469999999999999	-389.374072602684	0	proper	1.09513352165747	
+cum_sratio	300	39	3.41	FALSE	-390.249884596905	1	2	0	0			2.27000000000001	-390.944396997241	1	proper	0	
+cum_sratio	300	40	0.740000000000009	FALSE	-374.641016364203	0	0	0	1		Boundary (singular) fit: sd_g__mu2_Intercept is at zero. The likelihood does not change as	0.680000000000007	-374.628307242949	0	proper	11.0240955018959	

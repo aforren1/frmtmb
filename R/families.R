@@ -6009,12 +6009,14 @@ mixture_mu_start <- function(y, aterms, p, bounded) {
 #' 500 rows), 22 ended there, and in 16 of the 22 the degenerate point
 #' had a higher log-likelihood than the best non-degenerate optimum
 #' found from other starts, so the best start by the likelihood alone
-#' does not move such a fit off it. Without random effects, [frm()]
-#' therefore also fits from 10 jittered starts and keeps the best
-#' converged point without a step function, and says so in a message
-#' (class `frmtmb_mixture_step_start`) when a step function it passed
-#' over was higher (see
-#' `starts` in [frmtmb_control()]). The fit warns when a component ends
+#' does not move such a fit off it. `frmtmb_control(starts = 10)` fits
+#' from 10 jittered starts as well and keeps the best converged point
+#' without a step function; no fit runs them by default. A mixture whose
+#' components are of different families (`mixture(cumulative(),
+#' sratio())`) is also refitted once with the components' parameters
+#' swapped between the families, and keeps that fit when it is higher
+#' and passes the degenerate test (message class `frmtmb_mixture_swap`);
+#' see `starts` in [frmtmb_control()]. The fit warns when a component ends
 #' at such a point: when doubling all its latent distances (or, with
 #' `cs()`, one threshold's)
 #' costs the log-likelihood less than 0.1, or when no row lies within a
@@ -6712,6 +6714,7 @@ mixture_build_ordinal <- function(comps, ref, order, y = NULL,
     post = list(
       fit_check = mixture_ord_fit_check,
       start_degenerate = mixture_ord_start_class,
+      start_swaps = mixture_ord_swap_starts,
       start_spread = if (shared) {
         function(frame, resp, tpl) {
           mixture_ord_start_spread(frame, resp, tpl, cf)
@@ -7170,26 +7173,32 @@ mixture_ord_degenerate_check <- function(fit, resp) {
       }), collapse = "; "), ")")
   }, "")
   ms <- fit$opt[["mixture_starts"]]
-  # a fit with random effects runs no jittered starts by default (each
-  # is a Laplace fit; backlog 5214), so the check to run is named
-  re <- is.null(ms) && length(fit$frame[["re_blocks"]]) > 0L &&
-    is.null(fit$control$starts)
+  n_starts <- if (is.null(ms)) 0 else ms[["starts"]]
+  # no fit runs jittered starts by default (backlog 6136: they cost 5 to
+  # 18 times the fit), so the call to make is named, but only where it
+  # would run them: mixture_starts() keeps a default flat by its
+  # thresholds' travel, and an unconverged one that is not a step
+  # function, and runs none there (review of 2026-11-18, item 1)
+  step_any <- any(!((dg$sharpen <= -0.1) %in% TRUE))
+  travel <- any(runoff | dg$collapsed %in% TRUE)
+  would_run <- step_any ||
+    (!travel && isTRUE(fit$opt$convergence == 0))
+  unasked <- n_starts == 0 && is.null(fit$control$starts) && would_run
+  lead <- if (unasked) {
+    paste0("No jittered starts run by default: run them with ",
+           "frmtmb_control(starts = 10), ")
+  } else if (n_starts == 0) {
+    "Compare several starts (frm(start = )), "
+  } else if (any(step)) {
+    paste0("None of ", n_starts, " jittered starts reached a maximum ",
+           "without a step function. ")
+  }
   frm_warning(fam[["family"]], ": ", paste(what, collapse = "; "),
               " ended at a degenerate boundary. Maximum likelihood for ",
               "an ordinal mixture often has its supremum there, so its ",
               "estimates run off and their standard errors mean ",
-              "nothing. ",
-              if (re) {
-                paste0("A fit with random effects runs no jittered starts ",
-                       "by default: run them with frmtmb_control(starts = ",
-                       "10), ")
-              } else if (is.null(ms)) {
-                "Compare several starts (frm(start = )), "
-              } else if (any(step)) {
-                paste0("None of ", ms[["starts"]], " jittered starts ",
-                       "reached a maximum without a step function. ")
-              },
-              if (is.null(ms)) "hold" else "Hold",
+              "nothing. ", lead,
+              if (n_starts == 0) "hold" else "Hold",
               " the component with priors, as brms does (class ",
               "Intercept and b with dpar = \"mu<k>\"), or use fewer ",
               "components", call. = FALSE,
@@ -7216,8 +7225,22 @@ mixture_ord_degenerate_check <- function(fit, resp) {
 #' its raw threshold parameters, whose covariance entries are then no
 #' standard error.
 #'
+#' `lost_inf = TRUE`, as `mixture_ord_start_class()` asks: a threshold
+#' the data place that moves with such a parameter reads `Inf`. Read as
+#' a number, the entry of a lost threshold was 1.8 on one fit
+#' (cum_sratio n = 300 seed 24 of dev/ordstarts-run.R), below the cut,
+#' and the jittered starts took that flat point for a proper one. The
+#' fit-end degenerate check keeps the entry (`lost_inf = FALSE`) and
+#' says "no standard error" only above the cut: the check's list of
+#' lost parameters depends on the weights' scale, and with `Inf` the
+#' sound fit of constant weights 1/500 in test-ordinal-mixture.R warned,
+#' as did each shared-threshold mixture whose flat direction another
+#' warning already names. `force` builds the covariance where the check
+#' would wait, as the ranking needs at every point it ranks.
+#'
 #' @noRd
-mixture_ord_thres_se <- function(fit, resp) {
+mixture_ord_thres_se <- function(fit, resp, force = FALSE,
+                                 lost_inf = FALSE, unit_lost = FALSE) {
   rspec <- fit$spec$responses[[resp]]
   K <- rspec$family[["mix"]][["ord"]]$K
   out <- rep(NA_real_, K)
@@ -7226,7 +7249,7 @@ mixture_ord_thres_se <- function(fit, resp) {
   if (identical(fit$control$check_se, "ignore")) return(out)
   sdr <- fit$cache$sdr
   an <- if (is.null(sdr)) {
-    tryCatch(se_fit_analysis(fit), error = function(e) NULL)
+    tryCatch(se_fit_analysis(fit, force = force), error = function(e) NULL)
   }
   V <- sdr$cov.fixed %||% an$V
   lost <- names(sdr$se_lost %||% an$lost)
@@ -7238,13 +7261,22 @@ mixture_ord_thres_se <- function(fit, resp) {
   # inflate every standard error sqrt(n) times without moving the fit
   wm <- mean(as.numeric(fit$frame[["aterm_values"]][[resp]][["weights"]] %||%
                           1))
+  # the check's lost list moves with the weights' scale (weights 1/500
+  # lost a threshold on a sound fit), so `unit_lost` reads it off the
+  # Hessian per unit of mean weight
+  if (unit_lost && is.finite(wm) && wm > 0 && abs(wm - 1) > 1e-12) {
+    lu <- tryCatch(mixture_ord_lost_unit(fit, wm), error = function(e) NULL)
+    if (!is.null(lu)) lost <- lu
+  }
   for (k in seq_len(K)) {
     lp <- fit$frame[["linpreds"]][[linpred_key(resp, paste0("mu", k))]]
     ob <- ord_lp_block(fit$frame, fit$spec, lp)
     pos <- which(names(p) == ob$comp)
     raw <- as.numeric(fit$estimates[[ob$comp]])
     if (!length(pos) || length(pos) != length(raw)) next
-    lost_k[k] <- length(onm) == length(p) && any(onm[pos] %in% lost)
+    lost_raw <- if (length(onm) == length(p)) which(onm[pos] %in% lost) else
+      integer(0)
+    lost_k[k] <- length(lost_raw) > 0L
     unident <- ob$fam[["thres"]][["unident"]] %||% integer(0)
     nth <- length(ord_threshold_values(ob$fam, raw))
     keep <- setdiff(seq_len(nth), unident)
@@ -7262,13 +7294,45 @@ mixture_ord_thres_se <- function(fit, resp) {
     }, numeric(nth))
     J <- matrix(J, nrow = nth)[keep, , drop = FALSE]
     v <- rowSums((J %*% V[pos, pos, drop = FALSE]) * J)
-    v <- v[is.finite(v)]
+    if (lost_inf && length(lost_raw)) {
+      v[rowSums(abs(J[, lost_raw, drop = FALSE])) > 0] <- Inf
+    }
+    v <- v[!is.na(v)]
     if (!length(v)) next
     disc <- stats::median(as.numeric(dp[[paste0("disc", k)]] %||% 1))
     out[k] <- sqrt(max(v, 0) * wm) * disc
   }
   attr(out, "lost") <- lost_k
   out
+}
+
+#' The parameters the standard-error check loses on a fit's Hessian per
+#' unit of mean case weight `wm`, by the check's own rule
+#' (`cov_from_hessian()`), from the Hessian `se_fit_analysis()` built:
+#' the exact one without random effects, the cached finite-difference
+#' one with them. NULL where there is none to read.
+#'
+#' @noRd
+mixture_ord_lost_unit <- function(fit, wm) {
+  obj <- fit$obj
+  p <- fit$opt$par
+  if (!length(obj$env$random)) {
+    saved <- obj_state_save(obj)
+    Hx <- tryCatch(obj_he_cached(obj, p), error = function(e) NULL)
+    obj_state_restore(obj, saved)
+    if (!is.matrix(Hx) || !all(is.finite(Hx))) return(NULL)
+    H <- (Hx + t(Hx)) / 2 / wm
+    E <- abs(Hx - t(Hx)) / 2 / wm
+    exact <- TRUE
+  } else {
+    h <- fit$cache$hessian_fixed
+    if (!is.matrix(h$H)) return(NULL)
+    H <- h$H / wm
+    E <- if (is.matrix(h$E)) h$E / wm
+    exact <- isTRUE(h$exact)
+  }
+  an <- cov_from_hessian(fit, H, E, exact = exact)
+  if (an$tier > 1L) names(se_relabel(fit, an$lost)) else character(0)
 }
 
 #' The standard error, on the latent scale, above which a threshold
@@ -7292,12 +7356,36 @@ mixture_ord_se_cut <- 100
 #' point had coefficients of 740 to 9.5e4 and was not a measured maximum
 #' (dev/reviews/2026-11-11-ordstart.md, finding 3).
 #'
+#' A component the sharpening and the distances pass is flat too when a
+#' threshold the data place has a standard error above
+#' `mixture_ord_se_cut`, or none (the standard-error check lost it), on
+#' the covariance built at this point whether or not the fit-end check
+#' would wait. Without that test the class called proper what the
+#' degenerate check then warned about: today's 10 starts without random
+#' effects moved 3 of 120 proper fits to such a point (review of
+#' 2026-11-17, dev/reviews/ordstarts-review-nore.R), and with
+#' `(1 | g)` 3 of 34 upward moves did, and 7 more ended at a lost
+#' threshold (dev/ordstarts-findings.md). The covariance is built only
+#' for a point the cheaper tests pass, and the lost list is read per unit
+#' of mean case weight (`unit_lost`): weights 1/500 lost a threshold on a
+#' sound fit, which kept the starts off (review of 2026-11-18, item 2).
+#' Such a component is returned apart, as `unplaced`: unlike `boundary`,
+#' a flag the optimizer's travel decides, it does not keep the default
+#' (`mixture_starts_pick()`).
+#'
 #' @noRd
 mixture_ord_start_class <- function(fit, resp) {
   dg <- mixture_ord_degeneracy(fit, resp)
   step <- !((dg$sharpen <= -0.1) %in% TRUE)
   flat <- (dg$near > 50) %in% TRUE | dg$collapsed %in% TRUE
-  list(step = dg$component[step], boundary = dg$component[flat & !step])
+  unplaced <- rep(FALSE, length(step))
+  if (any(!step & !flat)) {
+    se <- mixture_ord_thres_se(fit, resp, force = TRUE, lost_inf = TRUE,
+                               unit_lost = TRUE)
+    unplaced <- !step & !flat & (se > mixture_ord_se_cut) %in% TRUE
+  }
+  list(step = dg$component[step], boundary = dg$component[flat & !step],
+       unplaced = dg$component[unplaced])
 }
 
 #' How far each component of a fitted ordinal mixture has run toward a

@@ -4883,6 +4883,163 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-16
+
+### From lane ordstarts
+
+- **MEDIUM. The jittered starts of an ordinal mixture rank a point as
+  proper that the degenerate check or the standard-error check then
+  warns about, under today's default too.** `mixture_starts_pick()`
+  lets a proper default give way only to a proper point, so that no fit
+  the fit-end check passes gains its warning. But
+  `mixture_ord_start_class()` reads the sharpening, the run-off and the
+  collapse, and not the threshold standard-error test
+  (`mixture_ord_thres_se()` above `mixture_ord_se_cut`) that 0.83.0
+  added to `mixture_ord_degenerate_check()`.
+  - Today's default (10 starts, no random effects): 3 of 120 fits
+    moved from a proper point without the degenerate warning to a
+    higher one with it (cum_sratio n = 1000 seeds 13 and 34, n = 300
+    seed 28 of `mk(seed, n, mix = TRUE)` with `y ~ x + z`; largest
+    threshold standard error 2.2 to 2705, 12.0 to 2853, 1.37 to 5190;
+    `dev/reviews/ordstarts-review-nore.R`, review of 2026-11-17). The
+    lane's own run of the same data (`dev/ordstarts-swap.R` with
+    `re = none`, seeds 1 to 40) agrees: 2 of 40 at cum_sratio n = 1000,
+    1 of 40 at n = 300, 0 on cum_cum.
+  - With `(1 | g)` and `starts = 10`: 3 of 34 upward moves end at a
+    point with the degenerate warning (threshold standard errors 493,
+    5140, 7090). One is a clean instance (cum_sratio n = 1000 seed 24);
+    at n = 300 the default of seed 24 already had a lost threshold and
+    that of seed 33 a threshold standard error of 4014 that the deferred
+    check hid (`dev/ordstarts-run.R`, `dev/ordstarts-findings.md`
+    section 3).
+  - 7 upward moves end at a point where the standard-error check loses
+    a threshold ("Standard errors are not available ...
+    tau_raw<k>_<j>": cum_cum slope n1000 seed 17, cum_sratio int n1000
+    seed 9, cum_sratio int n300 seeds 4, 6, 14, 31, 40;
+    `dev/ordstarts-sum3.R`). `mixture_ord_thres_se()` reads a lost
+    threshold's covariance entry as an ordinary number (1.8 at n300
+    seed 24), so a fix that reads only the cut would not see them.
+  Fix: in `mixture_ord_start_class()`, count as flat a component whose
+  threshold standard error is above the cut OR whose threshold the
+  standard-error check lost; this needs the covariance at each candidate
+  (cost not measured). Fix before any change to the default of 6136.
+  Severity MEDIUM, not HIGH: the outcome is a worse fit, but never a
+  silent one. Each of these points carries the degenerate warning or the
+  lost-standard-error warning at the fit, so the user is told; what is
+  wrong is that the starts traded a clean maximum for a warned point
+  that the pick rule promises not to take.
+  CLOSED in the round of 2026-11-16 (lane ordstarts): `mixture_ord_start_class()` counts a threshold standard error above the cut, or a lost threshold, as flat on the covariance built at each point; the review's 3 cases stay proper on 63 of 63 roundings (`dev/ordstarts-ulps.R rank`).
+- **LOW. A fit made with `starts = n` passes the starts to every refit,
+  and a warm-started refit without them is often short.** `refit()`,
+  `frm_bootstrap()` and `influence()` reuse the fit's control, so each
+  replicate or deletion runs n starts: on 4 n = 300 fits with
+  `(1 | g)`, `influence(groups = "g")` took 3185.0 s with starts against
+  52.3 s without (one fit 2308 s against 9.3 s). Without starts the
+  warm-started refits miss higher maxima: bootstrap replicates of the
+  default fit were below the same replicate with starts on 12 of 40
+  (8 fits, `nsim = 5`); replicates warm-started from the starts' better
+  point, without starts, were below the same replicate with starts on
+  16 of 39; and deletion refits of the default fit on 47 of 80
+  (`dev/ordstarts-paths.R`, `dev/ordstarts-findings.md` section 4). The
+  `starts` help says replicates start from the chosen point and can end
+  at a step function; it does not say that they are also short of
+  better proper maxima this often, nor what an inherited `starts`
+  costs. Docs, or a `starts` argument for the refit paths.
+- **LOW. How often an ordinal mixture with random effects defers the
+  standard-error check, measured** (the open LOW item "The
+  ordinal-mixture threshold standard-error test needs the fit-end
+  covariance" said not measured): it waited on 148 of 313 default fits
+  of `dev/ordstarts-run.R` (two families, `(1 | g)` and `(1 + x | g)`,
+  n = 300 and 1000). On 6 of those 148 the threshold standard error of
+  the forced covariance is above 100; 2 of the 6 warn anyway as step
+  functions, so 4 are hidden at the fit (cum_sratio int n1000 seeds 2
+  and 20, n300 seeds 33 and 38). `summary()` adds no warning on any of
+  the 4, so they stay silent at threshold standard errors of 513, 2520,
+  4010 and 4490 (`dev/ordstarts-sum3.R`, `dev/ordstarts-out/sum3.txt`).
+  With `starts = 10` the check waited on 9 of 313, because the starts'
+  evaluations count toward `se_check_at_fit()`; so on 3 of those 4 the
+  starts arm gains the degenerate warning at the same logLik, without
+  moving.
+- **LOW. 7 of 320 ordinal mixtures with random effects stop with an
+  error.** "The optimizer failed on this model ... NA/NaN gradient
+  evaluation" on `dev/ordstarts-run.R` cum_cum int n300 seed 29, cum_cum
+  slope n1000 seeds 12 and 23, cum_cum slope n300 seed 9, cum_sratio
+  int n300 seed 10, cum_sratio slope n300 seeds 16 and 24. Not
+  investigated (the lane measured the starts, which run after the
+  default fit and so never ran on these).
+- **LOW. `(1 + x | g)` in an ordinal mixture stops at false convergence
+  on most fits.** 138 of 160 default fits of `dev/ordstarts-run.R`
+  (two families, n = 300 with 20 groups and n = 1000 with 50) end at
+  code 1, with a maximum gradient of 1e5 to 1.8e8 on the four pilot
+  seeds (`dev/ordstarts-out/pilot-c.tsv`). The convergence warning
+  says so; the starts do not run on such a fit unless it is a step
+  function. Not investigated.
+- **LOW. A step-function ending says nothing of the other component's
+  lost thresholds.** `frm(bf(y ~ cs(x) + z), family = mixture(sratio(),
+  acat()))` on the review sweep's cs_sr_acat seed 1 (the data of
+  test-ordinal-mixture.R's "a threshold with no standard error is said
+  so") ends at -399.3975, code 1, with component 1 a step function. The
+  degenerate warning names component 1 only, and no warning names
+  component 2's two thresholds, whose `fixef()` standard errors are NaN.
+  0.83.0 reached this point with `starts = 0`; since the default runs no
+  jittered starts it is the default ending, and the point -404.9916
+  that 0.83.0's starts chose is flat to the fixed ranking (a lost
+  threshold). `dev/ordstarts-f3.R`.
+- **LOW. The swap's check costs four refits where it is kept.** A kept
+  swap cost a median 7.1 times the fit with random effects, against 2.1
+  to 4.1 times where it ran and was not kept (`dev/ordstarts-sum6.R`).
+  The four jittered runs of `mixture_swap_settle()` are the measured
+  check: one, two or three runs would have missed the one non-maximum
+  of 46 (cum_sratio int n300 seed 40, `dev/ordstarts-refits.R`). The
+  Hessian's smallest eigenvalue did not separate it (-1.8e-4 there,
+  -1.0e-3 at a point that holds). On 23 kept swaps the review saw all
+  92 jittered ends within 3.6e-8 of the swap's point (review of
+  2026-11-18, item 5). A cheaper sound check is open; since the fix
+  round the check keeps a climbing proper end instead of dropping the
+  swap.
+- **LOW. From four components the swap tries the pairwise swaps only,
+  unmeasured.** At K = 3 the 3-cycles gave the best end on 7 of 20
+  seeds (`dev/ordstarts-sum5.R`), so K = 3 tries all 5 assignments;
+  K = 4 would be 23 refits, and no K = 4 design was fitted.
+- **LOW. A lost threshold makes a point flat to the ranking whatever
+  the weights' scale.** The standard-error check's list of lost
+  parameters depends on the scale of constant case weights (weights
+  1/500 lost thresholds on a sound fit of test-ordinal-mixture.R), and
+  `mixture_ord_start_class()` counts a lost threshold as flat, so such a
+  fit takes no swap or start. Not measured on weighted fits.
+  CLOSED in the round of 2026-11-16 (lane ordstarts): measured by the review of 2026-11-18 (weights 1/500 on cum_cum seed 3, n = 500); the ranking reads the lost list on the Hessian per unit of mean weight, and gains count per unit of mean weight; weights 1/1000, 1 and 10 return the same maximum (test-mixture-starts.R, test-ordinal-mixture.R).
+- **LOW. Without random effects, fits of one family are short more
+  often now.** With no jittered starts by default, `mixture(cumulative(),
+  cumulative())` without random effects ended short of a better clean
+  point in silence on 4 of 40 fits at n = 1000 (none before) and 1 of 40
+  at n = 300, and its degenerate warning rose from 14 to 20 of 40 at
+  n = 300 (step functions the starts left); the swap cannot help a
+  mixture of one family. The user's decision (C0 + D) accepts it; the
+  `starts` help names `starts = 10` (`dev/ordstarts-sum6.R`).
+- **LOW. nlminb stops at another point when constant weights shrink the
+  objective.** Older than this lane: the fit with `starts = 0` is
+  0.83.0's to the last digit. cum_sratio without random effects, n =
+  1000, seed 2: at weights 1/1000 the default ends 0.226 per unit of
+  weight below the fit at weights 1, because plain `nlminb()` from the
+  same swapped start stops at -1292.6624 per unit at 1/1000 and at
+  -1292.4361 at 1, both "relative convergence (4)". On
+  test-ordinal-mixture.R's weighted cum_cum data at weights 1/500, seed
+  3 with `starts = 0` stops 0.0019 per unit lower with a lost threshold,
+  and seed 8 stops at the weights-1 likelihood but at collapsed
+  thresholds (the degenerate warning), where weights 1 give neither.
+  The swap's keep rule counts gains per unit of
+  weight since the build fix round; the optimizer's stopping rule does
+  not (short check of 2026-11-18, `dev/reviews/ordstarts-short-p9.txt`,
+  `-p10.txt`, `-p11.txt`).
+- **LOW. Futile swaps on unconverged one-family fits with random
+  effects.** On mixtures of one family with random effects, the
+  objective test of `mixture_swap_distinct()` misses the label switch
+  on 14 of 160 fits, all unconverged: the objective at the swapped start
+  is not the fit's there, so a refit runs, at up to 1.72 times the fit,
+  and is never kept; whether it runs flips with the inner start
+  (`mixture_swap_inner()`). The returned fit does not change (short
+  check of 2026-11-18; `dev/ordstarts-prof2.R` saw 4 such fits of 20).
+
 ## Filed at the 0.83.0 release (2026-11-13)
 
 ### From lane ci082
@@ -6139,6 +6296,7 @@ Record: `dev/wcheck-findings.md`.
   in. How often the answer moves with random effects is not measured.
   Refits from a fit's estimates (bootstrap, `influence()`, `refit()`)
   run none either unless `starts` is set, and `frm_allfit()` runs none.
+  CLOSED in the round of 2026-11-16 (lane ordstarts): measured (the starts moved 46 of 320 fits with random effects, 19 short in silence), and by the user's decision no fit runs jittered starts by default and a mixture of two families refits once swapped: 19 to 3 silent shortfalls, none moved down (`dev/ordstarts-findings.md`).
 ### From lane silent
 
 - **MINOR. The stationary-point escape is one pass, so two declared

@@ -761,6 +761,25 @@ test_that("constant weights do not change the degenerate verdict", {
   }
 })
 
+test_that("constant weights do not keep the jittered starts off", {
+  # review of 2026-11-18, item 2: on the sound fit above (seed 3,
+  # n = 500) weights 1/500 made the standard-error check lose a
+  # threshold, the starts' ranking called the point flat, and
+  # starts = 10 ran nothing, where weights 1 ran 10
+  skip_on_cran()
+  f <- function(w) {
+    frm(bf(y | weights(w) ~ x), family = mixture(cumulative(),
+                                                 cumulative()),
+        data = omx_wdata(3, 500, w), control = frmtmb_control(starts = 10))
+  }
+  w1 <- omx_warnings(a <- suppressMessages(f(1)))
+  w2 <- omx_warnings(b <- suppressMessages(f(1 / 500)))
+  expect_identical(a$opt$mixture_starts[["starts"]], 10)
+  expect_identical(b$opt$mixture_starts[["starts"]], 10)
+  lla <- as.numeric(logLik(a))
+  expect_lt(abs(500 * as.numeric(logLik(b)) - lla), 1e-6 * abs(lla))
+})
+
 test_that("the degenerate check says only what it found", {
   # three components on two-class data (dev/ordmix-cum3two.R): one
   # component gives NaN for a category on every row, and the check's
@@ -948,21 +967,42 @@ test_that("a threshold with no standard error is said so, beside the SE list", {
   # every ending: a quoted standard error is never one summary() lacks
   expect_false(lost && any(grepl("its standard error is", degen,
                                  fixed = TRUE)))
-  if (lost && length(degen)) {
+  # where the warning names the component of the lost thresholds. The
+  # other ending, a step function of component 1 at -399.3975 (code 1),
+  # which the default reaches since it runs no jittered starts (backlog
+  # 6136) and 0.83.0 reached with starts = 0, says nothing of component
+  # 2's lost thresholds: filed in the round of 2026-11-16 (lane
+  # ordstarts)
+  if (lost && any(grepl("component 2 (", degen, fixed = TRUE))) {
     expect_true(any(grepl("has no standard error", degen, fixed = TRUE)))
     expect_true(any(grepl("Standard errors are not available", w,
                           fixed = TRUE)))
   }
-  # on this point (logLik -404.9916) both are said
-  if (abs(as.numeric(logLik(fit)) + 404.9916) < 1e-3) {
-    expect_true(lost)
-    expect_true(any(grepl("has no standard error", degen, fixed = TRUE)))
-    expect_true(any(grepl("bcs", w, fixed = TRUE)))
-  }
+  # the point 0.83.0's starts chose (logLik -404.9916), reached from its
+  # own estimates (dev/ordstarts-f3point.R): both are said there
+  skip_on_cran()
+  st <- list(
+    beta = c(0.0812720462683053, -0.504952875365805),
+    betad = c(0, 0, 0.913200846003289),
+    tau_raw1 = c(-1.06312990608409, -0.0742321913586997, 5.47011324649118),
+    tau_raw2 = c(0.382624673498587, 14.3104242185351, -17.9547462982235),
+    bcs3 = c(-0.958256503086683, -0.0609454292742563, -2.64495058814242),
+    bcs4 = c(1.52550393738695, -0.694943756302763, 1.61011903079526))
+  w <- omx_warnings(fit <- frm(bf(y ~ cs(x) + z),
+                               family = mixture(sratio(), acat()), data = d,
+                               start = st))
+  expect_lt(abs(as.numeric(logLik(fit)) + 404.9916), 1e-3)
+  fx <- suppressWarnings(fixef(fit))
+  expect_true(any(is.nan(fx[grep("^mu2_Intercept", rownames(fx)),
+                            "Est.Error"])))
+  degen <- grep("degenerate boundary", w, value = TRUE, fixed = TRUE)
+  expect_true(any(grepl("has no standard error", degen, fixed = TRUE)))
+  expect_false(any(grepl("its standard error is", degen, fixed = TRUE)))
+  expect_true(any(grepl("bcs", w, fixed = TRUE)))
 })
 
-test_that("a degenerate fit with random effects names the starts to run", {
-  # backlog 5214: such a fit runs no jittered starts by default, so the
+test_that("a degenerate fit names the starts to run, unless they ran", {
+  # backlogs 5214 and 6136: no fit runs jittered starts by default, so the
   # warning's "Compare several starts (frm(start = ))" pointed nowhere
   skip_on_cran()
   # its sd of g ends at 0, which a message says (not checked here)
@@ -972,11 +1012,21 @@ test_that("a degenerate fit with random effects names the starts to run", {
   degen <- grep("degenerate boundary", w, value = TRUE, fixed = TRUE)
   expect_true(length(degen) > 0L)
   expect_true(all(grepl("frmtmb_control(starts = 10)", degen, fixed = TRUE)))
-  # the guard's condition absent: without random effects the starts run,
-  # and the text does not ask for them
-  w <- omx_warnings(frm(bf(y ~ x + z), family = mixture(cumulative(),
-                                                        sratio()),
-                        data = omx_flat_data(16)))
+  # without random effects too, now that no default runs them
+  w <- omx_warnings(suppressMessages(frm(
+    bf(y ~ x + z), family = mixture(cumulative(), sratio()),
+    data = omx_flat_data(16))))
+  degen <- grep("degenerate boundary", w, value = TRUE, fixed = TRUE)
+  expect_true(length(degen) > 0L)
+  expect_true(all(grepl("frmtmb_control(starts = 10)", degen, fixed = TRUE)))
+  # the guard's condition absent: the call it names runs the starts (the
+  # default there is flat by a threshold's standard error, which no
+  # longer keeps them off, review of 2026-11-18, item 1), and the text
+  # does not ask for them again. Valid endings: a better point, or the
+  # warning saying no start escaped
+  w <- omx_warnings(suppressMessages(f10 <- frm(
+    bf(y ~ x + z), family = mixture(cumulative(), sratio()),
+    data = omx_flat_data(16), control = frmtmb_control(starts = 10))))
+  expect_identical(f10$opt$mixture_starts[["starts"]], 10)
   expect_false(any(grepl("frmtmb_control(starts = 10)", w, fixed = TRUE)))
-  expect_true(any(grepl("degenerate boundary", w, fixed = TRUE)))
 })

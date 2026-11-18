@@ -1,0 +1,2 @@
+frmtmb tests/testthat/test-mixture-starts.R
+frmtmb tests/testthat/test-ordinal-mixture.R

@@ -1,3 +1,50 @@
+# frmtmb (development version)
+
+## Ordinal mixtures
+
+* BREAKING: No fit of a `mixture()` of ordinal families runs jittered
+  starts by default. Before, a fit from scratch without random effects
+  ran 10, at 5.6 to 7.1 times the fit, and a fit with random effects ran
+  none, because there they cost a median of 18 times the fit. Now one
+  rule holds for every model form: `frmtmb_control(starts = 10)` asks
+  for them, and the degenerate warning names that call on a fit where
+  it would run them. The cost falls on mixtures of one family without
+  random effects, which the swapped start below cannot help: on
+  simulated two-class data, `mixture(cumulative(), cumulative())` now
+  ends short of a better point without a warning on 4 of 40 fits with
+  1000 rows (none before), and its degenerate warning rose from 14 to 20
+  of 40 fits with 300 rows.
+
+* A `mixture()` of ordinal families is now refitted from the default
+  fit with the components' parameters swapped between the components,
+  one refit per other assignment (all of them for three components,
+  the pairwise swaps from four), where the swapped start is another
+  model: one at which the objective equals the fit's is skipped, as for
+  two components of one family, link and terms, or `sratio()` and
+  `cratio()` under the logit. The fit returns the refit when it
+  converged, is higher by more than `grad_tol` per unit of mean case
+  weight and has no degenerate component, after four jittered refits
+  from it, whose best end without a degenerate component it keeps; and
+  says so in a message of class `frmtmb_mixture_swap`. A `start` of your
+  own, `starts = 0`, and the refits of `refit()`, `frm_bootstrap()`,
+  `influence()` and `frm_allfit()` run no swap. On 320 simulated
+  two-component fits with random effects, the default ended short of a
+  better clean maximum without a warning on 19 fits before and on 3
+  after, and no fit moved down. The swap costs a median of 2.0 to 3.8
+  times the fit for two families, 6.9 times where it is kept, and about
+  1.0 for one family.
+
+* BREAKING: The jittered starts no longer take a point that the
+  degenerate check then warns about. The ranking called a point proper
+  when a threshold had a standard error above 100 or none at all, so
+  10 starts moved 3 of 120 proper fits without random effects to a
+  higher point with the degenerate warning. A point counts as flat now
+  when a threshold the data place has a standard error above 100, or
+  when the standard-error check lost one, on the covariance built at
+  each point and per unit of mean case weight. A default flat only in
+  this way still runs the starts it asks for, and a better point
+  without a degenerate component replaces it.
+
 # frmtmb 0.83.0
 
 ## Convergence and standard errors
