@@ -2081,6 +2081,8 @@ compat_hand_rules_tbl <- function() {
   r("residuals_osa", "kind:structure", "untested", "")
   r("emmeans", "kind:family", "conditional",
     "Takes brms's dpar =, nlpar =, resp =, epred = and re_formula = (see ?frmtmb-emmeans). A family with no mu needs dpar =. epred = TRUE needs one mean per row, so it is refused for the ordinal and categorical families.")
+  r("emmeans", "asym_laplace", "conditional",
+    "The means are the quantile regression's. Without random effects their standard errors are NaN, with a warning, because the family has no Hessian standard error: its log density is linear in mu on each side of its mode. For intervals see ?frmtmb-families, \"Quantile regression inference\".")
   r("emmeans", "nl", "works",
     "Verified (dev/emm-validate.R): nlpar = gives that parameter's own linear predictor, and the whole mu goes through the taped Jacobian of the body, the delta method. The covariance agrees with a numerical Jacobian to 1.3e-7 relative, and the standard error over a parametric bootstrap of 1500 refits is 0.97 to 1.03 times the bootstrap one, on two models.")
   r("emmeans", "s()", "works",
@@ -2136,7 +2138,7 @@ compat_hand_rules_tbl <- function() {
     r(cv, "asym_laplace", "conditional", ald_note)
   }
   r("gp_pred()", "asym_laplace", "conditional",
-    paste("An approximate gp(k = ) is refused under the Laplace approximation as the structures are:", ald_note, "An exact gp() is not refused: TMB's inner search failed on its near-singular covariance at a large sd, so its objective was not seen to rise all the way."))
+    paste("An approximate gp(k = ) is refused under the Laplace approximation as the structures are:", ald_note, "An exact gp() is not refused: its covariance scales as the others do, but its objective was not seen to rise all the way, because TMB's inner search fails at a large sd (as it does for (1 | g) there), so no profile confirms the proof yet."))
   r("fcor()", "kind:aterm", "refused",
     "Refused: the density of the rows is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, or a truncation bound to renormalize. brms refuses weights(), cens() and trunc() here too.")
   r("fcor()", "mi()", "conditional",

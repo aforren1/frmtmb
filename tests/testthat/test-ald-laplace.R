@@ -85,3 +85,44 @@ test_that("the refusal stays open where the proof does not hold", {
   # no random effect at all
   open(frame_of(bf(y ~ x)))
 })
+
+test_that("the scaled structures profiled later are refused too", {
+  # backlog item 5449: each structure's covariance is its sds times a
+  # correlation, so scaling the sds by c scales it by c^2, and its
+  # Laplace objective rose along that scale in every profile
+  # (dev/alapse-ald-profile.R). Data with two rows per group and time,
+  # so no effect is observation-level
+  set.seed(20261116)
+  d <- data.frame(g = factor(rep(1:20, each = 8)),
+                  tt = factor(rep(rep(1:4, each = 2), 20)))
+  d$x <- stats::rnorm(160)
+  d$tn <- num_factor(c(0, 0.3, 0.9, 1.5)[as.integer(d$tt)])
+  d$y <- 1 + 0.5 * d$x + stats::rnorm(160)
+  d$cc <- ifelse(d$y > 2, "right", "none")
+  d$yc <- pmin(d$y, 2)
+  Q <- diag(20) * 2
+  for (i in 1:19) Q[i, i + 1] <- Q[i + 1, i] <- -0.9
+  dimnames(Q) <- list(levels(d$g), levels(d$g))
+  terms <- list(hetar1 = "hetar1(tt + 0 | g)", ou = "ou(tn + 0 | g)",
+                toep = "toep(tt + 0 | g)", homtoep = "homtoep(tt + 0 | g)",
+                homcs = "homcs(tt + 0 | g)", exp = "exp(tn + 0 | g)",
+                gau = "gau(tn + 0 | g)", mat = "mat(tn + 0 | g)",
+                gr_prec = "(1 | gr(g, prec = Q))")
+  frame_of <- function(lhs, tm, fam) {
+    fo <- stats::as.formula(paste(lhs, "~ x +", tm))
+    frm(bf(fo), family = fam, data = d, data2 = list(Q = Q),
+        dry_run = "frame")
+  }
+  for (nm in names(terms)) {
+    fr <- frame_of("y", terms[[nm]], asym_laplace())
+    err <- tryCatch(check_ald_laplace(fr$spec, fr, NULL), error = identity)
+    expect_s3_class(err, "frmtmb_ald_no_laplace")
+    expect_match(conditionMessage(err), "frm_sample()", fixed = TRUE)
+    # the guard's absent cases: a gaussian block on a smooth density,
+    # and censored rows, whose tail probabilities are curved
+    fg <- frame_of("y", terms[[nm]], gaussian())
+    expect_null(check_ald_laplace(fg$spec, fg, NULL), label = nm)
+    fc <- frame_of("yc | cens(cc)", terms[[nm]], asym_laplace())
+    expect_null(check_ald_laplace(fc$spec, fc, NULL), label = nm)
+  }
+})

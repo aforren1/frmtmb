@@ -2017,6 +2017,18 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     }
     prior_conflict_message(fit$opt)
   }
+  # an asym_laplace() fit without random effects stops on the kinks of
+  # its likelihood: moved to the exact quantile regression solution where
+  # that is proved a maximum (ald_polish())
+  pol <- ald_polish(fit, bounds)
+  if (!is.null(pol)) {
+    moved <- !identical(pol$par, fit$opt$par)
+    fit$opt <- opt <- pol
+    if (moved) {
+      fit$estimates <- est <- est_at(opt)
+      fit$cache <- new.env(parent = emptyenv())
+    }
+  }
   if (!is.null(imp)) {
     imp_ess_warning(imp$ess$ess, imp$lay, imp$plan[["n_draw"]],
                     control$importance_ess %||% imp_ess_floor)
@@ -2051,8 +2063,11 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # curvature verdict there, such as "flat" on coefficients the data
   # determine, would not be one about the data (se_check(),
   # sdr_rescue_hessian())
+  # (not where the standard errors are refused by name, which the
+  # check says whatever the stop: ald_se_lost())
   if (length(chk$warnings) &&
-        !(isTRUE(chk$at_max) && length(chk$warnings) == 1L)) {
+        !(isTRUE(chk$at_max) && length(chk$warnings) == 1L) &&
+        !length(ald_se_lost(fit))) {
     fit$cache$se_explained <- "convergence"
   }
   # Fit-end checks: a family that wants to inspect its own fit, and the
@@ -6668,6 +6683,10 @@ check_convergence <- function(fit, control) {
   sep <- if (is.null(fit$importance)) {
     tryCatch(separation_check(fit), error = keep_missing(NULL))
   }
+  # an asym_laplace() fit with every row censored, run off the same way
+  if (is.null(sep)) {
+    sep <- tryCatch(ald_cens_sep(fit), error = keep_missing(NULL))
+  }
   if (!is.null(sep)) {
     if (is.environment(fit$cache)) {
       fit$cache$se_explained_sep <- sep$pars
@@ -6705,13 +6724,21 @@ check_convergence <- function(fit, control) {
   # along which the likelihood is level, is the rounding of the density
   # there (se_boundary_stop()); the rest of the gradient decides
   bstop <- FALSE
-  if (is.null(sep) &&
+  # an asym_laplace() fit proved to stop at the exact quantile regression
+  # solution, a maximum (ald_polish()): its gradient there is a one-sided
+  # derivative at the kinks, not a distance from the maximum. One proved
+  # only a local maximum says so in a warning of its own
+  ald_ok <- isTRUE(fit$opt$ald_cert$ok)
+  if (ald_ok && !isTRUE(fit$opt$ald_cert$global)) {
+    msgs <- c(msgs, frmtmb_ald_local = ald_local_message(fit))
+  }
+  if (is.null(sep) && !ald_ok &&
         (fit$opt$convergence != 0 || isTRUE(g > control$grad_tol)) &&
         is.null(fit$importance)) {
     bstop <- se_boundary_stop(fit, g, control, gvec)
     if (isTRUE(bstop)) g <- attr(bstop, "grad") %||% g
   }
-  if (is.null(sep) && fit$opt$convergence != 0 && !bstop) {
+  if (is.null(sep) && fit$opt$convergence != 0 && !bstop && !ald_ok) {
     # Whether the stop is the maximum is measured, not read off the code:
     # nlminb's "false convergence (8)" also fires at the maximum (a group
     # sd 1000 times sigma stopped there at lmer's maximum,
@@ -6739,7 +6766,8 @@ check_convergence <- function(fit, control) {
       code_msg <- paste0(
         "Optimizer did not report convergence: ", fit$opt$message, nl_hint,
         if (is.null(fit$importance)) {
-          conv_headroom_clause(room, control$grad_tol)
+          ald_conv_clause(fit) %||%
+            conv_headroom_clause(room, control$grad_tol)
         })
       # nlminb's "false convergence (8)" at a measured maximum is a
       # message, decided below once the gradient verdict is in. Not on an
@@ -6780,7 +6808,8 @@ check_convergence <- function(fit, control) {
         "Laplace fit converged and whether the groups have enough rows to ",
         "identify every variance component"))
     }
-  } else if (is.null(sep) && is.finite(g) && g > control$grad_tol) {
+  } else if (is.null(sep) && is.finite(g) && g > control$grad_tol &&
+               !ald_ok) {
     # (a separated fit's gradient and curvature are those of a run toward
     # infinity, which its warning has named)
     # the absolute gradient is the trip-wire and not the verdict: a
@@ -6848,5 +6877,6 @@ check_convergence <- function(fit, control) {
     frm_warning(msgs[[i]], call. = FALSE,
                 class = if (isTRUE(nzchar(cl))) cl)
   }
-  invisible(list(grad = g, warnings = unname(msgs), at_max = at_max))
+  invisible(list(grad = g, warnings = unname(msgs),
+                 at_max = at_max || ald_ok))
 }

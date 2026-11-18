@@ -4883,6 +4883,92 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-16
+
+### From lane alapse
+
+Record: `dev/alapse-findings.md`.
+
+- **HIGH. An asym_laplace() likelihood with an estimated quantile, or a
+  scale or quantile model, has several local maxima, and the first
+  lane build reported the one it reached as converged, removing the
+  warning 0.83.0 gave.** With sigma profiled, the log-likelihood in
+  the quantile p is `n log p(1 - p) - n log S(p)`, `S(p)` the quantile
+  regression's concave, piecewise linear objective, so it has an
+  upward kink at every breakpoint of the quantile process and a local
+  maximum can sit in many intervals near the top. The review
+  (`dev/reviews/2026-11-17-alapse.md`, finding 1) found 24 of 46
+  design-B fits silently below the global maximum (seed 109 by 2.65,
+  quantile 0.420 against 0.725), and 9 of 20 each on `sigma ~ z` and
+  `quantile ~ z` (up to 0.313 and 1.885). Fixed in the fix round for a
+  constant sigma: a fixed quantile is concave in a reparameterization,
+  and an estimated one is searched by branch and bound over the
+  quantile (46 of 46 design-B fits now at the global maximum, within
+  8.9e-11). What remains: with `sigma ~` or `quantile ~` terms (and a
+  fixed quantile with `sigma ~ z`: 4 of 40 fits up to 0.153 below a
+  multi-start maximum, `dev/alapse-fixsig.R`) no global proof exists;
+  those fits warn (class `frmtmb_ald_local`) and keep a nonzero code.
+  A global search over a scale or quantile model is open.
+- **MEDIUM. quadrature = TRUE breaks down on asym_laplace() with a
+  random effect in mu; the cause given here is inferred, not
+  measured.** TMBad's marginal_gk transform freezes a width per effect
+  from the log-integrand's curvature at its mode, by differences with
+  a step of 1 (upstream TMB-7: the step does not reach from an RTMB
+  spec). With a piecewise linear log density the only curvature is the
+  prior's, 1 / sd^2, while the integrand's real width is about sigma /
+  (rows per group); and quad_fit() anchors at the Laplace optimum,
+  which by the proof of check_ald_laplace() does not exist, so the
+  anchor's sd is wherever TMB's inner search stopped. No calibrated
+  width was read. `Rscript dev/alapse-quad.R lane` (the review's g4
+  design, seeds 1 to 10): 9 of 10 quadrature fits broke down ("the
+  calibration expired at every point tried"), the tenth fitted with
+  frmtmb_quad_unsettled and both convergence warnings; TMB's Laplace
+  objective from the default start stopped at log sd 0.001 to 2.306,
+  and 2 log units higher (the rest re-optimized) it was higher on 10
+  of 10, by 1.13 to 15.33. Not a defect of the integrator's arithmetic
+  as far as measured; the fix is a rule with kink-aware widths (route
+  (a) of the quadseam2 item, a Gauss-Hermite rule on the tape), owner
+  quadesc.
+- **LOW. The asym_laplace() random-effect refusal leaves open models
+  with no proof either way.** Measured or argued in
+  `dev/alapse-findings.md` ("5449"): another link, censored rows and a
+  random effect in sigma add curvature (their profiles fell, wcheck2);
+  an exact gp() and rr() have the scaling on paper but no profile that
+  confirms it (TMB's inner search fails at a large gp() sd; rr() was
+  not profiled along a common scale of its loadings); a Student-t or
+  another package's block has a mode-dependent or unknown density; an
+  me() latent through a fixed slope keeps the proof, one in a varying
+  slope does not, and the check reads neither. Each still fits with the
+  convergence warnings of the kink.
+- **LOW. `confint(method = "profile")` lets TMB's "collapsing to unique
+  'x' values" warning escape.** On an asym_laplace() fit (seed 5,
+  `dev/alapse-readers.R`), on 0.83.0 and the lane alike; the warning
+  comes from `approx()` in TMB's `confint.tmbprofile()`. The profile's
+  inner optimizer also meets the location's kinks, which nothing
+  checks there. (The fix round refuses the profile for the parameters
+  whose Hessian standard error is refused by name; the warning stays
+  for every other fit it reaches.)
+- **LOW. The generic "flat" words name asym_laplace()'s location on a
+  fit with a random effect outside mu.** `sigma ~ (1 | gg)` (review
+  `alapse-review-readers.R`, `readers-lane.txt`): `(Intercept)` and `x`
+  are lost as "flat", "the data do not determine them", where the
+  location's Hessian is 0 by the kink, not by the data. Outside the user
+  decision (fits without random effects); words to change.
+- **LOW. One exact row above every censoring point gives an unbounded
+  asym_laplace() likelihood, and the refusal names the kink.** Review
+  `alapse-review-cens.R`: logLik +1.54, log sigma -238, convergence
+  warnings beside "no Hessian standard error, by design"; the reason is
+  that no maximum exists (sigma to 0 at that row). Edge case.
+- **LOW. Two asym_laplace() responses that share no parameter get the
+  local warning.** The short review of the fix round
+  (`dev/reviews/alapse-short.md`, finding 3): the joint logLik equals
+  the sum of the single fits, each of which is proved the highest
+  maximum, but `ald_global_case()` reads one response only, so the fit
+  warns `frmtmb_ald_local` with code 1. The proof separates when the
+  responses share no parameter (no shared block, no rescor); applying
+  it per response is open. The warning's advice now says to fit each
+  response alone.
+
 ## Filed at the 0.83.0 release (2026-11-13)
 
 ### From lane ci082
@@ -4989,6 +5075,7 @@ Lane record: `dev/selimit2-findings.md`.
   everywhere and the MLE is the quantile regression's. A user decision:
   refuse the Hessian SE by name at fit time with words that say why,
   or report a quantile-regression (sparsity) or sandwich covariance.
+  CLOSED in the round of 2026-11-16 (lane alapse): refused by name without random effects (class frmtmb_ald_no_se, every reader NaN with the reason); the fit is moved to the exact quantile regression solution (tied data included), proved a local maximum, and silent with code 0 only where proved the highest (a fixed quantile with constant sigma, or an estimated constant quantile searched); else it warns frmtmb_ald_local; dev/alapse-findings.md.
 - **LOW. 3404's AD Hessian is not a drop-in for autoscale's
   optimHess().** autoscale_prefit_converged() and autoscale_fit_sound()
   (R/autoscale.R, lane slopescale's file, not edited) take optimHess()
@@ -5487,6 +5574,7 @@ Record: `dev/wcheck2-findings.md`.
   is open; a smoothed quantile family that has curvature is planned for
   a later round. Near 3389 (no asym_laplace fit passes the gradient
   check).
+  CLOSED in the round of 2026-11-16 (lane alapse): the refusal now covers hetar1, ou, toep, homtoep, homcs, exp, gau, mat and gr(prec = ) (profiled); each other open model decided with its reason, the remainder and the quadrature breakdown filed under lane alapse.
 - **LOW. A fit with every row censored has no "estimate does not exist"
   warning under asym_laplace.** `yac | cens(ca) ~ x + (1 | g4)`, all 80
   rows right censored at the minimum (`dev/wcheck2-allcens.R`): gaussian
@@ -5494,6 +5582,7 @@ Record: `dev/wcheck2-findings.md`.
   the intercept and sigma; asym_laplace ends at logLik -0, log sigma
   -38.61, conv 1 with the start warning and "false convergence (8)"
   only. 3392's limit rule does not reach it.
+  CLOSED in the round of 2026-11-16 (lane alapse): ald_cens_sep() proves it from the data (every row censored on one side, a free intercept in mu) and warns as separation, with and without the group term; dev/alapse-findings.md.
 - **LOW. The weights check does not decide two cells of a shape under a
   bounding Intercept prior.** The pair rule (a cell's mean excess above
   another's mean weight, with the centered intercept held) is proved

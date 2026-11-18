@@ -42,9 +42,11 @@ mi_fams <- c("gaussian", "student", "skew_normal", "beta", "Gamma", "weibull",
              "exponential", "frechet", "inverse.gaussian", "lognormal",
              "exgaussian", "gen_extreme_value", "von_mises")
 
-# the fit of a family with a kink warns about its gradient on both arms
+# the fit of a family with a kink has no Hessian standard error, by name,
+# on both arms
 mi_kink_warn <- c("Optimizer did not report convergence",
-                  "Large maximum absolute gradient")
+                  "Large maximum absolute gradient",
+                  "no Hessian standard error")
 
 test_that("a value no density reads is the complete-case fit, exactly", {
   for (fam in c(mi_fams, "asym_laplace")) {

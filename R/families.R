@@ -9006,15 +9006,50 @@ as_frmtmb_family <- function(x) {
 #' @section Quantile regression inference:
 #' `asym_laplace()` and `zero_inflated_asym_laplace()` fit quantile
 #' regression through a WORKING likelihood: at a fixed `quantile` the
-#' point estimates are consistent quantile estimates (they match
-#' `quantreg::rq()`), but the asymmetric Laplace is not the data's
-#' true density, so Wald standard errors and `confint()` intervals
-#' computed from it are not calibrated. This is a property of the
-#' asymmetric-Laplace approach, shared by brms. Use
-#' [frm_bootstrap()] for intervals you can defend. The check
-#' function's kink can also produce a benign false-convergence
-#' warning near the optimum; `frm_allfit()` confirms the fit when in
-#' doubt.
+#' point estimates are consistent quantile estimates, but the
+#' asymmetric Laplace is not the data's true density.
+#'
+#' The log density is linear in `mu` on each side of its mode, so its
+#' curvature in `mu` is 0 almost everywhere, and the Hessian carries no
+#' information about the uncertainty of the estimates. On a fit without
+#' random effects, `frm()` therefore gives no Hessian standard error:
+#' it warns once (class `frmtmb_ald_no_se`, under
+#' `frmtmb_control(check_se = )`), and `summary()`, `vcov()`,
+#' `confint()`, predictions, emmeans and marginaleffects show `NaN` with
+#' the reason. A `zi` part keeps its standard errors, since it reads
+#' only the zero rows. For intervals, use `quantreg::rq()` with
+#' `se = "nid"`, or a bootstrap of the rows. [frm_bootstrap()] and
+#' `frmtmb.sample::frm_sample()` read the same asymmetric Laplace
+#' likelihood, so their intervals hold only where the data are
+#' asymmetric Laplace: on gaussian data at quantile 0.9,
+#' `frm_bootstrap()`'s slope standard errors were less than half the
+#' Monte Carlo spread.
+#'
+#' Such a fit ends at the exact quantile regression solution. The
+#' optimizer stops on the kinks of the likelihood, so `frm()` solves
+#' for the location as the linear program it is at the fitted `sigma`
+#' and `quantile`, and settles those two by Newton steps; the location
+#' coefficients then equal those of `quantreg::rq()` at that
+#' `quantile`, and the result is proved a local maximum. A fit with
+#' `cens()` or `trunc()` rows, a link other than the identity, a
+#' nonlinear `mu`, `me()` or a prior density on the coefficients is not
+#' proved, and keeps its convergence warnings.
+#'
+#' Such a likelihood can have several local maxima. An estimated
+#' `quantile` has one on many of the intervals between the quantile
+#' regression's breakpoints, and on 46 simulated data sets of 100 rows
+#' the first one reached was below the highest on 24, by up to 2.65.
+#' With a fixed `quantile` and a constant `sigma` the likelihood is
+#' concave in a reparameterization, so the local maximum is the
+#' highest; with an estimated constant `quantile` `frm()` searches the
+#' quantile by branch and bound and moves to the highest maximum, unless
+#' a bound (`set_prior(lb =, ub =)`) holds `sigma` or the quantile,
+#' which the search does not read. Those
+#' fits get code 0 and no convergence warning, and `fit$opt$ald_cert`
+#' keeps the optimizer's own code. A fit with `sigma ~` or `quantile ~`
+#' terms is proved a local maximum only, keeps a nonzero code, and warns
+#' (class `frmtmb_ald_local`). For a quantile regression, fix the
+#' quantile: `bf(y ~ x, quantile = 0.5)`.
 #'
 #' @section Degrees of freedom that run off:
 #' `student()` estimates `nu` on the `logm1` link, which holds it above

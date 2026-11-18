@@ -1,3 +1,77 @@
+# frmtmb (development version)
+
+## Convergence and standard errors
+
+* BREAKING: `asym_laplace()` and `zero_inflated_asym_laplace()` fits
+  without random effects give no Hessian standard error. The log
+  density is linear in `mu` on each side of its mode, so the Hessian
+  carries no information about the uncertainty of the estimates. Such
+  a fit warns once, with the reason (class `frmtmb_ald_no_se`, under
+  `frmtmb_control(check_se = )`), and `summary()`, `vcov()`,
+  `confint()`, `diagnose()`, predictions and the emmeans and
+  marginaleffects adapters show `NaN` and say why. Before, the mean
+  coefficients were `NaN` while `sigma ~ z` and `quantile ~ z` kept
+  standard errors from the same singular Hessian. A `zi` part keeps
+  its standard errors. The help (`?frmtmb-families`, "Quantile
+  regression inference") and the warning name routes to intervals:
+  `frm_bootstrap()` and `frmtmb.sample::frm_sample()` read the same
+  likelihood, so they hold only where the data are asymmetric Laplace,
+  and the help no longer calls the bootstrap's intervals defensible.
+  `confint(method = "profile")` and `method = "uniroot"` refuse the
+  same parameters, with the same class: a likelihood interval reads the
+  same working likelihood (it gave 0.464 to 0.773 for a slope).
+
+* BREAKING: Such a fit ends at the exact quantile regression solution.
+  The optimizer stopped on the kinks of the likelihood with "false
+  convergence (8)" or a large gradient on every fit, up to 0.042 in
+  log-likelihood short of the quantile regression at the fitted
+  quantile. `frm()` now solves for the location as the linear program
+  it is at the fitted `sigma` and `quantile` (tied data included),
+  settles those two by Newton steps, and proves the result a local
+  maximum. Where the likelihood allows it, it also proves that maximum
+  the highest: with a fixed quantile and a constant `sigma` the
+  likelihood is concave in a reparameterization, and with an estimated
+  constant quantile a branch and bound over the quantile finds the
+  highest maximum (about 40 linear programs; a lower local maximum had
+  been reached on 24 of 46 simulated data sets, up to 2.65 below). The
+  constant may be on any link of `sigma` or the quantile; a bound on
+  either (`set_prior(lb =, ub =)`) keeps an estimated quantile's fit
+  local, since the search does not read it. Such
+  a fit gets code 0 and no convergence warning, and `fit$opt$ald_cert`
+  keeps the optimizer's own code. A fit with `sigma ~` or `quantile ~`
+  terms is proved a local maximum only: it keeps a nonzero code and
+  warns that it may not be the highest (class `frmtmb_ald_local`),
+  because such a likelihood has several (with a fixed quantile 0.2 and
+  `sigma ~ z`, 4 of 40 fits were up to 0.153 below a multi-start
+  maximum). On 125 simulated fits with a constant sigma and quantile
+  on 5 designs and the 4 earlier cases, every fit was proved the
+  highest maximum, and its coefficients matched `quantreg::rq()` at
+  the fitted quantile to 1.2e-13 in log-likelihood. A fit the proof
+  does not cover (`cens()`, `trunc()`, another link, a nonlinear `mu`,
+  `me()`, a prior density on the coefficients) keeps its convergence
+  warnings. `frm_bootstrap()` now counts the refits proved the highest
+  as converged.
+
+* An `asym_laplace()` response whose every row is censored on one side
+  warns that the maximum likelihood estimates do not exist (class
+  `frmtmb_separation`), as a gaussian one does. With `cens()` right on
+  every row, a larger intercept of `mu` raises every row's probability
+  toward 1, which no finite value reaches. Before, the fit stopped at
+  "false convergence (8)" with every probability 1 to rounding.
+
+* `frm()` refuses an `asym_laplace()` or `zero_inflated_asym_laplace()`
+  random effect in `mu` under the Laplace approximation for `hetar1()`,
+  `ou()`, `toep()`, `homtoep()`, `homcs()`, `exp()`, `gau()`, `mat()`
+  and `gr(prec = )` too, under the same conditions as the structures
+  refused before: each covariance is its standard deviations times a
+  correlation, and the approximation rose along that scale in every
+  profile.
+
+* A coefficient that the separation check names gets the reason
+  "separation" in `summary()` where the Hessian of the stop had lost it
+  as "flat", a limit, or a variance that is not positive, as a
+  prediction already said.
+
 # frmtmb 0.83.0
 
 ## Convergence and standard errors

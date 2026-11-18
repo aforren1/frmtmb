@@ -101,10 +101,12 @@ test_that("the asymmetric Laplace's censored rows are brms's likelihood", {
   # the gradient is not asserted: the likelihood has a kink at every
   # observation and nlminb stops short of the maximum on these data
   # whether or not any row is censored (dev/cdfs-dbg14.R); the value
-  # identity holds at the stop
+  # identity holds at the stop. Its Hessian standard errors are refused
+  # by name
   allow_warnings(cdfs_lp_case(asym_laplace(), brms::asym_laplace(), d, FALSE,
                               tol_grad = Inf),
-                 c("false convergence", "Large maximum absolute gradient"))
+                 c("false convergence", "Large maximum absolute gradient",
+                   "no Hessian standard error"))
 })
 
 test_that("discrete families: censored rows are brms's likelihood", {

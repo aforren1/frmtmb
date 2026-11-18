@@ -411,9 +411,11 @@ test_that("the other continuous fits are their hand-rolled likelihoods", {
     # the asymmetric Laplace likelihood has a kink at every observation,
     # and its fit stops at nlminb's false convergence on these data with
     # no censoring at all, on the 0.72.0 build as on this one
-    # (dev/cdfs-dbg14.R); the identity below holds at the stop
+    # (dev/cdfs-dbg14.R); the identity below holds at the stop. Its
+    # Hessian standard errors are refused by name
     ok <- if (nm == "asym_laplace") {
-      c("false convergence", "Large maximum absolute gradient")
+      c("false convergence", "Large maximum absolute gradient",
+        "no Hessian standard error")
     } else character()
     fit <- allow_warnings(frm(y | cens(cc, y2) ~ x, family = fam, data = d),
                           ok)

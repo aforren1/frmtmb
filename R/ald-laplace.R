@@ -10,14 +10,26 @@ ald_laplace_families <- c("asym_laplace", "zero_inflated_asym_laplace")
 # The built-in structures whose block density is gaussian with a
 # covariance that a free scale multiplies (their sd, sds or sdgp, all
 # of them for a block with several), and whose Laplace objective was
-# seen to rise along that scale (dev/wcheck2-ald-profile.R). The other
-# scaled structures (hetar1, ou, toep, homtoep, homcs, exp, gau, mat,
-# rr, gr_prec) were not profiled along their scale, and the exact
-# gp()'s objective fell at large sd where TMB's inner search failed, so
-# they stay open. equalto() fixes the covariance, and a Student-t block
+# seen to rise along that scale (dev/wcheck2-ald-profile.R; the second
+# group dev/alapse-ald-profile.R, where each structure's vcov() at sds
+# times 3 is also 9 times its own, the premise of the proof). rr() was
+# not profiled along a common scale of its loadings. An exact gp()'s
+# covariance is scaled the same way, but its profile fell at a large
+# sd, where TMB's inner search fails (as it does for (1 | g) there,
+# dev/alapse-quad.R), so no profile confirms it and it stays open,
+# conservatively. equalto() fixes the covariance, and a Student-t block
 # is not gaussian.
 ald_scaled_covstructs <- c("us", "diag", "homdiag", "cs", "ar1", "gr_cov",
-                           "smooth", "hsgp")
+                           "smooth", "hsgp",
+                           "hetar1",
+                           "ou",
+                           "toep",
+                           "homtoep",
+                           "homcs",
+                           "exp",
+                           "gau",
+                           "mat",
+                           "gr_prec")
 
 # The prior classes that leave a block's scale free: a prior on any
 # other class (sd, sds, sdgp, or a structure's own parameters) can bound
@@ -141,6 +153,8 @@ ald_laplace_blocks <- function(spec, frame, r) {
       lab
     } else if (identical(bk[["covstruct"]], "gr_cov")) {
       paste0("(", lab, ") with gr(cov = )")
+    } else if (identical(bk[["covstruct"]], "gr_prec")) {
+      paste0("(", lab, ") with gr(prec = )")
     } else if (multi) {
       block_term_in_response(bk, r, resp$resp_name %||% r)
     } else block_term_as_written(bk))

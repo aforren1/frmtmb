@@ -2413,9 +2413,13 @@ emm_basis_design <- function(object, tg, xlev, grid) {
   # A coefficient the Hessian lost is NaN in V, and emmeans skips the
   # zero entries of a grid row, so exactly the rows that use it get a
   # NaN standard error. Say so once, as a prediction does.
-  if (length(sdr_of(object)$se_lost)) {
+  lost <- sdr_of(object)$se_lost
+  if (length(lost)) {
     gone <- !is.finite(diag(V))
-    se_pred_warn(rowSums(X[, gone, drop = FALSE] != 0) > 0)
+    bad <- rowSums(X[, gone, drop = FALSE] != 0) > 0
+    # asym_laplace()'s refusal by name is the only loss: its words
+    if (all(lost == ald_se_reason)) attr(bad, "nocurv") <- bad
+    se_pred_warn(bad)
   }
   list(X = X, bhat = unname(unlist(bh, use.names = FALSE)), V = V)
 }

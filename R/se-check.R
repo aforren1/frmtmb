@@ -2576,6 +2576,14 @@ sdr_sep_lost <- function(fit, sdr, named) {
   j <- j[!is.na(j)]
   if (!length(j) || length(nm) != NROW(V0)) return(sdr)
   lost <- sdr$se_lost %||% stats::setNames(character(0), character(0))
+  # what the Hessian of the stop made of a named parameter is the
+  # separation's doing, and summary() says so, as a prediction does
+  # (se_lost_why())
+  re <- names(lost) %in% named & lost %in% c("nocurv", "flat", "limit")
+  if (any(re)) {
+    lost[re] <- "separation"
+    sdr$se_lost <- lost
+  }
   j <- setdiff(j, match(names(lost), nm))
   if (!length(j)) return(sdr)
   dn <- dimnames(V0)
@@ -2619,7 +2627,9 @@ sdr_rescue <- function(fit, sdr, H = NULL) {
   sdr <- sdr_rescue_hessian(fit, sdr, H)
   sep <- if (is.environment(fit$cache)) fit$cache$se_sep_named
   if (length(sep)) sdr <- sdr_sep_lost(fit, sdr, sep)
-  sdr
+  # asym_laplace() without random effects: refused by name wherever the
+  # fit stopped
+  ald_sdr_refuse(fit, sdr)
 }
 
 #' A variance that is zero, negative or not finite is never shown: its
@@ -3014,6 +3024,11 @@ se_fit_analysis <- function(fit, force = FALSE) {
 
 #' @noRd
 se_fit_analysis0 <- function(fit, force) {
+  ald <- ald_se_analysis(fit)
+  if (!is.null(ald)) {
+    fit$cache$se_analysis <- ald
+    return(ald)
+  }
   obj <- fit$obj
   p <- fit$opt$par
   if (!length(obj$env$random)) {
@@ -3092,6 +3107,9 @@ se_report <- function(fit, lost, act) {
   # a family's own verdict is about identification, so it explains every
   # lost parameter but one a bound holds, which it does not mention
   lost <- lost[!names(lost) %in% ex$pars & !(ex$family & lost != "bound")]
+  kink <- lost == ald_se_reason
+  if (any(kink)) ald_se_report(fit, lost[kink], act)
+  lost <- lost[!kink]
   if (!length(lost)) return(invisible(NULL))
   bnd <- lost == "boundary"
   # a smooth, gp() or hsgp() block at zero is a term reduced to its
@@ -4133,13 +4151,14 @@ se_lost_clauses <- function(fit, lost) {
                       "curvature there does not measure the uncertainty (a ",
                       "log density with a kink in a parameter, such as ",
                       "asym_laplace()'s in its location, has no curvature ",
-                      "along it)"))
+                      "along it)"),
+      kink = ald_se_why(fit, one))
   }
   out <- character(0)
   for (r in c("bound", "limit_end", "limit_rise", "limit_sep", "limit_sep1",
               "limit_sepother", "limit_undefined", "boundary",
               "separation", "short", "flat", "illcond", "concave",
-              "nonfinite", "nocurv")) {
+              "nonfinite", "nocurv", ald_se_reason)) {
     n <- names(lost)[lost == r]
     if (!length(n)) next
     lab <- if (r == "boundary") se_boundary_labels(fit, n) else {
@@ -4301,7 +4320,7 @@ jc_nan_lost <- function(jc, G, pos) {
   why <- why[ok]
   dv <- vapply(lp, function(i) as.numeric(V[i, i]), 0)
   j <- match(lp[!is.finite(dv)], pos)
-  nc <- why[!is.finite(dv)] %in% "nocurv"
+  nc <- why[!is.finite(dv)] %in% c("nocurv", ald_se_reason)
   sz <- why[!is.finite(dv)] %in% "size"
   nc <- nc[!is.na(j)]
   sz <- sz[!is.na(j)]
@@ -4524,8 +4543,10 @@ se_pred_warn <- function(bad, what = "predictions") {
     frm_warning(sum(bad), " of ", length(bad), " ", what, " read a ",
                 "parameter whose variance the curvature where the fit ",
                 "stopped does not give (a stop short of the maximum, or a ",
-                "log density with a kink), so their standard errors are ",
-                "NaN; summary() lists those parameters", call. = FALSE,
+                "log density with a kink, such as asym_laplace()'s in its ",
+                "location, which has no Hessian standard error by design), ",
+                "so their standard errors are NaN; summary() lists those ",
+                "parameters and why", call. = FALSE,
                 class = "frmtmb_se_lost_prediction")
     return(invisible(NULL))
   }
