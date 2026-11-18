@@ -1,3 +1,21 @@
+# frmtmb (development version)
+
+## New family
+
+* New family `quantile_elf()` for quantile regression: the extended
+  log-F density of Fasiolo et al. (2021), which qgam fits. It is a
+  smoothed `asym_laplace()` with the same parameters `mu`, `sigma` and
+  `quantile`, and a fixed `smoothing` (default 0.25, in units of
+  `sigma`). Its log density has curvature in `mu`, so a fit has Hessian
+  standard errors, and a model with a group-level term in `mu` has a
+  Laplace maximum, where `asym_laplace()` has neither. `mu` is the
+  quantile of the response smoothed by a logistic kernel; the bias this
+  gives grows with the square of `smoothing`. The Hessian standard
+  errors are those of the ELF model; use `vcov_cluster()` with one
+  cluster per row for the quantile estimate. `?quantile_elf` has a
+  section on how to choose between the two families. brms has no such
+  family.
+
 # frmtmb 0.83.0
 
 ## Convergence and standard errors

@@ -4883,6 +4883,79 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-16
+
+### From lane squant
+
+Record: `dev/squant-findings.md`.
+
+- **MEDIUM. A parametric bootstrap is not a calibrated interval for
+  quantile regression.** `?asym_laplace` ("Quantile regression
+  inference") says to use `frm_bootstrap()` "for intervals you can
+  defend", and lane alapse's refusal lists it first. `frm_bootstrap()`
+  draws from the fitted family, so it gives the working likelihood's
+  variance. On `y = 1 + 2 x + N(0, 1)`, 400 rows, quantile 0.9
+  (rellib-r22, `dev/squant-boot-ald.R`, seeds 20261117 to 20261119, 200
+  draws) the slope's bootstrap SE was 0.1062, 0.1254 and 0.1116, with
+  38, 47 and 39 of 200 refits converged, against a Monte Carlo sd of
+  rq()'s slope of 0.2977 over 300 data sets (`dev/squant-se.R`).
+  `quantile_elf()` measures the same (0.39 to 0.44 of its Monte Carlo
+  sd). A row (case) bootstrap is a calibrated route; for
+  `quantile_elf()` the sandwich `vcov_cluster(fit, ~ row, "CR0")` is
+  (0.97 to 1.01 of the Monte Carlo sd at 400 rows, smoothing 0.25).
+- **MEDIUM. quantile_elf() with a group-level term can stop on a local
+  maximum of its Laplace objective, silently.** At a small smoothing the
+  objective profiled in log sd (the rest re-optimized) is a sawtooth
+  with several local maxima: the log determinant of the inner Hessian
+  jumps by up to `1 / (4 lambda sigma^2)` per row as a group's mode
+  crosses a data point. On 5449's designs (`dev/squant-re.R`, a
+  10-point profile) at least 7, 2, 1 and 0 of 50 fits at smoothing 0.1,
+  0.25, 0.5 and 1 stopped at code 0 with no warning below a higher
+  point; these counts are lower bounds. On g4, quantile 0.9, seed 10
+  the review's finer profile (`dev/reviews/squant-review-re.R`) was
+  1.764 higher at smoothing 0.25 and 3.420 higher at 0.1 (offsets -0.75
+  to +0.25 read -2.165, +0.136, +3.420, 0, -3.801), and `nlminb` from
+  there reached -142.0713 and -142.8796 against the fits' -143.8349 and
+  -146.2993. Documented in `?quantile_elf` ("Group-level terms":
+  smoothing 1 and quadrature); no check flags it.
+- **MEDIUM (pre-existing; owner: OSA residuals).
+  `residuals(type = "osa")` errors on a right-censored fit.** On
+  `y | cens(ci) ~ x`, 300 rows right censored at 3.5 (seed 601,
+  `dev/reviews/squant-review-osa.R`), `residuals(fit, type = "osa")`
+  stops with "residuals(type = \"osa\", osa_method =
+  \"oneStepGeneric\") failed in oneStepPredict(): Not compatible with
+  requested type: [type=S4; target=double]" for `asym_laplace()` and
+  `student()` on rellib-r22 (`squant-review-osa-base.txt`) and for
+  those and `quantile_elf()` on lane squant's build
+  (`squant-review-osa-lane.txt`); `gaussian()` returns 300 rows with 26
+  NA. `frm_compat("asym_laplace", "cens()")` says "works ...
+  one-step-ahead residuals cover the uncensored rows only": a loud error
+  against a documented "works".
+- **LOW. quantile_elf() is not in the per-family lists of autoscale
+  and gp starts.** `predictor_unit_families` (R/autoscale.R) and the
+  response-scale list of R/gp-start.R do not name it, as they do not
+  name huber(). Its fits in this round were measured without them. (The
+  compat vocabulary names it since the round's fix 1.)
+- **LOW. `frmtmb_control(optCtrl = list(rel.tol = 1e-14))` does not
+  move a stop.** On `dev/squant-qgam.R`'s parametric fits at lsig -2,
+  frm stopped with a coefficient score of 7e-4 to 9e-4 where qgam's is
+  1e-8 (log-likelihoods 5e-9 apart); the tighter `rel.tol` returned the
+  same estimates bit for bit with code 1.
+- **LOW (pre-existing; owner: the SE check or convergence). `cs(1 + x
+  | g)` with the correlation at its limit warns where `(1 + x | g)`
+  gets the boundary message.** On the same data (seed 20261117, 400
+  rows, `dev/reviews/squant-short-compat2.R` (a)), `(1 + x | g)` ends at
+  code 1 with "Boundary (singular) fit: cor_g__Intercept__x is at the
+  limit of its range" under gaussian(), student() and
+  quantile_elf(smoothing = 1), and no warning. `cs(1 + x | g)` reaches
+  the same logLik (-601.6429, -595.8681, -595.8993) but warns: under
+  gaussian() "Large maximum absolute gradient at the optimum (0.0789 at
+  theta_1)" at code 0; under student() and quantile_elf() also
+  "false convergence (8)" (gradients 0.0227 and 0.0425)
+  (`dev/reviews/squant-short-compat2.txt`). On data with a slope sd of
+  1.5 both structures fit at code 0 with no condition, 20 of 20 (5
+  seeds, quantiles 0.5 and 0.9, part (b)).
+
 ## Filed at the 0.83.0 release (2026-11-13)
 
 ### From lane ci082

@@ -18,6 +18,10 @@ unbounded_spike_dpar <- list(
   frechet = "nu", gen_extreme_value = "sigma",
   exgaussian = c("sigma", "beta"), asym_laplace = "sigma",
   zero_inflated_asym_laplace = "sigma",
+  # its kernel width is smoothing x sigma, so sigma -> 0 is a spike too
+  # (dev/squant-weights.R: the Laplace objective rises without end in
+  # -log sigma at weights 1.2 and falls at 0.9, three seeds)
+  quantile_elf = "sigma",
   # lognormal, Gamma and Beta on the rows off the point mass
   # (unbounded_point_mass); dev/wcheck2-4968.R profiles each
   hurdle_lognormal = "sigma",

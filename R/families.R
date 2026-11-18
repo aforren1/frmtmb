@@ -8552,7 +8552,9 @@ family_registry <- list(
   # R/families-extreme.R
   frechet                   = fam_frechet,
   gen_extreme_value         = fam_gen_extreme_value,
-  discrete_weibull          = fam_discrete_weibull
+  discrete_weibull          = fam_discrete_weibull,
+  # R/families-quantile.R
+  quantile_elf              = fam_quantile_elf
 )
 
 # brms families that an extension package supplies rather than core,
