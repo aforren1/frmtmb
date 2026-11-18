@@ -414,8 +414,9 @@ test_that("with no owner usable, it loads and its generics are bare", {
     "  environmentName(topenv(environment(get(g)))), '')",
     "cat('NOTOURS:', paste(own[home != 'frmtmb.sample'], collapse = ','),",
     "    '\\n')",
-    # covr wraps each statement as `if (TRUE) { covr:::count(key); s }`;
-    # see the same guard in frmtmb's test-generic-collision.R
+    # covr wraps each statement as `if (TRUE) { <count call>; s }`, and
+    # the count call changed in covr 4.0.0; see the same guard in
+    # frmtmb's test-generic-collision.R
     "unwrap <- function(b) {",
     "  repeat {",
     "    if (is.call(b) && identical(b[[1L]], as.name('{')) &&",
@@ -425,7 +426,9 @@ test_that("with no owner usable, it loads and its generics are bare", {
     "      i <- b[[3L]]",
     "      if (is.call(i) && identical(i[[1L]], as.name('{')) &&",
     "          length(i) == 3L && is.call(i[[2L]]) &&",
-    "          identical(i[[2L]][[1L]], quote(covr:::count))) {",
+    "          'covr' %in% all.names(i[[2L]]) &&",
+    "          any(c('count', 'covr_count', 'count_and_record') %in%",
+    "              all.names(i[[2L]]))) {",
     "        b <- i[[3L]]; next",
     "      }",
     "    }",

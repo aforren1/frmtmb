@@ -227,22 +227,34 @@ ar_refusers <- c("stop", "frm_stop", "fit_no_draws", "multiple_no_draws",
                  "loo_unbuilt_refusal")
 
 # Under covr every statement arrives as
-# `if (TRUE) { covr:::count(key); <statement> }`, so a one-call body no
+# `if (TRUE) { <count call>; <statement> }`, so a one-call body no
 # longer LOOKS like one call and all 20 refusers read as swallowers in
 # the coverage job only. This removes exactly that wrapper, at the top
 # level, which is the only level the shape checks read; anything else
 # is returned untouched, so a real branch still fails them.
-# Built rather than written: a literal `covr:::` in a test file is an
-# undeclared dependency to R CMD check, and covr is not one.
+# The count call changed in covr 4.0.0 (`covr:::count(key)` became
+# `.Call(covr:::covr_count, key)`, or `covr:::count_and_record(key)`
+# when it records tests), so it is matched by the names it holds, not
+# by one form. Built rather than written: a literal `covr:::` in a test
+# file is an undeclared dependency to R CMD check, and covr is not one.
 ar_covr_count <- call(":::", as.name("covr"), as.name("count"))
+ar_covr4_count <- call(".Call", call(":::", as.name("covr"),
+                                     as.name("covr_count")), "k")
+
+ar_is_covr_count <- function(x) {
+  is.call(x) && {
+    n <- all.names(x)
+    "covr" %in% n &&
+      any(c("count", "covr_count", "count_and_record") %in% n)
+  }
+}
 
 ar_uncovr <- function(e) {
   if (is.call(e) && identical(e[[1L]], as.name("if")) &&
         length(e) == 3L && isTRUE(e[[2L]])) {
     i <- e[[3L]]
     if (is.call(i) && identical(i[[1L]], as.name("{")) &&
-          length(i) == 3L && is.call(i[[2L]]) &&
-          identical(i[[2L]][[1L]], ar_covr_count)) {
+          length(i) == 3L && ar_is_covr_count(i[[2L]])) {
       return(i[[3L]])
     }
   }
@@ -535,18 +547,19 @@ test_that("the refusal helpers really are unconditional", {
     invisible(NULL)
   }))
   # and covr's wrapper removal does not launder a branch: the same
-  # body in the shape covr writes still fails, as does a lone branch
-  covr_shaped <- function(stmt) {
-    f <- function(x, ...) NULL
-    body(f) <- call("{", call("if", TRUE,
-                              call("{", as.call(list(ar_covr_count, "k")),
-                                   stmt)))
-    f
+  # body in the shape covr writes still fails, as does a lone branch;
+  # both the count call before covr 4.0.0 and the one after
+  for (cnt in list(as.call(list(ar_covr_count, "k")), ar_covr4_count)) {
+    covr_shaped <- function(stmt) {
+      f <- function(x, ...) NULL
+      body(f) <- call("{", call("if", TRUE, call("{", cnt, stmt)))
+      f
+    }
+    expect_true(branchy(covr_shaped(quote(frm_stop("a")))))
+    expect_false(branchy(covr_shaped(quote(if (x) frm_stop("a")))))
+    expect_false(ar_refuses_always(
+      covr_shaped(quote(if (x) fit_no_draws("f")))))
   }
-  expect_true(branchy(covr_shaped(quote(frm_stop("a")))))
-  expect_false(branchy(covr_shaped(quote(if (x) frm_stop("a")))))
-  expect_false(ar_refuses_always(
-    covr_shaped(quote(if (x) fit_no_draws("f")))))
 })
 
 test_that("no registered S3 method has a `...` it never touches", {

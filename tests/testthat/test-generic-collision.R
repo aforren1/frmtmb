@@ -361,10 +361,13 @@ test_that("no shared generic carries work in its own body", {
   # its own fallback rather than the owner's generic.
   #
   # covr rewrites every statement in place as
-  # `if (TRUE) { covr:::count(key); <statement> }`, so under coverage a
+  # `if (TRUE) { <count call>; <statement> }`, so under coverage a
   # bare UseMethod() read as work and this failed only in the coverage
   # job. Only that exact wrapper is removed: a body with a second
-  # statement keeps two wrapped statements and is still caught.
+  # statement keeps two wrapped statements and is still caught. The
+  # count call is matched by the names it holds because covr 4.0.0
+  # changed it (`covr:::count(key)` became `.Call(covr:::covr_count,
+  # key)`, or `covr:::count_and_record(key)` when it records tests).
   skip_on_cran()
   out <- run_child(c(
     "suppressMessages(library(frmtmb))",
@@ -381,7 +384,9 @@ test_that("no shared generic carries work in its own body", {
     "      i <- b[[3L]]",
     "      if (is.call(i) && identical(i[[1L]], as.name('{')) &&",
     "          length(i) == 3L && is.call(i[[2L]]) &&",
-    "          identical(i[[2L]][[1L]], quote(covr:::count))) {",
+    "          'covr' %in% all.names(i[[2L]]) &&",
+    "          any(c('count', 'covr_count', 'count_and_record') %in%",
+    "              all.names(i[[2L]]))) {",
     "        b <- i[[3L]]; next",
     "      }",
     "    }",
