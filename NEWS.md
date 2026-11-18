@@ -1,3 +1,40 @@
+# frmtmb (development version)
+
+## Convergence and standard errors
+
+* BREAKING: A REML fit on an ill-conditioned fixed design (one that
+  frmtmb fits in the design's own coordinates) with more than
+  `options(frmtmb.joint_root_max = 4000)` joint parameters (fixed and
+  random) now has accurate standard errors for its coefficients and
+  its predictions. Above that size frmtmb forms no dense factor of the
+  joint covariance. Before, a prediction of such a fit whose variance
+  parameter had no standard error got NaN and a warning. A prediction
+  of a fit whose variance parameters all had standard errors, and
+  `vcov()` of either fit, inverted the joint precision in the natural
+  coordinates, whose condition number is the design's squared. On a
+  degree-7 raw polynomial with `(1 | g)` and 4500 groups of 2 rows,
+  `fitted(re_formula = NA)` was 4.5 percent low and `vcov()` gave
+  negative variances or values 7 percent high, with no warning. A
+  cumulative or categorical fit's `fitted()` differenced each
+  coefficient in the natural coordinates and was up to 1.2e-3 off
+  (relative) at 4508 joint parameters.
+  Now `fitted()`, `predict()`, `frm_linpred()`, `frm_lp_basis()` (with
+  its `V_root`), `frm_curve()`, `vcov()`, `hypothesis()` and the draws
+  of `predict()` read the covariance by sparse solves in the design's
+  coordinates. They agree with the dense factor to 1.1e-9 at 110 and
+  3510 joint parameters (a cumulative fit's `fitted()`, which
+  differences the output, to 4e-7) and with the exact conditional
+  standard errors to 3.3e-9 at 4510. The first `fitted()` call takes
+  0.04 s instead of 1.1 to 1.6 s (0.13 s instead of 62 s for a
+  cumulative fit at 4508 with the dense factor), and its memory no
+  longer grows with the square of the joint parameters. `vcov()` of
+  such a fit now gives
+  the warning that it gives below that size: a product such as
+  `a' V a` formed from the whole matrix loses digits. A fit forms its
+  factor at its first standard error, so the option applies at that
+  time. The NaN and its warning stay only where the inner block of the
+  joint precision does not factor in the design's coordinates.
+
 # frmtmb 0.83.0
 
 ## Convergence and standard errors

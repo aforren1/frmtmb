@@ -4883,6 +4883,107 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-16
+
+### From lane sparsese
+
+- **MEDIUM. The dense joint-covariance route of a whitened REML fit is
+  slow below joint_root_max, where the sparse route agrees with it.** At
+  3510 joint parameters (`dev/sparsese-agree.R 3500 <1-3> <0|0.3>`)
+  every vcov(), hypothesis() and predict() draw space took 7.8 to 20 s
+  (joint_cov_whole() forms `root root'`, joint-size, on each call, not
+  memoized), an in-sample fitted() 157 to 217 s, and the first fitted()
+  on new rows 8.5 s; the sparse route took 0.00 to 0.19 s for each and
+  agreed to 5.5e-10 (SEs) and 7.9e-13 (vcov()). At 4510 the dense route's
+  vcov() took 20 to 22 s (`dev/sparsese-out/cost-dense-4500-*`). The
+  gain depends on size (review of lane sparsese, section 6; first
+  fitted() / vcov(), dense against sparse): 0.01 / 0.02 s against 0.03 /
+  0.02 s at 510 joint parameters, where the dense route is faster; 0.24
+  / 0.20 s against 0.03 / 0.00 s at 1510, one order; 9.6 / 9.2 s
+  against 0.03 / 0.01 s at 3510, two to four orders (and 62 s against
+  0.13 s for a cumulative fit's fitted() at 4508). The review found a
+  lower default unsafe while frm_lp_basis()'s V_root (frm_curve()) and
+  fd_joint_root() (fit_fd_se(): cumulative and categorical fitted())
+  were missing on the sparse route (its F1 and F2); both are fixed in
+  the round of 2026-11-16, and the review found no other reader of the
+  factor's rows at the group effects. A user decision: lower the
+  default of `options(frmtmb.joint_root_max)` (to about 1000, where the
+  two routes cost the same), or keep it and memoize the dense `V` in
+  joint_cov_whole(), which removes the 8 to 22 s per vcov() call without
+  moving any fit to the other route. The default is not changed.
+- **HIGH. fitted() of a cumulative REML fit whose group sd is lost as
+  "nonfinite" reports standard errors 113 to 141 times too high, with no
+  warning from fitted().** `Rscript dev/sparsese-cumlost.R <base|lane> 2
+  4000`: 30 groups of 10 rows, degree-5 raw polynomial, the fit warns
+  that theta_1's Hessian is not finite (log sd -354.9), the thresholds'
+  SEs are NaN and the coefficients' NA in summary(), and the estimates
+  run to -902 and -3183. fitted()'s Est.Error is 5.5931 at most and
+  above 0.5 on 289 of 900 entries, on rellib-r22 and on the lane alike,
+  dense and sparse routes alike (`dev/sparsese-out/cumlost-*-s2.txt`,
+  `dev/sparsese-out/fix1-after-s2.txt`). An independent reference that
+  holds the sd at its estimate (the group effects at their modes, about
+  0) gives 0.1492 at most in-sample and 0.0709 for new rows, so the
+  package is 141 and 113 times too high; the reference objective's
+  gradient at the package's estimates is -1.2e-6 and -1.3e-7 in sd
+  units, so both read one optimum. A silent wrong value
+  (`dev/reviews/sparsese-short.md` section 4,
+  `dev/reviews/sparsese-short-cum.R`). Pre-existing; found while testing
+  the sparse route.
+- **LOW. TMB's whitened Hessian keeps a precision floor of the natural
+  design** (review of lane sparsese, P1). The tape forms `T' (X'X) T`
+  through the raw design (kappa 2e8), and its beta block differs from
+  the analytic `(X T)'(X T) / s^2` by 7.2e-8 of its largest entry; a
+  near-zero entry is 18 times its true value
+  (`dev/reviews/sparsese-review-floor.R`,
+  `dev/reviews/sparsese-review-out/floor-3500-s1-g3.txt`). Conditional
+  SEs of a fitted value at x in 1 to 2 are 3.64e-7 off at group sd 3,
+  1e-8 at group sd 0, on both routes.
+- **LOW. vcov(full = TRUE) of a whitened REML fit is 3.8e-6 to 1.9e-5
+  off the Richardson inverse Hessian** (review of lane sparsese, P2;
+  `dev/reviews/sparsese-review-indep.R`, 100 to 3500 groups). It drives
+  3e-7 to 3e-6 of the SEs of rows that load group effects, on both
+  routes. On cumulative fits (short check of lane sparsese,
+  `dev/reviews/sparsese-short.md`, "Pre-existing, beside the lane") it is
+  7.8e-4 and 5.0e-4 (scaled) off at 30 groups (seeds 1 and 3) and 2.3e-5
+  at 4508 joint parameters; a Richardson Jacobian of the tape's AD
+  gradient is closer to the reference (6.4e-5, 9.0e-5) than to the
+  package (8.1e-4, 4.8e-4). Effect on fitted()'s Est.Error: up to 1.4e-4
+  relative, the same on both routes.
+- **LOW. vcov(full = TRUE) of a REML fit prints finite values for a
+  lost parameter** (short check of lane sparsese,
+  `dev/reviews/sparsese-short-vcovfull.R`,
+  `dev/reviews/sparsese-short-vcovneg.R`). The boundary message says the
+  parameter is NaN in vcov(), and the ML fit gives NaN; REML gives a
+  variance of 1.157e8 for a boundary sd and -5.85e5, a negative
+  variance, for a boundary correlation, on rellib-r22 and the lane
+  alike. Its theta diagonal (0.0183, 0.0178) is also not the
+  `cov_fixed_prop` that summary() and the predictions read (0.242,
+  0.046). Pre-existing.
+- **LOW. jcs_fd_root()'s least-squares solve stops on drawn parameters
+  whose standard deviations differ by 1e8 or more and correlate** (short
+  check of lane sparsese, section 3b,
+  `dev/reviews/sparsese-short-qrsolve.R`).
+  `qr.solve(Ld, ...)` keeps qr()'s default `tol = 1e-7`, calls the
+  full-rank `Ld` singular, and fitted() stops with "singular matrix 'a'
+  in solve"; it runs at ratios up to 1e7, and `tol = 0` is exact to
+  1.9e-16 at 1e8 and 1e9. `Ld` is full column rank by construction. Not
+  reached on a real fit; an error, not a wrong value.
+- **LOW. emmeans takes the design route on a whitened REML or profile
+  fit** (review of lane sparsese, P3). emm_basis()'s `held` test
+  (R/interop.R:2324) reads `cov_fixed_root` and not `joint_root`, so
+  emmeans forms `X V X'` from the natural matrix: `emmeans(~ f)` SE is
+  -1.6e-4 (dense route) and 1.5e-5 (sparse route) off frm_linpred() on
+  the review's base design (`dev/reviews/sparsese-review-follow.R`,
+  `follow-base.txt`).
+- **LOW. Where the sparse whole-inverse route of a whitened REML fit
+  fails, joint_cov_whole() falls back to the natural inverse.** It needs
+  the inner block of the whitened precision, or the Schur complement, to
+  fail to factor while the whole precision factored (joint_root_rows());
+  not constructed. The repaired route keeps NaN and a warning there; the
+  whole route would read the natural inverse with no warning, and the
+  NaN rows of the stored factor at the group effects (get_joint_cov()
+  carries the factor). Make both refuse the same way if a case is found.
+
 ## Filed at the 0.83.0 release (2026-11-13)
 
 ### From lane ci082
@@ -4967,6 +5068,10 @@ Lane record: `dev/selimit2-findings.md`.
   joint_cov_repair()) reads 0.023272941 against a conditional lower
   bound of 0.024359899 (4.5 percent low) on both builds: sdr_unwhiten()
   forms no factor above the constant joint_root_max either.
+  CLOSED in the round of 2026-11-16 (lane sparsese): above the limit the
+  joint covariance is read by sparse solves in the design's coordinates
+  (jcs_joint_cov(), joint_root_rows()); seeds 2 and 3 within 3.3e-9 of
+  the exact SEs, seed 1 equal to the dense route to 1e-11, vcov() too.
 - **MEDIUM. A mixing weight's end is not certified.** The far check of
   se_limit_joint_cert() for `theta` neither holds nor saturates the rows
   it moves by less than 1e-3 of the largest move, and 0.82.0's

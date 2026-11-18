@@ -1,0 +1,4 @@
+dev/sparsese-fix1.R lane 2 1 > dev/sparsese-out/fix1-after-s2.txt
+dev/sparsese-fix1.R lane 3 1 > dev/sparsese-out/fix1-after-s3.txt
+dev/sparsese-fix1.R lane 1 0 > dev/sparsese-out/fix1-after-s1-g0.txt
+dev/sparsese-fix1.R lane 2 0 > dev/sparsese-out/fix1-after-s2-g0.txt

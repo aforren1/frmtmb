@@ -4501,16 +4501,17 @@ se_pred_tol <- 1e-6
 #' @noRd
 se_pred_warn <- function(bad, what = "predictions") {
   if (!any(bad)) return(invisible(NULL))
-  # rows that read coefficients of a REML fit too large for their accurate
-  # covariance (joint_cov_repair(), joint_root_limit())
+  # rows that read coefficients of a REML fit whose sparse covariance did
+  # not factor (joint_cov_repair(), jcs_joint_cov())
   sz <- attr(bad, "size")
   if (length(sz) == length(bad) && any(sz %in% TRUE)) {
     frm_warning(sum(sz %in% TRUE), " of ", length(bad), " ", what,
                 " read coefficients whose covariance this REML fit cannot ",
-                "give accurately above ", format(joint_root_limit()),
-                " joint parameters, so their standard errors are NaN; ",
-                "raise options(frmtmb.joint_root_max = ), at memory that ",
-                "grows with its square, or draw from the fit with ",
+                "give accurately: above ", format(joint_root_limit()),
+                " joint parameters it is read by sparse solves in the ",
+                "coordinates of the design, and there the inner block of ",
+                "the joint precision does not factor. Their standard ",
+                "errors are NaN; draw from the fit with ",
                 "frmtmb.sample::frm_sample()", call. = FALSE,
                 class = "frmtmb_se_lost_prediction")
     if (all(sz[bad %in% TRUE] %in% TRUE)) return(invisible(NULL))

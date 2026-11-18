@@ -8,13 +8,15 @@
 #' Memoized joint covariance of all estimated parameters (fixed + random),
 #' with row/col component names. Cached in `fit$cache`. On a fit with a
 #' latent residual it is held sparse (jcs_joint_cov()); where that route does
-#' not apply, `dense = FALSE` returns `NULL` instead of forming it dense.
+#' not apply, `dense = FALSE` returns `NULL` instead of forming it dense. A
+#' REML fit on a whitened design above joint_root_limit() is held sparse
+#' too (jcs_white_wanted()).
 #'
 #' @noRd
 get_joint_cov <- function(fit, dense = TRUE) {
   cache <- fit$cache
   if (!is.null(cache$Vjoint)) return(cache$Vjoint)
-  if (length(frame_latres(fit$frame))) {
+  if (length(frame_latres(fit$frame)) || jcs_white_wanted(fit)) {
     # a latent per row makes V (n + p)^2 dense; held sparse, a reader pays
     # for the block it reads (R/joint-sparse.R)
     sp <- jcs_joint_cov(fit)
@@ -22,6 +24,8 @@ get_joint_cov <- function(fit, dense = TRUE) {
       cache$Vjoint <- sp
       return(cache$Vjoint)
     }
+  }
+  if (length(frame_latres(fit$frame))) {
     if (!dense) return(NULL)
     m <- fit$frame[["n_obs"]]
     lim <- getOption("frmtmb.latres_dense_rows", 20000L)
@@ -220,11 +224,12 @@ joint_cov_repair <- function(fit, Q, sdr) {
   lost_pos <- meta$lost_pos
   lost_why <- meta$lost_why
   if (length(wi$too_big)) {
-    # Above joint_root_limit() the whitened inverse is not formed, and
-    # the natural one gave a REML fit's coefficients standard errors of
-    # exactly 0 (4510 joint parameters, degree 7, sd lost, seed 2) or 7
-    # percent high (seed 3), with no warning (review of lane selimit2,
-    # F4b). Their rows are NaN, lost for "size" (se_pred_warn()).
+    # Above joint_root_limit() the sparse route in the whitened
+    # coordinates (jcs_joint_cov()) did not factor, and the natural
+    # inverse gave a REML fit's coefficients standard errors of exactly 0
+    # (4510 joint parameters, degree 7, sd lost, seed 2) or 7 percent
+    # high (seed 3), with no warning (review of lane selimit2, F4b).
+    # Their rows are NaN, lost for "size" (se_pred_warn()).
     jb <- wi$too_big
     V[jb, ] <- NaN
     V[, jb] <- NaN
@@ -242,10 +247,10 @@ joint_cov_repair <- function(fit, Q, sdr) {
 }
 
 #' The most joint parameters for which a REML fit on a whitened design
-#' with a lost parameter has prediction standard errors
-#' (joint_cov_white_inner(), which forms a dense factor over the inner
-#' positions): `options(frmtmb.joint_root_max = )`, default
-#' `joint_root_max`.
+#' forms its covariance as a dense factor (sdr_unwhiten(),
+#' joint_cov_white_inner()); above it the covariance is read by sparse
+#' solves in the whitened coordinates (jcs_joint_cov()):
+#' `options(frmtmb.joint_root_max = )`, default `joint_root_max`.
 #'
 #' @noRd
 joint_root_limit <- function() {
@@ -284,9 +289,10 @@ joint_cov_white_inner <- function(fit, sdr, r, f) {
     return(NULL)
   }
   # the factor is dense over the inner positions, as sdr_unwhiten()'s is;
-  # above the limit the natural-coordinate inverse is no answer either
+  # where the sparse route was asked for, it failed to factor the same
+  # block, and the natural-coordinate inverse is no answer either
   # (joint_cov_repair())
-  if (nrow(Qg) > joint_root_limit()) return(list(too_big = jb))
+  if (jcs_white_wanted(fit)) return(list(too_big = jb))
   Qgr <- Matrix::forceSymmetric(methods::as(Qg[r, r, drop = FALSE],
                                             "CsparseMatrix"))
   ch <- tryCatch(suppressWarnings(Matrix::Cholesky(Qgr, perm = TRUE,
@@ -7825,6 +7831,12 @@ frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
 lb_dense <- function(lb) {
   if (is.null(lb$V_sparse)) return(lb)
   lb$V <- lb$V_sparse[lb$coef_pos, lb$coef_pos, drop = FALSE]
+  if (!is.null(lb$V_sparse[["M"]])) {
+    # a whitened REML fit's covariance as a factor in its coordinates, as
+    # the dense route's root (jcs_root_at())
+    lb$V_root <- jcs_root_at(lb$V_sparse, lb$coef_pos)
+    lb$V_rest <- matrix(0, length(lb$coef_pos), length(lb$coef_pos))
+  }
   lb$A <- as.matrix(lb$A)
   lb$V_sparse <- NULL
   lb
@@ -7863,8 +7875,12 @@ lp_basis_out <- function(object, jc, eta, A, coef_pos, extra_var, nonest) {
     coef_pos <- coef_pos[keep]
     nr <- length(unique(stats::na.omit(match(coef_pos, jc$V[["r"]]))))
     # the fitted rows load every latent: their variances come from the
-    # factor, and a dense block is formed only on request (frm_lp_basis())
-    if (nr > jcs_block_max) sparse <- jc$V else A <- as.matrix(A)
+    # factor, and a dense block is formed only on request (frm_lp_basis());
+    # a whitened REML fit's rows are carried to its coordinates first
+    # (jcs_white_load()), which a block in the natural ones cannot be
+    if (nr > jcs_block_max || !is.null(jc$V[["M"]])) {
+      sparse <- jc$V
+    } else A <- as.matrix(A)
   }
   out <- list(eta = eta, A = A, coef_pos = coef_pos,
               V = if (is.null(sparse)) {
