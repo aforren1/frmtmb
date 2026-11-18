@@ -1,10 +1,17 @@
-# rOpenSci's submission gate, run on every push to main: pkgcheck plus
-# the srr statistical-standards checks, in the same container the
-# rOpenSci editors use. post-to-issue is off so results live in the
-# run summary instead of a bot-maintained issue.
+# rOpenSci's submission gate: pkgcheck plus the srr
+# statistical-standards checks, in the same container the rOpenSci
+# editors use. post-to-issue is off so results live in the run summary
+# instead of a bot-maintained issue.
+#
+# Weekly and on demand, not on every push (user decision of
+# 2026-11-18): a run took 3 h 50 min on 0.84.0, as goodpractice repeats
+# coverage (88 min, on the container's covr 3.6.5) and R CMD check
+# (47 min) that R-CMD-check and test-coverage already run on each push,
+# and a submission is not planned until the package is stable.
 on:
-  push:
-    branches: [main, master]
+  schedule:
+    # Mondays, after brms-likelihood (04:17) and ubuntu-next (05:17)
+    - cron: '17 6 * * 1'
   workflow_dispatch:
 
 name: pkgcheck
@@ -31,9 +38,9 @@ jobs:
       # named like "cmd" or "coverage", and a run still in progress has
       # no conclusion, which it scores as a failure. Started by the same
       # push, it always queried before those two finished and so failed
-      # on every commit, green or not. Wait for both on this commit.
+      # on every commit, green or not. A run started soon after a push
+      # has the same race, so wait for both on this commit.
       - name: Wait for R-CMD-check and test-coverage on this commit
-        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

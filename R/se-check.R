@@ -4399,7 +4399,6 @@ se_lost_message <- function(fit, lost) {
 #' out NaN whatever the null basis says, and the caller's warning must
 #' say why.
 #'
-#' @noRd
 #' Attribute `nocurv` marks the rows whose only cause is a lost parameter
 #' of reason "nocurv" (a curvature that gives no variance, such as at a
 #' stop short of the maximum), which se_pred_warn() words apart.
