@@ -4883,6 +4883,79 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-16
+
+### From lane nlband
+
+- **HIGH. A pole inside dense data is not reached, and the fit stops
+  1575 to 2100 short in silence.** `a / (x + b)` on y = 1 / (x - 2) +
+  N(0, 0.2), x ~ U(0, 4), 400 rows, no hole, seeds 1 to 3: the default
+  fit stops at -1942.478102, -2027.630685 and -1506.522295, code 0, no
+  warning, no message, 2005.274, 2100.239 and 1574.743 below the profile
+  maximum at b -2.0000 (pole between two adjacent rows). The same on
+  0.83.0 and with the hole starts, which start only in a wide gap
+  (`dev/reviews/nlband-review-fits.R dense`, log
+  `dev/reviews/nlband-review-out/fits-after.txt`; review of lane nlband,
+  item 3).
+- **MEDIUM. The hole run's keep rule refuses a maximum with its pole
+  near a row.** A pole 0.003 below the first row above the hole, nearer
+  that row's wall than the median gap (0.0060 to 0.0069), seeds 1 to 3:
+  the default fit ends at -1450.329001, -1513.763057, -1551.512072 on a
+  ridge to a limit (warned), where a fit from the pole reaches
+  60.282032, 66.496927, 59.895778; the hole run that reaches it is
+  refused by the distance test, a proxy for a supremum on a wall
+  (`dev/nlband-fix1.R near`, `dev/reviews/nlband-review-sep.R`; review
+  of lane nlband, item 4).
+- **LOW. The standard-error check keeps standard errors of 8.6e133 on a
+  separated nonlinear fit.** Bernoulli band data with y = 1 for x > 2,
+  `a / (x + b)` refitted from a = 1221, b = -2.01: logLik -5.4e-268,
+  code 0, the analysis at tier 1 with nothing lost, no warning
+  (`dev/nlband-dbg3.R`); the same data fitted from (1, -2) warns that
+  standard errors are not available. The hole runs no longer keep such
+  a fit (nl_hole_located()); the check itself is unchanged (lane
+  nlband).
+- **LOW. The hole starts miss or misfire on these designs** (review of
+  lane nlband, findings 4 to 11, `dev/reviews/nlband-review-*.R`, logs
+  in `dev/reviews/nlband-review-out/`):
+  a hole with fewer than 11 rows beyond it is not a hole (pole 0.25, 6
+  rows below, 704 to 756 short, two of three silent);
+  two poles in one body, `a / ((x + b) * (x + c))`, move one coefficient
+  per run (353 to 396 short with the message on seeds 2 and 3);
+  10 visits of jittered x give 9 holes and the 2 widest by ratio are
+  started, so the pole's gap is started on 20 percent of draws (seeds 3
+  to 5 657 to 682 short, silent);
+  replicates with a small jitter (60 levels x 3, +-0.01) give 2 holes on
+  every draw, 4 losing runs, 1.47 to 1.58 times the evaluations;
+  `a / (x + b)^2` is not read where `a * (x + b)^-2` is (seeds 2 and 3
+  710.1 and 861.5 short, warned; seed 1 silent, 745 short);
+  `Emax * x^3 / (EC50^3 + x^3)` with x of both signs has walls at EC50 =
+  -x_i that are not read (529 short, no warning);
+  `nl_pole_walls()` reads the walls of a 30-level two-fold dilution
+  (x to 5.4e5) on seed 1 and not on seeds 2 and 3: its affine test
+  compares a rounding error of about |x| eps with 1e-8 of the step
+  (lane nlband).
+- **LOW. A fit far beyond one end of a band of poles is not restarted
+  past the other end.** Binomial mm 22 of the review's fresh rows
+  (`Vm * xp / (K + xp)`, `dev/nlstop2-fresh.R binomial`) stops on the
+  ridge to the linear limit at -643.501398 (Vm 7.2e6, K 9.8e7), where a
+  start beyond the poles reaches -638.885255; it warns (standard
+  errors). Unchanged by the hole start (no gap). Starting past the far
+  end for every fit clear of a band adds a run to every such fit; not
+  measured (filed again from 5099; lane nlband).
+- **LOW. A denominator affine in a monotone function of a coefficient
+  is not read.** `a / (exp(b) - x)` has walls at b = log(x_i), and the
+  restart reads only a denominator affine in the coefficient itself.
+  Reading it needs the inverse of the function at each hole's walls.
+  No body of the surveys has one, and no fit trapped by one was built
+  (lane nlband).
+- **LOW. The starts past a band take the body's other coefficients at
+  the fit.** A hole start from a fit on a ridge to a limit of the body
+  (Vm 3.0e8 in `Vm * x / (K + x)`) ended at -5.5e9, where Vm 0 reached
+  the hole's maximum, 64.94 (`dev/nlband-dbg2.R`); hole starts now run
+  from the fit and from the default start. The starts past the ends of
+  a band (0.83.0) were not changed or measured for the same failure
+  (lane nlband).
+
 ## Filed at the 0.83.0 release (2026-11-13)
 
 ### From lane ci082
@@ -5102,6 +5175,9 @@ Lane record: `dev/selimit2-findings.md`.
   fresh rows stops at the linear limit, -643.501398, where a start
   beyond the poles reaches -638.885255; it warns (standard errors)
   (lane nlstop2).
+  CLOSED in the round of 2026-11-16 (lane nlband): `1 + exp(u)` and
+  `EC50^h + x^h` (x >= 0) have no zero where the body is defined, so
+  there is no wall to read (dev/nlband-5099.R); mm 22 is filed again.
 - **LOW. 3359 (degree-8 raw polynomial with an active bound) still stops
   2644, 779 and 2373 short on 0.82.0**, seeds 1 to 3, code 0 with
   `frmtmb_ill_design` and the gradient warning (`dev/nlstop2-rerun.R
@@ -5125,6 +5201,10 @@ Lane record: `dev/selimit2-findings.md`.
   (`dev/reviews/nlstop2-review-pole.R` section 8, log
   `dev/reviews/nlstop2-review-out/pole-after.txt`; review of lane nlstop2,
   F4).
+  CLOSED in the round of 2026-11-16 (lane nlband): the escape also starts
+  in the middle of each hole of the data (`nl_pole_holes()`), whether or
+  not a band holds the fit; seeds 1 to 3 and 101 to 120 reach the fit
+  from (1, -1.9) with `frmtmb_nl_pole_start` (dev/nlband-findings.md).
 - **LOW. Cumulative `a * xp^b` seed 22 of the review's fresh rows stops
   1.03 short at code 0 with no warning**: -408.3803 against the best
   start's -407.3511 (`dev/nlstop2-accsum.R`, `accsum-after2.txt`). The

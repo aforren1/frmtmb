@@ -1,0 +1,52 @@
+dev/nlband-out/limit-before/A.txt|NLBAND_ARM=before REVIEW_PLACE=none|dev/nlband-survey.R dev/nlstop2-limit.R mm,decay,logis,emax 50,200,1000,2000 1:30
+dev/nlband-out/limit-after1/A.txt|NLBAND_ARM=after REVIEW_PLACE=none|dev/nlband-survey.R dev/nlstop2-limit.R mm,decay,logis,emax 50,200,1000,2000 1:30
+dev/nlband-out/limit-before/B.txt|NLBAND_ARM=before REVIEW_PLACE=none|dev/nlband-survey.R dev/nlstop2-limit.R nlfs,poismm,bernlogis,hill 50,200,1000,2000 1:30
+dev/nlband-out/limit-after1/B.txt|NLBAND_ARM=after REVIEW_PLACE=none|dev/nlband-survey.R dev/nlstop2-limit.R nlfs,poismm,bernlogis,hill 50,200,1000,2000 1:30
+dev/nlband-out/limit-before/Cprior.txt|NLBAND_ARM=before REVIEW_PLACE=prior|dev/nlband-survey.R dev/nlstop2-limit.R logis,poismm,bernlogis,hill 50,200,1000,2000 1:30
+dev/nlband-out/limit-after1/Cprior.txt|NLBAND_ARM=after REVIEW_PLACE=prior|dev/nlband-survey.R dev/nlstop2-limit.R logis,poismm,bernlogis,hill 50,200,1000,2000 1:30
+dev/nlband-out/limit-before/Cstart.txt|NLBAND_ARM=before REVIEW_PLACE=start|dev/nlband-survey.R dev/nlstop2-limit.R logis,poismm,bernlogis,hill,fn_explin,fn_hillstep,fn_mmlin,fn_poismmlin 50,200,1000 1:10
+dev/nlband-out/limit-after1/Cstart.txt|NLBAND_ARM=after REVIEW_PLACE=start|dev/nlband-survey.R dev/nlstop2-limit.R logis,poismm,bernlogis,hill,fn_explin,fn_hillstep,fn_mmlin,fn_poismmlin 50,200,1000 1:10
+dev/nlband-out/fresh-before/gaussian.log|NLBAND_ARM=before|dev/nlband-survey.R dev/nlstop2-fresh.R gaussian
+dev/nlband-out/fresh-after1/gaussian.log|NLBAND_ARM=after|dev/nlband-survey.R dev/nlstop2-fresh.R gaussian
+dev/nlband-out/fresh2-before/gaussian.log|NLBAND_ARM=before REV_BODIES=logis3,gomp,sig4|dev/nlband-survey.R dev/nlstop2-fresh2.R gaussian
+dev/nlband-out/fresh2-after1/gaussian.log|NLBAND_ARM=after REV_BODIES=logis3,gomp,sig4|dev/nlband-survey.R dev/nlstop2-fresh2.R gaussian
+dev/nlband-out/fresh-before/poisson.log|NLBAND_ARM=before|dev/nlband-survey.R dev/nlstop2-fresh.R poisson
+dev/nlband-out/fresh-after1/poisson.log|NLBAND_ARM=after|dev/nlband-survey.R dev/nlstop2-fresh.R poisson
+dev/nlband-out/fresh2-before/poisson.log|NLBAND_ARM=before REV_BODIES=logis3,gomp,sig4|dev/nlband-survey.R dev/nlstop2-fresh2.R poisson
+dev/nlband-out/fresh2-after1/poisson.log|NLBAND_ARM=after REV_BODIES=logis3,gomp,sig4|dev/nlband-survey.R dev/nlstop2-fresh2.R poisson
+dev/nlband-out/fresh-before/bernoulli.log|NLBAND_ARM=before|dev/nlband-survey.R dev/nlstop2-fresh.R bernoulli
+dev/nlband-out/fresh-after1/bernoulli.log|NLBAND_ARM=after|dev/nlband-survey.R dev/nlstop2-fresh.R bernoulli
+dev/nlband-out/fresh2-before/bernoulli.log|NLBAND_ARM=before REV_BODIES=logis3,gomp,sig4|dev/nlband-survey.R dev/nlstop2-fresh2.R bernoulli
+dev/nlband-out/fresh2-after1/bernoulli.log|NLBAND_ARM=after REV_BODIES=logis3,gomp,sig4|dev/nlband-survey.R dev/nlstop2-fresh2.R bernoulli
+dev/nlband-out/fresh-before/binomial.log|NLBAND_ARM=before|dev/nlband-survey.R dev/nlstop2-fresh.R binomial
+dev/nlband-out/fresh-after1/binomial.log|NLBAND_ARM=after|dev/nlband-survey.R dev/nlstop2-fresh.R binomial
+dev/nlband-out/fresh2-before/binomial.log|NLBAND_ARM=before REV_BODIES=logis3,gomp,sig4|dev/nlband-survey.R dev/nlstop2-fresh2.R binomial
+dev/nlband-out/fresh2-after1/binomial.log|NLBAND_ARM=after REV_BODIES=logis3,gomp,sig4|dev/nlband-survey.R dev/nlstop2-fresh2.R binomial
+dev/nlband-out/fresh-before/gamma.log|NLBAND_ARM=before|dev/nlband-survey.R dev/nlstop2-fresh.R gamma
+dev/nlband-out/fresh-after1/gamma.log|NLBAND_ARM=after|dev/nlband-survey.R dev/nlstop2-fresh.R gamma
+dev/nlband-out/fresh2-before/gamma.log|NLBAND_ARM=before REV_BODIES=logis3,gomp,sig4|dev/nlband-survey.R dev/nlstop2-fresh2.R gamma
+dev/nlband-out/fresh2-after1/gamma.log|NLBAND_ARM=after REV_BODIES=logis3,gomp,sig4|dev/nlband-survey.R dev/nlstop2-fresh2.R gamma
+dev/nlband-out/fresh-before/cumulative.log|NLBAND_ARM=before|dev/nlband-survey.R dev/nlstop2-fresh.R cumulative
+dev/nlband-out/fresh-after1/cumulative.log|NLBAND_ARM=after|dev/nlband-survey.R dev/nlstop2-fresh.R cumulative
+dev/nlband-out/fresh2-before/cumulative.log|NLBAND_ARM=before REV_BODIES=logis3,gomp,sig4|dev/nlband-survey.R dev/nlstop2-fresh2.R cumulative
+dev/nlband-out/fresh2-after1/cumulative.log|NLBAND_ARM=after REV_BODIES=logis3,gomp,sig4|dev/nlband-survey.R dev/nlstop2-fresh2.R cumulative
+dev/nlband-out/scan-before/cumulative.txt|NLBAND_ARM=before|dev/nlband-survey.R dev/nlstop2-scan.R cumulative
+dev/nlband-out/scan-after1/cumulative.txt|NLBAND_ARM=after|dev/nlband-survey.R dev/nlstop2-scan.R cumulative
+dev/nlband-out/scan-before/sratio.txt|NLBAND_ARM=before|dev/nlband-survey.R dev/nlstop2-scan.R sratio
+dev/nlband-out/scan-after1/sratio.txt|NLBAND_ARM=after|dev/nlband-survey.R dev/nlstop2-scan.R sratio
+dev/nlband-out/scan-before/cratio.txt|NLBAND_ARM=before|dev/nlband-survey.R dev/nlstop2-scan.R cratio
+dev/nlband-out/scan-after1/cratio.txt|NLBAND_ARM=after|dev/nlband-survey.R dev/nlstop2-scan.R cratio
+dev/nlband-out/scan-before/acat.txt|NLBAND_ARM=before|dev/nlband-survey.R dev/nlstop2-scan.R acat
+dev/nlband-out/scan-after1/acat.txt|NLBAND_ARM=after|dev/nlband-survey.R dev/nlstop2-scan.R acat
+dev/nlband-out/scan-before/hurdle_cumulative.txt|NLBAND_ARM=before|dev/nlband-survey.R dev/nlstop2-scan.R hurdle_cumulative
+dev/nlband-out/scan-after1/hurdle_cumulative.txt|NLBAND_ARM=after|dev/nlband-survey.R dev/nlstop2-scan.R hurdle_cumulative
+dev/nlband-out/scan-before/bernoulli.txt|NLBAND_ARM=before|dev/nlband-survey.R dev/nlstop2-scan.R bernoulli
+dev/nlband-out/scan-after1/bernoulli.txt|NLBAND_ARM=after|dev/nlband-survey.R dev/nlstop2-scan.R bernoulli
+dev/nlband-out/scan-before/poisson.txt|NLBAND_ARM=before|dev/nlband-survey.R dev/nlstop2-scan.R poisson
+dev/nlband-out/scan-after1/poisson.txt|NLBAND_ARM=after|dev/nlband-survey.R dev/nlstop2-scan.R poisson
+dev/nlband-out/scan-before/gaussian.txt|NLBAND_ARM=before|dev/nlband-survey.R dev/nlstop2-scan.R gaussian
+dev/nlband-out/scan-after1/gaussian.txt|NLBAND_ARM=after|dev/nlband-survey.R dev/nlstop2-scan.R gaussian
+dev/nlband-out/scan-before/gamma.txt|NLBAND_ARM=before|dev/nlband-survey.R dev/nlstop2-scan.R gamma
+dev/nlband-out/scan-after1/gamma.txt|NLBAND_ARM=after|dev/nlband-survey.R dev/nlstop2-scan.R gamma
+dev/nlband-out/guard-before2.txt|NLBAND_ARM=before|dev/nlband-guard.R
+dev/nlband-out/guard-after2.txt|NLBAND_ARM=after|dev/nlband-guard.R

@@ -3097,7 +3097,9 @@ sdr_of <- function(fit) {
 #'   probe and the pole restart. The sign probe, from the default start
 #'   only, fits from each sign pattern of the body's coefficients (message
 #'   class `frmtmb_nl_multistart`). The pole restart fits from beyond a
-#'   pole of the body that holds the fit (message class
+#'   pole of the body that holds the fit, and from inside each gap of the
+#'   data that is much wider than the gaps around it, where a pole of the
+#'   body can sit between rows (message class
 #'   `frmtmb_nl_pole_start`; from a `start` of your own, a warning of class
 #'   `frmtmb_nl_pole` that the point is not the maximum). `TRUE` (default)
 #'   runs both. `FALSE` turns off the sign probe and the pole restart. A

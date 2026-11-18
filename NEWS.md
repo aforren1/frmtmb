@@ -1,3 +1,33 @@
+# frmtmb (development version)
+
+## Fitting
+
+* BREAKING: A nonlinear fit also starts inside each hole of the data,
+  where a pole of the body (a denominator at 0) can sit between rows.
+  `a / (x + b)` on y = 1 / (x - 2) + noise, with no rows within 0.3 of
+  2, stopped at b 0.39 with every denominator positive, code 0 and no
+  warning, 592 below the fit with b at -2.00. The optimizer cannot cross
+  a pole, and the restart beyond the poles runs only for a fit beside
+  them, so no start reached the gap. `frm()` now also fits from the
+  middle of each hole that the fit is not in, and returns the higher fit
+  with a message of class `frmtmb_nl_pole_start`; from a `start` of your
+  own, the fit is kept with a warning of class `frmtmb_nl_pole`. A gap
+  between the poles of adjacent rows is a hole when it has 10 or more
+  rows on each side and is wider than log2(1000 m) times the median of
+  the 41 gaps around it, m gaps in all; at most the 2 widest holes of a
+  coefficient get a start, each run twice: with the rest of the model at
+  the fit and at the default start. A hole fit is kept only where the
+  data place the pole among the rows (the standard error of the
+  coefficient below the span of the rows' poles), so a run that rises
+  without end, as on data that the hole separates, is not kept; a
+  message of class `frmtmb_nl_pole_refused` says so when the refused fit
+  is higher, and the next run that beats the fit is tried. On data with no
+  hole, no start runs and the fit is the same. A hole whose starts lose
+  costs 1.23 to 1.37 times the fit's evaluations of the objective, and
+  two such holes 1.52 to 1.59. A pole between two rows of dense data,
+  with no hole, is still not reached. `frmtmb_control(nl_starts =
+  FALSE)` turns the starts off.
+
 # frmtmb 0.83.0
 
 ## Convergence and standard errors
