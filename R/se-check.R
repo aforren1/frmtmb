@@ -612,6 +612,12 @@ se_edge_sd <- function(fit, H) {
 #' SEs are 0.283, 1.46 and 1.33 against 0.285, 1.45 and 1.30 from the
 #' profile (review of lane code8, finding 2; dev/code8-tightsd-pull.R).
 #'
+#' Flat further out is not enough: a fit that stopped short can leave a
+#' correlation far out where the likelihood is flat too, and be called a
+#' boundary with no warning. So the parameter (or row) must also lose
+#' when it moves back toward 0, the rest held (se_cor_gain_back()). One
+#' that gains is not at its edge, and se_boundary_names() calls it short.
+#'
 #' @noRd
 se_edge_cor <- function(fit, np) {
   out <- logical(np)
@@ -633,7 +639,8 @@ se_edge_cor <- function(fit, np) {
     }
     if (d == 2L) {
       for (k in ti[abs(th[ti]) > tc]) {
-        out[thpos[k]] <- se_at_edge(fit, om$names[thpos[k]], sign(th[k]))
+        out[thpos[k]] <- se_at_edge(fit, om$names[thpos[k]], sign(th[k])) &&
+          !(se_cor_gain_back(fit, thpos[k]) > se_edge_tol)
       }
       next
     }
@@ -643,7 +650,10 @@ se_edge_cor <- function(fit, np) {
     for (i in 2:d) {
       k <- ti[lt[i, seq_len(i - 1L)]]
       big <- max(abs(th[k]))
-      if (!(big > tc) || !se_row_at_edge(fit, thpos[k])) next
+      if (!(big > tc) || !se_row_at_edge(fit, thpos[k]) ||
+            se_cor_gain_back(fit, thpos[k]) > se_edge_tol) {
+        next
+      }
       out[thpos[k]] <- TRUE
       scale[thpos[k]] <- tc / big
     }
@@ -667,6 +677,67 @@ se_row_at_edge <- function(fit, j) {
   f0 <- tryCatch(obj$fn(p), error = function(e) NA_real_)
   f1 <- tryCatch(obj$fn(q), error = function(e) NA_real_)
   is.finite(f0) && is.finite(f1) && abs(f1 - f0) <= se_edge_tol
+}
+
+#' How much log-likelihood moving the correlation parameters `j` back
+#' toward 0, the rest held, gains: the best of the parameters (a Cholesky
+#' row, or one entry in dimension 2) scaled along themselves so that the
+#' largest is at the clamp, at 1, and at 0; 0 when none gains.
+#'
+#' At a limit the log-likelihood with the rest held rises all the way
+#' out, so every point further in is worse, and a gain proves that the
+#' fit stopped short of an interior correlation. Under
+#' `autoscale = FALSE` a random slope on a column spread 1e-4 or 1e-5
+#' (`y ~ 1 + (1 + x | g)`, 20 groups of 15) stopped with its parameter
+#' at 157 to 2281, 1.68 to 35.1 units short of the fit on the
+#' standardized column, and the move to the clamp alone gained 2.0e-4 to
+#' 0.0195 on all 14 such fits (dev/slopetrig-cor.R). Kept per row in the
+#' fit's cache, since the SE check and the headroom ask it of one point.
+#'
+#' @noRd
+se_cor_gain_back <- function(fit, j) {
+  p <- fit$opt$par
+  key <- paste(j, collapse = "_")
+  hit <- if (is.environment(fit$cache)) fit$cache$se_cor_back[[key]]
+  if (!is.null(hit) && identical(hit$par, p)) return(hit$value)
+  big <- max(abs(p[j]))
+  if (!(big > 0)) return(0)
+  obj <- fit$obj
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  f <- function(x) {
+    tryCatch(as.numeric(obj$fn(x)), error = function(e) NA_real_)
+  }
+  f0 <- f(p)
+  fx <- vapply(c(se_cor_clamp_theta(), 1, 0) / big, function(s) {
+    q <- p
+    q[j] <- s * p[j]
+    f(q)
+  }, 0)
+  fx <- fx[is.finite(fx)]
+  out <- if (is.finite(f0) && length(fx)) max(0, f0 - min(fx)) else 0
+  if (is.environment(fit$cache)) {
+    fit$cache$se_cor_back[[key]] <- list(par = p, value = out)
+  }
+  out
+}
+
+#' Is the correlation parameter `k` (an index into `theta`) of block
+#' `bk` one that a move of its Cholesky row back toward 0 gains on
+#' (se_cor_gain_back())? Only a `us()` block's correlations are asked.
+#'
+#' @noRd
+se_cor_short <- function(fit, bk, k) {
+  d <- bk[["dim"]]
+  if (!identical(bk[["covstruct"]], "us") || !isTRUE(d >= 2L)) return(FALSE)
+  ti <- bk[["theta_idx"]][-seq_len(d)]
+  pos <- match(k, ti)
+  if (length(ti) != d * (d - 1L) / 2L || is.na(pos)) return(FALSE)
+  lt <- matrix(0L, d, d)
+  lt[lower.tri(lt)] <- seq_along(ti)
+  i <- which(lt == pos, arr.ind = TRUE)[1L, 1L]
+  thpos <- which(outer_par_map(fit)$comp == "theta")
+  se_cor_gain_back(fit, thpos[ti[lt[i, seq_len(i - 1L)]]]) > se_edge_tol
 }
 
 #' The internal value of a two-dimensional unstructured block's
@@ -3295,7 +3366,14 @@ se_boundary_names <- function(fit, lost) {
     unread <- edge[edge %in% sd_i][vapply(edge[edge %in% sd_i], function(j) {
       !isTRUE(attr(se_sd_gain_up(fit, j), "moved") > se_edge_tol)
     }, NA)]
-    edge <- setdiff(edge, c(short, unread))
+    # a correlation the optimizer left far out short of an interior one is
+    # flat further out too; a move back toward 0 that gains tells the two
+    # apart (se_cor_gain_back())
+    shortcor <- edge[!(edge %in% sd_i)][vapply(edge[!(edge %in% sd_i)],
+                                               function(j) {
+      se_cor_short(fit, bk, j)
+    }, NA)]
+    edge <- setdiff(edge, c(short, unread, shortcor))
     k <- stats::setNames(ifelse(edge %in% sd_i, "zero", "limit"),
                          thn[edge])
     if (any(edge %in% sd_i)) {
@@ -3320,13 +3398,15 @@ se_boundary_names <- function(fit, lost) {
       k <- stats::setNames(rep("limit", length(cand)), thn[cand])
     }
     kind <- c(kind, k, stats::setNames(rep("short", length(short)),
-                                       thn[short]))
+                                       thn[short]),
+              stats::setNames(rep("shortcor", length(shortcor)),
+                              thn[shortcor]))
   }
   kind <- kind[!duplicated(names(kind))]
   if (is.environment(fit$cache)) {
     fit$cache$se_boundary_kind <- c(fit$cache$se_boundary_kind, kind)
   }
-  names(kind)[kind != "short"]
+  names(kind)[!kind %in% c("short", "shortcor")]
 }
 
 #' How much log-likelihood a larger value of a log standard deviation
@@ -3734,6 +3814,8 @@ se_relabel <- function(fit, lost) {
   kind <- fit$cache$se_boundary_kind
   lost[names(lost) %in% names(kind)[kind == "short"] &
          lost == "flat"] <- "short"
+  lost[names(lost) %in% names(kind)[kind == "shortcor"] &
+         lost == "flat"] <- "shortcor"
   if (fit$REML || isTRUE(fit$control$profile)) return(lost)
   om <- outer_par_map(fit)
   pb <- which(om$comp == "beta")
@@ -4085,6 +4167,17 @@ se_lost_clauses <- function(fit, lost) {
                      if (one) "it is" else "they are",
                      " not at a boundary. Refit from a larger starting ",
                      "value (start =; see par_template())"),
+      shortcor = paste0("the fit stopped short of the maximum: ",
+                        if (one) "this correlation is" else
+                          "these correlations are",
+                        " at the limit of the range, where the likelihood ",
+                        "is flat, but a value nearer 0 raises the ",
+                        "log-likelihood, so ", if (one) "it is" else
+                          "they are",
+                        " not at a boundary. Refit from a value nearer 0 ",
+                        "(start =; see par_template()), or, for a random ",
+                        "slope on a badly scaled column, with ",
+                        "frmtmb_control(autoscale = TRUE)"),
       boundary = paste0("at the edge of the parameter space (a variance ",
                         "at zero, or a correlation, mixing or range ",
                         "parameter at its limit), where the likelihood no ",
@@ -4139,6 +4232,7 @@ se_lost_clauses <- function(fit, lost) {
   for (r in c("bound", "limit_end", "limit_rise", "limit_sep", "limit_sep1",
               "limit_sepother", "limit_undefined", "boundary",
               "separation", "short", "flat", "illcond", "concave",
+              "shortcor",
               "nonfinite", "nocurv")) {
     n <- names(lost)[lost == r]
     if (!length(n)) next

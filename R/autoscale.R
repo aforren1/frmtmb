@@ -96,21 +96,45 @@ autoscale_skip_cs <- c("smooth", "gp", "hsgp", "rr", "latres", "equalto")
 #' sd of a fixed twin did through 0.82.0: on x = 5 + 0.03 z the root
 #' mean square is near 5, and engaging on it left `y ~ x + (1 + x | g)`
 #' up to 9.84 units short where 0.82.0 reached the maximum (review of
-#' lane slopescale, F1). A `mo()` component's Z columns are rewritten
-#' from its simplex, so they are never planned.
+#' lane slopescale, F1). `ratio`, the root mean square over the sd on
+#' the rows the block covers, is the column's distance from 0 against
+#' its spread: one over the sine of its angle with the intercept's
+#' column, which the default also engages on (autoscale_slope_ratio).
+#' The rows the block covers are those where any of its columns in that
+#' predictor, its intercept included, is nonzero. A dose given on half
+#' the rows (0, or 1 + 0.2 z) under `(1 + x | g)` is covered on every
+#' row by the intercept and is not near its column (ratio 1.4), while
+#' over its nonzero rows its ratio is 5. A `gr(g, by = h)` block is
+#' covered only on the rows of its own groups: over every row a calendar
+#' year there read 1.41, and the default did not engage on a fit 5.8 to
+#' 41.4 units short (review of lane slopetrig, finding 3); over its rows
+#' it reads 692. A `mo()` component's Z columns are rewritten from its
+#' simplex, so they are never planned.
 #'
 #' @noRd
 autoscale_block_cols <- function(frame, bk) {
   D <- bk[["dim"]]
   lev0 <- (seq_len(bk[["n_levels"]]) - 1L) * D
   out <- vector("list", D)
-  for (comp in bk[["components"]] %||% list()) {
+  comps <- bk[["components"]] %||% list()
+  keys <- vapply(comps, function(cp) cp$lp_key %||% "", "")
+  covered <- function(key, Z) {
+    pos <- unlist(lapply(comps[keys == key], function(cp) {
+      cp$offset + seq_len(cp$dim)
+    }))
+    zc <- bk[["c_idx"]][as.vector(outer(pos, lev0, "+"))]
+    zc <- zc[!is.na(zc) & zc <= ncol(Z)]
+    Matrix::rowSums(abs(Z[, zc, drop = FALSE])) > 0
+  }
+  for (comp in comps) {
     Z <- frame[["linpreds"]][[comp$lp_key]][["Z"]]
+    rows <- NULL
     for (k in seq_len(comp$dim)) {
       pos <- comp$offset + k
       zc <- bk[["c_idx"]][lev0 + pos]
       rms <- NA_real_
       spread <- NA_real_
+      ratio <- NA_real_
       if (!is.null(Z) && is.null(comp[["mo_re"]]) && length(zc) &&
             max(zc) <= ncol(Z)) {
         zx <- as.numeric(Matrix::rowSums(Z[, zc, drop = FALSE]))
@@ -119,6 +143,9 @@ autoscale_block_cols <- function(frame, bk) {
         if (length(unique(zx)) > 2L && is.finite(r) && r > 0) {
           rms <- r
           spread <- stats::sd(nz)
+          rows <- rows %||% covered(comp$lp_key, Z)
+          zr <- zx[rows]
+          ratio <- sqrt(mean(zr^2)) / stats::sd(zr)
         }
       }
       out[[pos]] <- list(key = comp$lp_key, zcols = zc,
@@ -126,7 +153,7 @@ autoscale_block_cols <- function(frame, bk) {
                          cnm = comp$cnms[k],
                          label = paste0(bk[["covstruct"]], "() on ",
                                         comp$cnms[k]),
-                         rms = rms, spread = spread)
+                         rms = rms, spread = spread, ratio = ratio)
     }
   }
   out
@@ -243,7 +270,7 @@ autoscale_plan_z <- function(frame) {
         key = cl$key, zcols = cl$zcols,
         bcols = if (i %in% ncp) integer(0) else cl$bcols,
         theta = th[pos][!is.na(th[pos])], scale = cpos[pos],
-        spread = cl$spread, label = cl$label)
+        spread = cl$spread, ratio = cl$ratio, label = cl$label)
     }
   }
   out
@@ -332,10 +359,36 @@ autoscale_small_sd <- 1e-3
 #' @noRd
 autoscale_slope_sd <- 5e-2
 
+#' The ratio of root mean square to sd (`ratio` of autoscale_block_cols())
+#' above which a column carrying a random slope engages the default: a
+#' column whose mean is more than sqrt(3), 1.73, times its sd from 0. Such
+#' a slope is nearly collinear with the intercept, its correlation with
+#' the intercept is near -1 or 1 in the column's own units, and the plain
+#' fit can stop at a point where its gradient test passes. Measured with
+#' `autoscale = FALSE` on `y ~ 1 + (1 + x | g)` and `y ~ x + (1 + x | g)`,
+#' x = c0 + s z with c0 from 0.1 to 1000, a calendar year and a 0/1
+#' column on a level, gaussian and poisson, 1600 fits the spread rule
+#' leaves alone
+#' (`dev/slopetrig-calib.R`, `dev/slopetrig-calib2.R`): 0 of 100 short at
+#' a ratio below 1.8, 1 of 200 at 1.8 to 2.5 (2.09, 5.3 units), and up
+#' to 82 percent at 40 and above, by up to 213 units, most of them with
+#' no warning. On that one `us()` slope, `autoscale = TRUE` was within
+#' 1e-3 on 1599 of them; it is short itself on two random slopes, nested
+#' terms, `cs()`, `gr(by =)` and a factor-by-numeric column (review of
+#' lane slopetrig, finding 2), so engaging does not cure those. A short
+#' fit needs a large column too: none of the 620 with a root mean square
+#' below 2 was short, at ratios up to 15, but the ratio alone decides,
+#' as `autoscale_slope_sd` decides alone on the other side: a root mean
+#' square is in x's units, and the ratio is not.
+#'
+#' @noRd
+autoscale_slope_ratio <- 2
+
 #' The plan the fit runs with, or `NULL` for a plain fit.
 #' `autoscale = TRUE` plans every qualifying column and `FALSE` none.
 #' The default, `NULL`, plans them only when a column carrying a random
-#' slope is spread below `autoscale_slope_sd`, or a column is spread
+#' slope is spread below `autoscale_slope_sd` or is far from 0 against
+#' its spread (`autoscale_slope_ratio`), or a column is spread
 #' below `autoscale_small_sd` AND its coefficient is an outer parameter:
 #' under `REML = TRUE` or `profile = TRUE` the `mu` coefficients are
 #' integrated by the inner Newton solver, which measured nearly
@@ -357,7 +410,8 @@ autoscale_decide <- function(frame, control, REML) {
     # a slope's theta is outer under REML and profile too
     # the spread about the mean, not the scale (autoscale_block_cols())
     z_small <- any(vapply(pl$z, function(zz) {
-      isTRUE(zz$spread < autoscale_slope_sd)
+      isTRUE(zz$spread < autoscale_slope_sd) ||
+        isTRUE(zz$ratio > autoscale_slope_ratio)
     }, NA))
     x_small || z_small
   }, NA)

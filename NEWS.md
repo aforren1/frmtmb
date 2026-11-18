@@ -1,3 +1,35 @@
+# frmtmb (development version)
+
+## Convergence and standard errors
+
+* BREAKING: The default `autoscale` also engages on a random slope whose
+  column is far from 0 against its spread: a root mean square above 2
+  times its standard deviation, over the rows its random term covers
+  (for `gr(g, by = h)`, the rows of each level's groups). Such a slope
+  is nearly
+  collinear with the intercept. Without the rescaled pre-fit, a random
+  slope on a calendar year (`x = 2000 + 3 z`, `y ~ 1 + (1 + x | g)`)
+  stopped 3.3 to 41.1 log-likelihood units short of the maximum on 10
+  of 10 data sets (both forms, `y ~ x + (1 + x | g)` too), 7 of them
+  with no warning. The same happened with `x = 5 + 0.1 z` and with
+  columns down to a ratio of 2.09. Fits with a
+  column nearer its spread's scale (Days 0 to 9, a dose given on half
+  the rows) are the fit `autoscale = FALSE` gives, bit for bit. With
+  two such slopes in one term, a nested term, `cs()` or `gr(by =)`, the
+  rescaled pre-fit can stop short too; centering the column before the
+  fit reaches the maximum there.
+
+* BREAKING: A correlation of a `us()` block that a fit leaves far out,
+  where the likelihood is flat further out, is no longer called a
+  boundary when moving it back toward 0, the other parameters held,
+  raises the log-likelihood. That fit stopped short of an interior
+  correlation. Under `autoscale = FALSE` a random slope on a column
+  spread 1e-4 or 1e-5 gave the boundary message, on 5 of 7 such fits
+  with no warning, while 1.68 to 35.1 units short. Each of the 7 now
+  warns: that the correlation stopped short of the maximum, or that
+  the fit's convergence could not be verified. A correlation at its
+  true limit keeps the boundary message.
+
 # frmtmb 0.83.0
 
 ## Convergence and standard errors

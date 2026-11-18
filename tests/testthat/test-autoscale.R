@@ -557,3 +557,229 @@ test_that("a slope stopped at its start is not called at zero", {
   expect_true(any(grepl("stopped short of the maximum", conds,
                         fixed = TRUE)))
 })
+
+test_that("a slope column far from 0 against its spread engages the default", {
+  # x = c0 + s z: a calendar year (2000 + 3 z) and 5 + 0.1 z. Their sd
+  # is above autoscale_slope_sd, so 0.83.0 did not engage, and the plain
+  # fit stopped 41.1, 9.81, 15.3 and 11.1 units short with no warning
+  # (dev/slopetrig-repro.R). The ratio of root mean square to sd engages
+  # it. The fit is the model's maximum, and every accessor reads the
+  # model as written: x = m + sx * xz maps the centered fit's slope by
+  # 1 / sx and moves its intercept by the slope times m / sx
+  mk <- function(seed, s, c0) {
+    set.seed(seed)
+    g <- factor(rep(1:20, each = 15))
+    z <- stats::rnorm(300)
+    eta <- 0.5 + stats::rnorm(20, 0, 0.5)[g] +
+      stats::rnorm(20, 0, 0.5)[g] * z + 0.3 * z
+    data.frame(g = g, x = c0 + s * z, y = eta + stats::rnorm(300))
+  }
+  rel <- function(a, b) max(abs(a - b)) / max(abs(b))
+  # In the year's own units the correlation is near -1, and its
+  # parameter's curvature is below what the Hessian can measure, so on
+  # the first case it has no standard error, or (6 of 21 roundings,
+  # dev/slopetrig-ulp.R) nlminb reports false convergence at the
+  # maximum; filed in dev/test-backlog.md (round of 2026-11-16, lane
+  # slopetrig)
+  allow_warnings({
+    for (cs in list(list(2000, 3, 2, y ~ 1 + (1 + x | g)),
+                    list(2000, 3, 2, y ~ x + (1 + x | g)),
+                    list(5, 0.1, 1, y ~ 1 + (1 + x | g)),
+                    list(5, 0.1, 3, y ~ x + (1 + x | g)))) {
+      info <- paste("c0", cs[[1]], "seed", cs[[3]], deparse(cs[[4]]))
+      d <- mk(cs[[3]], cs[[2]], cs[[1]])
+      m <- mean(d$x)
+      sx <- stats::sd(d$x)
+      dz <- d
+      dz$x <- (d$x - m) / sx
+      fd <- frm(cs[[4]], data = d)
+      fz <- frm(cs[[4]], data = dz)
+      expect_true(isTRUE(fd$autoscaled), label = info)
+      lz <- as.numeric(logLik(fz))
+      expect_lt(lz - as.numeric(logLik(fd)), 1e-8 * abs(lz), label = info)
+      sd_x <- function(f) VarCorr(f)$g$sd["x", "Estimate"]
+      expect_lt(rel(sd_x(fd) * sx, sd_x(fz)), 1e-4,
+                label = paste(info, "sd"))
+      rd <- as.matrix(ranef(fd)$g)
+      rz <- as.matrix(ranef(fz)$g)
+      expect_lt(rel(rd[, "x"] * sx, rz[, "x"]), 1e-4,
+                label = paste(info, "re"))
+      expect_lt(rel(rd[, "Intercept"],
+                    rz[, "Intercept"] - rz[, "x"] * m / sx), 1e-4,
+                label = paste(info, "re intercept"))
+      cd <- as.matrix(coef(fd)$g)
+      cz <- as.matrix(coef(fz)$g)
+      expect_lt(rel(cd[, "x"] * sx, cz[, "x"]), 1e-4,
+                label = paste(info, "coef"))
+      if ("x" %in% rownames(fixef(fd))) {
+        expect_lt(rel(fixef(fd)["x", c("Estimate", "Est.Error")] * sx,
+                      fixef(fz)["x", c("Estimate", "Est.Error")]), 1e-4,
+                  label = paste(info, "fixef"))
+      }
+      expect_lt(rel(fitted(fd)[, "Estimate"], fitted(fz)[, "Estimate"]),
+                1e-4, label = paste(info, "fitted"))
+      # Standard errors are invariant too, in exact arithmetic. The year
+      # with no fixed x is left out: there the correlation's direction
+      # is lost and the others are skewed (fixef 0.63 percent, fitted 2.9
+      # percent; filed in dev/test-backlog.md, lane slopetrig). With no
+      # fixed x the fixed intercept is the same parameter in both fits
+      fx <- "x" %in% rownames(fixef(fd))
+      if (fx || cs[[1]] != 2000) {
+        if (!fx) {
+          expect_lt(rel(fixef(fd)["Intercept", "Est.Error"],
+                        fixef(fz)["Intercept", "Est.Error"]), 1e-3,
+                    label = paste(info, "fixef SE"))
+        }
+        expect_lt(rel(fitted(fd)[, "Est.Error"], fitted(fz)[, "Est.Error"]),
+                  1e-3, label = paste(info, "fitted SE"))
+      }
+      nd <- data.frame(g = d$g[c(1, 16)],
+                       x = c(1990, 2010) * (cs[[1]] / 2000))
+      nz <- nd
+      nz$x <- (nd$x - m) / sx
+      expect_lt(rel(fitted(fd, newdata = nd)[, "Estimate"],
+                    fitted(fz, newdata = nz)[, "Estimate"]), 1e-4,
+                label = paste(info, "new data"))
+    }
+  }, c("Standard errors are not available for 1 of 5 parameters. theta_3",
+       "VarCorr() entries move along a direction",
+       "Optimizer did not report convergence: false convergence (8)"))
+})
+
+test_that("a slope column near its spread's scale leaves the fit alone", {
+  # the guard's condition absent: Days 0 to 9 (a ratio of root mean
+  # square to sd of 1.85 over every row) and a dose given on half the
+  # rows (0, or 1 + 0.2 z: 5.1 over its nonzero rows, 1.39 over every
+  # row) are not near the intercept's column, so the default does not
+  # engage and the fit is autoscale = FALSE's bit for bit
+  set.seed(11)
+  g <- factor(rep(1:18, each = 10))
+  days <- rep(0:9, 18)
+  d1 <- data.frame(g = g, x = days,
+                   y = 250 + stats::rnorm(18, 0, 25)[g] +
+                     (10 + stats::rnorm(18, 0, 6)[g]) * days +
+                     stats::rnorm(180, 0, 25))
+  set.seed(12)
+  g <- factor(rep(1:20, each = 15))
+  trt <- rep(c(TRUE, FALSE), length.out = 300)
+  x <- ifelse(trt, 1 + 0.2 * stats::rnorm(300), 0)
+  d2 <- data.frame(g = g, x = x,
+                   y = 0.5 + stats::rnorm(20, 0, 0.5)[g] +
+                     (0.3 + stats::rnorm(20, 0, 0.5)[g]) * x +
+                     stats::rnorm(300))
+  for (d in list(d1, d2)) {
+    fd <- frm(y ~ x + (1 + x | g), data = d)
+    ff <- frm(y ~ x + (1 + x | g), data = d,
+              control = frmtmb_control(autoscale = FALSE))
+    cl <- autoscale_plan(fd$frame)$y.mu$z[[1]]
+    expect_lt(cl$ratio, autoscale_slope_ratio)
+    expect_gt(cl$spread, autoscale_slope_sd)
+    expect_null(autoscale_decide(fd$frame, frmtmb_control(), FALSE))
+    expect_false(isTRUE(fd$autoscaled))
+    expect_identical(fd$opt$par, ff$opt$par)
+    expect_identical(as.numeric(logLik(fd)), as.numeric(logLik(ff)))
+  }
+  # and the ratio alone decides: the same Days moved to 2 to 11 engage
+  d1$x <- d1$x + 2
+  fr <- frm(y ~ x + (1 + x | g), data = d1)
+  expect_gt(autoscale_plan(fr$frame)$y.mu$z[[1]]$ratio, autoscale_slope_ratio)
+  expect_true(isTRUE(fr$autoscaled))
+})
+
+test_that("a gr(by =) block reads its ratio over the rows it covers", {
+  # (1 + x | gr(g, by = h)) builds one block per level of h, each 0 on
+  # the other level's rows. Over every row a calendar year there read
+  # 1.41, the default did not engage, and the fit was 5.8 to 41.4 units
+  # short on 10 of 10 seeds, 9 silent (review of lane slopetrig, finding
+  # 3). Over the rows each block covers it reads about 690
+  set.seed(1)
+  g <- factor(rep(1:20, each = 15))
+  z <- stats::rnorm(300)
+  d <- data.frame(g = g, h = factor(ifelse(as.integer(g) <= 10, "a", "b")),
+                  x = 2000 + 3 * z)
+  d$y <- 0.5 + stats::rnorm(20, 0, 0.5)[g] +
+    (0.3 + stats::rnorm(20, 0, 0.5)[g]) * z + stats::rnorm(300)
+  fr <- frm(y ~ 1 + (1 + x | gr(g, by = h)), data = d, dry_run = "frame")
+  zz <- autoscale_plan(fr)$y.mu$z
+  expect_length(zz, 2L)
+  want <- vapply(levels(d$h), function(l) {
+    on <- d$h == l
+    sqrt(mean(d$x[on]^2)) / stats::sd(d$x[on])
+  }, 0)
+  got <- vapply(zz, function(e) e$ratio, 0)
+  expect_lt(max(abs(sort(got) / sort(want) - 1)), 1e-12)
+  expect_gt(min(got), autoscale_slope_ratio)
+  expect_false(is.null(autoscale_decide(fr, frmtmb_control(), FALSE)))
+})
+
+
+test_that("a correlation run out at a short stop is not called a boundary", {
+  # autoscale = FALSE keeps the stall of a slope on a column spread 1e-4
+  # or 1e-5: the slope's sd moves, but its correlation parameter runs to
+  # 266 to 657 while the fit stops 3.9 to 35.1 units short. 0.83.0
+  # called it "at the limit of its range" in a boundary message and gave
+  # no warning (dev/slopetrig-cor.R). Moving it back toward 0 gains, so
+  # it is not at its edge, and the fit warns. Which warning depends on
+  # the rounding: "stopped short" where the row is flat (21 of 21 ulp
+  # draws per case with the reference BLAS, dev/slopetrig-ulp.R), and
+  # on the poisson case under OpenBLAS 0.3.26 a Hessian row with no
+  # usable curvature; either is right, the boundary verdict is not
+  for (cs in list(list(4, 1e-4, "gaussian"), list(5, 1e-4, "gaussian"),
+                  list(5, 1e-5, "poisson"))) {
+    info <- paste(cs, collapse = " ")
+    d <- slope_data(cs[[1]], cs[[2]], cs[[3]])
+    msgs <- character(0)
+    warns <- character(0)
+    f <- withCallingHandlers(
+      frm(y ~ 1 + (1 + x | g), data = d,
+          family = if (cs[[3]] == "gaussian") gaussian() else poisson(),
+          control = frmtmb_control(autoscale = FALSE)),
+      message = function(m) {
+        msgs <<- c(msgs, paste(class(m)[1], conditionMessage(m)))
+        invokeRestart("muffleMessage")
+      },
+      warning = function(w) {
+        warns <<- c(warns, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      })
+    expect_false(any(grepl("frmtmb_boundary_fit", msgs, fixed = TRUE)),
+                 label = info)
+    expect_gt(length(warns), 0L, label = info)
+    lost <- sdr_of(f)$se_lost
+    expect_false(any(lost %in% c("boundary", "limit")), label = info)
+    j <- which(names(f$opt$par) == "theta")[3]
+    expect_gt(abs(f$opt$par[[j]]), se_cor_clamp_theta(), label = info)
+    expect_false(se_edge_cor(f, length(f$opt$par))[j], label = info)
+    expect_gt(se_cor_gain_back(f, j), se_edge_tol, label = info)
+  }
+})
+
+test_that("a correlation at its limit keeps the boundary message", {
+  # the guard's condition absent: no slope variance in the data, so the
+  # correlation runs to +/-1 and its parameter past the clamp; every
+  # move back toward 0 loses, and the fit is the boundary fit it was
+  # (test-review-v29.R, "a lost correlation leaves the sd intervals")
+  for (s in c(7L, 8L)) {
+    set.seed(s)
+    g <- factor(rep(seq_len(20), each = 10))
+    d <- data.frame(g = g, x = stats::rnorm(200))
+    d$y <- 1 + 0.5 * d$x + stats::rnorm(20, 0, 0.7)[g] + stats::rnorm(200)
+    conds <- character(0)
+    f <- withCallingHandlers(
+      frm(y ~ x + (1 + x | g), data = d),
+      message = function(m) {
+        conds <<- c(conds, paste(class(m)[1], conditionMessage(m)))
+        invokeRestart("muffleMessage")
+      },
+      warning = function(w) {
+        conds <<- c(conds, paste(class(w)[1], conditionMessage(w)))
+        invokeRestart("muffleWarning")
+      })
+    j <- which(names(f$opt$par) == "theta")[3]
+    expect_gt(abs(f$opt$par[[j]]), se_cor_clamp_theta())
+    expect_identical(se_cor_gain_back(f, j), 0)
+    expect_identical(sdr_of(f)$se_lost, c(theta_3 = "boundary"))
+    expect_true(any(grepl("frmtmb_boundary_fit", conds, fixed = TRUE)))
+    expect_false(any(grepl("stopped short", conds, fixed = TRUE)))
+  }
+})

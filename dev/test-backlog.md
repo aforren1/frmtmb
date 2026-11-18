@@ -4883,6 +4883,90 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-16
+
+### From lane slopetrig
+
+- **HIGH. The default, and `autoscale = TRUE`, stay short where
+  rescaling cannot fix the geometry** (review of lane slopetrig,
+  `dev/reviews/2026-11-17-slopetrig.md`, findings 2 and 7; scripts
+  `dev/reviews/slopetrig-review-designs.R`, `-oos.R`, logs
+  `-oos-sum.log`, `-start.log`; `dev/slopetrig-grby.R`). A calendar year
+  (2000 + 3 z) as a random slope, seeds 1 to 10, gaussian: two random
+  slopes `y ~ 1 + (1 + x1 + x2 | g)` short on 10 of 10 (up to 43.7
+  units); a nested term `(1 + x | g1 / g2)` 10 of 10 (up to 64.6);
+  `cs(1 + x | g)` 10 of 10 (up to 41.1); `(1 + x | gr(g, by = h))` 7 of
+  10 under `autoscale = TRUE` (and under the default, which now engages
+  there: 7 of 10, 2 silent, up to 15.6); a factor-by-numeric column
+  `trt * year` 7 of 10 under `autoscale = TRUE` (the default does not
+  engage there: ratio 1.41). The default now warns on most of them (on
+  the first three, silent short fits went from 21 to 3). The centered,
+  standardized fit reaches the maximum on every one of these designs.
+  Rescaling by the root mean square leaves the column at the same angle
+  to the intercept; centering, with the covariance mapped exactly by
+  A = [[1, -m/s], [0, 1/s]] for `us()`, is what fixes them. A start at
+  log sd - log(root mean square) for each slope fixes item 5033's 10
+  cases with no pre-fit, but none of these.
+- **MEDIUM. Fits the default now brings to the maximum warn there,
+  falsely** (dev/slopetrig-findings.md; review of lane slopetrig,
+  finding 5, `dev/reviews/slopetrig-review-warn36.R`, `.log`). Of the
+  1200 grid fits the ratio rule newly engages, 36 warn at the maximum,
+  all at a ratio of 200.5 or more (years with sd 1 or 3, c0 >= 10 with
+  r = 1e-3, a 0/1 column on level 100). All 36 are within 3.2e-8 of the
+  centered, standardized fit, which gives 0 warnings on all 36 (and 0
+  `VarCorr()` warnings). The correlation in x's own units is near -1
+  (-0.99999953 and the like) and is determined: its delta-method
+  standard error from the centered fit is at most 3.3e-7. The default
+  prints on them: 28 "Standard errors are not available ... theta_3:
+  ... the data do not determine it"; 28 `VarCorr()` "entries move along
+  a direction the fit does not determine"; 8 "Large maximum absolute
+  gradient at the optimum ... The fit may not have converged" (0.0377 to
+  1.44); 13 "Optimizer did not report convergence: false convergence
+  (8)"; and on 1 fit (poisson, c0 = 1000) the standard errors of both
+  sds, theta_1 and theta_2, are lost. `autoscale = TRUE` prints the
+  same. Out of sample (`-oos-sum.log`), fits at the maximum that newly
+  warn, lane against base: binomial year 4 against 0, negative binomial
+  year 3 against 0, a slope in sigma 6 against 3, `ar()` 9 against 1,
+  `mm()` 1 against 0, a `subset()` response 3 against 0. On base these
+  fits were short instead (29 of the 36 silent), so the default trades
+  a wrong value for a correct one with a wrong warning. The cause is
+  the correlation parameter t (rho = t / sqrt(1 + t^2)) far out (-1047
+  on the year with no fixed x, seed 2, `dev/slopetrig-probe2.R`), where
+  its curvature is below what the Hessian measures. test-autoscale.R
+  allows three of these texts in "a slope column far from 0 against its
+  spread engages the default". Whether the SE check should read the
+  curvature in the pre-fit's coordinates is open (a user decision).
+- **MEDIUM. Standard errors skewed on a year slope with no fixed
+  effect** (review of lane slopetrig, finding 4,
+  `dev/reviews/slopetrig-review-back.R`, `.log`). x = 2000 + 3 z,
+  `y ~ 1 + (1 + x | g)`, gaussian, seed 2: against the centered,
+  standardized fit, which is the same model, the default's fixef
+  standard error is 0.63 percent low, its fitted-value standard errors
+  2.87 percent off, `hypothesis("Intercept > 0")` gives Est.Error
+  0.17598 against 0.17710, and the `VarCorr()` correlation's standard
+  error is NaN. In exact arithmetic these are invariant to the
+  reparameterization; the likely cause is the lost theta_3 direction
+  dropped from the joint covariance. `autoscale = TRUE` gives the same
+  numbers. The other 7 newly engaged cases of that script agree within
+  2.7e-5 on fixef and 2.4e-4 on fitted standard errors.
+  test-autoscale.R leaves this case out of its standard-error checks.
+- **LOW. A flat correlation past the clamp at a short stop keeps the
+  "flat" warning** (dev/slopetrig-findings.md, step 4). On
+  `dev/slopetrig-cor.R`'s design under `autoscale = FALSE`, 7 fits
+  (gaussian 1e-4 seeds 1, 2, 3, 6; poisson 1e-5 seeds 1, 2, 3) stop
+  1.68 to 30.5 units short with the correlation parameter at 157 to
+  599, where moving it back toward 0 gains 1.28 to 26.6. The move
+  further out changes the likelihood, so it is not at an edge, and the
+  warning says the data do not determine it. `se_cor_short()` could
+  call it short too.
+- **LOW. `autoscale = TRUE` stops 1.83e-3 short on a 0/1 column on a
+  level, with no warning** (`dev/slopetrig-calib2.R`, base log
+  `dev/slopetrig-log/calib2-gau-base.tsv`). x = 3 + trt + 0.01 z,
+  `y ~ x + (1 + x | g)`, gaussian, seed 8: optimizer code 1, no
+  warning, 1.83e-3 below `autoscale = FALSE`, which reaches the
+  maximum. The ratio there is 7, so the default now engages on it and
+  gives the same fit.
+
 ## Filed at the 0.83.0 release (2026-11-13)
 
 ### From lane ci082
@@ -5055,6 +5139,9 @@ Lane record: `dev/selimit2-findings.md`.
   1.59 to 1.68 times the `autoscale = FALSE` fit. The ratio of root
   mean square to sd is about 100 there, so a ratio trigger fires on
   them as well.
+  CLOSED in the round of 2026-11-16 (lane slopetrig): the default also
+  engages on a ratio of root mean square to sd above 2 over every row;
+  the item's 18 short fits of 50 are 0 (dev/slopetrig-findings.md).
 - **MEDIUM. A correlation run to its limit at a short stop is called a
   boundary** (dev/slopescale-findings.md). Under
   `autoscale = FALSE`, `y ~ 1 + (1 + x | g)` (gaussian, 20 groups of
@@ -5068,6 +5155,9 @@ Lane record: `dev/selimit2-findings.md`.
   move back toward 0 with the rest held would show the gain. The
   default `autoscale` rescales this slope, so only `autoscale = FALSE`
   reaches it.
+  CLOSED in the round of 2026-11-16 (lane slopetrig): a correlation
+  whose move back toward 0 gains is not at its edge; the 7 boundary
+  messages are 0 and each such fit warns (dev/slopetrig-findings.md).
 - **LOW. A gradient warning on a large fit with an sd near zero,
   pre-existing, not checked** (dev/slopescale-findings.md).
   `y ~ x + z + (1 + x + z | g)`, 1000 groups of 100, gaussian, seed 2

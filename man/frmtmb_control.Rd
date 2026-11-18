@@ -141,17 +141,25 @@ standard deviation below 1e-3 and its coefficient is optimized
 directly (not a \code{mu} coefficient under \code{REML = TRUE} or
 \code{profile = TRUE}, which the inner solver integrates), or when a
 random-effect column that the plan rescales has a standard
-deviation of its nonzero values below 0.05. Without
+deviation of its nonzero values below 0.05, or a root mean square
+above 2 times its standard deviation over the rows its term covers
+(a mean more than 1.73 standard deviations from 0, such as a
+calendar year). Without
 it such a fit can stop short and report convergence: a poisson
 \code{y ~ 0 + x} with \code{x} on a 1e-6 scale lost 62.6 log-likelihood
 units against \code{\link[stats:glm]{stats::glm()}}, and a random slope on a column
 spread 0.01 lost up to 14.4, and a poisson random slope with no
-fixed effect on a column spread 1e-4 up to 111. Every other fit is
+fixed effect on a column spread 1e-4 up to 111, and a random slope
+on a calendar year up to 41.1. Every other fit is
 the fit
-\code{autoscale = FALSE} gives, bit for bit. A column that is far from
-zero against its spread, such as \code{x + 1e6}, does not need this
-option: whatever its value, the optimizer steps in coordinates in
-which each ill-conditioned fixed design has orthogonal columns.}
+\code{autoscale = FALSE} gives, bit for bit. A fixed-effect column that
+is far from zero against its spread, such as \code{x + 1e6}, does not
+need this option: whatever its value, the optimizer steps in
+coordinates in which each ill-conditioned fixed design has
+orthogonal columns. A random slope on such a column does. With two
+such slopes in one term, a nested term, \code{cs()} or \code{gr(by =)}, the
+pre-fit can stop short too, because rescaling leaves the column at
+the same angle to the intercept; center the column before the fit.}
 
 \item{check_nlev_1}{What to do about a scalar random-effect term
 whose grouping factor has a single level: \code{"warning"} (default),
