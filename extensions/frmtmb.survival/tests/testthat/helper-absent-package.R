@@ -53,14 +53,24 @@ unloadable_package_libs <- function(pkg) {
   c(broken, .libPaths())
 }
 
-# Not installed: this session's frmtmb, copied, in front of every
-# library that holds none of `pkg`; the copy masks any other frmtmb
-# there. Skips the calling test when frmtmb cannot load in that stack,
-# which is the case under R CMD check (see the top of this file).
+# Not installed: this session's frmtmb in front of every library that
+# holds none of `pkg`, so it masks any other frmtmb there. Skips the
+# calling test when frmtmb cannot load in that stack, which is the case
+# under R CMD check (see the top of this file).
+#
+# frmtmb is copied out only when its own library also holds one of
+# `pkg`. Under covr 4.0.0 a child's trace names the counters file inside
+# the package it loaded, and covr reads that file after the tests end;
+# a copy in this session's temporary directory is gone by then, and the
+# whole coverage run stopped on it. covr installs frmtmb into a library
+# of its own, so there the installed package is used as it is.
 absent_package_libs <- function(pkg) {
-  lib <- tempfile("absent-lib")
-  dir.create(lib)
-  file.copy(find.package("frmtmb"), lib, recursive = TRUE)
+  lib <- dirname(find.package("frmtmb"))
+  if (any(dir.exists(file.path(lib, pkg)))) {
+    lib <- tempfile("absent-lib")
+    dir.create(lib)
+    file.copy(find.package("frmtmb"), lib, recursive = TRUE)
+  }
   rest <- Filter(function(l) !any(dir.exists(file.path(l, pkg))),
                  .libPaths())
   libs <- c(lib, rest)

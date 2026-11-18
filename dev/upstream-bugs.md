@@ -2170,6 +2170,33 @@ Seen on 0.2.5. All four are patched with `assignInNamespace()` in
 - Record: this file; pkgcheck run log 43673487284.
 - Status: not reported. Check pkgcheck issues #449 and #255 first.
 
+## covr
+
+### covr-1. A child that loaded a copy of the package stops the whole coverage run
+
+- Seen: covr 4.0.0 (CRAN 2026-11-16), core test-coverage run 44339783862
+  on 26d5447a: `[ FAIL 0 | ... | PASS 26461 ]`, then "Can't read
+  coverage trace file '/tmp/Rtmp.../absent-lib.../frmtmb/R/covr_counters.rds'.
+  cannot open the connection. Coverage will be incomplete." and
+  "Execution halted". Reproduced 2026-11-18 on Windows, R 4.6.1.
+- Repro: in a test of a package under `package_coverage()`, copy
+  `find.package(<pkg>)` into `tempfile()`, and in a child `Rscript` with
+  that copy first on `.libPaths()`, load the package and call one of its
+  functions. The child saves a trace of counts only, which names the
+  counters file inside the copy (`instrumented_counters_file()`,
+  `merge_coverage.character()` in `R/merge.R`). The test process removes
+  its temporary directory when it ends; the merge then reads the missing
+  file and `read_trace()` signals a `covr_error` that nothing continues.
+  covr 3.6.5 ran the same tests clean.
+- Expected: what the message says, coverage incomplete with a warning,
+  not a stopped run; or a trace that does not depend on a file the
+  process that wrote it cannot keep.
+- Workaround: `absent_package_libs()` in `helper-absent-package.R` copies
+  frmtmb only when its library also holds a package to hide; covr
+  installs frmtmb into a library of its own, so coverage loads that.
+- Record: this file; test-coverage run 44339783862.
+- Status: not reported. Check covr issues on 4.0.0 first.
+
 ## R (stats)
 
 ### R-1. `stats::dnbinom(mu = )` loses digits at a large size
