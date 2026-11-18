@@ -169,8 +169,8 @@ representable positive linear predictor.
 
 Nothing has to be done to use this. A family whose link carries the
 field is put on the robust form of its density automatically:
-\code{binomial()} on \code{dbinom_robust()}, \code{negbinomial()} on
-\code{dnbinom_robust()}.
+\code{binomial()} on \code{dbinom_robust()}, \code{negbinomial()} on its density in
+the log mean.
 }
 
 \section{Custom links}{

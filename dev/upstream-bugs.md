@@ -1115,15 +1115,37 @@ Numbering is settled at consolidation. Not reported.
   -218 against -3.2e-15. The value stays right to about 1e-12. The
   error grows like size times machine epsilon, the cancellation of
   `lgamma(x + size) - lgamma(size)` and of its digamma difference.
+- Measured again 2026-11-16 against a 256-bit reference (Rmpfr), on the
+  tape, log size 0 to 40 by 0.5, counts 0 to 1e4, means 0.1 to 1e4
+  (3888 points; `dev/nbrobust-jac.R`, log `dev/nbrobust-out/jac.txt`).
+  Largest error of the derivative in the log size, by band: log size 0
+  to 10, 4.2e-11; 10.5 to 18, 1.3e-07; 18.5 to 24, 4.5e-05; 24.5 to
+  30, 2.0e-02; 30.5 to 35, 5.3; 35.5 to 40, 672. At a count of 3 and a
+  mean of 3: 30, -1.36e-02 against 1.40e-13; 35, 38 and 40, -4.0
+  against 9.5e-16, 4.7e-17 and 6.4e-18. The value is right to 1.4e-11
+  relative everywhere measured (the worst at a count and a mean of 1e4,
+  a log mass of -5.5 formed from terms of about 9e4). ci082's double-precision "exact"
+  derivative is itself at its rounding floor past a log size of 30.
 - Consequence: a negbinomial fit at its poisson limit can stop at a log
   shape past 20, where the convergence check reads the noise as a
   "Large maximum absolute gradient" warning in place of the limit
-  message (backlog, round of 2026-11-13, lane ci082).
-- Workaround: none; the robustness test does not sweep `shape`
-  (`tests/testthat/test-numerical-robustness.R:136`). RTMB-6's
-  `lgamma_shift_diff()` is the pattern a stable form would use.
+  message (backlog, round of 2026-11-13, lane ci082). On frmtmb 0.83.0
+  the noise also decides where the fit stops: over 21 roundings of two
+  poisson data sets, on the reference BLAS and OpenBLAS 0.3.26, the log
+  shape ended anywhere from 14.99 to 24.54 and 26 of 126 fits ended
+  with code 1 ("false convergence"); with an exact derivative every
+  rounding ends at one point with code 0 (`dev/nbrobust-findings.md`).
+- Workaround: frmtmb's own `nb_lpmf()` (`R/families.R`) since the
+  round of 2026-11-16, for every family that reads the negative
+  binomial: the shape-dependent terms as `sum(log1p(j / size))` for a
+  count up to 24 and `lgamma_shift_diff()` above, and
+  `(size + y) log1p(mu / size)` through `logspace_add()`. Its
+  derivative error on the same grid is at most 6.6 times machine
+  epsilon times `y + mu + 1`. A simulated response still goes to
+  `dnbinom_robust()`. The robustness test sweeps the shape to a log
+  shape of 40 (`tests/testthat/test-numerical-robustness.R`).
 - Record: `dev/fams-findings.md` "Defects found and not fixed" item 2;
-  `dev/ci082-findings.md`, item 3b.
+  `dev/ci082-findings.md`, item 3b; `dev/nbrobust-findings.md`.
 - Status: not reported.
 
 ### RTMB-5. `OBS()` in a loop silently swaps data between responses
@@ -1977,6 +1999,30 @@ Seen on 0.2.5. All four are patched with `assignInNamespace()` in
   requests to `https://api.github.com/` in that job.
 - Record: this file; pkgcheck run log 43673487284.
 - Status: not reported. Check pkgcheck issues #449 and #255 first.
+
+## R (stats)
+
+### R-1. `stats::dnbinom(mu = )` loses digits at a large size
+
+- Seen: R 4.6.1, 2026-11-17.
+- Repro: `stats::dnbinom(y, size = exp(22), mu = exp(lmu), log = TRUE)`
+  for counts 0 to 1e5 and log means -1 to 1.5, against the mass at 400
+  bits (Rmpfr): the relative error is 4.3e-10 at log size 18, 9.0e-9 at
+  20, 9.8e-8 at 22 and 9.1e-8 at 24, and falls again past 26 (3.9e-12 at
+  28). At log mean 11.5 and log size 24 it is 0.184 absolute.
+- Expected: the accuracy it has at small and very large sizes (below
+  1e-14 at log size 0 to 5 and from 35 on). frmtmb's `nb_lpmf()` holds
+  9.8e-15 on the same grid.
+- Consequence: brms's `log_lik()` for the negative-binomial families
+  calls it, so a value check of frmtmb against brms at a shape past
+  exp(15) shows differences of up to 2e-7 relative that are brms's
+  (R's), not frmtmb's.
+- Workaround: none needed in frmtmb, which does not call it on a fit's
+  path.
+- Record: `dev/reviews/2026-11-17-nbrobust.md`, finding 6;
+  `dev/reviews/nbrobust-review-statsdnb.R`, log
+  `dev/reviews/nbrobust-review-statsdnb.log`.
+- Status: not reported.
 
 ## Already reported upstream
 

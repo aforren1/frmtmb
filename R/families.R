@@ -2097,6 +2097,82 @@ beta_binomial_lpmf <- function(y, size, a, b, phi) {
     lgamma_count_shift(phi, size)
 }
 
+#' Negative-binomial log mass at a count `y`, from the log mean `lmu` and
+#' the log shape `lsh`, with a value and a derivative in the shape that
+#' stay right at every shape.
+#'
+#' `RTMB::dnbinom_robust()` forms `lgamma(y + shape) - lgamma(shape)`, and
+#' its derivative `digamma(y + shape) - digamma(shape)`, as differences of
+#' two numbers of order `log(shape)`. Their error times the shape is the
+#' derivative's error in the log shape: noise from a log shape of about
+#' 18, -0.18 against 1.6e-13 at 30 (dev/upstream-bugs.md, RTMB-4). That
+#' is where a fit at the poisson limit ends, so the convergence check
+#' read the noise as a gradient no step could gain from.
+#'
+#' Here the mass is `R + y lmu - (shape + y) log1p(mu / shape) -
+#' lgamma(y + 1)`, where `R = lgamma(y + shape) - lgamma(shape) -
+#' y log(shape)` is `sum(log1p(j / shape))` over `0 < j < y`. Every
+#' piece and its derivative is of the order of the count and the mean,
+#' never of the shape, so the error stays near machine epsilon times
+#' `y + mu`. `dev/nbrobust-findings.md` has the measurement.
+#'
+#' A simulated response (`simref`) goes to `RTMB::dnbinom_robust()`,
+#' which draws it. An `osa` response carries the count as a parameter of
+#' the tape, so `R` comes from lgamma_shift_diff(), which takes one.
+#'
+#' @noRd
+nb_lpmf <- function(y, lmu, lsh) {
+  ov <- osa_unwrap(y)
+  if (is.null(ov) && inherits(y, "simref")) {
+    return(RTMB::dnbinom_robust(y, lmu, 2 * lmu - lsh, log = TRUE))
+  }
+  k <- if (is.null(ov)) y else ov$y
+  rise <- if (is.null(ov)) {
+    nb_rising(k, lsh)
+  } else {
+    lgamma_shift_diff(exp(lsh), k) - k * lsh
+  }
+  ll <- rise + k * lmu -
+    (exp(lsh) + k) * RTMB::logspace_add(0 * lmu, lmu - lsh) - lgamma(k + 1)
+  if (is.null(ov)) ll else ll * ov$keep
+}
+
+#' `lgamma(y + shape) - lgamma(shape) - y log(shape)` at counts `y`
+#' (data) and log shapes `lsh`: `sum(log1p(j / shape))` over `0 < j < y`
+#' on rows with a short count, as in lgamma_count_shift(), and
+#' lgamma_shift_diff() on the others.
+#'
+#' @noRd
+nb_rising <- function(y, lsh) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  n <- max(length(y), length(lsh))
+  y <- rep_len(y, n)
+  one <- length(lsh) == 1L
+  long <- which(y > 24 | y != round(y))
+  short <- y
+  short[long] <- 0
+  top <- max(short, 1) - 1
+  out <- 0 * (if (one) lsh[rep_len(1L, n)] else lsh)
+  if (one && top > 0) {
+    # one shape for every row: the partial sums serve all of them, which
+    # keeps the tape at one node per count value rather than per row
+    part <- cumsum(log1p(seq_len(top) * exp(-lsh)))
+    i <- which(short > 1)
+    out[i] <- part[short[i] - 1]
+  } else if (top > 0) {
+    inv <- exp(-lsh)
+    for (j in seq_len(top)) {
+      i <- which(short > j)
+      out[i] <- out[i] + log1p(j * inv[i])
+    }
+  }
+  if (length(long)) {
+    l <- if (one) lsh else lsh[long]
+    out[long] <- lgamma_shift_diff(exp(l), y[long]) - y[long] * l
+  }
+  out
+}
+
 #' Log density of a standard student-t, stable for every `nu`.
 #'
 #' `RTMB::dt()` sends a double straight to `stats::dt()`, which is
@@ -2174,25 +2250,17 @@ fam_negbinomial <- function(link = "log", link_shape = "log") {
     dpars = c("mu", "shape"),
     links = list(mu = lk, shape = lk_shape),
     lpdf = function(y, dpars, aterms) {
-      # dnbinom2 forms p = mu / var, which is 0 / 0 = NaN once exp(eta)
-      # has underflowed; dnbinom_robust takes log(mu) and
-      # log(var - mu) = 2 log(mu) - log(shape) and never divides.
-      lmu <- robust_logmu(dpars, lk)
+      # in logs throughout: p = mu / var is 0 / 0 = NaN once exp(eta)
+      # has underflowed, and nb_lpmf() never divides
+      lmu <- robust_logmu(dpars, lk) %||% log(dpars[["mu"]])
       d <- aterms[["rate"]]
-      if (is.null(lmu)) {
-        mu <- rate_mu(dpars, lk, aterms)
-        return(RTMB::dnbinom2(y, mu,
-                              mu + mu^2 / rate_shape(dpars[["shape"]],
-                                                     aterms),
-                              log = TRUE))
-      }
       lsh <- dpar_log(dpars, "shape", lk_shape)
       # rate(): brms's neg_binomial_2_log(eta + log d, shape * d)
       if (!is.null(d)) {
         lmu <- lmu + log(d)
         lsh <- lsh + log(d)
       }
-      RTMB::dnbinom_robust(y, lmu, 2 * lmu - lsh, log = TRUE)
+      nb_lpmf(y, lmu, lsh)
     },
     # the CDF pair lives in negbinomial_cdf_pair(), which every family
     # built on these slots reaches
@@ -2348,15 +2416,9 @@ fam_nbinom1 <- function(link = "log", link_phi = "log") {
     dpars = c("mu", "phi"),
     links = list(mu = lk, phi = lk_phi),
     lpdf = function(y, dpars, aterms) {
-      # var - mu = mu * phi, so log(var - mu) = log(mu) + log(phi)
-      lmu <- robust_logmu(dpars, lk)
-      if (is.null(lmu)) {
-        return(RTMB::dnbinom2(y, dpars[["mu"]],
-               dpars[["mu"]] * (1 + dpars[["phi"]]),
-                              log = TRUE))
-      }
-      RTMB::dnbinom_robust(y, lmu, lmu + dpar_log(dpars, "phi", lk_phi),
-                           log = TRUE)
+      # var - mu = mu * phi, so the shape is mu / phi
+      lmu <- robust_logmu(dpars, lk) %||% log(dpars[["mu"]])
+      nb_lpmf(y, lmu, lmu - dpar_log(dpars, "phi", lk_phi))
     },
     # the negative binomial of shape mu / phi; residuals(type = "osa")
     # reads its one-step CDF from this
@@ -2692,22 +2754,13 @@ fam_zi_negbinomial <- function(link = "log", link_shape = "log",
     lpdf = function(y, dpars, aterms) {
       i0 <- as.numeric(y == 0)
       g <- dpar_log_complement(dpars, "zi", lk_zi)
-      lmu <- robust_logmu(dpars, lk)
-      if (is.null(lmu)) {
-        lp0 <- dpars[["shape"]] * (log(dpars[["shape"]]) -
-                                log(dpars[["shape"]] + dpars[["mu"]]))
-        base <- RTMB::dnbinom2(y, dpars[["mu"]],
-                               dpars[["mu"]] + dpars[["mu"]]^2 /
-                                 dpars[["shape"]],
-                               log = TRUE)
-      } else {
-        # log P(0) = shape * log(shape / (shape + mu)), which is
-        # -shape * log(1 + mu / shape) with the ratio taken in logs
-        lsh <- dpar_log(dpars, "shape", lk_shape)
-        lp0 <- -dpars[["shape"]] *
-          RTMB::logspace_add(0 * lmu, lmu - lsh)
-        base <- RTMB::dnbinom_robust(y, lmu, 2 * lmu - lsh, log = TRUE)
-      }
+      lmu <- robust_logmu(dpars, lk) %||% log(dpars[["mu"]])
+      # log P(0) = shape * log(shape / (shape + mu)), which is
+      # -shape * log(1 + mu / shape) with the ratio taken in logs
+      lsh <- dpar_log(dpars, "shape", lk_shape)
+      lp0 <- -dpars[["shape"]] *
+        RTMB::logspace_add(0 * lmu, lmu - lsh)
+      base <- nb_lpmf(y, lmu, lsh)
       i0 * RTMB::logspace_add(g$l, g$l1m + lp0) + (1 - i0) * (g$l1m + base)
     },
     cdf_log = function(q, dpars, aterms) {
@@ -2822,7 +2875,7 @@ fam_hurdle_negbinomial <- function(link = "log", link_shape = "log",
       # about five digits of mu^2 / shape (dev/fams-validate.R, 1)
       lmu <- robust_logmu(dpars, lk) %||% log(dpars[["mu"]])
       lsh <- dpar_log(dpars, "shape", lk_shape)
-      base <- RTMB::dnbinom_robust(y, lmu, 2 * lmu - lsh, log = TRUE)
+      base <- nb_lpmf(y, lmu, lsh)
       # log P(0) = -shape * log(1 + mu / shape), with the ratio in logs
       lp0 <- -dpars[["shape"]] * RTMB::logspace_add(0 * lmu, lmu - lsh)
       # The truncation normalizer log(1 - P(0)). P(0) tends to one as mu
@@ -2939,24 +2992,14 @@ fam_geometric <- function(link = "log") {
     dpars = "mu",
     links = list(mu = lk),
     lpdf = function(y, dpars, aterms) {
-      # var - mu = mu^2 (the negative binomial at shape 1)
-      lmu <- robust_logmu(dpars, lk)
+      # the negative binomial at shape 1
+      lmu <- robust_logmu(dpars, lk) %||% log(dpars[["mu"]])
       d <- aterms[["rate"]]
       if (!is.null(d)) {
         # brms's neg_binomial_2_log(eta + log d, 1 .* d)
-        if (is.null(lmu)) {
-          mu <- rate_mu(dpars, lk, aterms)
-          return(RTMB::dnbinom2(y, mu, mu + mu^2 / d, log = TRUE))
-        }
-        lmu <- lmu + log(d)
-        return(RTMB::dnbinom_robust(y, lmu, 2 * lmu - log(d), log = TRUE))
+        return(nb_lpmf(y, lmu + log(d), log(d)))
       }
-      if (is.null(lmu)) {
-        return(RTMB::dnbinom2(y, dpars[["mu"]],
-               dpars[["mu"]] * (1 + dpars[["mu"]]),
-                              log = TRUE))
-      }
-      RTMB::dnbinom_robust(y, lmu, 2 * lmu, log = TRUE)
+      nb_lpmf(y, lmu, 0)
     },
     # negbinomial()'s CDF with the shape held at 1
     cdf_log = function(q, dpars, aterms) {

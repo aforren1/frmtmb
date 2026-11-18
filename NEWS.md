@@ -1,3 +1,54 @@
+# frmtmb (development version)
+
+## Families
+
+* BREAKING: `negbinomial()`, `brmsfamily("negbinomial2")`, `nbinom1()`,
+  `geometric()`, `zero_inflated_negbinomial()` and
+  `hurdle_negbinomial()` use a new negative-binomial log density. Its
+  derivative in the shape is correct at every shape. The density came
+  from `RTMB::dnbinom_robust()`, whose derivative in the log shape has
+  an error that grows with the shape: up to 2e-2 at a log shape of 30
+  and up to 672 at 40, where the true derivative is below 1e-12. A fit
+  on data with no overdispersion (the poisson limit) stopped where that
+  error was larger than the true gradient, so rounding decided the
+  stop. On 21 roundings of two poisson data sets, on two BLAS
+  libraries, the log shape stopped between 14.99 and 24.54, and 26 of
+  126 fits stopped with code 1 ("false convergence"). Under
+  `check_se = "ignore"`, 2 of the 126 warned "Large maximum absolute
+  gradient". Started at a log shape of 30, 15 of 21 roundings warned so
+  and stopped with code 1. Now every one of these fits stops with code
+  0, at one log shape for each data set, with the boundary message, and
+  with no message or warning under `check_se = "ignore"`. Where the old
+  value of the density was correct to 1e-13, the new value agrees with
+  it to 5e-12 relative. Under a mean link that is not the log, the
+  density now takes the log of the mean; before, it formed the
+  variance and subtracted the mean from it. The objective of a
+  negative-binomial model with a random intercept takes 0.4 times the
+  time it took, and its gradient 0.3 times.
+
+  The error in the old derivative also gave, by accident, the only
+  warning on a fit started far out on the poisson side of overdispersed
+  data. Such a fit stops at its start: between log shapes 25 and 30 the
+  log-likelihood changes by less than 1e-8. Started at 25 or 30 on data whose
+  maximum is at 0.76, the fit stops 46 log-likelihood units below that
+  maximum. On 0.83.0, 5 of 6 such fits warned "Large maximum absolute
+  gradient". Now no fit warns about the gradient, and the only warning
+  is the standard-error check's "flat", which says that the data do not
+  determine the shape. That is not true here. Start a
+  negative-binomial shape near the data, or leave the start at its
+  default.
+
+* The values of these densities are now correct at a large shape. In
+  0.83.0, `zero_inflated_negbinomial()` with a mean link that is not
+  the log had a fitted log-likelihood that was incorrect by up to 0.061
+  at a log shape above 17. The pointwise values that
+  `frmtmb.sample::log_lik()` and `loo()` read were `NaN` at log shapes
+  from 35.7 to 39.9 for `zero_inflated_negbinomial()` with the log,
+  sqrt, softplus and squareplus links, for `negbinomial()` with the
+  softplus link and `rate()`, and for `nbinom1()` with the sqrt link.
+  For `zero_inflated_negbinomial()` on every link, these values were
+  incorrect by up to 0.899 at a large shape.
+
 # frmtmb 0.83.0
 
 ## Convergence and standard errors

@@ -4883,6 +4883,67 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-16
+
+### From lane nbrobust
+
+Lane record: `dev/nbrobust-findings.md`; review
+`dev/reviews/2026-11-17-nbrobust.md`.
+
+- **MEDIUM. A negbinomial fit started far out on the poisson plateau of
+  overdispersed data stays there, with only a false "flat" SE warning.**
+  Seed 5, n = 200, `rnbinom(size = 2)`: the maximum is at log shape
+  0.7613, logLik -424.5690959863. From `start = list(betad = b)` with
+  b = 15, 20, 25 or 30 the fit stops at the start, code 0, logLik
+  -470.948 (46 units below the maximum). From 15 the SE warning says the
+  log-likelihood "rises by a further 17" toward -Inf; from 20, 25 and 30
+  the only signal is its "flat ... so the data do not determine it",
+  which is false here; no limit message (correctly). The true gradient
+  there is 6e-9 at 25 and 4e-11 at 30, so no gradient-based stop can
+  see the maximum. On 0.83.0, 5 of the 6 stops from 25 and 30 also
+  warned "Large maximum absolute gradient" (0.00173 to 0.347), but only
+  through the noise of `dnbinom_robust()`'s shape derivative (RTMB-4);
+  the stable density of this round removes that accidental alarm and
+  nothing replaces it. The same with item 4903's data censored at 5
+  (`yc | cens(cc)`): from `betad = 30` the fit ends at log shape 30,
+  logLik -330.601016988, against -323.685028305 from the default start
+  (`dev/reviews/nbrobust-review-start.R`, logs
+  `nbrobust-review-start-{base,lib}.log`; review finding 8). A cheap,
+  principled fix to try: when the SE check calls a dispersion "flat" at
+  a large value, evaluate the objective at the data's moment estimate
+  of the shape (the `init_dpars` rule, `m^2 / (v - m)` with the other
+  parameters re-optimized or held) and, if it is higher, call the stop
+  a local plateau and say so (or restart from there), rather than "the
+  data do not determine it". Not built in this lane. Owner: the SE
+  check's flat verdict (`R/se-check.R`) or the fit-end restarts.
+- **LOW. `nbinom_cdf_log()` returns NaN from a log shape of about 37.5
+  for a count of 1 or more.** First non-finite log shape (by 1/8, log
+  mean 0): 37.875 at q = 1, 37.5 at q = 3, 39.625 at q = 8 and q = 20,
+  41.625 at q = 100; patchy above (q = 3: NaN at 37.5, finite at 38.0
+  and 38.5, NaN from 39 to 40), where `stats::pnbinom(3, size =
+  exp(40), mu = 1, log.p = TRUE)` is -0.01917075. Below that its value
+  and shape derivative are right (error at most 1.1e-14 through log
+  shape 35). A censored fit of item 4903's data (right-censored at 5)
+  started at `betad = 40` stops with "The optimizer failed on this
+  model (negbinomial, ML, nlminb): NA/NaN gradient evaluation", where
+  the uncensored density is finite. Pre-existing in 0.83.0
+  (`R/families-cdf.R` unchanged). LOW because only a far start reaches
+  it: from the default start the censored and truncated fits end at
+  log shapes 1.6 and 5.2, and the uncensored poisson-limit stops of
+  this round stay below 24.6; it is a loud error, not a silent value.
+  Now the only negbinomial path that fails at a large shape
+  (`dev/reviews/nbrobust-review-cens.R` and `-cdfnan.R`, logs
+  `nbrobust-review-cens-a.log`, `nbrobust-review-cdfnan-lib.log`;
+  review finding 4). Owner: the CDF code in `R/families-cdf.R`.
+- **LOW. `nb_rising()` stops on an NA count.** `nb_lpmf(c(1, NA, 3), 0,
+  0)` errors "missing value where TRUE/FALSE needed" (`max(short, 1)`
+  is NA), where `dnbinom_robust()` returned NA for that row. No package
+  path hands it an NA (plain NA rows are dropped, `mi()` is refused,
+  hmm() masks a placeholder; `dev/reviews/nbrobust-review-na.R`, logs
+  `nbrobust-review-na-{base,lib}.log`), but a custom family that wraps
+  a core lpdf could. Fix: `max(short, 1, na.rm = TRUE)` and leave the
+  NA row NA. Owner: `R/families.R`.
+
 ## Filed at the 0.83.0 release (2026-11-13)
 
 ### From lane ci082
@@ -4915,6 +4976,8 @@ none is a regression of this release.
   density (RTMB-6's `lgamma_shift_diff()`), or a gradient verdict that
   measures the Newton step's gain with the objective instead of
   predicting it.
+  CLOSED in the round of 2026-11-16 (lane nbrobust): nb_lpmf(), an exact shape
+  derivative; no gradient warning on 252 fits; test-numerical-robustness.R.
 ### From lane selimit2
 
 Lane record: `dev/selimit2-findings.md`.
@@ -5230,6 +5293,8 @@ Lane record: `dev/selimit2-findings.md`.
   (logLik 6.3e-10 relative from `negbinomial2`'s, which gets the limit
   message); the other 20 roundings get the message
   (`dev/reviews/famend-review-nbpert.R`). The test accepts both endings.
+  CLOSED in the round of 2026-11-16 (lane nbrobust): nb_lpmf(); 0 of 84 code 1
+  on both BLAS (was 22), all with the message; test-family-fitend.R.
 - LOW. **The GEV's tape log survivor at `xi` near 0 or below is `-Inf`
   with a `NaN` gradient far above the location** (pre-existing, 0.82.0
   and this round alike; `dev/reviews/famend-short-xi0.R`, mu 0.3, sigma

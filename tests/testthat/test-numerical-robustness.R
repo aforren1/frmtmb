@@ -134,10 +134,8 @@ test_that("zero-inflation and hurdle gates survive a separated gate", {
     expect_robust_at(hurdle_poisson(), ycnt, list(), list(mu = 0, hu = 0),
                      "mu", e0)
     # hurdle_negbinomial's normalizer log(1 - P(0)) is the same exposure,
-    # and zero_one_inflated_beta has a second gate, coi. shape is not
-    # swept: at shape = exp(30) RTMB::dnbinom_robust() returns a
-    # gradient of 1.4e-3 where the truth is about 1e-13, identically in
-    # negbinomial() and zero_inflated_negbinomial() (dev/fams-findings.md)
+    # and zero_one_inflated_beta has a second gate, coi. The shape is
+    # swept in the test after this one
     for (sw in c("hu", "mu")) {
       expect_robust_at(hurdle_negbinomial(), ycnt, list(),
                        list(mu = 0, shape = log(2), hu = 0), sw, e0)
@@ -149,6 +147,62 @@ test_that("zero-inflation and hurdle gates survive a separated gate", {
     }
     expect_robust_at(asym_laplace(), c(-1, 0, 1), list(),
                      list(mu = 0, sigma = 0, quantile = 0), "quantile", e0)
+  }
+})
+
+test_that("negative-binomial log masses survive a large or small shape", {
+  # PIN: RTMB::dnbinom_robust()'s derivative in the shape is noise from
+  # a log shape of about 18: at exp(30) it read 1.4e-3 where the truth
+  # is about 1e-13 (dev/upstream-bugs.md, RTMB-4). nbinom1's shape is
+  # mu / phi and negbinomial2's is 1 / sigma, so their dpar runs the
+  # other way
+  ycnt <- c(0, 1, 3, 40)
+  for (e0 in c(ETA, 40)) {
+    expect_robust_at(negbinomial(), ycnt, list(),
+                     list(mu = 0, shape = 0), "shape", e0)
+    expect_robust_at(zero_inflated_negbinomial(), ycnt, list(),
+                     list(mu = 0, shape = 0, zi = 0), "shape", e0)
+    expect_robust_at(hurdle_negbinomial(), ycnt, list(),
+                     list(mu = 0, shape = 0, hu = 0), "shape", e0)
+    expect_robust_at(nbinom1(), ycnt, list(), list(mu = 0, phi = 0), "phi",
+                     -e0)
+    expect_robust_at(brmsfamily("negbinomial2"), ycnt, list(),
+                     list(mu = 0, sigma = 0), "sigma", -e0)
+  }
+})
+
+test_that("the negative-binomial shape gradient reads the poisson limit", {
+  # PIN: on the data of a fit that stopped at a log shape of 24.48 with
+  # a false "Large maximum absolute gradient" warning, the tape's
+  # derivative there was 5.0e-3 against 3.6e-11 (dev/ci082-findings.md,
+  # 3b). The reference is the exact derivative written without the
+  # cancellation: per row, -sum(j / (shape + j)) over j < y, plus
+  # y x / (1 + x), less shape (log1p(x) - x / (1 + x)) as its series in
+  # x = mu / shape, which is below 1e-7 here. What is left is the
+  # rounding of terms the size of y + mu, so the bound is a multiple of
+  # machine epsilon times their sum.
+  set.seed(2)
+  x <- stats::rnorm(200)
+  y <- stats::rpois(200, exp(1 + 0.4 * x))
+  eta <- 1.0544184774 + 0.4005673777 * x
+  mu <- exp(eta)
+  for (fam in list(negbinomial(), zero_inflated_negbinomial())) {
+    base <- list(mu = eta, shape = 0)
+    if (fam$family != "negbinomial") base$zi <- -40
+    tp <- RTMB::MakeTape(tape_nll(fam, y, list(), base, "shape"), 20)
+    for (ls in c(20, 24.4791351853, 30, 35, 40)) {
+      n <- exp(ls)
+      r <- mu / n
+      rise <- vapply(y, function(k) {
+        j <- seq_len(k) - 1
+        sum(j / (n + j))
+      }, 0)
+      tail <- r^2 / 2 - 2 * r^3 / 3 + 3 * r^4 / 4 - 4 * r^5 / 5
+      exact <- -sum(-rise + y * r / (1 + r) - n * tail)
+      g <- as.numeric(tp$jacobian(ls))
+      expect_lt(abs(g - exact), 64 * .Machine$double.eps * sum(y + mu + 1),
+                label = paste(fam$family, "at log shape", ls))
+    }
   }
 })
 

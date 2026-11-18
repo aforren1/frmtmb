@@ -150,8 +150,8 @@
 #'
 #' Nothing has to be done to use this. A family whose link carries the
 #' field is put on the robust form of its density automatically:
-#' `binomial()` on `dbinom_robust()`, `negbinomial()` on
-#' `dnbinom_robust()`.
+#' `binomial()` on `dbinom_robust()`, `negbinomial()` on its density in
+#' the log mean.
 #'
 #' @section Custom links:
 #'
@@ -413,12 +413,9 @@ frmtmb_links <- list(
     linkinv = function(eta) RTMB::logspace_add(0 * eta, eta),
     mu_eta  = function(eta) 1 / (1 + exp(-eta)),
     # Exact wherever the softplus itself is, which is down to
-    # eta = -745. What this buys is not accuracy in log(mu) - the round
-    # trip has that already - but the density BRANCH. Without it
-    # negbinomial forms `mu + mu^2 / shape`, and at mu = 9e-14 that sum
-    # has lost the excess over mu to rounding, so the log-density
-    # carries noise that a central difference sees and the tape does
-    # not. log_eta is what puts the family on dnbinom_robust instead.
+    # eta = -745. It buys no accuracy in log(mu), which the round trip
+    # has already; the count densities, which read the log mean, take
+    # it from here as from every link that has one.
     log_eta = function(eta) log(RTMB::logspace_add(0 * eta, eta))
   ),
   # brms's squareplus, for a strictly positive dpar.
