@@ -1,0 +1,33 @@
+# Which variables the stanli Fixed_param brmsfit carries (q2fp follow-up).
+source("dev/samplers-designs.R")
+samplers_lib()
+Sys.setenv(FRMTMB_STAN_CACHE = normalizePath("dev/stan-cache", winslash = "/"))
+eq <- samplers_eq_env()
+suppressPackageStartupMessages(library(stanli))
+spec <- samplers_design("p075", eq)
+fit <- eq$eq_frm_fit(spec)
+bform <- eq$eq_eval(spec$bf, "brms")
+family <- eq$eq_eval(eq$eq_fam_text(spec, "brms"), "brms")
+prior <- eq$eq_brms_prior(spec, bform, family, spec$data)
+bargs <- c(list(bform, family = family), eq$eq_brms_args(spec, spec$data, prior))
+code <- do.call(brms::make_stancode, bargs)
+sdat <- suppressMessages(do.call(brms::make_standata, bargs))
+scaffold <- suppressMessages(do.call(brms::brm, c(bargs, list(empty = TRUE))))
+pars <- eq$stan_pars_from_fit(fit, sdat, code, scaffold$ranef)
+mod <- eq$brms_stan_model(code)
+sf0 <- suppressMessages(rstan::sampling(mod, data = sdat, chains = 0))
+excl <- get("exclude_pars", asNamespace("brms"))(scaffold)
+ex2 <- intersect(excl, sf0@model_pars)
+run <- function(m, ex) suppressMessages(rstan::sampling(m, data = sdat, chains = 1,
+  iter = 10, warmup = 0, algorithm = "Fixed_param", init = list(pars),
+  refresh = 0, seed = 1, pars = ex, include = FALSE))
+a <- run(mod, excl); b <- run(as_stanmodel(code), ex2)
+cat("rstan model_pars:", a@model_pars, "\n fnames:", a@sim$fnames_oi, "\n")
+cat("stanli model_pars:", b@model_pars, "\n fnames:", b@sim$fnames_oi, "\n")
+cat("dims b:", names(b@par_dims), "\n")
+c2 <- suppressMessages(rstan::sampling(as_stanmodel(code), data = sdat, chains = 1, iter = 10, warmup = 0, algorithm = "Fixed_param", init = list(pars), refresh = 0, seed = 1))
+cat("stanli no pars:", c2@sim$fnames_oi, "
+"); print(as.matrix(c2)[1, ]); print(as.matrix(a)[1, ])
+c3 <- suppressMessages(rstan::sampling(as_stanmodel(code), data = sdat, chains = 1, iter = 10, warmup = 0, algorithm = "Fixed_param", init = list(pars), refresh = 0, seed = 1, pars = c("b", "Intercept"), include = TRUE))
+cat("stanli include TRUE:", c3@sim$fnames_oi, "
+")

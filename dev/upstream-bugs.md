@@ -1028,6 +1028,56 @@ Numbering is settled at consolidation. Not reported.
   among the lanes of the round of 2026-11-13 when filed.
 - Status: not reported.
 
+### brms-53. `brm(backend = "mock")` does not return on a large random-effect fit
+
+- Seen: 2.23.0 with rstan 2.32.7 and stanli 0.25.0, 2026-11-17 (lane
+  samplers, round of 2026-11-16).
+- Repro (`dev/samplers-slope-mock-ab.R`; data as `samplers_big("big_slope")`
+  in `dev/samplers-designs.R`):
+
+  ```r
+  set.seed(20261119)
+  ng <- 500L
+  d <- data.frame(g = factor(rep(seq_len(ng), each = 8L)),
+                  x = rnorm(8L * ng))
+  z1 <- rnorm(ng)
+  z2 <- 0.3 * z1 + sqrt(1 - 0.09) * rnorm(ng)
+  i <- as.integer(d$g)
+  d$y <- rbinom(nrow(d), 1, plogis(-0.2 + 0.6 * d$x + 0.8 * z1[i] +
+                                     0.4 * z2[i] * d$x))
+  bargs <- list(brms::bf(y ~ x + (1 + x | g)), data = d,
+                family = brms::bernoulli())
+  code <- do.call(brms::make_stancode, bargs)
+  sdat <- do.call(brms::make_standata, bargs)
+  sf <- rstan::sampling(rstan::stan_model(model_code = code), data = sdat,
+                        chains = 4, iter = 200, seed = 1, refresh = 0)
+  do.call(brms::brm, c(bargs, list(backend = "mock", mock_fit = sf,
+                                   rename = TRUE)))
+  ```
+
+- Expected: a brmsfit in seconds, as on small fits (0.9 to 8.4 s on the
+  n = 200 designs, `t_stanli_mock` in `dev/samplers-q1-out/p*.rds`).
+  Actual: the last call did not return before the 10-minute cap on 400
+  draws of rstan's own stanfit (`dev/samplers-slope-mock-ab.log` ends at
+  "rstan sampled"). On stanli's stanfit of 4 x 1000 draws it did not
+  return in 15 minutes with `as_stanfit()`
+  (`dev/samplers-slope-mock.log`) nor in 5.5 minutes with
+  `as_stanfit(plain = TRUE)` (`dev/samplers-slope-mock-plain.log`). On a
+  crossed bernoulli (1 | a) + (1 | b), 300 x 40, n = 6000,
+  `dev/samplers-q1.R` was still inside the step more than an hour after
+  rstan's 97 s of sampling had ended, and was stopped. rstan's and
+  stanli's stanfits stall alike, so the time is in brms. Which renaming
+  step is slow was not isolated.
+- Consequence: the route stanli documents for a full brmsfit
+  (`brm(backend = "mock", mock_fit = as_stanfit(fit))`) is unusable on
+  large multilevel models.
+- Workaround: read the stanfit under Stan's own names and map them by
+  hand (`dev/samplers-q1raw.R`).
+- Record: `dev/samplers-findings.md`, Q1 "brms mock backend". brms-53
+  was the next free number in this worktree when filed; another lane of
+  the round may have taken it.
+- Status: not reported.
+
 ## RTMB
 
 ### RTMB-1. `pbeta()`, `pbinom()` and `pnbinom()` have non-finite third derivatives
@@ -1548,6 +1598,107 @@ Numbering is settled at consolidation. Not reported.
 - Record: `dev/nb2dm-findings.md` "brms 2.23.0 / Stan defect met";
   repros `dev/nb2dm-stan-glm-bug.R` (log
   `dev/nb2dm-out/stan-glm-bug.txt`) and `dev/nb2dm-brms-stuck.R`.
+- Status: not reported.
+
+## stanli
+
+Measured by lane samplers (round of 2026-11-16) as a possible stand-in
+for rstan in the survey and the brms tiers; installed only in
+`C:/Users/adf44/source/r/wt-samplers-lib`. frmtmb does not use it.
+
+### stanli-1. `rstan::sampling(as_stanmodel(code), pars =, include = FALSE)` keeps only `lp__`
+
+- Seen: stanli 0.25.0 (R-universe Windows binary, RemoteSha bc66380e,
+  runtime v0.25.0) with rstan 2.32.7, brms 2.23.0, 2026-11-17. Not
+  checked on 0.27.0.
+- Repro (`dev/samplers-q2fp-debug.R`, survey pair p075, cumulative
+  `y ~ x + z`): build brms's exclusion list
+  `brms:::exclude_pars(brm(..., empty = TRUE))`, then
+
+  ```r
+  rstan::sampling(stanli::as_stanmodel(code), data = sdat, chains = 1,
+                  iter = 10, warmup = 0, algorithm = "Fixed_param",
+                  init = list(pars), refresh = 0, seed = 1,
+                  pars = excl, include = FALSE)
+  ```
+
+- Expected: what rstan returns on the compiled program with the same
+  call, every variable but the excluded ones (`b`, `Intercept`, `disc`,
+  `lprior`, `b_Intercept`, `lp__` are kept). Actual: with the full list,
+  an error "pars not
+  in the model: Lncor, Cortime, ..." (rstan ignores exclusion names the
+  program lacks); with the list cut to the program's own variables,
+  a stanfit whose only variable is `lp__` (`model_pars` and
+  `sim$fnames_oi` both `lp__`; `dev/samplers-q2fp-debug.log`).
+- Consequence: the method tier's Fixed_param brmsfit
+  (`tests/testthat/helper-brms-methods.R`) cannot run on stanli as
+  written; the brmsfit it builds has no coefficients, and `fixef()` on it
+  stops with "The following variables are missing in the draws object:
+  {'b_x', 'b_z'}" (first run of `dev/samplers-q2fp.R`).
+- Workaround: pass the complement, the variables to keep, with
+  `include = TRUE`. That gives the same variables, and
+  `posterior_epred()` and `fixef()` identical to rstan's, on 4 survey
+  pairs (`dev/samplers-q2fp.R`, `dev/samplers-q2-out/fp.tsv.txt`).
+- Record: `dev/samplers-findings.md`, Q2 (4).
+- Status: not reported.
+
+## SparseNUTS and StanEstimators
+
+Measured by lane samplers (round of 2026-11-16) against frm_sample()'s
+tmbstan route; installed only in
+`C:/Users/adf44/source/r/wt-samplers-lib`. frmtmb does not use them.
+
+### StanEstimators-1. An R process that loaded StanEstimators aborts at exit
+
+- Seen: StanEstimators 0.4.0 (R-universe Windows binary, RemoteSha
+  7d03a631) through SparseNUTS 1.0.2 (2f3f1626), R 4.6.1, Windows,
+  2026-11-17.
+- Repro (`dev/samplers-smoke.R`): the SparseNUTS vignette's eight
+  schools RTMB model, then
+  `SparseNUTS::sample_snuts(obj, refresh = 0, seed = 1, cores = 1,
+  chains = 2)`, in `Rscript`. Sampling succeeds and its output prints.
+- Expected: the process ends with status 0. Actual: it prints
+  "terminate called without an active exception" at exit and ends with
+  status 127 (`dev/samplers-smoke.log`). The same on every
+  `dev/samplers-q3.R` run in which SparseNUTS sampled: small_pois, slope,
+  gp, weak, small_pois with laplace = TRUE, big_crossed and big_pois
+  ("rc=127" in `dev/samplers-q3-batch.log`; the small_pois run by hand),
+  each after its record was written. The two ald runs, where
+  `sample_snuts()` stopped before sampling (SparseNUTS-1), ended with
+  status 0, as did the lane's processes that ran only stanli and rstan
+  (`dev/samplers-q1-batch.log`). Not isolated between StanEstimators and
+  SparseNUTS beyond that; StanEstimators runs the Stan services, so it
+  is the likely owner.
+- Consequence: any `Rscript`, testthat or R CMD check run that loads
+  them reports a failure after a successful run.
+- Workaround: none; write results before the process ends.
+- Record: `dev/samplers-findings.md`, Q3 "Costs seen".
+- Status: not reported.
+
+### SparseNUTS-1. No fallback when the joint precision is not positive definite
+
+- Seen: SparseNUTS 1.0.2 (2f3f1626) with StanEstimators 0.4.0,
+  frmtmb.sample 0.30.0, 2026-11-17.
+- Repro (`dev/samplers-q3f.R ald`, design `ald` in
+  `dev/samplers-designs.R`): frmtmb's prior-augmented objective of
+  `y ~ x + (1 | g)`, `asym_laplace()`, 20 groups of 10, captured from
+  `frm_sample(reparameterize = FALSE)`, then
+  `sample_snuts(obj, num_samples = 1000, chains = 4, cores = 1,
+  seed = 1)`.
+- Expected: either sampling, or a message saying the Laplace marginal
+  has no usable mode and naming the metrics that need none ("unit",
+  "stan"). Actual: it stops 0.06 s after "Getting Q and its stats..."
+  with "error in evaluating the argument 'x' in selecting a method for
+  function 't': ... leading principal minor of order 20 is not
+  positive" (`dev/samplers-q3-ald.log`). The asym_laplace log density is
+  linear in each random effect on either side of its mode, so the
+  marginal has no maximum and Q is not positive definite: the reason
+  frm() itself refuses this model.
+- Consequence: the user gets a bare Matrix error with no hint that
+  `metric = "stan"` or `"unit"` would run. frm_sample() samples the same
+  model (0 divergences, R-hat 1.01).
+- Workaround: `metric = "stan"` or `"unit"` (not measured).
+- Record: `dev/samplers-findings.md`, Q3.
 - Status: not reported.
 
 ## RTMBode
