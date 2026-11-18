@@ -334,9 +334,13 @@ nl_denoms <- function(e) {
 #' the line of `c` into pieces, and an optimizer stays in the piece it
 #' starts in. Returns, for each such denominator with two or more distinct
 #' walls, the walls' range `lo`, `hi`, the distance `dist` from `c` to the
-#' nearest wall and the median gap between adjacent walls; `NULL` where no
+#' nearest wall, the median gap between adjacent walls, and the gaps that
+#' nl_pole_holes() reads as holes in the data; `NULL` where no
 #' denominator reads `c` affinely. A denominator that is not affine in `c`
-#' (`EC50^h + x^h`, `1 + exp(b * x)`) is not read.
+#' is not read. The two such that the bodies of the fresh rows have,
+#' `EC50^h + x^h` with `x >= 0` and `1 + exp(b * x)`, are positive for
+#' every real coefficient at which the body is defined, so they have no
+#' wall to read.
 #'
 #' @noRd
 nl_pole_walls <- function(frame, lp, tpl, par, at, dens) {
@@ -375,9 +379,79 @@ nl_pole_walls <- function(frame, lp, tpl, par, at, dens) {
                                     dist = min(abs(c0 - w)),
                                     gap = stats::median(gaps),
                                     mixed = any(a[reads] > 0) &&
-                                      any(a[reads] < 0))
+                                      any(a[reads] < 0),
+                                    holes = nl_pole_holes(w))
   }
   if (length(out)) out
+}
+
+#' The sizes of nl_pole_holes()'s rule: the half width of the window of
+#' gaps that sets a gap's local scale, the walls a hole needs on each
+#' side, the odds against a hole on rows of a smooth density, and the
+#' most holes one band starts in.
+#'
+#' Measured by dev/nlband-holes2.R on 400 draws of each design of 20 to
+#' 1000 rows (100 and 20 draws at 1e4 and 1e5): with no hole in the data,
+#' a start ran on at most 3.2 percent of uniform, normal, lognormal,
+#' exponential and t3 draws up to 1000 rows (lognormal at 1000), and on at
+#' most 10 percent at 1e4 and 1e5 rows (exponential at 1e5, 2 of 20);
+#' never more than 2 starts on one draw. A hole of half width 0.3 in 400
+#' uniform rows on (0, 4), the band data of the review of lane nlstop2
+#' (F4), was found on 400 of 400 draws, one of half width 0.1 on 398. A
+#' window of 21 gaps with 5 walls a side started on up to 75 percent of
+#' the draws without a hole: the median of few gaps is noisy, and the gaps
+#' of a tail grow.
+#'
+#' @noRd
+nl_hole_window <- 20L
+nl_hole_side <- 10L
+nl_hole_odds <- 1000
+nl_hole_max <- 2L
+
+#' The gaps between adjacent walls `w` (sorted) that are holes in the
+#' data: wider than the rows around them make likely, with rows on both
+#' sides.
+#'
+#' A pole the optimizer cannot reach can sit in a gap of the data: `a /
+#' (x + b)` on y = 1 / (x - 2) + noise, with no rows within 0.3 of 2,
+#' stopped at b 0.39 with every denominator positive, 592 below the
+#' maximum at b -2.00 (review of lane nlstop2, F4). Each of the n - 1 gaps
+#' between rows' walls is a piece of the line with a maximum of its own,
+#' so a start in each is out of reach on dense data. The maximum can be in
+#' a narrow gap: y = 1 / (x - 2) + noise on 400 rows of U(0, 4), with no
+#' hole, has its pole between two adjacent rows, and the fit stops 1575 to
+#' 2100 short in silence on 0.83.0 and here (review of lane nlband, item
+#' 3). This rule does not reach that; it starts only where a gap is wide
+#' enough to be a hole in the data. A gap is a
+#' hole when it is wider than log2(nl_hole_odds * m) times the running
+#' median of the 2 * nl_hole_window + 1 gaps around it, m gaps in all:
+#' on rows of a smooth density a gap is wider than t local means with
+#' probability exp(-t), so m gaps hold one wider than log(1000 m) means,
+#' log2(1000 m) medians, with odds of about 1 in 1000 if the local median
+#' were exact (it is a median of 41 gaps, so the rate measured at
+#' nl_hole_window is higher). A hole needs `nl_hole_side` walls or more on
+#' each side. Returns a matrix with columns `lo` and `hi`, the widest
+#' `nl_hole_max` holes first by that ratio, or `NULL`.
+#'
+#' @noRd
+nl_pole_holes <- function(w) {
+  w <- w[c(TRUE, diff(w) > 1e-9 * (w[length(w)] - w[1L]))]
+  d <- diff(w)
+  m <- length(d)
+  if (m <= 2L * nl_hole_side) return(NULL)
+  win <- 2L * nl_hole_window + 1L
+  loc <- if (m <= win) {
+    rep(stats::median(d), m)
+  } else {
+    stats::runmed(d, win, endrule = "constant")
+  }
+  q <- d / loc
+  i <- seq_len(m)
+  hit <- which(i > nl_hole_side & i <= m - nl_hole_side &
+                 q > log2(nl_hole_odds * m))
+  if (!length(hit)) return(NULL)
+  hit <- hit[order(-q[hit], hit)][seq_len(min(length(hit), nl_hole_max))]
+  cbind(lo = w[hit], hi = w[hit + 1L])
 }
 
 #' Does a band of walls hold the fit: does the denominator take both signs
@@ -413,7 +487,8 @@ nl_pole_pressed <- function(wl) {
 #' (nl_pole_walls(), nl_pole_pressed()), the optimizer runs
 #' from each side of the band the fit is not beyond, half the band's width
 #' past its last wall, the rest of the model at the fit. A fit that is
-#' clear of every band pays only the evaluations of its denominators.
+#' clear of every band, on data with no hole, pays only the evaluations of
+#' its denominators.
 #'
 #' A run is kept if it ends clear of the band it started beside and higher
 #' than the fit by more than nl_probe_gain(); then frm() fits again from
@@ -422,10 +497,29 @@ nl_pole_pressed <- function(wl) {
 #' bernoulli seed 55 rises toward the wall of its largest xp, where the
 #' likelihood has a supremum and no maximum.
 #'
+#' Whether or not a band holds the fit, the optimizer also runs from the
+#' middle of each hole in the data that the fit is not in
+#' (nl_pole_holes()): a fit clear of every wall cannot reach a maximum
+#' with a pole between rows. It runs twice, the rest of the model at the
+#' fit and at the default start (nl_cold_par(); once where the two are
+#' the same). Such a run, and its refit, must end no nearer a wall than
+#' the walls' median gap, a proxy for a supremum on a wall that also
+#' refuses a true maximum with its pole that near a row (a pole 0.003
+#' below the first row above the hole, review of lane nlband, item 4).
+#' The refit must have a standard error of the hole's coefficient below
+#' the span of the walls (nl_hole_se()), which refuses a run that rises
+#' without end. Every run that beats the fit is a candidate, the highest
+#' first; a candidate whose refit is refused passes to the next.
+#'
 #' Not run under `frmtmb_control(nl_starts = FALSE)`, which turns off this
 #' restart and the sign probe.
 #'
-#' Returns `NULL`, or a list as nl_sign_probe() returns it.
+#' Returns `NULL`, or a list as nl_sign_probe() returns it, with `where`
+#' the start that won: its `kind` ("past" the band or in a "hole"), the
+#' coefficient's `name`, and for a hole its walls `lo` and `hi`; and
+#' `refused`, the first hole refit that the standard error refused, for
+#' nl_pole_refused_message(). Where every candidate is refused and one by
+#' its standard error, `fit` is `NULL` and `refused` is set.
 #'
 #' @noRd
 nl_pole_escape <- function(run, frame, fit) {
@@ -444,6 +538,7 @@ nl_pole_escape <- function(run, frame, fit) {
   est <- fit$estimates
   starts <- list()
   checks <- list()
+  cold <- NULL
   for (lp in frame[["linpreds"]]) {
     if (is.null(lp[["nl_body"]])) next
     dens <- nl_denoms(lp[["nl_body"]])
@@ -456,13 +551,46 @@ nl_pole_escape <- function(run, frame, fit) {
         wls <- nl_pole_walls(frame, lp, est, par, at, dens)
         c0 <- est[[par]][at]
         for (wl in wls) {
-          if (!nl_pole_pressed(wl)) next
-          half <- (wl$hi - wl$lo) / 2
-          to <- c(if (c0 >= wl$lo) wl$lo - half, if (c0 <= wl$hi) wl$hi + half)
-          for (v in to) {
-            starts[[length(starts) + 1L]] <- list(j = pos[at], v = v)
-            checks[[length(checks) + 1L]] <- list(lp = lp, par = par,
-                                                  at = at, dens = dens)
+          ck <- list(lp = lp, par = par, at = at, dens = dens, kind = "past")
+          if (nl_pole_pressed(wl)) {
+            half <- (wl$hi - wl$lo) / 2
+            to <- c(if (c0 >= wl$lo) wl$lo - half,
+                    if (c0 <= wl$hi) wl$hi + half)
+            for (v in to) {
+              starts[[length(starts) + 1L]] <- list(j = pos[at], v = v)
+              checks[[length(checks) + 1L]] <- ck
+            }
+          }
+          hs <- wl$holes
+          # the rest of the model at the fit, and at the default start:
+          # from a fit on a ridge to a limit of the body (Vm 3e8 in Vm * x
+          # / (K + x)) the run from the hole ended at log-likelihood
+          # -5.5e9, where a start at Vm 0 to 100 reached the hole's
+          # maximum (dev/nlband-dbg2.R), and from a student fit with log
+          # nu at its limit, 19.7, the kept fit was 16 to 44 below the
+          # hole's maximum (review of lane nlband, item 2)
+          if (NROW(hs) && is.null(cold)) cold <- nl_cold_par(frame, pn)
+          from <- list(NULL)
+          q <- cold
+          if (length(q)) q[pos[at]] <- fit$opt$par[pos[at]]
+          if (length(q) && !identical(unname(q), unname(fit$opt$par))) {
+            from <- c(from, list(q))
+          }
+          for (h in seq_len(NROW(hs))) {
+            lo <- unname(hs[h, "lo"])
+            hi <- unname(hs[h, "hi"])
+            if (c0 > lo && c0 < hi) next
+            ck$kind <- "hole"
+            ck$j <- pos[at]
+            ck$lo <- lo
+            ck$hi <- hi
+            ck$span <- wl$hi - wl$lo
+            for (q in from) {
+              starts[[length(starts) + 1L]] <- list(j = pos[at],
+                                                    v = (lo + hi) / 2,
+                                                    from = q)
+              checks[[length(checks) + 1L]] <- ck
+            }
           }
         }
       }
@@ -490,15 +618,22 @@ nl_pole_escape <- function(run, frame, fit) {
     }
     st
   }
-  # an end against a wall of the band it started beside
+  # an end against a wall of the band it started beside; from a hole, the
+  # denominator takes both signs by design, so only the distance counts
   pressed_at <- function(ck, end) {
     wl <- nl_pole_walls(frame, ck$lp, end, ck$par, ck$at, ck$dens)
-    any(vapply(wl, nl_pole_pressed, NA))
+    held <- if (identical(ck$kind, "hole")) {
+      function(x) x$dist < x$gap
+    } else {
+      nl_pole_pressed
+    }
+    any(vapply(wl, held, NA))
   }
-  best <- fit$opt
-  best_ck <- NULL
+  # every run that beats the fit, best first: a refit that is refused
+  # passes the turn to the next (short check of lane nlband, item 2)
+  runs <- list()
   for (i in seq_along(starts)) {
-    p <- fit$opt$par
+    p <- starts[[i]]$from %||% fit$opt$par
     p[starts[[i]]$j] <- starts[[i]]$v
     p <- pmin(pmax(p, bounds$lower), bounds$upper)
     o <- tryCatch(suppressWarnings(optimize_obj(obj, ctl, bounds, pu,
@@ -508,22 +643,108 @@ nl_pole_escape <- function(run, frame, fit) {
     # run along a ridge to a limit of the body ends at code 7 or 8 where
     # the refit from its point ends at 0 (bernoulli seed 55 from K = -2.5)
     if (is.null(o) || !is.finite(o$objective) ||
-          !(best$objective - o$objective > nl_probe_gain(best$objective)) ||
+          !(fit$opt$objective - o$objective >
+              nl_probe_gain(fit$opt$objective)) ||
           pressed_at(checks[[i]], tpl_at(o$par))) {
       next
     }
-    best <- o
-    best_ck <- checks[[i]]
+    runs[[length(runs) + 1L]] <- list(o = o, ck = checks[[i]])
   }
   obj$env$.frmtmb_opt_basis <- ob_fit
   obj_settle(obj, fit$opt, fit$opt, saved)
-  if (is.null(best_ck)) return(NULL)
-  r <- nl_refit_held(run, tpl_at(best$par))
-  if (is.null(r$fit) || pressed_at(best_ck, r$fit$estimates)) return(NULL)
+  if (!length(runs)) return(NULL)
+  runs <- runs[order(vapply(runs, function(x) x$o$objective, 0))]
   ll0 <- as.numeric(logLik_penalized(fit))
-  ll1 <- suppressWarnings(as.numeric(logLik_penalized(r$fit)))
-  if (!is.finite(ll1) || !(ll1 - ll0 > nl_probe_gain(ll0))) return(NULL)
-  list(fit = r$fit, held = r$held, ll0 = ll0, ll1 = ll1)
+  name_of <- function(ck) {
+    par_template_names(frame[["par_template"]][[ck$par]], ck$par)[ck$at]
+  }
+  refused <- NULL
+  for (x in runs) {
+    ck <- x$ck
+    r <- nl_refit_held(run, tpl_at(x$o$par))
+    if (is.null(r$fit) || pressed_at(ck, r$fit$estimates)) next
+    ll1 <- suppressWarnings(as.numeric(logLik_penalized(r$fit)))
+    if (!is.finite(ll1) || !(ll1 - ll0 > nl_probe_gain(ll0))) next
+    if (identical(ck$kind, "hole")) {
+      s <- nl_hole_se(r$fit, ck)
+      if (!isTRUE(s < ck$span)) {
+        if (is.null(refused)) {
+          refused <- list(ll0 = ll0, ll1 = ll1, se = s, span = ck$span,
+                          name = name_of(ck), lo = ck$lo, hi = ck$hi)
+        }
+        next
+      }
+    }
+    return(list(fit = r$fit, held = r$held, ll0 = ll0, ll1 = ll1,
+                where = list(kind = ck$kind, name = name_of(ck),
+                             lo = ck$lo, hi = ck$hi),
+                refused = refused))
+  }
+  if (is.null(refused)) NULL else list(fit = NULL, refused = refused)
+}
+
+#' The outer parameter vector, named as `pn`, at the cold start
+#' make_start() builds with no `start` and no prior: the start a default
+#' fit takes, with each intercept at the family's initializer. `NULL`
+#' where it cannot be built or does not match `pn`.
+#'
+#' @noRd
+nl_cold_par <- function(frame, pn) {
+  st <- tryCatch(
+    suppressWarnings(suppressMessages(make_start(frame, NULL))),
+    error = function(e) NULL)
+  if (is.null(st)) return(NULL)
+  q <- rep(NA_real_, length(pn))
+  for (cp in unique(pn)) {
+    v <- st[[cp]]
+    pos <- seq_along(v)
+    if (cp == "betad" && length(frame[["betad_fixed_idx"]])) {
+      pos <- setdiff(pos, frame[["betad_fixed_idx"]])
+    }
+    if (length(pos) != sum(pn == cp)) return(NULL)
+    q[pn == cp] <- unname(v[pos])
+  }
+  if (anyNA(q)) return(NULL)
+  stats::setNames(q, pn)
+}
+
+#' The standard error of the hole's coefficient in a hole fit, from the
+#' standard-error check's own analysis of the fit (se_fit_analysis()), or
+#' NaN. nl_pole_escape() keeps the fit only where it is below the span of
+#' the walls, so that the data place the pole among the rows' poles.
+#'
+#' A run from a hole can rise without end. On bernoulli data that the
+#' hole separates (y = 1 for x > 2 on the band data), the run and its
+#' refit ended at log-likelihood -5e-268 with a = 1221, code 0 and no
+#' warning, and the escape returned it (review of lane nlband, item 1).
+#' Neither the limit check nor the standard-error check marks that fit:
+#' nl_limit_message() returns NULL with and without its gate, and the
+#' analysis keeps every standard error, 8.6e133 for a and 1.4e131 for b
+#' (dev/nlband-dbg3.R). That is a supremum, not a maximum. The bound is
+#' the span of the walls, about 4 on the band data, not half the hole's
+#' width: at half the width the rule refused 5 of 101 maxima in a sweep
+#' of noisy data, each 0.056 to 1.462 above the fit returned, with
+#' standard errors up to 1.4 half widths (short check of lane nlband,
+#' item 2); the separated fits sit 1e130 spans above it.
+#'
+#' @noRd
+nl_hole_se <- function(fit, ck) {
+  an <- tryCatch(se_fit_analysis(fit, force = TRUE),
+                 error = function(e) NULL)
+  V <- an$shown
+  if (!is.matrix(V) || NROW(V) < ck$j) return(NaN)
+  sqrt(V[ck$j, ck$j])
+}
+
+#' The sentence of nl_pole_message() and nl_pole_warning() that says
+#' where the start that won began.
+#'
+#' @noRd
+nl_pole_from <- function(pe) {
+  w <- pe$where
+  if (!identical(w$kind, "hole")) return("A start beyond the poles")
+  paste0("A start with ", w$name, " between ", signif(w$lo, 4), " and ",
+         signif(w$hi, 4), ", a gap that the rows' poles leave,")
 }
 
 #' The message of a default fit that nl_pole_escape() moved past the poles
@@ -535,14 +756,25 @@ nl_pole_message <- function(pe) {
   llw <- if (fit_penalized(pe$fit)) "penalized log-likelihood" else
     "log-likelihood"
   frm_message(
-    "The fit of the nonlinear model reached ", llw, " ", ll[1L], " with a ",
-    "pole of the body (a denominator at 0) among or beside the rows of the ",
-    "data, where the optimizer cannot cross it. A start beyond the poles ",
-    "reached ", ll[2L], ", optimizer return code ",
-    format(pe$fit$opt$convergence), ", and frm() returns that fit. Give ",
-    "`start` to choose your own",
+    "The fit of the nonlinear model reached ", llw, " ", ll[1L],
+    nl_pole_where(pe), " ", nl_pole_from(pe), " reached ", ll[2L],
+    ", optimizer return code ", format(pe$fit$opt$convergence),
+    ", and frm() returns that fit. Give `start` to choose your own",
     class = "frmtmb_nl_pole_start")
   invisible(NULL)
+}
+
+#' Where the fit that nl_pole_escape() beat sits against the poles.
+#'
+#' @noRd
+nl_pole_where <- function(pe) {
+  if (identical(pe$where$kind, "hole")) {
+    return(paste0(". The body has a pole (a denominator at 0) at one ",
+                  "value of ", pe$where$name, " for each row of the data, ",
+                  "and the optimizer cannot cross one."))
+  }
+  paste0(" with a pole of the body (a denominator at 0) among or beside ",
+         "the rows of the data, where the optimizer cannot cross it.")
 }
 
 #' The warning on a fit from the caller's start that nl_pole_escape() beat.
@@ -553,11 +785,11 @@ nl_pole_warning <- function(pe, fit) {
   llw <- if (fit_penalized(fit)) "penalized log-likelihood" else
     "log-likelihood"
   frm_warning(
-    "The fit from the given start reached ", llw, " ", ll[1L], " with a ",
-    "pole of the body (a denominator at 0) among or beside the rows of the ",
-    "data, where the optimizer cannot cross it. A start beyond the poles ",
-    "reached ", ll[2L], ", so the fit is not at the maximum. Give a `start` ",
-    "on the other side of the poles",
+    "The fit from the given start reached ", llw, " ", ll[1L],
+    nl_pole_where(pe), " ", nl_pole_from(pe), " reached ", ll[2L],
+    ", so the fit is not at the maximum. Give a `start` ",
+    if (identical(pe$where$kind, "hole")) "in that gap" else
+      "on the other side of the poles",
     call. = FALSE, class = "frmtmb_nl_pole")
   invisible(NULL)
 }
@@ -569,12 +801,43 @@ nl_pole_warning <- function(pe, fit) {
 nl_refit_held <- function(run, st) {
   held <- new.env(parent = emptyenv())
   held$w <- list()
+  # a boundary message describes the refit itself, which may be the fit
+  # returned: student() on the band data, seed 2, kept nu at its limit
+  # with no word of it (short check of lane nlband, item 1)
   r <- tryCatch(
-    withCallingHandlers(suppressMessages(run(st, FALSE)),
+    withCallingHandlers(run(st, FALSE),
                         warning = function(w) {
                           held$w[[length(held$w) + 1L]] <- w
                           invokeRestart("muffleWarning")
+                        },
+                        message = function(m) {
+                          if (inherits(m, "frmtmb_boundary_fit")) {
+                            held$w[[length(held$w) + 1L]] <- m
+                          }
+                          invokeRestart("muffleMessage")
                         }),
     error = function(e) NULL)
   list(fit = r, held = held$w)
+}
+
+#' The message that nl_pole_escape() refused a higher hole fit, because
+#' the data do not place its pole: the standard error of the coefficient
+#' is not below the span of the walls.
+#'
+#' @noRd
+nl_pole_refused_message <- function(pe) {
+  rf <- pe$refused
+  if (is.null(rf)) return(invisible(NULL))
+  ll <- nl_ll_pair(rf$ll0, rf$ll1)
+  frm_message(
+    "A start with ", rf$name, " between ", signif(rf$lo, 4), " and ",
+    signif(rf$hi, 4), ", a gap that the rows' poles leave, reached ",
+    "log-likelihood ", ll[2L], " against ", ll[1L], ", but frm() does not ",
+    "return that fit: the standard error of ", rf$name, " there, ",
+    signif(rf$se, 3), ", is not below the span of the poles, ",
+    signif(rf$span, 3), ", so the data do not place the pole (on data ",
+    "the gap separates, the likelihood rises without end). Give `start` ",
+    "in that gap to see the fit",
+    class = "frmtmb_nl_pole_refused")
+  invisible(NULL)
 }

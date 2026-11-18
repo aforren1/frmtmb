@@ -1072,7 +1072,7 @@ gddm <- function(drift = gddm_drift_constant(),
       gd_check_response(y, aterms, comp)
       ddm_refuse_cens_aterms(aterms, "gddm")
     },
-    lcdf = ddm_refuse_cens_slot("gddm"),
+    cdf = ddm_refuse_cens_slot("gddm"),
     lccdf = ddm_refuse_cens_slot("gddm"),
     init_dpars = lapply(dp, function(z) z$init),
     type = "continuous",

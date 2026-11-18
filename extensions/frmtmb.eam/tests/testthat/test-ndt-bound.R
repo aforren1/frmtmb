@@ -212,7 +212,7 @@ test_that("wiener_gng takes the bound from the go rows of each group", {
 })
 
 test_that("rdm's censoring seams see the scaled non-decision time", {
-  # lcdf and lccdf are wrapped by the same seam lpdf is, so a censored
+  # cdf and lccdf are wrapped by the same seam lpdf is, so a censored
   # row is scored against its own group's bound. The check is that the
   # right-censored likelihood written by hand at the fitted parameters
   # agrees with the one the fit reports.

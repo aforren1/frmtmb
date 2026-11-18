@@ -139,7 +139,7 @@ test_that("weights and truncation behave as the compat table claims", {
   expect_equal(as.numeric(stats::logLik(fw2)),
                2 * as.numeric(stats::logLik(base)), tolerance = 1e-4)
   # truncation at a bound below every observed time barely moves the
-  # fit, which is the case where an lcdf that is right must barely move
+  # fit, which is the case where a cdf that is right must barely move
   # it: the window it divides by is almost the whole line
   expect_gt(min(bc$recyrs), 0.02)
   ftr <- frmtmb::frm(

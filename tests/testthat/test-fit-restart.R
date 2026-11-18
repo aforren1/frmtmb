@@ -3,7 +3,8 @@
 # and a nonlinear body on a ridge that runs to a limit. Each defect test
 # below was seen to fail on 0.81.0 (dev/nlstop-findings.md); those from a
 # bending ridge on were seen to fail on 0.82.0 (dev/nlstop2-findings.md).
-# Then a body's poles among the rows.
+# Then a body's poles among the rows, and in a hole of the data (seen to
+# fail on 0.83.0, dev/nlband-findings.md).
 
 # A fit's messages, recorded and muffled, and the warnings `allowed`
 # names, recorded and muffled by allow_warnings(); any other warning
@@ -321,4 +322,212 @@ test_that("a body clear of its poles takes no start beyond them", {
                 wl2[[1L]]$hi > f2$estimates$beta[[2L]])
   expect_false(nl_pole_pressed(wl2[[1L]]))
   expect_null(nl_pole_escape(function(...) stop("no refit"), f2$frame, f2))
+})
+
+# y = 1 / (x - 2) + noise with no rows within 0.3 of 2: the pole of a / (x
+# + b) belongs in that gap of the data, at b -2 (review of lane nlstop2,
+# F4); `inv` = 1 / (x + inv) is the truth beyond the data instead
+band_data <- function(seed, inv = -2) {
+  set.seed(seed)
+  x <- runif(400, 0, 4)
+  x <- x[abs(x - 2) > 0.3]
+  data.frame(x = x, y = 1 / (x + inv) + rnorm(length(x), 0, 0.2))
+}
+band_body <- bf(y ~ a / (x + b), a + b ~ 1, nl = TRUE)
+# the walls of b a fit reads, and the hole of the data between them
+band_walls <- function(fit) {
+  lp <- Filter(function(q) !is.null(q$nl_body), fit$frame$linpreds)[[1L]]
+  nl_pole_walls(fit$frame, lp, fit$estimates, "beta", 2L,
+                nl_denoms(lp$nl_body))
+}
+
+test_that("a fit clear of its poles is started in a hole of the data", {
+  # 0.83.0 stopped at b 0.39, 0.48, 0.37 with every denominator positive,
+  # code 0 and no warning, 592, 592 and 646 below the fit from b -1.9
+  for (seed in 1:3) {
+    d <- band_data(seed)
+    ref <- frm(band_body, data = d, start = list(beta = c(1, -1.9)))
+    tol <- ref$control$grad_tol
+    got <- fit_conds(frm(band_body, data = d))
+    fit <- got$value
+    expect_true(has_class(got$conds, "frmtmb_nl_pole_start"))
+    expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(ref))), tol)
+    b <- fit$estimates$beta[[2L]]
+    expect_true(b > -min(d$x[d$x > 2]) && b < -max(d$x[d$x < 2]))
+  }
+  # every rounding of the response a few ulps apart
+  d <- band_data(1)
+  ref <- frm(band_body, data = d, start = list(beta = c(1, -1.9)))
+  for (k in 1:4) {
+    dk <- d
+    dk$y <- dk$y * (1 + 2e-15 * k)
+    gk <- fit_conds(frm(band_body, data = dk))
+    expect_true(has_class(gk$conds, "frmtmb_nl_pole_start"))
+    expect_lt(as.numeric(logLik(ref)) - as.numeric(logLik(gk$value)),
+              ref$control$grad_tol)
+  }
+})
+
+test_that("a given start clear of the poles warns of the hole", {
+  d <- band_data(1)
+  got <- fit_conds(frm(band_body, data = d,
+                       start = list(beta = c(-0.5, 0.4))),
+                   allowed = "a gap that the rows' poles leave")
+  fit <- got$value
+  expect_true(has_class(got$conds, "frmtmb_nl_pole"))
+  # the caller's start is kept: the fit is still clear of the poles
+  expect_gt(fit$estimates$beta[[2L]], -min(d$x))
+})
+
+test_that("a hole whose start is worse, or no hole, keeps the fit", {
+  # no warning is allowed: any would reach testthat. The escape catches an
+  # error of its refit, so a call is recorded, not only refused
+  called <- new.env()
+  refit <- function(...) {
+    called$refit <- TRUE
+    stop("the escape refit a losing start")
+  }
+  for (seed in 1:2) {
+    # the truth beyond the data: the hole start runs and loses
+    d <- band_data(seed, inv = 0.5)
+    got <- fit_conds(frm(band_body, data = d))
+    fit <- got$value
+    expect_false(has_class(got$conds, "frmtmb_nl_pole_start"))
+    expect_gt(fit$estimates$beta[[2L]], -min(d$x))
+    wl <- band_walls(fit)
+    expect_length(wl, 1L)
+    expect_identical(nrow(wl[[1L]]$holes), 1L)
+    expect_null(nl_pole_escape(refit, fit$frame, fit))
+    expect_null(called$refit)
+    # every row kept: no hole, so no start
+    set.seed(seed)
+    d2 <- data.frame(x = runif(400, 0, 4))
+    d2$y <- 1 / (d2$x + 0.5) + rnorm(400, 0, 0.2)
+    got2 <- fit_conds(frm(band_body, data = d2))
+    expect_false(has_class(got2$conds, "frmtmb_nl_pole_start"))
+    wl2 <- band_walls(got2$value)
+    expect_length(wl2, 1L)
+    expect_null(wl2[[1L]]$holes)
+  }
+  # nl_starts = FALSE leaves the band data's fit where it stopped
+  d <- band_data(1)
+  off <- fit_conds(frm(band_body, data = d,
+                       control = frmtmb_control(nl_starts = FALSE)))
+  expect_false(has_class(off$conds, "frmtmb_nl_pole_start"))
+  expect_gt(off$value$estimates$beta[[2L]], -min(d$x))
+  # and from that fit, with the switch on, the hole start wins, so the
+  # recorder above can see a refit
+  f0 <- off$value
+  f0$control$nl_starts <- TRUE
+  expect_null(nl_pole_escape(refit, f0$frame, f0))
+  expect_true(isTRUE(called$refit))
+})
+
+test_that("a hole is a gap much wider than the gaps around it", {
+  # two even runs of 50 walls: the gap between them is the one hole
+  w <- c(seq(0, 1, length.out = 50), seq(2, 3, length.out = 50))
+  h <- nl_pole_holes(w)
+  expect_identical(nrow(h), 1L)
+  expect_equal(unname(h[1L, ]), c(1, 2))
+  # an even run has none, and neither has a wide gap with fewer than
+  # nl_hole_side walls on one side of it
+  expect_null(nl_pole_holes(seq(0, 3, length.out = 100)))
+  expect_null(nl_pole_holes(c(seq(0, 0.08, length.out = 5),
+                              seq(1, 3, length.out = 100))))
+  expect_null(nl_pole_holes(c(seq(0, 1, length.out = 10),
+                              seq(2, 3, length.out = 10))))
+  # three holes: the nl_hole_max widest, widest first
+  w3 <- c(seq(0, 1, length.out = 50), seq(2, 3, length.out = 50),
+          seq(6, 7, length.out = 50), seq(9, 10, length.out = 50))
+  h3 <- nl_pole_holes(w3)
+  expect_identical(nrow(h3), nl_hole_max)
+  expect_equal(unname(h3[, "lo"]), c(3, 7))
+})
+
+test_that("a hole run that rises without end is not kept", {
+  skip_on_cran()
+  # y = 1 for x > 2 on the band data: a pole in the hole separates every
+  # row, and the likelihood rises without end as a grows. The first hole
+  # build kept the run on seeds 2 to 10: a 1052 to 1237, logLik about
+  # -1e-268, standard errors about 1e133, code 0, no warning, with the
+  # message (review of lane nlband, item 1); 0.83.0 warned on all 10
+  stop_warn <- c("Optimizer did not report convergence",
+                 "Large maximum absolute gradient",
+                 "Standard errors are not available")
+  for (seed in 2:4) {
+    d <- band_data(seed)
+    d$y <- as.integer(d$x > 2)
+    got <- fit_conds(frm(band_body, family = bernoulli(), data = d),
+                     allowed = stop_warn)
+    expect_false(has_class(got$conds, "frmtmb_nl_pole_start"))
+    expect_true(any(vapply(got$conds, inherits, NA, "warning")))
+    # the refused fit is higher, so frm() says why it is not returned
+    expect_true(has_class(got$conds, "frmtmb_nl_pole_refused"))
+  }
+})
+
+test_that("a hole run starts the rest of the model at the default start", {
+  skip_on_cran()
+  # student band data: the clear fit has log nu at its limit, 19.7, and
+  # hole runs that kept it there ended 16.2, 20.3 and 44.0 below the
+  # maximum, with the boundary message of the clear fit (review of lane
+  # nlband, item 2)
+  for (seed in 1:3) {
+    set.seed(seed)
+    x <- band_data(seed)$x
+    d <- data.frame(x = x, y = 1 / (x - 2) + 0.2 * rt(length(x), 3))
+    ref <- frm(band_body, data = d, family = student(),
+               start = list(beta = c(1, -2)),
+               control = frmtmb_control(nl_starts = FALSE))
+    off <- suppressMessages(frm(band_body, data = d, family = student(),
+                                control = frmtmb_control(nl_starts = FALSE)))
+    got <- fit_conds(frm(band_body, data = d, family = student()))
+    expect_true(has_class(got$conds, "frmtmb_nl_pole_start"))
+    expect_false(has_class(got$conds, "frmtmb_boundary_fit"))
+    # within a millionth of the gap the hole start closes (481 to 521)
+    gap <- as.numeric(logLik(ref)) - as.numeric(logLik(off))
+    expect_lt(abs(as.numeric(logLik(got$value)) - as.numeric(logLik(ref))),
+              1e-6 * gap)
+  }
+})
+
+test_that("a kept hole fit says its own boundary message", {
+  skip_on_cran()
+  # student() on the gaussian band data, seed 2: the maximum has nu at its
+  # limit; the fit from (1, -2) says so, and the kept hole fit said
+  # nothing, its refit's messages suppressed (short check of lane nlband,
+  # item 1)
+  d <- band_data(2)
+  ref <- fit_conds(frm(band_body, data = d, family = student(),
+                       start = list(beta = c(1, -2)),
+                       control = frmtmb_control(nl_starts = FALSE)))
+  got <- fit_conds(frm(band_body, data = d, family = student()))
+  expect_true(has_class(got$conds, "frmtmb_nl_pole_start"))
+  expect_true(has_class(ref$conds, "frmtmb_boundary_fit"))
+  expect_true(has_class(got$conds, "frmtmb_boundary_fit"))
+})
+
+test_that("a hole fit is kept where the data place its pole loosely", {
+  skip_on_cran()
+  # n 60 with the narrowest hole about 2 the rule flags, y = 0.2 / (x - 2)
+  # + N(0, 2), seed 13: the hole's refit is a maximum 1.46 above the first
+  # fit with a standard error of b 0.29, above half the hole's width,
+  # 0.27, and far below the span of the poles, 3.9; the round-1 rule
+  # refused it in silence (short check of lane nlband, item 2)
+  for (h in seq(0.2, 1.6, by = 0.02)) {
+    set.seed(13)
+    x <- runif(2000, 0, 4)
+    x <- x[abs(x - 2) > h][seq_len(60)]
+    hs <- nl_pole_holes(sort(unique(-x)))
+    if (!is.null(hs) && any(hs[, "lo"] < -2 & hs[, "hi"] > -2)) break
+  }
+  set.seed(513)
+  d <- data.frame(x = x, y = 0.2 / (x - 2) + rnorm(60, 0, 2))
+  off <- suppressMessages(frm(band_body, data = d,
+                              control = frmtmb_control(nl_starts = FALSE)))
+  got <- fit_conds(frm(band_body, data = d))
+  expect_true(has_class(got$conds, "frmtmb_nl_pole_start"))
+  b <- got$value$estimates$beta[[2L]]
+  expect_true(b > -min(d$x[d$x > 2]) && b < -max(d$x[d$x < 2]))
+  expect_gt(as.numeric(logLik(got$value)), as.numeric(logLik(off)))
 })

@@ -285,7 +285,7 @@ rdm <- function(n, max_ndt = NULL, contaminant = FALSE) {
     # -expm1 rather than 1 - exp: the survivor of a race is within a
     # rounding of one for any `q` a fit spends time near, and the
     # subtractive form returns exactly zero there.
-    lcdf = function(q, dpars, aterms) {
+    cdf = function(q, dpars, aterms) {
       ddm_floor(-expm1(rdm_lccdf(q, dpars, vp)), 1e-300)
     },
     family_finalize = function(fam, y, aterms) {

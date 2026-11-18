@@ -15,7 +15,7 @@ fam_of <- function(f) frmtmb:::as_frmtmb_family(f)
 # log F and log S of a family's slots at q, with the dpars given
 slot_pair <- function(fam, q, dp, av = list()) {
   f <- fam_of(fam)
-  list(lF = log(f$lcdf(q, dp, av)), lS = f$lccdf(q, dp, av))
+  list(lF = log(f$cdf(q, dp, av)), lS = f$lccdf(q, dp, av))
 }
 
 # The hand-rolled censored log-likelihood, brms 2.23.0's on a count as
@@ -138,7 +138,7 @@ test_that("poisson and inverse.gaussian gained a log survivor that is exact", {
   # the CDF was Inf * 0 = NaN at every q there, so a censored or
   # truncated fit had a NaN likelihood. Against the density integrated
   q <- c(0.5, 0.9, 1, 1.1)
-  F <- fam_of(inverse.gaussian())$lcdf(q, list(mu = 1, shape = 1000), list())
+  F <- fam_of(inverse.gaussian())$cdf(q, list(mu = 1, shape = 1000), list())
   ref <- vapply(q, function(u) {
     stats::integrate(function(t) {
       RTMBdist::dinvgauss(t, mean = 1, shape = 1000)
@@ -411,9 +411,11 @@ test_that("the other continuous fits are their hand-rolled likelihoods", {
     # the asymmetric Laplace likelihood has a kink at every observation,
     # and its fit stops at nlminb's false convergence on these data with
     # no censoring at all, on the 0.72.0 build as on this one
-    # (dev/cdfs-dbg14.R); the identity below holds at the stop
+    # (dev/cdfs-dbg14.R); the identity below holds at the stop. Its
+    # Hessian standard errors are refused by name
     ok <- if (nm == "asym_laplace") {
-      c("false convergence", "Large maximum absolute gradient")
+      c("false convergence", "Large maximum absolute gradient",
+        "no Hessian standard error")
     } else character()
     fit <- allow_warnings(frm(y | cens(cc, y2) ~ x, family = fam, data = d),
                           ok)
@@ -798,7 +800,7 @@ test_that("a hurdle's F(0) is hu to the last digit at small hu", {
 })
 
 test_that("a left-censored row below 1e-308 keeps its log probability", {
-  # the probability-scale lcdf ends at 1e-308; cdf_log does not
+  # the probability-scale cdf ends at 1e-308; cdf_log does not
   fam <- fam_of(gaussian())
   z <- c(-40, -100, -1000)
   ll <- frmtmb:::row_lpdf(fam, z, z, list(mu = rep(0, 3), sigma = rep(1, 3)),

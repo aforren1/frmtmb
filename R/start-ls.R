@@ -275,6 +275,8 @@ start_ls_rules <- local({
                         scale = laplace_sigma),
     zero_inflated_asym_laplace = list(link = "identity", dpars = "sigma",
                                       scale = laplace_sigma),
+    quantile_elf = list(link = "identity", dpars = "sigma",
+                        scale = laplace_sigma),
     huber = list(link = "identity", dpars = "sigma",
                  scale = function(r, w, y, eta) {
                    s <- stats::mad(r)

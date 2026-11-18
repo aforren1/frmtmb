@@ -14,7 +14,7 @@ assert	frmtmb	brmsfit-methods:164	divergence	FALSE	FALSE	Expected `is(object, "g
 setup	frmtmb	brmsfit-methods:166		FALSE	FALSE	spaghetti = TRUE draws one curve per draw, and with band = "wald" a maximum-likelihood fit has only its estimate. Use band = "boot", whose refits give one curve each, or draw from the posterior with frmtmb.sample::frm_sample()		FALSE
 assert	frmtmb	brmsfit-methods:167	cannot transfer	FALSE	TRUE	STALE: reads 'me', whose last assignment failed: spaghetti = TRUE draws one curve per draw, and with band = "wald" a maximum-likelihood fit has only its estimate. Use band = "boot", whose refits give one curve each, or draw from the posterior with frmtmb.sample::frm_sample()		FALSE
 setup	frmtmb	brmsfit-methods:168		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:169	divergence	FALSE	TRUE	STALE: reads 'meplot', whose last assignment failed: STALE: reads 'me', whose last assignment failed: spaghetti = TRUE draws one curve per draw, and with band = "wald" a maximum-likelihood fit has only its estimate. Use band = "boot", whose refits give one curve each, or draw from the posterior with frmtmb.sample::frm_sample()		FALSE
+assert	frmtmb	brmsfit-methods:169	cannot transfer	FALSE	TRUE	STALE: reads 'meplot', whose last assignment failed: STALE: reads 'me', whose last assignment failed: spaghetti = TRUE draws one curve per draw, and with band = "wald" a maximum-likelihood fit has only its estimate. Use band = "boot", whose refits give one curve each, or draw from the posterior with frmtmb.sample::frm_sample()		FALSE
 assert	frmtmb	brmsfit-methods:170	pass	TRUE	FALSE		Cannot use 'spaghetti' and 'surface' at the same time.	TRUE
 setup	frmtmb	brmsfit-methods:175		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:177	pass	TRUE	FALSE			TRUE

@@ -100,15 +100,21 @@ test_that("an approximate field gets a start at the fit's optimum", {
   expect_false(frmtmb:::gp_basis_white(bk, fit2$estimates$theta))
 })
 
-test_that("a field under its basis's spacing warns, and only there", {
+test_that("a field under its basis's spacing says so, and only there", {
   # the gaussian likelihood's maximum is there: k is too small for the
-  # field, and only sdgp^2 * lscale is determined
+  # field, and only sdgp^2 * lscale is determined. Where the ridge is
+  # proved level out to the white limit it is a boundary message, else
+  # the warning (test-gp-white-limit.R reads which)
   d <- gfd_gate("E")
-  fit <- allow_warnings(
+  said <- 0L
+  fit <- allow_warnings(withCallingHandlers(
     frm(bf(y ~ a * exp(b * z), a ~ gp(x, k = 20), b ~ 1, nl = TRUE),
         data = d, family = gaussian()),
-    "spacing its basis resolves",
-    require = "ran below a tenth of the spacing")
+    frmtmb_gp_basis = function(cnd) {
+      said <<- said + 1L
+      if (inherits(cnd, "message")) invokeRestart("muffleMessage")
+    }), "spacing its basis resolves")
+  expect_identical(said, 1L)
   bk <- fit$frame$re_blocks[[1L]]
   expect_true(frmtmb:::gp_basis_white(bk, fit$estimates$theta))
   # the absent case: a regular approximate field, no warning

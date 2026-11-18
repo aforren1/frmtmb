@@ -1,0 +1,11 @@
+frmtmb tests/testthat/test-fit-restart.R
+frmtmb tests/testthat/test-nl-body-vars.R
+frmtmb tests/testthat/test-nl-brms.R
+frmtmb tests/testthat/test-nl-family.R
+frmtmb tests/testthat/test-nl-lexical.R
+frmtmb tests/testthat/test-nl-rtmb-scope.R
+frmtmb tests/testthat/test-nl-stan-funs.R
+frmtmb tests/testthat/test-nl-start.R
+frmtmb tests/testthat/test-nl-starts-control.R
+frmtmb tests/testthat/test-nl.R
+frmtmb tests/testthat/test-nlf.R

@@ -863,8 +863,12 @@ nl_fit_off_saddle <- function(run, frame, start, prior) {
   release <- function() {
     for (w in hq$w) if (inherits(w, "message")) message(w) else warning(w)
   }
+  # and so is a gp() field's white-limit message (gp_basis_message()):
+  # a restart that replaces this fit says its own
+  hold_gp <- function(m) if (inherits(m, "message")) hold_limit(m)
   fit <- tryCatch(withCallingHandlers(run(start, TRUE), warning = hold,
-                                      frmtmb_limit_fit = hold_limit),
+                                      frmtmb_limit_fit = hold_limit,
+                                      frmtmb_gp_basis = hold_gp),
                   error = function(e) {
                     release()
                     stop(e)
@@ -1604,8 +1608,9 @@ nl_fit_probed <- function(run, frame, start, prior) {
   pr <- if (is.null(start)) nl_sign_probe(run, frame, fit)
   if (is.null(pr)) {
     pe <- tryCatch(nl_pole_escape(run, frame, fit), error = keep_missing(NULL))
-    if (is.null(pe)) {
+    if (is.null(pe$fit)) {
       say(held$c)
+      nl_pole_refused_message(pe)
       limit(fit, held$c)
       return(fit)
     }
@@ -1615,10 +1620,16 @@ nl_fit_probed <- function(run, frame, start, prior) {
       nl_pole_warning(pe, fit)
       return(fit)
     }
+    # a replaced fit's gp() boundary message is about that fit
+    # a boundary message is about the fit it came with: student band data
+    # said nu was at its limit, 19.7, beside a returned fit with log nu
+    # 0.95 (review of lane nlband, item 2)
     say(Filter(function(cnd) {
-      !inherits(cnd, c("warning", "frmtmb_nl_local", "frmtmb_nl_restart"))
+      !inherits(cnd, c("warning", "frmtmb_nl_local", "frmtmb_nl_restart",
+                       "frmtmb_boundary_fit", "frmtmb_gp_basis"))
     }, held$c))
     nl_pole_message(pe)
+    nl_pole_refused_message(pe)
     say(pe$held)
     limit(pe$fit, pe$held)
     return(pe$fit)
@@ -1626,7 +1637,8 @@ nl_fit_probed <- function(run, frame, start, prior) {
   # what the first fit's stop was, or a restart it kept, is no longer the
   # answer
   say(Filter(function(cnd) {
-    !inherits(cnd, c("warning", "frmtmb_nl_local", "frmtmb_nl_restart"))
+    !inherits(cnd, c("warning", "frmtmb_nl_local", "frmtmb_nl_restart",
+                     "frmtmb_gp_basis"))
   }, held$c))
   ll <- nl_ll_pair(pr$ll0, pr$ll1)
   # the values are what the fits maximized, which under a prior with a
@@ -1643,12 +1655,14 @@ nl_fit_probed <- function(run, frame, start, prior) {
   pe <- if (pr$settled) {
     tryCatch(nl_pole_escape(run, frame, pr$fit), error = keep_missing(NULL))
   }
-  if (!is.null(pe)) {
+  if (!is.null(pe$fit)) {
     nl_pole_message(pe)
+    nl_pole_refused_message(pe)
     say(pe$held)
     limit(pe$fit, pe$held)
     return(pe$fit)
   }
+  nl_pole_refused_message(pe)
   say(pr$held)
   if (!pr$settled) {
     lt <- nl_ll_pair(pr$ll_tape, pr$ll1)

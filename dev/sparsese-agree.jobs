@@ -1,0 +1,6 @@
+dev/sparsese-agree.R 3500 1 0 > dev/sparsese-out/agree-3500-s1-g0.txt
+dev/sparsese-agree.R 3500 2 0 > dev/sparsese-out/agree-3500-s2-g0.txt
+dev/sparsese-agree.R 3500 3 0 > dev/sparsese-out/agree-3500-s3-g0.txt
+dev/sparsese-agree.R 3500 1 0.3 > dev/sparsese-out/agree-3500-s1-g3.txt
+dev/sparsese-agree.R 3500 2 0.3 > dev/sparsese-out/agree-3500-s2-g3.txt
+dev/sparsese-agree.R 3500 3 0.3 > dev/sparsese-out/agree-3500-s3-g3.txt

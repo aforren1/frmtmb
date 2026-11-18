@@ -51,12 +51,12 @@ skip_on_cran()
 # between 41 and "hundreds" is what the small alpha buys, and it is why
 # the number is one constant rather than a value tuned per family.
 #
-# The trade depends on the COUNT, so it is written down here: 383 of
-# this file's assertions are statistical (113 chi-square, 125 mean, 125
+# The trade depends on the COUNT, so it is written down here: 389 of
+# this file's assertions are statistical (115 chi-square, 127 mean, 127
 # variance, 18 P(Y = 0) or P(Y = 1), 2 correlation; counted by
 # dev/rel071-simcount.R). The simplex families added 56 of them, and
 # frechet, gen_extreme_value and discrete_weibull 18, negbinomial2 and
-# dirichlet_multinomial 20. At this alpha
+# dirichlet_multinomial 20, quantile_elf 6. At this alpha
 # that is a 0.0004 chance that any reseed raises a permanent false
 # alarm somewhere in the file; at 1e-3 it would be 0.32, and at a
 # conventional 0.05 it would be a near-certainty.
@@ -305,6 +305,12 @@ sim_specs <- list(
        lo = function(mu, d) mu - 10 * d[["sigma"]],
        hi = function(mu, d) mu + 10 * d[["sigma"]] + 25 * d[["beta"]]),
   list(nm = "asym_laplace", fam = quote(asym_laplace()),
+       eta = c(-0.3, 0.8), dp = list(sigma = 0.7, quantile = 0.35),
+       kind = "cont",
+       lo = function(mu, d) mu - 90 * d[["sigma"]],
+       hi = function(mu, d) mu + 90 * d[["sigma"]]),
+  # the tails of asym_laplace() at the same quantile, so the same bracket
+  list(nm = "quantile_elf", fam = quote(quantile_elf()),
        eta = c(-0.3, 0.8), dp = list(sigma = 0.7, quantile = 0.35),
        kind = "cont",
        lo = function(mu, d) mu - 90 * d[["sigma"]],

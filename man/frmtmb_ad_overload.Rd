@@ -20,7 +20,7 @@ Returns \code{f} with RTMB's tape-safe replacements for \code{c()}, \verb{[<-} a
 supplies that frmtmb will later put on an AD tape, so that the user
 does not have to carry the binding boilerplate. frmtmb applies it to
 the tape-side slots and to those only: \code{\link[=frmtmb_family]{frmtmb_family()}}'s \code{lpdf}
-and \code{lcdf}, and \code{\link[=frmtmb_structure]{frmtmb_structure()}}'s \code{loglik}. \code{valid_y}, \code{sim},
+and \code{cdf}, and \code{\link[=frmtmb_structure]{frmtmb_structure()}}'s \code{loglik}. \code{valid_y}, \code{sim},
 \code{post$mean_fn} and the rest run on doubles, off the tape, where the
 bindings would buy nothing. A package that takes tape-side functions
 of its own applies this to those. It is safe to call on any object:

@@ -528,15 +528,53 @@ Residuals are differences of angles and are NOT wrapped, so read
 
 \code{asym_laplace()} and \code{zero_inflated_asym_laplace()} fit quantile
 regression through a WORKING likelihood: at a fixed \code{quantile} the
-point estimates are consistent quantile estimates (they match
-\code{quantreg::rq()}), but the asymmetric Laplace is not the data's
-true density, so Wald standard errors and \code{confint()} intervals
-computed from it are not calibrated. This is a property of the
-asymmetric-Laplace approach, shared by brms. Use
-\code{\link[=frm_bootstrap]{frm_bootstrap()}} for intervals you can defend. The check
-function's kink can also produce a benign false-convergence
-warning near the optimum; \code{frm_allfit()} confirms the fit when in
-doubt.
+point estimates are consistent quantile estimates, but the
+asymmetric Laplace is not the data's true density.
+
+The log density is linear in \code{mu} on each side of its mode, so its
+curvature in \code{mu} is 0 almost everywhere, and the Hessian carries no
+information about the uncertainty of the estimates. On a fit without
+random effects, \code{frm()} therefore gives no Hessian standard error:
+it warns once (class \code{frmtmb_ald_no_se}, under
+\code{frmtmb_control(check_se = )}), and \code{summary()}, \code{vcov()},
+\code{confint()}, predictions, emmeans and marginaleffects show \code{NaN} with
+the reason. A \code{zi} part keeps its standard errors, since it reads
+only the zero rows. For intervals, use \code{\link[=quantile_elf]{quantile_elf()}}, a smoothed
+asymmetric Laplace whose log density has curvature, with
+\code{vcov_cluster(fit, ~ row, "CR0")} for its standard errors (see its
+help for the choice of \code{smoothing}). Or use \code{quantreg::rq()} with
+\code{se = "nid"}, or a bootstrap of the rows. \code{\link[=frm_bootstrap]{frm_bootstrap()}} and
+\code{frmtmb.sample::frm_sample()} read the same asymmetric Laplace
+likelihood, so their intervals hold only where the data are
+asymmetric Laplace: on gaussian data at quantile 0.9,
+\code{frm_bootstrap()}'s slope standard errors were less than half the
+Monte Carlo spread.
+
+Such a fit ends at the exact quantile regression solution. The
+optimizer stops on the kinks of the likelihood, so \code{frm()} solves
+for the location as the linear program it is at the fitted \code{sigma}
+and \code{quantile}, and settles those two by Newton steps; the location
+coefficients then equal those of \code{quantreg::rq()} at that
+\code{quantile}, and the result is proved a local maximum. A fit with
+\code{cens()} or \code{trunc()} rows, a link other than the identity, a
+nonlinear \code{mu}, \code{me()} or a prior density on the coefficients is not
+proved, and keeps its convergence warnings.
+
+Such a likelihood can have several local maxima. An estimated
+\code{quantile} has one on many of the intervals between the quantile
+regression's breakpoints, and on 46 simulated data sets of 100 rows
+the first one reached was below the highest on 24, by up to 2.65.
+With a fixed \code{quantile} and a constant \code{sigma} the likelihood is
+concave in a reparameterization, so the local maximum is the
+highest; with an estimated constant \code{quantile} \code{frm()} searches the
+quantile by branch and bound and moves to the highest maximum, unless
+a bound (\code{set_prior(lb =, ub =)}) holds \code{sigma} or the quantile,
+which the search does not read. Those
+fits get code 0 and no convergence warning, and \code{fit$opt$ald_cert}
+keeps the optimizer's own code. A fit with \verb{sigma ~} or \verb{quantile ~}
+terms is proved a local maximum only, keeps a nonzero code, and warns
+(class \code{frmtmb_ald_local}). For a quantile regression, fix the
+quantile: \code{bf(y ~ x, quantile = 0.5)}.
 }
 
 \section{Degrees of freedom that run off}{

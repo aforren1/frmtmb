@@ -1,0 +1,3 @@
+dev/sparsese-3370ref.R lane 4500 1 > dev/sparsese-out/ref-lane-4500-s1.txt
+dev/sparsese-3370ref.R lane 4500 2 > dev/sparsese-out/ref-lane-4500-s2.txt
+dev/sparsese-3370ref.R lane 4500 3 > dev/sparsese-out/ref-lane-4500-s3.txt

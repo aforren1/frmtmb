@@ -418,8 +418,15 @@ beta_whiten_map <- function(beta, bw, inv = FALSE) {
 #' reader of its entries sees the natural ones; one that inverts it
 #' whole would lose the digits the factor keeps, and every reader in
 #' frmtmb takes the factor (joint_cov_whole()). `diag.cov.random`'s
-#' `beta` entries come from the factor. Above `joint_root_max` joint
-#' parameters the factor, which is dense, is not formed.
+#' `beta` entries come from the factor. Above joint_root_limit() joint
+#' parameters the whole factor, which is dense, is not formed; its rows
+#' at `beta` and the outer parameters are (joint_root_rows()), which
+#' hypothesis(), the draws and interop read as the factor, and their
+#' presence sends joint_cov_whole(), and so vcov(), to the sparse
+#' inverse in the whitened coordinates. Without them the natural
+#' precision was inverted there, and vcov() of a degree-7 REML fit with
+#' 4510 joint parameters gave negative variances, or a' V a 7 percent
+#' high, with no warning (dev/sparsese-findings.md).
 #'
 #' @noRd
 sdr_unwhiten <- function(fit, sdr) {
@@ -436,38 +443,32 @@ sdr_unwhiten <- function(fit, sdr) {
   if (length(jb) != nb) return(sdr)
   Wf <- diag(1, nb)
   for (blk in bw[["blocks"]]) Wf[blk[["idx"]], blk[["idx"]]] <- blk[["T"]]
-  if (nrow(Q) <= joint_root_max) {
+  root <- if (nrow(Q) <= joint_root_limit()) {
     R <- tryCatch(chol(as.matrix((Q + Matrix::t(Q)) / 2)),
                   error = function(e) NULL)
-    if (!is.null(R) && all(is.finite(R))) {
-      root <- backsolve(R, diag(nrow(R)))
-      root[jb, ] <- Wf %*% root[jb, , drop = FALSE]
-      rownames(root) <- rownames(Q)
-      # whether a' V a over the coefficients formed from the whole
-      # matrix keeps a few digits, as se_reparam_cov() marks it
-      Kb <- root[jb, , drop = FALSE]
-      sv <- svd(Kb / sqrt(rowSums(Kb^2)), 0L, 0L)$d
-      attr(root, "lossy") <- (max(sv) / min(sv))^2 > se_product_kappa
-      sdr$joint_root <- root
-      if (length(sdr$diag.cov.random) == length(rn)) {
-        sdr$diag.cov.random[ib] <- rowSums(root[jb, , drop = FALSE]^2)
-      }
+    if (!is.null(R) && all(is.finite(R))) backsolve(R, diag(nrow(R)))
+  } else {
+    # the rows a reader of the coefficients and the outer parameters
+    # takes; a group effect's row is read by sparse solves instead
+    # (jcs_joint_cov())
+    joint_root_rows(Q, which(!rownames(Q) %in% setdiff(rn, "beta")))
+  }
+  if (!is.null(root)) {
+    root[jb, ] <- Wf %*% root[jb, , drop = FALSE]
+    rownames(root) <- rownames(Q)
+    # whether a' V a over the coefficients formed from the whole
+    # matrix keeps a few digits, as se_reparam_cov() marks it
+    Kb <- root[jb, , drop = FALSE]
+    sv <- svd(Kb / sqrt(rowSums(Kb^2)), 0L, 0L)$d
+    attr(root, "lossy") <- (max(sv) / min(sv))^2 > se_product_kappa
+    sdr$joint_root <- root
+    if (length(sdr$diag.cov.random) == length(rn)) {
+      sdr$diag.cov.random[ib] <- rowSums(root[jb, , drop = FALSE]^2)
     }
   }
   # sparse, so that a fit with many group effects does not pay for a
   # dense joint-size matrix to carry its precision back
-  nq <- nrow(Q)
-  inb <- unlist(lapply(bw[["blocks"]], function(blk) jb[blk[["idx"]]]))
-  ri <- setdiff(seq_len(nq), inb)
-  ci <- ri
-  xv <- rep(1, length(ri))
-  for (blk in bw[["blocks"]]) {
-    pp <- jb[blk[["idx"]]]
-    ri <- c(ri, rep(pp, times = length(pp)))
-    ci <- c(ci, rep(pp, each = length(pp)))
-    xv <- c(xv, as.vector(blk[["Tinv"]]))
-  }
-  Wi <- Matrix::sparseMatrix(i = ri, j = ci, x = xv, dims = c(nq, nq))
+  Wi <- joint_whitener(bw, jb, nrow(Q), inv = TRUE)
   Qn <- Matrix::forceSymmetric(Matrix::crossprod(Wi, Q %*% Wi))
   if (is.matrix(Q)) Qn <- as.matrix(Qn)
   dimnames(Qn) <- dimnames(Q)
@@ -478,20 +479,81 @@ sdr_unwhiten <- function(fit, sdr) {
 }
 
 #' The most joint parameters (random and fixed) for which sdr_unwhiten()
-#' forms the dense factor of the joint covariance.
+#' forms the dense factor of the joint covariance, by default; see
+#' joint_root_limit().
 #'
 #' @noRd
 joint_root_max <- 4000L
 
+#' The joint positions of beta_whitener()'s coordinates as a sparse
+#' `nq x nq` matrix `M`, natural = `M` gamma: the identity but on the
+#' `beta` rows `jb`, which take each block's `T` (or its inverse, `inv`).
+#'
+#' @noRd
+joint_whitener <- function(bw, jb, nq, inv = FALSE) {
+  inb <- unlist(lapply(bw[["blocks"]], function(blk) jb[blk[["idx"]]]))
+  ri <- setdiff(seq_len(nq), inb)
+  ci <- ri
+  xv <- rep(1, length(ri))
+  for (blk in bw[["blocks"]]) {
+    pp <- jb[blk[["idx"]]]
+    ri <- c(ri, rep(pp, times = length(pp)))
+    ci <- c(ci, rep(pp, each = length(pp)))
+    xv <- c(xv, as.vector(blk[[if (inv) "Tinv" else "T"]]))
+  }
+  Matrix::sparseMatrix(i = ri, j = ci, x = xv, dims = c(nq, nq))
+}
+
+#' Rows `K` of a factor of `Q^-1`, from the sparse Cholesky factor
+#' `Q = P' L L' P` (the rows of `P' L^-T`), made square
+#' (square_root_rows()) and set in a matrix with a row per row of `Q`,
+#' NaN at the rows not carried; attribute `rows` is `K`. NULL where `Q`
+#' does not factor.
+#'
+#' The whole factor is dense, 163 MB at 4510 joint parameters and 20 GB
+#' at 50010, while `K` is a few rows.
+#'
+#' @noRd
+joint_root_rows <- function(Q, K) {
+  Qs <- Matrix::forceSymmetric(methods::as(
+    methods::as(Q, "CsparseMatrix"), "generalMatrix"))
+  # CHOLMOD narrates a failed factorization from C; NULL is the answer
+  ch <- tryCatch(suppressWarnings(Matrix::Cholesky(Qs, perm = TRUE,
+                                                  LDL = FALSE)),
+                 error = function(e) NULL)
+  if (is.null(ch) || !length(K)) return(NULL)
+  E <- Matrix::sparseMatrix(i = K, j = seq_along(K), x = 1,
+                            dims = c(nrow(Q), length(K)))
+  X <- tryCatch(as.matrix(Matrix::solve(ch, Matrix::solve(ch, E,
+                                                          system = "P"),
+                                        system = "L")),
+                error = function(e) NULL)
+  if (is.null(X) || !all(is.finite(X))) return(NULL)
+  F <- square_root_rows(t(X))
+  root <- matrix(NaN, nrow(Q), ncol(F))
+  root[K, ] <- F
+  attr(root, "rows") <- K
+  root
+}
+
 #' The joint covariance of every estimated parameter from the stored
 #' sdreport's joint precision: `list(V, root)`, through the factor
 #' sdr_unwhiten() kept where there is one (`V = root root'`), else
-#' solve_joint_precision() of the whole matrix with `root` NULL.
+#' solve_joint_precision() of the whole matrix with `root` NULL. Where
+#' the factor carries some rows only (joint_root_rows()), `V` is held
+#' sparse in the whitened coordinates (jcs_joint_cov()).
 #'
 #' @noRd
 joint_cov_whole <- function(fit, Q = sdr_of(fit)$jointPrecision) {
   root <- tryCatch(sdr_of(fit)$joint_root, error = keep_missing(NULL))
   if (!is.null(root) && nrow(root) == nrow(Q)) {
+    if (length(attr(root, "rows"))) {
+      sp <- jcs_joint_cov(fit, white = TRUE, whole = TRUE)
+      V <- if (!is.null(sp)) sp$V else {
+        solve_joint_precision(Q, fit$cache, fit)
+      }
+      return(list(V = V, root = root))
+    }
     V <- tcrossprod(root)
     dimnames(V) <- dimnames(Q)
     return(list(V = V, root = root))

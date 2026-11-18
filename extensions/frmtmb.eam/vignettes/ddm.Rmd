@@ -739,7 +739,7 @@ c(go = go_mass, no_go = no_mass, total = go_mass + no_mass)
 ### The distribution function, and how it compares to EMC2
 
 The no-go branch needs the Wiener defective distribution function,
-which `wiener()` does not have: that family declares no `lcdf` and its
+which `wiener()` does not have: that family declares no `cdf` and its
 compatibility table says so. It is written for this family as two
 series blended in `log(u)`, the way the density's two series are, but
 centred far lower: at `u = 0.02` rather than the density's 0.35.

@@ -8,13 +8,15 @@
 #' Memoized joint covariance of all estimated parameters (fixed + random),
 #' with row/col component names. Cached in `fit$cache`. On a fit with a
 #' latent residual it is held sparse (jcs_joint_cov()); where that route does
-#' not apply, `dense = FALSE` returns `NULL` instead of forming it dense.
+#' not apply, `dense = FALSE` returns `NULL` instead of forming it dense. A
+#' REML fit on a whitened design above joint_root_limit() is held sparse
+#' too (jcs_white_wanted()).
 #'
 #' @noRd
 get_joint_cov <- function(fit, dense = TRUE) {
   cache <- fit$cache
   if (!is.null(cache$Vjoint)) return(cache$Vjoint)
-  if (length(frame_latres(fit$frame))) {
+  if (length(frame_latres(fit$frame)) || jcs_white_wanted(fit)) {
     # a latent per row makes V (n + p)^2 dense; held sparse, a reader pays
     # for the block it reads (R/joint-sparse.R)
     sp <- jcs_joint_cov(fit)
@@ -22,6 +24,8 @@ get_joint_cov <- function(fit, dense = TRUE) {
       cache$Vjoint <- sp
       return(cache$Vjoint)
     }
+  }
+  if (length(frame_latres(fit$frame))) {
     if (!dense) return(NULL)
     m <- fit$frame[["n_obs"]]
     lim <- getOption("frmtmb.latres_dense_rows", 20000L)
@@ -220,11 +224,12 @@ joint_cov_repair <- function(fit, Q, sdr) {
   lost_pos <- meta$lost_pos
   lost_why <- meta$lost_why
   if (length(wi$too_big)) {
-    # Above joint_root_limit() the whitened inverse is not formed, and
-    # the natural one gave a REML fit's coefficients standard errors of
-    # exactly 0 (4510 joint parameters, degree 7, sd lost, seed 2) or 7
-    # percent high (seed 3), with no warning (review of lane selimit2,
-    # F4b). Their rows are NaN, lost for "size" (se_pred_warn()).
+    # Above joint_root_limit() the sparse route in the whitened
+    # coordinates (jcs_joint_cov()) did not factor, and the natural
+    # inverse gave a REML fit's coefficients standard errors of exactly 0
+    # (4510 joint parameters, degree 7, sd lost, seed 2) or 7 percent
+    # high (seed 3), with no warning (review of lane selimit2, F4b).
+    # Their rows are NaN, lost for "size" (se_pred_warn()).
     jb <- wi$too_big
     V[jb, ] <- NaN
     V[, jb] <- NaN
@@ -242,10 +247,10 @@ joint_cov_repair <- function(fit, Q, sdr) {
 }
 
 #' The most joint parameters for which a REML fit on a whitened design
-#' with a lost parameter has prediction standard errors
-#' (joint_cov_white_inner(), which forms a dense factor over the inner
-#' positions): `options(frmtmb.joint_root_max = )`, default
-#' `joint_root_max`.
+#' forms its covariance as a dense factor (sdr_unwhiten(),
+#' joint_cov_white_inner()); above it the covariance is read by sparse
+#' solves in the whitened coordinates (jcs_joint_cov()):
+#' `options(frmtmb.joint_root_max = )`, default `joint_root_max`.
 #'
 #' @noRd
 joint_root_limit <- function() {
@@ -284,9 +289,10 @@ joint_cov_white_inner <- function(fit, sdr, r, f) {
     return(NULL)
   }
   # the factor is dense over the inner positions, as sdr_unwhiten()'s is;
-  # above the limit the natural-coordinate inverse is no answer either
+  # where the sparse route was asked for, it failed to factor the same
+  # block, and the natural-coordinate inverse is no answer either
   # (joint_cov_repair())
-  if (nrow(Qg) > joint_root_limit()) return(list(too_big = jb))
+  if (jcs_white_wanted(fit)) return(list(too_big = jb))
   Qgr <- Matrix::forceSymmetric(methods::as(Qg[r, r, drop = FALSE],
                                             "CsparseMatrix"))
   ch <- tryCatch(suppressWarnings(Matrix::Cholesky(Qgr, perm = TRUE,
@@ -5207,7 +5213,7 @@ ord_probs_from_eta <- function(fam, eta, cs, extra, K, aterms = list(),
   if (!is.null(cs)) dp[[".cs"]] <- cs
   P <- matrix(NA_real_, n, K)
   # ordinal lpdfs take the extras (thresholds) as a fourth argument;
-  # categorical's takes three - dispatch on arity like fam_lcdf() does
+  # categorical's takes three - dispatch on arity like fam_cdf() does
   four <- length(formals(fam[["lpdf"]])) >= 4L
   codes <- ord_code0(fam) + seq_len(K) - 1L
   for (k in seq_len(K)) {
@@ -6202,11 +6208,12 @@ osa_point_mass_families <- c(
   "tweedie")
 
 #' Whether a family has a CDF the one-step `"cdf"` route can read: a
-#' `cdf_log` pair, or the probability-scale `lcdf` slot.
+#' `cdf_log` pair, or the probability-scale `cdf` slot.
 #'
 #' @noRd
 osa_has_cdf <- function(fam) {
-  !is.null(fam[["cdf_log"]]) || !is.null(fam[["lcdf"]])
+  cdf <- fam_cdf_slot(fam)
+  !is.null(fam[["cdf_log"]]) || !is.null(cdf)
 }
 
 #' Whether the response reached the objective as the observation of
@@ -6217,7 +6224,7 @@ osa_has_cdf <- function(fam) {
 osa_is_cdf <- function(y) methods::is(y, "osa") && NCOL(y@keep) == 3L
 
 #' Both log tails of a family's CDF at `q` (data) for the one-step route,
-#' from `cdf_log` where the family declares it and from `lcdf` (a
+#' from `cdf_log` where the family declares it and from `cdf` (a
 #' probability) and `lccdf` (a log) otherwise, as `sim_cdf_pair()` reads
 #' them, but on the tape; core's bernoulli in closed form
 #' (`osa_bernoulli_pair()`).
@@ -6231,7 +6238,7 @@ osa_log_pair <- function(fam, q, dpv, av, extra, n) {
   if (!is.null(fam[["cdf_log"]])) {
     return(fam_log_pair(fam, q, dpv, av, extra, n))
   }
-  Fp <- fam_lcdf(fam, q, dpv, av, extra)
+  Fp <- fam_cdf(fam, q, dpv, av, extra)
   lS <- if (has_lccdf(fam)) fam_lccdf(fam, q, dpv, av, extra) else log1p(-Fp)
   list(lF = cdf_rows(log(Fp), n), lS = cdf_rows(lS, n))
 }
@@ -6640,7 +6647,7 @@ residual_values <- function(object, type = c("response", "pearson",
     # gaussian takes "cdf" as well, so that a weight is a frequency there
     # as on every other family and in brms; "fullGaussian" reads it as a
     # precision. An extension's family keeps its own route, because an
-    # extension's `lcdf` need not be a CDF of the response alone (the
+    # extension's `cdf` need not be a CDF of the response alone (the
     # Wiener first-passage families).
     # A censored count takes "cdf" too, its tails read on the window the
     # censoring leaves (osa_cdf_tails()); a censored continuous response
@@ -6681,7 +6688,7 @@ residual_values <- function(object, type = c("response", "pearson",
       # density, which frmtmb's densities do not have
       frm_stop("residuals(type = \"osa\", osa_method = \"cdf\") needs the ",
                "family's CDF, and '", fam[["family"]], "' supplies none ",
-               "(frmtmb_family(cdf_log =) or lcdf =)", call. = FALSE,
+               "(frmtmb_family(cdf_log =) or cdf =)", call. = FALSE,
                package = frm_family_package(fam))
     }
     args <- list(obj = object$obj, observation.name = ".frm_obs",
@@ -7825,6 +7832,12 @@ frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
 lb_dense <- function(lb) {
   if (is.null(lb$V_sparse)) return(lb)
   lb$V <- lb$V_sparse[lb$coef_pos, lb$coef_pos, drop = FALSE]
+  if (!is.null(lb$V_sparse[["M"]])) {
+    # a whitened REML fit's covariance as a factor in its coordinates, as
+    # the dense route's root (jcs_root_at())
+    lb$V_root <- jcs_root_at(lb$V_sparse, lb$coef_pos)
+    lb$V_rest <- matrix(0, length(lb$coef_pos), length(lb$coef_pos))
+  }
   lb$A <- as.matrix(lb$A)
   lb$V_sparse <- NULL
   lb
@@ -7863,8 +7876,12 @@ lp_basis_out <- function(object, jc, eta, A, coef_pos, extra_var, nonest) {
     coef_pos <- coef_pos[keep]
     nr <- length(unique(stats::na.omit(match(coef_pos, jc$V[["r"]]))))
     # the fitted rows load every latent: their variances come from the
-    # factor, and a dense block is formed only on request (frm_lp_basis())
-    if (nr > jcs_block_max) sparse <- jc$V else A <- as.matrix(A)
+    # factor, and a dense block is formed only on request (frm_lp_basis());
+    # a whitened REML fit's rows are carried to its coordinates first
+    # (jcs_white_load()), which a block in the natural ones cannot be
+    if (nr > jcs_block_max || !is.null(jc$V[["M"]])) {
+      sparse <- jc$V
+    } else A <- as.matrix(A)
   }
   out <- list(eta = eta, A = A, coef_pos = coef_pos,
               V = if (is.null(sparse)) {

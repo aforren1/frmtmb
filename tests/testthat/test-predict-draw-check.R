@@ -221,3 +221,203 @@ test_that("the Jacobian the check reads is the side law map's slope", {
   }
   expect_identical(draw_edge_slope(c(0.5, 2), 1), c(1, 1))
 })
+
+# The per-direction reading (draw_check_dirs()). The summed check's
+# median moves every parameter at once, so one weak direction among
+# many well-identified parameters does not show in it (backlog 5584).
+# Each parameter's direction of the law is read on its own, at 2 of its
+# standard deviations, and what its own slice already shows is not
+# counted. dev/drawdir-findings.md has the measurements.
+
+test_that("a joint wall fires the direction check, a slice's own does not", {
+  # a correlated quadratic plus a wall along a + b: no coordinate's own
+  # slice reaches the wall within 2 conditional standard deviations, but
+  # a's direction of the law (b moved by its regression on a) does
+  V <- matrix(c(1, 0.9, 0.9, 1), 2)
+  Vi <- solve(V)
+  quad <- function(p) sum(p * (Vi %*% p)) / 2
+  dw <- list(L = chol(V), law = NULL, v0 = c(0, 0), held = integer(0),
+             off = 0L, labels = c("a", "b"))
+  one <- function(fn) {
+    object <- list(obj = list(fn = fn, env = new.env()),
+                   opt = list(par = c(0, 0)))
+    draw_check_dirs(object, dw)
+  }
+  joint <- one(function(p) {
+    quad(p) + 10 * max(0, sum(p) / sqrt(2) - 1.5)^2
+  })
+  expect_gt(joint$stat, 2 * draw_dir_tol)
+  # 4 directions, and the slices of the 2 that passed the threshold
+  expect_identical(joint$n, 6L)
+  # the same wall along a alone, with a and b independent: a's direction
+  # IS its slice, and the excess the slice shows is the side law's
+  dw$L <- diag(2)
+  own <- one(function(p) sum(p^2) / 2 + 40 * max(0, p[1] - 1.5)^2)
+  expect_lt(own$stat, draw_dir_tol / 10)
+  # the guard's condition was present: a's direction was above the
+  # threshold before its slice was taken off
+  expect_identical(own$n, 5L)
+})
+
+test_that("the conditional standard deviations need no inverse", {
+  set.seed(6)
+  B <- matrix(stats::rnorm(24), 6, 4)
+  ref <- 1 / sqrt(diag(solve(crossprod(B))))
+  expect_lt(max(abs(draw_dirs_csd(B) / ref - 1)), 1e-10)
+})
+
+# One-component poisson data fitted with a two-component mixture and 20
+# noise covariates in both components (the short check's part R, seed
+# 25, K = 20): the summed excess is 1.15 at a ratio of 0.05 to the law's
+# drop, so the summed check does not fire; along the mixing weight's
+# direction the log-likelihood falls 77 further than the law says
+pdc_mixk_fit <- function() {
+  set.seed(25)
+  x <- stats::rnorm(300)
+  invisible(stats::runif(300))
+  d <- data.frame(x = x, y = stats::rpois(300, exp(1 + 0.3 * x)))
+  set.seed(5025)
+  for (j in 1:20) d[[paste0("z", j)]] <- stats::rnorm(300)
+  fo <- stats::as.formula(paste("y ~", paste(c("x", paste0("z", 1:20)),
+                                             collapse = " + ")))
+  frm(bf(fo), family = mixture(poisson(), poisson()), data = d)
+}
+
+test_that("a weak direction among many coefficients fires the check", {
+  skip_on_cran()
+  skip_if_not_installed("loo")
+  fit <- pdc_mixk_fit()
+  said <- character(0)
+  set.seed(1)
+  p1 <- withCallingHandlers(
+    predict(fit, ndraws = 200, summary = FALSE),
+    frmtmb_draw_reweighted = function(m) {
+      said <<- c(said, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    },
+    frmtmb_draw_pareto = function(w) {
+      said <<- c(said, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    })
+  chk <- fit$cache[["draw_check"]]
+  # the summed check alone stays silent here (0.83.0 returned the
+  # normal law's draws), the direction does not
+  expect_lt(chk$rel, draw_check_rel)
+  expect_true(chk$fire)
+  expect_gt(chk$dir, 3 * draw_dir_tol)
+  # the mixing weight's coefficient is no variance component: the draws
+  # are reweighted
+  expect_false(isTRUE(chk$warn_only))
+  # either way is valid: the weights' Pareto k decides which is said
+  expect_length(said, 1L)
+  expect_match(said, "along one direction", fixed = TRUE)
+  local_mocked_bindings(draw_reweight = function(object, dw) dw$D)
+  set.seed(1)
+  p0 <- predict(fit, ndraws = 200, summary = FALSE)
+  expect_false(identical(p1, p0))
+})
+
+test_that("a random-slope law wrong on both sides warns, not reweights", {
+  skip_on_cran()
+  # 15 groups of 8, slope sd 0.1 (backlog 5644, design S0.1 seed 14):
+  # 37% of the draws have an excess above 1 and 25% one below -0.5, so
+  # the summed median is near 0. Along the slope sd and correlation's
+  # direction the log-likelihood falls 46 further than the law says, and
+  # the normal law's 98% interval for a new level was 10.7 wide where the
+  # law with the parameters known gives 6.0. Both directions that fire
+  # are variance components', and weights by the likelihood, which is
+  # flat toward a slope variance of 0, made in-sample predictions worse
+  # on 10 of 12 such fits: the draws stay the normal law's, with a warning
+  set.seed(2014)
+  d <- data.frame(g = factor(rep(1:15, each = 8)), x = stats::rnorm(120))
+  ug <- stats::rnorm(15, 0, 0.8)
+  sg <- stats::rnorm(15, 0, 0.1)
+  d$y <- 1 + 0.5 * d$x + ug[d$g] + sg[d$g] * d$x + stats::rnorm(120)
+  fit <- frm(bf(y ~ x + (1 + x | g)), data = d)
+  nd <- data.frame(x = 2, g = factor("new"))
+  set.seed(1)
+  p1 <- allow_warnings(
+    suppressMessages(predict(fit, newdata = nd, allow_new_levels = TRUE,
+                             ndraws = 500, summary = FALSE)),
+    "far tail",
+    require = c("far tail", "cannot yet predict a grouping level"))
+  chk <- fit$cache[["draw_check"]]
+  expect_lt(chk$excess, draw_check_tol)
+  expect_true(chk$fire)
+  expect_gt(chk$dir, 3 * draw_dir_tol)
+  expect_true(isTRUE(chk$warn_only))
+  local_mocked_bindings(draw_reweight = function(object, dw) dw$D)
+  set.seed(1)
+  p0 <- suppressMessages(predict(fit, newdata = nd, allow_new_levels = TRUE,
+                                 ndraws = 500, summary = FALSE))
+  expect_identical(p1, p0)
+})
+
+test_that("a group sd steep along its own slice does not fire", {
+  # 30 groups of 4, group sd 0.3: along the log sd's direction the
+  # log-likelihood falls 15 further than the law says at 2 standard
+  # deviations, most of it along the log sd's own slice, which is the
+  # side law's to judge
+  set.seed(1)
+  d <- data.frame(g = factor(rep(1:30, each = 4)), x = stats::rnorm(120))
+  d$y <- 1 + 0.5 * d$x + stats::rnorm(30, 0, 0.3)[d$g] + stats::rnorm(120)
+  fit <- frm(bf(y ~ x + (1 | g)), data = d)
+  set.seed(1)
+  p1 <- suppressMessages(predict(fit, ndraws = 50, summary = FALSE))
+  chk <- fit$cache[["draw_check"]]
+  expect_false(chk$fire)
+  expect_lt(chk$dir, draw_dir_tol)
+  # a slice was read: some direction passed the threshold before its own
+  # slice was taken off
+  expect_gt(chk$dir_n, 2L * length(fit$opt$par))
+  local_mocked_bindings(draw_reweight = function(object, dw) dw$D)
+  set.seed(1)
+  expect_identical(suppressMessages(predict(fit, ndraws = 50,
+                                            summary = FALSE)), p1)
+})
+
+test_that("a direction the objective cannot evaluate at its end is no wall", {
+  # flatter than the law (half its drop) up to a point along a + b, and
+  # NaN past it, as a random-slope fit's inner solve fails far out along
+  # a log sd: the end of each + direction is NaN. 0.83.0's first build
+  # of the reading took that for an infinite wall and fired
+  V <- matrix(c(1, 0.9, 0.9, 1), 2)
+  Vi <- solve(V)
+  quad <- function(p) sum(p * (Vi %*% p)) / 2
+  dw <- list(L = chol(V), law = NULL, v0 = c(0, 0), held = integer(0),
+             off = 0L, labels = c("a", "b"))
+  one <- function(fn) {
+    object <- list(obj = list(fn = fn, env = new.env()),
+                   opt = list(par = c(0, 0)))
+    draw_check_dirs(object, dw)
+  }
+  edge <- function(p) sum(p) / sqrt(2) > 1.5
+  flat <- one(function(p) if (edge(p)) NaN else quad(p) / 2)
+  expect_true(is.finite(flat$stat))
+  expect_lt(flat$stat, 0)
+  # 4 directions; the 2 + ends read again at 3/4 (still NaN) and 1/2
+  expect_identical(flat$n, 8L)
+  # a wall before the NaN still fires, read nearer the estimate
+  wall <- one(function(p) {
+    if (edge(p)) NaN else quad(p) + 40 * max(0, sum(p) / sqrt(2) - 0.5)^2
+  })
+  expect_true(is.finite(wall$stat))
+  expect_gt(wall$stat, 2 * draw_dir_tol)
+})
+
+test_that("the warning says frm_sample() cannot predict a new level yet", {
+  object <- list(cache = new.env())
+  chk <- list(dir = 10, dir_par = "a", excess = 0, n = 20L)
+  allow_warnings(draw_reweight_say(object, chk, 0.9, 100L, new_levels = TRUE),
+                 "not reliable",
+                 require = "cannot yet predict a grouping level")
+  said <- character(0)
+  withCallingHandlers(
+    draw_reweight_say(object, chk, 0.9, 100L, new_levels = FALSE),
+    warning = function(w) {
+      said <<- c(said, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    })
+  expect_length(said, 1L)
+  expect_false(grepl("cannot yet predict", said, fixed = TRUE))
+})

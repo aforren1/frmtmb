@@ -727,14 +727,21 @@ test_that("the structures' mixture cells hold for ordinal mixtures", {
   cls <- stats::rbinom(n, 1, stats::plogis(-0.4 + 0.5 * d$z))
   lat <- ifelse(cls == 1, 1.5 * d$x + 1, -0.8 * d$x - 1) + stats::rlogis(n)
   d$o <- 1L + (lat > -1.5) + (lat > 0) + (lat > 1.5)
-  fits <- function(f, fam) {
-    fit <- frm(f, family = fam, data = d)
+  fits <- function(f, fam, allowed = character()) {
+    fit <- allow_warnings(frm(f, family = fam, data = d), allowed)
     expect_s3_class(fit, "frmtmb_fit")
     expect_true(is.finite(as.numeric(logLik(fit))))
   }
   # each cell's "works" is a fit
   fits(bf(o ~ x, disc1 ~ 0 + z), mixture(cumulative(), sratio()))
-  fits(bf(o ~ x), mixture(cumulative(threshold = "sum_to_zero"), sratio()))
+  # a cell's "works" is that the structure fits. Without the 10 jittered
+  # starts the default ran before backlog 6136, this one ends at a
+  # threshold with a standard error of 21900, and the degenerate warning
+  # says so; 0.83.0's starts found a clean point 1.77 higher, which
+  # frmtmb_control(starts = 10) reaches (review of 2026-11-18, item 1;
+  # test-mixture-starts.R)
+  fits(bf(o ~ x), mixture(cumulative(threshold = "sum_to_zero"), sratio()),
+       "ended at a degenerate boundary")
   fits(bf(o ~ x), mixture(cratio(), cumulative(threshold = "sum_to_zero"),
                           order = "mu"))
   fits(bf(o ~ x), mixture(cumulative(threshold = "equidistant"), sratio()))

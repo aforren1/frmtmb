@@ -658,25 +658,24 @@ test_that("a NaN prediction at a stop without curvature says so", {
   # Backlog item 5423. asym_laplace() stops at false convergence on the
   # kinks of its likelihood with every parameter "nocurv"; its fitted
   # values were NaN under the words "move along a direction the fit does
-  # not determine", which describe a different case
+  # not determine", which describe a different case. Since backlog item
+  # 4982 every such parameter is refused by name ("kink"), which reads
+  # as "nocurv" does
   set.seed(5)
   d <- data.frame(x = stats::rnorm(100))
   d$y <- 1 + 0.5 * d$x + stats::rnorm(100)
-  # the stop's own warnings, whichever of them a BLAS gives
   f <- allow_warnings(frm(y ~ x, data = d, family = asym_laplace()),
-                      c("Optimizer did not report convergence",
-                        "Large maximum absolute gradient",
-                        "Standard errors are not available"))
+                      "no Hessian standard error")
   lost <- sdr_of(f)$se_lost
-  expect_true(any(lost == "nocurv"))
+  expect_true(all(lost == "kink"))
   r <- limit_conds(stats::fitted(f))
   expect_true(all(is.nan(r$value[, "Est.Error"])))
   expect_length(r$warnings, 1L)
-  # every row reads the location's coefficients; where some other reason
-  # is lost beside "nocurv" (a stop on another BLAS), the general words
-  expect_match(r$warnings, if (all(lost == "nocurv")) {
-    "the curvature where the fit stopped"
-  } else "move along a direction the fit does not", fixed = TRUE)
+  # every row reads the location's coefficients
+  expect_match(r$warnings, "the curvature where the fit stopped",
+               fixed = TRUE)
+  expect_match(r$warnings, "no Hessian standard error by design",
+               fixed = TRUE)
   # the unit: a row reading a "nocurv" parameter only, against one that
   # also reads another lost parameter
   V <- diag(c(1, NaN, NaN))

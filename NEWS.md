@@ -1,3 +1,421 @@
+# frmtmb 0.84.0
+
+## New family
+
+* New family `quantile_elf()` for quantile regression: the extended
+  log-F density of Fasiolo et al. (2021), which qgam fits. It is a
+  smoothed `asym_laplace()` with the same parameters `mu`, `sigma` and
+  `quantile`, and a fixed `smoothing` (default 0.25, in units of
+  `sigma`). Its log density has curvature in `mu`, so a fit has Hessian
+  standard errors, and a model with a group-level term in `mu` has a
+  Laplace maximum, where `asym_laplace()` has neither. `mu` is the
+  quantile of the response smoothed by a logistic kernel; the bias this
+  gives grows with the square of `smoothing`. The Hessian standard
+  errors are those of the ELF model; use `vcov_cluster()` with one
+  cluster per row for the quantile estimate. With a group-level term,
+  a small `smoothing` can give the Laplace objective local maxima; use
+  `smoothing = 1` there. `?quantile_elf` has a section on how to choose
+  between the two families, and the refusal of `asym_laplace()`'s
+  Hessian standard errors names it first. brms has no such family.
+
+## Families
+
+* BREAKING: The CDF slot of `frmtmb_family()` is now `cdf`. Its old
+  name, `lcdf`, read as a log CDF beside the log-scale slots `lccdf` and
+  `cdf_log`, but the slot returns `F(q)` on the probability scale. The
+  old name is refused, not aliased. `frmtmb_family(lcdf = )`, a family
+  list that stores an element `lcdf` (built by hand, edited after
+  `frmtmb_family()`, or returned by `family_finalize()`), and a read of
+  `family$lcdf` each stop with an error of class
+  `frmtmb_cdf_slot_renamed` that names `cdf`. Rename the argument or the
+  element. `frmtmb_family()` has a `...` argument only for this check;
+  any other argument there is refused as unused. A fit saved by an
+  earlier version stops with the same error in each method that reads
+  the CDF: `update()`, `residuals(type = "osa")` and draws under
+  `trunc()`. Before, `residuals(type = "osa")` on such a fit changed
+  route without a word and could return `NaN`.
+
+* `$` on a family returns `NULL` for a slot that `frmtmb_family()`
+  defines and the object does not hold. Before, `$cdf` on a family with
+  no `cdf` element was an error that pointed at `cdf_log`, because `cdf`
+  is the start of that name.
+
+* BREAKING: `negbinomial()`, `brmsfamily("negbinomial2")`, `nbinom1()`,
+  `geometric()`, `zero_inflated_negbinomial()` and
+  `hurdle_negbinomial()` use a new negative-binomial log density. Its
+  derivative in the shape is correct at every shape. The density came
+  from `RTMB::dnbinom_robust()`, whose derivative in the log shape has
+  an error that grows with the shape: up to 2e-2 at a log shape of 30
+  and up to 672 at 40, where the true derivative is below 1e-12. A fit
+  on data with no overdispersion (the poisson limit) stopped where that
+  error was larger than the true gradient, so rounding decided the
+  stop. On 21 roundings of two poisson data sets, on two BLAS
+  libraries, the log shape stopped between 14.99 and 24.54, and 26 of
+  126 fits stopped with code 1 ("false convergence"). Under
+  `check_se = "ignore"`, 2 of the 126 warned "Large maximum absolute
+  gradient". Started at a log shape of 30, 15 of 21 roundings warned so
+  and stopped with code 1. Now every one of these fits stops with code
+  0, at one log shape for each data set, with the boundary message, and
+  with no message or warning under `check_se = "ignore"`. Where the old
+  value of the density was correct to 1e-13, the new value agrees with
+  it to 5e-12 relative. Under a mean link that is not the log, the
+  density now takes the log of the mean; before, it formed the
+  variance and subtracted the mean from it. The objective of a
+  negative-binomial model with a random intercept takes 0.4 times the
+  time it took, and its gradient 0.3 times.
+
+  The error in the old derivative also gave, by accident, the only
+  warning on a fit started far out on the poisson side of overdispersed
+  data. Such a fit stops at its start: between log shapes 25 and 30 the
+  log-likelihood changes by less than 1e-8. Started at 25 or 30 on data whose
+  maximum is at 0.76, the fit stops 46 log-likelihood units below that
+  maximum. Before, 5 of 6 such fits warned "Large maximum absolute
+  gradient". Now no fit warns about the gradient, and the only warning
+  is the standard-error check's "flat", which says that the data do not
+  determine the shape. That is not true here. Start a
+  negative-binomial shape near the data, or leave the start at its
+  default.
+
+* The values of these densities are now correct at a large shape.
+  Before, `zero_inflated_negbinomial()` with a mean link that is not
+  the log had a fitted log-likelihood that was incorrect by up to 0.061
+  at a log shape above 17. The pointwise values that
+  `frmtmb.sample::log_lik()` and `loo()` read were `NaN` at log shapes
+  from 35.7 to 39.9 for `zero_inflated_negbinomial()` with the log,
+  sqrt, softplus and squareplus links, for `negbinomial()` with the
+  softplus link and `rate()`, and for `nbinom1()` with the sqrt link.
+  For `zero_inflated_negbinomial()` on every link, these values were
+  incorrect by up to 0.899 at a large shape.
+
+## Convergence and standard errors
+
+* BREAKING: `asym_laplace()` and `zero_inflated_asym_laplace()` fits
+  without random effects give no Hessian standard error. The log
+  density is linear in `mu` on each side of its mode, so the Hessian
+  carries no information about the uncertainty of the estimates. Such
+  a fit warns once, with the reason (class `frmtmb_ald_no_se`, under
+  `frmtmb_control(check_se = )`), and `summary()`, `vcov()`,
+  `confint()`, `diagnose()`, predictions and the emmeans and
+  marginaleffects adapters show `NaN` and say why. Before, the mean
+  coefficients were `NaN` while `sigma ~ z` and `quantile ~ z` kept
+  standard errors from the same singular Hessian. A `zi` part keeps
+  its standard errors. The help (`?frmtmb-families`, "Quantile
+  regression inference") and the warning name routes to intervals:
+  first `quantile_elf()`, a smoothed asymmetric Laplace whose log
+  density has curvature, with `vcov_cluster()` for its standard
+  errors. `frm_bootstrap()` and `frmtmb.sample::frm_sample()` read the
+  same likelihood, so they hold only where the data are asymmetric
+  Laplace, and the help no longer calls the bootstrap's intervals
+  defensible.
+  `confint(method = "profile")` and `method = "uniroot"` refuse the
+  same parameters, with the same class: a likelihood interval reads the
+  same working likelihood (it gave 0.464 to 0.773 for a slope).
+
+* BREAKING: Such a fit ends at the exact quantile regression solution.
+  The optimizer stopped on the kinks of the likelihood with "false
+  convergence (8)" or a large gradient on every fit, up to 0.042 in
+  log-likelihood short of the quantile regression at the fitted
+  quantile. `frm()` now solves for the location as the linear program
+  it is at the fitted `sigma` and `quantile` (tied data included),
+  settles those two by Newton steps, and proves the result a local
+  maximum. Where the likelihood allows it, it also proves that maximum
+  the highest: with a fixed quantile and a constant `sigma` the
+  likelihood is concave in a reparameterization, and with an estimated
+  constant quantile a branch and bound over the quantile finds the
+  highest maximum (about 40 linear programs; a lower local maximum had
+  been reached on 24 of 46 simulated data sets, up to 2.65 below). The
+  constant may be on any link of `sigma` or the quantile; a bound on
+  either (`set_prior(lb =, ub =)`) keeps an estimated quantile's fit
+  local where the maximum is inside the bounds, since the search does
+  not read them; a fit stopped on a bound keeps its convergence
+  warnings. Such
+  a fit gets code 0 and no convergence warning, and `fit$opt$ald_cert`
+  keeps the optimizer's own code. A fit with `sigma ~` or `quantile ~`
+  terms is proved a local maximum only: it keeps a nonzero code and
+  warns that it may not be the highest (class `frmtmb_ald_local`),
+  because such a likelihood has several (with a fixed quantile 0.2 and
+  `sigma ~ z`, 4 of 40 fits were up to 0.153 below a multi-start
+  maximum). On 125 simulated fits with a constant sigma and quantile
+  on 5 designs and the 4 earlier cases, every fit was proved the
+  highest maximum, and its coefficients matched `quantreg::rq()` at
+  the fitted quantile to 1.2e-13 in log-likelihood. A fit the proof
+  does not cover (`cens()`, `trunc()`, another link of `mu`, a
+  nonlinear `mu`, `me()`, a prior density on the coefficients) keeps
+  its convergence
+  warnings. `frm_bootstrap()` now counts the refits proved the highest
+  as converged.
+
+* An `asym_laplace()` response whose every row is censored on one side
+  warns that the maximum likelihood estimates do not exist (class
+  `frmtmb_separation`), as a gaussian one does. With `cens()` right on
+  every row, a larger intercept of `mu` raises every row's probability
+  toward 1, which no finite value reaches. Before, the fit stopped at
+  "false convergence (8)" with every probability 1 to rounding.
+
+* `frm()` refuses an `asym_laplace()` or `zero_inflated_asym_laplace()`
+  random effect in `mu` under the Laplace approximation for `hetar1()`,
+  `ou()`, `toep()`, `homtoep()`, `homcs()`, `exp()`, `gau()`, `mat()`
+  and `gr(prec = )` too, under the same conditions as the structures
+  refused before: each covariance is its standard deviations times a
+  correlation, and the approximation rose along that scale in every
+  profile.
+
+* A coefficient that the separation check names gets the reason
+  "separation" in `summary()` where the Hessian of the stop had lost it
+  as "flat", a limit, or a variance that is not positive, as a
+  prediction already said.
+
+* BREAKING: The default `autoscale` also engages on a random slope whose
+  column is far from 0 against its spread: a root mean square above 2
+  times its standard deviation, over the rows its random term covers
+  (for `gr(g, by = h)`, the rows of each level's groups). Such a slope
+  is nearly
+  collinear with the intercept. Without the rescaled pre-fit, a random
+  slope on a calendar year (`x = 2000 + 3 z`, `y ~ 1 + (1 + x | g)`)
+  stopped 3.3 to 41.1 log-likelihood units short of the maximum on 10
+  of 10 data sets (both forms, `y ~ x + (1 + x | g)` too), 7 of them
+  with no warning. The same happened with `x = 5 + 0.1 z` and with
+  columns down to a ratio of 2.09. Fits with a
+  column nearer its spread's scale (Days 0 to 9, a dose given on half
+  the rows) are the fit `autoscale = FALSE` gives, bit for bit. With
+  two such slopes in one term, a nested term, `cs()` or `gr(by =)`, the
+  rescaled pre-fit can stop short too; centering the column before the
+  fit reaches the maximum there.
+
+* BREAKING: A correlation of a `us()` block that a fit leaves far out,
+  where the likelihood is flat further out, is no longer called a
+  boundary when moving it back toward 0, the other parameters held,
+  raises the log-likelihood. That fit stopped short of an interior
+  correlation. Under `autoscale = FALSE` a random slope on a column
+  spread 1e-4 or 1e-5 gave the boundary message, on 5 of 7 such fits
+  with no warning, while 1.68 to 35.1 units short. Each of the 7 now
+  warns: that the correlation stopped short of the maximum, or that
+  the fit's convergence could not be verified. A correlation at its
+  true limit keeps the boundary message.
+
+* BREAKING: A REML fit on an ill-conditioned fixed design (one that
+  frmtmb fits in the design's own coordinates) with more than
+  `options(frmtmb.joint_root_max = 4000)` joint parameters (fixed and
+  random) now has accurate standard errors for its coefficients and
+  its predictions. Above that size frmtmb forms no dense factor of the
+  joint covariance. Before, a prediction of such a fit whose variance
+  parameter had no standard error got NaN and a warning. A prediction
+  of a fit whose variance parameters all had standard errors, and
+  `vcov()` of either fit, inverted the joint precision in the natural
+  coordinates, whose condition number is the design's squared. On a
+  degree-7 raw polynomial with `(1 | g)` and 4500 groups of 2 rows,
+  `fitted(re_formula = NA)` was 4.5 percent low and `vcov()` gave
+  negative variances or values 7 percent high, with no warning. A
+  cumulative or categorical fit's `fitted()` differenced each
+  coefficient in the natural coordinates and was up to 1.2e-3 off
+  (relative) at 4508 joint parameters.
+  Now `fitted()`, `predict()`, `frm_linpred()`, `frm_lp_basis()` (with
+  its `V_root`), `frm_curve()`, `vcov()`, `hypothesis()` and the draws
+  of `predict()` read the covariance by sparse solves in the design's
+  coordinates. They agree with the dense factor to 1.1e-9 at 110 and
+  3510 joint parameters (a cumulative fit's `fitted()`, which
+  differences the output, to 4e-7) and with the exact conditional
+  standard errors to 3.3e-9 at 4510. The first `fitted()` call takes
+  0.04 s instead of 1.1 to 1.6 s (0.13 s instead of 62 s for a
+  cumulative fit at 4508 with the dense factor), and its memory no
+  longer grows with the square of the joint parameters. `vcov()` of
+  such a fit now gives
+  the warning that it gives below that size: a product such as
+  `a' V a` formed from the whole matrix loses digits. A fit forms its
+  factor at its first standard error, so the option applies at that
+  time. The NaN and its warning stay only where the inner block of the
+  joint precision does not factor in the design's coordinates.
+
+* BREAKING: A restart of the escape from a family's declared stationary
+  point (the skew normal's alpha = 0) that the optimizer abandons on an
+  error now keeps the lowest point it reached where the gradient is
+  finite, when no other restart of the escape gained and left the
+  point. This holds wherever the escape runs: Laplace fits, and both
+  escapes of a `quadrature = TRUE` fit (on the Laplace objective before
+  the rule is taped, and on the rule). Such a restart runs alpha far
+  toward its end (the half-normal limit), where the objective's
+  gradient can stop being finite. Before, the restart was dropped, so
+  whether the escape gained was decided by rounding. Three skew normals
+  with `(1 | g)` and `quadrature = TRUE`, started at alpha = 0, with the
+  response scaled by 1 + 2e-15 k for k = 0 to 20, stopped on alpha = 0
+  on 3 to 10 of the 21 scalings under the reference BLAS and under
+  OpenBLAS, 1.0 to 6.1 below the escaped fit in exact marginal
+  log-likelihood, with only a standard-error warning. The fit now
+  leaves alpha = 0 on every one of them and warns that the optimizer
+  did not report convergence.
+
+## Fitting
+
+* BREAKING: A nonlinear fit also starts inside each hole of the data,
+  where a pole of the body (a denominator at 0) can sit between rows.
+  `a / (x + b)` on y = 1 / (x - 2) + noise, with no rows within 0.3 of
+  2, stopped at b 0.39 with every denominator positive, code 0 and no
+  warning, 592 below the fit with b at -2.00. The optimizer cannot cross
+  a pole, and the restart beyond the poles runs only for a fit beside
+  them, so no start reached the gap. `frm()` now also fits from the
+  middle of each hole that the fit is not in, and returns the higher fit
+  with a message of class `frmtmb_nl_pole_start`; from a `start` of your
+  own, the fit is kept with a warning of class `frmtmb_nl_pole`. A gap
+  between the poles of adjacent rows is a hole when it has 10 or more
+  rows on each side and is wider than log2(1000 m) times the median of
+  the 41 gaps around it, m gaps in all; at most the 2 widest holes of a
+  coefficient get a start, each run twice: with the rest of the model at
+  the fit and at the default start. A hole fit is kept only where the
+  data place the pole among the rows (the standard error of the
+  coefficient below the span of the rows' poles), so a run that rises
+  without end, as on data that the hole separates, is not kept; a
+  message of class `frmtmb_nl_pole_refused` says so when the refused fit
+  is higher, and the next run that beats the fit is tried. On data with no
+  hole, no start runs and the fit is the same. A hole whose starts lose
+  costs 1.23 to 1.37 times the fit's evaluations of the objective, and
+  two such holes 1.52 to 1.59. A pole between two rows of dense data,
+  with no hole, is still not reached. `frmtmb_control(nl_starts =
+  FALSE)` turns the starts off.
+
+## Ordinal mixtures
+
+* BREAKING: No fit of a `mixture()` of ordinal families runs jittered
+  starts by default. Before, a fit from scratch without random effects
+  ran 10, at 5.6 to 7.1 times the fit, and a fit with random effects ran
+  none, because there they cost a median of 18 times the fit. Now one
+  rule holds for every model form: `frmtmb_control(starts = 10)` asks
+  for them, and the degenerate warning names that call on a fit where
+  it would run them. The cost falls on mixtures of one family without
+  random effects, which the swapped start below cannot help: on
+  simulated two-class data, `mixture(cumulative(), cumulative())` now
+  ends short of a better point without a warning on 4 of 40 fits with
+  1000 rows (none before), and its degenerate warning rose from 14 to 20
+  of 40 fits with 300 rows.
+
+* A `mixture()` of ordinal families is now refitted from the default
+  fit with the components' parameters swapped between the components,
+  one refit per other assignment (all of them for three components,
+  the pairwise swaps from four), where the swapped start is another
+  model: one at which the objective equals the fit's is skipped, as for
+  two components of one family, link and terms, or `sratio()` and
+  `cratio()` under the logit. The fit returns the refit when it
+  converged, is higher by more than `grad_tol` per unit of mean case
+  weight and has no degenerate component, after four jittered refits
+  from it, whose best end without a degenerate component it keeps; and
+  says so in a message of class `frmtmb_mixture_swap`. A `start` of your
+  own, `starts = 0`, and the refits of `refit()`, `frm_bootstrap()`,
+  `influence()` and `frm_allfit()` run no swap. On 320 simulated
+  two-component fits with random effects, the default ended short of a
+  better clean maximum without a warning on 19 fits before and on 3
+  after, and no fit moved down. The swap costs a median of 2.0 to 3.8
+  times the fit for two families, 6.9 times where it is kept, and about
+  1.0 for one family.
+
+* BREAKING: The jittered starts no longer take a point that the
+  degenerate check then warns about. The ranking called a point proper
+  when a threshold had a standard error above 100 or none at all, so
+  10 starts moved 3 of 120 proper fits without random effects to a
+  higher point with the degenerate warning. A point counts as flat now
+  when a threshold the data place has a standard error above 100, or
+  when the standard-error check lost one, on the covariance built at
+  each point and per unit of mean case weight. A default flat only in
+  this way still runs the starts it asks for, and a better point
+  without a degenerate component replaces it.
+
+## Gaussian processes
+
+* BREAKING: An approximate `gp(k = )` whose length scale ran below a tenth
+  of the spacing its basis resolves now gets a message, not a warning,
+  where the likelihood stays level from the estimate to a length scale of
+  0, the white limit of the basis, and outward toward larger length
+  scales the likelihood does not rise. There `sdgp` and the length scales
+  have no standard error, and `summary()` now says why: the data
+  determine only `sdgp^2` times the product of the length scales. The
+  message names the `hypothesis()` that reports that product with its
+  standard error, for example `"2 * log(sdgp_gpx) + log(lscale_gpx) = 0"`.
+  It has the classes `frmtmb_gp_basis` and `frmtmb_boundary_fit`, and
+  `frmtmb_control(check_se = )` governs it as it governs the other
+  boundary messages. 13 of 30 gaussian fits of fields drawn from a squared
+  exponential kernel end at that limit, and all 13 get the message; the
+  estimates and standard errors of all 30 are unchanged. The warning
+  stays where that is not proved: a length scale under the spacing at an
+  interior maximum (a prior on `lscale`), a stop on the way to the limit,
+  a fit with a convergence warning, and a stop inside the white plateau
+  below a maximum at larger length scales (a `start` there stopped 3.6 to
+  14.3 log-likelihood units short), where the warning now says the fit
+  stopped short.
+
+* BREAKING: The white sub-GPs of a `gp(x, by = f, k = )` term now have no
+  standard error for `sdgp` and the length scales, as a single field's
+  have. They kept finite ones, with no word: on one field drawn from a
+  squared exponential kernel every white sub-GP showed `sdgp` 197.7 with
+  a standard error, on 21 of 21 roundings. Removing that ridge from the covariance
+  also moves the other standard errors of such a fit in the seventh digit
+  (the largest relative change measured, 5.0e-7).
+
+* The standard-error check calls `sdgp` and the length scales of such a
+  field a boundary only where the likelihood is proved level out to the
+  limit and does not rise on the way back. A single step of 2 along the
+  ridge that changed the log-likelihood by less than 1e-3 was enough
+  before, and it also passed a fit that stopped 4.3e-4 short of the limit
+  and fits that stopped inside the white plateau short of a maximum;
+  there the two parameters are now "flat".
+
+## Predictions
+
+* BREAKING: `predict()`'s draw check also reads each parameter's
+  direction of the normal law on its own. The median over test draws
+  is a sum over all directions, so one weak direction among many
+  well-identified parameters did not show in it: a weakly identified
+  mixture that fired the check alone stopped firing when 8 to 128
+  well-identified coefficients were added, and fits with 10 or 20 noise
+  covariates in each component kept the normal law's draws with no
+  message. Where the median does not fire the check, each parameter is
+  now moved 2 of its standard deviations to each side, with the
+  parameters correlated with it moved by their regression on it. The
+  excess of the drop in the log-likelihood there over the normal law's
+  is read, less the excess of the parameter moved alone by 2 of its
+  conditional standard deviations, nearer the estimate. That keeps a
+  group standard deviation near 0, which the per-parameter side law
+  judges, from firing it; a skew in a strongly correlated parameter
+  alone can still count. The check fires where the excess left is above
+  6, a heuristic: for a quadratic misfit, a normal law twice as wide as
+  the likelihood along that direction. A direction whose end the
+  log-likelihood cannot be evaluated at is read nearer the estimate, or
+  not at all. The reading costs two evaluations of the log-likelihood
+  per parameter, once per fit. On the 472 gaussian GLMs and GLMMs the
+  threshold was set on it fired on 4, and on none of 162 GLMs with one
+  coefficient per level of a factor; on 286 fits of other designs it
+  fired on 8 of 126 random-slope fits and 1 of 160 others. On mixtures fitted
+  to data from one component it fires on 23 more of 120 fits, and their
+  predictive means move nearer the truth on average (mean error 0.071
+  to 0.062 on gaussian mixtures, 0.167 to 0.140 on poisson ones). Of 7
+  mixtures with 10 or 20 noise covariates that the median missed, it
+  fires on 4; where a weakness is spread over many directions, each
+  only a little off the normal law, the draws are still the normal
+  law's. Where it fires on a direction that is not a variance
+  component's, the draws are reweighted as for the median, and the
+  message and the warning name the parameter whose direction fired.
+  Whether the weights' Pareto k passes 0.7, and so whether a warning
+  rather than a message is given, depends on `ndraws`.
+
+* BREAKING: Where every direction that fires the per-direction reading
+  belongs to a variance component, `predict()` warns and does NOT
+  reweight its draws. The variance components are the group-level
+  standard deviations and correlations, the `gp()` and smooth scales,
+  and the autocorrelation, residual-correlation and `me()` parameters;
+  the coefficients of every linear predictor (a sigma's among them) are
+  not. A random-slope model whose slope variance and correlation are
+  weakly identified together fires there: the normal law's 98% interval
+  for a new level was 1.36 to 2.04 times as wide as the law with the
+  parameters known, and 1.43 and 1.67 times a brms posterior's on two
+  of them, while its 90% interval matched the posterior's. Reweighting
+  by the likelihood, which is flat toward a variance of 0, made the
+  in-sample predictive means worse on 10 of 12 such fits and narrowed
+  the 90% interval to 0.89 of the posterior's. A warning of class
+  `frmtmb_draw_wide_tail` names the parameter and says that the normal
+  law's far tail along it is too wide; the draws are the normal law's.
+
+* The warning that reweighted draws are not reliable now says, where
+  the prediction is for a grouping level the fit did not see, that
+  `frm_sample()`'s `posterior_predict()` cannot yet predict such a
+  level.
+
 # frmtmb 0.83.0
 
 ## Convergence and standard errors

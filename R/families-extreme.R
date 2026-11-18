@@ -304,7 +304,7 @@ fam_frechet <- function(link = "log", link_nu = "logm1") {
     },
     # at q <= 0, where F is 0 and log S is 0, both are read at q = 1 and
     # weighted 0: log(q) there is -Inf or NaN (positive_cdf_q())
-    lcdf = function(q, dpars, aterms) {
+    cdf = function(q, dpars, aterms) {
       pq <- positive_cdf_q(q)
       w <- dpars[["nu"]] * logz(pq[["at"]], dpars)
       pq[["on"]] * exp(-exp_neg_capped(w))
@@ -906,7 +906,7 @@ fam_gev_impl <- function(link, link_sigma, link_xi, chart) {
   lpdf <- function(y, dpars, aterms) core_lpdf(y, dpars) + xi_guard(dpars)
   # outside the support the distribution function is 0 below the lower
   # end and 1 above the upper end, where x > 0
-  lcdf <- function(q, dpars, aterms) {
+  cdf <- function(q, dpars, aterms) {
     if (gev_exact(q, dpars)) {
       g <- gev_parts_exact(q, dpars)
       return(ifelse(g[["inside"]], exp(-exp(-g[["h"]])),
@@ -934,7 +934,7 @@ fam_gev_impl <- function(link, link_sigma, link_xi, chart) {
       dpars[["xi"]] <- frmtmb_gev_xi
       core_lpdf(y, dpars)
     }
-    lcdf <- NULL
+    cdf <- NULL
     lccdf <- NULL
     links$xi <- get_link("identity", dpar = "xi")
   }
@@ -944,7 +944,7 @@ fam_gev_impl <- function(link, link_sigma, link_xi, chart) {
     dpars = c("mu", "sigma", "xi"),
     links = links,
     lpdf = lpdf,
-    lcdf = lcdf,
+    cdf = cdf,
     lccdf = lccdf,
     init_dpars = list(
       # the Gumbel moments: xi = 0 has unbounded support, so every data
@@ -1247,7 +1247,7 @@ fam_discrete_weibull <- function(link = "logit", link_shape = "log") {
       ll <- a + log(-expm1(L * (dw_pow(yy + 1, k) - dw_pow(yy, k))))
       if (is.null(ov)) ll else ll * ov$keep
     },
-    lcdf = function(q, dpars, aterms) {
+    cdf = function(q, dpars, aterms) {
       -expm1(dpar_log(dpars, "mu", lk) * dw_pow(q + 1, dpars[["shape"]]))
     },
     lccdf = function(q, dpars, aterms) {

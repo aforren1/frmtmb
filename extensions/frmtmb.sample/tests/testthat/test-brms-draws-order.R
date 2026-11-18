@@ -129,7 +129,12 @@ test_that("print() lists the parameters in variables() order", {
   set.seed(9)
   d <- data.frame(x = stats::runif(60), f = factor(rep(c("a", "b"), 30)))
   d$y <- sin(3 * d$x) + stats::rnorm(60, 0, 0.3)
-  fit <- suppressWarnings(frm(y ~ gp(x, by = f, k = 5), data = d))
+  # both sub-GPs end at their basis's white limit, a boundary message
+  fit <- withCallingHandlers(
+    suppressWarnings(frm(y ~ gp(x, by = f, k = 5), data = d)),
+    frmtmb_gp_basis = function(m) {
+      if (inherits(m, "message")) invokeRestart("muffleMessage")
+    })
   tpl <- fit$frame[["par_template"]]
   est <- unlist(lapply(names(tpl), function(cp) fit$estimates[[cp]]))
   lab <- frmtmb::brms_par_labels(fit)

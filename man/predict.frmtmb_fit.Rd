@@ -178,7 +178,7 @@ was fitted on the latent values are the fit's own.
 \section{When the normal law does not describe the likelihood}{
 
 The normal law reads the curvature of the log-likelihood at the
-estimates. Two checks read the log-likelihood itself.
+estimates. Three checks read the log-likelihood itself.
 \itemize{
 \item Each side of each parameter, moved alone. Where the log-likelihood
 is flat toward one end of a parameter's range (a zero inflation
@@ -194,22 +194,60 @@ drop is above 1 and above 0.15 times the median drop the normal law
 gives at those draws. A weakly identified mixture can give that
 with no parameter at an end. A model with many well-identified
 parameters does not: a small skew in each adds up to an excess that
-grows with their number, and so does the law's own drop. The
-converse also holds: a weak direction among many well-identified
-parameters, such as a mixture with many covariates, can go
-unflagged and keep the normal law's draws. Where the
-check fires, each draw is weighted by the likelihood over the
-density it was drawn from. The weights are Pareto smoothed with
-\code{loo::psis()} and the draws are resampled by them. A parameter that
-the first check holds at its estimate in part of the draws keeps
-that part. A message of class
-\code{frmtmb_draw_reweighted} gives the Pareto k. Where k is above 0.7
-the weights are not reliable and a warning of class
-\code{frmtmb_draw_pareto} says so: \code{frmtmb.sample::frm_sample()} draws
-from the posterior itself. The check's test draws do not use the
-random number stream, and where it does not fire the draws are not
-changed.
+grows with their number, and so does the law's own drop.
+\item Each direction of the normal law. The median above is a sum over
+all directions, so one weak direction among many well-identified
+parameters, such as a mixture with many covariates, does not show
+in it. Where the draws together do not fire the check, each
+parameter is moved 2 of its standard deviations to each side, and
+the parameters correlated with it are moved by their regression on
+it. The excess of the drop there over the normal law's is read, and
+the excess of the parameter moved alone, by 2 of its conditional
+standard deviations (nearer the estimate), is taken off, so that a
+group standard deviation that the first check judges does not count
+twice. The check fires where what is left is above 6. That
+threshold is a heuristic: for a quadratic misfit it is a normal law
+twice as wide as the likelihood along that direction. A skew in a
+strongly correlated parameter alone can still count. Where the
+log-likelihood cannot be evaluated at a direction's end, the
+direction is read nearer the estimate, or not at all. This is done
+once per fit and costs two evaluations of the log-likelihood per
+parameter; on a model with random effects each is an inner
+optimization. A random-slope model whose slope variance and
+correlation are weakly identified together can fire it: there the
+normal law's far tail for a new level is too wide. Where every
+direction that fires is a covariance-structure parameter's, the
+draws are NOT reweighted. These are the parameters of every
+group-level covariance (standard deviations and correlations, and
+the ranges, Matern smoothness, decay rates, ar correlations and
+\code{rr()} loadings of structured covariances, spatial ones included),
+the \code{gp()} and smooth scales, the latent-residual standard
+deviation and its autocorrelation, and the autocorrelation,
+residual-correlation and \code{me()} parameters. The coefficients of
+every linear predictor, a sigma's among them, are not. On the
+random-slope fits that fire, the likelihood is flat toward a slope
+variance of 0, and weights by it made predictions worse on 10 of
+12. A warning of class \code{frmtmb_draw_wide_tail} names the parameter
+and says that the normal law's far tail along it is too wide. Where
+another direction fires too, the draws are reweighted. A weakness
+spread over many directions, each only a little off the normal law,
+can still go unflagged and keep the normal law's draws.
 }
+
+Where the second check fires, or the third on any other direction,
+each draw is weighted by the likelihood over the density it was
+drawn from. The weights are Pareto smoothed with \code{loo::psis()} and
+the draws are resampled by them. A parameter that the first check
+holds at its estimate in part of the draws keeps that part. A
+message of class
+\code{frmtmb_draw_reweighted} gives the Pareto k. Where k is above 0.7 the
+weights are not reliable and a warning of class \code{frmtmb_draw_pareto}
+says so: \code{frmtmb.sample::frm_sample()} draws from the posterior
+itself, though its \code{posterior_predict()} cannot yet predict a
+grouping level the fit did not see, and the warning says so where the
+prediction is for one. Whether k passes 0.7 depends on \code{ndraws}.
+Neither check uses the random number stream, and where neither fires
+the draws are not changed.
 }
 
 \section{predict() and fitted() can disagree on the mean}{

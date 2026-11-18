@@ -1025,7 +1025,7 @@ ddm_family <- function(cfg, delta, crange = c(NA_real_, NA_real_)) {
   # checks that a censored model's family HAS a distribution function
   # before it reads the family's own validator, and its message there
   # would name neither this family nor the reason.
-  lcdf <- function(q, dpars, aterms) ddm_stop_cens_var()
+  cdf <- function(q, dpars, aterms) ddm_stop_cens_var()
   lccdf <- function(q, dpars, aterms) ddm_stop_cens_var()
   if (!length(vv)) {
     # Over both boundaries, except on a LEFT- or INTERVAL-censored row:
@@ -1033,7 +1033,7 @@ ddm_family <- function(cfg, delta, crange = c(NA_real_, NA_real_)) {
     # probability is that boundary's defective distribution function.
     # A right-censored row reached none and is scored from lccdf, over
     # both. The censoring code is data, so the choice is a mask.
-    lcdf_rows <- function(q, dpars, aterms) {
+    cdf_rows <- function(q, dpars, aterms) {
       lF <- ddm_rt_lcdf2(q - dpars[["ndt"]], dpars[["mu"]], dpars[["bs"]],
                          dpars[["bias"]])[["lF"]]
       cen <- aterms[["cens"]]
@@ -1093,13 +1093,13 @@ ddm_family <- function(cfg, delta, crange = c(NA_real_, NA_real_)) {
     # only the interval rows are. The lower edge and the upper-edge call
     # form F(y) with the same arithmetic on the same values, so the two
     # agree to the bit and frmtmb's difference is the directly computed
-    # mass (see lcdf_rows above for why the mass is computed directly).
-    lcdf_edge <- function(q, dpars, aterms) {
+    # mass (see cdf_rows above for why the mass is computed directly).
+    cdf_edge <- function(q, dpars, aterms) {
       ddm_floor(exp(ddm_rt_lcdf_b(q - dpars[["ndt"]], dpars[["mu"]],
                                   dpars[["bs"]], dpars[["bias"]],
                                   ddm_indicator(aterms))), 1e-300)
     }
-    lcdf_upper <- function(q, dpars, aterms) {
+    cdf_upper <- function(q, dpars, aterms) {
       nd <- dpars[["ndt"]]
       ylo <- aterms[["cens_ylo"]]
       up <- ddm_indicator(aterms)
@@ -1110,18 +1110,18 @@ ddm_family <- function(cfg, delta, crange = c(NA_real_, NA_real_)) {
                                dpars[["bs"]], dpars[["bias"]], up, l1)
       F1 + ddm_floor(exp(lD), 4 * .Machine$double.eps * F1)
     }
-    lcdf <- function(q, dpars, aterms) {
+    cdf <- function(q, dpars, aterms) {
       cen <- aterms[["cens"]]
       if (is.null(cen) || length(cen) != length(q) ||
           !is.null(aterms[["trunc_lb"]]) || !is.null(aterms[["trunc_ub"]])) {
-        return(lcdf_rows(q, dpars, aterms))
+        return(cdf_rows(q, dpars, aterms))
       }
       y2 <- aterms[["cens_y2"]]
       if (!is.null(y2) && !is.null(aterms[["cens_ylo"]]) &&
           identical(as.numeric(q), as.numeric(y2))) {
-        return(ddm_on_rows(lcdf_upper, q, dpars, aterms, which(cen == 2), 1))
+        return(ddm_on_rows(cdf_upper, q, dpars, aterms, which(cen == 2), 1))
       }
-      ddm_on_rows(lcdf_edge, q, dpars, aterms, which(cen == -1 | cen == 2), 1)
+      ddm_on_rows(cdf_edge, q, dpars, aterms, which(cen == -1 | cen == 2), 1)
     }
     lccdf <- function(q, dpars, aterms) {
       cen <- aterms[["cens"]]
@@ -1135,7 +1135,7 @@ ddm_family <- function(cfg, delta, crange = c(NA_real_, NA_real_)) {
   guard <- ddm_support_guard(cfg)
   if (!is.null(guard)) {
     lpdf <- ddm_guard_slot(lpdf, guard)
-    lcdf <- ddm_guard_slot(lcdf, guard)
+    cdf <- ddm_guard_slot(cdf, guard)
     lccdf <- ddm_guard_slot(lccdf, guard)
   }
 
@@ -1164,8 +1164,8 @@ ddm_family <- function(cfg, delta, crange = c(NA_real_, NA_real_)) {
     init$lambda <- function(y, aterms) 0.05
     pb <- ddm_boundary_prob_fn(vv, nd)
     lpdf <- ddm_cont_lpdf(lpdf, crange)
-    if (!is.null(lcdf)) {
-      lcdf <- ddm_cont_lcdf(lcdf, crange)
+    if (!is.null(cdf)) {
+      cdf <- ddm_cont_cdf(cdf, crange)
       lccdf <- ddm_cont_lccdf(lccdf, crange)
     }
     mean_fn <- ddm_cont_mean(mean_fn, pb, crange)
@@ -1178,7 +1178,7 @@ ddm_family <- function(cfg, delta, crange = c(NA_real_, NA_real_)) {
     dpars = dpars,
     links = links,
     lpdf = lpdf,
-    lcdf = lcdf,
+    cdf = cdf,
     lccdf = lccdf,
     # The boundary a trial ended at reaches the density as dec() or as
     # vint1, and either will do, so the requirement is declared as the
@@ -1217,8 +1217,8 @@ ddm_family <- function(cfg, delta, crange = c(NA_real_, NA_real_)) {
   if (isTRUE(cfg$contaminant)) fam[["contaminant_range"]] <- crange
   # read by ddm_ndt_install(), which otherwise puts the bounded link in
   if (!is.null(cfg$link_ndt)) fam[["ndt_link_fixed"]] <- TRUE
-  # An interval's lower edge, which lcdf needs at the upper-edge call to
-  # form the interval's mass directly; see lcdf above. Only when a row
+  # An interval's lower edge, which cdf needs at the upper-edge call to
+  # form the interval's mass directly; see cdf above. Only when a row
   # is interval-censored, so every other model's data is what it was.
   if (!length(vv)) {
     fam[["aterm_data"]] <- function(y, aterms) {

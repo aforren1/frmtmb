@@ -148,7 +148,7 @@ written: `z | trials(n) + cens(cc, hi) + weights(w) ~ 1` with the core
 discrete interval as brms does, `(y, y2]`, so the band from 15 to 25 is
 the row `z = 14, hi = 25`, which scores `F(25) - F(14) =
 P(15 <= Y <= 25)`, the book's Stan program exactly. `bcm_binomial_cdf()` is the same model as a custom family, a
-CDF supplied with `frmtmb_family(lcdf = )` in four lines, and gives the
+CDF supplied with `frmtmb_family(cdf = )` in four lines, and gives the
 same log-likelihood; it is how the port ran while the core binomial had
 no CDF.
 

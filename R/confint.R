@@ -624,6 +624,15 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   if (is.null(parm)) {
     frm_stop("`parm` is required for method = '", method, "'", call. = FALSE)
   }
+  # asym_laplace()'s refused parameters (ald_se_lost()): a likelihood
+  # interval reads the same working likelihood the refusal is about
+  kink <- intersect(outer_par_names(object)[idx], names(ald_se_lost(object)))
+  if (length(kink)) {
+    frm_stop("confint(method = '", method, "') gives no interval for ",
+             paste(kink, collapse = ", "), ": ",
+             ald_se_why(object, length(kink) == 1L), call. = FALSE,
+             class = "frmtmb_ald_no_se")
+  }
   ci <- matrix(NA_real_, length(idx), 3,
                dimnames = list(nm[idx], c("lwr", "upr", "est")))
   # An importance-corrected fit profiles its own tape, whose proposal is
@@ -1811,6 +1820,18 @@ diagnose <- function(fit, quiet = FALSE) {
     } else {
       cat("Max |gradient|:", format(out$max_grad, digits = 4),
           "at", latres_par_text(fit, out$worst_grad), "\n")
+      # the fit's own proof (ald_polish()), which the gradient at a kink
+      # cannot give
+      if (isTRUE(fit$opt$ald_cert$ok)) {
+        cat("  The stop is the exact quantile regression solution at the ",
+            "fitted scale and quantile, ",
+            if (isTRUE(fit$opt$ald_cert$global)) {
+              "the highest maximum of the likelihood"
+            } else "a local maximum of the likelihood",
+            "; the gradient there is a one-sided derivative at the kinks ",
+            "of the asymmetric Laplace, not a distance from the maximum\n",
+            sep = "")
+      }
       if (is.null(gv)) {
         cat("  The importance correction makes this a Monte Carlo ",
             "gradient, which no convergence criterion applies to; read ",
@@ -1864,6 +1885,14 @@ diagnose <- function(fit, quiet = FALSE) {
     if (length(out$bad_se)) {
       cat("Non-finite standard errors:",
           paste(out$bad_se, collapse = ", "), "\n")
+      kink <- names(ald_se_lost(fit))
+      if (any(out$bad_se %in% kink)) {
+        cat(paste0("  ", strwrap(paste0(
+          paste(intersect(out$bad_se, kink), collapse = ", "), ": ",
+          ald_se_why(fit, sum(out$bad_se %in% kink) == 1L)),
+          width = max(40L, getOption("width", 80L)) - 4L, exdent = 2L)),
+          sep = "\n")
+      }
     }
     if (length(out$flat)) {
       # named BEFORE the covariance verdict is read as

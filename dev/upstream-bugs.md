@@ -1028,6 +1028,56 @@ Numbering is settled at consolidation. Not reported.
   among the lanes of the round of 2026-11-13 when filed.
 - Status: not reported.
 
+### brms-53. `brm(backend = "mock")` does not return on a large random-effect fit
+
+- Seen: 2.23.0 with rstan 2.32.7 and stanli 0.25.0, 2026-11-17 (lane
+  samplers, round of 2026-11-16).
+- Repro (`dev/samplers-slope-mock-ab.R`; data as `samplers_big("big_slope")`
+  in `dev/samplers-designs.R`):
+
+  ```r
+  set.seed(20261119)
+  ng <- 500L
+  d <- data.frame(g = factor(rep(seq_len(ng), each = 8L)),
+                  x = rnorm(8L * ng))
+  z1 <- rnorm(ng)
+  z2 <- 0.3 * z1 + sqrt(1 - 0.09) * rnorm(ng)
+  i <- as.integer(d$g)
+  d$y <- rbinom(nrow(d), 1, plogis(-0.2 + 0.6 * d$x + 0.8 * z1[i] +
+                                     0.4 * z2[i] * d$x))
+  bargs <- list(brms::bf(y ~ x + (1 + x | g)), data = d,
+                family = brms::bernoulli())
+  code <- do.call(brms::make_stancode, bargs)
+  sdat <- do.call(brms::make_standata, bargs)
+  sf <- rstan::sampling(rstan::stan_model(model_code = code), data = sdat,
+                        chains = 4, iter = 200, seed = 1, refresh = 0)
+  do.call(brms::brm, c(bargs, list(backend = "mock", mock_fit = sf,
+                                   rename = TRUE)))
+  ```
+
+- Expected: a brmsfit in seconds, as on small fits (0.9 to 8.4 s on the
+  n = 200 designs, `t_stanli_mock` in `dev/samplers-q1-out/p*.rds`).
+  Actual: the last call did not return before the 10-minute cap on 400
+  draws of rstan's own stanfit (`dev/samplers-slope-mock-ab.log` ends at
+  "rstan sampled"). On stanli's stanfit of 4 x 1000 draws it did not
+  return in 15 minutes with `as_stanfit()`
+  (`dev/samplers-slope-mock.log`) nor in 5.5 minutes with
+  `as_stanfit(plain = TRUE)` (`dev/samplers-slope-mock-plain.log`). On a
+  crossed bernoulli (1 | a) + (1 | b), 300 x 40, n = 6000,
+  `dev/samplers-q1.R` was still inside the step more than an hour after
+  rstan's 97 s of sampling had ended, and was stopped. rstan's and
+  stanli's stanfits stall alike, so the time is in brms. Which renaming
+  step is slow was not isolated.
+- Consequence: the route stanli documents for a full brmsfit
+  (`brm(backend = "mock", mock_fit = as_stanfit(fit))`) is unusable on
+  large multilevel models.
+- Workaround: read the stanfit under Stan's own names and map them by
+  hand (`dev/samplers-q1raw.R`).
+- Record: `dev/samplers-findings.md`, Q1 "brms mock backend". brms-53
+  was the next free number in this worktree when filed; another lane of
+  the round may have taken it.
+- Status: not reported.
+
 ## RTMB
 
 ### RTMB-1. `pbeta()`, `pbinom()` and `pnbinom()` have non-finite third derivatives
@@ -1094,8 +1144,27 @@ Numbering is settled at consolidation. Not reported.
   to 1e154. Workaround: the probit's `logit_eta` reads the logs at
   `|eta| <= 1000` only and continues with the tail's leading term
   (`R/links.R`).
+- Also (review of lane quadesc, 2026-11-17,
+  `dev/reviews/quadesc-review-iso2.R`, log
+  `dev/reviews/quadesc-review-iso2-ref.txt`): on 4001 points of x in
+  [-1e14, -1e2], log-spaced, the first derivative is non-finite at 174,
+  all in [-9.93e13, -3.10e9]. Relative error against -x: 1.1e-8 at
+  -1e4, 3.2e-7 at -1e5, 3.7e-5 at -1e6, 3.2e-3 at -1e7, 0.34 at -1e8,
+  6.2e18 at -1e9; Inf at -1e10. The value stays right. Met in
+  `skew_normal()` (RTMBdist's `dskewnorm()` reads `pnorm(alpha * z,
+  log.p = TRUE)`) under `quadrature = TRUE`: with alpha near 2e6 to
+  1.4e7 the rule's far nodes put alpha * z at -3.0e9 to -3.9e9, the
+  node's weight is exp(-5e18) = 0, and 0 times the non-finite
+  derivative is NaN in the reverse sweep, so the gradient is NaN while
+  the value is sound (group 11 of the review's case, 6.0384 against an
+  exact 6.0606). Workaround: the stationary escape keeps the last point
+  with a finite gradient (`escape_track()`, `R/fit.R`). A candidate
+  floor in the family, `-1e6 + logspace_add(0, w + 1e6)` on the
+  argument, gives a finite gradient and the same value to 10 decimals
+  (`dev/reviews/quadesc-review-clamp.R`), but moves every skew-normal
+  density at the ulp level; filed in `dev/test-backlog.md`, not built.
 - Record: `dev/phase3b-rtmb-report-pnorm.md` (filing draft);
-  `dev/optima-findings.md`.
+  `dev/optima-findings.md`; `dev/quadesc-findings.md`, section 10.
 - Status: not reported (draft ready).
 
 ### RTMB-4. `dnbinom_robust()` gradient in the size is wrong at very large sizes
@@ -1115,15 +1184,37 @@ Numbering is settled at consolidation. Not reported.
   -218 against -3.2e-15. The value stays right to about 1e-12. The
   error grows like size times machine epsilon, the cancellation of
   `lgamma(x + size) - lgamma(size)` and of its digamma difference.
+- Measured again 2026-11-16 against a 256-bit reference (Rmpfr), on the
+  tape, log size 0 to 40 by 0.5, counts 0 to 1e4, means 0.1 to 1e4
+  (3888 points; `dev/nbrobust-jac.R`, log `dev/nbrobust-out/jac.txt`).
+  Largest error of the derivative in the log size, by band: log size 0
+  to 10, 4.2e-11; 10.5 to 18, 1.3e-07; 18.5 to 24, 4.5e-05; 24.5 to
+  30, 2.0e-02; 30.5 to 35, 5.3; 35.5 to 40, 672. At a count of 3 and a
+  mean of 3: 30, -1.36e-02 against 1.40e-13; 35, 38 and 40, -4.0
+  against 9.5e-16, 4.7e-17 and 6.4e-18. The value is right to 1.4e-11
+  relative everywhere measured (the worst at a count and a mean of 1e4,
+  a log mass of -5.5 formed from terms of about 9e4). ci082's double-precision "exact"
+  derivative is itself at its rounding floor past a log size of 30.
 - Consequence: a negbinomial fit at its poisson limit can stop at a log
   shape past 20, where the convergence check reads the noise as a
   "Large maximum absolute gradient" warning in place of the limit
-  message (backlog, round of 2026-11-13, lane ci082).
-- Workaround: none; the robustness test does not sweep `shape`
-  (`tests/testthat/test-numerical-robustness.R:136`). RTMB-6's
-  `lgamma_shift_diff()` is the pattern a stable form would use.
+  message (backlog, round of 2026-11-13, lane ci082). On frmtmb 0.83.0
+  the noise also decides where the fit stops: over 21 roundings of two
+  poisson data sets, on the reference BLAS and OpenBLAS 0.3.26, the log
+  shape ended anywhere from 14.99 to 24.54 and 26 of 126 fits ended
+  with code 1 ("false convergence"); with an exact derivative every
+  rounding ends at one point with code 0 (`dev/nbrobust-findings.md`).
+- Workaround: frmtmb's own `nb_lpmf()` (`R/families.R`) since the
+  round of 2026-11-16, for every family that reads the negative
+  binomial: the shape-dependent terms as `sum(log1p(j / size))` for a
+  count up to 24 and `lgamma_shift_diff()` above, and
+  `(size + y) log1p(mu / size)` through `logspace_add()`. Its
+  derivative error on the same grid is at most 6.6 times machine
+  epsilon times `y + mu + 1`. A simulated response still goes to
+  `dnbinom_robust()`. The robustness test sweeps the shape to a log
+  shape of 40 (`tests/testthat/test-numerical-robustness.R`).
 - Record: `dev/fams-findings.md` "Defects found and not fixed" item 2;
-  `dev/ci082-findings.md`, item 3b.
+  `dev/ci082-findings.md`, item 3b; `dev/nbrobust-findings.md`.
 - Status: not reported.
 
 ### RTMB-5. `OBS()` in a loop silently swaps data between responses
@@ -1548,6 +1639,107 @@ Numbering is settled at consolidation. Not reported.
 - Record: `dev/nb2dm-findings.md` "brms 2.23.0 / Stan defect met";
   repros `dev/nb2dm-stan-glm-bug.R` (log
   `dev/nb2dm-out/stan-glm-bug.txt`) and `dev/nb2dm-brms-stuck.R`.
+- Status: not reported.
+
+## stanli
+
+Measured by lane samplers (round of 2026-11-16) as a possible stand-in
+for rstan in the survey and the brms tiers; installed only in
+`C:/Users/adf44/source/r/wt-samplers-lib`. frmtmb does not use it.
+
+### stanli-1. `rstan::sampling(as_stanmodel(code), pars =, include = FALSE)` keeps only `lp__`
+
+- Seen: stanli 0.25.0 (R-universe Windows binary, RemoteSha bc66380e,
+  runtime v0.25.0) with rstan 2.32.7, brms 2.23.0, 2026-11-17. Not
+  checked on 0.27.0.
+- Repro (`dev/samplers-q2fp-debug.R`, survey pair p075, cumulative
+  `y ~ x + z`): build brms's exclusion list
+  `brms:::exclude_pars(brm(..., empty = TRUE))`, then
+
+  ```r
+  rstan::sampling(stanli::as_stanmodel(code), data = sdat, chains = 1,
+                  iter = 10, warmup = 0, algorithm = "Fixed_param",
+                  init = list(pars), refresh = 0, seed = 1,
+                  pars = excl, include = FALSE)
+  ```
+
+- Expected: what rstan returns on the compiled program with the same
+  call, every variable but the excluded ones (`b`, `Intercept`, `disc`,
+  `lprior`, `b_Intercept`, `lp__` are kept). Actual: with the full list,
+  an error "pars not
+  in the model: Lncor, Cortime, ..." (rstan ignores exclusion names the
+  program lacks); with the list cut to the program's own variables,
+  a stanfit whose only variable is `lp__` (`model_pars` and
+  `sim$fnames_oi` both `lp__`; `dev/samplers-q2fp-debug.log`).
+- Consequence: the method tier's Fixed_param brmsfit
+  (`tests/testthat/helper-brms-methods.R`) cannot run on stanli as
+  written; the brmsfit it builds has no coefficients, and `fixef()` on it
+  stops with "The following variables are missing in the draws object:
+  {'b_x', 'b_z'}" (first run of `dev/samplers-q2fp.R`).
+- Workaround: pass the complement, the variables to keep, with
+  `include = TRUE`. That gives the same variables, and
+  `posterior_epred()` and `fixef()` identical to rstan's, on 4 survey
+  pairs (`dev/samplers-q2fp.R`, `dev/samplers-q2-out/fp.tsv.txt`).
+- Record: `dev/samplers-findings.md`, Q2 (4).
+- Status: not reported.
+
+## SparseNUTS and StanEstimators
+
+Measured by lane samplers (round of 2026-11-16) against frm_sample()'s
+tmbstan route; installed only in
+`C:/Users/adf44/source/r/wt-samplers-lib`. frmtmb does not use them.
+
+### StanEstimators-1. An R process that loaded StanEstimators aborts at exit
+
+- Seen: StanEstimators 0.4.0 (R-universe Windows binary, RemoteSha
+  7d03a631) through SparseNUTS 1.0.2 (2f3f1626), R 4.6.1, Windows,
+  2026-11-17.
+- Repro (`dev/samplers-smoke.R`): the SparseNUTS vignette's eight
+  schools RTMB model, then
+  `SparseNUTS::sample_snuts(obj, refresh = 0, seed = 1, cores = 1,
+  chains = 2)`, in `Rscript`. Sampling succeeds and its output prints.
+- Expected: the process ends with status 0. Actual: it prints
+  "terminate called without an active exception" at exit and ends with
+  status 127 (`dev/samplers-smoke.log`). The same on every
+  `dev/samplers-q3.R` run in which SparseNUTS sampled: small_pois, slope,
+  gp, weak, small_pois with laplace = TRUE, big_crossed and big_pois
+  ("rc=127" in `dev/samplers-q3-batch.log`; the small_pois run by hand),
+  each after its record was written. The two ald runs, where
+  `sample_snuts()` stopped before sampling (SparseNUTS-1), ended with
+  status 0, as did the lane's processes that ran only stanli and rstan
+  (`dev/samplers-q1-batch.log`). Not isolated between StanEstimators and
+  SparseNUTS beyond that; StanEstimators runs the Stan services, so it
+  is the likely owner.
+- Consequence: any `Rscript`, testthat or R CMD check run that loads
+  them reports a failure after a successful run.
+- Workaround: none; write results before the process ends.
+- Record: `dev/samplers-findings.md`, Q3 "Costs seen".
+- Status: not reported.
+
+### SparseNUTS-1. No fallback when the joint precision is not positive definite
+
+- Seen: SparseNUTS 1.0.2 (2f3f1626) with StanEstimators 0.4.0,
+  frmtmb.sample 0.30.0, 2026-11-17.
+- Repro (`dev/samplers-q3f.R ald`, design `ald` in
+  `dev/samplers-designs.R`): frmtmb's prior-augmented objective of
+  `y ~ x + (1 | g)`, `asym_laplace()`, 20 groups of 10, captured from
+  `frm_sample(reparameterize = FALSE)`, then
+  `sample_snuts(obj, num_samples = 1000, chains = 4, cores = 1,
+  seed = 1)`.
+- Expected: either sampling, or a message saying the Laplace marginal
+  has no usable mode and naming the metrics that need none ("unit",
+  "stan"). Actual: it stops 0.06 s after "Getting Q and its stats..."
+  with "error in evaluating the argument 'x' in selecting a method for
+  function 't': ... leading principal minor of order 20 is not
+  positive" (`dev/samplers-q3-ald.log`). The asym_laplace log density is
+  linear in each random effect on either side of its mode, so the
+  marginal has no maximum and Q is not positive definite: the reason
+  frm() itself refuses this model.
+- Consequence: the user gets a bare Matrix error with no hint that
+  `metric = "stan"` or `"unit"` would run. frm_sample() samples the same
+  model (0 divergences, R-hat 1.01).
+- Workaround: `metric = "stan"` or `"unit"` (not measured).
+- Record: `dev/samplers-findings.md`, Q3.
 - Status: not reported.
 
 ## RTMBode
@@ -1977,6 +2169,30 @@ Seen on 0.2.5. All four are patched with `assignInNamespace()` in
   requests to `https://api.github.com/` in that job.
 - Record: this file; pkgcheck run log 43673487284.
 - Status: not reported. Check pkgcheck issues #449 and #255 first.
+
+## R (stats)
+
+### R-1. `stats::dnbinom(mu = )` loses digits at a large size
+
+- Seen: R 4.6.1, 2026-11-17.
+- Repro: `stats::dnbinom(y, size = exp(22), mu = exp(lmu), log = TRUE)`
+  for counts 0 to 1e5 and log means -1 to 1.5, against the mass at 400
+  bits (Rmpfr): the relative error is 4.3e-10 at log size 18, 9.0e-9 at
+  20, 9.8e-8 at 22 and 9.1e-8 at 24, and falls again past 26 (3.9e-12 at
+  28). At log mean 11.5 and log size 24 it is 0.184 absolute.
+- Expected: the accuracy it has at small and very large sizes (below
+  1e-14 at log size 0 to 5 and from 35 on). frmtmb's `nb_lpmf()` holds
+  9.8e-15 on the same grid.
+- Consequence: brms's `log_lik()` for the negative-binomial families
+  calls it, so a value check of frmtmb against brms at a shape past
+  exp(15) shows differences of up to 2e-7 relative that are brms's
+  (R's), not frmtmb's.
+- Workaround: none needed in frmtmb, which does not call it on a fit's
+  path.
+- Record: `dev/reviews/2026-11-17-nbrobust.md`, finding 6;
+  `dev/reviews/nbrobust-review-statsdnb.R`, log
+  `dev/reviews/nbrobust-review-statsdnb.log`.
+- Status: not reported.
 
 ## Already reported upstream
 

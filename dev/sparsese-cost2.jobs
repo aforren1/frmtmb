@@ -1,0 +1,4 @@
+dev/sparsese-3370ref.R lane 30000 1 > dev/sparsese-out/cost-sparse-30000-s1.txt
+dev/sparsese-3370ref.R base 10000 1 > dev/sparsese-out/cost-base-10000-s1.txt
+dev/sparsese-agree.R 100 1 0 > dev/sparsese-out/agree-100-s1-g0.txt
+dev/sparsese-agree.R 100 2 0 > dev/sparsese-out/agree-100-s2-g0.txt

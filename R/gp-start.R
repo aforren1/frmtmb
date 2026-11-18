@@ -1736,14 +1736,179 @@ gp_basis_white <- function(bk, theta) {
 # the spacing, their white stops 3e-5 (dev/gpfield-findings.md, 5139).
 gp_basis_white_frac <- 0.1
 
-#' The warning for an approximate gp() whose length scale ran under the
-#' basis's spacing (gp_basis_white()), or `NULL`.
+#' Whether an approximate gp() block is at the white limit of its basis,
+#' proved on the likelihood: its length scales lie under
+#' `gp_basis_white_frac` of the spacing (gp_basis_white()), and along each
+#' ridge on which `sdgp^2` times the product of the length scales stays
+#' fixed, the objective stays within `se_edge_tol` of the fit's out to the
+#' limit, a length scale of 0. Under that gate every basis function's
+#' prior variance is within 5 percent of the limit's, and the gap falls as
+#' the squared length scale, by exp(-2) per unit of the move: so a move of
+#' `se_edge_step` and one of `se_edge_step + se_sd_far` (where the gap is
+#' 4e-11 of the gate's, the limit to rounding) bound the ridge. A fit
+#' whose length scale sits under the gate at an interior maximum (a prior
+#' on lscale) or that stopped on the way there fails, and keeps its
+#' warning. The ridges are gp_white_ridge_dirs()'s.
+#'
+#' The way back is asked too, as se_limit_dir() asks it of a coefficient:
+#' along each ridge outward, every `se_edge_step` until the length scale
+#' reaches the gate, the objective must not fall by more than `se_edge_tol`.
+#' Deep in the white plateau every gradient is about 0, so a fit started
+#' there stops there whatever the likelihood does at larger length scales,
+#' and the probe toward 0 is level by construction: five resolved fits of
+#' the gpfield review's sweep started at 3e-5 of the spacing stopped 3.6 to
+#' 14.3 log-likelihood units short, and gained 1.5e-5 to 1.1e-4 at four
+#' units outward, where the 13 white fits lose 4.7e-6 to 5.2e-5
+#' (dev/reviews/2026-11-17-gpselimit.md, finding 2). Such a stop returns
+#' FALSE with attribute `short` TRUE.
+#'
+#' Kept per block in the fit's cache, since the standard-error check
+#' (se_boundary_names()) and the end-of-fit condition (gp_basis_message())
+#' ask it of the same point. The objective's state is put back.
+#'
+#' @noRd
+gp_white_ridge <- function(fit, bk) {
+  th <- fit$estimates[["theta"]]
+  ti <- bk[["theta_idx"]]
+  if (!identical(bk[["covstruct"]], "hsgp") || length(ti) < 2L ||
+        !gp_basis_white(bk, th[ti])) {
+    return(FALSE)
+  }
+  p <- fit$opt$par
+  key <- paste(ti, collapse = "_")
+  hit <- if (is.environment(fit$cache)) fit$cache$gp_white[[key]]
+  if (!is.null(hit) && identical(hit$par, p)) return(hit$value)
+  om <- outer_par_map(fit)
+  thpos <- which(om$comp == "theta")
+  if (length(thpos) != length(th) || length(om$names) != length(p)) {
+    return(FALSE)
+  }
+  pos <- thpos[ti]
+  dirs <- gp_white_ridge_dirs(bk)
+  obj <- fit$obj
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  pf <- se_probe_fn(fit)
+  fn <- function(q) tryCatch(se_quiet(pf(q)), error = function(e) NA_real_)
+  f0 <- fn(p)
+  ok <- is.finite(f0)
+  short <- FALSE
+  at <- function(v, t) {
+    q <- p
+    q[pos] <- q[pos] + t * v
+    fn(q) - f0
+  }
+  # each ridge's outward moves, to where its length scale reaches the gate
+  # an isotropic block leaves the gate where its smallest spacing is
+  sp <- if (length(pos) == 2L) min(bk[["gp_spacing"]]) else {
+    rep_len(bk[["gp_spacing"]], length(pos) - 1L)
+  }
+  ls <- exp(th[ti][-1L])
+  for (v in dirs) {
+    for (t in c(se_edge_step, se_edge_step + se_sd_far)) {
+      if (!ok) break
+      d <- at(v, t)
+      ok <- is.finite(d) && abs(d) <= se_edge_tol
+    }
+    j <- which(v[-1L] != 0)[1L]
+    tg <- log(ls[j] / (gp_basis_white_frac * sp[j]))
+    back <- unique(c(-seq(se_edge_step, max(se_edge_step, -tg),
+                          by = se_edge_step), tg))
+    # asked even where the way to 0 failed, so that the warning can say
+    # the fit stopped short
+    for (t in back[back < 0]) {
+      if (short || !is.finite(f0)) break
+      d <- at(v, t)
+      if (is.finite(d) && d < -se_edge_tol) {
+        ok <- FALSE
+        short <- TRUE
+      }
+    }
+  }
+  if (short) ok <- structure(ok, short = TRUE)
+  if (is.environment(fit$cache)) {
+    fit$cache$gp_white[[key]] <- list(par = p, value = ok)
+  }
+  ok
+}
+
+#' The ridges of the approximate gp() blocks that gp_white_ridge() proves at
+#' the white limit, one column per ridge over the `np` outer parameters
+#' (raw units, gp_white_ridge_dirs()), for the standard-error check to
+#' remove as it removes a joint end (cov_from_hessian()). Load-bearing: on
+#' a single field the Hessian removed the ridge by itself (260 of 260 white
+#' fits of the gpfield review's sweep under 20 roundings), but on
+#' `gp(by = f)` with white sub-GPs it did not, and 0.83.0 kept finite
+#' standard errors on every one of them on 21 of 21 roundings of sweep row
+#' 21 (sdgp 197.7 with a standard error of 4916 on the log scale; on row 3
+#' two of four), with no word (dev/reviews/2026-11-17-gpselimit.md,
+#' finding 3). NULL when there is none.
+#'
+#' @noRd
+gp_white_dirs <- function(fit, np) {
+  th <- fit$estimates[["theta"]]
+  om <- outer_par_map(fit)
+  thpos <- which(om$comp == "theta")
+  if (!length(th) || length(thpos) != length(th) ||
+        length(om$names) != np) {
+    return(NULL)
+  }
+  out <- NULL
+  for (bk in fit$frame[["re_blocks"]] %||% list()) {
+    if (!identical(bk[["covstruct"]], "hsgp") ||
+          !gp_white_ridge(fit, bk)) {
+      next
+    }
+    pos <- thpos[bk[["theta_idx"]]]
+    for (v in gp_white_ridge_dirs(bk)) {
+      w <- numeric(np)
+      w[pos] <- v
+      out <- cbind(out, w)
+    }
+  }
+  if (!is.null(out)) colnames(out) <- NULL
+  out
+}
+
+#' The ridges of an approximate gp() block, over its own parameters (log
+#' sdgp, then the log length scales): for an isotropic block in D
+#' dimensions one, log sdgp up D/2 and the log length scale down 1; for an
+#' anisotropic block one per length scale, log sdgp up 1/2 and that log
+#' length scale down 1. Along each `sdgp^2` times the product of the
+#' length scales stays fixed.
+#'
+#' @noRd
+gp_white_ridge_dirs <- function(bk) {
+  nl <- length(bk[["theta_idx"]]) - 1L
+  if (nl == 1L) return(list(c((bk[["gp_D"]] %||% 1) / 2, -1)))
+  lapply(seq_len(nl), function(j) {
+    v <- numeric(nl + 1L)
+    v[c(1L, 1L + j)] <- c(0.5, -1)
+    v
+  })
+}
+
+#' The conditions for approximate gp() terms whose length scale ran under
+#' the basis's spacing (gp_basis_white()): a list of up to two
+#' `list(text, class, message)`. Terms that gp_white_ridge() proves at the
+#' white limit get a message, as a boundary fit: their sdgp and length
+#' scales have no standard error there, and the summary says why. The
+#' others keep the warning: under a prior on lscale, or at a stop on the
+#' way to the limit, their standard errors stay and read the prior or the
+#' stop, not the field; at a stop in the white plateau short of a maximum
+#' at larger length scales it says so. A fit with a convergence warning
+#' (`fit$cache$conv_classes`, check_convergence()) keeps the warning too.
 #'
 #' @noRd
 gp_basis_message <- function(fit) {
   hits <- character(0)
+  flat <- logical(0)
+  short <- logical(0)
+  prod <- character(0)
   th <- fit$estimates[["theta"]]
   cvec <- NULL
+  conv <- any(startsWith(fit$cache$conv_classes %||% character(0),
+                         "frmtmb_conv_"))
   for (bk in fit$frame[["re_blocks"]] %||% list()) {
     if (!identical(bk[["covstruct"]], "hsgp")) next
     if (!gp_basis_white(bk, th[bk[["theta_idx"]]])) next
@@ -1763,18 +1928,88 @@ gp_basis_message <- function(fit) {
       if (max(abs(fld)) <= 1e-6 * max(abs(eta))) next
     }
     hits <- c(hits, bk[["group_name"]] %||% bk[["term_label"]])
+    wr <- tryCatch(gp_white_ridge(fit, bk), error = function(e) FALSE)
+    # a stop the convergence check doubts is not a boundary fit, whatever
+    # the ridge does with the rest held there (an nl body's coefficient at
+    # code 1 with a gradient of 0.0059, review finding 4)
+    fl <- isTRUE(wr) && !conv
+    flat <- c(flat, fl)
+    short <- c(short, isTRUE(attr(wr, "short")))
+    if (fl) prod <- c(prod, gp_white_product(fit, bk))
   }
-  if (!length(hits)) return(NULL)
-  paste0("The length scale of the approximate gp() ",
-         if (length(hits) > 1L) "terms " else "term ",
-         paste(hits, collapse = ", "), " ran below a tenth of the spacing ",
-         "its basis resolves. There every basis function gets the same ",
-         "prior weight, and the data ",
-         "determine sdgp^2 times the product of the length scales, not ",
-         "sdgp and the length scales apart, so their estimates and ",
-         "standard errors say nothing about the field's smoothness. The ",
-         "fitted field and its predictions hold. To read the smoothness, ",
-         "raise k, or fit the exact gp() without k")
+  if (!length(hits)) return(list())
+  terms <- function(h) {
+    paste0(if (length(h) > 1L) "terms " else "term ",
+           paste(h, collapse = ", "))
+  }
+  out <- list()
+  if (any(flat)) {
+    h <- hits[flat]
+    more <- length(h) > 1L
+    out[[1L]] <- list(
+      text = paste0(
+        "Boundary fit: the approximate gp() ", terms(h), " ",
+        if (more) "are" else "is", " at the white limit of ",
+        if (more) "their bases" else "its basis", ". ",
+        if (more) "Their length scales" else "Its length scale",
+        " ran below a tenth of the spacing the basis resolves, and the ",
+        "likelihood stays level from there to a length scale of 0, where ",
+        "every basis function gets the same prior weight. The data ",
+        "determine sdgp^2 times the product of the length scales, not ",
+        "sdgp and the length scales apart, so these have no standard ",
+        "error (NaN in summary(), vcov() and confint()).",
+        if (length(prod)) {
+          paste0(" hypothesis() reports the product on the log scale, as ",
+                 paste0("\"", prod, " = 0\"", collapse = " and "), ".")
+        },
+        " The fitted field and its predictions hold. To read the ",
+        "smoothness, raise k, or fit the exact gp() without k"),
+      class = c("frmtmb_gp_basis", "frmtmb_boundary_fit"), message = TRUE)
+  }
+  if (any(!flat)) {
+    sh <- hits[!flat & short]
+    out[[length(out) + 1L]] <- list(
+      text = paste0(
+        "The length scale of the approximate gp() ", terms(hits[!flat]),
+        " ran below a tenth of the spacing its basis resolves. There ",
+        "every basis function gets nearly the same prior weight, and the ",
+        "data determine sdgp^2 times the product of the length scales, ",
+        "not sdgp and the length scales apart, so their estimates and ",
+        "standard errors say nothing about the field's smoothness. ",
+        if (length(sh)) {
+          paste0("For ", terms(sh), " the likelihood still rises toward ",
+                 "larger length scales, so the fit stopped short of its ",
+                 "maximum: refit from a larger length scale (start =). ")
+        } else {
+          "The fitted field and its predictions hold. "
+        },
+        "To read the smoothness, raise k, or fit the exact gp() without k"),
+      class = "frmtmb_gp_basis", message = FALSE)
+  }
+  out
+}
+
+#' The hypothesis() string of the quantity a white block's data determine,
+#' `2 * log(sdgp) + log` of each length scale (`D` times the one length
+#' scale of an isotropic block in `D` dimensions), in brms's variable
+#' names; `character(0)` where the names are not found.
+#'
+#' @noRd
+gp_white_product <- function(fit, bk) {
+  bi <- which(vapply(fit$frame[["re_blocks"]], function(b) {
+    identical(b[["theta_idx"]], bk[["theta_idx"]])
+  }, NA))
+  for (e in tryCatch(gp_brms_terms(fit), error = function(e) list())) {
+    k <- match(bi[1L], e$blocks)
+    if (is.na(k)) next
+    ls <- e$lscale[k, ]
+    D <- bk[["gp_D"]] %||% 1
+    lt <- if (length(ls) == 1L && D > 1) {
+      paste0(D, " * log(", ls, ")")
+    } else paste0("log(", ls, ")", collapse = " + ")
+    return(paste0("2 * log(", e$sdgp[k], ") + ", lt))
+  }
+  character(0)
 }
 
 #' The first-order correction to the Laplace approximation of a fit whose
@@ -1940,13 +2175,20 @@ gp_end_warn <- function(fit) {
     frm_warning(gp_msg, call. = FALSE, class = "frmtmb_gp_nugget")
   }
   for (gm in gp_end_messages(fit)) {
-    frm_warning(gm$text, call. = FALSE, class = gm$class)
+    # a field proved at its white limit is a boundary fit, which
+    # `check_se` governs as it does the standard-error check's own
+    if (isTRUE(gm$message)) {
+      se_boundary_act(fit$control$check_se, gm$text, class = gm$class)
+    } else {
+      frm_warning(gm$text, call. = FALSE, class = gm$class)
+    }
   }
   fit
 }
 
-#' The warnings frm() gives at the end of a fit with a gp() term, each a
-#' `list(text, class)`, besides the nugget's (gp_nugget_message()). The
+#' The conditions frm() gives at the end of a fit with a gp() term, each a
+#' `list(text, class)` (with `message = TRUE` for a message, else a
+#' warning), besides the nugget's (gp_nugget_message()). The
 #' checks evaluate the objective; its state is put back.
 #'
 #' @noRd
@@ -1960,9 +2202,5 @@ gp_end_messages <- function(fit) {
   if (!is.null(m)) {
     out[[length(out) + 1L]] <- list(text = m, class = "frmtmb_gp_laplace")
   }
-  m <- tryCatch(gp_basis_message(fit), error = function(e) NULL)
-  if (!is.null(m)) {
-    out[[length(out) + 1L]] <- list(text = m, class = "frmtmb_gp_basis")
-  }
-  out
+  c(out, tryCatch(gp_basis_message(fit), error = function(e) list()))
 }

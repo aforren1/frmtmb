@@ -10,11 +10,55 @@ releases, 2026-09-30 at the 0.67.0 release, 2026-10-06 at the
 0.76.0 release, 2026-10-28 at the 0.77.0 release, 2026-10-29 at the
 0.78.0 release, 2026-11-04 at the 0.79.0 release, 2026-11-07 at the
 0.80.0 release, 2026-11-10 at the 0.81.0 release, 2026-11-12 at the
-0.82.0 release and 2026-11-14 at the 0.83.0 release. Read this, then
+0.82.0 release, 2026-11-14 at the 0.83.0 release and 2026-11-18 at the
+0.84.0 release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
 anything: the library has been lost EIGHT times, and the last three
 losses each followed processes being killed, not low disk.
+
+## The 0.84.0 round, opened 2026-11-16, consolidated 2026-11-17 to 2026-11-18
+
+`dev/round-20261116.md` is this round's record, and `dev/rel084-log.md` the
+consolidator's running log. Eleven lanes off `b255350e` (0.83.0 plus the pkgcheck CI
+fix), each with `dev/<lane>-findings.md` and `dev/reviews/2026-11-17-<lane>.md` (and
+`<lane>-short.md` where one was written), and three measurement lanes (samplers,
+codesize, cran; `dev/` records only), merged in the order sparsese, gpselimit,
+slopetrig, alapse, nlband, quadesc, nbrobust, squant, drawdir, ordstarts, cdfname
+(`dev/rel084-merge.sh`, `-news.R`, `-release-fix.sh`), then cdfname's
+`dev/cdfname-rename.R` over the merged tree (0 lines: no other lane named `lcdf`).
+Three files conflicted (`R/se-check.R`, `R/par-template.R`, `R/compat.R`), each the
+union the brief named. The survey's headline stays 89.3, Wald [84.8, 93.9], with 0
+verdict changes; the ported suite moves no row.
+
+Versions: frmtmb **0.84.0**; frmtmb.eam **0.14.0** and frmtmb.survival **0.4.0**, both
+needing 0.84.0 (the renamed `cdf` slot); frmtmb.coupling 0.6.2 (compat text). sample,
+latent, ode, learn, spatial keep theirs. The library is
+`C:/Users/adf44/source/r/rellib-r23`; `rellib-r22` keeps 0.83.0.
+
+### What to know next time
+
+- Seven of eleven lanes ended on FIX answered by a fix round with no short-check file
+  on disk; the brief called them SHIP. Read every lane's last verdict and the files'
+  mtimes first, and say which are unreviewed.
+- A subagent's Write of a report file can be refused ("Subagents should return
+  findings as text"); ask it to hand the summary back instead.
+- A subagent's background job outlives its hand-back: the key-table agent left its
+  ordstarts driver running; `dev/rel084-kt/run-queue.sh` waited on that driver's done
+  file before taking the slot.
+- Key tables across lanes interact: ordstarts' C0 (no default jittered starts) moved
+  drawdir's mix40 verdict counts. The default fit now reaches the degenerate
+  step-function suprema that 0.83.0's jittered starts declined; each warns at fit time,
+  the Hessian is singular there, and predict() draws at the estimates. The
+  consolidation first credited the swapped start; the release review's run, with the
+  case builder's `suppressWarnings()` removed, showed no `frmtmb_mixture_swap`.
+  Attribute a moved table by running the same script on the base library, and read the
+  fit's own conditions, not only predict()'s.
+- Never `tail -f` a log the chain appends to, even inside a Monitor: poll with
+  `grep` in a loop.
+- The survey's expected movers can be absent from the sampled pairs (no fixed-effect
+  asym_laplace pair, slope columns with a ratio near 1): check which pairs a lane's
+  change can reach before expecting a move.
 
 ## The 0.83.0 round, opened 2026-11-13, consolidated 2026-11-14
 

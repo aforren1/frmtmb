@@ -116,9 +116,11 @@ test_that("the approximate gp() on unsorted positions needs no reorder", {
   # on 13 distinct positions the likelihood's maximum is the white limit of
   # the basis, 0.025 above a length scale of 0.4 of its spacing, and the
   # fit says that the length scale is not determined there
-  # (dev/gpfield-dbg6.R)
-  fit <- allow_warnings(frm(bf(y ~ gp(x, k = 10)), family = gaussian(),
-                            data = dd), "spacing its basis resolves")
+  # (dev/gpfield-dbg6.R): a boundary message where the ridge is proved
+  # level to the limit, the warning on a rounding where it is not
+  fit <- allow_gp_basis(allow_warnings(
+    frm(bf(y ~ gp(x, k = 10)), family = gaussian(), data = dd),
+    "spacing its basis resolves"))
   expect_identical(fit$frame$re_blocks[[1L]]$covstruct, "hsgp")
   brms_lp_check(brms::bf(y ~ gp(x, k = 10)), gaussian(), dd, fit, joint = TRUE)
 })
@@ -142,8 +144,9 @@ test_that("brms's Matern and exponential kernels are brms's program", {
     fit <- frm(bf(f2), family = gaussian(), data = dd)
     brms_lp_check(brms::bf(f2), gaussian(), dd, fit, joint = TRUE,
                   code_fix = gpx_rel_nugget)
-    fit <- allow_warnings(frm(bf(f3), family = gaussian(), data = dd),
-                          "spacing its basis resolves")
+    fit <- allow_gp_basis(allow_warnings(
+      frm(bf(f3), family = gaussian(), data = dd),
+      "spacing its basis resolves"))
     brms_lp_check(brms::bf(f3), gaussian(), dd, fit, joint = TRUE)
   }
 })

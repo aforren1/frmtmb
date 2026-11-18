@@ -223,10 +223,19 @@ parameters", with a reason for each:
 * **Its Hessian row is not finite.**
 * **The inverse gives it a variance of zero or less.** The curvature
   where the fit stopped does not measure the uncertainty. A log
-  density with a kink in a parameter does this: `asym_laplace()` is
-  piecewise linear in its location, so its exact Hessian has no
-  curvature there. `vcov()` shows `NaN`, never 0, and `summary()`
-  gives this reason.
+  density with a kink in a parameter does this. `vcov()` shows `NaN`,
+  never 0, and `summary()` gives this reason.
+
+`asym_laplace()` and `zero_inflated_asym_laplace()` have no Hessian
+standard error by design: the log density is piecewise linear in its
+location, so its exact Hessian has no curvature there. Without random
+effects, `frm()` says so in a warning of its own (class
+`frmtmb_ald_no_se`), every reader shows `NaN` with that reason, and
+the fit ends at the exact quantile regression solution. It gives no
+convergence warning where that solution is proved the highest maximum
+of the likelihood, and a warning of class `frmtmb_ald_local` where it
+is proved a local one only (see `?frmtmb-families`, "Quantile
+regression inference").
 
 An earlier warning that names a parameter, such as the one for a
 grouping factor with one level, explains that parameter only. The

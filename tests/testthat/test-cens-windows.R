@@ -176,7 +176,7 @@ test_that("the weibull trunc() fuzz spec that stopped on a NaN gradient fits", {
 })
 
 test_that("a custom family's cdf_log is read for every censored row", {
-  # both tails on the log scale, and lcdf and lccdf derived from them
+  # both tails on the log scale, and cdf and lccdf derived from them
   my <- frmtmb_family(
     "my_normal", dpars = c("mu", "sigma"),
     links = list(mu = "identity", sigma = "log"),
@@ -191,7 +191,7 @@ test_that("a custom family's cdf_log is read for every censored row", {
     },
     init_dpars = list(mu = function(y, aterms) mean(y),
                       sigma = function(y, aterms) stats::sd(y)))
-  expect_true(is.function(my$lcdf) && is.function(my$lccdf))
+  expect_true(is.function(my$cdf) && is.function(my$lccdf))
   set.seed(715)
   d <- data.frame(x = stats::rnorm(150))
   d$y <- 1 + 0.5 * d$x + stats::rnorm(150)

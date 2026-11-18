@@ -2,9 +2,9 @@
 # hand: rerun the script, which reads brms:::.family_<name>()$links.
 #
 # The links brms allows for each family's MEAN, keyed by the frmtmb
-# family name. The first entry is brms's default. nbinom1, tweedie and
-# huber have no brms family and take the set of the analog named in
-# `brms_mu_link_source`.
+# family name. The first entry is brms's default. nbinom1, tweedie,
+# huber and quantile_elf have no brms family and take the set of the
+# analog named in `brms_mu_link_source`.
 
 brms_mu_link_source <- c(
   gaussian = "gaussian",
@@ -56,10 +56,11 @@ brms_mu_link_source <- c(
   logistic_normal = "logistic_normal",
   frechet = "frechet",
   gen_extreme_value = "gen_extreme_value",
-  discrete_weibull = "discrete_weibull"
+  discrete_weibull = "discrete_weibull",
+  quantile_elf = "asym_laplace"
 )
 
-brms_mu_link_analogs <- c("nbinom1", "tweedie", "huber")
+brms_mu_link_analogs <- c("nbinom1", "tweedie", "huber", "quantile_elf")
 
 brms_mu_links <- list(
   gaussian = c("identity", "log", "inverse", "softplus", "squareplus",
@@ -136,7 +137,9 @@ brms_mu_links <- list(
   gen_extreme_value = c("identity", "log", "inverse", "softplus",
       "squareplus"),
   discrete_weibull = c("logit", "probit", "probit_approx", "cloglog",
-      "cauchit", "softit", "identity")
+      "cauchit", "softit", "identity"),
+  quantile_elf = c("identity", "log", "inverse", "softplus",
+      "squareplus")
 )
 
 # The families brms:::no_mixture() bars as mixture components, by

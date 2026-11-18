@@ -195,7 +195,7 @@ the caller cannot see is still true, and is still reported by
 contribute <- function() {
   b <- compat_rule_builder()
   b$r("wiener", "cens()", "refused",
-      "The family supplies no lcdf, so there is no CDF to censor with.")
+      "The family supplies no cdf, so there is no CDF to censor with.")
   b$r("wiener", "*", "untested",
       "Not exercised outside this package's own suite.")
   b$r("wiener", "hmm", "untested",

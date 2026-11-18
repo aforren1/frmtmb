@@ -289,15 +289,15 @@ bound_rows <- function(v, i) if (length(v) == 1L) v else v[i]
 #' `row_lpdf()` for a family with no `cdf_log`: its one-tail slots read
 #' on the probability scale, as core read them through 0.72.0.
 #'
-#' A family that supplies `lcdf` and `lccdf` and nothing else is held to
+#' A family that supplies `cdf` and `lccdf` and nothing else is held to
 #' the call pattern it was written for: the frmtmb.eam Wiener families
 #' read which rows a call is for from the censoring codes in `aterms`
-#' and fill the others with a neutral value, and their `lcdf` is a
+#' and fill the others with a neutral value, and their `cdf` is a
 #' boundary's defective distribution function on a left- or
 #' interval-censored row, which is not the complement of `lccdf`. So
 #' each slot is called where it was: `lccdf` at the recorded responses
-#' for the right-censored rows, `lcdf` there for the left- and
-#' interval-censored ones and at `cens_y2`, and `lcdf` at the bounds for
+#' for the right-censored rows, `cdf` there for the left- and
+#' interval-censored ones and at `cens_y2`, and `cdf` at the bounds for
 #' the window `F(ub) - F(lb')`. Two things are new, and both are brms's
 #' likelihood: no censoring bound on a count is shifted, and
 #' `trunc(lb = )` with no upper bound divides by the log survivor
@@ -329,12 +329,12 @@ row_lpdf_prob <- function(fam, ll, yraw, dpv, av, extra, te, trunc_on) {
   Flb <- 0
   Fub <- 1
   if (hi_on) {
-    Fub <- absent_to(fam_lcdf(fam, edge(av[["trunc_ub"]], te$hi, te$hi_abs),
+    Fub <- absent_to(fam_cdf(fam, edge(av[["trunc_ub"]], te$hi, te$hi_abs),
                               dpv, av, extra), te$hi_abs, 1)
   }
   if (lo_on) {
     ql <- edge(av[["trunc_lb"]] - as.numeric(disc), te$lo, te$lo_abs)
-    Flb <- absent_to(fam_lcdf(fam, ql, dpv, av, extra), te$lo_abs, 0)
+    Flb <- absent_to(fam_cdf(fam, ql, dpv, av, extra), te$lo_abs, 0)
   }
   cen <- av[["cens"]]
   if (!is.null(cen)) {
@@ -347,7 +347,7 @@ row_lpdf_prob <- function(fam, ll, yraw, dpv, av, extra, te, trunc_on) {
       fam_lccdf(fam, yraw, dpv, av, extra)
     }
     need_F <- length(i_l) || length(i_i) || (length(i_r) && is.null(lS))
-    Fv <- if (need_F) fam_lcdf(fam, yraw, dpv, av, extra)
+    Fv <- if (need_F) fam_cdf(fam, yraw, dpv, av, extra)
     if (length(i_r)) {
       ll[i_r] <- if (is.null(lS)) {
         log(bound_rows(Fub, i_r) - Fv[i_r])
@@ -364,7 +364,7 @@ row_lpdf_prob <- function(fam, ll, yraw, dpv, av, extra, te, trunc_on) {
     }
     if (length(i_l)) ll[i_l] <- log(Fv[i_l] - bound_rows(Flb, i_l))
     if (length(i_i)) {
-      F2 <- fam_lcdf(fam, av[["cens_y2"]], dpv, av, extra)
+      F2 <- fam_cdf(fam, av[["cens_y2"]], dpv, av, extra)
       ll[i_i] <- log(F2[i_i] - Fv[i_i])
     }
   }

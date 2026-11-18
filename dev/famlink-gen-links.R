@@ -12,10 +12,11 @@ stopifnot(requireNamespace("brms", quietly = TRUE))
 ver <- format(utils::packageVersion("brms"))
 
 # frmtmb family name (fam$family) -> the brms family whose set it takes.
-# Three frmtmb families have no brms counterpart and take the set of the
+# Four frmtmb families have no brms counterpart and take the set of the
 # brms family they are closest to: nbinom1 is a negative binomial mean,
 # tweedie a positive continuous mean (compound Poisson-gamma), huber a
-# location on the whole line. cox is not here: it is in frmtmb.survival,
+# location on the whole line, quantile_elf a smoothed asym_laplace. cox
+# is not here: it is in frmtmb.survival,
 # which carries brms's set for it and checks that set against brms.
 src <- c(
   gaussian = "gaussian", poisson = "poisson", binomial = "binomial",
@@ -46,9 +47,11 @@ src <- c(
   dirichlet = "dirichlet", dirichlet2 = "dirichlet2",
   logistic_normal = "logistic_normal",
   frechet = "frechet", gen_extreme_value = "gen_extreme_value",
-  discrete_weibull = "discrete_weibull"
+  discrete_weibull = "discrete_weibull",
+  quantile_elf = "asym_laplace"
 )
-analog <- c("nbinom1", "tweedie", "huber")
+analog <- c("nbinom1", "tweedie", "huber",
+            "quantile_elf")
 
 ns <- asNamespace("brms")
 sets <- lapply(src, function(b) get(paste0(".family_", b), envir = ns)()$links)
@@ -59,9 +62,9 @@ lines <- c(
   "# hand: rerun the script, which reads brms:::.family_<name>()$links.",
   "#",
   "# The links brms allows for each family's MEAN, keyed by the frmtmb",
-  "# family name. The first entry is brms's default. nbinom1, tweedie and",
-  "# huber have no brms family and take the set of the analog named in",
-  "# `brms_mu_link_source`.",
+  "# family name. The first entry is brms's default. nbinom1, tweedie,",
+  "# huber and quantile_elf have no brms family and take the set of the",
+  "# analog named in `brms_mu_link_source`.",
   "",
   "brms_mu_link_source <- c("
 )

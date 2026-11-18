@@ -1,3 +1,10 @@
+# frmtmb.survival 0.4.0
+
+* BREAKING: Needs frmtmb 0.84.0, which renames the CDF slot of
+  `frmtmb_family()` from `lcdf` to `cdf`. `cox()` and `royston_parmar()`
+  fill `cdf`. A read of `cox()$lcdf` now stops with an error that names
+  `cdf`.
+
 # frmtmb.survival 0.3.0
 
 * BREAKING: The upper boundary knot of `cox()`'s baseline covers every

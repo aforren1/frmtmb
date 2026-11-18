@@ -764,7 +764,10 @@ fd_joint_cov <- function(fit, map, b_idx) {
 fd_joint_root <- function(fit, map, b_idx) {
   jc <- get_joint_cov(fit)
   rn <- jc$names
-  if (is.null(rn) || is.null(jc$root) || !any(rn == "b")) return(NULL)
+  white <- jc_is_sparse(jc) && !is.null(jc$V[["M"]])
+  if (is.null(rn) || (is.null(jc$root) && !white) || !any(rn == "b")) {
+    return(NULL)
+  }
   pos_d <- unlist(lapply(unique(map$comp), function(cp) which(rn == cp)))
   pos_b <- which(rn == "b")
   if (length(pos_d) != length(map$names) ||
@@ -772,6 +775,9 @@ fd_joint_root <- function(fit, map, b_idx) {
     return(NULL)
   }
   pos <- c(pos_d, pos_b[b_idx])
+  # held sparse in the whitened coordinates, it has no root rows at the
+  # group effects (jcs_fd_root())
+  if (white) return(jcs_fd_root(jc$V, pos, length(pos_d)))
   Vr <- if (is.null(jc$Vrest)) matrix(0, length(pos), length(pos)) else {
     as.matrix(jc$Vrest[pos, pos, drop = FALSE])
   }

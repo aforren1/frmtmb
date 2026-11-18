@@ -427,7 +427,7 @@ ddm_ndt_install <- function(fam, ub, floors, what, pending = FALSE,
                             y_of = ddm_all_rows, sizes = NULL) {
   raw <- fam[["ndt_raw"]]
   if (is.null(raw)) {
-    raw <- list(lpdf = fam[["lpdf"]], lcdf = fam[["lcdf"]],
+    raw <- list(lpdf = fam[["lpdf"]], cdf = fam[["cdf"]],
                 lccdf = fam[["lccdf"]], sim = fam[["sim"]],
                 mean_fn = fam[["post"]][["mean_fn"]],
                 aterm_data = fam[["aterm_data"]],
@@ -438,8 +438,9 @@ ddm_ndt_install <- function(fam, ub, floors, what, pending = FALSE,
   }
   has_st <- !is.null(raw[["init_st"]])
   # start every slot from the UNWRAPPED originals, so a re-install over
-  # a pending bound cannot stack a second wrapper
-  for (nm in c("lpdf", "lcdf", "lccdf")) fam[[nm]] <- raw[[nm]]
+  # a pending bound cannot stack a second wrapper. `[<-` with a list
+  # keeps an absent slot as a NULL element, where `[[<-` NULL drops it
+  for (nm in c("lpdf", "cdf", "lccdf")) fam[nm] <- list(raw[[nm]])
   fam[["sim"]] <- raw[["sim"]]
   fam[["post"]][["mean_fn"]] <- raw[["mean_fn"]]
   fam[["aterm_data"]] <- raw[["aterm_data"]]
@@ -466,7 +467,7 @@ ddm_ndt_install <- function(fam, ub, floors, what, pending = FALSE,
     scale <- ddm_ndt_scaler(floors, what)
     fam[["links"]][["ndt"]] <- "logit"
     if (has_st) fam[["links"]][["st"]] <- "logit"
-    for (nm in c("lpdf", "lcdf", "lccdf")) {
+    for (nm in c("lpdf", "cdf", "lccdf")) {
       if (is.function(raw[[nm]])) fam[[nm]] <- ddm_wrap_q(raw[[nm]], scale)
     }
     if (is.function(raw[["sim"]])) {

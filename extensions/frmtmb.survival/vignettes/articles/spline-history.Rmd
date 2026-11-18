@@ -779,7 +779,7 @@ survival family whose parameter is a spline.
   `family_finalize()` and the family the fit carries has them baked in;
   `knots =` and `bknots =` pin them at construction instead. `df` counts
   interior knots plus one, so flexsurv's `k` is `df - 1`.
-* The family declares an `lcdf` as well as an `lpdf`, so `cens()` and
+* The family declares a `cdf` as well as an `lpdf`, so `cens()` and
   `trunc()` both reach the likelihood, and right, left and interval
   censoring all work. Both are registered CONDITIONAL rather than
   working, for the reason below. Note the coding: frmtmb's `cens()`

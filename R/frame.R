@@ -3351,6 +3351,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                            refit_na_action = NULL, smooth_map = NULL) {
   # a saved fit's family from a package this session lacks
   require_model_packages(spec)
+  # every fit, refit and newdata frame passes here, whichever way its
+  # family arrived (a bf() list built by hand skips as_frmtmb_family())
+  for (resp in spec$responses) check_cdf_slot_name(resp$family)
   # `data = NULL` is not "no data": model.frame() falls back to the
   # formula environment and reports the first variable it cannot find
   # there ("object 'y' not found"), which sends the reader looking for a
@@ -3882,10 +3885,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # A family that declares only `lccdf` scores a RIGHT-censored row
       # exactly and has nothing to say about a left bound, so it is
       # admitted for right censoring alone. Everything else here still
-      # needs `lcdf`.
+      # needs `cdf`.
       right_only <- is.null(av[["trunc_lb"]]) && is.null(av[["trunc_ub"]]) &&
         !is.null(av[["cens"]]) && all(av[["cens"]] %in% c(0, 1))
-      if (is.null(resp$family[["lcdf"]]) &&
+      if (is.null(fam_cdf_slot(resp$family)) &&
           !(right_only && !is.null(resp$family[["lccdf"]]))) {
         # the families that have one are a registry query, not a list
         # this message has to keep current; it names the term the model
@@ -3894,7 +3897,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         frm_stop("cens()/trunc() need a family with a CDF, and '",
                  resp$family[["family"]], "' supplies none; ",
                  "frm_compat(\"", term, "\") lists the families that do. A ",
-                 "family supplies one through the lcdf argument of ",
+                 "family supplies one through the cdf argument of ",
                  "frmtmb_family(), and a family that only ever sees RIGHT ",
                  "censoring may supply the log survivor function through ",
                  "lccdf instead", call. = FALSE,
@@ -4122,6 +4125,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                  ". Modify the family it is given and return it",
                  call. = FALSE)
       }
+      check_cdf_slot_name(fam_fin)
       fam_fin$links <- Map(function(lk, dp) get_link(lk, dpar = dp),
                            fam_fin$links, names(fam_fin$links))
       resp$family <- fam_fin

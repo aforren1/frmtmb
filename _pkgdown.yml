@@ -79,6 +79,7 @@ reference:
   - latent_probs
   - frmtmb-families
   - frmtmb-extreme-families
+  - quantile_elf
   - frmtmb-links
   - print.frmtmb_family
   - brmsfamily

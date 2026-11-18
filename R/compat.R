@@ -262,7 +262,7 @@ compat_cache_extend <- function(add, before) {
 #' contribute <- function() {
 #'   b <- compat_rule_builder()
 #'   b$r("wiener", "cens()", "refused",
-#'       "The family supplies no lcdf, so there is no CDF to censor with.")
+#'       "The family supplies no cdf, so there is no CDF to censor with.")
 #'   b$r("wiener", "*", "untested",
 #'       "Not exercised outside this package's own suite.")
 #'   b$r("wiener", "hmm", "untested",
@@ -845,7 +845,8 @@ compat_features_build <- function(extra = NULL) {
             "hurdle_lognormal", "cumulative", "hurdle_cumulative",
             "sratio", "cratio", "acat", "categorical", "von_mises",
             "dirichlet", "dirichlet2", "logistic_normal",
-            "frechet", "gen_extreme_value", "discrete_weibull")
+            "frechet", "gen_extreme_value", "discrete_weibull",
+            "quantile_elf")
   covs <- c("us", "diag", "homdiag", "cs", "ar1", "hetar1", "ou",
             "toep", "homtoep", "homcs", "exp", "gau", "mat", "rr",
             "equalto", "gr_cov", "gr_prec", "smooth", "gp", "hsgp",
@@ -925,6 +926,7 @@ frmtmb_compat_groups_lst <- list(
           "discrete_weibull", "student", "skew_normal", "exgaussian",
           "shifted_lognormal", "asym_laplace", "von_mises", "Gamma",
           "beta", "zero_inflated_beta", "hurdle_gamma", "hurdle_lognormal",
+          "quantile_elf",
           compat_cdf_discrete),
   # the continuous families with a CDF; the discrete ones, read on the
   # integer lattice as brms reads them, have rows of their own that
@@ -934,7 +936,8 @@ frmtmb_compat_groups_lst <- list(
                      "gen_extreme_value", "student", "skew_normal",
                      "exgaussian", "shifted_lognormal", "asym_laplace",
                      "von_mises", "Gamma", "beta", "zero_inflated_beta",
-                     "hurdle_gamma", "hurdle_lognormal"),
+                     "hurdle_gamma", "hurdle_lognormal",
+                     "quantile_elf"),
   # families whose modelled response is a distribution over categories
   # rather than a number, so fitted() returns an n x K matrix
   categorical_probs = c("cumulative", "hurdle_cumulative", "sratio",
@@ -945,7 +948,9 @@ frmtmb_compat_groups_lst <- list(
   mi_families = c("gaussian", "student", "skew_normal", "beta", "Gamma",
                   "weibull", "exponential", "frechet", "inverse.gaussian",
                   "lognormal", "exgaussian", "gen_extreme_value",
-                  "von_mises"),
+                  "von_mises",
+                  # no brms family; its log density is curved at the mode
+                  "quantile_elf"),
   ordinal = c("cumulative", "hurdle_cumulative", "sratio", "cratio",
               "acat"),
   # the families that take cs() with no caveat; cumulative() and
@@ -1377,14 +1382,15 @@ compat_hand_rules_tbl <- function() {
   # continuous families with a CDF and no truncated mean: brms has none
   for (f in c("skew_normal", "exgaussian", "shifted_lognormal",
               "asym_laplace", "von_mises", "beta", "zero_inflated_beta",
-              "hurdle_gamma", "hurdle_lognormal")) {
+              "hurdle_gamma", "hurdle_lognormal",
+              "quantile_elf")) {
     r("trunc()", f, "conditional",
       "The likelihood and simulate() work; fitted() and residuals(type = \"response\") refuse a truncated response, as brms 2.23.0 does: it has no truncated mean for this family.")
   }
   r("cens()", "inverse.gaussian", "works",
     "Left and interval censoring are brms's likelihood exactly. A RIGHT-censored row is not: brms 2.23.0's inv_gaussian_lccdf() adds the second term of the survivor where it should subtract it, log(Phi(-a) + exp(2 shape / mu) Phi(-b)) for log(Phi(-a) - exp(2 shape / mu) Phi(-b)), so at y = 2, mu = 2, shape = 4 it gives -0.466 where the survivor is -0.988. frmtmb's is the survivor, formed in logs, so a right-censored fit differs from brms's.")
   r("trunc()", "inverse.gaussian", "works",
-    "Supported through the whole surface, as for the other families with a CDF. brms 2.23.0 scores a window with a lower bound and no upper one through its inv_gaussian_lccdf(), whose second term has the wrong sign (see the cens() row), so such a fit differs from brms's; a window with both bounds reads the lcdf and agrees.")
+    "Supported through the whole surface, as for the other families with a CDF. brms 2.23.0 scores a window with a lower bound and no upper one through its inv_gaussian_lccdf(), whose second term has the wrong sign (see the cens() row), so such a fit differs from brms's; a window with both bounds reads the cdf and agrees.")
   r("cens()", "von_mises", "works",
     "Stan's and brms's convention: F(y) = P(-pi <= Y <= y) on the response's own interval, wherever the mean direction is, so a left-censored row at y is the mass from -pi to y and a right-censored one the mass from y to pi.")
   r("trunc()", "poisson", "works",
@@ -1753,6 +1759,8 @@ compat_hand_rules_tbl <- function() {
   r("nl", "frechet", "works", nl_same)
   r("nl", "gen_extreme_value", "works", nl_same)
   r("nl", "discrete_weibull", "works", nl_same)
+  r("nl", "quantile_elf", "works",
+    "The body is the location mu, as for asym_laplace(). brms has no such family to compare with. A two-parameter exponential body fits at code 0 with no warning (dev/squant-compat3.R).")
   r("thres()", "nl", "works", nl_ord)
   r("nl", "disc", "works", nl_ord)
   r("nl", "equidistant", "works", nl_ord)
@@ -1856,6 +1864,8 @@ compat_hand_rules_tbl <- function() {
   r("mixture", "se()", "refused",
     "Refused: a mixture does not declare se() even when its components do. Reading the term is only half of what se() means; the other half is that the residual scale it replaces is mapped out, and that step names the dpar `sigma`, which sigma1 and sigma2 are not. Measured before the refusal was made explicit: mixture(gaussian, gaussian) with se() fitted with both component sigmas at their starting value and every standard error NaN.")
   r("mixture", "weights()", "works", "Verified by a tiny fit.")
+  r("mixture", "quantile_elf", "works",
+    "A mixture of two quantile_elf() components with each quantile held fits at code 0 with no warning, and each location lands on its component (dev/squant-compat3.R). brms has no such family.")
   r("mixture", "simulate", "conditional",
     "Works only when every component family has a simulator.")
   r("mixture", "kind:covstruct", "untested", "")
@@ -2081,6 +2091,8 @@ compat_hand_rules_tbl <- function() {
   r("residuals_osa", "kind:structure", "untested", "")
   r("emmeans", "kind:family", "conditional",
     "Takes brms's dpar =, nlpar =, resp =, epred = and re_formula = (see ?frmtmb-emmeans). A family with no mu needs dpar =. epred = TRUE needs one mean per row, so it is refused for the ordinal and categorical families.")
+  r("emmeans", "asym_laplace", "conditional",
+    "The means are the quantile regression's. Without random effects their standard errors are NaN, with a warning, because the family has no Hessian standard error: its log density is linear in mu on each side of its mode. For intervals see ?frmtmb-families, \"Quantile regression inference\".")
   r("emmeans", "nl", "works",
     "Verified (dev/emm-validate.R): nlpar = gives that parameter's own linear predictor, and the whole mu goes through the taped Jacobian of the body, the delta method. The covariance agrees with a numerical Jacobian to 1.3e-7 relative, and the standard error over a parametric bootstrap of 1500 refits is 0.97 to 1.03 times the bootstrap one, on two models.")
   r("emmeans", "s()", "works",
@@ -2136,7 +2148,16 @@ compat_hand_rules_tbl <- function() {
     r(cv, "asym_laplace", "conditional", ald_note)
   }
   r("gp_pred()", "asym_laplace", "conditional",
-    paste("An approximate gp(k = ) is refused under the Laplace approximation as the structures are:", ald_note, "An exact gp() is not refused: TMB's inner search failed on its near-singular covariance at a large sd, so its objective was not seen to rise all the way."))
+    paste("An approximate gp(k = ) is refused under the Laplace approximation as the structures are:", ald_note, "An exact gp() is not refused: its covariance scales as the others do, but its objective was not seen to rise all the way, because TMB's inner search fails at a large sd (as it does for (1 | g) there), so no profile confirms the proof yet."))
+  # quantile_elf(): a group-level term fits, but at a small smoothing
+  # its Laplace objective can have local maxima (?quantile_elf)
+  elf_note <- "It fits under the Laplace approximation, because the log density has curvature in mu. But at a small smoothing the approximation is poor: its profile in the term's scale can have several local maxima, and a fit can stop on one with code 0 and no warning. See ?quantile_elf, section \"Group-level terms\": use smoothing = 1, and quadrature = TRUE where it applies."
+  for (cv in c("us", "diag", "homdiag", "cs", "toep", "homtoep", "homcs",
+               "us_t", "diag_t", "s()", "t2()")) {
+    r(cv, "quantile_elf", "conditional", elf_note)
+  }
+  r("gp_pred()", "quantile_elf", "conditional",
+    "Use smoothing = 1. At the default smoothing = 0.25, ys ~ gp(x) + x2 at the median warned that the Laplace approximation is not reliable for the exact gp() term (first-order correction 1.79 at 40 rows) and took 129 s at 40 rows, 501 s at 80 and more than 19 minutes at 150; at smoothing = 1 it took 0.6 s at 40 rows and 3.1 s at 80 (dev/reviews/squant-short-gp.R). The time is in TMB's inner Newton search (dev/reviews/squant-short-gpprof.R). See ?quantile_elf, section \"Group-level terms\".")
   r("fcor()", "kind:aterm", "refused",
     "Refused: the density of the rows is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, or a truncation bound to renormalize. brms refuses weights(), cens() and trunc() here too.")
   r("fcor()", "mi()", "conditional",

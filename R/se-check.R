@@ -397,6 +397,12 @@ cov_from_hessian <- function(fit, H, E = NULL, exact = FALSE) {
   # combinations of coefficients run off together, which tier 3 removes
   # as directions (se_limit_joint_dirs())
   joint <- attr(el, "joint")
+  # and the ridge of an approximate field proved at its basis's white
+  # limit, whatever the Hessian measured along it (gp_white_dirs())
+  if (se_edge_probed(fit) && is.null(fit$importance)) {
+    joint <- cbind(joint, tryCatch(gp_white_dirs(fit, np),
+                                   error = keep_missing(NULL)))
+  }
   # before the tiers: on an ill-conditioned fixed design the natural
   # inverse is inaccurate whichever tier accepts it (se_reparam_cov())
   if (!any(held) && !any(edge) && !NCOL(joint)) {
@@ -612,6 +618,12 @@ se_edge_sd <- function(fit, H) {
 #' SEs are 0.283, 1.46 and 1.33 against 0.285, 1.45 and 1.30 from the
 #' profile (review of lane code8, finding 2; dev/code8-tightsd-pull.R).
 #'
+#' Flat further out is not enough: a fit that stopped short can leave a
+#' correlation far out where the likelihood is flat too, and be called a
+#' boundary with no warning. So the parameter (or row) must also lose
+#' when it moves back toward 0, the rest held (se_cor_gain_back()). One
+#' that gains is not at its edge, and se_boundary_names() calls it short.
+#'
 #' @noRd
 se_edge_cor <- function(fit, np) {
   out <- logical(np)
@@ -633,7 +645,8 @@ se_edge_cor <- function(fit, np) {
     }
     if (d == 2L) {
       for (k in ti[abs(th[ti]) > tc]) {
-        out[thpos[k]] <- se_at_edge(fit, om$names[thpos[k]], sign(th[k]))
+        out[thpos[k]] <- se_at_edge(fit, om$names[thpos[k]], sign(th[k])) &&
+          !(se_cor_gain_back(fit, thpos[k]) > se_edge_tol)
       }
       next
     }
@@ -643,7 +656,10 @@ se_edge_cor <- function(fit, np) {
     for (i in 2:d) {
       k <- ti[lt[i, seq_len(i - 1L)]]
       big <- max(abs(th[k]))
-      if (!(big > tc) || !se_row_at_edge(fit, thpos[k])) next
+      if (!(big > tc) || !se_row_at_edge(fit, thpos[k]) ||
+            se_cor_gain_back(fit, thpos[k]) > se_edge_tol) {
+        next
+      }
       out[thpos[k]] <- TRUE
       scale[thpos[k]] <- tc / big
     }
@@ -667,6 +683,67 @@ se_row_at_edge <- function(fit, j) {
   f0 <- tryCatch(obj$fn(p), error = function(e) NA_real_)
   f1 <- tryCatch(obj$fn(q), error = function(e) NA_real_)
   is.finite(f0) && is.finite(f1) && abs(f1 - f0) <= se_edge_tol
+}
+
+#' How much log-likelihood moving the correlation parameters `j` back
+#' toward 0, the rest held, gains: the best of the parameters (a Cholesky
+#' row, or one entry in dimension 2) scaled along themselves so that the
+#' largest is at the clamp, at 1, and at 0; 0 when none gains.
+#'
+#' At a limit the log-likelihood with the rest held rises all the way
+#' out, so every point further in is worse, and a gain proves that the
+#' fit stopped short of an interior correlation. Under
+#' `autoscale = FALSE` a random slope on a column spread 1e-4 or 1e-5
+#' (`y ~ 1 + (1 + x | g)`, 20 groups of 15) stopped with its parameter
+#' at 157 to 2281, 1.68 to 35.1 units short of the fit on the
+#' standardized column, and the move to the clamp alone gained 2.0e-4 to
+#' 0.0195 on all 14 such fits (dev/slopetrig-cor.R). Kept per row in the
+#' fit's cache, since the SE check and the headroom ask it of one point.
+#'
+#' @noRd
+se_cor_gain_back <- function(fit, j) {
+  p <- fit$opt$par
+  key <- paste(j, collapse = "_")
+  hit <- if (is.environment(fit$cache)) fit$cache$se_cor_back[[key]]
+  if (!is.null(hit) && identical(hit$par, p)) return(hit$value)
+  big <- max(abs(p[j]))
+  if (!(big > 0)) return(0)
+  obj <- fit$obj
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  f <- function(x) {
+    tryCatch(as.numeric(obj$fn(x)), error = function(e) NA_real_)
+  }
+  f0 <- f(p)
+  fx <- vapply(c(se_cor_clamp_theta(), 1, 0) / big, function(s) {
+    q <- p
+    q[j] <- s * p[j]
+    f(q)
+  }, 0)
+  fx <- fx[is.finite(fx)]
+  out <- if (is.finite(f0) && length(fx)) max(0, f0 - min(fx)) else 0
+  if (is.environment(fit$cache)) {
+    fit$cache$se_cor_back[[key]] <- list(par = p, value = out)
+  }
+  out
+}
+
+#' Is the correlation parameter `k` (an index into `theta`) of block
+#' `bk` one that a move of its Cholesky row back toward 0 gains on
+#' (se_cor_gain_back())? Only a `us()` block's correlations are asked.
+#'
+#' @noRd
+se_cor_short <- function(fit, bk, k) {
+  d <- bk[["dim"]]
+  if (!identical(bk[["covstruct"]], "us") || !isTRUE(d >= 2L)) return(FALSE)
+  ti <- bk[["theta_idx"]][-seq_len(d)]
+  pos <- match(k, ti)
+  if (length(ti) != d * (d - 1L) / 2L || is.na(pos)) return(FALSE)
+  lt <- matrix(0L, d, d)
+  lt[lower.tri(lt)] <- seq_along(ti)
+  i <- which(lt == pos, arr.ind = TRUE)[1L, 1L]
+  thpos <- which(outer_par_map(fit)$comp == "theta")
+  se_cor_gain_back(fit, thpos[ti[lt[i, seq_len(i - 1L)]]]) > se_edge_tol
 }
 
 #' The internal value of a two-dimensional unstructured block's
@@ -2576,6 +2653,14 @@ sdr_sep_lost <- function(fit, sdr, named) {
   j <- j[!is.na(j)]
   if (!length(j) || length(nm) != NROW(V0)) return(sdr)
   lost <- sdr$se_lost %||% stats::setNames(character(0), character(0))
+  # what the Hessian of the stop made of a named parameter is the
+  # separation's doing, and summary() says so, as a prediction does
+  # (se_lost_why())
+  re <- names(lost) %in% named & lost %in% c("nocurv", "flat", "limit")
+  if (any(re)) {
+    lost[re] <- "separation"
+    sdr$se_lost <- lost
+  }
   j <- setdiff(j, match(names(lost), nm))
   if (!length(j)) return(sdr)
   dn <- dimnames(V0)
@@ -2619,7 +2704,9 @@ sdr_rescue <- function(fit, sdr, H = NULL) {
   sdr <- sdr_rescue_hessian(fit, sdr, H)
   sep <- if (is.environment(fit$cache)) fit$cache$se_sep_named
   if (length(sep)) sdr <- sdr_sep_lost(fit, sdr, sep)
-  sdr
+  # asym_laplace() without random effects: refused by name wherever the
+  # fit stopped
+  ald_sdr_refuse(fit, sdr)
 }
 
 #' A variance that is zero, negative or not finite is never shown: its
@@ -3014,6 +3101,11 @@ se_fit_analysis <- function(fit, force = FALSE) {
 
 #' @noRd
 se_fit_analysis0 <- function(fit, force) {
+  ald <- ald_se_analysis(fit)
+  if (!is.null(ald)) {
+    fit$cache$se_analysis <- ald
+    return(ald)
+  }
   obj <- fit$obj
   p <- fit$opt$par
   if (!length(obj$env$random)) {
@@ -3092,6 +3184,9 @@ se_report <- function(fit, lost, act) {
   # a family's own verdict is about identification, so it explains every
   # lost parameter but one a bound holds, which it does not mention
   lost <- lost[!names(lost) %in% ex$pars & !(ex$family & lost != "bound")]
+  kink <- lost == ald_se_reason
+  if (any(kink)) ald_se_report(fit, lost[kink], act)
+  lost <- lost[!kink]
   if (!length(lost)) return(invisible(NULL))
   bnd <- lost == "boundary"
   # a smooth, gp() or hsgp() block at zero is a term reduced to its
@@ -3261,7 +3356,8 @@ se_boundary_act <- function(what, msg, class = "frmtmb_boundary_fit") {
 #' observation-level sd against sigma) is flat too, but moving it alone
 #' costs likelihood, so it keeps its warning.
 #'
-#' Each name's kind ("zero", "limit" or "undefined") is kept in
+#' Each name's kind ("zero", "limit", "undefined", or "gpwhite" for an
+#' approximate gp() at the white limit of its basis) is kept in
 #' `fit$cache$se_boundary_kind` for the message.
 #'
 #' @noRd
@@ -3295,7 +3391,14 @@ se_boundary_names <- function(fit, lost) {
     unread <- edge[edge %in% sd_i][vapply(edge[edge %in% sd_i], function(j) {
       !isTRUE(attr(se_sd_gain_up(fit, j), "moved") > se_edge_tol)
     }, NA)]
-    edge <- setdiff(edge, c(short, unread))
+    # a correlation the optimizer left far out short of an interior one is
+    # flat further out too; a move back toward 0 that gains tells the two
+    # apart (se_cor_gain_back())
+    shortcor <- edge[!(edge %in% sd_i)][vapply(edge[!(edge %in% sd_i)],
+                                               function(j) {
+      se_cor_short(fit, bk, j)
+    }, NA)]
+    edge <- setdiff(edge, c(short, unread, shortcor))
     k <- stats::setNames(ifelse(edge %in% sd_i, "zero", "limit"),
                          thn[edge])
     if (any(edge %in% sd_i)) {
@@ -3305,6 +3408,14 @@ se_boundary_names <- function(fit, lost) {
       und <- setdiff(cand, edge[edge %in% sd_i])
       k <- k[edge %in% sd_i]
       k <- c(k, stats::setNames(rep("undefined", length(und)), thn[und]))
+    } else if (length(cand) == length(ti) && gp_basis_white(bk, th[ti])) {
+      # an approximate field under its basis's spacing is at a boundary
+      # only where the ridge is proved level out to the white limit
+      # (gp_white_ridge()); one step within grad_tol also passed a stop
+      # 4.3e-4 short of it (dev/gpselimit-findings.md)
+      if (gp_white_ridge(fit, bk)) {
+        k <- stats::setNames(rep("gpwhite", length(cand)), thn[cand])
+      }
     } else if (is.null(bk[["levels"]]) && length(ti) >= 2L &&
                  length(cand) == length(ti) &&
                  se_block_ridge_edge(fit, thn[ti])) {
@@ -3320,13 +3431,15 @@ se_boundary_names <- function(fit, lost) {
       k <- stats::setNames(rep("limit", length(cand)), thn[cand])
     }
     kind <- c(kind, k, stats::setNames(rep("short", length(short)),
-                                       thn[short]))
+                                       thn[short]),
+              stats::setNames(rep("shortcor", length(shortcor)),
+                              thn[shortcor]))
   }
   kind <- kind[!duplicated(names(kind))]
   if (is.environment(fit$cache)) {
     fit$cache$se_boundary_kind <- c(fit$cache$se_boundary_kind, kind)
   }
-  names(kind)[kind != "short"]
+  names(kind)[!kind %in% c("short", "shortcor")]
 }
 
 #' How much log-likelihood a larger value of a log standard deviation
@@ -3734,6 +3847,8 @@ se_relabel <- function(fit, lost) {
   kind <- fit$cache$se_boundary_kind
   lost[names(lost) %in% names(kind)[kind == "short"] &
          lost == "flat"] <- "short"
+  lost[names(lost) %in% names(kind)[kind == "shortcor"] &
+         lost == "flat"] <- "shortcor"
   if (fit$REML || isTRUE(fit$control$profile)) return(lost)
   om <- outer_par_map(fit)
   pb <- which(om$comp == "beta")
@@ -4035,6 +4150,11 @@ se_lost_clauses <- function(fit, lost) {
     ifelse(li$rise[hn] %in% TRUE, "rise",
            ifelse(li$sep1[hn] %in% TRUE, "sep1",
                   ifelse(li$sep[hn] %in% TRUE, "sep", "end")))))
+  # an approximate field at its basis's white limit (se_boundary_names())
+  # is a boundary that the generic clause, a variance at zero or a range
+  # at its limit, does not describe: sdgp is neither
+  bkind <- if (is.environment(fit$cache)) fit$cache$se_boundary_kind
+  lost[lost == "boundary" & bkind[names(lost)] %in% "gpwhite"] <- "gpwhite"
   # coefficients that ran off only in combination say so
   together <- function(n) {
     if (any(li$joint[n] %in% TRUE)) " together" else ""
@@ -4085,10 +4205,27 @@ se_lost_clauses <- function(fit, lost) {
                      if (one) "it is" else "they are",
                      " not at a boundary. Refit from a larger starting ",
                      "value (start =; see par_template())"),
+      shortcor = paste0("the fit stopped short of the maximum: ",
+                        if (one) "this correlation is" else
+                          "these correlations are",
+                        " at the limit of the range, where the likelihood ",
+                        "is flat, but a value nearer 0 raises the ",
+                        "log-likelihood, so ", if (one) "it is" else
+                          "they are",
+                        " not at a boundary. Refit from a value nearer 0 ",
+                        "(start =; see par_template()), or, for a random ",
+                        "slope on a badly scaled column, with ",
+                        "frmtmb_control(autoscale = TRUE)"),
       boundary = paste0("at the edge of the parameter space (a variance ",
                         "at zero, or a correlation, mixing or range ",
                         "parameter at its limit), where the likelihood no ",
                         "longer changes: a boundary, or singular, fit"),
+      gpwhite = paste0("an approximate gp() term at the white limit of its ",
+                       "basis: the likelihood stays level from the ",
+                       "estimate to a length scale of 0, where every basis ",
+                       "function gets the same prior weight, and reads only ",
+                       "sdgp^2 times the product of the length scales, ",
+                       "which hypothesis() reports: a boundary fit"),
       separation = paste0("the data separate the outcomes, so ",
                           if (one) "the estimate runs" else
                             "the estimates run",
@@ -4133,16 +4270,20 @@ se_lost_clauses <- function(fit, lost) {
                       "curvature there does not measure the uncertainty (a ",
                       "log density with a kink in a parameter, such as ",
                       "asym_laplace()'s in its location, has no curvature ",
-                      "along it)"))
+                      "along it)"),
+      kink = ald_se_why(fit, one))
   }
   out <- character(0)
   for (r in c("bound", "limit_end", "limit_rise", "limit_sep", "limit_sep1",
-              "limit_sepother", "limit_undefined", "boundary",
+              "limit_sepother", "limit_undefined", "boundary", "gpwhite",
               "separation", "short", "flat", "illcond", "concave",
-              "nonfinite", "nocurv")) {
+              "shortcor",
+              "nonfinite", "nocurv", ald_se_reason)) {
     n <- names(lost)[lost == r]
     if (!length(n)) next
-    lab <- if (r == "boundary") se_boundary_labels(fit, n) else {
+    lab <- if (r %in% c("boundary", "gpwhite")) {
+      se_boundary_labels(fit, n)
+    } else {
       vapply(n, label, "")
     }
     if (r %in% c("limit_end", "limit_rise", "limit_sep", "limit_sep1")) {
@@ -4301,7 +4442,7 @@ jc_nan_lost <- function(jc, G, pos) {
   why <- why[ok]
   dv <- vapply(lp, function(i) as.numeric(V[i, i]), 0)
   j <- match(lp[!is.finite(dv)], pos)
-  nc <- why[!is.finite(dv)] %in% "nocurv"
+  nc <- why[!is.finite(dv)] %in% c("nocurv", ald_se_reason)
   sz <- why[!is.finite(dv)] %in% "size"
   nc <- nc[!is.na(j)]
   sz <- sz[!is.na(j)]
@@ -4501,16 +4642,17 @@ se_pred_tol <- 1e-6
 #' @noRd
 se_pred_warn <- function(bad, what = "predictions") {
   if (!any(bad)) return(invisible(NULL))
-  # rows that read coefficients of a REML fit too large for their accurate
-  # covariance (joint_cov_repair(), joint_root_limit())
+  # rows that read coefficients of a REML fit whose sparse covariance did
+  # not factor (joint_cov_repair(), jcs_joint_cov())
   sz <- attr(bad, "size")
   if (length(sz) == length(bad) && any(sz %in% TRUE)) {
     frm_warning(sum(sz %in% TRUE), " of ", length(bad), " ", what,
                 " read coefficients whose covariance this REML fit cannot ",
-                "give accurately above ", format(joint_root_limit()),
-                " joint parameters, so their standard errors are NaN; ",
-                "raise options(frmtmb.joint_root_max = ), at memory that ",
-                "grows with its square, or draw from the fit with ",
+                "give accurately: above ", format(joint_root_limit()),
+                " joint parameters it is read by sparse solves in the ",
+                "coordinates of the design, and there the inner block of ",
+                "the joint precision does not factor. Their standard ",
+                "errors are NaN; draw from the fit with ",
                 "frmtmb.sample::frm_sample()", call. = FALSE,
                 class = "frmtmb_se_lost_prediction")
     if (all(sz[bad %in% TRUE] %in% TRUE)) return(invisible(NULL))
@@ -4524,8 +4666,10 @@ se_pred_warn <- function(bad, what = "predictions") {
     frm_warning(sum(bad), " of ", length(bad), " ", what, " read a ",
                 "parameter whose variance the curvature where the fit ",
                 "stopped does not give (a stop short of the maximum, or a ",
-                "log density with a kink), so their standard errors are ",
-                "NaN; summary() lists those parameters", call. = FALSE,
+                "log density with a kink, such as asym_laplace()'s in its ",
+                "location, which has no Hessian standard error by design), ",
+                "so their standard errors are NaN; summary() lists those ",
+                "parameters and why", call. = FALSE,
                 class = "frmtmb_se_lost_prediction")
     return(invisible(NULL))
   }

@@ -77,9 +77,9 @@
 #'   tells how the defaults are set; the entries you do not name in
 #'   `start` keep those defaults.
 #'
-#'   A mixture of ordinal families without random effects also fits from
-#'   10 jittered starts by default; a `start` of your own turns them off
-#'   (see `starts` in [frmtmb_control()]).
+#'   A mixture of ordinal families of different kinds also fits once from
+#'   its components swapped between the families; a `start` of your own
+#'   turns that off (see `starts` in [frmtmb_control()]).
 #'
 #'   An exact `gp()` on a gaussian response with a constant `sigma` starts at
 #'   the maximum of the model's marginal, read from the best cell of six
@@ -2017,6 +2017,18 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     }
     prior_conflict_message(fit$opt)
   }
+  # an asym_laplace() fit without random effects stops on the kinks of
+  # its likelihood: moved to the exact quantile regression solution where
+  # that is proved a maximum (ald_polish())
+  pol <- ald_polish(fit, bounds)
+  if (!is.null(pol)) {
+    moved <- !identical(pol$par, fit$opt$par)
+    fit$opt <- opt <- pol
+    if (moved) {
+      fit$estimates <- est <- est_at(opt)
+      fit$cache <- new.env(parent = emptyenv())
+    }
+  }
   if (!is.null(imp)) {
     imp_ess_warning(imp$ess$ess, imp$lay, imp$plan[["n_draw"]],
                     control$importance_ess %||% imp_ess_floor)
@@ -2036,7 +2048,6 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       # explains every lost parameter but a bound-held one (se_report())
       fit$cache$se_explained <- "nl_flat"
     }
-    gp_end_warn(fit)
   }
   if (se) {
     if (vb) t0 <- vb_now()
@@ -2051,8 +2062,11 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # curvature verdict there, such as "flat" on coefficients the data
   # determine, would not be one about the data (se_check(),
   # sdr_rescue_hessian())
+  # (not where the standard errors are refused by name, which the
+  # check says whatever the stop: ald_se_lost())
   if (length(chk$warnings) &&
-        !(isTRUE(chk$at_max) && length(chk$warnings) == 1L)) {
+        !(isTRUE(chk$at_max) && length(chk$warnings) == 1L) &&
+        !length(ald_se_lost(fit))) {
     fit$cache$se_explained <- "convergence"
   }
   # Fit-end checks: a family that wants to inspect its own fit, and the
@@ -2062,6 +2076,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   latres_refuse_margin(fit)
   latres_disp_report(fit)
   latres_laplace_report(fit)
+  # after the convergence check, whose verdict decides whether a white
+  # field is told as a boundary fit (gp_basis_message())
+  if (announce_start && is.null(imp) && is.null(integrate)) gp_end_warn(fit)
   if (announce_start) fit <- mi_laplace_note(fit)
   if (check_se) {
     se_check(fit, control)
@@ -2860,17 +2877,25 @@ sdr_of <- function(fit) {
 #'   directly (not a `mu` coefficient under `REML = TRUE` or
 #'   `profile = TRUE`, which the inner solver integrates), or when a
 #'   random-effect column that the plan rescales has a standard
-#'   deviation of its nonzero values below 0.05. Without
+#'   deviation of its nonzero values below 0.05, or a root mean square
+#'   above 2 times its standard deviation over the rows its term covers
+#'   (a mean more than 1.73 standard deviations from 0, such as a
+#'   calendar year). Without
 #'   it such a fit can stop short and report convergence: a poisson
 #'   `y ~ 0 + x` with `x` on a 1e-6 scale lost 62.6 log-likelihood
 #'   units against [stats::glm()], and a random slope on a column
 #'   spread 0.01 lost up to 14.4, and a poisson random slope with no
-#'   fixed effect on a column spread 1e-4 up to 111. Every other fit is
+#'   fixed effect on a column spread 1e-4 up to 111, and a random slope
+#'   on a calendar year up to 41.1. Every other fit is
 #'   the fit
-#'   `autoscale = FALSE` gives, bit for bit. A column that is far from
-#'   zero against its spread, such as `x + 1e6`, does not need this
-#'   option: whatever its value, the optimizer steps in coordinates in
-#'   which each ill-conditioned fixed design has orthogonal columns.
+#'   `autoscale = FALSE` gives, bit for bit. A fixed-effect column that
+#'   is far from zero against its spread, such as `x + 1e6`, does not
+#'   need this option: whatever its value, the optimizer steps in
+#'   coordinates in which each ill-conditioned fixed design has
+#'   orthogonal columns. A random slope on such a column does. With two
+#'   such slopes in one term, a nested term, `cs()` or `gr(by =)`, the
+#'   pre-fit can stop short too, because rescaling leaves the column at
+#'   the same angle to the intercept; center the column before the fit.
 #' @param check_nlev_1 What to do about a scalar random-effect term
 #'   whose grouping factor has a single level: `"warning"` (default),
 #'   `"ignore"`, or `"stop"`, following lme4's `lmerControl()` check
@@ -2942,7 +2967,10 @@ sdr_of <- function(fit) {
 #'   convergence warning, as lme4's checkConv() does. A smooth,
 #'   `gp()` or `hsgp()` term at its own limit loses those standard errors
 #'   without a message, as mgcv reports a smoothing parameter at
-#'   infinity.
+#'   infinity. The exception is an approximate `gp(k = )` at the white
+#'   limit of its basis, where `sdgp` and the length scales are not apart
+#'   determined: it gets a message of class `frmtmb_gp_basis` and
+#'   `frmtmb_boundary_fit` (see [`frmtmb-gp`]).
 #' @param importance_seed Seed for the standard normal draws of
 #'   `frm(importance =)`. The draws are taken from a private random
 #'   stream, so the fit neither reads nor disturbs the session's random
@@ -3017,24 +3045,31 @@ sdr_of <- function(fit) {
 #'   times the product of the two counts. A model with one block per row
 #'   does not read this setting: its rule is adaptive Gauss-Kronrod.
 #' @param starts The number of jittered starts for a [mixture()] of
-#'   ordinal families, or `NULL` (default) for 10 on a fit with no `start`
-#'   of your own and no random effects, and none otherwise. After the fit
-#'   from the default start, the model is refitted from each start, every
-#'   outer parameter moved by a normal draw with standard deviation 0.5
-#'   (a coefficient by 0.5 over the root mean square of its column). The
-#'   fit keeps the best of these converged points at which no component
-#'   is a step function of its predictors. Maximum likelihood for an ordinal
-#'   mixture often has its supremum at such a step function, a degenerate
-#'   boundary where the component's slopes and thresholds run off, so the
-#'   best start ranked by the likelihood alone picks it more often than it
-#'   escapes it. Only runs that the optimizer calls converged are ranked.
-#'   The rule:
+#'   ordinal families, or `NULL` (default) for none. `0` also turns off
+#'   the swapped start (below). After the fit from the default start, the
+#'   model is refitted from each jittered start, every outer parameter
+#'   moved by a normal draw with standard deviation 0.5 (a coefficient by
+#'   0.5 over the root mean square of its column). The fit keeps the best
+#'   of these converged points at which no component is degenerate.
+#'   Maximum likelihood for an ordinal mixture often has its supremum at
+#'   a step function, a degenerate boundary where a component's slopes
+#'   and thresholds run off, so the best start ranked by the likelihood
+#'   alone picks it more often than it escapes it. Only runs that the
+#'   optimizer calls converged are ranked. A point counts as degenerate
+#'   when a component is a step function, when its thresholds collapse
+#'   or one has no row near it, or when a threshold the data place has a
+#'   standard error above 100 on the latent scale or none at all. The
+#'   rule:
 #'
 #'   * A fit from the default start with no degenerate component is
 #'     replaced only by a better maximum, by more than `grad_tol` in
 #'     log-likelihood, with no degenerate component either.
-#'   * A fit at a flat degenerate boundary only (collapsed thresholds, a
-#'     threshold no row is near) is kept as it is, and no starts run.
+#'   * A fit whose thresholds collapsed, or ran off where no row is near,
+#'     is kept as it is, and no jittered starts run: which of two points
+#'     of one likelihood carries that flag is decided by how far the
+#'     optimizer ran. A fit flat only by a threshold's standard error (or
+#'     a lost one) is replaced by a better maximum without a degenerate
+#'     component, as above.
 #'   * A step function, or a component whose sharpening cannot be
 #'     measured, is replaced by the best converged point without one,
 #'     whatever its likelihood. When the optimizer did not call the
@@ -3047,57 +3082,67 @@ sdr_of <- function(fit) {
 #'     the better answer. `logLik()` and the information criteria are
 #'     those of the point returned.
 #'
-#'   A point the degenerate check passes is not always a clean maximum:
-#'   the check does not see a direction along which the likelihood is
-#'   flat, such as a threshold that drifts with a standard error in the
-#'   thousands or a category a component gives a probability near 1e-8.
-#'   Check the standard errors of a fit that moved.
+#'   The swapped start. A fit from scratch (no `start` of your own, not a
+#'   refit) of a mixture whose components are of different families,
+#'   such as `mixture(cumulative(), sratio())`, is refitted once from the
+#'   default fit with the parameters of the components swapped between
+#'   the families: each other assignment of the components to the
+#'   families is one refit. The fit returns that refit when it converged,
+#'   is higher by more than `grad_tol` per unit of mean case weight, and
+#'   has no degenerate component; then four refits from it, each
+#'   parameter moved by a normal draw with standard deviation 0.1, check
+#'   it, and the best of these ends without a degenerate component is
+#'   returned. [frm()] says so in a message of class
+#'   `frmtmb_mixture_swap`. A swapped start at which the objective equals
+#'   the fit's, to rounding, is the same model, and no refit runs: two
+#'   components of one family, link and terms with the same priors
+#'   (`mixture(cumulative(), cumulative())`), or `sratio()` and `cratio()`
+#'   under the logit. Three components try every other assignment (5
+#'   refits), four or more the pairwise swaps only. [update()] is a fit
+#'   from scratch and runs the swap.
 #'
-#'   On two-class data with 300 rows, 20 seeds each of
-#'   `mixture(cumulative(), cumulative())` and
-#'   `mixture(cumulative(), sratio())`, the default starts moved 12 of 40
-#'   fits: 5 to a higher maximum (by 0.12 to 2.4) and 7 from a step
-#'   function to a point the degenerate check passes (2.7 to 10.4 lower),
-#'   so its warning fell from 12 fits to 5. Of those 7 points, 2 are clean
-#'   maxima, 3 have a category near 1e-8 to 1e-7, and 2 lie on a flat
-#'   direction with a standard error above 5000. On 107 fits of 14 other designs
-#'   (other links and families, three components, `cs()`, a free `disc`,
-#'   `order = "mu"`, priors on `b`, 22 predictors) 18 moved, 10 up and 8
-#'   off a step function (4 of those 8 points flat in the same way, one
-#'   of the 4 not a maximum), and none that 0.81.0 passed lost likelihood
-#'   or gained the degenerate warning; with 38 steep and one-class designs
-#'   added, 23 of 145 moved. On the two-class data the starts moved 9 of
-#'   40 fits at 1000 rows (all up), 1 of 40 at 3000 rows and 0 of 40 at
-#'   20000 rows, where they took 8 times as long (46 s against 5.7 s a
-#'   fit); one steep design with 20000 rows gained 8.8. The answer is the
-#'   best of the points these 10 starts reach, not the best there is: 20
-#'   starts moved 6 of the 40 fits higher than 10 did, by 0.21 to 3.07,
-#'   for 1.8 times the time. Under brms 2.23.0's default priors, the
-#'   posterior density at two of the step functions was 53 to 56 units
-#'   below that at the point returned, and `rstan::optimizing()` reached a
-#'   posterior mode near that point, not at it, from each of 10
-#'   random starts.
+#'   On 320 fits of `mixture(cumulative(), cumulative())` and
+#'   `mixture(cumulative(), sratio())` with a random intercept or slope
+#'   (300 rows and 20 groups, 1000 rows and 50 groups), the default ended
+#'   below a better clean maximum without a warning on 19 fits before
+#'   the swap and on 3 after it; the 3 are two fits of one family, which
+#'   no swap can help, and one 0.04 short. No fit moved down. The swap
+#'   cost a median 2.0 to 3.8 times the fit on the mixtures of two
+#'   families (6.9 times where it was kept, for its four checking runs)
+#'   and a median 1.0 on the others. Without random effects, on two families
+#'   with 300 and 1000 rows, the swap was kept on 5 and 15 of 40 fits,
+#'   and the fit ended above the 10 jittered starts' answer on 16 and 15
+#'   of 40 and below it on 4 and 3.
 #'
-#'   The starts cost 5 to 10 times the fit's optimization at 300 and 3000
-#'   rows (minimum of 3 runs; up to 15 to 20 times in single runs), and 15
-#'   to 23 times with a random intercept over 50 groups (1000 rows), where
-#'   each start is a Laplace fit: that is why a model with random effects
-#'   does not run them by default. Refits that warm-start from a fit,
-#'   [frm_bootstrap()] and [refit()] among them, run no starts unless
-#'   `starts` is a number, so their replicates start from the chosen
-#'   point and can end at a step function; [frm_allfit()] runs none, so
-#'   that its optimizers' spread still shows a second maximum. Under
+#'   No fit runs jittered starts by default. With random effects they
+#'   cost a median 18 times the fit (5.2 to 95.8) on 320 fits with a
+#'   random intercept or slope over 20 or 50 groups, and 5.6 to 7.1 times
+#'   without random effects; they moved 3 to 7 of 40 fits up without
+#'   random effects, and 0 to 11 off a step function. A point the
+#'   degenerate check passes is not always a clean maximum, and the answer
+#'   is the best of the points these starts reach, not the best there is:
+#'   check the standard errors of a fit that moved. Under brms 2.23.0's
+#'   default priors, the posterior density at two step functions was 53
+#'   to 56 units below that at the proper point, and
+#'   `rstan::optimizing()` reached a posterior mode near that point.
+#'
+#'   Refits that warm-start from a fit, [frm_bootstrap()],
+#'   [influence()] and [refit()] among them, run no swapped start and no
+#'   jittered starts unless `starts` is a number: then every replicate
+#'   runs that many, as costly as the fit's. [frm_allfit()] runs neither,
+#'   so that its optimizers' spread still shows a second maximum. Under
 #'   `autoscale` they run in the fit that is reported, not in its
-#'   pre-fit. The
-#'   draws come from a private stream with a named generator and a fixed
-#'   seed, so a fit neither reads nor changes the session's random state,
-#'   and the same call gives the same fit under any [RNGkind()]. `0`
-#'   turns the starts off. A model of other families is not affected.
+#'   pre-fit. The draws come from a private stream with a named generator
+#'   and a fixed seed, so a fit neither reads nor changes the session's
+#'   random state, and the same call gives the same fit under any
+#'   [RNGkind()]. A model of other families is not affected.
 #' @param nl_starts Whether a fit with a nonlinear body runs the sign
 #'   probe and the pole restart. The sign probe, from the default start
 #'   only, fits from each sign pattern of the body's coefficients (message
 #'   class `frmtmb_nl_multistart`). The pole restart fits from beyond a
-#'   pole of the body that holds the fit (message class
+#'   pole of the body that holds the fit, and from inside each gap of the
+#'   data that is much wider than the gaps around it, where a pole of the
+#'   body can sit between rows (message class
 #'   `frmtmb_nl_pole_start`; from a `start` of your own, a warning of class
 #'   `frmtmb_nl_pole` that the point is not the maximum). `TRUE` (default)
 #'   runs both. `FALSE` turns off the sign probe and the pole restart. A
@@ -4507,16 +4552,60 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
     passes <- passes + 1L
     n_starts <- n_starts + length(starts)
     gained <- FALSE
+    # a restart the optimizer abandoned (escape_track()) is kept only when
+    # no restart that ended on its own gained AND left the point. Its
+    # objective is read where the run left the region the objective
+    # resolves: on a quadrature rule anchored at alpha = 0 it read 0.48
+    # above such an ending, whose exact marginal log-likelihood was 0.06 to
+    # 0.12 the higher (dev/quadesc-findings.md, section 4). A restart that
+    # came back to the point does not count however its objective rounds:
+    # SYMSMALL's from -2 ended 6.9e-10 above the stall on every rounding,
+    # and 1e-12 below it dropped a point 2.29 higher (review of lane
+    # quadesc, finding 3)
+    n_here <- attr(starts, "n_on") %||% 0L
+    left <- FALSE
+    abandoned <- NULL
     for (p in starts) {
       p <- pmin(pmax(p, bounds$lower), bounds$upper)
-      o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
-                                 start_par = p, tally = tally),
-                    error = function(e) NULL)
-      if (!is.null(o) && is.finite(o$objective) &&
-            o$objective < best$objective) {
+      tr <- escape_track(obj)
+      # its own count when the caller keeps none, so that an abandoned
+      # restart can report what it cost, as a finished one does
+      tl <- tally
+      if (is.null(tl)) {
+        tl <- new.env(parent = emptyenv())
+        tl$n <- 0L
+      }
+      o <- tryCatch(optimize_obj(tr$obj, control, bounds, par_units,
+                                 start_par = p, tally = tl),
+                    error = function(e) {
+                      b <- tr$best(e)
+                      if (!is.null(b)) {
+                        b$abandoned <- TRUE
+                        b$evals <- tl$evals
+                        if (identical(control$optimizer %||% "nlminb",
+                                      "nlminb")) {
+                          b$nonfinite_trials <- tl$n
+                        }
+                      }
+                      b
+                    })
+      if (is.null(o) || !is.finite(o$objective)) next
+      if (isTRUE(o$abandoned)) {
+        if (is.null(abandoned) || o$objective < abandoned$objective) {
+          abandoned <- o
+        }
+      } else if (o$objective < best$objective) {
         best <- o
         gained <- TRUE
+        n_now <- attr(stationary_escapes(obj, o, frame), "n_on") %||% 0L
+        if (n_now < n_here) left <- TRUE
       }
+    }
+    if (!left && !is.null(abandoned) &&
+          abandoned$objective < best$objective) {
+      best <- abandoned
+      best$abandoned <- NULL
+      gained <- TRUE
     }
     if (!gained || passes >= max_passes) break
     starts <- stationary_escapes(obj, best, frame)
@@ -4547,6 +4636,66 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
                     format(gain, digits = 3)))
   }
   best
+}
+
+#' An escape restart's objective that remembers the lowest point where
+#' both the objective and its gradient were finite, so that a restart
+#' the optimizer abandons on an error still returns where it got to.
+#'
+#' A restart sent off a family's stationary point often runs toward the
+#' family's limit (the skew normal's alpha toward the half-normal), where
+#' the objective is nearly level. There the gradient can stop being
+#' finite: RTMB's `pnorm(log.p = TRUE)` has a non-finite derivative below
+#' about -3e9 (dev/upstream-bugs.md, RTMB-3), and a quadrature rule's far
+#' nodes reach it at a weight of 0, which makes NaN. The optimizer then
+#' raises even after its restart from the best point. Dropping such a
+#' restart dropped its gain: on a quadrature fit every start of the
+#' rule's escape raised, and the fit stopped on alpha = 0 with no gain
+#' (dev/quadesc-findings.md, item 5015). The tape's own best point does
+#' not do: it is where the gradient first failed, so no later step can
+#' start from it.
+#'
+#' Returns `list(obj, best)`: `obj` to optimize in place of the
+#' objective (its `env` is the objective's own), and `best(e)`, the
+#' remembered point as an optimizer result with a nonzero code, so that
+#' the fit says it did not converge, or NULL if none was remembered.
+#'
+#' @noRd
+escape_track <- function(obj) {
+  rec <- new.env(parent = emptyenv())
+  rec$f <- Inf
+  same <- function(a, b) {
+    !is.null(b) && identical(unname(as.numeric(a)), unname(as.numeric(b)))
+  }
+  wrapped <- obj
+  wrapped$fn <- function(x, ...) {
+    v <- obj$fn(x, ...)
+    rec$x <- x
+    rec$v <- v
+    v
+  }
+  wrapped$gr <- function(x, ...) {
+    g <- obj$gr(x, ...)
+    v <- rec$v
+    # nlminb asks for the gradient at a point whose objective it has
+    # just read; any other point is not remembered
+    if (same(x, rec$x) && length(v) == 1L && is.finite(v) && v < rec$f &&
+          all(is.finite(g))) {
+      rec$f <- as.numeric(v)
+      rec$par <- x
+    }
+    g
+  }
+  best <- function(e) {
+    if (is.null(rec$par)) return(NULL)
+    list(par = stats::setNames(as.numeric(rec$par), names(obj$par)),
+         objective = rec$f, convergence = 1L,
+         message = paste0("the optimizer stopped on an error (",
+                          conditionMessage(e), ") on its way from a ",
+                          "restart off a stationary point; the lowest ",
+                          "point with a finite gradient is kept"))
+  }
+  list(obj = wrapped, best = best)
 }
 
 #' A quadrature fit escapes a stationary point twice: on the Laplace
@@ -6668,6 +6817,10 @@ check_convergence <- function(fit, control) {
   sep <- if (is.null(fit$importance)) {
     tryCatch(separation_check(fit), error = keep_missing(NULL))
   }
+  # an asym_laplace() fit with every row censored, run off the same way
+  if (is.null(sep)) {
+    sep <- tryCatch(ald_cens_sep(fit), error = keep_missing(NULL))
+  }
   if (!is.null(sep)) {
     if (is.environment(fit$cache)) {
       fit$cache$se_explained_sep <- sep$pars
@@ -6705,13 +6858,21 @@ check_convergence <- function(fit, control) {
   # along which the likelihood is level, is the rounding of the density
   # there (se_boundary_stop()); the rest of the gradient decides
   bstop <- FALSE
-  if (is.null(sep) &&
+  # an asym_laplace() fit proved to stop at the exact quantile regression
+  # solution, a maximum (ald_polish()): its gradient there is a one-sided
+  # derivative at the kinks, not a distance from the maximum. One proved
+  # only a local maximum says so in a warning of its own
+  ald_ok <- isTRUE(fit$opt$ald_cert$ok)
+  if (ald_ok && !isTRUE(fit$opt$ald_cert$global)) {
+    msgs <- c(msgs, frmtmb_ald_local = ald_local_message(fit))
+  }
+  if (is.null(sep) && !ald_ok &&
         (fit$opt$convergence != 0 || isTRUE(g > control$grad_tol)) &&
         is.null(fit$importance)) {
     bstop <- se_boundary_stop(fit, g, control, gvec)
     if (isTRUE(bstop)) g <- attr(bstop, "grad") %||% g
   }
-  if (is.null(sep) && fit$opt$convergence != 0 && !bstop) {
+  if (is.null(sep) && fit$opt$convergence != 0 && !bstop && !ald_ok) {
     # Whether the stop is the maximum is measured, not read off the code:
     # nlminb's "false convergence (8)" also fires at the maximum (a group
     # sd 1000 times sigma stopped there at lmer's maximum,
@@ -6739,7 +6900,8 @@ check_convergence <- function(fit, control) {
       code_msg <- paste0(
         "Optimizer did not report convergence: ", fit$opt$message, nl_hint,
         if (is.null(fit$importance)) {
-          conv_headroom_clause(room, control$grad_tol)
+          ald_conv_clause(fit) %||%
+            conv_headroom_clause(room, control$grad_tol)
         })
       # nlminb's "false convergence (8)" at a measured maximum is a
       # message, decided below once the gradient verdict is in. Not on an
@@ -6780,7 +6942,8 @@ check_convergence <- function(fit, control) {
         "Laplace fit converged and whether the groups have enough rows to ",
         "identify every variance component"))
     }
-  } else if (is.null(sep) && is.finite(g) && g > control$grad_tol) {
+  } else if (is.null(sep) && is.finite(g) && g > control$grad_tol &&
+               !ald_ok) {
     # (a separated fit's gradient and curvature are those of a run toward
     # infinity, which its warning has named)
     # the absolute gradient is the trip-wire and not the verdict: a
@@ -6842,11 +7005,15 @@ check_convergence <- function(fit, control) {
       msgs <- c(frmtmb_conv_code = code_msg, msgs)
     }
   }
+  # kept for the end-of-fit gp() condition, which a doubted stop turns
+  # back into a warning (gp_basis_message())
+  if (is.environment(fit$cache)) fit$cache$conv_classes <- names(msgs)
   # the stop warnings carry a class, which nl_stop_warning() reads
   for (i in seq_along(msgs)) {
     cl <- names(msgs)[i]
     frm_warning(msgs[[i]], call. = FALSE,
                 class = if (isTRUE(nzchar(cl))) cl)
   }
-  invisible(list(grad = g, warnings = unname(msgs), at_max = at_max))
+  invisible(list(grad = g, warnings = unname(msgs),
+                 at_max = at_max || ald_ok))
 }

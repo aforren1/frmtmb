@@ -258,8 +258,14 @@ test_that("a new level takes the covariance of its own by-level", {
 
 test_that("new data that cannot be routed is refused by name", {
   fit <- grby_fit()
-  expect_error(predict(fit, newdata = data.frame(g = "new", f = "a", x = 1)),
-               "New levels in grouping factor `g`: new")
+  # the draw law is read before new data are routed, and on this fit a
+  # by-level's slope correlation fires the per-direction draw check
+  # (test-predict-draw-check.R), whose warning is not this test's point
+  allow_warnings(
+    expect_error(predict(fit, newdata = data.frame(g = "new", f = "a",
+                                                   x = 1)),
+                 "New levels in grouping factor `g`: new"),
+    "normal law's far tail")
   expect_error(frm_linpred(fit, newdata = data.frame(g = "new", f = "zz",
                                                      x = 1),
                            allow_new_levels = TRUE),

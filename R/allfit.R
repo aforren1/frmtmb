@@ -70,9 +70,9 @@ allfit_optimizers <- function() {
 #' prior places on a nonlinear parameter. A nonlinear model is rarely
 #' defined at the default start of zero, so refits from there fail or
 #' stop somewhere else, and their disagreement then says nothing about
-#' the original fit. The refits run no jittered starts of a mixture
-#' (`starts` in [frmtmb_control()]), so each shows its own optimizer's
-#' point.
+#' the original fit. The refits run no jittered or swapped starts of a
+#' mixture (`starts` in [frmtmb_control()]), so each shows its own
+#' optimizer's point.
 #'
 #' The printed table compares each refit with the best log-likelihood
 #' any fit reached, the original included. An optimizer that reports

@@ -180,35 +180,48 @@ test_that("a cs() ordinal mixture at its crossing wall names the wall", {
 })
 
 test_that("negbinomial and negbinomial2 both name the poisson limit", {
-  # the two spellings stop at different points of a ridge where the
-  # likelihood is flat, both on its boundary (dev/famend-repro.R, case
-  # nbmirror; backlog item of lane nb2dm). A stop on that ridge may end
-  # at code 1 instead, with the convergence warnings and no limit
-  # message: under OpenBLAS 0.3.26 one rounding of 21 does, at shape
-  # 24.19 (dev/reviews/famend-review-nbpert.R). Its log-likelihood is
-  # still the limit's: the stops of seeds 4 and 6 differ by 2.7e-6 at
-  # most, below 1e-8 of the log-likelihood's 555
+  # both spellings stop on the ridge where the likelihood is flat, on its
+  # boundary (dev/famend-repro.R, case nbmirror; backlog item of lane
+  # nb2dm). Where the stop fell on that ridge was rounding, through the
+  # noise of RTMB::dnbinom_robust()'s derivative in the shape, and 22 of
+  # 84 roundings stopped at code 1; with the exact derivative all 84
+  # stop at code 0 with the message (dev/nbrobust-findings.md). The
+  # log-likelihood is the limit's wherever the stop is: the stops of
+  # seeds 4 and 6 differ by 2.7e-6 at most, below 1e-8 of its 555
   set.seed(4)
   d <- data.frame(x = stats::rnorm(300))
   d$y <- stats::rpois(300, exp(1 + 0.3 * d$x))
   r1 <- fe_conds(frm(y ~ x, family = negbinomial(), data = d))
   r2 <- fe_conds(frm(y ~ x, family = brmsfamily("negbinomial2"), data = d))
-  conv <- c("did not report convergence", "Large maximum absolute gradient")
   for (r in list(r1, r2)) {
-    named <- fe_has(r$messages, "frmtmb_limit_fit") ||
-      fe_has(r$messages, "frmtmb_boundary_fit")
-    if (named) {
-      fe_only(r, character(0))
-    } else {
-      expect_identical(r$value$opt$convergence, 1L)
-      expect_true(any(grepl(conv[1], vapply(r$warnings, conditionMessage,
-                                            ""), fixed = TRUE)))
-      fe_only(r, conv)
-    }
+    expect_true(fe_has(r$messages, "frmtmb_limit_fit") ||
+                  fe_has(r$messages, "frmtmb_boundary_fit"))
+    fe_only(r, character(0))
   }
   l1 <- as.numeric(logLik(r1$value))
   l2 <- as.numeric(logLik(r2$value))
   expect_lt(abs(l1 - l2) / abs(l1), 1e-8)
+})
+
+test_that("a negbinomial fit started far along its poisson limit stops there", {
+  # PIN: started at a log shape of 30, 15 of 21 roundings of these data
+  # warned "Large maximum absolute gradient" (0.191 at the shape) and
+  # "false convergence" on 0.83.0, and all 21 under check_se = "ignore".
+  # That gradient was the noise of RTMB::dnbinom_robust()'s derivative;
+  # the true one is about 1e-13, so the start is already the limit
+  # (dev/nbrobust-start.R)
+  set.seed(2)
+  d <- data.frame(x = stats::rnorm(200))
+  d$y <- stats::rpois(200, exp(1 + 0.4 * d$x))
+  r <- fe_conds(frm(y ~ x, family = negbinomial(), data = d,
+                    start = list(betad = 30)))
+  expect_true(fe_has(r$messages, "frmtmb_limit_fit") ||
+                fe_has(r$messages, "frmtmb_boundary_fit"))
+  fe_only(r, character(0))
+  r <- fe_conds(frm(y ~ x, family = negbinomial(), data = d,
+                    start = list(betad = 30),
+                    control = frmtmb_control(check_se = "ignore")))
+  fe_only(r, character(0))
 })
 
 test_that("a start where a prior's density is 0 moves inside its support", {

@@ -120,10 +120,10 @@
 #'   example multinomial's per-category `mu2`, `mu3`, ...) list them all;
 #'   these live in the `beta` parameter vector and are integrated out
 #'   under REML.
-#' @param lcdf Optional vectorized AD CDF `(q, dpars, aterms)` returning
-#'   probabilities; enables `cens()` and `trunc()` addition terms. Despite
-#'   the `l` in its name, it returns `F(q)` on the probability scale, not
-#'   `log F(q)`; `lccdf` and `cdf_log` are the slots on the log scale. It is
+#' @param cdf Optional vectorized AD CDF `(q, dpars, aterms)` returning
+#'   probabilities; enables `cens()` and `trunc()` addition terms. It
+#'   returns `F(q)` on the probability scale, not `log F(q)`; `lccdf` and
+#'   `cdf_log` are the slots on the log scale. It is
 #'   the only thing either term asks of a family, whatever the family's
 #'   `type`. A discrete family is read on the integer lattice (see
 #'   Censoring a discrete response), so `trunc(lb = )` calls this at one
@@ -133,16 +133,16 @@
 #'   that declares it scores the upper tail from it instead of from
 #'   `log(1 - F)`, which cannot be accurate once `F` rounds to one (see
 #'   Censoring and the representable tail). It is optional and
-#'   independent of `lcdf`: a family that supplies only `lccdf` accepts
+#'   independent of `cdf`: a family that supplies only `lccdf` accepts
 #'   right censoring and refuses left censoring, interval censoring and
 #'   `trunc()`, each by name.
 #' @param cdf_log Optional vectorized AD function `(q, dpars, aterms)`
 #'   returning `list(lF = log F(q), lS = log S(q))`, both tails on the
 #'   log scale. A family that declares it has every censored row and
-#'   every truncation window read from it, and `lcdf` and `lccdf` are
+#'   every truncation window read from it, and `cdf` and `lccdf` are
 #'   derived from it when they are not given. It is how a family whose
 #'   two tails are both exact passes that to core: a probability-scale
-#'   `lcdf` ends at `1e-308`.
+#'   `cdf` ends at `1e-308`.
 #' @param required_aterms The addition-term values the density cannot do
 #'   without, named as they reach `aterms`: `"vint1"`, `"vreal2"`,
 #'   `"trials"`. A character vector names the terms it needs ALL of. A
@@ -290,6 +290,9 @@
 #'   that say which post-fit methods the family can answer. `lpdf` stays
 #'   required even then, for the rowwise contract, and may be a stub
 #'   that refuses.
+#' @param ... Must be empty. An argument named after the CDF slot's
+#'   former name stops with an error that names `cdf`, and so does a
+#'   family list that stores that name, wherever it reaches frmtmb.
 #' @return An object of class `frmtmb_family`. `$` on it also answers
 #'   brms's link fields, computed from `links` when read: `link`, the
 #'   name of the link for the mean (for an ordinal family, the
@@ -476,13 +479,13 @@
 #' Every built-in family with a CDF declares `cdf_log` except
 #' [exponential()], [weibull()], [frechet()],
 #' [gen_extreme_value()] and [discrete_weibull()]. A family without it
-#' is read through `lcdf` and `lccdf` as before: a right-censored row is
-#' `lccdf` (or `log(1 - lcdf)` without it), a left-censored row
+#' is read through `cdf` and `lccdf` as before: a right-censored row is
+#' `lccdf` (or `log(1 - cdf)` without it), a left-censored row
 #' `log(F(y) - F(lb))`, an interval `log(F(y2) - F(y))`, the window
 #' `log(F(ub) - F(lb))`, and `trunc(lb = )` with no upper bound
 #' `lccdf(lb)`. Each slot is called where it always was, because a
 #' family may read the censoring codes to know which rows a call is
-#' for, as the frmtmb.eam Wiener families do, and may supply an `lcdf`
+#' for, as the frmtmb.eam Wiener families do, and may supply a `cdf`
 #' that is not the complement of its `lccdf`. The probability scale
 #' ends at `1e-308`, below which a left-censored row is `log(0)`, and an
 #' interval in an upper tail loses its digits; a family that declares
@@ -552,7 +555,7 @@
 #' the one-step window is built on.
 #'
 #' @section Tape-safe scope:
-#' `lpdf` and `lcdf` run with RTMB's tape-safe `c()`, `[<-` and
+#' `lpdf` and `cdf` run with RTMB's tape-safe `c()`, `[<-` and
 #' `diag<-` in scope automatically (the
 #' `"c" <- RTMB::ADoverload("c")` boilerplate is spliced in unless the
 #' function already binds it), so base spellings keep the
@@ -565,7 +568,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           init_dpars = list(), type = "continuous",
                           post = list(), sim = NULL, sim_ctx = NULL,
                           sim_refusal = NULL,
-                          primary_dpars = "mu", lcdf = NULL,
+                          primary_dpars = "mu", cdf = NULL,
                           lccdf = NULL, cdf_log = NULL,
                           required_aterms = character(0),
                           accepts_aterms = NULL, se_dpar = NULL,
@@ -573,7 +576,8 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           family_finalize = NULL,
                           extra_pars = NULL, drop_intercept = FALSE,
                           structure = NULL, aterm_data = NULL,
-                          simplex_pars = NULL, mi_chart = NULL) {
+                          simplex_pars = NULL, mi_chart = NULL, ...) {
+  refuse_family_dots(...)
   if (!is.character(family) || length(family) != 1L || is.na(family)) {
     frm_stop("frmtmb_family(family =) must be one string, the name of ",
              "the family, not ", arg_desc(family), call. = FALSE)
@@ -624,8 +628,8 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
     # the same pair, so they cannot disagree with it
     pair <- cdf_log
     four <- length(formals(pair)) >= 4L
-    if (is.null(lcdf)) {
-      lcdf <- if (four) {
+    if (is.null(cdf)) {
+      cdf <- if (four) {
         function(q, dpars, aterms, extra) {
           exp(pair(q, dpars, aterms, extra)[["lF"]])
         }
@@ -641,7 +645,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
       }
     }
   }
-  if (!is.null(lcdf)) lcdf <- frmtmb_ad_overload(lcdf)
+  if (!is.null(cdf)) cdf <- frmtmb_ad_overload(cdf)
   if (!is.null(lccdf)) {
     if (!is.function(lccdf)) {
       frm_stop("frmtmb_family(lccdf =) must be a function (q, dpars, ",
@@ -663,7 +667,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                 valid_y = valid_y, init_dpars = init_dpars, type = type,
                 post = post, sim = sim, sim_ctx = sim_ctx,
                 sim_refusal = sim_refusal, primary_dpars = primary_dpars,
-                lcdf = lcdf, lccdf = lccdf, cdf_log = cdf_log,
+                cdf = cdf, lccdf = lccdf, cdf_log = cdf_log,
                 required_aterms = required_aterms,
                 accepts_aterms = accepts_aterms, se_dpar = se_dpar,
                 exclusive_aterms = exclusive_aterms,
@@ -803,7 +807,10 @@ family_link_view <- function(x, name) {
 #' links the fit uses, however the object was edited and whenever it was
 #' saved. Every other name matches exactly. A name that is only the
 #' prefix of one field is an error naming that field, and a name that
-#' matches nothing is `NULL`, as on any list.
+#' matches nothing is `NULL`, as on any list, except the CDF slot's
+#' former name, which is an error naming `cdf`. The name of a slot that
+#' [frmtmb_family()] defines is `NULL` when the object does not hold it,
+#' even where it is the prefix of another field (`cdf` of `cdf_log`).
 #'
 #' The link fields are not elements of the list, so `names()`, `[[` and
 #' `str()` do not show them. An element stored under one of those names
@@ -846,6 +853,18 @@ NULL
   }
   if (name %in% nms) return(.subset2(x, name))
   hit <- c(nms, view)[startsWith(c(nms, view), name)]
+  # an extension that still reads the slot's former name would get NULL,
+  # which every reader takes to mean "no CDF"
+  if (identical(name, old_cdf_slot)) {
+    frm_stop("A family object has no field `", old_cdf_slot, "`, the CDF ",
+             "slot's former name. The slot is `cdf`, which returns F(q) ",
+             "on the probability scale", call. = FALSE,
+             class = "frmtmb_cdf_slot_renamed")
+  }
+  # A slot frmtmb_family() defines is a field whether or not this object
+  # still holds it (assigning NULL drops an element), so its absence is
+  # NULL, not the prefix of another slot: `cdf` is a prefix of `cdf_log`
+  if (name %in% setdiff(names(formals(frmtmb_family)), "...")) return(NULL)
   if (length(hit) == 1L) {
     frm_stop("A family object has no field `", name, "`. `$` would have ",
              "partial-matched `", hit, "`, and it does not do that on a ",
@@ -1430,9 +1449,10 @@ sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
   # a family with extra parameters may read its CDF from a design built
   # at the recorded bounds, as frmtmb.survival's cox() does, so a
   # bisection point has no row in it
+  cdf <- fam_cdf_slot(fam)
   invert <- identical(frm_family_package(fam), "frmtmb") &&
     is.null(fam[["extra_pars"]]) &&
-    (!is.null(fam[["cdf_log"]]) || !is.null(fam[["lcdf"]]))
+    (!is.null(fam[["cdf_log"]]) || !is.null(cdf))
   while (length(bad)) {
     it <- it + 1L
     if (invert && it > inv_after) {
@@ -2097,6 +2117,82 @@ beta_binomial_lpmf <- function(y, size, a, b, phi) {
     lgamma_count_shift(phi, size)
 }
 
+#' Negative-binomial log mass at a count `y`, from the log mean `lmu` and
+#' the log shape `lsh`, with a value and a derivative in the shape that
+#' stay right at every shape.
+#'
+#' `RTMB::dnbinom_robust()` forms `lgamma(y + shape) - lgamma(shape)`, and
+#' its derivative `digamma(y + shape) - digamma(shape)`, as differences of
+#' two numbers of order `log(shape)`. Their error times the shape is the
+#' derivative's error in the log shape: noise from a log shape of about
+#' 18, -0.18 against 1.6e-13 at 30 (dev/upstream-bugs.md, RTMB-4). That
+#' is where a fit at the poisson limit ends, so the convergence check
+#' read the noise as a gradient no step could gain from.
+#'
+#' Here the mass is `R + y lmu - (shape + y) log1p(mu / shape) -
+#' lgamma(y + 1)`, where `R = lgamma(y + shape) - lgamma(shape) -
+#' y log(shape)` is `sum(log1p(j / shape))` over `0 < j < y`. Every
+#' piece and its derivative is of the order of the count and the mean,
+#' never of the shape, so the error stays near machine epsilon times
+#' `y + mu`. `dev/nbrobust-findings.md` has the measurement.
+#'
+#' A simulated response (`simref`) goes to `RTMB::dnbinom_robust()`,
+#' which draws it. An `osa` response carries the count as a parameter of
+#' the tape, so `R` comes from lgamma_shift_diff(), which takes one.
+#'
+#' @noRd
+nb_lpmf <- function(y, lmu, lsh) {
+  ov <- osa_unwrap(y)
+  if (is.null(ov) && inherits(y, "simref")) {
+    return(RTMB::dnbinom_robust(y, lmu, 2 * lmu - lsh, log = TRUE))
+  }
+  k <- if (is.null(ov)) y else ov$y
+  rise <- if (is.null(ov)) {
+    nb_rising(k, lsh)
+  } else {
+    lgamma_shift_diff(exp(lsh), k) - k * lsh
+  }
+  ll <- rise + k * lmu -
+    (exp(lsh) + k) * RTMB::logspace_add(0 * lmu, lmu - lsh) - lgamma(k + 1)
+  if (is.null(ov)) ll else ll * ov$keep
+}
+
+#' `lgamma(y + shape) - lgamma(shape) - y log(shape)` at counts `y`
+#' (data) and log shapes `lsh`: `sum(log1p(j / shape))` over `0 < j < y`
+#' on rows with a short count, as in lgamma_count_shift(), and
+#' lgamma_shift_diff() on the others.
+#'
+#' @noRd
+nb_rising <- function(y, lsh) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  n <- max(length(y), length(lsh))
+  y <- rep_len(y, n)
+  one <- length(lsh) == 1L
+  long <- which(y > 24 | y != round(y))
+  short <- y
+  short[long] <- 0
+  top <- max(short, 1) - 1
+  out <- 0 * (if (one) lsh[rep_len(1L, n)] else lsh)
+  if (one && top > 0) {
+    # one shape for every row: the partial sums serve all of them, which
+    # keeps the tape at one node per count value rather than per row
+    part <- cumsum(log1p(seq_len(top) * exp(-lsh)))
+    i <- which(short > 1)
+    out[i] <- part[short[i] - 1]
+  } else if (top > 0) {
+    inv <- exp(-lsh)
+    for (j in seq_len(top)) {
+      i <- which(short > j)
+      out[i] <- out[i] + log1p(j * inv[i])
+    }
+  }
+  if (length(long)) {
+    l <- if (one) lsh else lsh[long]
+    out[long] <- lgamma_shift_diff(exp(l), y[long]) - y[long] * l
+  }
+  out
+}
+
 #' Log density of a standard student-t, stable for every `nu`.
 #'
 #' `RTMB::dt()` sends a double straight to `stats::dt()`, which is
@@ -2174,25 +2270,17 @@ fam_negbinomial <- function(link = "log", link_shape = "log") {
     dpars = c("mu", "shape"),
     links = list(mu = lk, shape = lk_shape),
     lpdf = function(y, dpars, aterms) {
-      # dnbinom2 forms p = mu / var, which is 0 / 0 = NaN once exp(eta)
-      # has underflowed; dnbinom_robust takes log(mu) and
-      # log(var - mu) = 2 log(mu) - log(shape) and never divides.
-      lmu <- robust_logmu(dpars, lk)
+      # in logs throughout: p = mu / var is 0 / 0 = NaN once exp(eta)
+      # has underflowed, and nb_lpmf() never divides
+      lmu <- robust_logmu(dpars, lk) %||% log(dpars[["mu"]])
       d <- aterms[["rate"]]
-      if (is.null(lmu)) {
-        mu <- rate_mu(dpars, lk, aterms)
-        return(RTMB::dnbinom2(y, mu,
-                              mu + mu^2 / rate_shape(dpars[["shape"]],
-                                                     aterms),
-                              log = TRUE))
-      }
       lsh <- dpar_log(dpars, "shape", lk_shape)
       # rate(): brms's neg_binomial_2_log(eta + log d, shape * d)
       if (!is.null(d)) {
         lmu <- lmu + log(d)
         lsh <- lsh + log(d)
       }
-      RTMB::dnbinom_robust(y, lmu, 2 * lmu - lsh, log = TRUE)
+      nb_lpmf(y, lmu, lsh)
     },
     # the CDF pair lives in negbinomial_cdf_pair(), which every family
     # built on these slots reaches
@@ -2310,7 +2398,7 @@ fam_reparam <- function(inner, family, dpars, links, to_inner, init_dpars) {
 #' Wrap one family slot so that it translates `dpars` before the inner
 #' slot reads them. A slot without a `dpars` argument (`valid_y`, a
 #' finalizer) is returned as it is. The wrapper keeps the slot's
-#' formals, because callers read their number (`fam_lcdf()`), and keeps
+#' formals, because callers read their number (`fam_cdf()`), and keeps
 #' the inner function as an attribute, because `mean_is_mu()` reads a
 #' mean's body.
 #'
@@ -2348,15 +2436,9 @@ fam_nbinom1 <- function(link = "log", link_phi = "log") {
     dpars = c("mu", "phi"),
     links = list(mu = lk, phi = lk_phi),
     lpdf = function(y, dpars, aterms) {
-      # var - mu = mu * phi, so log(var - mu) = log(mu) + log(phi)
-      lmu <- robust_logmu(dpars, lk)
-      if (is.null(lmu)) {
-        return(RTMB::dnbinom2(y, dpars[["mu"]],
-               dpars[["mu"]] * (1 + dpars[["phi"]]),
-                              log = TRUE))
-      }
-      RTMB::dnbinom_robust(y, lmu, lmu + dpar_log(dpars, "phi", lk_phi),
-                           log = TRUE)
+      # var - mu = mu * phi, so the shape is mu / phi
+      lmu <- robust_logmu(dpars, lk) %||% log(dpars[["mu"]])
+      nb_lpmf(y, lmu, lmu - dpar_log(dpars, "phi", lk_phi))
     },
     # the negative binomial of shape mu / phi; residuals(type = "osa")
     # reads its one-step CDF from this
@@ -2692,22 +2774,13 @@ fam_zi_negbinomial <- function(link = "log", link_shape = "log",
     lpdf = function(y, dpars, aterms) {
       i0 <- as.numeric(y == 0)
       g <- dpar_log_complement(dpars, "zi", lk_zi)
-      lmu <- robust_logmu(dpars, lk)
-      if (is.null(lmu)) {
-        lp0 <- dpars[["shape"]] * (log(dpars[["shape"]]) -
-                                log(dpars[["shape"]] + dpars[["mu"]]))
-        base <- RTMB::dnbinom2(y, dpars[["mu"]],
-                               dpars[["mu"]] + dpars[["mu"]]^2 /
-                                 dpars[["shape"]],
-                               log = TRUE)
-      } else {
-        # log P(0) = shape * log(shape / (shape + mu)), which is
-        # -shape * log(1 + mu / shape) with the ratio taken in logs
-        lsh <- dpar_log(dpars, "shape", lk_shape)
-        lp0 <- -dpars[["shape"]] *
-          RTMB::logspace_add(0 * lmu, lmu - lsh)
-        base <- RTMB::dnbinom_robust(y, lmu, 2 * lmu - lsh, log = TRUE)
-      }
+      lmu <- robust_logmu(dpars, lk) %||% log(dpars[["mu"]])
+      # log P(0) = shape * log(shape / (shape + mu)), which is
+      # -shape * log(1 + mu / shape) with the ratio taken in logs
+      lsh <- dpar_log(dpars, "shape", lk_shape)
+      lp0 <- -dpars[["shape"]] *
+        RTMB::logspace_add(0 * lmu, lmu - lsh)
+      base <- nb_lpmf(y, lmu, lsh)
       i0 * RTMB::logspace_add(g$l, g$l1m + lp0) + (1 - i0) * (g$l1m + base)
     },
     cdf_log = function(q, dpars, aterms) {
@@ -2822,7 +2895,7 @@ fam_hurdle_negbinomial <- function(link = "log", link_shape = "log",
       # about five digits of mu^2 / shape (dev/fams-validate.R, 1)
       lmu <- robust_logmu(dpars, lk) %||% log(dpars[["mu"]])
       lsh <- dpar_log(dpars, "shape", lk_shape)
-      base <- RTMB::dnbinom_robust(y, lmu, 2 * lmu - lsh, log = TRUE)
+      base <- nb_lpmf(y, lmu, lsh)
       # log P(0) = -shape * log(1 + mu / shape), with the ratio in logs
       lp0 <- -dpars[["shape"]] * RTMB::logspace_add(0 * lmu, lmu - lsh)
       # The truncation normalizer log(1 - P(0)). P(0) tends to one as mu
@@ -2939,24 +3012,14 @@ fam_geometric <- function(link = "log") {
     dpars = "mu",
     links = list(mu = lk),
     lpdf = function(y, dpars, aterms) {
-      # var - mu = mu^2 (the negative binomial at shape 1)
-      lmu <- robust_logmu(dpars, lk)
+      # the negative binomial at shape 1
+      lmu <- robust_logmu(dpars, lk) %||% log(dpars[["mu"]])
       d <- aterms[["rate"]]
       if (!is.null(d)) {
         # brms's neg_binomial_2_log(eta + log d, 1 .* d)
-        if (is.null(lmu)) {
-          mu <- rate_mu(dpars, lk, aterms)
-          return(RTMB::dnbinom2(y, mu, mu + mu^2 / d, log = TRUE))
-        }
-        lmu <- lmu + log(d)
-        return(RTMB::dnbinom_robust(y, lmu, 2 * lmu - log(d), log = TRUE))
+        return(nb_lpmf(y, lmu + log(d), log(d)))
       }
-      if (is.null(lmu)) {
-        return(RTMB::dnbinom2(y, dpars[["mu"]],
-               dpars[["mu"]] * (1 + dpars[["mu"]]),
-                              log = TRUE))
-      }
-      RTMB::dnbinom_robust(y, lmu, 2 * lmu, log = TRUE)
+      nb_lpmf(y, lmu, 0)
     },
     # negbinomial()'s CDF with the shape held at 1
     cdf_log = function(q, dpars, aterms) {
@@ -3020,7 +3083,7 @@ fam_exponential <- function(link = "log") {
     # q is held at 0 from below, where F is 0 and S is 1: a trunc(lb = )
     # below 0 is no truncation, and read at q itself it took |lb| / mu
     # off every row (positive_cdf_q())
-    lcdf = function(q, dpars, aterms) {
+    cdf = function(q, dpars, aterms) {
       1 - exp(-positive_cdf_q(q)[["q"]] / dpars[["mu"]])
     },
     # log S = -q / mu in closed form: no complement is ever formed
@@ -3071,7 +3134,7 @@ fam_weibull <- function(link = "log", link_shape = "log") {
     # (q / sc)^shape is 0 at q <= 0, read at q = 1 and weighted 0, so
     # that a negative q is not a NaN and q = 0 not a NaN gradient in the
     # shape (positive_cdf_q())
-    lcdf = function(q, dpars, aterms) {
+    cdf = function(q, dpars, aterms) {
       sc <- dpars[["mu"]] / exp(lgamma(1 + 1 / dpars[["shape"]]))
       pq <- positive_cdf_q(q)
       1 - exp(-pq[["on"]] * (pq[["at"]] / sc)^dpars[["shape"]])
@@ -6009,12 +6072,14 @@ mixture_mu_start <- function(y, aterms, p, bounded) {
 #' 500 rows), 22 ended there, and in 16 of the 22 the degenerate point
 #' had a higher log-likelihood than the best non-degenerate optimum
 #' found from other starts, so the best start by the likelihood alone
-#' does not move such a fit off it. Without random effects, [frm()]
-#' therefore also fits from 10 jittered starts and keeps the best
-#' converged point without a step function, and says so in a message
-#' (class `frmtmb_mixture_step_start`) when a step function it passed
-#' over was higher (see
-#' `starts` in [frmtmb_control()]). The fit warns when a component ends
+#' does not move such a fit off it. `frmtmb_control(starts = 10)` fits
+#' from 10 jittered starts as well and keeps the best converged point
+#' without a step function; no fit runs them by default. A mixture whose
+#' components are of different families (`mixture(cumulative(),
+#' sratio())`) is also refitted once with the components' parameters
+#' swapped between the families, and keeps that fit when it is higher
+#' and passes the degenerate test (message class `frmtmb_mixture_swap`);
+#' see `starts` in [frmtmb_control()]. The fit warns when a component ends
 #' at such a point: when doubling all its latent distances (or, with
 #' `cs()`, one threshold's)
 #' costs the log-likelihood less than 0.1, or when no row lies within a
@@ -6315,13 +6380,14 @@ mixture_build <- function(comps, groups, ref) {
       setdiff(unique(unlist(comp_acc, use.names = FALSE)), "se")
     },
     # the mixture of the components' tails, brms's censored mixture
-    lcdf = if (all(vapply(comps, function(cp) !is.null(cp$lcdf), NA))) {
+    cdf = if (all(vapply(comps, function(cp) !is.null(fam_cdf_slot(cp)),
+                         NA))) {
       function(q, dpars, aterms) {
         lp <- log_pi(dpars)
         out <- 0
         for (k in seq_len(K)) {
           out <- out + exp(lp[[k]]) *
-            fam_lcdf(comps[[k]], q, comp_dpars(dpars, k), aterms, NULL)
+            fam_cdf(comps[[k]], q, comp_dpars(dpars, k), aterms, NULL)
         }
         out
       }
@@ -6712,6 +6778,7 @@ mixture_build_ordinal <- function(comps, ref, order, y = NULL,
     post = list(
       fit_check = mixture_ord_fit_check,
       start_degenerate = mixture_ord_start_class,
+      start_swaps = mixture_ord_swap_starts,
       start_spread = if (shared) {
         function(frame, resp, tpl) {
           mixture_ord_start_spread(frame, resp, tpl, cf)
@@ -7170,26 +7237,32 @@ mixture_ord_degenerate_check <- function(fit, resp) {
       }), collapse = "; "), ")")
   }, "")
   ms <- fit$opt[["mixture_starts"]]
-  # a fit with random effects runs no jittered starts by default (each
-  # is a Laplace fit; backlog 5214), so the check to run is named
-  re <- is.null(ms) && length(fit$frame[["re_blocks"]]) > 0L &&
-    is.null(fit$control$starts)
+  n_starts <- if (is.null(ms)) 0 else ms[["starts"]]
+  # no fit runs jittered starts by default (backlog 6136: they cost 5 to
+  # 18 times the fit), so the call to make is named, but only where it
+  # would run them: mixture_starts() keeps a default flat by its
+  # thresholds' travel, and an unconverged one that is not a step
+  # function, and runs none there (review of 2026-11-18, item 1)
+  step_any <- any(!((dg$sharpen <= -0.1) %in% TRUE))
+  travel <- any(runoff | dg$collapsed %in% TRUE)
+  would_run <- step_any ||
+    (!travel && isTRUE(fit$opt$convergence == 0))
+  unasked <- n_starts == 0 && is.null(fit$control$starts) && would_run
+  lead <- if (unasked) {
+    paste0("No jittered starts run by default: run them with ",
+           "frmtmb_control(starts = 10), ")
+  } else if (n_starts == 0) {
+    "Compare several starts (frm(start = )), "
+  } else if (any(step)) {
+    paste0("None of ", n_starts, " jittered starts reached a maximum ",
+           "without a step function. ")
+  }
   frm_warning(fam[["family"]], ": ", paste(what, collapse = "; "),
               " ended at a degenerate boundary. Maximum likelihood for ",
               "an ordinal mixture often has its supremum there, so its ",
               "estimates run off and their standard errors mean ",
-              "nothing. ",
-              if (re) {
-                paste0("A fit with random effects runs no jittered starts ",
-                       "by default: run them with frmtmb_control(starts = ",
-                       "10), ")
-              } else if (is.null(ms)) {
-                "Compare several starts (frm(start = )), "
-              } else if (any(step)) {
-                paste0("None of ", ms[["starts"]], " jittered starts ",
-                       "reached a maximum without a step function. ")
-              },
-              if (is.null(ms)) "hold" else "Hold",
+              "nothing. ", lead,
+              if (n_starts == 0) "hold" else "Hold",
               " the component with priors, as brms does (class ",
               "Intercept and b with dpar = \"mu<k>\"), or use fewer ",
               "components", call. = FALSE,
@@ -7216,8 +7289,22 @@ mixture_ord_degenerate_check <- function(fit, resp) {
 #' its raw threshold parameters, whose covariance entries are then no
 #' standard error.
 #'
+#' `lost_inf = TRUE`, as `mixture_ord_start_class()` asks: a threshold
+#' the data place that moves with such a parameter reads `Inf`. Read as
+#' a number, the entry of a lost threshold was 1.8 on one fit
+#' (cum_sratio n = 300 seed 24 of dev/ordstarts-run.R), below the cut,
+#' and the jittered starts took that flat point for a proper one. The
+#' fit-end degenerate check keeps the entry (`lost_inf = FALSE`) and
+#' says "no standard error" only above the cut: the check's list of
+#' lost parameters depends on the weights' scale, and with `Inf` the
+#' sound fit of constant weights 1/500 in test-ordinal-mixture.R warned,
+#' as did each shared-threshold mixture whose flat direction another
+#' warning already names. `force` builds the covariance where the check
+#' would wait, as the ranking needs at every point it ranks.
+#'
 #' @noRd
-mixture_ord_thres_se <- function(fit, resp) {
+mixture_ord_thres_se <- function(fit, resp, force = FALSE,
+                                 lost_inf = FALSE, unit_lost = FALSE) {
   rspec <- fit$spec$responses[[resp]]
   K <- rspec$family[["mix"]][["ord"]]$K
   out <- rep(NA_real_, K)
@@ -7226,7 +7313,7 @@ mixture_ord_thres_se <- function(fit, resp) {
   if (identical(fit$control$check_se, "ignore")) return(out)
   sdr <- fit$cache$sdr
   an <- if (is.null(sdr)) {
-    tryCatch(se_fit_analysis(fit), error = function(e) NULL)
+    tryCatch(se_fit_analysis(fit, force = force), error = function(e) NULL)
   }
   V <- sdr$cov.fixed %||% an$V
   lost <- names(sdr$se_lost %||% an$lost)
@@ -7238,13 +7325,22 @@ mixture_ord_thres_se <- function(fit, resp) {
   # inflate every standard error sqrt(n) times without moving the fit
   wm <- mean(as.numeric(fit$frame[["aterm_values"]][[resp]][["weights"]] %||%
                           1))
+  # the check's lost list moves with the weights' scale (weights 1/500
+  # lost a threshold on a sound fit), so `unit_lost` reads it off the
+  # Hessian per unit of mean weight
+  if (unit_lost && is.finite(wm) && wm > 0 && abs(wm - 1) > 1e-12) {
+    lu <- tryCatch(mixture_ord_lost_unit(fit, wm), error = function(e) NULL)
+    if (!is.null(lu)) lost <- lu
+  }
   for (k in seq_len(K)) {
     lp <- fit$frame[["linpreds"]][[linpred_key(resp, paste0("mu", k))]]
     ob <- ord_lp_block(fit$frame, fit$spec, lp)
     pos <- which(names(p) == ob$comp)
     raw <- as.numeric(fit$estimates[[ob$comp]])
     if (!length(pos) || length(pos) != length(raw)) next
-    lost_k[k] <- length(onm) == length(p) && any(onm[pos] %in% lost)
+    lost_raw <- if (length(onm) == length(p)) which(onm[pos] %in% lost) else
+      integer(0)
+    lost_k[k] <- length(lost_raw) > 0L
     unident <- ob$fam[["thres"]][["unident"]] %||% integer(0)
     nth <- length(ord_threshold_values(ob$fam, raw))
     keep <- setdiff(seq_len(nth), unident)
@@ -7262,13 +7358,45 @@ mixture_ord_thres_se <- function(fit, resp) {
     }, numeric(nth))
     J <- matrix(J, nrow = nth)[keep, , drop = FALSE]
     v <- rowSums((J %*% V[pos, pos, drop = FALSE]) * J)
-    v <- v[is.finite(v)]
+    if (lost_inf && length(lost_raw)) {
+      v[rowSums(abs(J[, lost_raw, drop = FALSE])) > 0] <- Inf
+    }
+    v <- v[!is.na(v)]
     if (!length(v)) next
     disc <- stats::median(as.numeric(dp[[paste0("disc", k)]] %||% 1))
     out[k] <- sqrt(max(v, 0) * wm) * disc
   }
   attr(out, "lost") <- lost_k
   out
+}
+
+#' The parameters the standard-error check loses on a fit's Hessian per
+#' unit of mean case weight `wm`, by the check's own rule
+#' (`cov_from_hessian()`), from the Hessian `se_fit_analysis()` built:
+#' the exact one without random effects, the cached finite-difference
+#' one with them. NULL where there is none to read.
+#'
+#' @noRd
+mixture_ord_lost_unit <- function(fit, wm) {
+  obj <- fit$obj
+  p <- fit$opt$par
+  if (!length(obj$env$random)) {
+    saved <- obj_state_save(obj)
+    Hx <- tryCatch(obj_he_cached(obj, p), error = function(e) NULL)
+    obj_state_restore(obj, saved)
+    if (!is.matrix(Hx) || !all(is.finite(Hx))) return(NULL)
+    H <- (Hx + t(Hx)) / 2 / wm
+    E <- abs(Hx - t(Hx)) / 2 / wm
+    exact <- TRUE
+  } else {
+    h <- fit$cache$hessian_fixed
+    if (!is.matrix(h$H)) return(NULL)
+    H <- h$H / wm
+    E <- if (is.matrix(h$E)) h$E / wm
+    exact <- isTRUE(h$exact)
+  }
+  an <- cov_from_hessian(fit, H, E, exact = exact)
+  if (an$tier > 1L) names(se_relabel(fit, an$lost)) else character(0)
 }
 
 #' The standard error, on the latent scale, above which a threshold
@@ -7292,12 +7420,36 @@ mixture_ord_se_cut <- 100
 #' point had coefficients of 740 to 9.5e4 and was not a measured maximum
 #' (dev/reviews/2026-11-11-ordstart.md, finding 3).
 #'
+#' A component the sharpening and the distances pass is flat too when a
+#' threshold the data place has a standard error above
+#' `mixture_ord_se_cut`, or none (the standard-error check lost it), on
+#' the covariance built at this point whether or not the fit-end check
+#' would wait. Without that test the class called proper what the
+#' degenerate check then warned about: today's 10 starts without random
+#' effects moved 3 of 120 proper fits to such a point (review of
+#' 2026-11-17, dev/reviews/ordstarts-review-nore.R), and with
+#' `(1 | g)` 3 of 34 upward moves did, and 7 more ended at a lost
+#' threshold (dev/ordstarts-findings.md). The covariance is built only
+#' for a point the cheaper tests pass, and the lost list is read per unit
+#' of mean case weight (`unit_lost`): weights 1/500 lost a threshold on a
+#' sound fit, which kept the starts off (review of 2026-11-18, item 2).
+#' Such a component is returned apart, as `unplaced`: unlike `boundary`,
+#' a flag the optimizer's travel decides, it does not keep the default
+#' (`mixture_starts_pick()`).
+#'
 #' @noRd
 mixture_ord_start_class <- function(fit, resp) {
   dg <- mixture_ord_degeneracy(fit, resp)
   step <- !((dg$sharpen <= -0.1) %in% TRUE)
   flat <- (dg$near > 50) %in% TRUE | dg$collapsed %in% TRUE
-  list(step = dg$component[step], boundary = dg$component[flat & !step])
+  unplaced <- rep(FALSE, length(step))
+  if (any(!step & !flat)) {
+    se <- mixture_ord_thres_se(fit, resp, force = TRUE, lost_inf = TRUE,
+                               unit_lost = TRUE)
+    unplaced <- !step & !flat & (se > mixture_ord_se_cut) %in% TRUE
+  }
+  list(step = dg$component[step], boundary = dg$component[flat & !step],
+       unplaced = dg$component[unplaced])
 }
 
 #' How far each component of a fitted ordinal mixture has run toward a
@@ -8109,24 +8261,88 @@ carry_finalized_responses <- function(spec, frame) {
   spec
 }
 
-#' Call a family's CDF (its `lcdf` slot, which returns probabilities and
-#' not their log, whatever the name says), passing the family-level extra
+#' The CDF slot's former name. It read as a log CDF beside `lccdf` and
+#' `cdf_log`, while the slot returns probabilities.
+#'
+#' @noRd
+old_cdf_slot <- "lcdf"
+
+#' Refuse a family that stores its CDF under the slot's former name.
+#'
+#' Refused, not aliased: every reader looks only at `cdf`, so a family
+#' that fills the old name would lose its CDF without a word, and cens()
+#' and trunc() would then say the family has none. A list is checked
+#' rather than only the class, because an extension can edit a family
+#' after frmtmb_family() built it.
+#'
+#' @noRd
+check_cdf_slot_name <- function(fam) {
+  if (is.list(fam) && old_cdf_slot %in% names(fam)) {
+    nm <- fam[["family"]]
+    frm_stop("Family ", if (is.character(nm)) paste0("'", nm[1L], "' "),
+             "stores its CDF in `", old_cdf_slot, "`, the slot's former ",
+             "name. The slot is `cdf`, and it returns F(q) on the ",
+             "probability scale: rename the element (or the argument of ",
+             "frmtmb_family())", call. = FALSE,
+             class = "frmtmb_cdf_slot_renamed",
+             package = frm_family_package(fam))
+  }
+  invisible(fam)
+}
+
+#' Refuse what reaches frmtmb_family()'s `...`, which exists only to
+#' name `cdf` to a caller who passes the slot's former name; any other
+#' argument there is as unused as it always was.
+#'
+#' @noRd
+refuse_family_dots <- function(...) {
+  n <- ...length()
+  if (!n) return(invisible())
+  nms <- ...names() %||% character(n)
+  nms[is.na(nms)] <- ""
+  if (old_cdf_slot %in% nms) {
+    frm_stop("frmtmb_family() has no argument `", old_cdf_slot, "`: the ",
+             "CDF slot is `cdf`, and it returns F(q) on the probability ",
+             "scale", call. = FALSE, class = "frmtmb_cdf_slot_renamed")
+  }
+  named <- nms[nzchar(nms)]
+  k <- sum(!nzchar(nms))
+  shown <- c(if (length(named)) paste0("`", named, "`"),
+             if (k) paste0(k, " unnamed"))
+  frm_stop("frmtmb_family(): unused argument", if (n > 1L) "s", ": ",
+           paste(shown, collapse = ", "), call. = FALSE)
+}
+
+#' A family's CDF slot, read through the refusal of the former name.
+#'
+#' Every reader goes through this, not only the routes a family enters
+#' by: a fit saved before the rename carries its family in the old
+#' shape into post-fit methods that build no frame, and there a NULL
+#' read as "no CDF" changes the method's answer without a word
+#' (residuals(type = "osa") left the "cdf" route and gave NaN).
+#'
+#' @noRd
+fam_cdf_slot <- function(fam) check_cdf_slot_name(fam)[["cdf"]]
+
+#' Call a family's CDF (its `cdf` slot, which returns probabilities and
+#' not their log), passing the family-level extra
 #' parameters to the families that declare them. The baseline of
 #' frmtmb.survival's
 #' `cox()` lives there, so its survivor function needs them; every other
 #' CDF keeps the three-argument contract.
 #'
 #' @noRd
-fam_lcdf <- function(fam, q, dpars, aterms, extra) {
-  if (length(formals(fam[["lcdf"]])) >= 4L) {
-    fam[["lcdf"]](q, dpars, aterms, extra)
+fam_cdf <- function(fam, q, dpars, aterms, extra) {
+  cdf <- fam_cdf_slot(fam)
+  if (length(formals(cdf)) >= 4L) {
+    cdf(q, dpars, aterms, extra)
   } else {
-    fam[["lcdf"]](q, dpars, aterms)
+    cdf(q, dpars, aterms)
   }
 }
 
 #' Call a family's log survivor function, with the same extra-parameter
-#' arity shim `fam_lcdf()` carries.
+#' arity shim `fam_cdf()` carries.
 #'
 #' @noRd
 fam_lccdf <- function(fam, q, dpars, aterms, extra) {
@@ -8552,7 +8768,9 @@ family_registry <- list(
   # R/families-extreme.R
   frechet                   = fam_frechet,
   gen_extreme_value         = fam_gen_extreme_value,
-  discrete_weibull          = fam_discrete_weibull
+  discrete_weibull          = fam_discrete_weibull,
+  # R/families-quantile.R
+  quantile_elf              = fam_quantile_elf
 )
 
 # brms families that an extension package supplies rather than core,
@@ -8729,14 +8947,14 @@ family_link_pair <- function(family, caller) {
 #' @rdname frmtmb-extension-api
 #' @export
 as_frmtmb_family <- function(x) {
-  if (inherits(x, "frmtmb_family")) return(x)
+  if (inherits(x, "frmtmb_family")) return(check_cdf_slot_name(x))
   # A bare constructor (`family = cumulative`, `family = gaussian`) is
   # legal in brms and in stats::glm, so call it with its defaults. The
   # frmtmb constructors return a `frmtmb_family` rather than a
   # `stats::family`, so the result is re-checked here.
   if (is.function(x)) {
     x <- x()
-    if (inherits(x, "frmtmb_family")) return(x)
+    if (inherits(x, "frmtmb_family")) return(check_cdf_slot_name(x))
   }
   if (inherits(x, "family")) {
     # [[ ]]: a stats family is a plain list, and `$` on it partial-matches
@@ -9006,15 +9224,53 @@ as_frmtmb_family <- function(x) {
 #' @section Quantile regression inference:
 #' `asym_laplace()` and `zero_inflated_asym_laplace()` fit quantile
 #' regression through a WORKING likelihood: at a fixed `quantile` the
-#' point estimates are consistent quantile estimates (they match
-#' `quantreg::rq()`), but the asymmetric Laplace is not the data's
-#' true density, so Wald standard errors and `confint()` intervals
-#' computed from it are not calibrated. This is a property of the
-#' asymmetric-Laplace approach, shared by brms. Use
-#' [frm_bootstrap()] for intervals you can defend. The check
-#' function's kink can also produce a benign false-convergence
-#' warning near the optimum; `frm_allfit()` confirms the fit when in
-#' doubt.
+#' point estimates are consistent quantile estimates, but the
+#' asymmetric Laplace is not the data's true density.
+#'
+#' The log density is linear in `mu` on each side of its mode, so its
+#' curvature in `mu` is 0 almost everywhere, and the Hessian carries no
+#' information about the uncertainty of the estimates. On a fit without
+#' random effects, `frm()` therefore gives no Hessian standard error:
+#' it warns once (class `frmtmb_ald_no_se`, under
+#' `frmtmb_control(check_se = )`), and `summary()`, `vcov()`,
+#' `confint()`, predictions, emmeans and marginaleffects show `NaN` with
+#' the reason. A `zi` part keeps its standard errors, since it reads
+#' only the zero rows. For intervals, use [quantile_elf()], a smoothed
+#' asymmetric Laplace whose log density has curvature, with
+#' `vcov_cluster(fit, ~ row, "CR0")` for its standard errors (see its
+#' help for the choice of `smoothing`). Or use `quantreg::rq()` with
+#' `se = "nid"`, or a bootstrap of the rows. [frm_bootstrap()] and
+#' `frmtmb.sample::frm_sample()` read the same asymmetric Laplace
+#' likelihood, so their intervals hold only where the data are
+#' asymmetric Laplace: on gaussian data at quantile 0.9,
+#' `frm_bootstrap()`'s slope standard errors were less than half the
+#' Monte Carlo spread.
+#'
+#' Such a fit ends at the exact quantile regression solution. The
+#' optimizer stops on the kinks of the likelihood, so `frm()` solves
+#' for the location as the linear program it is at the fitted `sigma`
+#' and `quantile`, and settles those two by Newton steps; the location
+#' coefficients then equal those of `quantreg::rq()` at that
+#' `quantile`, and the result is proved a local maximum. A fit with
+#' `cens()` or `trunc()` rows, a link other than the identity, a
+#' nonlinear `mu`, `me()` or a prior density on the coefficients is not
+#' proved, and keeps its convergence warnings.
+#'
+#' Such a likelihood can have several local maxima. An estimated
+#' `quantile` has one on many of the intervals between the quantile
+#' regression's breakpoints, and on 46 simulated data sets of 100 rows
+#' the first one reached was below the highest on 24, by up to 2.65.
+#' With a fixed `quantile` and a constant `sigma` the likelihood is
+#' concave in a reparameterization, so the local maximum is the
+#' highest; with an estimated constant `quantile` `frm()` searches the
+#' quantile by branch and bound and moves to the highest maximum, unless
+#' a bound (`set_prior(lb =, ub =)`) holds `sigma` or the quantile,
+#' which the search does not read. Those
+#' fits get code 0 and no convergence warning, and `fit$opt$ald_cert`
+#' keeps the optimizer's own code. A fit with `sigma ~` or `quantile ~`
+#' terms is proved a local maximum only, keeps a nonzero code, and warns
+#' (class `frmtmb_ald_local`). For a quantile regression, fix the
+#' quantile: `bf(y ~ x, quantile = 0.5)`.
 #'
 #' @section Degrees of freedom that run off:
 #' `student()` estimates `nu` on the `logm1` link, which holds it above

@@ -1180,9 +1180,11 @@ test_that("check C: row 10, gp(x, k = 10) Hilbert-space approximation", {
   bform <- brms::bf(y ~ gp(x, k = 10))
   # the likelihood's maximum is the basis's white limit, rising all the way
   # to it (-29.874 at 0.4 of the spacing, -29.503 there), and the fit says
-  # sdgp and lscale are not determined apart (dev/gpfield-dbg7.R)
-  fit <- allow_warnings(frm(bf(y ~ gp(x, k = 10)) + gaussian(), data = d10),
-                        "spacing its basis resolves")
+  # sdgp and lscale are not determined apart (dev/gpfield-dbg7.R), with a
+  # boundary message where the ridge is proved level, else the warning
+  fit <- allow_gp_basis(allow_warnings(
+    frm(bf(y ~ gp(x, k = 10)) + gaussian(), data = d10),
+    "spacing its basis resolves"))
 
   prior <- brms_flat_prior(bform, data = d10, family = gaussian())
   code <- brms::make_stancode(bform, data = d10, family = gaussian(),
@@ -1339,8 +1341,9 @@ test_that("check C: row 10c, the approximate gp() on unsorted positions", {
   skip_unless_brms_fit()
   dd <- gpn_data()
   # at the basis's white limit, as row 10 (dev/gpfield-dbg7.R)
-  fit <- allow_warnings(frm(bf(y ~ gp(x, k = 10)), family = gaussian(),
-                            data = dd), "spacing its basis resolves")
+  fit <- allow_gp_basis(allow_warnings(
+    frm(bf(y ~ gp(x, k = 10)), family = gaussian(), data = dd),
+    "spacing its basis resolves"))
   expect_identical(fit$frame$re_blocks[[1L]]$covstruct, "hsgp")
   brms_lp_check(brms::bf(y ~ gp(x, k = 10)), gaussian(), dd, fit, joint = TRUE)
 })

@@ -161,7 +161,7 @@ test_that("the compat rows this package registers are present", {
   expect_true(nrow(tb) > 0)
   expect_true("vint()" %in% tb$feature_b)
   expect_equal(tb$status[tb$feature_b == "vint()"], "works")
-  # item 3.4 turned this cell from refused to works; the declared lcdf
+  # item 3.4 turned this cell from refused to works; the declared cdf
   # is the normalizer. test-wiener-cdf.R measures it.
   expect_equal(tb$status[tb$feature_b == "trunc()"], "works")
   expect_true("wiener" %in% frm_compat_features()$name)
