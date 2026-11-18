@@ -863,8 +863,12 @@ nl_fit_off_saddle <- function(run, frame, start, prior) {
   release <- function() {
     for (w in hq$w) if (inherits(w, "message")) message(w) else warning(w)
   }
+  # and so is a gp() field's white-limit message (gp_basis_message()):
+  # a restart that replaces this fit says its own
+  hold_gp <- function(m) if (inherits(m, "message")) hold_limit(m)
   fit <- tryCatch(withCallingHandlers(run(start, TRUE), warning = hold,
-                                      frmtmb_limit_fit = hold_limit),
+                                      frmtmb_limit_fit = hold_limit,
+                                      frmtmb_gp_basis = hold_gp),
                   error = function(e) {
                     release()
                     stop(e)
@@ -1615,8 +1619,10 @@ nl_fit_probed <- function(run, frame, start, prior) {
       nl_pole_warning(pe, fit)
       return(fit)
     }
+    # a replaced fit's gp() boundary message is about that fit
     say(Filter(function(cnd) {
-      !inherits(cnd, c("warning", "frmtmb_nl_local", "frmtmb_nl_restart"))
+      !inherits(cnd, c("warning", "frmtmb_nl_local", "frmtmb_nl_restart",
+                       "frmtmb_gp_basis"))
     }, held$c))
     nl_pole_message(pe)
     say(pe$held)
@@ -1626,7 +1632,8 @@ nl_fit_probed <- function(run, frame, start, prior) {
   # what the first fit's stop was, or a restart it kept, is no longer the
   # answer
   say(Filter(function(cnd) {
-    !inherits(cnd, c("warning", "frmtmb_nl_local", "frmtmb_nl_restart"))
+    !inherits(cnd, c("warning", "frmtmb_nl_local", "frmtmb_nl_restart",
+                     "frmtmb_gp_basis"))
   }, held$c))
   ll <- nl_ll_pair(pr$ll0, pr$ll1)
   # the values are what the fits maximized, which under a prior with a

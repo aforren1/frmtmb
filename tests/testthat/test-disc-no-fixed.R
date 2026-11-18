@@ -21,9 +21,10 @@ disc_data <- function() {
 for (rhs in c("0 + (1 | g)", "0 + gp(x, k = 6)")) {
   test_that(paste("fitted() runs on disc ~", rhs), {
     d <- disc_data()
-    fit <- suppressWarnings(frm(bf(y ~ z, stats::as.formula(paste("disc ~",
-                                                               rhs))),
-                                data = d, family = cumulative()))
+    # the gp() field ends at its basis's white limit, a boundary message
+    fit <- allow_gp_basis(suppressWarnings(frm(
+      bf(y ~ z, stats::as.formula(paste("disc ~", rhs))), data = d,
+      family = cumulative())))
     expect_null(fit$estimates[["betad"]])
     p <- allow_warnings(fitted(fit), "could not be recovered")
     expect_equal(dim(p), c(nrow(d), 4L, 3L))

@@ -222,7 +222,10 @@ parameter is at its edge, the fit gets this message and not the
 convergence warning, as lme4's checkConv() does. A smooth,
 \code{gp()} or \code{hsgp()} term at its own limit loses those standard errors
 without a message, as mgcv reports a smoothing parameter at
-infinity.}
+infinity. The exception is an approximate \code{gp(k = )} at the white
+limit of its basis, where \code{sdgp} and the length scales are not apart
+determined: it gets a message of class \code{frmtmb_gp_basis} and
+\code{frmtmb_boundary_fit} (see \code{\link{frmtmb-gp}}).}
 
 \item{check_mi}{What to do when the Laplace approximation of a read \code{mi()}
 value moves an estimate: \code{"warning"} (default), \code{"ignore"}, or \code{"stop"}.

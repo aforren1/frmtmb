@@ -338,9 +338,11 @@ test_that("check C: gp(by = ) Hilbert-space terms are brms's joint density", {
   for (form in c("y ~ gp(x, by = f, k = 8)", "y ~ gp(x, by = w, k = 8)")) {
     bform <- brms::bf(stats::as.formula(form))
     # k = 8 can leave a sub-GP at the basis's white limit, which the fit
-    # names; the joint density is what is read here
-    fit <- allow_warnings(frm(bf(stats::as.formula(form)), data = d),
-                          "spacing its basis resolves")
+    # names (a boundary message, or the warning where the ridge is not
+    # proved level); the joint density is what is read here
+    fit <- allow_gp_basis(allow_warnings(
+      frm(bf(stats::as.formula(form)), data = d),
+      "spacing its basis resolves"))
     brms_lp_check(bform, gaussian(), d, fit, joint = TRUE)
   }
 })
@@ -360,22 +362,20 @@ test_that("check C: a gp(by = ) in sigma and in a multivariate model", {
   # and a sub-GP of k = 6 can end at the basis's white limit, which the fit
   # names
   lost <- c("Standard errors are not available", "spacing its basis resolves")
-  fs <- allow_warnings(frm(bf(ysig ~ x, sigma ~ gp(x, by = f, k = 6)),
-                           data = d), lost)
+  fs <- allow_gp_basis(allow_warnings(
+    frm(bf(ysig ~ x, sigma ~ gp(x, by = f, k = 6)), data = d), lost))
   brms_lp_check(brms::bf(ysig ~ x, sigma ~ gp(x, by = f, k = 6)),
                 gaussian(), d, fs, joint = TRUE)
-  fm <- allow_warnings(frm(mvbf(bf(y ~ gp(x, by = f, k = 8)),
-                                bf(y2 ~ gp(x, k = 6))) +
-                             set_rescor(FALSE), data = d,
-                           family = gaussian()),
-                       "spacing its basis resolves")
+  fm <- allow_gp_basis(allow_warnings(
+    frm(mvbf(bf(y ~ gp(x, by = f, k = 8)), bf(y2 ~ gp(x, k = 6))) +
+          set_rescor(FALSE), data = d, family = gaussian()),
+    "spacing its basis resolves"))
   brms_lp_check(brms::mvbf(brms::bf(y ~ gp(x, by = f, k = 8)),
                            brms::bf(y2 ~ gp(x, k = 6))) +
                   brms::set_rescor(FALSE), gaussian(), d, fm, joint = TRUE)
-  fb <- allow_warnings(frm(mvbf(bf(y ~ gp(x, by = f, k = 8)),
-                                bf(y2 ~ gp(x, by = f, k = 6))) +
-                             set_rescor(FALSE),
-                           data = d, family = gaussian()), lost)
+  fb <- allow_gp_basis(allow_warnings(
+    frm(mvbf(bf(y ~ gp(x, by = f, k = 8)), bf(y2 ~ gp(x, by = f, k = 6))) +
+          set_rescor(FALSE), data = d, family = gaussian()), lost))
   brms_lp_check(brms::mvbf(brms::bf(y ~ gp(x, by = f, k = 8)),
                            brms::bf(y2 ~ gp(x, by = f, k = 6))) +
                   brms::set_rescor(FALSE), gaussian(), d, fb, joint = TRUE)

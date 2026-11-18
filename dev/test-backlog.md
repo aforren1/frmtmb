@@ -4883,6 +4883,45 @@ none is a regression of this release.
   gate's allow-list for frmtmb.sample's coverage job hides it in CI. Fix:
   declare RTMBode in Suggests (finding 5).
 
+## Filed in the round of 2026-11-16
+
+### From lane gpselimit
+
+Record: `dev/gpselimit-findings.md`.
+
+- **MEDIUM. An exact gp()'s length scale at the low end of its range
+  keeps a standard error, or loses it in silence.** An iid effect per
+  position plus noise, 40 positions with 3 rows each, `y ~ gp(x)`
+  (dev/gpselimit-exact.R, rep 3 seed 2): the length scale ends at 0.18
+  of the smallest gap, where the objective is level toward 0 (-6.1e-9
+  at moves of -2 and -12 on the log scale). In a fresh process the
+  fit-time check stands at tier 1 and summary() gives lscale an SE (0.12
+  shown, CI 0 to Inf) with no condition (dev/gpselimit-exact2.R); in a
+  process that evaluated the objective at other points first, sdr_of()
+  lost `theta_2` as "concave", again with no condition. Seed 4 of the
+  same design, at 0.040 of the gap, gets the right verdict: "boundary"
+  (kind "limit"), sdgp keeps its SE. The length scale's Hessian row is
+  5.2e-6, above the empty-row floor, so tier 3 is not reached; a rule
+  like se_edge_sd()'s for a log sd at zero (level toward the end, two
+  moves) would decide it on the likelihood.
+- **LOW. Two gp() terms on one covariate share brms's names.**
+  `y ~ gp(x1, k = 10) + gp(x1, k = 5)` names both terms' parameters
+  `sdgp_gpx1` and `lscale_gpx1`, and `hypothesis()` on either stops with
+  "Internal error: two parameters of this model share the name
+  'sdgp_gpx1'" (dev/reviews/2026-11-17-gpselimit.md, finding 6, case
+  G-two-white). It predates the white-limit message, which only repeats
+  the name. Check what brms 2.23.0 names such a model before choosing a
+  suffix.
+- **LOW. A separated fit at a nonzero code leaves no convergence verdict
+  for the gp() white-limit gate.** check_convergence() returns early when
+  it finds separation and the optimizer's code is not 0, before it sets
+  `fit$cache$conv_classes`, so gp_basis_message() reads no
+  `frmtmb_conv_*` verdict there and a field certified at its basis's
+  white limit could get the boundary message beside the separation
+  warning. Found by code read in the short check of this lane's fix
+  round (dev/reviews/gpselimit-short.md); not reproduced. Setting the
+  classes (or a separation marker) before that return would close it.
+
 ## Filed at the 0.83.0 release (2026-11-13)
 
 ### From lane ci082
@@ -5577,6 +5616,7 @@ Record: `dev/wcheck2-findings.md`.
   with a standard error as an estimate. The check should give both NaN
   with reason "limit", as 0.82.0 does for a coefficient at the end of its
   range; the warning could then become a message.
+  CLOSED in the round of 2026-11-16 (lane gpselimit): the 13 single fields already had NaN ("boundary"); gp(by = ) white sub-GPs had finite SEs and now lose them, on a proof the ridge is level, with a boundary message.
 ### From lane predraw2
 
 Record: `dev/predraw2-findings.md`.

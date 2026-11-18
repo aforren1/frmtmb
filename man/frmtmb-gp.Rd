@@ -62,10 +62,18 @@ on \code{sigma} and 1.07 on \code{sdgp} after an hour, and not yet converged).
 \code{gp(x, k = )} has no nugget and reaches brms's numbers when \code{k} is large
 enough for the field. Too small a \code{k} is a different failure. Where the
 length scale runs below a tenth of the spacing the basis resolves, every
-basis function gets the same prior weight, the data determine \code{sdgp^2}
-times the product of the length scales but not each one, and \code{frm()} warns
-with class
-\code{frmtmb_gp_basis}. The fitted field and its predictions hold there; only its
+basis function gets nearly the same prior weight, and the data determine
+\code{sdgp^2} times the product of the length scales but not each one. Where the
+likelihood stays level from the estimate to a length scale of 0, the white
+limit of the basis, the fit is a boundary fit: \code{sdgp} and the length scales
+have no standard error, \code{summary()} says why, \code{hypothesis()} reports the
+product (for example \code{"2 * log(sdgp_gpx) + log(lscale_gpx) = 0"}), and
+\code{frm()} tells it with a message of class \code{frmtmb_gp_basis} and
+\code{frmtmb_boundary_fit}, which \code{frmtmb_control(check_se = )} governs. Where it
+does not stay level, as under a prior on \code{lscale} or at a stop on the way to
+the limit, \code{frm()} warns with class \code{frmtmb_gp_basis}, and the standard
+errors that remain read the prior or the stop, not the field. The fitted
+field and its predictions hold in both cases; only its
 smoothness is not read. A modest \code{k} ends there often: \code{sin(x)} on 0 to 10
 at \code{k = 10} reads its highest log-likelihood at that limit. Short of that
 there is no warning and \code{convergence} is 0:

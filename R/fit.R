@@ -2036,7 +2036,6 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       # explains every lost parameter but a bound-held one (se_report())
       fit$cache$se_explained <- "nl_flat"
     }
-    gp_end_warn(fit)
   }
   if (se) {
     if (vb) t0 <- vb_now()
@@ -2062,6 +2061,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   latres_refuse_margin(fit)
   latres_disp_report(fit)
   latres_laplace_report(fit)
+  # after the convergence check, whose verdict decides whether a white
+  # field is told as a boundary fit (gp_basis_message())
+  if (announce_start && is.null(imp) && is.null(integrate)) gp_end_warn(fit)
   if (announce_start) fit <- mi_laplace_note(fit)
   if (check_se) {
     se_check(fit, control)
@@ -2942,7 +2944,10 @@ sdr_of <- function(fit) {
 #'   convergence warning, as lme4's checkConv() does. A smooth,
 #'   `gp()` or `hsgp()` term at its own limit loses those standard errors
 #'   without a message, as mgcv reports a smoothing parameter at
-#'   infinity.
+#'   infinity. The exception is an approximate `gp(k = )` at the white
+#'   limit of its basis, where `sdgp` and the length scales are not apart
+#'   determined: it gets a message of class `frmtmb_gp_basis` and
+#'   `frmtmb_boundary_fit` (see [`frmtmb-gp`]).
 #' @param importance_seed Seed for the standard normal draws of
 #'   `frm(importance =)`. The draws are taken from a private random
 #'   stream, so the fit neither reads nor disturbs the session's random
@@ -6842,6 +6847,9 @@ check_convergence <- function(fit, control) {
       msgs <- c(frmtmb_conv_code = code_msg, msgs)
     }
   }
+  # kept for the end-of-fit gp() condition, which a doubted stop turns
+  # back into a warning (gp_basis_message())
+  if (is.environment(fit$cache)) fit$cache$conv_classes <- names(msgs)
   # the stop warnings carry a class, which nl_stop_warning() reads
   for (i in seq_along(msgs)) {
     cl <- names(msgs)[i]

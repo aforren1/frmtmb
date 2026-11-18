@@ -61,3 +61,15 @@ allow_boundary <- function(expr, require = FALSE) {
   }
   invisible(val)
 }
+
+# Evaluate `expr`, muffling the message of class frmtmb_gp_basis (an
+# approximate gp() field at the white limit of its basis, a boundary fit)
+# and nothing else, for a test whose field ends there and whose point is
+# something else. Narrower than allow_boundary(), which would also hide
+# a singular fit's message. The warning of that class is left to
+# allow_warnings().
+allow_gp_basis <- function(expr) {
+  withCallingHandlers(expr, frmtmb_gp_basis = function(m) {
+    if (inherits(m, "message")) invokeRestart("muffleMessage")
+  })
+}

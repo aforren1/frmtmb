@@ -1,3 +1,44 @@
+# frmtmb (development version)
+
+## Gaussian processes
+
+* BREAKING: An approximate `gp(k = )` whose length scale ran below a tenth
+  of the spacing its basis resolves now gets a message, not a warning,
+  where the likelihood stays level from the estimate to a length scale of
+  0, the white limit of the basis, and outward toward larger length
+  scales the likelihood does not rise. There `sdgp` and the length scales
+  have no standard error, and `summary()` now says why: the data
+  determine only `sdgp^2` times the product of the length scales. The
+  message names the `hypothesis()` that reports that product with its
+  standard error, for example `"2 * log(sdgp_gpx) + log(lscale_gpx) = 0"`.
+  It has the classes `frmtmb_gp_basis` and `frmtmb_boundary_fit`, and
+  `frmtmb_control(check_se = )` governs it as it governs the other
+  boundary messages. 13 of 30 gaussian fits of fields drawn from a squared
+  exponential kernel end at that limit, and all 13 get the message; the
+  estimates and standard errors of all 30 are unchanged. The warning
+  stays where that is not proved: a length scale under the spacing at an
+  interior maximum (a prior on `lscale`), a stop on the way to the limit,
+  a fit with a convergence warning, and a stop inside the white plateau
+  below a maximum at larger length scales (a `start` there stopped 3.6 to
+  14.3 log-likelihood units short), where the warning now says the fit
+  stopped short.
+
+* BREAKING: The white sub-GPs of a `gp(x, by = f, k = )` term now have no
+  standard error for `sdgp` and the length scales, as a single field's
+  have. They kept finite ones, with no word: on one field drawn from a
+  squared exponential kernel every white sub-GP showed `sdgp` 197.7 with
+  a standard error, on 21 of 21 roundings. Removing that ridge from the covariance
+  also moves the other standard errors of such a fit in the seventh digit
+  (the largest relative change measured, 5.0e-7).
+
+* The standard-error check calls `sdgp` and the length scales of such a
+  field a boundary only where the likelihood is proved level out to the
+  limit and does not rise on the way back. A single step of 2 along the
+  ridge that changed the log-likelihood by less than 1e-3 was enough
+  before, and it also passed a fit that stopped 4.3e-4 short of the limit
+  and fits that stopped inside the white plateau short of a maximum;
+  there the two parameters are now "flat".
+
 # frmtmb 0.83.0
 
 ## Convergence and standard errors

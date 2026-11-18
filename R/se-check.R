@@ -397,6 +397,12 @@ cov_from_hessian <- function(fit, H, E = NULL, exact = FALSE) {
   # combinations of coefficients run off together, which tier 3 removes
   # as directions (se_limit_joint_dirs())
   joint <- attr(el, "joint")
+  # and the ridge of an approximate field proved at its basis's white
+  # limit, whatever the Hessian measured along it (gp_white_dirs())
+  if (se_edge_probed(fit) && is.null(fit$importance)) {
+    joint <- cbind(joint, tryCatch(gp_white_dirs(fit, np),
+                                   error = keep_missing(NULL)))
+  }
   # before the tiers: on an ill-conditioned fixed design the natural
   # inverse is inaccurate whichever tier accepts it (se_reparam_cov())
   if (!any(held) && !any(edge) && !NCOL(joint)) {
@@ -3261,7 +3267,8 @@ se_boundary_act <- function(what, msg, class = "frmtmb_boundary_fit") {
 #' observation-level sd against sigma) is flat too, but moving it alone
 #' costs likelihood, so it keeps its warning.
 #'
-#' Each name's kind ("zero", "limit" or "undefined") is kept in
+#' Each name's kind ("zero", "limit", "undefined", or "gpwhite" for an
+#' approximate gp() at the white limit of its basis) is kept in
 #' `fit$cache$se_boundary_kind` for the message.
 #'
 #' @noRd
@@ -3305,6 +3312,14 @@ se_boundary_names <- function(fit, lost) {
       und <- setdiff(cand, edge[edge %in% sd_i])
       k <- k[edge %in% sd_i]
       k <- c(k, stats::setNames(rep("undefined", length(und)), thn[und]))
+    } else if (length(cand) == length(ti) && gp_basis_white(bk, th[ti])) {
+      # an approximate field under its basis's spacing is at a boundary
+      # only where the ridge is proved level out to the white limit
+      # (gp_white_ridge()); one step within grad_tol also passed a stop
+      # 4.3e-4 short of it (dev/gpselimit-findings.md)
+      if (gp_white_ridge(fit, bk)) {
+        k <- stats::setNames(rep("gpwhite", length(cand)), thn[cand])
+      }
     } else if (is.null(bk[["levels"]]) && length(ti) >= 2L &&
                  length(cand) == length(ti) &&
                  se_block_ridge_edge(fit, thn[ti])) {
@@ -4035,6 +4050,11 @@ se_lost_clauses <- function(fit, lost) {
     ifelse(li$rise[hn] %in% TRUE, "rise",
            ifelse(li$sep1[hn] %in% TRUE, "sep1",
                   ifelse(li$sep[hn] %in% TRUE, "sep", "end")))))
+  # an approximate field at its basis's white limit (se_boundary_names())
+  # is a boundary that the generic clause, a variance at zero or a range
+  # at its limit, does not describe: sdgp is neither
+  bkind <- if (is.environment(fit$cache)) fit$cache$se_boundary_kind
+  lost[lost == "boundary" & bkind[names(lost)] %in% "gpwhite"] <- "gpwhite"
   # coefficients that ran off only in combination say so
   together <- function(n) {
     if (any(li$joint[n] %in% TRUE)) " together" else ""
@@ -4089,6 +4109,12 @@ se_lost_clauses <- function(fit, lost) {
                         "at zero, or a correlation, mixing or range ",
                         "parameter at its limit), where the likelihood no ",
                         "longer changes: a boundary, or singular, fit"),
+      gpwhite = paste0("an approximate gp() term at the white limit of its ",
+                       "basis: the likelihood stays level from the ",
+                       "estimate to a length scale of 0, where every basis ",
+                       "function gets the same prior weight, and reads only ",
+                       "sdgp^2 times the product of the length scales, ",
+                       "which hypothesis() reports: a boundary fit"),
       separation = paste0("the data separate the outcomes, so ",
                           if (one) "the estimate runs" else
                             "the estimates run",
@@ -4137,12 +4163,14 @@ se_lost_clauses <- function(fit, lost) {
   }
   out <- character(0)
   for (r in c("bound", "limit_end", "limit_rise", "limit_sep", "limit_sep1",
-              "limit_sepother", "limit_undefined", "boundary",
+              "limit_sepother", "limit_undefined", "boundary", "gpwhite",
               "separation", "short", "flat", "illcond", "concave",
               "nonfinite", "nocurv")) {
     n <- names(lost)[lost == r]
     if (!length(n)) next
-    lab <- if (r == "boundary") se_boundary_labels(fit, n) else {
+    lab <- if (r %in% c("boundary", "gpwhite")) {
+      se_boundary_labels(fit, n)
+    } else {
       vapply(n, label, "")
     }
     if (r %in% c("limit_end", "limit_rise", "limit_sep", "limit_sep1")) {
