@@ -168,7 +168,7 @@ bcm_contaminant <- function(link = "logit", link_phi = "logit") {
 # somewhere between 15 and 25. That is interval censoring, and
 # `cens("interval")` is the grammar's word for it.
 #
-# Through frmtmb 0.72.0 the core binomial had no `lcdf`, which was the
+# Through frmtmb 0.72.0 the core binomial had no `cdf`, which was the
 # one thing standing between it and a censored row. Four lines supply
 # one; the core binomial now has its own and gives the same likelihood,
 # and the band is written where a reader looks for it:
@@ -195,7 +195,7 @@ bcm_binomial_cdf <- function(link = "logit") {
       if (is.null(size)) size <- 1
       RTMB::dbinom(y, size, dpars[["mu"]], log = TRUE)
     },
-    lcdf = function(q, dpars, aterms) {
+    cdf = function(q, dpars, aterms) {
       size <- aterms[["trials"]]
       if (is.null(size)) size <- 1
       RTMB::pbinom(q, size, dpars[["mu"]])

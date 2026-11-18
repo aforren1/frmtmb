@@ -145,7 +145,7 @@ test_that("the GEV density is brms's, and is exact at the Gumbel point", {
   expect_true(all(exp(got[far_out]) == 0))
   # the distribution function is 0 below the lower end and 1 above the
   # upper end: a trunc() bound may lie there
-  Fo <- tape_lpdf(fam, g$y, eta, "lcdf")[!inside]
+  Fo <- tape_lpdf(fam, g$y, eta, "cdf")[!inside]
   expect_identical(Fo, as.numeric(xi[!inside] < 0))
 
   # at xi = 0 exactly, the Gumbel density brms switches to

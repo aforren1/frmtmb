@@ -1,3 +1,9 @@
+# frmtmb.coupling (development version)
+
+* `frm_compat()`: the `cens()` row of `cross_wishart` names the CDF slot
+  of `frmtmb_family()` by its new name, `cdf`. No change to the
+  package's code.
+
 # frmtmb.coupling 0.6.1
 
 Runs on frmtmb 0.61.0 and later. On frmtmb 0.72.0 the standard errors

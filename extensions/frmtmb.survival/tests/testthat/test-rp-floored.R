@@ -124,7 +124,7 @@ test_that("the family scores log S exactly on all three scales", {
                  label = sc)
     expect_true(all(is.finite(got)), label = sc)
     # the old route, for contrast: log(1 - F) with F squeezed away from 1
-    old <- log(1 - fam$lcdf(q, list(mu = rep(0, length(eta)),
+    old <- log(1 - fam$cdf(q, list(mu = rep(0, length(eta)),
                                     gamma1 = rep(1, length(eta))), list()))
     expect_true(any(old > want + 1e-6 | !is.finite(old)), label = sc)
   }

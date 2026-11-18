@@ -145,7 +145,7 @@ no_cdf <- c(6, 52, 64, 83, 125, 150, 164, 169, 174, 179, 185, 195, 200,
 for (k in no_cdf) add(paste0("distributions:", k), "cannot transfer",
   "no-cdf", paste(
   "brms's p function of a family frmtmb has, and the frmtmb family has",
-  "no CDF (no $lcdf), so there is nothing to read: a gap.",
+  "no CDF (no $cdf), so there is nothing to read: a gap.",
   "inverse.gaussian, the one family here with a CDF, is shimmed and its",
   "row holds (distributions:111)"))
 for (k in c(8, 68, 71)) add(paste0("distributions:", k), "cannot transfer",

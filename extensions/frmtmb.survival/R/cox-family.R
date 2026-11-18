@@ -665,7 +665,7 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE,
       # log h(t) + log S(t), with h(t) = h0(t) * mu and mu = exp(eta)
       log(bhaz) + log(dpars[["mu"]]) - cbhaz * dpars[["mu"]]
     },
-    lcdf = function(q, dpars, aterms, extra) {
+    cdf = function(q, dpars, aterms, extra) {
       # F(t) = 1 - exp(-H0(t) * mu). Every bound a censored or truncated
       # row asks about is plain data, so its I-spline row block was
       # built once at frame assembly and is looked up by value here.

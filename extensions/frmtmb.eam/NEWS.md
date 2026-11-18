@@ -1,3 +1,12 @@
+# frmtmb.eam (development version)
+
+* BREAKING: Needs the frmtmb version that renames the CDF slot of
+  `frmtmb_family()` from `lcdf` to `cdf`. `wiener()`, `rdm()`, `gddm()`
+  and `lba()` fill `cdf`, and `wiener_gng()` still declares no CDF. A
+  read of `wiener()$lcdf` now stops with an error that names `cdf`.
+  The non-decision-time bound keeps a family's empty `cdf` slot as a
+  `NULL` element, so `wiener_gng()$cdf` is `NULL`.
+
 # frmtmb.eam 0.13.2
 
 Needs frmtmb 0.82.0: a test reads the message of frmtmb's standard-error

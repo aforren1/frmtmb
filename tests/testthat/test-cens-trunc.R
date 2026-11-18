@@ -272,14 +272,14 @@ test_that("a fractional discrete bound is refused by name", {
 
 test_that("a custom discrete family with a CDF is censored too", {
   # what admits a family is the CDF it supplies, not the type it
-  # declares; this one has a probability-scale lcdf alone
+  # declares; this one has a probability-scale cdf alone
   pois_cdf <- frmtmb_family(
     "pois_cdf", dpars = "mu", links = list(mu = "log"),
     type = "discrete", accepts_aterms = c("weights", "cens", "trunc"),
     lpdf = function(y, dpars, aterms) {
       RTMB::dpois(y, dpars[["mu"]], log = TRUE)
     },
-    lcdf = function(q, dpars, aterms) RTMB::ppois(q, dpars[["mu"]]),
+    cdf = function(q, dpars, aterms) RTMB::ppois(q, dpars[["mu"]]),
     init_dpars = list(mu = function(y, aterms) mean(y)))
   no_cdf <- frmtmb_family(
     "pois_no_cdf", dpars = "mu", links = list(mu = "log"),
@@ -530,7 +530,7 @@ test_that("trunc(lb = ) below a bounded support is no truncation", {
     dp <- switch(fam$family, exponential = list(mu = 2),
                  weibull = list(mu = 2, shape = 1.5),
                  frechet = list(mu = 2, nu = 3))
-    expect_identical(fam$lcdf(c(-1, 0), dp, list()), c(0, 0))
+    expect_identical(fam$cdf(c(-1, 0), dp, list()), c(0, 0))
     expect_identical(fam$lccdf(c(-1, 0), dp, list()) + 0, c(0, 0))
   }
   # the shifted lognormal's ndt is a parameter, so its edge is on the

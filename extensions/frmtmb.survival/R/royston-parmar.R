@@ -384,7 +384,7 @@ sv_rp_family <- function(cfg, allknots) {
     dpars = dpars,
     links = links,
     lpdf = ll,
-    lcdf = cdf,
+    cdf = cdf,
     lccdf = ccdf,
     valid_y = function(y, aterms) sv_rp_valid_y(y),
     family_finalize = function(fam, y, aterms) {

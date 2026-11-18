@@ -286,7 +286,7 @@ lba <- function(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL,
       lba_check_response(y, aterms, n)
       ddm_refuse_cens_aterms(aterms, "lba")
     },
-    lcdf = ddm_refuse_cens_slot("lba"),
+    cdf = ddm_refuse_cens_slot("lba"),
     lccdf = ddm_refuse_cens_slot("lba"),
     family_finalize = function(fam, y, aterms) {
       lba_finalize(fam, y, aterms, max_ndt)

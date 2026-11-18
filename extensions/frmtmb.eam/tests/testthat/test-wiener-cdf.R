@@ -206,7 +206,7 @@ test_that("the slots compute the censored rows only, and the same numbers", {
     av <- fit$frame$aterm_values$y
     dp <- list(mu = 0.7, bs = 1.3, ndt = 0.28, bias = 0.5)
     lS <- fam$lccdf(d$y, dp, av)
-    Fv <- fam$lcdf(d$y, dp, av)
+    Fv <- fam$cdf(d$y, dp, av)
     r <- d$code == 1
     l <- d$code == -1
     full_S <- frmtmb.eam:::ddm_rt_lcdf2(d$y - 0.28, 0.7, 1.3, 0.5)$lS

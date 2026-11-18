@@ -603,7 +603,7 @@ brms_g1_pd <- function(fun, q, dp, lower.tail, log.p, av = list()) {
 }
 
 # lane cdfs: brms's p functions of the families that gained a CDF, each
-# through that family's own lcdf and lccdf
+# through that family's own cdf and lccdf
 brms_cdfs_shims <- list(
   pstudent_t = function(q, df, mu = 0, sigma = 1, lower.tail = TRUE,
                         log.p = FALSE) {

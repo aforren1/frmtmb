@@ -104,7 +104,7 @@ ddm_cont_G <- function(q, crange) {
 
 #' The mixture's distribution function: `(1 - lambda) F + lambda G`.
 #'
-#' Formed on the probability scale because that is what frmtmb's `lcdf`
+#' Formed on the probability scale because that is what frmtmb's `cdf`
 #' slot returns. The contaminant marginalizes over its coin flip, so
 #' its distribution function over the response time alone is `G`, with
 #' no factor of one half. A left- or interval-censored row is scored at
@@ -112,14 +112,14 @@ ddm_cont_G <- function(q, crange) {
 #' the coin flip landing on that boundary.
 #'
 #' @noRd
-ddm_cont_lcdf <- function(lcdf, crange) {
-  force(lcdf)
+ddm_cont_cdf <- function(cdf, crange) {
+  force(cdf)
   force(crange)
   function(q, dpars, aterms) {
     lc <- frmtmb::dpar_log_complement(dpars, "lambda", "logit")
     cen <- aterms[["cens"]]
     gs <- if (is.null(cen)) 1 else 1 - 0.5 * as.numeric(cen == -1 | cen == 2)
-    exp(lc[["l1m"]]) * lcdf(q, dpars, aterms) +
+    exp(lc[["l1m"]]) * cdf(q, dpars, aterms) +
       exp(lc[["l"]]) * ddm_cont_G(q, crange) * gs
   }
 }

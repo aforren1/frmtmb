@@ -291,7 +291,7 @@
 #' the mass, so the two halves of every row would be divided by
 #' different things. Right censoring has no such problem, because it
 #' replaces a whole row rather than reweighting it. So this family
-#' declares an `lccdf` and, deliberately, no `lcdf`.
+#' declares an `lccdf` and, deliberately, no `cdf`.
 #'
 #' The refusal you will see is frmtmb's own and does not name this
 #' family:
@@ -308,7 +308,7 @@
 #'
 #' @section Accuracy:
 #' The no-go branch needs the Wiener defective distribution function,
-#' which this package did not have: [wiener()] declares no `lcdf`, and
+#' which this package did not have: [wiener()] declares no `cdf`, and
 #' says so in its own compatibility table. It is written for this family
 #' in `R/wiener-cdf.R`, as two series blended in `log(u)` the way the
 #' density's two are.
@@ -586,7 +586,7 @@ gng_family <- function(cfg, delta) {
     # Right censoring only, and by declaration. The log survivor is this
     # family's own no-go probability with the deadline moved to the
     # censoring time, which is exactly what "had not responded by then"
-    # means, so the seam is a rename rather than a derivation. `lcdf` is
+    # means, so the seam is a rename rather than a derivation. `cdf` is
     # deliberately absent, and frmtmb then refuses left censoring,
     # interval censoring and trunc() BY NAME. They are not merely
     # unwritten: this likelihood is a defective density plus a point

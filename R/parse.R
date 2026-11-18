@@ -42,7 +42,7 @@ row_aterms <- c("subset", "index")
 #' `.onLoad()`.
 #'
 #' The registered term carries DATA and nothing else. Its evaluated,
-#' coerced value reaches the family's `lpdf`, `lcdf`, `post$mean_fn` and
+#' coerced value reaches the family's `lpdf`, `cdf`, `post$mean_fn` and
 #' `sim` in the `aterms` list under `name` (or under `name1`, `name2`,
 #' ... when `arity` is above one, following `vint()`), it is required on
 #' `newdata`, and it is what `frmtmb_family(required_aterms =)` names.

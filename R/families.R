@@ -120,10 +120,10 @@
 #'   example multinomial's per-category `mu2`, `mu3`, ...) list them all;
 #'   these live in the `beta` parameter vector and are integrated out
 #'   under REML.
-#' @param lcdf Optional vectorized AD CDF `(q, dpars, aterms)` returning
-#'   probabilities; enables `cens()` and `trunc()` addition terms. Despite
-#'   the `l` in its name, it returns `F(q)` on the probability scale, not
-#'   `log F(q)`; `lccdf` and `cdf_log` are the slots on the log scale. It is
+#' @param cdf Optional vectorized AD CDF `(q, dpars, aterms)` returning
+#'   probabilities; enables `cens()` and `trunc()` addition terms. It
+#'   returns `F(q)` on the probability scale, not `log F(q)`; `lccdf` and
+#'   `cdf_log` are the slots on the log scale. It is
 #'   the only thing either term asks of a family, whatever the family's
 #'   `type`. A discrete family is read on the integer lattice (see
 #'   Censoring a discrete response), so `trunc(lb = )` calls this at one
@@ -133,16 +133,16 @@
 #'   that declares it scores the upper tail from it instead of from
 #'   `log(1 - F)`, which cannot be accurate once `F` rounds to one (see
 #'   Censoring and the representable tail). It is optional and
-#'   independent of `lcdf`: a family that supplies only `lccdf` accepts
+#'   independent of `cdf`: a family that supplies only `lccdf` accepts
 #'   right censoring and refuses left censoring, interval censoring and
 #'   `trunc()`, each by name.
 #' @param cdf_log Optional vectorized AD function `(q, dpars, aterms)`
 #'   returning `list(lF = log F(q), lS = log S(q))`, both tails on the
 #'   log scale. A family that declares it has every censored row and
-#'   every truncation window read from it, and `lcdf` and `lccdf` are
+#'   every truncation window read from it, and `cdf` and `lccdf` are
 #'   derived from it when they are not given. It is how a family whose
 #'   two tails are both exact passes that to core: a probability-scale
-#'   `lcdf` ends at `1e-308`.
+#'   `cdf` ends at `1e-308`.
 #' @param required_aterms The addition-term values the density cannot do
 #'   without, named as they reach `aterms`: `"vint1"`, `"vreal2"`,
 #'   `"trials"`. A character vector names the terms it needs ALL of. A
@@ -290,6 +290,9 @@
 #'   that say which post-fit methods the family can answer. `lpdf` stays
 #'   required even then, for the rowwise contract, and may be a stub
 #'   that refuses.
+#' @param ... Must be empty. An argument named after the CDF slot's
+#'   former name stops with an error that names `cdf`, and so does a
+#'   family list that stores that name, wherever it reaches frmtmb.
 #' @return An object of class `frmtmb_family`. `$` on it also answers
 #'   brms's link fields, computed from `links` when read: `link`, the
 #'   name of the link for the mean (for an ordinal family, the
@@ -476,13 +479,13 @@
 #' Every built-in family with a CDF declares `cdf_log` except
 #' [exponential()], [weibull()], [frechet()],
 #' [gen_extreme_value()] and [discrete_weibull()]. A family without it
-#' is read through `lcdf` and `lccdf` as before: a right-censored row is
-#' `lccdf` (or `log(1 - lcdf)` without it), a left-censored row
+#' is read through `cdf` and `lccdf` as before: a right-censored row is
+#' `lccdf` (or `log(1 - cdf)` without it), a left-censored row
 #' `log(F(y) - F(lb))`, an interval `log(F(y2) - F(y))`, the window
 #' `log(F(ub) - F(lb))`, and `trunc(lb = )` with no upper bound
 #' `lccdf(lb)`. Each slot is called where it always was, because a
 #' family may read the censoring codes to know which rows a call is
-#' for, as the frmtmb.eam Wiener families do, and may supply an `lcdf`
+#' for, as the frmtmb.eam Wiener families do, and may supply a `cdf`
 #' that is not the complement of its `lccdf`. The probability scale
 #' ends at `1e-308`, below which a left-censored row is `log(0)`, and an
 #' interval in an upper tail loses its digits; a family that declares
@@ -552,7 +555,7 @@
 #' the one-step window is built on.
 #'
 #' @section Tape-safe scope:
-#' `lpdf` and `lcdf` run with RTMB's tape-safe `c()`, `[<-` and
+#' `lpdf` and `cdf` run with RTMB's tape-safe `c()`, `[<-` and
 #' `diag<-` in scope automatically (the
 #' `"c" <- RTMB::ADoverload("c")` boilerplate is spliced in unless the
 #' function already binds it), so base spellings keep the
@@ -565,7 +568,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           init_dpars = list(), type = "continuous",
                           post = list(), sim = NULL, sim_ctx = NULL,
                           sim_refusal = NULL,
-                          primary_dpars = "mu", lcdf = NULL,
+                          primary_dpars = "mu", cdf = NULL,
                           lccdf = NULL, cdf_log = NULL,
                           required_aterms = character(0),
                           accepts_aterms = NULL, se_dpar = NULL,
@@ -573,7 +576,8 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           family_finalize = NULL,
                           extra_pars = NULL, drop_intercept = FALSE,
                           structure = NULL, aterm_data = NULL,
-                          simplex_pars = NULL, mi_chart = NULL) {
+                          simplex_pars = NULL, mi_chart = NULL, ...) {
+  refuse_family_dots(...)
   if (!is.character(family) || length(family) != 1L || is.na(family)) {
     frm_stop("frmtmb_family(family =) must be one string, the name of ",
              "the family, not ", arg_desc(family), call. = FALSE)
@@ -624,8 +628,8 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
     # the same pair, so they cannot disagree with it
     pair <- cdf_log
     four <- length(formals(pair)) >= 4L
-    if (is.null(lcdf)) {
-      lcdf <- if (four) {
+    if (is.null(cdf)) {
+      cdf <- if (four) {
         function(q, dpars, aterms, extra) {
           exp(pair(q, dpars, aterms, extra)[["lF"]])
         }
@@ -641,7 +645,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
       }
     }
   }
-  if (!is.null(lcdf)) lcdf <- frmtmb_ad_overload(lcdf)
+  if (!is.null(cdf)) cdf <- frmtmb_ad_overload(cdf)
   if (!is.null(lccdf)) {
     if (!is.function(lccdf)) {
       frm_stop("frmtmb_family(lccdf =) must be a function (q, dpars, ",
@@ -663,7 +667,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                 valid_y = valid_y, init_dpars = init_dpars, type = type,
                 post = post, sim = sim, sim_ctx = sim_ctx,
                 sim_refusal = sim_refusal, primary_dpars = primary_dpars,
-                lcdf = lcdf, lccdf = lccdf, cdf_log = cdf_log,
+                cdf = cdf, lccdf = lccdf, cdf_log = cdf_log,
                 required_aterms = required_aterms,
                 accepts_aterms = accepts_aterms, se_dpar = se_dpar,
                 exclusive_aterms = exclusive_aterms,
@@ -803,7 +807,10 @@ family_link_view <- function(x, name) {
 #' links the fit uses, however the object was edited and whenever it was
 #' saved. Every other name matches exactly. A name that is only the
 #' prefix of one field is an error naming that field, and a name that
-#' matches nothing is `NULL`, as on any list.
+#' matches nothing is `NULL`, as on any list, except the CDF slot's
+#' former name, which is an error naming `cdf`. The name of a slot that
+#' [frmtmb_family()] defines is `NULL` when the object does not hold it,
+#' even where it is the prefix of another field (`cdf` of `cdf_log`).
 #'
 #' The link fields are not elements of the list, so `names()`, `[[` and
 #' `str()` do not show them. An element stored under one of those names
@@ -846,6 +853,18 @@ NULL
   }
   if (name %in% nms) return(.subset2(x, name))
   hit <- c(nms, view)[startsWith(c(nms, view), name)]
+  # an extension that still reads the slot's former name would get NULL,
+  # which every reader takes to mean "no CDF"
+  if (identical(name, old_cdf_slot)) {
+    frm_stop("A family object has no field `", old_cdf_slot, "`, the CDF ",
+             "slot's former name. The slot is `cdf`, which returns F(q) ",
+             "on the probability scale", call. = FALSE,
+             class = "frmtmb_cdf_slot_renamed")
+  }
+  # A slot frmtmb_family() defines is a field whether or not this object
+  # still holds it (assigning NULL drops an element), so its absence is
+  # NULL, not the prefix of another slot: `cdf` is a prefix of `cdf_log`
+  if (name %in% setdiff(names(formals(frmtmb_family)), "...")) return(NULL)
   if (length(hit) == 1L) {
     frm_stop("A family object has no field `", name, "`. `$` would have ",
              "partial-matched `", hit, "`, and it does not do that on a ",
@@ -1430,9 +1449,10 @@ sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
   # a family with extra parameters may read its CDF from a design built
   # at the recorded bounds, as frmtmb.survival's cox() does, so a
   # bisection point has no row in it
+  cdf <- fam_cdf_slot(fam)
   invert <- identical(frm_family_package(fam), "frmtmb") &&
     is.null(fam[["extra_pars"]]) &&
-    (!is.null(fam[["cdf_log"]]) || !is.null(fam[["lcdf"]]))
+    (!is.null(fam[["cdf_log"]]) || !is.null(cdf))
   while (length(bad)) {
     it <- it + 1L
     if (invert && it > inv_after) {
@@ -2310,7 +2330,7 @@ fam_reparam <- function(inner, family, dpars, links, to_inner, init_dpars) {
 #' Wrap one family slot so that it translates `dpars` before the inner
 #' slot reads them. A slot without a `dpars` argument (`valid_y`, a
 #' finalizer) is returned as it is. The wrapper keeps the slot's
-#' formals, because callers read their number (`fam_lcdf()`), and keeps
+#' formals, because callers read their number (`fam_cdf()`), and keeps
 #' the inner function as an attribute, because `mean_is_mu()` reads a
 #' mean's body.
 #'
@@ -3020,7 +3040,7 @@ fam_exponential <- function(link = "log") {
     # q is held at 0 from below, where F is 0 and S is 1: a trunc(lb = )
     # below 0 is no truncation, and read at q itself it took |lb| / mu
     # off every row (positive_cdf_q())
-    lcdf = function(q, dpars, aterms) {
+    cdf = function(q, dpars, aterms) {
       1 - exp(-positive_cdf_q(q)[["q"]] / dpars[["mu"]])
     },
     # log S = -q / mu in closed form: no complement is ever formed
@@ -3071,7 +3091,7 @@ fam_weibull <- function(link = "log", link_shape = "log") {
     # (q / sc)^shape is 0 at q <= 0, read at q = 1 and weighted 0, so
     # that a negative q is not a NaN and q = 0 not a NaN gradient in the
     # shape (positive_cdf_q())
-    lcdf = function(q, dpars, aterms) {
+    cdf = function(q, dpars, aterms) {
       sc <- dpars[["mu"]] / exp(lgamma(1 + 1 / dpars[["shape"]]))
       pq <- positive_cdf_q(q)
       1 - exp(-pq[["on"]] * (pq[["at"]] / sc)^dpars[["shape"]])
@@ -6315,13 +6335,14 @@ mixture_build <- function(comps, groups, ref) {
       setdiff(unique(unlist(comp_acc, use.names = FALSE)), "se")
     },
     # the mixture of the components' tails, brms's censored mixture
-    lcdf = if (all(vapply(comps, function(cp) !is.null(cp$lcdf), NA))) {
+    cdf = if (all(vapply(comps, function(cp) !is.null(fam_cdf_slot(cp)),
+                         NA))) {
       function(q, dpars, aterms) {
         lp <- log_pi(dpars)
         out <- 0
         for (k in seq_len(K)) {
           out <- out + exp(lp[[k]]) *
-            fam_lcdf(comps[[k]], q, comp_dpars(dpars, k), aterms, NULL)
+            fam_cdf(comps[[k]], q, comp_dpars(dpars, k), aterms, NULL)
         }
         out
       }
@@ -8109,24 +8130,88 @@ carry_finalized_responses <- function(spec, frame) {
   spec
 }
 
-#' Call a family's CDF (its `lcdf` slot, which returns probabilities and
-#' not their log, whatever the name says), passing the family-level extra
+#' The CDF slot's former name. It read as a log CDF beside `lccdf` and
+#' `cdf_log`, while the slot returns probabilities.
+#'
+#' @noRd
+old_cdf_slot <- "lcdf"
+
+#' Refuse a family that stores its CDF under the slot's former name.
+#'
+#' Refused, not aliased: every reader looks only at `cdf`, so a family
+#' that fills the old name would lose its CDF without a word, and cens()
+#' and trunc() would then say the family has none. A list is checked
+#' rather than only the class, because an extension can edit a family
+#' after frmtmb_family() built it.
+#'
+#' @noRd
+check_cdf_slot_name <- function(fam) {
+  if (is.list(fam) && old_cdf_slot %in% names(fam)) {
+    nm <- fam[["family"]]
+    frm_stop("Family ", if (is.character(nm)) paste0("'", nm[1L], "' "),
+             "stores its CDF in `", old_cdf_slot, "`, the slot's former ",
+             "name. The slot is `cdf`, and it returns F(q) on the ",
+             "probability scale: rename the element (or the argument of ",
+             "frmtmb_family())", call. = FALSE,
+             class = "frmtmb_cdf_slot_renamed",
+             package = frm_family_package(fam))
+  }
+  invisible(fam)
+}
+
+#' Refuse what reaches frmtmb_family()'s `...`, which exists only to
+#' name `cdf` to a caller who passes the slot's former name; any other
+#' argument there is as unused as it always was.
+#'
+#' @noRd
+refuse_family_dots <- function(...) {
+  n <- ...length()
+  if (!n) return(invisible())
+  nms <- ...names() %||% character(n)
+  nms[is.na(nms)] <- ""
+  if (old_cdf_slot %in% nms) {
+    frm_stop("frmtmb_family() has no argument `", old_cdf_slot, "`: the ",
+             "CDF slot is `cdf`, and it returns F(q) on the probability ",
+             "scale", call. = FALSE, class = "frmtmb_cdf_slot_renamed")
+  }
+  named <- nms[nzchar(nms)]
+  k <- sum(!nzchar(nms))
+  shown <- c(if (length(named)) paste0("`", named, "`"),
+             if (k) paste0(k, " unnamed"))
+  frm_stop("frmtmb_family(): unused argument", if (n > 1L) "s", ": ",
+           paste(shown, collapse = ", "), call. = FALSE)
+}
+
+#' A family's CDF slot, read through the refusal of the former name.
+#'
+#' Every reader goes through this, not only the routes a family enters
+#' by: a fit saved before the rename carries its family in the old
+#' shape into post-fit methods that build no frame, and there a NULL
+#' read as "no CDF" changes the method's answer without a word
+#' (residuals(type = "osa") left the "cdf" route and gave NaN).
+#'
+#' @noRd
+fam_cdf_slot <- function(fam) check_cdf_slot_name(fam)[["cdf"]]
+
+#' Call a family's CDF (its `cdf` slot, which returns probabilities and
+#' not their log), passing the family-level extra
 #' parameters to the families that declare them. The baseline of
 #' frmtmb.survival's
 #' `cox()` lives there, so its survivor function needs them; every other
 #' CDF keeps the three-argument contract.
 #'
 #' @noRd
-fam_lcdf <- function(fam, q, dpars, aterms, extra) {
-  if (length(formals(fam[["lcdf"]])) >= 4L) {
-    fam[["lcdf"]](q, dpars, aterms, extra)
+fam_cdf <- function(fam, q, dpars, aterms, extra) {
+  cdf <- fam_cdf_slot(fam)
+  if (length(formals(cdf)) >= 4L) {
+    cdf(q, dpars, aterms, extra)
   } else {
-    fam[["lcdf"]](q, dpars, aterms)
+    cdf(q, dpars, aterms)
   }
 }
 
 #' Call a family's log survivor function, with the same extra-parameter
-#' arity shim `fam_lcdf()` carries.
+#' arity shim `fam_cdf()` carries.
 #'
 #' @noRd
 fam_lccdf <- function(fam, q, dpars, aterms, extra) {
@@ -8729,14 +8814,14 @@ family_link_pair <- function(family, caller) {
 #' @rdname frmtmb-extension-api
 #' @export
 as_frmtmb_family <- function(x) {
-  if (inherits(x, "frmtmb_family")) return(x)
+  if (inherits(x, "frmtmb_family")) return(check_cdf_slot_name(x))
   # A bare constructor (`family = cumulative`, `family = gaussian`) is
   # legal in brms and in stats::glm, so call it with its defaults. The
   # frmtmb constructors return a `frmtmb_family` rather than a
   # `stats::family`, so the result is re-checked here.
   if (is.function(x)) {
     x <- x()
-    if (inherits(x, "frmtmb_family")) return(x)
+    if (inherits(x, "frmtmb_family")) return(check_cdf_slot_name(x))
   }
   if (inherits(x, "family")) {
     # [[ ]]: a stats family is a plain list, and `$` on it partial-matches

@@ -102,7 +102,7 @@ test_that("poisson and inverse.gaussian declare an exact lccdf", {
   expect_true(is.infinite(log1p(-stats::ppois(700, 5))))
   ig <- frmtmb:::as_frmtmb_family(inverse.gaussian(link = "log"))
   lS <- ig$lccdf(c(1, 40), list(mu = c(1, 1), shape = c(2, 2)), list())
-  expect_equal(lS[1], log1p(-ig$lcdf(1, list(mu = 1, shape = 2), list())),
+  expect_equal(lS[1], log1p(-ig$cdf(1, list(mu = 1, shape = 2), list())),
                tolerance = 1e-12)
   expect_true(is.finite(lS[2]) && lS[2] < -34)
 })

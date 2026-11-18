@@ -1,3 +1,27 @@
+# frmtmb (development version)
+
+## Families
+
+* BREAKING: The CDF slot of `frmtmb_family()` is now `cdf`. Its old
+  name, `lcdf`, read as a log CDF beside the log-scale slots `lccdf` and
+  `cdf_log`, but the slot returns `F(q)` on the probability scale. The
+  old name is refused, not aliased. `frmtmb_family(lcdf = )`, a family
+  list that stores an element `lcdf` (built by hand, edited after
+  `frmtmb_family()`, or returned by `family_finalize()`), and a read of
+  `family$lcdf` each stop with an error of class
+  `frmtmb_cdf_slot_renamed` that names `cdf`. Rename the argument or the
+  element. `frmtmb_family()` has a `...` argument only for this check;
+  any other argument there is refused as unused. A fit saved by an
+  earlier version stops with the same error in each method that reads
+  the CDF: `update()`, `residuals(type = "osa")` and draws under
+  `trunc()`. Before, `residuals(type = "osa")` on such a fit changed
+  route without a word and could return `NaN`.
+
+* `$` on a family returns `NULL` for a slot that `frmtmb_family()`
+  defines and the object does not hold. Before, `$cdf` on a family with
+  no `cdf` element was an error that pointed at `cdf_log`, because `cdf`
+  is the start of that name.
+
 # frmtmb 0.83.0
 
 ## Convergence and standard errors

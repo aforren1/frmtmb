@@ -1,5 +1,5 @@
 # Distribution functions for the core families that had none, so that
-# cens() and trunc() reach them. Each family's `lcdf` returns the CDF
+# cens() and trunc() reach them. Each family's `cdf` returns the CDF
 # on the probability scale and its `lccdf` the log survivor function
 # (frmtmb_family()); both are built here from one log-scale pair per
 # family, so the two tails cannot disagree with each other. Everything
@@ -1155,7 +1155,7 @@ compois_cdf_log <- function(q, mu, nu, K = 100L) {
 #
 # Each takes the slot's own arguments, plus the links a robust density
 # input needs, and returns list(lF, lS), which is the family's
-# `cdf_log` slot; frmtmb_family() derives `lcdf` and `lccdf` from it.
+# `cdf_log` slot; frmtmb_family() derives `cdf` and `lccdf` from it.
 
 #' student()'s pair, at the scale a known `se()` sets.
 #'
@@ -1317,7 +1317,7 @@ asym_laplace_cdf_pair <- function(q, dpars, aterms, lk_quantile) {
 
 #' zero_inflated_asym_laplace()'s pair. brms's
 #' `zero_inflated_asym_laplace_lccdf()` adds the point mass at `y <= 0`,
-#' so at `y = 0` it is `P(Y >= 0)` where its `lcdf` is `P(Y <= 0)`, and
+#' so at `y = 0` it is `P(Y >= 0)` where its `cdf` is `P(Y <= 0)`, and
 #' the two sum to `1 + zi`. Here the survivor is `P(Y > y)` at every
 #' `y`, the convention every other family's `lccdf` follows.
 #'
@@ -1388,7 +1388,7 @@ nbinom_trunc_mean <- function(mu, size, lb, ub) {
 # --- Truncated draws by inversion ---------------------------------------
 
 #' Both log tails of a family's CDF at `q`, numerically, for draws: from
-#' `cdf_log` where the family declares it, else from `lcdf` and `lccdf`.
+#' `cdf_log` where the family declares it, else from `cdf` and `lccdf`.
 #' A tail that is `NaN` (a `q` outside a support the slot does not
 #' guard) is read as the edge of the support on that side.
 #'
@@ -1400,7 +1400,7 @@ sim_cdf_pair <- function(fam, q, dp, av, extra) {
     lF <- as.numeric(lp[["lF"]])
     lS <- as.numeric(lp[["lS"]])
   } else {
-    Fp <- as.numeric(fam_lcdf(fam, q, dp, av, extra)) + numeric(n)
+    Fp <- as.numeric(fam_cdf(fam, q, dp, av, extra)) + numeric(n)
     lS <- if (has_lccdf(fam)) {
       as.numeric(fam_lccdf(fam, q, dp, av, extra)) + numeric(n)
     } else {

@@ -368,7 +368,7 @@ structure(list(
   dpars      = c("mu", "shape"),
   links      = list(mu = "log", shape = "log"),
   lpdf       = function(y, dpars, aterms) ...,  # vectorized advector log-density
-  lcdf       = NULL,                     # optional; enables cens()/trunc()
+  cdf        = NULL,                     # optional; enables cens()/trunc()
   valid_y    = function(y, aterms) ...,  # data check at assembly time
   extra_pars = NULL,                     # e.g. ordinal thresholds
   init_dpars = list(shape = 1),

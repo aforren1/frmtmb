@@ -18,7 +18,7 @@ frmtmb_family(
   sim_ctx = NULL,
   sim_refusal = NULL,
   primary_dpars = "mu",
-  lcdf = NULL,
+  cdf = NULL,
   lccdf = NULL,
   cdf_log = NULL,
   required_aterms = character(0),
@@ -31,7 +31,8 @@ frmtmb_family(
   structure = NULL,
   aterm_data = NULL,
   simplex_pars = NULL,
-  mi_chart = NULL
+  mi_chart = NULL,
+  ...
 )
 
 custom_family(
@@ -47,7 +48,7 @@ custom_family(
   sim_ctx = NULL,
   sim_refusal = NULL,
   primary_dpars = "mu",
-  lcdf = NULL,
+  cdf = NULL,
   lccdf = NULL,
   cdf_log = NULL,
   required_aterms = character(0),
@@ -60,7 +61,8 @@ custom_family(
   structure = NULL,
   aterm_data = NULL,
   simplex_pars = NULL,
-  mi_chart = NULL
+  mi_chart = NULL,
+  ...
 )
 }
 \arguments{
@@ -189,10 +191,10 @@ example multinomial's per-category \code{mu2}, \code{mu3}, ...) list them all;
 these live in the \code{beta} parameter vector and are integrated out
 under REML.}
 
-\item{lcdf}{Optional vectorized AD CDF \verb{(q, dpars, aterms)} returning
-probabilities; enables \code{cens()} and \code{trunc()} addition terms. Despite
-the \code{l} in its name, it returns \code{F(q)} on the probability scale, not
-\verb{log F(q)}; \code{lccdf} and \code{cdf_log} are the slots on the log scale. It is
+\item{cdf}{Optional vectorized AD CDF \verb{(q, dpars, aterms)} returning
+probabilities; enables \code{cens()} and \code{trunc()} addition terms. It
+returns \code{F(q)} on the probability scale, not \verb{log F(q)}; \code{lccdf} and
+\code{cdf_log} are the slots on the log scale. It is
 the only thing either term asks of a family, whatever the family's
 \code{type}. A discrete family is read on the integer lattice (see
 Censoring a discrete response), so \code{trunc(lb = )} calls this at one
@@ -203,17 +205,17 @@ below the bound.}
 that declares it scores the upper tail from it instead of from
 \code{log(1 - F)}, which cannot be accurate once \code{F} rounds to one (see
 Censoring and the representable tail). It is optional and
-independent of \code{lcdf}: a family that supplies only \code{lccdf} accepts
+independent of \code{cdf}: a family that supplies only \code{lccdf} accepts
 right censoring and refuses left censoring, interval censoring and
 \code{trunc()}, each by name.}
 
 \item{cdf_log}{Optional vectorized AD function \verb{(q, dpars, aterms)}
 returning \verb{list(lF = log F(q), lS = log S(q))}, both tails on the
 log scale. A family that declares it has every censored row and
-every truncation window read from it, and \code{lcdf} and \code{lccdf} are
+every truncation window read from it, and \code{cdf} and \code{lccdf} are
 derived from it when they are not given. It is how a family whose
 two tails are both exact passes that to core: a probability-scale
-\code{lcdf} ends at \code{1e-308}.}
+\code{cdf} ends at \code{1e-308}.}
 
 \item{required_aterms}{The addition-term values the density cannot do
 without, named as they reach \code{aterms}: \code{"vint1"}, \code{"vreal2"},
@@ -371,6 +373,10 @@ is piecewise linear: \code{\link[=frm]{frm()}} refuses a value another density r
 because a Laplace approximation needs that curvature, and
 \code{frmtmb.sample::frm_sample()} samples it. A value no density reads
 needs no chart on \code{\link[=frm]{frm()}}, where its row leaves the objective.}
+
+\item{...}{Must be empty. An argument named after the CDF slot's
+former name stops with an error that names \code{cdf}, and so does a
+family list that stores that name, wherever it reaches frmtmb.}
 }
 \value{
 An object of class \code{frmtmb_family}. \code{$} on it also answers
@@ -536,13 +542,13 @@ standard normal tail, one process:
 Every built-in family with a CDF declares \code{cdf_log} except
 \code{\link[=exponential]{exponential()}}, \code{\link[=weibull]{weibull()}}, \code{\link[=frechet]{frechet()}},
 \code{\link[=gen_extreme_value]{gen_extreme_value()}} and \code{\link[=discrete_weibull]{discrete_weibull()}}. A family without it
-is read through \code{lcdf} and \code{lccdf} as before: a right-censored row is
-\code{lccdf} (or \code{log(1 - lcdf)} without it), a left-censored row
+is read through \code{cdf} and \code{lccdf} as before: a right-censored row is
+\code{lccdf} (or \code{log(1 - cdf)} without it), a left-censored row
 \code{log(F(y) - F(lb))}, an interval \code{log(F(y2) - F(y))}, the window
 \code{log(F(ub) - F(lb))}, and \code{trunc(lb = )} with no upper bound
 \code{lccdf(lb)}. Each slot is called where it always was, because a
 family may read the censoring codes to know which rows a call is
-for, as the frmtmb.eam Wiener families do, and may supply an \code{lcdf}
+for, as the frmtmb.eam Wiener families do, and may supply a \code{cdf}
 that is not the complement of its \code{lccdf}. The probability scale
 ends at \code{1e-308}, below which a left-censored row is \code{log(0)}, and an
 interval in an upper tail loses its digits; a family that declares
@@ -616,7 +622,7 @@ the one-step window is built on.
 
 \section{Tape-safe scope}{
 
-\code{lpdf} and \code{lcdf} run with RTMB's tape-safe \code{c()}, \verb{[<-} and
+\code{lpdf} and \code{cdf} run with RTMB's tape-safe \code{c()}, \verb{[<-} and
 \verb{diag<-} in scope automatically (the
 \code{"c" <- RTMB::ADoverload("c")} boilerplate is spliced in unless the
 function already binds it), so base spellings keep the

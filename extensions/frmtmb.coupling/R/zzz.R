@@ -40,7 +40,7 @@ cp_compat_rules <- function() {
   r("cross_wishart", "weights()", "works",
     "Verified: the weighted log likelihood equals the unweighted one at unit weights and doubles when every weight doubles. A weight of k on a row is not the same as k times the degrees of freedom, and nothing here pretends otherwise; use vint() to say a row rests on more draws.")
   r("cross_wishart", "cens()", "refused",
-    "The family declares neither lcdf nor lccdf, and accepts_aterms does not list cens, so the term is refused by name at frame assembly. A censored cross-spectral matrix is not a thing anyone has: the CDF of a complex Wishart in two dimensions has no closed form worth taping, and there is no applied case asking for it.")
+    "The family declares neither cdf nor lccdf, and accepts_aterms does not list cens, so the term is refused by name at frame assembly. A censored cross-spectral matrix is not a thing anyone has: the CDF of a complex Wishart in two dimensions has no closed form worth taping, and there is no applied case asking for it.")
   r("cross_wishart", "trunc()", "refused",
     "Same reason, same mechanism.")
   r("cross_wishart", "s()", "works",

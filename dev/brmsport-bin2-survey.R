@@ -45,7 +45,7 @@ groups <- data.frame(stringsAsFactors = FALSE, rbind(
       paste0(
         "every exported family constructor's $lpdf(y, dpars, ",
         "aterms) (a log density) and $sim(dpars, aterms, n); ",
-        "$lcdf where the family has one. No quantile function, ",
+        "$cdf where the family has one. No quantile function, ",
         "and no multivariate density outside a fit"),
       paste0(
         "low for the d and r functions of the families frmtmb has: ",

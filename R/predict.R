@@ -5207,7 +5207,7 @@ ord_probs_from_eta <- function(fam, eta, cs, extra, K, aterms = list(),
   if (!is.null(cs)) dp[[".cs"]] <- cs
   P <- matrix(NA_real_, n, K)
   # ordinal lpdfs take the extras (thresholds) as a fourth argument;
-  # categorical's takes three - dispatch on arity like fam_lcdf() does
+  # categorical's takes three - dispatch on arity like fam_cdf() does
   four <- length(formals(fam[["lpdf"]])) >= 4L
   codes <- ord_code0(fam) + seq_len(K) - 1L
   for (k in seq_len(K)) {
@@ -6202,11 +6202,12 @@ osa_point_mass_families <- c(
   "tweedie")
 
 #' Whether a family has a CDF the one-step `"cdf"` route can read: a
-#' `cdf_log` pair, or the probability-scale `lcdf` slot.
+#' `cdf_log` pair, or the probability-scale `cdf` slot.
 #'
 #' @noRd
 osa_has_cdf <- function(fam) {
-  !is.null(fam[["cdf_log"]]) || !is.null(fam[["lcdf"]])
+  cdf <- fam_cdf_slot(fam)
+  !is.null(fam[["cdf_log"]]) || !is.null(cdf)
 }
 
 #' Whether the response reached the objective as the observation of
@@ -6217,7 +6218,7 @@ osa_has_cdf <- function(fam) {
 osa_is_cdf <- function(y) methods::is(y, "osa") && NCOL(y@keep) == 3L
 
 #' Both log tails of a family's CDF at `q` (data) for the one-step route,
-#' from `cdf_log` where the family declares it and from `lcdf` (a
+#' from `cdf_log` where the family declares it and from `cdf` (a
 #' probability) and `lccdf` (a log) otherwise, as `sim_cdf_pair()` reads
 #' them, but on the tape; core's bernoulli in closed form
 #' (`osa_bernoulli_pair()`).
@@ -6231,7 +6232,7 @@ osa_log_pair <- function(fam, q, dpv, av, extra, n) {
   if (!is.null(fam[["cdf_log"]])) {
     return(fam_log_pair(fam, q, dpv, av, extra, n))
   }
-  Fp <- fam_lcdf(fam, q, dpv, av, extra)
+  Fp <- fam_cdf(fam, q, dpv, av, extra)
   lS <- if (has_lccdf(fam)) fam_lccdf(fam, q, dpv, av, extra) else log1p(-Fp)
   list(lF = cdf_rows(log(Fp), n), lS = cdf_rows(lS, n))
 }
@@ -6640,7 +6641,7 @@ residual_values <- function(object, type = c("response", "pearson",
     # gaussian takes "cdf" as well, so that a weight is a frequency there
     # as on every other family and in brms; "fullGaussian" reads it as a
     # precision. An extension's family keeps its own route, because an
-    # extension's `lcdf` need not be a CDF of the response alone (the
+    # extension's `cdf` need not be a CDF of the response alone (the
     # Wiener first-passage families).
     # A censored count takes "cdf" too, its tails read on the window the
     # censoring leaves (osa_cdf_tails()); a censored continuous response
@@ -6681,7 +6682,7 @@ residual_values <- function(object, type = c("response", "pearson",
       # density, which frmtmb's densities do not have
       frm_stop("residuals(type = \"osa\", osa_method = \"cdf\") needs the ",
                "family's CDF, and '", fam[["family"]], "' supplies none ",
-               "(frmtmb_family(cdf_log =) or lcdf =)", call. = FALSE,
+               "(frmtmb_family(cdf_log =) or cdf =)", call. = FALSE,
                package = frm_family_package(fam))
     }
     args <- list(obj = object$obj, observation.name = ".frm_obs",

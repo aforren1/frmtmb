@@ -262,7 +262,7 @@ compat_cache_extend <- function(add, before) {
 #' contribute <- function() {
 #'   b <- compat_rule_builder()
 #'   b$r("wiener", "cens()", "refused",
-#'       "The family supplies no lcdf, so there is no CDF to censor with.")
+#'       "The family supplies no cdf, so there is no CDF to censor with.")
 #'   b$r("wiener", "*", "untested",
 #'       "Not exercised outside this package's own suite.")
 #'   b$r("wiener", "hmm", "untested",
@@ -1384,7 +1384,7 @@ compat_hand_rules_tbl <- function() {
   r("cens()", "inverse.gaussian", "works",
     "Left and interval censoring are brms's likelihood exactly. A RIGHT-censored row is not: brms 2.23.0's inv_gaussian_lccdf() adds the second term of the survivor where it should subtract it, log(Phi(-a) + exp(2 shape / mu) Phi(-b)) for log(Phi(-a) - exp(2 shape / mu) Phi(-b)), so at y = 2, mu = 2, shape = 4 it gives -0.466 where the survivor is -0.988. frmtmb's is the survivor, formed in logs, so a right-censored fit differs from brms's.")
   r("trunc()", "inverse.gaussian", "works",
-    "Supported through the whole surface, as for the other families with a CDF. brms 2.23.0 scores a window with a lower bound and no upper one through its inv_gaussian_lccdf(), whose second term has the wrong sign (see the cens() row), so such a fit differs from brms's; a window with both bounds reads the lcdf and agrees.")
+    "Supported through the whole surface, as for the other families with a CDF. brms 2.23.0 scores a window with a lower bound and no upper one through its inv_gaussian_lccdf(), whose second term has the wrong sign (see the cens() row), so such a fit differs from brms's; a window with both bounds reads the cdf and agrees.")
   r("cens()", "von_mises", "works",
     "Stan's and brms's convention: F(y) = P(-pi <= Y <= y) on the response's own interval, wherever the mean direction is, so a left-censored row at y is the mass from -pi to y and a right-censored one the mass from y to pi.")
   r("trunc()", "poisson", "works",

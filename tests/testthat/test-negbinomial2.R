@@ -211,7 +211,7 @@ test_that("every negbinomial slot reaches negbinomial2, a later one too", {
                                                    link_shape = "log") {
     f <- real(link, link_shape)
     # the slot contract: probabilities, P(Y <= q)
-    f[["lcdf"]] <- function(q, dpars, aterms) {
+    f[["cdf"]] <- function(q, dpars, aterms) {
       stats::pnbinom(q, size = dpars[["shape"]], mu = dpars[["mu"]])
     }
     f[["accepts_aterms"]] <- c(f[["accepts_aterms"]], "cens")
@@ -219,9 +219,9 @@ test_that("every negbinomial slot reaches negbinomial2, a later one too", {
   }, .package = "frmtmb")
   later <- brmsfamily("negbinomial2")
   expect_true("cens" %in% later$accepts_aterms)
-  expect_identical(later$lcdf(4, list(mu = 2, sigma = 0.25), list()),
+  expect_identical(later$cdf(4, list(mu = 2, sigma = 0.25), list()),
                    stats::pnbinom(4, size = 4, mu = 2))
-  expect_length(formals(later$lcdf), 3L)
+  expect_length(formals(later$cdf), 3L)
 })
 
 test_that("it starts where negbinomial() starts", {

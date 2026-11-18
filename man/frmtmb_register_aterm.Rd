@@ -43,7 +43,7 @@ users for \code{vint()}. Register from the contributing package's
 }
 \details{
 The registered term carries DATA and nothing else. Its evaluated,
-coerced value reaches the family's \code{lpdf}, \code{lcdf}, \code{post$mean_fn} and
+coerced value reaches the family's \code{lpdf}, \code{cdf}, \code{post$mean_fn} and
 \code{sim} in the \code{aterms} list under \code{name} (or under \code{name1}, \code{name2},
 ... when \code{arity} is above one, following \code{vint()}), it is required on
 \code{newdata}, and it is what \code{frmtmb_family(required_aterms =)} names.

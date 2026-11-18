@@ -353,7 +353,7 @@ response scale renormalizes the density while saying nothing about
 the mass, so the two halves of every row would be divided by
 different things. Right censoring has no such problem, because it
 replaces a whole row rather than reweighting it. So this family
-declares an \code{lccdf} and, deliberately, no \code{lcdf}.
+declares an \code{lccdf} and, deliberately, no \code{cdf}.
 
 The refusal you will see is frmtmb's own and does not name this
 family:
@@ -371,7 +371,7 @@ have.
 \section{Accuracy}{
 
 The no-go branch needs the Wiener defective distribution function,
-which this package did not have: \code{\link[=wiener]{wiener()}} declares no \code{lcdf}, and
+which this package did not have: \code{\link[=wiener]{wiener()}} declares no \code{cdf}, and
 says so in its own compatibility table. It is written for this family
 in \code{R/wiener-cdf.R}, as two series blended in \code{log(u)} the way the
 density's two are.

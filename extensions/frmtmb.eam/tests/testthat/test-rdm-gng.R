@@ -1164,7 +1164,7 @@ test_that("go/no-go refuses the censoring it cannot mean", {
   skip_if_not_installed("RWiener")
   # The likelihood is a defective density plus a point mass. A window
   # normalizer on the response scale renormalizes the density and says
-  # nothing about the mass, so lcdf is deliberately absent and frmtmb
+  # nothing about the mass, so cdf is deliberately absent and frmtmb
   # refuses the rest by name.
   set.seed(9)
   td <- 1.5
@@ -1178,10 +1178,23 @@ test_that("go/no-go refuses the censoring it cannot mean", {
   expect_error(frm(bf(rt | dec(allgo) + trunc(lb = 0.2) ~ 1, bias = 0.5),
                    family = wiener_gng(deadline = td), data = g),
                "need a family with a CDF")
-  expect_null(wiener_gng(deadline = td)[["lcdf"]])
+  expect_null(wiener_gng(deadline = td)[["cdf"]])
   expect_true(is.function(wiener_gng(deadline = td)[["lccdf"]]))
-  expect_true(is.function(rdm(2)[["lcdf"]]))
+  expect_true(is.function(rdm(2)[["cdf"]]))
   expect_true(is.function(rdm(2)[["lccdf"]]))
+})
+
+test_that("go/no-go's absent cdf reads as NULL, also after the ndt seam", {
+  # The seam rewrote the slot with `[[<-` NULL, which drops the element,
+  # and `$cdf` on a family with no `cdf` element was then an error that
+  # pointed at `cdf_log`
+  f <- wiener_gng(deadline = 1.5)
+  expect_null(f$cdf)
+  fin <- frmtmb.eam:::ddm_ndt_install(f, ub = 0.2, floors = NULL,
+                                      what = "rt")
+  expect_true("cdf" %in% names(fin))
+  expect_null(fin$cdf)
+  expect_true(is.function(fin$lccdf))
 })
 
 test_that("the image sum's shortened truncation changed nothing", {

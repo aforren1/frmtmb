@@ -3087,6 +3087,7 @@ CLOSED in the round of 2026-11-11 (lane names): confint_varcorr()$block shows a 
   staleness on; tests/testthat/test-port-harness.R.
 - **R8** (low): a family's `$lcdf` slot returns the CDF, by documented
   convention; the name misleads.
+  CLOSED in the round of 2026-11-16 (lane cdfname): the slot is `cdf`; the old name stops with frmtmb_cdf_slot_renamed on every route (tests/testthat/test-cdf-slot-name.R).
 - The bin-2 port leaves 49 rows "not ported (cost)" and 41 gaps in its
   denominator at 0.71.0 (`dev/brmsport-bin2-summary.md`). 18 of the 49
   are rows of families this round added that the thin adapter or the

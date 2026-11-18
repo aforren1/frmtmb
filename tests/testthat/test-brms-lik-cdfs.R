@@ -82,7 +82,7 @@ test_that("continuous families: censored rows are brms's likelihood", {
     # brms's inv_gaussian_lccdf() has the sign of its second term
     # wrong (log(Phi(-a) + e Phi(-b)) for log(Phi(-a) - e Phi(-b))), so a
     # right-censored row is not brms's likelihood there; left and
-    # interval rows read its lcdf, which is right (dev/cdfs-brms-ig.R)
+    # interval rows read its cdf, which is right (dev/cdfs-brms-ig.R)
     if (k[[1]] == "inverse.gaussian") d$cc[d$cc == 1] <- 0
     r <- cdfs_lp_case(k[[2]], k[[3]], d, FALSE,
                       fd = k[[1]] == "Gamma")

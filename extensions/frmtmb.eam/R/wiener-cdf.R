@@ -1,7 +1,7 @@
 # The probability that a Wiener process has NOT crossed the upper
 # boundary by a given time. That one quantity is the whole no-go branch
 # of wiener_gng(), and it is the reason this file exists: wiener()
-# declares no lcdf, and its compatibility table says so in as many
+# declares no cdf, and its compatibility table says so in as many
 # words, because the first-passage distribution function is a third
 # series with its own truncation problem.
 #

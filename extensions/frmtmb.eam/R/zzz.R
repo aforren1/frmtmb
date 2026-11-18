@@ -129,7 +129,7 @@ ddm_compat_rules <- function() {
   r("wiener", "cens()", "works",
     "All four codes, on the plain model. A RIGHT-censored row reached no boundary and is scored with the log survival over both boundaries; its dec() value is required by the declaration and not read. A LEFT- or INTERVAL-censored row reached the boundary dec() names, and is scored with that boundary's defective distribution function (decision of 2026-09-24). Every quantity is a log from two series that each avoid a complement, verified against a 700-bit reference to |v| a = 120, against RWiener::pwiener() and WienR::pWDM(), and against the likelihood written by hand with RWiener for all four codes. Left or interval censoring with trunc() is refused by name, and so is censoring under variability =.")
   r("wiener", "trunc()", "works",
-    "The lcdf over both boundaries is the normalizer. Verified against the likelihood written by hand with RWiener for an upper bound. Refused with left or interval censoring, and under variability =, for the reasons in the cens() row.")
+    "The cdf over both boundaries is the normalizer. Verified against the likelihood written by hand with RWiener for an upper bound. Refused with left or interval censoring, and under variability =, for the reasons in the cens() row.")
   r("wiener", "weights()", "works",
     "Verified: the weighted log likelihood is the unweighted one at unit weights and scales as it should.")
   r("wiener", "simulate", "works",
@@ -171,9 +171,9 @@ ddm_compat_rules <- function() {
   r("gddm", "vreal()", "works",
     "Carries the per-condition covariate the drift nonlinearity reads.")
   r("gddm", "cens()", "refused",
-    "No lcdf. The generalized model's distribution function would be a second pass over the Fokker-Planck solve and is not written.")
+    "No cdf. The generalized model's distribution function would be a second pass over the Fokker-Planck solve and is not written.")
   r("gddm", "trunc()", "refused",
-    "No lcdf, so there is no normalizing constant for frmtmb to divide the window by.")
+    "No cdf, so there is no normalizing constant for frmtmb to divide the window by.")
   r("gddm", "weights()", "untested",
     "Not exercised. Nothing in the family works against case weights, but nothing has run them either.")
   r("gddm", "simulate", "works",
@@ -209,9 +209,9 @@ ddm_compat_rules <- function() {
   r("lba", "vint()", "works",
     "Required: vint1 is which accumulator won, counted from 1. Note that this is 1-based where wiener's boundary indicator is 0-based, which is a difference between the two families and not a typo.")
   r("lba", "cens()", "refused",
-    "No lcdf. The race distribution function is a product of survivals with no closed form written here.")
+    "No cdf. The race distribution function is a product of survivals with no closed form written here.")
   r("lba", "trunc()", "refused",
-    "Same reason as cens(): no lcdf, so there is no normalizer.")
+    "Same reason as cens(): no cdf, so there is no normalizer.")
   r("lba", "weights()", "untested",
     "Not exercised.")
   r("lba", "simulate", "works",
@@ -255,7 +255,7 @@ rdm_gng_compat_rules <- function() {
   r <- b$r
 
   r("rdm", "ndt_group()", "works",
-    "As for lba(), through the same shared helper. The bound also reaches the declared lcdf and lccdf, so a censored or truncated row is scored against its own group's bound rather than the data set's.")
+    "As for lba(), through the same shared helper. The bound also reaches the declared cdf and lccdf, so a censored or truncated row is scored against its own group's bound rather than the data set's.")
   r("rdm", "vint()", "works",
     "Required: vint1 is which accumulator reached the threshold, counted from 1, exactly as it is for lba(). Omitting it is refused by name, because the density indexes it.")
   r("rdm", "dec()", "refused",
@@ -263,9 +263,9 @@ rdm_gng_compat_rules <- function() {
   r("rdm", "vreal()", "refused",
     "Refused by name since frmtmb 0.53.0. Nothing in the density reads a real-valued addition term, and this row used to read works, on the ground that a model supplying one fitted and gave the same answer as one that did not. That IS the defect: the column travelled into the fit and changed nothing, silently. rdm() now declares the terms it takes and frame assembly refuses the rest.")
   r("rdm", "cens()", "works",
-    "All four codes. The family declares both an lccdf and an lcdf, and neither needed new algebra: the race is unfinished exactly when every accumulator is, so log S is the sum of the same per-accumulator survivals the density already forms for the losers of an observed trial, over all n instead of n - 1. Verified against the likelihood written by hand at the fitted parameters: right censoring alone on 400 rows of which 100 are censored agrees to 2.2e-15 relative, and all four codes together on 300 rows to 5.0e-16. A censored row still needs a vint() winner, which the likelihood does not read; that is the price of a declaration that cannot be conditional on a censoring code.")
+    "All four codes. The family declares both an lccdf and a cdf, and neither needed new algebra: the race is unfinished exactly when every accumulator is, so log S is the sum of the same per-accumulator survivals the density already forms for the losers of an observed trial, over all n instead of n - 1. Verified against the likelihood written by hand at the fitted parameters: right censoring alone on 400 rows of which 100 are censored agrees to 2.2e-15 relative, and all four codes together on 300 rows to 5.0e-16. A censored row still needs a vint() winner, which the likelihood does not read; that is the price of a declaration that cannot be conditional on a censoring code.")
   r("rdm", "trunc()", "conditional",
-    "Works, and the range matters. The family declares an lcdf, written as -expm1(log S) so that the distribution function of a race whose survival is within a rounding of one does not come back as exactly zero; a fit left-truncated at 0.30 on 1146 surviving rows reproduces the hand-written normalized likelihood to 9.4e-16, and one right-truncated at 1.20 to 4.1e-16. What limits it is not this family: core forms the left-truncation normalizer as 1 - F(lb) on the PROBABILITY scale (R/objective.R, then ll - log(Fub - Flb)), so the declared lccdf is not used for it and the cancellation the lccdf exists to remove comes back at the bound. Measured on rdm(2), v = (3, 2), A = 0.8, k = 0.5, ndt = 0.15: exact at log S(lb) = -0.406, 5.0e-11 at -14.0, 1.1e-07 at -21.5, 8.7e-05 at -28.7 and 20 percent wrong at -35.8. A left bound in the ordinary range is exact; a bound out in the tail, past about log S = -25, is not. Core documents the limitation at R/families.R:278-285 and calls closing it a windowed log-difference slot it does not yet have.")
+    "Works, and the range matters. The family declares a cdf, written as -expm1(log S) so that the distribution function of a race whose survival is within a rounding of one does not come back as exactly zero; a fit left-truncated at 0.30 on 1146 surviving rows reproduces the hand-written normalized likelihood to 9.4e-16, and one right-truncated at 1.20 to 4.1e-16. What limits it is not this family: core forms the left-truncation normalizer as 1 - F(lb) on the PROBABILITY scale (R/objective.R, then ll - log(Fub - Flb)), so the declared lccdf is not used for it and the cancellation the lccdf exists to remove comes back at the bound. Measured on rdm(2), v = (3, 2), A = 0.8, k = 0.5, ndt = 0.15: exact at log S(lb) = -0.406, 5.0e-11 at -14.0, 1.1e-07 at -21.5, 8.7e-05 at -28.7 and 20 percent wrong at -35.8. A left bound in the ordinary range is exact; a bound out in the tail, past about log S = -25, is not. Core documents the limitation at R/families.R:278-285 and calls closing it a windowed log-difference slot it does not yet have.")
   r("rdm", "weights()", "works",
     "Verified: the weighted log likelihood equals the unweighted one at unit weights.")
   r("rdm", "simulate", "works",
@@ -300,9 +300,9 @@ rdm_gng_compat_rules <- function() {
   r("wiener_gng", "vreal()", "works",
     "Carries the per-row deadline when it varies between trials, and is then required. A constant deadline goes on the family as wiener_gng(deadline =) instead; supplying neither is refused by name, and the two spellings give the same log likelihood to 1e-10, verified.")
   r("wiener_gng", "cens()", "conditional",
-    "RIGHT censoring works, and is the same statement the family already makes: a trial whose clock stopped before it responded is a no-go trial with the deadline moved, so the declared lccdf is this family's own no-go probability at the censoring time. Verified to the LAST BIT: the same 400 rows scored as no-go trials at the deadline and as trials right-censored at the deadline give log likelihoods that differ by exactly zero. Left and interval censoring are refused by frmtmb, because the family declares no lcdf, and that is deliberate rather than unwritten; see the trunc() row.")
+    "RIGHT censoring works, and is the same statement the family already makes: a trial whose clock stopped before it responded is a no-go trial with the deadline moved, so the declared lccdf is this family's own no-go probability at the censoring time. Verified to the LAST BIT: the same 400 rows scored as no-go trials at the deadline and as trials right-censored at the deadline give log likelihoods that differ by exactly zero. Left and interval censoring are refused by frmtmb, because the family declares no cdf, and that is deliberate rather than unwritten; see the trunc() row.")
   r("wiener_gng", "trunc()", "refused",
-    "By frmtmb, because the family declares no lcdf, and the family declares none on purpose. This likelihood is a defective density plus a point mass at no-response, and a truncation window on the response scale renormalizes the density while saying nothing about the mass, so the two halves of every row would be divided by different things. Right censoring has no such problem, because it replaces a row rather than reweighting it.")
+    "By frmtmb, because the family declares no cdf, and the family declares none on purpose. This likelihood is a defective density plus a point mass at no-response, and a truncation window on the response scale renormalizes the density while saying nothing about the mass, so the two halves of every row would be divided by different things. Right censoring has no such problem, because it replaces a row rather than reweighting it.")
   r("wiener_gng", "weights()", "works",
     "Verified: the weighted log likelihood equals the unweighted one at unit weights.")
   r("wiener_gng", "simulate", "works",

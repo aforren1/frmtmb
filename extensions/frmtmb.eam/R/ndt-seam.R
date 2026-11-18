@@ -23,7 +23,7 @@
 #
 # NOT promised: any of the four densities' internals; the slot WRAPPING
 # this package does for its own families, since `ddm_ndt_install()`
-# rewrites `lpdf`, `lcdf`, `lccdf`, `sim` and `post$mean_fn` and that
+# rewrites `lpdf`, `cdf`, `lccdf`, `sim` and `post$mean_fn` and that
 # assumes this package's own family layout; the across-trial range `st`
 # and its doubled bound; the label hash the floor table is keyed on; and
 # the starting value of anything but `ndt`.

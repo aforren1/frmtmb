@@ -27,7 +27,10 @@ reading \code{links} at the moment of the call, so they always describe the
 links the fit uses, however the object was edited and whenever it was
 saved. Every other name matches exactly. A name that is only the
 prefix of one field is an error naming that field, and a name that
-matches nothing is \code{NULL}, as on any list.
+matches nothing is \code{NULL}, as on any list, except the CDF slot's
+former name, which is an error naming \code{cdf}. The name of a slot that
+\code{\link[=frmtmb_family]{frmtmb_family()}} defines is \code{NULL} when the object does not hold it,
+even where it is the prefix of another field (\code{cdf} of \code{cdf_log}).
 
 The link fields are not elements of the list, so \code{names()}, \code{[[} and
 \code{str()} do not show them. An element stored under one of those names

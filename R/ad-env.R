@@ -7,7 +7,7 @@
 #' supplies that frmtmb will later put on an AD tape, so that the user
 #' does not have to carry the binding boilerplate. frmtmb applies it to
 #' the tape-side slots and to those only: [frmtmb_family()]'s `lpdf`
-#' and `lcdf`, and [frmtmb_structure()]'s `loglik`. `valid_y`, `sim`,
+#' and `cdf`, and [frmtmb_structure()]'s `loglik`. `valid_y`, `sim`,
 #' `post$mean_fn` and the rest run on doubles, off the tape, where the
 #' bindings would buy nothing. A package that takes tape-side functions
 #' of its own applies this to those. It is safe to call on any object:
